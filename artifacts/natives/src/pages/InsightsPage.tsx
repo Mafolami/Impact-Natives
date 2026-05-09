@@ -169,7 +169,7 @@ export default function InsightsPage() {
   const tab = params.tab || "dashboard";
 
   return (
-    <div className="container max-w-6xl py-12 md:py-24">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-24">
       <div className="mb-12 border-b pb-8">
         <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
           {tab === "dashboard" && "Impact Dashboard"}

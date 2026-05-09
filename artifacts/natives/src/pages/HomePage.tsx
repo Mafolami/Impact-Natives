@@ -7,7 +7,7 @@ export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen w-full font-sans">
       {/* Hero Section */}
-      <section className="px-6 pt-24 md:pt-32 pb-24 md:pb-40 max-w-6xl mx-auto w-full text-center relative">
+      <section className="px-4 sm:px-6 pt-24 md:pt-32 pb-24 md:pb-40 max-w-7xl mx-auto w-full text-center relative">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,rgba(196,92,38,0.05),transparent_50%)]"></div>
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter text-foreground mb-8 leading-[1.1]">
           The last-mile coordination infrastructure for <span className="text-primary">Africa's impact economy.</span>
@@ -27,7 +27,7 @@ export default function HomePage() {
 
       {/* Stats Strip */}
       <section className="border-y border-border bg-card w-full py-8 overflow-hidden">
-        <div className="container grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4 text-center divide-x divide-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4 text-center divide-x divide-border">
           <div className="flex flex-col space-y-1">
             <span className="text-3xl md:text-4xl font-bold tracking-tighter text-foreground">$0M+</span>
             <span className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-widest">Capital Mobilized</span>
@@ -48,7 +48,7 @@ export default function HomePage() {
       </section>
 
       {/* Problem Statement */}
-      <section className="py-24 md:py-32 container max-w-5xl">
+      <section className="py-24 md:py-32 w-full max-w-7xl mx-auto px-4 sm:px-6">
          <div className="max-w-3xl">
            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-6">The Coordination Gap</h2>
            <p className="text-xl text-muted-foreground leading-relaxed mb-12">
@@ -59,7 +59,7 @@ export default function HomePage() {
 
       {/* How Natives Works - Visual System */}
       <section className="py-24 bg-muted/30 border-y">
-        <div className="container max-w-6xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="mb-16">
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">The Operating System for Impact</h2>
             <p className="text-xl text-muted-foreground max-w-2xl">Four interconnected infrastructure layers designed to eliminate friction and build institutional trust.</p>
@@ -102,7 +102,7 @@ export default function HomePage() {
       </section>
 
       {/* Stakeholders */}
-      <section className="py-24 md:py-32 container max-w-6xl">
+      <section className="py-24 md:py-32 w-full max-w-7xl mx-auto px-4 sm:px-6">
         <div className="mb-16 text-center">
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">Built for the entire ecosystem</h2>
         </div>
@@ -126,7 +126,7 @@ export default function HomePage() {
       
       {/* CTA Section */}
       <section className="py-24 bg-card border-t border-border text-center">
-        <div className="container max-w-3xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-8">Ready to build the infrastructure?</h2>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
              <Link href="/signup">

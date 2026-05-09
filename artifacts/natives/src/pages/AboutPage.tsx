@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 
 export default function AboutPage() {
   return (
-    <div className="container max-w-4xl py-12 md:py-24">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-24">
       <div className="mb-20">
         <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-8 leading-tight">
           We are building the coordination layer for Africa's future.

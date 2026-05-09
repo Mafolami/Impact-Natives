@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 
 export default function PartnerPage() {
   return (
-    <div className="container max-w-4xl py-12 md:py-24">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-24">
       <div className="mb-16 text-center">
         <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">Partner With Natives</h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">

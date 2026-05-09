@@ -9,7 +9,7 @@ export default function PlatformPage() {
   const tab = params.tab || "overview";
 
   return (
-    <div className="container max-w-6xl py-12 md:py-24">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-24">
       <div className="mb-12">
         <h1 className="text-4xl font-bold tracking-tight mb-4">Platform Infrastructure</h1>
         <p className="text-xl text-muted-foreground">The digital foundation for coordinated impact.</p>
