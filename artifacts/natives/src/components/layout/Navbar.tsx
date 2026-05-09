@@ -135,6 +135,44 @@ export function Navbar() {
               </NavigationMenuItem>
 
               <NavigationMenuItem>
+                <NavigationMenuTrigger>Insights & Impact</NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2">
+                    <li>
+                      <Link href="/insights/dashboard" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground">
+                        <div className="text-sm font-medium leading-none">Impact Dashboard</div>
+                        <p className="line-clamp-2 text-sm leading-snug text-muted-foreground mt-1">Ecosystem metrics, capital flows, SDG indicators.</p>
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/insights/case-studies" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground">
+                        <div className="text-sm font-medium leading-none">Case Studies</div>
+                        <p className="line-clamp-2 text-sm leading-snug text-muted-foreground mt-1">Evidence from the ground across sectors.</p>
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/insights/research" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground">
+                        <div className="text-sm font-medium leading-none">Research & Reports</div>
+                        <p className="line-clamp-2 text-sm leading-snug text-muted-foreground mt-1">Ecosystem intelligence and funding analyses.</p>
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/insights/solution-library" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground">
+                        <div className="text-sm font-medium leading-none">Solution Library</div>
+                        <p className="line-clamp-2 text-sm leading-snug text-muted-foreground mt-1">Proven models and intervention playbooks.</p>
+                      </Link>
+                    </li>
+                    <li className="md:col-span-2">
+                      <Link href="/insights/resources" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground">
+                        <div className="text-sm font-medium leading-none">Resource Hub</div>
+                        <p className="line-clamp-2 text-sm leading-snug text-muted-foreground mt-1">Templates, guides, and partnership frameworks.</p>
+                      </Link>
+                    </li>
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+
+              <NavigationMenuItem>
                 <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
                   <Link href="/partner">Partner With Us</Link>
                 </NavigationMenuLink>
