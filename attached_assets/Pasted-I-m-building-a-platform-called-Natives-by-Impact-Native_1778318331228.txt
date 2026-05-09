@@ -1,0 +1,105 @@
+I'm building a platform called Natives (by Impact Natives) — a digital coordination and partnership infrastructure for Africa's social impact ecosystem. Think institutional-grade SaaS, not a nonprofit website.
+Tech stack:
+Next.js + TypeScript, Tailwind + shadcn/ui, Node.js API routes, PostgreSQL, Prisma ORM, Supabase Auth, Vercel deployment target.
+
+Color palette:
+White base, burnt orange (#C45C26 or similar), forest green (#2D6A4F or similar). Not blue. Use orange for CTAs and active states, green for verification and trust indicators.
+Design direction:
+Vercel.com or Linear.app as visual reference — dark or white background, sharp typography, minimal color usage, high information density. Institutional and modern, not playful. No stock photography. No generic vector illustrations. Use typography, data placeholders, iconography, and abstract system or network graphics where visuals are needed. The Africa Impact Map should be a prominent visual element. No NGO-website aesthetics.
+Typography: Clean, modern, high-contrast. Let typography carry the hero sections.
+Mobile responsive throughout.
+
+Global Navigation:
+Seven main pages with dropdown menus reflecting subpage structure. Top-right of nav: Sign In button and Join Natives CTA button (orange). All pages share this nav.
+
+Pages to scaffold — UI and navigation only, no backend or auth logic:
+
+1. Home
+
+Hero: "The last-mile coordination infrastructure for Africa's impact economy"
+Ecosystem problem statement section
+How Natives Works: four layers — Discovery, Partnership, Funding, Trust
+Stakeholder categories: NGO, Corporate, Government, Donor/DFI, Founder, Ecosystem Expert
+Impact metrics placeholder (capital mobilized, partnerships formed, active projects, geographic reach)
+CTAs: Join Natives / Request Partnership / Explore Ecosystem
+
+
+2. Platform
+Subpages:
+
+Partnership OS — organisation discovery, partnership matching, collaboration workspace
+Impact Verification — SDG mapping, impact metrics, donor-ready reporting
+Funding Infrastructure — funding opportunities, grant alignment, co-funding coordination
+Trust & Verification — verification badges, trust indicators, transparency signals
+API & Integrations — Coming Soon placeholder
+
+
+3. Solutions
+Subpages with tabs or distinct sections:
+
+For NGOs — funding visibility, partnership access, reporting tools, donor readiness
+For Corporates — ESG implementation, verified partners, impact tracking, local execution
+For Donors & Governments — measurable outcomes, verified organisations, funding coordination, ecosystem visibility
+For Founders — business model validation partners, blended finance access (grants, impact investment, patient capital, prizes, accelerators), proof-of-concept institutional partners, co-founder and technical partner discovery, pathway from founder profile to registered organisation profile
+
+
+4. Labs & Network
+Subpages:
+
+Active Labs — three launch Labs displayed as cards:
+
+Agritech Innovation Lab
+Climate Resilience Lab
+Health Systems Lab
+Each card shows: challenge statement placeholder, participant count placeholder, timeline, status, Join Lab CTA
+
+
+Marketplace / Directory — searchable organisation directory placeholder with SDG filters, geography filters, verification indicators
+Africa Impact Map — prominent geographic visualisation placeholder showing active projects, labs, partnerships, impact regions
+
+
+5. Insights & Impact
+Subpages:
+
+Case Studies — problem, stakeholders, implementation, outcomes structure
+Research & Reports — ecosystem insights, SDG trends, funding analyses
+Solution Library — scalable models, intervention playbooks
+Resource Hub — templates, reporting guides, partnership frameworks
+Impact Dashboard — metrics placeholders: capital mobilized, partnerships formed, projects active, geographic reach, SDG indicators
+
+
+6. Partner With Us
+Sections:
+
+Commission a Lab
+Become a Partner
+Join as NGO / Corporate / Donor / Founder
+Book a Demo
+Contact Form
+
+
+7. About
+Sections:
+
+Mission: Why Natives exists — the last-mile coordination problem in Africa's impact economy
+Vision: What the ecosystem looks like when Natives works at scale
+How We Work: the four infrastructure layers explained in human terms
+Our Principles: institutional trust, data-first, workflow-centric, sector-legible verification, progression pathways, mobile-first for African contexts
+Launch Sectors: Agritech, Climate, Health — why these three, why now
+Team: placeholder team cards with roles
+Partners & Advisors: placeholder section
+Contact: light contact block linking to Partner With Us
+
+This page should feel like a founder's statement — authoritative and direct, not corporate boilerplate.
+
+Auth placeholders:
+Include placeholder route shells for /login and /signup. The signup shell should include a role-selection step with these options: NGO, Corporate, Government, Donor/DFI, Founder, Ecosystem Expert. No auth logic — UI scaffolding only.
+
+Additional instructions:
+
+Use placeholder content throughout — no lorem ipsum, write placeholder text that reflects the actual product and its language
+All pages should feel visually connected and consistent
+Do not build auth, database, or backend logic yet — UI and navigation only
+Structure the codebase cleanly for Next.js App Router so I can move to localhost easily after
+Green (#2D6A4F) should appear on verification indicators and trust signals throughout the UI
+Orange (#C45C26) should appear on all primary CTAs and active states
