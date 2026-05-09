@@ -1,7 +1,7 @@
 export function Footer() {
   return (
     <footer className="border-t bg-white py-12 md:py-16">
-      <div className="container grid grid-cols-1 md:grid-cols-4 gap-8 text-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full grid grid-cols-1 md:grid-cols-4 gap-8 text-sm">
         <div className="space-y-3">
           <h4 className="font-bold text-lg tracking-tight">Natives</h4>
           <p className="text-muted-foreground">
@@ -36,7 +36,7 @@ export function Footer() {
           </ul>
         </div>
       </div>
-      <div className="container mt-12 pt-8 border-t text-muted-foreground text-xs flex justify-between items-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full mt-12 pt-8 border-t text-muted-foreground text-xs flex justify-between items-center">
         <p>© {new Date().getFullYear()} Impact Natives. All rights reserved.</p>
         <p>Built for the continent's most important work.</p>
       </div>

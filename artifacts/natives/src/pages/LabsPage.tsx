@@ -107,25 +107,35 @@ export default function LabsPage() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
+            {[
+              { name: "Kilimo Trust", sector: "Agritech", country: "Uganda", sdgs: [2, 8], verified: true },
+              { name: "GreenBase Africa", sector: "Climate", country: "Kenya", sdgs: [13, 15], verified: false },
+              { name: "HealthBridge NGO", sector: "Health", country: "Nigeria", sdgs: [3, 10], verified: true },
+              { name: "Sahel Adapt", sector: "Climate", country: "Senegal", sdgs: [13, 1], verified: true },
+              { name: "AgriLink Co-op", sector: "Agritech", country: "Ghana", sdgs: [2, 17], verified: false },
+              { name: "Ubuntu Health Fund", sector: "Health", country: "South Africa", sdgs: [3, 8], verified: true },
+            ].map((org, i) => (
               <Card key={i} className="hover:border-primary/30 transition-all cursor-pointer group">
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center font-bold text-lg text-muted-foreground">
-                      O{i}
+                      {org.name.slice(0, 2).toUpperCase()}
                     </div>
-                    {i % 2 !== 0 && (
-                      <Badge className="bg-[#2D6A4F]/10 text-[#2D6A4F] border-none flex items-center gap-1">
+                    {org.verified && (
+                      <Badge className="bg-[#2D6A4F] text-white border-none flex items-center gap-1 text-xs font-semibold">
                         <ShieldCheck className="w-3 h-3" /> Verified
                       </Badge>
                     )}
                   </div>
-                  <h3 className="font-bold text-lg mb-1 group-hover:text-primary transition-colors">Organization Name {i}</h3>
+                  <h3 className="font-bold text-lg mb-0.5 group-hover:text-primary transition-colors">{org.name}</h3>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
+                    <MapPin className="w-3 h-3" />{org.country} · {org.sector}
+                  </div>
                   <p className="text-sm text-muted-foreground mb-4 line-clamp-2">Providing essential infrastructure services and capacity building for local communities.</p>
-                  
-                  <div className="flex flex-wrap gap-2 mt-auto">
-                    <Badge variant="secondary" className="text-xs font-normal">SDG {i}</Badge>
-                    <Badge variant="secondary" className="text-xs font-normal">SDG {i + 1}</Badge>
+                  <div className="flex flex-wrap gap-2">
+                    {org.sdgs.map(n => (
+                      <Badge key={n} className="text-xs font-medium bg-[#2D6A4F]/10 text-[#2D6A4F] border-[#2D6A4F]/20 border">SDG {n}</Badge>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
@@ -141,6 +151,9 @@ export default function LabsPage() {
             <div className="flex space-x-2">
               <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">Projects</Badge>
               <Badge variant="outline">Partnerships</Badge>
+              <Badge className="bg-[#2D6A4F] text-white border-none flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3" /> Verified Orgs
+              </Badge>
             </div>
           </div>
           

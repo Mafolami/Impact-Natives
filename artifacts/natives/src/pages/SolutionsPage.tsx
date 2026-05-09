@@ -37,6 +37,7 @@ const AUDIENCE = {
       {
         icon: ShieldCheck,
         title: "Institutional Verification",
+        trust: true,
         body: "Institutional verification through Natives signals to every potential partner that your organisation meets a baseline of governance, operational, and impact standards. That credibility travels with your profile across the entire ecosystem."
       }
     ]
@@ -86,6 +87,7 @@ const AUDIENCE = {
       {
         icon: ShieldCheck,
         title: "Standardised Due Diligence",
+        trust: true,
         body: "Grantee due diligence is expensive and inconsistent. Natives maintains institutional-grade verification records for every organisation on the platform, giving your team a standardised baseline of governance, operational capacity, and impact evidence before the first conversation."
       },
       {
@@ -172,11 +174,11 @@ export default function SolutionsPage() {
         {audience.cards.map((card, i) => (
           <div
             key={i}
-            className="bg-card border border-border rounded-xl p-8 flex flex-col gap-4 hover:border-primary/30 transition-colors"
+            className={`bg-card border rounded-xl p-8 flex flex-col gap-4 transition-colors ${"trust" in card && card.trust ? "border-[#2D6A4F]/25 hover:border-[#2D6A4F]/50" : "border-border hover:border-primary/30"}`}
             data-testid={`card-solution-benefit-${i}`}
           >
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <card.icon className="w-5 h-5 text-primary" />
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${"trust" in card && card.trust ? "bg-[#2D6A4F]/10" : "bg-primary/10"}`}>
+              <card.icon className={`w-5 h-5 ${"trust" in card && card.trust ? "text-[#2D6A4F]" : "text-primary"}`} />
             </div>
             <h3 className="text-lg font-bold leading-snug">{card.title}</h3>
             <p className="text-muted-foreground leading-relaxed text-[15px]">{card.body}</p>
