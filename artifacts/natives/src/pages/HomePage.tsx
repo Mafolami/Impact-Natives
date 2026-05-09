@@ -10,7 +10,7 @@ export default function HomePage() {
       <section className="px-6 pt-24 md:pt-32 pb-24 md:pb-40 max-w-6xl mx-auto w-full text-center relative">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,rgba(196,92,38,0.05),transparent_50%)]"></div>
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter text-foreground mb-8 leading-[1.1]">
-          The coordination <br className="hidden md:block"/>infrastructure for <br className="hidden md:block"/><span className="text-primary">Africa's impact economy</span>
+          The last-mile coordination infrastructure for <span className="text-primary">Africa's impact economy.</span>
         </h1>
         <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-12 leading-relaxed">
           Natives provides institutional-grade digital tooling to align funding, verify impact, and scale partnerships across the continent.
