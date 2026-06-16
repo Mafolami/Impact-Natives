@@ -1,4 +1,4 @@
-import { useParams } from "wouter";
+import { Link, useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -169,9 +169,17 @@ export default function InsightsPage() {
   const tab = params.tab || "dashboard";
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-24">
-      <div className="mb-12 border-b pb-8">
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+    <div className="w-full max-w-7xl mx-auto content-padding py-12 py-12 md:py-24">
+      <div className="mb-18 border-b pb-8">
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-8">
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="secondary"
+              className="text-[14px] uppercase tracking-wide bg-muted text-muted-foreground mb-8"
+            >
+              Coming Soon
+            </Badge>
+          </div>
           {tab === "dashboard" && "Impact Dashboard"}
           {tab === "case-studies" && "Case Studies"}
           {tab === "research" && "Research & Reports"}
@@ -191,7 +199,7 @@ export default function InsightsPage() {
       {/* ── DASHBOARD ─────────────────────────────────────────── */}
       {tab === "dashboard" && (
         <div className="space-y-10 animate-in fade-in duration-500">
-          {/* Top stats strip */}
+          {/* Top stats strip 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { label: "Capital Mobilized", value: "$0M+", sub: "Across all active programmes" },
@@ -210,7 +218,7 @@ export default function InsightsPage() {
           </div>
 
           {/* Charts row */}
-          <div className="grid md:grid-cols-3 gap-6">
+          {/*<div className="grid md:grid-cols-3 gap-6">
             <Card className="md:col-span-2">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
@@ -234,9 +242,9 @@ export default function InsightsPage() {
                 <p className="font-mono text-xs text-muted-foreground">[Recharts Donut Chart]</p>
               </CardContent>
             </Card>
-          </div>
+          </div> 
 
-          {/* Secondary metrics */}
+          {/* Secondary metrics 
           <div className="grid md:grid-cols-3 gap-6">
             <Card>
               <CardHeader className="pb-2">
@@ -281,7 +289,7 @@ export default function InsightsPage() {
             </Card>
           </div>
 
-          {/* SDG indicator strip */}
+          {/* SDG indicator strip 
           <Card>
             <CardHeader>
               <CardTitle className="text-base font-semibold">SDG Indicator Tracking</CardTitle>
@@ -308,12 +316,14 @@ export default function InsightsPage() {
               </div>
             </CardContent>
           </Card>
+          */}
         </div>
       )}
 
       {/* ── CASE STUDIES ──────────────────────────────────────── */}
       {tab === "case-studies" && (
-        <div className="space-y-10 animate-in fade-in duration-500">
+  <div className="space-y-10 animate-in fade-in duration-500">
+  {/*
           <div className="grid gap-8">
             {CASE_STUDIES.map((cs, i) => (
               <Card key={i} className="border-border hover:border-primary/40 transition-colors overflow-hidden">
@@ -355,13 +365,16 @@ export default function InsightsPage() {
               </Card>
             ))}
           </div>
+          */}
         </div>
       )}
 
+  
+
       {/* ── RESEARCH & REPORTS ────────────────────────────────── */}
       {tab === "research" && (
-        <div className="space-y-6 animate-in fade-in duration-500">
-          {REPORTS.map((report, i) => (
+         <div className="space-y-6 animate-in fade-in duration-500">
+        {/*  {REPORTS.map((report, i) => (
             <div key={i} className="flex flex-col md:flex-row md:items-start gap-6 p-6 border rounded-xl bg-card hover:border-primary/40 transition-colors">
               <div className="w-12 h-12 shrink-0 bg-primary/10 rounded-lg flex items-center justify-center">
                 <FileText className="w-6 h-6 text-primary" />
@@ -395,13 +408,14 @@ export default function InsightsPage() {
             <p className="text-muted-foreground text-sm mb-4">More research published quarterly. Join Natives to receive new reports in your inbox.</p>
             <Button variant="outline" data-testid="button-subscribe-research">Subscribe to Research Updates</Button>
           </div>
+          */}
         </div>
       )}
 
       {/* ── SOLUTION LIBRARY ──────────────────────────────────── */}
       {tab === "solution-library" && (
         <div className="space-y-8 animate-in fade-in duration-500">
-          <div className="grid md:grid-cols-2 gap-6">
+         {/* <div className="grid md:grid-cols-2 gap-6">
             {SOLUTIONS.map((sol, i) => (
               <Card key={i} className={`border-border hover:border-primary/40 transition-colors group cursor-pointer ${sol.status === "Coming Soon" ? "opacity-70" : ""}`} data-testid={`card-solution-${i}`}>
                 <CardHeader className="pb-3">
@@ -436,21 +450,10 @@ export default function InsightsPage() {
                 </CardContent>
               </Card>
             ))}
+              */}
           </div>
-
-          <div className="p-6 bg-card border rounded-xl">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <h3 className="font-bold mb-1">Have a model worth sharing?</h3>
-                <p className="text-sm text-muted-foreground">Submit a proven intervention for review by the Natives team for inclusion in the library.</p>
-              </div>
-              <Button className="bg-primary text-white hover:bg-primary/90 shrink-0" data-testid="button-submit-model">
-                Submit a Model
-              </Button>
-            </div>
-          </div>
-        </div>
       )}
+  
 
       {/* ── RESOURCE HUB ──────────────────────────────────────── */}
       {tab === "resources" && (
@@ -567,9 +570,21 @@ export default function InsightsPage() {
               <h3 className="font-bold mb-1">Request a resource</h3>
               <p className="text-sm text-muted-foreground">Don't see what you need? Submit a request and the Natives team will prioritise it for the next update cycle.</p>
             </div>
-            <Button variant="outline" className="shrink-0" data-testid="button-request-resource">Request a Resource</Button>
-          </div>
+              <Link href="/contact">
+              <Button variant="outline" className="shrink-0" data-testid="button-request-resource">Request a Resource</Button>   
+              </Link>         
+            </div>
+        
+
+        <div className="p-6 bg-card border border-dashed rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h3 className="font-bold mb-1">Contribute a resource</h3>
+          <p className="text-sm text-muted-foreground">Have a useful resource to share with others? Submit a request and the Natives team will prioritise it for the next update cycle.</p>
         </div>
+        <Button variant="outline" className="shrink-0" data-testid="equest-resource">Submit a Resource</Button>
+        </div>
+        </div>
+        
       )}
     </div>
   );

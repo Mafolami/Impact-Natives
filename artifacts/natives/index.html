@@ -12,6 +12,22 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Natives — Africa Impact Platform" />
     <meta name="twitter:description" content="Natives — Africa Impact Platform — built on Replit. Update this description to reflect the app." />
+    <style>
+      html.dark { background: hsl(193, 20%, 7%); }
+      html { background: hsl(0, 0%, 100%); }
+    </style>
+    <script>
+      (function() {
+        try {
+          var stored = localStorage.getItem("next-themes");
+          if (stored === "dark") {
+            document.documentElement.classList.add("dark");
+          } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+            document.documentElement.classList.add("dark");
+          }
+        } catch(e) {}
+      })();
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,6 +35,7 @@
   </head>
   <body>
     <div id="root"></div>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

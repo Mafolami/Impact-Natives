@@ -1,202 +1,464 @@
 import { Link, useParams } from "wouter";
-import { Button } from "@/components/ui/button";
-import {
-  ArrowRight, Eye, Funnel, FileText, ShieldCheck,
-  Users, BarChart3, Layers, Lock, Globe, GitMerge,
-  Network, TrendingUp, MoveUpRight
-} from "lucide-react";
+import { ArrowRight, ShieldCheck, Users, Handshake, FlaskConical, Lightbulb, Globe, Network, Search } from "lucide-react";
 
 const TABS = [
-  { id: "ngos", label: "For NGOs" },
-  { id: "corporates", label: "For Corporates" },
-  { id: "donors-governments", label: "For Donors & Governments" },
-  { id: "founders", label: "For Founders" },
+  { id: "ngos", label: "NGOs & Non-Profits" },
+  { id: "corporates", label: "Corporations" },
+  { id: "donors", label: "Funders & Donors" },
+  { id: "startups", label: "Startups & Social Enterprises" },
+  { id: "individuals", label: "Individuals & Creatives" },
+  { id: "research", label: "Research Institutions" },
 ];
 
-const AUDIENCE = {
+type AudienceKey = "ngos" | "corporates" | "donors" | "startups" | "individuals" | "research";
+
+const AUDIENCE: Record<AudienceKey, {
+  eyebrow: string;
+  headline: string;
+  sub: string;
+  cta: string;
+  ctaHref: string;
+  accent: string;
+  problem: string;
+  features: { icon: React.ComponentType<any>; title: string; body: string; }[];
+  paths: { label: string; href: string; desc: string; }[];
+}> = {
   ngos: {
-    headline: "Elevate your visibility and operational capacity",
-    sub: "Infrastructure for implementation organisations that want to move faster and be taken more seriously.",
-    cta: "Join as NGO",
-    cards: [
-      {
-        icon: Eye,
-        title: "Institutional Visibility",
-        body: "Most NGOs are invisible to the funders and partners that could accelerate their work. Natives gives your organisation a verified institutional profile that signals operational maturity — not just mission alignment — to donors, corporate ESG teams, and government procurement offices actively looking for implementation partners."
-      },
-      {
-        icon: FileText,
-        title: "Aligned Funding Access",
-        body: "Funding is rarely the bottleneck; access is. Natives surfaces co-funding opportunities, grant cycles, and partnership mandates that match your programme areas and geographic footprint, so you spend less time prospecting and more time delivering."
-      },
-      {
-        icon: BarChart3,
-        title: "Automated Impact Reporting",
-        body: "Reporting demands from multiple funders create real operational drag. Natives standardises your SDG-aligned data collection and generates donor-ready impact reports automatically — one system, every funder format, without rebuilding the wheel each reporting cycle."
-      },
+    eyebrow: "For NGOs & Non-Profits",
+    headline: "Get found by the funders and partners already looking for you.",
+    sub: "Your delivery capacity exists. Your credibility exists. The gap is visibility and structured access to the right relationships.",
+    cta: "Create your profile",
+    ctaHref: "/signup",
+    accent: "#2db87a",
+    problem: "Most NGOs doing serious work in Africa are invisible to the funders and corporates actively looking for implementation partners. Discovery is still broken — it runs on networks, warm intros, and conference corridors. Natives gives you a structured presence in a verified ecosystem so the right organisations can find you.",
+    features: [
       {
         icon: ShieldCheck,
-        title: "Institutional Verification",
-        trust: true,
-        body: "Institutional verification through Natives signals to every potential partner that your organisation meets a baseline of governance, operational, and impact standards. That credibility travels with your profile across the entire ecosystem."
-      }
-    ]
+        title: "Build a verified institutional profile",
+        body: "Create a structured profile covering your sector focus, geographic reach, and programme history. Apply for verification — once approved, your organisation carries a verification badge that signals credibility to every funder, corporate, and partner browsing the platform.",
+      },
+      {
+        icon: Search,
+        title: "Get discovered through the marketplace",
+        body: "Post initiatives to the Impact Marketplace and let funders, corporates, and implementers find you. Your work is searchable by sector, country, and partnership type — so the right organisations can find and express interest in what you're building.",
+      },
+      {
+        icon: Handshake,
+        title: "Receive and manage expressions of interest",
+        body: "When an organisation expresses interest in your initiative, you get notified and can review, accept, or decline. Confirmed partnerships are tracked on the platform — giving you a clear record of who you're working with and why.",
+      },
+      {
+        icon: FlaskConical,
+        title: "Commission an Innovation Lab",
+        body: "If your challenge is complex and requires multiple stakeholders to align, submit a Lab proposal. Natives structures the coordination process, identifies the right actors, and manages delivery — so you can focus on the problem, not the process.",
+      },
+    ],
+    paths: [
+      { label: "Create your profile", href: "/signup", desc: "Set up your organisation profile and apply for verification." },
+      { label: "Post an initiative", href: "/signup", desc: "List a challenge or programme on the Impact Marketplace." },
+      { label: "Find partners", href: "/platform/partnership-os", desc: "Browse verified funders, corporates, and implementers." },
+    ],
   },
   corporates: {
-    headline: "Execute local ESG strategies with verified partners",
-    sub: "Purpose-built for sustainability teams that need to act with confidence on the ground.",
-    cta: "Join as Corporate",
-    cards: [
-      {
-        icon: Users,
-        title: "Verified Local Partners",
-        body: "Corporate ESG commitments on the continent too often stall at the point of local execution — not because the intent isn't there, but because finding credible, verified implementation partners takes months of due diligence that most teams can't afford. Natives compresses that process into days, giving sustainability teams a pre-verified network of NGOs, social enterprises, and community organisations mapped to your sector focus and geographies."
-      },
-      {
-        icon: Globe,
-        title: "Localized ESG Evidence",
-        body: "Global SDG frameworks mean nothing without localized evidence. Natives connects your ESG strategy to ground-level implementation data, tracking outcomes against the metrics your board, investors, and regulators actually care about — in formats that integrate with your existing reporting infrastructure."
-      },
-      {
-        icon: Layers,
-        title: "Single Programme Workspace",
-        body: "Managing multiple local partners across multiple markets creates coordination overhead that erodes impact. Natives gives your team a single workspace to align milestones, review deliverables, and maintain governance standards across every active programme — without relying on email threads and spreadsheets."
-      },
-      {
-        icon: Lock,
-        title: "Verifiable Capital Transparency",
-        body: "When capital moves through third parties, transparency matters. Natives maintains a verifiable audit trail of how your ESG investment flows, what outcomes it drives, and how those results compare across initiatives — giving you the evidence base to scale what works and retire what doesn't."
-      }
-    ]
-  },
-  "donors-governments": {
-    headline: "Deploy capital with systemic visibility",
-    sub: "Tools for institutional allocators who need ecosystem intelligence before and after every commitment.",
-    cta: "Join as Funder",
-    cards: [
-      {
-        icon: Globe,
-        title: "Ecosystem Intelligence",
-        body: "Institutional funders and government agencies face a persistent problem: capital is available, but the ecosystem intelligence needed to allocate it well is fragmented, delayed, or simply absent. Natives gives donors and DFIs a real-time view of verified organisations, active programmes, and funding gaps across the sectors and geographies that matter to their mandates."
-      },
-      {
-        icon: GitMerge,
-        title: "Coordination Without Duplication",
-        body: "Duplicated effort is one of the impact ecosystem's most avoidable costs. Natives surfaces what is already funded, what is being implemented, and where unmet need is concentrated — so your next grant round complements existing capital rather than competing with it or leaving critical gaps unfilled."
-      },
+    eyebrow: "For Corporations",
+    headline: "Turn ESG and CSR commitments into verified delivery.",
+    sub: "Your sustainability mandates are real. Finding credible, verified implementation partners to deliver on them shouldn't take months.",
+    cta: "Create your profile",
+    ctaHref: "/signup",
+    accent: "#7b6dd4",
+    problem: "Corporate sustainability and social investment teams are expected to demonstrate measurable, on-the-ground impact — but finding the right NGOs, social enterprises, and implementers to work with is still manual and fragmented. Due diligence is expensive. Discovery is relationship-dependent. Natives fixes both.",
+    features: [
       {
         icon: ShieldCheck,
-        title: "Standardised Due Diligence",
-        trust: true,
-        body: "Grantee due diligence is expensive and inconsistent. Natives maintains institutional-grade verification records for every organisation on the platform, giving your team a standardised baseline of governance, operational capacity, and impact evidence before the first conversation."
+        title: "Access a directory of verified implementers",
+        body: "Browse verified organisations filtered by sector, country, and SDG alignment. Every verified organisation on Natives has passed a structured review — so you're not starting from zero on due diligence before the first conversation.",
       },
       {
-        icon: BarChart3,
-        title: "Portfolio-Level Measurement",
-        body: "Systemic change requires systemic measurement. Natives aggregates outcome data across your entire portfolio into a single dashboard — comparable across grantees, mapped against SDG indicators, and formatted for the reporting obligations your institution carries to boards and governments."
-      }
-    ]
+        icon: Lightbulb,
+        title: "Adopt initiatives as CSR anchors",
+        body: "Browse the Impact Marketplace and express interest in initiatives that align with your ESG priorities. Adopt a listed initiative as your corporate social responsibility anchor — third-party verified impact, without building a programme from scratch.",
+      },
+      {
+        icon: Handshake,
+        title: "Form structured partnerships",
+        body: "Send expressions of interest directly to organisations and initiatives that fit your mandate. Confirmed partnerships are tracked on the platform — with clear records of what was agreed, who is delivering, and what the expected outcome is.",
+      },
+      {
+        icon: FlaskConical,
+        title: "Commission a Lab for complex challenges",
+        body: "For challenges that require multi-stakeholder coordination — CSR programmes that need NGO, government, and community alignment — commission an Innovation Lab. Natives designs the coordination architecture and manages delivery.",
+      },
+    ],
+    paths: [
+      { label: "Browse verified partners", href: "/platform/partnership-os", desc: "Search the directory by sector, country, and SDG." },
+      { label: "Explore initiatives", href: "/platform/impact-marketplace", desc: "Find programmes to adopt or co-fund on the marketplace." },
+      { label: "Commission a Lab", href: "/labs/commission", desc: "Structure a multi-stakeholder programme with Natives." },
+    ],
   },
-  founders: {
-    headline: "Accelerate from model to institution",
-    sub: "From first validation to registered organisation — the infrastructure that grows with you.",
-    cta: "Join as Founder",
-    cards: [
+  donors: {
+    eyebrow: "For Funders & Donors",
+    headline: "Find credible pipeline. Deploy capital with confidence.",
+    sub: "Verified organisations, active initiatives, and a structured way to move from discovery to confirmed partnership — without months of manual due diligence.",
+    cta: "Join as a funder",
+    ctaHref: "/signup",
+    accent: "#2d9dd4",
+    problem: "Philanthropies, impact investors, and bilateral funders face the same problem: capital is available, but identifying credible, verified organisations to deploy it through takes disproportionate time and effort. Natives gives you structured access to a verified ecosystem — so you spend less time on discovery and more time on decisions.",
+    features: [
       {
-        icon: Network,
-        title: "Proof-of-Concept Partners",
-        body: "Impact founders building new models in Africa rarely lack vision — they lack the institutional connective tissue to validate and scale it. Natives gives founders access to a structured network of established NGOs and corporates willing to act as proof-of-concept partners, providing the on-the-ground evidence that early-stage funders and accelerators require before committing capital."
+        icon: Search,
+        title: "Browse a verified organisation directory",
+        body: "Every organisation on the Natives platform carries a structured profile — sector focus, geography, programme history, and verification status. Filter by what your mandate requires and identify credible implementers before the first conversation.",
       },
       {
-        icon: TrendingUp,
-        title: "Blended Finance Pathways",
-        body: "Blended finance is the right instrument for early-stage impact ventures, but navigating it alone is a full-time job. Natives maps your model against available pathways — grants, patient capital, impact investment, prizes, accelerator programmes, and co-funding arrangements — and surfaces the opportunities best suited to your stage, sector, and geography without requiring you to already know the right rooms to be in."
+        icon: Globe,
+        title: "Discover active initiatives seeking funding",
+        body: "The Impact Marketplace surfaces initiatives actively seeking funding partners. Browse by sector, location, and partnership type. Express interest directly — no cold outreach, no three-month email chains before a first response.",
       },
+      {
+        icon: Handshake,
+        title: "Track confirmed partnerships",
+        body: "When you confirm a partnership, it's tracked on the platform. You have a clear record of who you're working with, what the initiative is, and what was agreed — without relying on offline documentation.",
+      },
+      {
+        icon: FlaskConical,
+        title: "Fund a Lab for systemic challenges",
+        body: "When a challenge requires coordinating multiple organisations across a system — not just one implementer — fund an Innovation Lab. Natives structures the process, brings in the right actors, and manages delivery against a defined outcome.",
+      },
+    ],
+    paths: [
+      { label: "Browse the directory", href: "/platform/partnership-os", desc: "Find verified organisations by sector and country." },
+      { label: "Explore the marketplace", href: "/platform/impact-marketplace", desc: "Discover initiatives actively seeking funding." },
+      { label: "Commission a Lab", href: "/labs/commission", desc: "Fund a structured multi-stakeholder coordination process." },
+    ],
+  },
+  startups: {
+    eyebrow: "For Startups & Social Enterprises",
+    headline: "From validated model to institutional partner.",
+    sub: "You have a thesis and early evidence. What you need is the connective tissue — credible partners, co-development opportunities, and a pathway to capital.",
+    cta: "Create your profile",
+    ctaHref: "/signup",
+    accent: "#d4a82d",
+    problem: "Early-stage impact ventures in Africa rarely lack ambition or insight — they lack the institutional relationships needed to validate and scale. Funders want proof-of-concept evidence. NGOs want co-development partners with complementary capacity. Corporates want delivery partners with a track record. Natives gives you structured access to all three before you've built the relationships manually.",
+    features: [
+      {
+        icon: ShieldCheck,
+        title: "Build a credible organisation profile",
+        body: "Create a structured profile for your venture — sector focus, model, geography, and what you're seeking. Get verified once you meet the threshold. A verified badge signals institutional credibility to the NGOs, corporates, and funders you need to work with.",
+      },
+      {
+        icon: Handshake,
+        title: "Find NGO proof-of-concept partners",
+        body: "Browse verified NGOs with the field presence and community relationships your model needs to validate at scale. Send expressions of interest directly and propose co-development arrangements that give both sides what they need.",
+      },
+      {
+        icon: Lightbulb,
+        title: "Post your initiative to attract capital",
+        body: "List your venture or programme on the Impact Marketplace with a clear problem statement and outcome target. Funders and corporates browsing for credible pipeline can find you, review your profile, and express interest — without you needing the right room to walk into.",
+      },
+      {
+        icon: FlaskConical,
+        title: "Commission a Lab for complex coordination",
+        body: "When your model requires multiple stakeholders to align — government, NGO, corporate, and community — commission an Innovation Lab. Natives structures the coordination and manages delivery so you can focus on building.",
+      },
+    ],
+    paths: [
+      { label: "Create your profile", href: "/signup", desc: "Set up your venture profile and apply for verification." },
+      { label: "Find co-development partners", href: "/platform/partnership-os", desc: "Browse NGOs and implementers open to collaboration." },
+      { label: "Post an initiative", href: "/signup", desc: "List your programme to attract funders and partners." },
+    ],
+  },
+  individuals: {
+    eyebrow: "For Individuals & Creatives",
+    headline: "Your expertise belongs in the ecosystem.",
+    sub: "Consultants, researchers, advocates, and creatives — you don't need an organisation to participate. Natives gives you the same access as any institution.",
+    cta: "Join as an individual",
+    ctaHref: "/signup",
+    accent: "#c45c26",
+    problem: "Individual practitioners working in Africa's impact space — consultants, researchers, creatives, policy advocates — are often invisible to the organisations and initiatives that could use their expertise. Access still runs through institutional affiliations and conference networks. Natives removes that barrier.",
+    features: [
       {
         icon: Users,
-        title: "Team & Co-Founder Discovery",
-        body: "Building the right team is as hard as finding the right funding. Natives connects founders with technical co-founders, sector specialists, and early collaborators who share your model's purpose and bring the complementary skills needed to move from pilot to programme at scale."
+        title: "Build an individual practitioner profile",
+        body: "Create a profile as an individual — covering your sector expertise, skills, geography, and what you're looking to contribute to or build. You're discoverable in the same verified ecosystem as registered organisations.",
       },
       {
-        icon: MoveUpRight,
-        title: "A Clear Progression Pathway",
-        body: "Your journey on Natives has a clear progression: from a founder profile with a validated concept, to a registered organisation with institutional standing, verified impact data, and a full partner network. The infrastructure you build here follows you as your organisation grows."
-      }
-    ]
-  }
+        icon: Lightbulb,
+        title: "Post and manage your own initiatives",
+        body: "Have an idea worth building? Post it on the Impact Marketplace. Define the challenge, the outcome you're targeting, and the kind of support you need — then let the right partners find you.",
+      },
+      {
+        icon: Network,
+        title: "Connect with organisations directly",
+        body: "Browse verified organisations in the Natives ecosystem. Filter by sector, country, and what they're working on. Send expressions of interest directly — no warm intro, no intermediary.",
+      },
+      {
+        icon: FlaskConical,
+        title: "Submit a Lab proposal",
+        body: "Identified a systemic challenge that needs more than one organisation to solve? Submit a Lab proposal. Natives handles the convening and coordination — you define the problem and the outcome.",
+      },
+    ],
+    paths: [
+      { label: "Create your profile", href: "/signup", desc: "Join the ecosystem as an individual practitioner." },
+      { label: "Post an initiative", href: "/signup", desc: "List a challenge or idea on the Impact Marketplace." },
+      { label: "Browse the ecosystem", href: "/platform/partnership-os", desc: "Find organisations and initiatives to contribute to." },
+    ],
+  },
+  research: {
+    eyebrow: "For Research Institutions",
+    headline: "Bridge your evidence to practice, policy, and action.",
+    sub: "Findings without implementation pathways don't move systems. Natives connects research institutions to the organisations that can translate evidence into delivery.",
+    cta: "Create your profile",
+    ctaHref: "/signup",
+    accent: "#4d8dd4",
+    problem: "Research institutions and universities in Africa produce rigorous evidence on what works — but the gap between a published finding and a funded programme is still enormous. Implementation organisations don't know the research exists. Funders don't see it as pipeline. Natives connects your work to the ecosystem that can act on it.",
+    features: [
+      {
+        icon: ShieldCheck,
+        title: "Build a verified institutional profile",
+        body: "Create a structured profile for your institution — research focus areas, geographic scope, and the sectors you work in. Apply for verification to signal institutional credibility to the NGOs, funders, and government bodies that could partner with you.",
+      },
+      {
+        icon: Globe,
+        title: "Surface your research as ecosystem pipeline",
+        body: "Post your findings and programmes on the Impact Marketplace. Frame your work as an initiative — defining the problem, the evidence base, and the kind of implementation partners you need. Let the organisations ready to act find you.",
+      },
+      {
+        icon: Handshake,
+        title: "Partner with implementers directly",
+        body: "Browse NGOs, social enterprises, and government bodies with the delivery capacity to translate your evidence into programmes. Send expressions of interest and propose research-to-practice partnerships that give both sides what they need.",
+      },
+      {
+        icon: FlaskConical,
+        title: "Commission a Lab to activate findings",
+        body: "When your evidence points to a challenge that requires coordinated action across multiple organisations, commission a Lab. Natives convenes the right stakeholders, structures the process, and manages delivery against your defined outcome.",
+      },
+    ],
+    paths: [
+      { label: "Create your profile", href: "/signup", desc: "Set up your institution's profile and apply for verification." },
+      { label: "Post a research initiative", href: "/signup", desc: "Frame your findings as actionable ecosystem pipeline." },
+      { label: "Find implementation partners", href: "/platform/partnership-os", desc: "Connect with NGOs and bodies that can act on your evidence." },
+    ],
+  },
 };
 
 export default function SolutionsPage() {
   const params = useParams();
-  const tab = (params.tab as keyof typeof AUDIENCE) || "ngos";
+  const tab = (params.tab as AudienceKey) || "ngos";
   const audience = AUDIENCE[tab] ?? AUDIENCE["ngos"];
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-20">
+    <div className="w-full">
 
-      {/* Page header */}
-      <div className="mb-10">
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-3">Solutions</h1>
-        <p className="text-xl text-muted-foreground max-w-2xl">
-          Tailored infrastructure to accelerate your specific impact objectives across the continent.
-        </p>
-      </div>
+      {/* ── HERO ── */}
+      <section style={{
+        background: 'linear-gradient(135deg, #0a0e14 0%, #0d1f0f 25%, #1a0e0a 50%, #0e1a2e 75%, #0a1410 100%)',
+        padding: 'clamp(4rem, 8vw, 7rem) 0 clamp(3rem, 5vw, 5rem)',
+        paddingTop: 'calc(64px + clamp(4rem, 8vw, 7rem))',
+        marginTop: '-64px',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        width: '100vw',
+        marginLeft: 'calc(-50vw + 50%)',
+      }}>
+        <div className="w-full max-w-7xl mx-auto content-padding">
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+            marginBottom: '1.5rem', padding: '0.375rem 1rem', borderRadius: '9999px',
+            background: `${audience.accent}18`, border: `1px solid ${audience.accent}35`,
+          }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: audience.accent, display: 'block' }} />
+            <span style={{ fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: audience.accent }}>
+              {audience.eyebrow}
+            </span>
+          </div>
+          <h1 style={{
+            fontFamily: "'Bricolage Grotesque', sans-serif",
+            fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+            fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1,
+            color: '#f7f3ed', maxWidth: '720px', marginBottom: '1.25rem',
+          }}>
+            {audience.headline}
+          </h1>
+          <p style={{
+            fontSize: 'clamp(1rem, 2vw, 1.125rem)', color: 'rgba(247,243,237,0.6)',
+            lineHeight: 1.7, maxWidth: '560px', marginBottom: '2.5rem',
+          }}>
+            {audience.sub}
+          </p>
 
-      {/* Tab bar */}
-      <div className="flex flex-wrap gap-1 mb-12 border-b border-border pb-0">
-        {TABS.map(({ id, label }) => {
-          const isActive = tab === id;
-          return (
-            <Link key={id} href={`/solutions/${id}`}>
-              <button
-                data-testid={`tab-solutions-${id}`}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${
-                  isActive
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-                }`}
-              >
-                {label}
+          {/* Tab bar */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+            {TABS.map(({ id, label }) => {
+              const isActive = tab === id;
+              return (
+                <Link key={id} href={`/solutions/${id}`}>
+                  <button style={{
+                    padding: '0.5rem 1.25rem', borderRadius: '9999px', fontSize: '0.875rem',
+                    fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s ease',
+                    background: isActive ? '#f7f3ed' : 'rgba(255,255,255,0.07)',
+                    color: isActive ? '#0a0a0a' : 'rgba(247,243,237,0.6)',
+                    border: isActive ? 'none' : '1px solid rgba(255,255,255,0.12)',
+                  }}>
+                    {label}
+                  </button>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ── PROBLEM STATEMENT ── */}
+      <section style={{
+        padding: 'clamp(3rem, 5vw, 5rem) 0',
+        borderBottom: '1px solid hsl(var(--border))',
+        background: 'hsl(var(--background))',
+      }}>
+        <div className="w-full max-w-7xl mx-auto content-padding">
+          <div style={{ maxWidth: '680px' }}>
+            <p style={{
+              fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.18em',
+              textTransform: 'uppercase', color: audience.accent, marginBottom: '1rem',
+            }}>
+              The problem
+            </p>
+<p style={{
+              fontSize: 'clamp(1rem, 2vw, 1.125rem)', color: 'hsl(var(--muted-foreground))',
+              lineHeight: 1.8,
+            }}>
+              {audience.problem}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FEATURES ── */}
+      <section style={{ padding: 'clamp(3rem, 5vw, 5rem) 0', borderBottom: '1px solid hsl(var(--border))' }}>
+        <div className="w-full max-w-7xl mx-auto content-padding">
+          <p style={{
+            fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.18em',
+            textTransform: 'uppercase', color: audience.accent, marginBottom: '2.5rem',
+          }}>
+            How Natives helps
+          </p>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '1px',
+            background: 'hsl(var(--border))',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: '1.25rem',
+            overflow: 'hidden',
+          }}>
+            {audience.features.map((feat, i) => {
+              const FeatIcon = feat.icon;
+              return (
+                <div key={i} style={{
+                  background: 'hsl(var(--card))',
+                  padding: '2rem',
+                  transition: 'background 0.2s ease',
+                }}>
+                  <div style={{
+                    width: '2.25rem', height: '2.25rem', borderRadius: '0.625rem',
+                    background: `${audience.accent}15`, border: `1px solid ${audience.accent}25`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    marginBottom: '1.25rem',
+                  }}>
+                    <FeatIcon style={{ width: '1rem', height: '1rem', color: audience.accent }} />
+                  </div>
+                  <h3 style={{
+                    fontFamily: "'Bricolage Grotesque', sans-serif",
+                    fontSize: '1rem', fontWeight: 700, letterSpacing: '-0.01em',
+                    color: 'hsl(var(--foreground))', marginBottom: '0.75rem',
+                  }}>
+                    {feat.title}
+                  </h3>
+                  <p style={{ fontSize: '0.9375rem', color: 'hsl(var(--muted-foreground))', lineHeight: 1.7 }}>
+                    {feat.body}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ── PATHS ── */}
+      <section style={{ padding: 'clamp(3rem, 5vw, 5rem) 0', background: 'hsl(var(--background))' }}>
+        <div className="w-full max-w-7xl mx-auto content-padding">
+          <p style={{
+            fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.18em',
+            textTransform: 'uppercase', color: audience.accent, marginBottom: '1rem',
+          }}>
+            Where to start
+          </p>
+                    <h2 style={{
+            fontFamily: "'Bricolage Grotesque', sans-serif",
+            fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 700,
+            letterSpacing: '-0.025em', color: 'hsl(var(--foreground))', marginBottom: '2rem',
+          }}>
+            Pick the path that fits your intent.
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: '560px', marginBottom: '3rem' }}>
+            {audience.paths.map((path, i) => (
+              <Link key={i} href={path.href}>
+                <div
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    gap: '1rem', padding: '1.25rem 1.5rem',
+                    borderRadius: '0.875rem',
+                    border: '1px solid hsl(var(--border))',
+                    background: 'hsl(var(--card))',
+                    cursor: 'pointer', transition: 'border-color 0.2s ease, background 0.2s ease',
+                  }}
+                                    onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.borderColor = `${audience.accent}50`;
+                    (e.currentTarget as HTMLElement).style.background = `${audience.accent}08`;
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.borderColor = 'hsl(var(--border))';
+                    (e.currentTarget as HTMLElement).style.background = 'hsl(var(--card))';
+                  }}
+                >
+                  <div>
+                    <p style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'hsl(var(--foreground))', marginBottom: '0.25rem' }}>
+                      {path.label}
+                    </p>
+                    <p style={{ fontSize: '0.8125rem', color: 'hsl(var(--muted-foreground))' }}>
+                      {path.desc}
+                    </p>
+                  </div>
+                  <ArrowRight style={{ width: '1rem', height: '1rem', color: audience.accent, flexShrink: 0 }} />
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.875rem' }}>
+            <Link href={audience.ctaHref}>
+              <button style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                height: '2.75rem', padding: '0 1.5rem', borderRadius: '9999px',
+                background: audience.accent, color: '#fff',
+                fontSize: '0.9375rem', fontWeight: 600, border: 'none', cursor: 'pointer',
+              }}>
+                {audience.cta}
+                <ArrowRight style={{ width: '0.875rem', height: '0.875rem' }} />
               </button>
             </Link>
-          );
-        })}
-      </div>
-
-      {/* Section header */}
-      <div className="mb-10">
-        <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">{audience.headline}</h2>
-        <p className="text-muted-foreground text-lg">{audience.sub}</p>
-      </div>
-
-      {/* Feature card grid */}
-      <div className="grid md:grid-cols-2 gap-6 mb-12 animate-in fade-in slide-in-from-bottom-2 duration-400">
-        {audience.cards.map((card, i) => (
-          <div
-            key={i}
-            className={`bg-card border rounded-xl p-8 flex flex-col gap-4 transition-colors ${"trust" in card && card.trust ? "border-[#2D6A4F]/25 hover:border-[#2D6A4F]/50" : "border-border hover:border-primary/30"}`}
-            data-testid={`card-solution-benefit-${i}`}
-          >
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${"trust" in card && card.trust ? "bg-[#2D6A4F]/10" : "bg-primary/10"}`}>
-              <card.icon className={`w-5 h-5 ${"trust" in card && card.trust ? "text-[#2D6A4F]" : "text-primary"}`} />
-            </div>
-            <h3 className="text-lg font-bold leading-snug">{card.title}</h3>
-            <p className="text-muted-foreground leading-relaxed text-[15px]">{card.body}</p>
+            <Link href="/partner">
+  <button style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                height: '2.75rem', padding: '0 1.5rem', borderRadius: '9999px',
+                background: 'transparent', color: 'hsl(var(--foreground))',
+                fontSize: '0.9375rem', fontWeight: 500,
+                border: '1px solid hsl(var(--border))', cursor: 'pointer',
+              }}>
+                Talk to us
+              </button>
+            </Link>
           </div>
-        ))}
-      </div>
-
-      {/* CTA */}
-      <div className="flex items-center gap-4">
-        <Link href="/signup/role">
-          <Button size="lg" className="bg-primary text-white hover:bg-primary/90" data-testid={`button-cta-${tab}`}>
-            {audience.cta} <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        </Link>
-        <Link href="/partner">
-          <Button size="lg" variant="outline" data-testid="button-book-demo">Book a Demo</Button>
-        </Link>
-      </div>
+        </div>
+      </section>
 
     </div>
   );

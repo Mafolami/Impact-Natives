@@ -35,7 +35,7 @@ export function LoginPage() {
 
 export function SignupPage() {
   return (
-    <div className="container flex items-center justify-center min-h-[calc(100vh-4rem)]">
+    <div className="container flex items-center justify-center min-h-[calc(100vh-4rem)] ">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl">Join Natives</CardTitle>

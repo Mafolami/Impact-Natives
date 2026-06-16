@@ -1,0 +1,16 @@
+export const SECTOR_OPTIONS = [
+  "Health",
+  "Education",
+  "Agriculture & Food Systems",
+  "Climate & Environment",
+  "Energy & Clean Tech",
+  "Water, Sanitation & Hygiene",
+  "Financial Inclusion",
+  "Gender & Inclusion",
+  "Governance & Civic Tech",
+  "Livelihoods & Economic Empowerment",
+  "Technology & Innovation",
+  "Arts, Culture & Creative Industries",
+  "Humanitarian & Emergency Response",
+  "Youth & Community Development",
+];
