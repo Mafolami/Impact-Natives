@@ -13,13 +13,20 @@
   "devDependencies": {
     "@rollup/rollup-darwin-arm64": "^4.61.0",
     "@rollup/rollup-darwin-x64": "^4.61.0",
+    "@rollup/rollup-linux-x64-gnu": "^4.62.0",
     "prettier": "^3.8.1",
     "typescript": "~5.9.2"
   },
   "pnpm": {
     "supportedArchitectures": {
-      "os": ["darwin", "linux"],
-      "cpu": ["x64", "arm64"]
+      "os": [
+        "darwin",
+        "linux"
+      ],
+      "cpu": [
+        "x64",
+        "arm64"
+      ]
     }
   },
   "dependencies": {
