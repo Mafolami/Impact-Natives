@@ -18,12 +18,8 @@
   },
   "pnpm": {
     "supportedArchitectures": {
-      "os": [
-        "darwin"
-      ],
-      "cpu": [
-        "x64"
-      ]
+      "os": ["darwin", "linux"],
+      "cpu": ["x64", "arm64"]
     }
   },
   "dependencies": {
