@@ -763,10 +763,9 @@ function VerificationPanel() {
       .eq('id', profileId)
     if (error) { alert(`Failed to approve: ${error.message}`); return; }
 
-    // Also update the matching org's verification_status
     await supabase
       .from('organizations')
-      .update({ verification_status: 'verified' })
+      .update({ verification_status: 'verified', status: 'published' })
       .eq('user_id', profileId)
 
     setProfiles((prev) => prev.filter((p) => p.id !== profileId))
