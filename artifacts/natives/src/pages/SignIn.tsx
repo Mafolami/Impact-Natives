@@ -1,23 +1,18 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 export default function SignIn() {
   const [, navigate] = useLocation();
   const { signIn, signInWithGoogle, user, loading: authLoading } = useAuth();
   const deactivated = new URLSearchParams(window.location.search).get("deactivated") === "true";
 
-useEffect(() => {
-  if (!authLoading && user && !deactivated) {
-    navigate(getRedirectPath());
-  }
-}, [user, authLoading, deactivated]);
+  useEffect(() => {
+    if (!authLoading && user && !deactivated) navigate(getRedirectPath());
+  }, [user, authLoading, deactivated]);
 
-const [email, setEmail] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -25,11 +20,7 @@ const [email, setEmail] = useState("");
 
   function getRedirectPath() {
     const stored = sessionStorage.getItem("redirectAfterAuth");
-    if (stored) {
-      sessionStorage.removeItem("redirectAfterAuth");
-      return stored;
-    }
-    // Also check query param for direct links: /signin?redirect=/initiatives/123
+    if (stored) { sessionStorage.removeItem("redirectAfterAuth"); return stored; }
     const params = new URLSearchParams(window.location.search);
     return params.get("redirect") || "/dashboard";
   }
@@ -40,128 +31,291 @@ const [email, setEmail] = useState("");
     setLoading(true);
     const { error } = await signIn(email, password);
     setLoading(false);
-    if (error) {
-      setError(error.message);
-    } else {
-      navigate(getRedirectPath());
-    }
+    if (error) { setError(error.message); } else { navigate(getRedirectPath()); }
   }
 
   async function handleGoogle() {
     setGoogleLoading(true);
-    // Store redirect before OAuth redirect
     const params = new URLSearchParams(window.location.search);
     const redirect = params.get("redirect");
     if (redirect) sessionStorage.setItem("redirectAfterAuth", redirect);
     await signInWithGoogle();
-    // Navigation happens via OAuth callback
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Nav strip */}
-      <div className="px-6 py-4">
-        <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="w-4 h-4" />
-          Back to Impact Natives
-        </Link>
+    <div className="light min-h-screen flex" style={{ background: "#F7F5F2" }}>
+
+      {/* ── Left panel ── */}
+      <div className="hidden lg:flex lg:w-[520px] shrink-0 flex-col justify-between relative overflow-hidden"
+        style={{ background: "#1B3D2B", padding: "56px 52px" }}>
+
+        {/* Vertical accent line */}
+        <div className="absolute top-0 right-0 w-px h-full"
+          style={{ background: "rgba(255,255,255,0.06)" }} />
+
+        {/* Top — logo */}
+        <a href="https://impactnatives.com" className="block w-fit">
+          <img src="/logo.png" alt="Impact Natives"
+            className="h-8 w-auto brightness-0 invert" style={{ opacity: 0.9 }} />
+        </a>
+
+        {/* Centre */}
+        <div style={{ marginBottom: "auto", marginTop: "72px" }}>
+          {/* Eyebrow */}
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] mb-5"
+            style={{ color: "#C45C26", letterSpacing: "0.16em" }}>
+            Coordination infrastructure
+          </p>
+
+          {/* Headline — large, generous line height */}
+          <h2 style={{
+            fontSize: "clamp(2rem, 3.2vw, 2.75rem)",
+            fontWeight: 700,
+            lineHeight: 1.18,
+            color: "#ffffff",
+            marginBottom: "24px",
+            letterSpacing: "-0.02em",
+          }}>
+            Good to have you back.<br /> Find the right partner here.
+          </h2>
+
+          <p style={{
+            fontSize: "1.0625rem",
+            lineHeight: 1.65,
+            color: "rgba(255,255,255,0.55)",
+            maxWidth: "360px",
+            marginBottom: "48px",
+          }}>
+            The ecosystem is growing. New organisations, initiatives, and partnerships are live. Sign in to see what's moved.
+          </p>
+
+          {/* Trust list */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            {[
+              "Verified organisations across Africa",
+              "AI-matched initiatives and partnerships",
+              "Deal memos and CSR briefs on demand",
+            ].map(item => (
+              <div key={item} style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{
+                  width: "20px", height: "20px", borderRadius: "50%", flexShrink: 0,
+                  background: "rgba(196,92,38,0.18)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none"
+                    stroke="#C45C26" strokeWidth="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <p style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.6)", margin: 0 }}>
+                  {item}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom — quote */}
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "28px" }}>
+          <p style={{
+            fontSize: "0.9rem",
+            fontStyle: "italic",
+            color: "rgba(255,255,255,0.3)",
+            lineHeight: 1.6,
+          }}>
+            "Finally, infrastructure that matches the ambition."
+          </p>
+        </div>
       </div>
-      <div className="flex-1 flex items-center justify-center px-4">
-        <div className="w-full max-w-md">
-          {/* Header */}
-          <div className="mb-8">
-            <img src="/logo.png" alt="Impact Natives" className="h-8 w-auto mb-4" />
-            <h1 className="text-2xl font-semibold text-foreground">Sign in</h1>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Don't have an account?{" "}
-              <Link href="/signup" className="text-[#2D6A4F] hover:underline font-medium">
-                Sign up
+
+      {/* ── Right panel — form ── */}
+      <div className="flex-1 flex flex-col justify-center"
+        style={{ padding: "48px 40px", background: "#F7F5F2" }}>
+
+        {/* Mobile logo */}
+        <div className="lg:hidden" style={{ marginBottom: "40px" }}>
+          <a href="https://impactnatives.com">
+            <img src="/logodarks.png" alt="Impact Natives" className="h-8 w-auto" />
+          </a>
+        </div>
+
+        <div style={{ width: "100%", maxWidth: "400px", margin: "0 auto" }}>
+
+          {/* Heading */}
+          <div style={{ marginBottom: "36px" }}>
+            <h1 style={{
+              fontSize: "1.875rem",
+              fontWeight: 700,
+              color: "#0d1f17",
+              letterSpacing: "-0.02em",
+              marginBottom: "8px",
+            }}>
+              Sign in
+            </h1>
+            <p style={{ fontSize: "0.9rem", color: "#6b7280" }}>
+              No account?{" "}
+              <Link href="/signup"
+                style={{ color: "#2D6A4F", fontWeight: 600, textDecoration: "none" }}
+                className="hover:underline underline-offset-2">
+                Create one free
               </Link>
             </p>
           </div>
-          {/* Google OAuth */}
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full mb-4 h-11"
-            onClick={handleGoogle}
-            disabled={googleLoading}
-          >
-            {googleLoading ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <GoogleIcon />
-            )}
-            Continue with Google
-          </Button>
-          <div className="relative mb-4">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
+
+          {/* Form card */}
+          <div style={{
+            background: "#ffffff",
+            borderRadius: "16px",
+            border: "1px solid #e8e4df",
+            padding: "28px",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+          }}>
+
+            {/* Google */}
+            <button type="button" onClick={handleGoogle} disabled={googleLoading}
+              style={{
+                width: "100%", height: "44px", borderRadius: "10px",
+                border: "1px solid #e5e7eb", background: "#ffffff",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                gap: "10px", fontSize: "0.9rem", fontWeight: 500,
+                color: "#374151", cursor: "pointer", marginBottom: "20px",
+                transition: "background 0.15s",
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}
+              onMouseLeave={e => e.currentTarget.style.background = "#ffffff"}>
+              {googleLoading ? <Loader2 size={16} className="animate-spin" /> : <GoogleIcon />}
+              Continue with Google
+            </button>
+
+            {/* Divider */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px",
+            }}>
+              <div style={{ flex: 1, height: "1px", background: "#f0ede8" }} />
+              <span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>or</span>
+              <div style={{ flex: 1, height: "1px", background: "#f0ede8" }} />
             </div>
-            <div className="relative flex justify-center text-xs text-muted-foreground">
-              <span className="bg-background px-3">or sign in with email</span>
-            </div>
-          </div>
-          {deactivated && (
-            <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 mb-4">
-              Your account has been deactivated. Contact{" "}
-              <a href="mailto:hello@impactnatives.com" className="underline underline-offset-2">
-                hello@impactnatives.com
-              </a>{" "}
-              to reactivate.
-            </div>
-          )}
-          {/* Email/password form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="email" className="text-sm font-medium">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 h-11"
-                placeholder="you@organisation.com"
-                required
-              />
-            </div>
-            <div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-sm font-medium">
-                  Password
-                </Label>
-                <Link href="/forgot-password" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  Forgot password?
-                </Link>
+
+            {deactivated && (
+              <div style={{
+                borderRadius: "10px", border: "1px solid #fcd34d",
+                background: "#fffbeb", padding: "12px 16px",
+                fontSize: "0.875rem", color: "#92400e", marginBottom: "16px",
+              }}>
+                Account deactivated. Contact{" "}
+                <a href="mailto:hello@impactnatives.com"
+                  style={{ color: "#92400e", textDecoration: "underline" }}>
+                  hello@impactnatives.com
+                </a>
               </div>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 h-11"
-                placeholder="••••••••"
-                required
-              />
-            </div>
-            {error && (
-              <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2">
-                {error}
-              </p>
             )}
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full h-11 bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium"
-            >
-              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Sign in
-            </Button>
-          </form>
+
+            {/* Fields */}
+            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div>
+                <label htmlFor="email" style={{
+                  display: "block", fontSize: "0.8rem", fontWeight: 600,
+                  textTransform: "uppercase", letterSpacing: "0.06em",
+                  color: "#9ca3af", marginBottom: "6px",
+                }}>
+                  Email
+                </label>
+                <input id="email" type="email" autoComplete="email" required
+                  value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="you@organisation.com"
+                  style={{
+                    width: "100%", height: "44px", borderRadius: "10px",
+                    border: "1.5px solid #e5e7eb", background: "#fafaf9",
+                    padding: "0 14px", fontSize: "0.9rem", color: "#111827",
+                    outline: "none", boxSizing: "border-box", transition: "all 0.15s",
+                  }}
+                  onFocus={e => {
+                    e.currentTarget.style.borderColor = "#2D6A4F";
+                    e.currentTarget.style.boxShadow = "0 0 0 3px rgba(45,106,79,0.1)";
+                    e.currentTarget.style.background = "#ffffff";
+                  }}
+                  onBlur={e => {
+                    e.currentTarget.style.borderColor = "#e5e7eb";
+                    e.currentTarget.style.boxShadow = "none";
+                    e.currentTarget.style.background = "#fafaf9";
+                  }}
+                />
+              </div>
+
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                  <label htmlFor="password" style={{
+                    fontSize: "0.8rem", fontWeight: 600,
+                    textTransform: "uppercase", letterSpacing: "0.06em", color: "#9ca3af",
+                  }}>
+                    Password
+                  </label>
+                  <Link href="/forgot-password"
+                    style={{ fontSize: "0.8rem", color: "#9ca3af", textDecoration: "none" }}
+                    className="hover:text-gray-600 transition-colors">
+                    Forgot?
+                  </Link>
+                </div>
+                <input id="password" type="password" autoComplete="current-password" required
+                  value={password} onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  style={{
+                    width: "100%", height: "44px", borderRadius: "10px",
+                    border: "1.5px solid #e5e7eb", background: "#fafaf9",
+                    padding: "0 14px", fontSize: "0.9rem", color: "#111827",
+                    outline: "none", boxSizing: "border-box", transition: "all 0.15s",
+                  }}
+                  onFocus={e => {
+                    e.currentTarget.style.borderColor = "#2D6A4F";
+                    e.currentTarget.style.boxShadow = "0 0 0 3px rgba(45,106,79,0.1)";
+                    e.currentTarget.style.background = "#ffffff";
+                  }}
+                  onBlur={e => {
+                    e.currentTarget.style.borderColor = "#e5e7eb";
+                    e.currentTarget.style.boxShadow = "none";
+                    e.currentTarget.style.background = "#fafaf9";
+                  }}
+                />
+              </div>
+
+              {error && (
+                <div style={{
+                  borderRadius: "10px", border: "1px solid #fecaca",
+                  background: "#fef2f2", padding: "12px 16px",
+                  fontSize: "0.875rem", color: "#b91c1c",
+                }}>
+                  {error}
+                </div>
+              )}
+
+              <button type="submit" disabled={loading}
+                style={{
+                  width: "100%", height: "44px", borderRadius: "10px",
+                  background: "#2D6A4F", color: "white",
+                  fontSize: "0.9rem", fontWeight: 600, border: "none",
+                  cursor: loading ? "not-allowed" : "pointer",
+                  opacity: loading ? 0.7 : 1,
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                  transition: "background 0.15s",
+                  marginTop: "4px",
+                }}
+                onMouseEnter={e => !loading && (e.currentTarget.style.background = "#245c43")}
+                onMouseLeave={e => (e.currentTarget.style.background = "#2D6A4F")}>
+                {loading && <Loader2 size={16} className="animate-spin" />}
+                Sign in
+              </button>
+            </form>
+          </div>
+
+          <p style={{
+            textAlign: "center", fontSize: "0.75rem",
+            color: "#c5c0bb", marginTop: "20px",
+          }}>
+            By signing in you agree to our{" "}
+            <a href="/legal/terms" style={{ color: "#9ca3af", textDecoration: "underline" }}>Terms</a>
+            {" "}and{" "}
+            <a href="/legal/privacy" style={{ color: "#9ca3af", textDecoration: "underline" }}>Privacy Policy</a>
+          </p>
         </div>
       </div>
     </div>
@@ -170,23 +324,11 @@ const [email, setEmail] = useState("");
 
 function GoogleIcon() {
   return (
-    <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
-      <path
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-        fill="#4285F4"
-      />
-      <path
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-        fill="#34A853"
-      />
-      <path
-        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-        fill="#FBBC05"
-      />
-      <path
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-        fill="#EA4335"
-      />
+    <svg width="16" height="16" viewBox="0 0 24 24">
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
     </svg>
   );
 }
