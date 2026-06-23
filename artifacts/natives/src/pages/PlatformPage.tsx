@@ -56,6 +56,16 @@ export default function PlatformPage() {
     return <ImpactMarketplace />;
   }
 
+  if (tab === "partnership-os") {
+    return (
+      <div className="w-full">
+        <div className="space-y-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <FindPartnerSection />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-0">
 
@@ -114,146 +124,7 @@ export default function PlatformPage() {
         </div>
       )}
 
-      {tab === "partnership-os" && (
-        <div className="space-y-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
-
-          {/* Hero — forest green */}
-          <FindPartnerSection />
-          {/*<section
-            className="py-24 text-center px-6"
-            style={{ background: "linear-gradient(135deg, #0d2b1a 0%, #1a4a2e 60%, #0d2b1a 100%)" }}
-          >
-            
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-6 text-white">Find Your Partners</h1>
-            <p className="text-xl max-w-2xl mx-auto mb-8" style={{ color: "rgba(255,255,255,0.75)" }}>
-              Discover verified organisations across Africa's impact ecosystem
-            </p>
-            <Link href="/signup">
-              <Button className="px-8 py-4 text-white font-semibold" style={{ background: "#B85C38", border: "none" }}>
-                Find Your Partners
-              </Button>
-            </Link>
-          </section>*/}
-          
-        {/*  <section data-reveal className="py-20 px-2 bg-white">
-            <div className="max-w-7xl mx-auto content-padding py-12">
-
-          <h2 className="text-3xl font-bold mb-2 text-gray-900">Explore our network directory to discover verified organisations and coordinate shared initiatives</h2>
-          </div>
-          <div className=" max-w-7xl mx-auto content-padding py-12 bg-muted p-4 border-b">
-              <Link href="/labs/network-directory">
-                <Button size="sm" className="bg-primary text-white">Explore Network</Button>
-              </Link>
-            </div>
-              
-          </section>
-
-          {/* Discovery + Filters — white 
-          <section data-reveal className="py-20 px-2 bg-white">
-            <div className="max-w-7xl mx-auto content-padding py-12">
-            {/*}  <h2 className="text-3xl font-bold mb-2 text-gray-900">Partnership OS</h2>
-              <p className="text-muted-foreground mb-10">Discover verified organisations and coordinate shared initiatives.</p>
-              <Card className="w-full mb-8">
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Search className="w-4 h-4" /> Filters
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold">SDG Focus</label>
-                    <div className="flex flex-wrap gap-2">
-                      {SDG_OPTIONS.map((sdg) => (
-                        <Badge
-                          key={sdg}
-                          variant="outline"
-                          className={`cursor-pointer select-none ${selectedSdgs.includes(sdg) ? "bg-primary text-primary-foreground border-primary" : ""}`}
-                          onClick={() =>
-                            setSelectedSdgs((prev) =>
-                              prev.includes(sdg) ? prev.filter((s) => s !== sdg) : [...prev, sdg]
-                            )
-                          }
-                        >
-                          {sdg}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold">Verification Level</label>
-                    <div
-                      className={`flex items-center space-x-2 cursor-pointer select-none rounded-md p-1 -ml-1 ${verifiedOnly ? "bg-primary/10" : ""}`}
-                      onClick={() => setVerifiedOnly((v) => !v)}
-                    >
-                      <ShieldCheck className={`w-4 h-4 ${verifiedOnly ? "text-primary" : "text-[#2D6A4F]"}`} />
-                      <span className="text-sm">Institutional Grade</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredOrgs.map((org, index) => (
-                  <VerifiedOrgCard
-                    key={index}
-                    name={org.name}
-                    sector={org.sector}
-                    country={org.country}
-                    sdgs={org.sdgs.map((sdg) => `SDG ${sdg}`)}
-                    verified={org.verified}
-                    description={org.description}
-                    partnershipType={org.partnershipType}
-                    organizationType={org.organizationType}
-                    href={`/platform/partnership-os/${org.name.toLowerCase().replace(/\s+/g, "-")}`}
-                  />
-                ))}
-              </div>
-            </div>
-          </section>*/}
-
-          {/* How it Works — burnt orange, tall wide card 
-          <section data-reveal className="py-6 px-2" style={{ background: "#f9f6f3" }}>
-            <div className="max-w-7xl mx-auto content-padding py-12">
-              <div
-                className="w-full rounded-3xl py-24 px-10"
-                style={{ background: "linear-gradient(135deg, #8B3E22 0%, #B85C38 50%, #8B3E22 100%)" }}
-              >
-                <h2 className="text-3xl font-bold mb-4 text-center text-white">How Partnership OS Works</h2>
-                <p className="text-center mb-16 max-w-xl mx-auto" style={{ color: "rgba(255,255,255,0.7)" }}>
-                  From first discovery to verified outcome — a structured path for every partnership.
-                </p>
-                <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4 justify-items-center">
-                  {[
-                    { icon: <Search className="w-7 h-7" />, title: "Discovery", desc: "Identify and connect with verified organisations that align with your mission across Africa's impact ecosystem." },
-                    { icon: <Network className="w-7 h-7" />, title: "Matching", desc: "Intelligent matching pairs you with compatible partners based on sector focus, capacity, and collaboration goals." },
-                    { icon: <Database className="w-7 h-7" />, title: "Coordination", desc: "Secure workspace for communication, document sharing, and project management throughout the partnership lifecycle." },
-                    { icon: <Zap className="w-7 h-7" />, title: "Lifecycle Tracking", desc: "Monitor progress, measure impact, and generate comprehensive reports from initiation to completion." },
-                  ].map((item, i) => (
-                    <div
-                      key={item.title}
-                      className="group relative p-8 rounded-2xl flex flex-col items-center text-center hover:-translate-y-1 transition-all duration-300 w-full"
-                      style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)" }}
-                    >
-                      <div
-                        className="w-14 h-14 rounded-xl flex items-center justify-center mb-5 text-white"
-                        style={{ background: "rgba(255,255,255,0.2)" }}
-                      >
-                        {item.icon}
-                      </div>
-                      <div className="absolute top-5 right-5 text-5xl font-black select-none" style={{ color: "rgba(255,255,255,0.08)" }}>
-                        {i + 1}
-                      </div>
-                      <h3 className="text-lg font-semibold mb-3 text-white">{item.title}</h3>
-                      <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>{item.desc}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </section>*/}
-
-          
-          </div>
-      )}   
+      {/* partnership-os handled above */}
 
       {tab === "funding-infrastructure" && (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">

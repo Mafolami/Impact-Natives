@@ -21,7 +21,7 @@ export default function AboutPage() {
                 style={{ width: '100vw', marginLeft: 'calc(-50vw + 50%)', marginTop: '-64px', paddingTop: '64px', backgroundImage: 'linear-gradient(135deg, #060f09, #0d2b1a, #0a1f13, #3d1a08, #1a0a04, #060f09)', backgroundSize: '300% 300%', animation: 'fp-chameleon 18s ease infinite' }}
       >
         <div className="absolute inset-0 z-0 bg-gradient-to-b from-black/30 via-transparent to-black/50" />
-        <div className="relative z-10 max-w-7xl mx-auto content-padding py-24 md:py-32 w-full">
+        <div className="relative z-10 max-w-screen-2xl mx-auto content-padding hp-hero py-24 md:py-32 w-full">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-sm px-4 py-1.5 mb-8">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             <span className="text-sm font-semibold text-white tracking-wide">About Natives</span>
@@ -40,7 +40,7 @@ export default function AboutPage() {
 <div className="w-full">
 
 {/* 1. Problem We Saw — default bg */}
-<div className="max-w-7xl mx-auto content-padding py-16 md:py-24">
+<div className="max-w-screen-2xl mx-auto content-padding hp-hero py-16 md:py-24">
   <section className="grid lg:grid-cols-2 gap-12 items-start">
   <div>
   <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-3">Why We Built This</p>
@@ -72,12 +72,12 @@ export default function AboutPage() {
         {
           num: "03",
           title: "Coordination is expensive and fragmented",
-          body: "Funders duplicate due diligence. NGOs chase the same grants in silos. Corporates struggle to find verified programmes for ESG deployment. Everyone is working harder than they should to find each other.",
+          body: "The same due diligence gets done four times by four different funders. The same NGO pitches the same grant to three different corporates in the same quarter. Nobody wins.",
         },
         {
           num: "04",
           title: "Credibility is hard to signal",
-          body: "A small NGO in Kano with a strong track record looks identical to one with none. Without infrastructure to verify and surface credibility, trust takes years to build — and partnerships that should happen, don't.",
+          body: "A small NGO in the East with a strong track record looks identical to one with none. Without infrastructure to verify and surface credibility, trust takes years to build — and partnerships that should happen, don't.",
         },
       ].map((item, i, arr) => (
         <div key={i} style={{
@@ -108,7 +108,7 @@ export default function AboutPage() {
 
 {/* 2. Mission — muted full bleed */}
 <div className="w-full bg-muted/40 border-y border-border">
-  <div className="max-w-7xl mx-auto content-padding py-16 md:py-24">
+  <div className="max-w-screen-2xl mx-auto content-padding hp-hero py-16 md:py-24">
     <section className="grid lg:grid-cols-2 gap-12 items-center">
       <div>
         <div className="w-10 h-[3px] rounded-full mb-6" style={{ background: '#2D6A4F' }} />
@@ -116,8 +116,9 @@ export default function AboutPage() {
           The Mission
         </h2>
         <p className="text-lg leading-relaxed text-muted-foreground mb-8">
-        Impact should not require permission and opportunity should not depend on who you know. Natives is the infrastructure that makes it possible for anyone, anywhere on the continent, with a credible idea and the drive to see it through.
-        We are the infrastructure that connects capital, talent, and ideas, so the right people find each other, and the right things get built.
+        Impact should not require permission and opportunity should not depend on who you know. Natives is the infrastructure that 
+        connects capital, talent, and ideas — so anyone, anywhere on the continent, with a credible idea and the drive to see it through, 
+        can find the right partners and get to work.
         </p>
         <Link href="/signup">
           <Button size="lg" className="bg-primary text-white hover:bg-primary/90 rounded-full px-8">
@@ -145,7 +146,7 @@ export default function AboutPage() {
 </div>
 
 {/* 3. ALIGN — default bg */}
-<div className="max-w-7xl mx-auto content-padding py-16 md:py-24">
+<div className="max-w-screen-2xl mx-auto content-padding hp-hero py-16 md:py-24">
   <section>
     <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-3">Our Framework</p>
     <h2 className="text-3xl font-bold tracking-tight mb-4">Our Principles</h2>
@@ -180,12 +181,9 @@ export default function AboutPage() {
 
 {/* 4. What You Get — chameleon full bleed */}
 <div className="w-full border-y border-white/10" style={{ backgroundImage: 'linear-gradient(135deg, #3d1a08, #0d3040, #3d2a1a, #2d2000, #0a2030, #3d1a08)', backgroundSize: '300% 300%', animation: 'fp-chameleon 18s ease infinite' }}>
-  <div className="max-w-7xl mx-auto content-padding py-16 md:py-24">
+  <div className="max-w-screen-2xl mx-auto content-padding hp-hero py-16 md:py-24">
     <p className="text-xs font-semibold uppercase tracking-widest text-center mb-3" style={{ color: 'rgba(255,255,255,0.5)' }}>Membership</p>
     <h2 className="text-2xl md:text-3xl font-bold mb-3 text-center text-white">What You Get</h2>
-    <p className="text-center mb-12 max-w-xl mx-auto text-sm md:text-base" style={{ color: "rgba(255,255,255,0.65)" }}>
-      One platform. Every actor in Africa's impact ecosystem. Join free as a founding member.
-    </p>
     <div className="grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
       <div className="rounded-2xl p-6 md:p-8 flex flex-col" style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.2)' }}>
         <div className="flex items-center gap-3 mb-6">
@@ -199,10 +197,9 @@ export default function AboutPage() {
         </div>
         <ul className="space-y-3 flex-1">
           {[
-            "Browse live initiatives across sectors and geographies",
+            "Browse up to 4 live initiatives",
             "Discover organisations working on problems you care about",
-            "Read about active impact ecosystem opportunities and calls",
-            "Submit an initiative or commission a lab",
+            "Explore the verified partner network — join to connect",
           ].map((item) => (
             <li key={item} className="flex items-start gap-3 text-sm" style={{ color: "rgba(255,255,255,0.75)" }}>
               <span className="mt-0.5 shrink-0">○</span> {item}
@@ -223,18 +220,18 @@ export default function AboutPage() {
           </div>
           <div>
             <h3 className="text-lg font-semibold text-white">Active Member</h3>
-            <p className="text-xs font-medium" style={{ color: "rgba(255,255,255,0.55)" }}>Free now — founding members lock in subsidised rates when paid tiers launch</p>
+            <p className="text-xs font-medium" style={{ color: "rgba(255,255,255,0.55)" }}>Free now</p>
           </div>
         </div>
         <ul className="space-y-3 flex-1">
           {[
-            "Get discovered by funders and partners actively looking for your work",
-            "Express interest in initiatives and receive expressions from others",
-            "Direct messaging with matched partners and collaborators",
-            "Build a verified profile that signals credibility before the first conversation",
-            "Access corporates and institutions seeking NGO and startup partners",
-            "Find co-implementers, investors, and ecosystem builders in one place",
-            "Commission impact research and innovation through the Labs network",
+            "Build a verified profile that puts you in front of funders and partners actively looking",
+            "Post initiatives to the marketplace and receive expressions of interest directly",
+            "Express interest in initiatives and connect with the organisations behind them",
+            "Message matched partners and manage conversations in one place",
+            "Access the full verified partner directory.",
+            "Commission a lab and track your progress.",
+            "Get AI-matched to partners that fit your profile, sector, and stated goals",
           ].map((item) => (
             <li key={item} className="flex items-start gap-3 text-sm text-white">
               <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "rgba(196,92,38,0.8)" }} /> {item}
@@ -253,7 +250,7 @@ export default function AboutPage() {
 
 {/* 5. Trust & Verification — muted full bleed */}
 <div className="w-full bg-muted/40 border-b border-border">
-  <div className="max-w-7xl mx-auto content-padding py-16 md:py-24">
+  <div className="max-w-screen-2xl mx-auto content-padding hp-hero py-16 md:py-24">
     <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-3">How Trust Works</p>
     <h2 className="text-3xl font-bold mb-2">Trust & Verification</h2>
     <p className="text-muted-foreground text-lg max-w-2xl mb-10">
@@ -290,7 +287,7 @@ export default function AboutPage() {
           <CardTitle className="text-base">Data Integrity</CardTitle>
         </CardHeader>
         <CardContent className="text-center text-sm text-muted-foreground">
-          <p>Impact claims backed by immutable data sources and third-party audits.</p>
+          <p>Impact data is structured, self-reported, and supported by third-party evaluation links where available.</p>
         </CardContent>
       </Card>
     </div>

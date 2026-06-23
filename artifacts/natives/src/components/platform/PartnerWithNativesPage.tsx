@@ -302,7 +302,7 @@ function PartnerWithUsModal({ onClose }: { onClose: () => void }) {
         <div className="flex flex-col items-center justify-center flex-1 gap-5 text-center px-6">
           <h2 className="text-3xl font-semibold">Request received.</h2>
           <p className="text-muted-foreground max-w-sm">
-            The Impact Natives team will review your request and be in touch within 5 business days.
+            The Impact Natives team will review your request and be in touch.
           </p>
           <Button onClick={onClose}>Close</Button>
         </div>
@@ -623,7 +623,7 @@ export default function PartnerWithNativesPage() {
           <div className="pwn-f5 grid grid-cols-3 sm:grid-cols-3 gap-3 max-w-lg">
             {[
               { num: "6", label: "Partnership types" },
-              { num: "5 days", label: "Response window" },
+              { num: "< 6 hours>", label: "Response window" },
               { num: "Pan-Africa", label: "Reach" },
             ].map((s) => (
               <div key={s.label} className="pwn-stat-chip">

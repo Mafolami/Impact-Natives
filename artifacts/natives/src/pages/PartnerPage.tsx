@@ -303,7 +303,7 @@ function PartnerWithUsModal({ onClose }: { onClose: () => void }) {
         <div className="flex flex-col items-center justify-center flex-1 gap-5 text-center px-6">
           <h2 className="text-3xl font-semibold">Request received.</h2>
           <p className="text-muted-foreground max-w-sm">
-            The Impact Natives team will review your request and be in touch within 5 business days.
+            The Impact Natives team will review your request and be in touch.
           </p>
           <Button onClick={onClose}>Close</Button>
         </div>
@@ -595,8 +595,7 @@ export default function PartnerWithNativesPage() {
 
       {/* ══ HERO ══════════════════════════════════════════════════════════════ */}
       <section className="pwn-hero-band">
-        <div className="w-full max-w-7xl mx-auto content-padding py-20 md:py-28">
-          <div className="pwn-f1 mb-6">
+        <div className="w-full max-w-screen-2xl mx-auto content-padding hp-hero py-20 md:py-28">          <div className="pwn-f1 mb-6">
             <span className="pwn-hero-eyebrow text-xs font-semibold">
               About · Partnerships
             </span>
@@ -623,8 +622,7 @@ export default function PartnerWithNativesPage() {
         </div>
       </section>
 
-      <div className="w-full max-w-7xl mx-auto content-padding">
-
+      <div className="w-full max-w-screen-2xl mx-auto content-padding hp-hero">
         {/* ══ WHAT WE OFFER ════════════════════════════════════════════════════ */}
         <section className="pwn-section">
           <p className="pwn-section-label text-xs font-semibold">What we bring</p>
@@ -675,10 +673,7 @@ export default function PartnerWithNativesPage() {
                 Built for organisations that take the long view.
               </h2>
               <p className="text-muted-foreground leading-relaxed mb-5">
-                Partnerships are open to a select number of organisations including trust infrastructure,
-                verification systems, impact reporting layers, community operating models, funders, corporations,
-                multilaterals, and research institutions who share a commitment to systemic change
-                in Africa's social impact landscape.
+              We partner with a select number of organisations each year — funders, corporates, multilaterals, and research institutions committed to systemic change in Africa's impact sector.
               </p>
               <p className="text-muted-foreground leading-relaxed">
                 We are not a vendor. We are a co-architect. If you want a partner that will
@@ -702,7 +697,7 @@ export default function PartnerWithNativesPage() {
       </div>
 
       {/* ══ CTA BAND ═════════════════════════════════════════════════════════ */}
-      <div className="w-full max-w-7xl mx-auto content-padding pb-20">
+      <div className="w-full max-w-screen-2xl mx-auto content-padding hp-hero pb-20">        
         <div className="pwn-cta-block">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8 relative z-10">
             <div>

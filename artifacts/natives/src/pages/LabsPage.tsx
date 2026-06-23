@@ -8,6 +8,7 @@ import { useLocation } from "wouter";
 import { Link } from "wouter";
 import { supabase } from "@/lib/supabase";
 import type { Session } from "@supabase/supabase-js";
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { Users, Calendar, Search, MapPin, Globe, ShieldCheck } from "lucide-react";
 import { CommissionLabTab } from "@/components/platform/CommissionLabTab";
 import { LabRequestModal } from "@/components/platform/LabRequestModal";
@@ -268,7 +269,7 @@ const [showLabModal, setShowLabModal] = useState(false);
                     </div>
                     {org.verified && (
                       <Badge className="bg-[#2D6A4F] text-white border-none flex items-center gap-1 text-xs font-semibold">
-                        <ShieldCheck className="w-3 h-3" /> Verified
+                        <VerifiedBadge />
                       </Badge>
                     )}
                   </div>

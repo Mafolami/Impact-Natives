@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Check, MapPin, Search, X } from "lucide-react";
+import { Check, MapPin, Search, X, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CreateInitiativeModal from "@/components/platform/CreateInitiativeModal";
 import { supabase } from "@/lib/supabase";
@@ -184,12 +184,6 @@ const CREDIBILITY_ITEMS = [
   "The more value you create, the stronger your reputation becomes across the ecosystem.",
 ];
 
-const METRICS = [
-  { label: "Initiatives listed", value: 142 },
-  { label: "Seeking partners now", value: 38 },
-  { label: "Est. combined budget", value: 4, prefix: "$", suffix: ".2M" },
-  { label: "Executing today", value: 19 },
-];
 
 const STATUS_FILTERS: InitiativeStatus[] = [
   "Listed",
@@ -255,7 +249,7 @@ function SectionEyebrow({ children }: { children: string }) {
 
 function SectionShell({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn("w-full max-w-7xl mx-auto content-padding", className)}>
+    <div className={cn("w-full max-w-screen-2xl mx-auto content-padding", className)}>
       {children}
     </div>
   );
@@ -559,7 +553,7 @@ function HeroSection({ onCreateClick }: { onCreateClick: () => void }) {
   return (
     <section
       data-reveal
-      className="relative w-full min-h-[95vh] flex items-start overflow-hidden"
+      className="relative w-full min-h-[100vh] flex items-center overflow-hidden"
       style={{ width: '100vw', marginLeft: 'calc(-50vw + 50%)', marginTop: '-64px', paddingTop: '64px' }}
     >
       <div className="absolute inset-0 z-0">
@@ -568,29 +562,61 @@ function HeroSection({ onCreateClick }: { onCreateClick: () => void }) {
           alt=""
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/25 to-black/55" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/75" />
       </div>
-      <SectionShell className="relative z-10 py-24 md:py-32">
-      <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-sm px-4 py-1.5 mb-8">
-        <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-        <span className="text-sm font-semibold text-white tracking-wide">
-          Impact Marketplace
-        </span>
-      </div>
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6 max-w-3xl leading-[1.1]">
-          Turn your impact idea{" "}
-          <span className="text-primary">
-          into a real initiative.
+
+      {/* Glow orb */}
+      <div style={{
+        position: 'absolute', top: '20%', right: '10%',
+        width: '40vw', height: '40vh',
+        background: 'radial-gradient(ellipse, rgba(45,106,79,0.2) 0%, transparent 70%)',
+        pointerEvents: 'none', zIndex: 1,
+      }} />
+
+      <SectionShell className="relative z-10 py-32 md:py-40">
+        <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-sm px-4 py-1.5 mb-10">
+          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+          <span className="text-sm font-semibold text-white tracking-wide">
+            Impact Marketplace
+          </span>
+        </div>
+
+        <h1 style={{
+          fontFamily: "'Bricolage Grotesque', sans-serif",
+          fontSize: 'clamp(2.75rem, 6vw, 5rem)',
+          fontWeight: 800,
+          letterSpacing: '-0.04em',
+          lineHeight: 1.05,
+          color: '#f7f3ed',
+          maxWidth: '820px',
+          marginBottom: '1.75rem',
+        }}>
+          Turn your impact idea into{' '}
+          <span style={{
+            background: 'linear-gradient(90deg, #2D6A4F, #52B788, #2D6A4F)',
+            backgroundSize: '200% auto',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          }}>
+            a real initiative.
           </span>
         </h1>
-        <div className="value-anchor-box rounded-2xl p-6 max-w-xl mb-8 shadow-lg">
-          <p className="value-anchor-text text-lg leading-relaxed">
-            One executed idea can start a movement. Share a challenge worth solving. Define
-            the outcome you want to see. Let the ecosystem help bring it to life.
-          </p>
-        </div>
+
+        <p style={{
+          fontSize: 'clamp(1rem, 2vw, 1.25rem)',
+          lineHeight: 1.75,
+          color: 'rgba(247,243,237,0.7)',
+          maxWidth: '580px',
+          marginBottom: '2.5rem',
+        }}>
+          The right initiative, in front of the right partners, becomes a programme.
+          Share a challenge worth solving, define the outcome you want, and let AI match you
+          with the funders and implementers already looking for what you're building.
+        </p>
+
         <div className="flex flex-col sm:flex-row gap-4">
-        <CreateInitiativeButton
+          <CreateInitiativeButton
             size="lg"
             className="rounded-full h-12 px-10 bg-primary hover:bg-primary/90 text-white font-semibold"
             onClick={onCreateClick}
@@ -610,8 +636,8 @@ function HowItWorksSection() {
     <section data-reveal className="py-24 w-full border-b border-border">
       <SectionShell>
         <SectionEyebrow>How it works</SectionEyebrow>
-        <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-12 max-w-xl">
-          From idea to initiative in four steps
+        <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-12 max-7-xl">
+          From idea to execution in four steps
         </h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {HOW_STEPS.map((s) => (
@@ -769,37 +795,6 @@ function LifecycleSection() {
   );
 }
 
-{/*function DashboardSection() {
-  return (
-    <section
-      data-reveal
-      className="py-24 w-full border-b border-border bg-card"
-    >
-      <SectionShell>
-        <div className="flex items-center gap-2 mb-2">
-          <span className="w-2 h-2 rounded-full bg-trust animate-pulse" />
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Live operations dashboard
-          </p>
-        </div>
-        <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-10">
-          Marketplace activity at a glance
-        </h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-          {METRICS.map((m, i) => (
-            <MetricCard key={m.label} {...m} delay={i * 80} />
-          ))}
-        </div>
-        <div className="grid lg:grid-cols-2 gap-4">
-          {INITIATIVES.slice(0, 4).map((ini) => (
-            <InitiativeListRow key={ini.id} initiative={ini} />
-          ))}
-        </div>
-      </SectionShell>
-    </section>
-  );
-}*/}
-
 function PartnershipSection() {
   return (
     <section data-reveal className="py-6 w-full" style={{ background: "#f9f6f3" }}>
@@ -849,6 +844,25 @@ function PartnershipSection() {
         </GreenCard>
       </SectionShell>
     </section>
+  );
+}
+
+function ViewMoreButton() {
+  const { user } = useAuth();
+  const [, navigate] = useLocation();
+
+  return (
+    <button
+      type="button"
+      onClick={() => user
+        ? navigate("/dashboard/marketplace")
+        : navigate("/signup")
+      }
+      className="inline-flex items-center gap-2 h-12 px-8 rounded-full border border-primary text-primary font-semibold text-sm hover:bg-primary hover:text-white transition-colors"
+    >
+      {user ? "View all initiatives" : "Sign up to see all initiatives"}
+      <ArrowRight className="w-4 h-4" />
+    </button>
   );
 }
 
@@ -978,8 +992,8 @@ function FeaturedInitiativesSection({ onCreateClick }: { onCreateClick: () => vo
         {loadingData ? (
           <div className="text-center py-16 text-muted-foreground">Loading initiatives...</div>
         ) : (
-          <div className="grid md:grid-cols-2 gap-6">
-            {filtered.map((ini) => (
+          <div className="grid md:grid-cols-2 gap-6 mb-16">
+            {filtered.slice(0, 4).map((ini) => (
               <InitiativeCard key={ini.id} initiative={ini} />
             ))}
           </div>
@@ -991,6 +1005,15 @@ function FeaturedInitiativesSection({ onCreateClick }: { onCreateClick: () => vo
             <h3 className="text-xl font-bold mb-2">No initiatives match your filters</h3>
             <p className="text-muted-foreground mb-6">Try adjusting your filters or be the first to publish.</p>
             <CreateInitiativeButton className="rounded-full bg-primary hover:bg-primary/90 text-white" onClick={onCreateClick} />
+          </div>
+        )}
+
+        {!loadingData && filtered.length > 4 && (
+          <div className="text-center mt-16 pt-10 border-t border-border">
+            <p className="text-sm text-muted-foreground mb-4">
+              Showing 4 of {filtered.length} active initiatives
+            </p>
+            <ViewMoreButton />
           </div>
         )}
       </SectionShell>

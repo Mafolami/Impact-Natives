@@ -15,6 +15,12 @@ type Initiative = {
   outcome: string
   status: string
   created_at: string
+  stage?: string | null
+  target_population?: string | null
+  specific_ask?: string | null
+  had_prior_experience?: boolean | null
+  partnerships?: string[] | null
+  ai_quality_score?: string | null
 }
 
 type Org = {
@@ -74,6 +80,48 @@ function RegistrationTag({ email, registeredEmails }: { email: string; registere
       {isRegistered ? 'Registered' : 'Guest'}
     </span>
   )
+}
+
+// ─── Admin Triage Summary ─────────────────────────────────────────────────────
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+
+function AdminTriageSummary({ type, data }: { type: "initiative" | "verification"; data: Record<string, any> }) {
+  const [summary, setSummary]   = useState<string | null>(null);
+  const [loading, setLoading]   = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  async function generate() {
+    if (summary) { setExpanded(e => !e); return; }
+    setLoading(true);
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/generate-admin-triage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, data }),
+      });
+      const result = await res.json();
+      if (result.summary) { setSummary(result.summary); setExpanded(true); }
+    } catch { /* silent */ }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div className="mt-2">
+      <button type="button" onClick={generate}
+        className="flex items-center gap-1.5 text-xs text-[#6fcf97]/70 hover:text-[#6fcf97] transition-colors">
+        {loading ? (
+          <><span className="animate-spin">⟳</span> Generating AI triage...</>
+        ) : (
+          <><span>✦</span> {summary ? (expanded ? "Hide AI triage" : "Show AI triage") : "AI triage summary"}</>
+        )}
+      </button>
+      {expanded && summary && (
+        <div className="mt-2 text-xs text-white/60 leading-relaxed border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 rounded-lg px-3 py-2.5">
+          {summary}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -274,11 +322,47 @@ function InitiativesPanel() {
                   <p className="text-white/80 line-clamp-3">{initiative.outcome}</p>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-4 text-xs text-white/50">
-                {initiative.budget && <span>Budget: {initiative.budget}</span>}
-                {initiative.sectors?.length > 0 && <span>Sectors: {initiative.sectors.join(', ')}</span>}
-                {initiative.locations?.length > 0 && <span>Locations: {initiative.locations.join(', ')}</span>}
-              </div>
+              <div className="flex flex-wrap gap-4 text-xs text-white/50 mb-3">
+  {initiative.budget && <span>Budget: {initiative.budget}</span>}
+  {initiative.sectors?.length > 0 && <span>Sectors: {initiative.sectors.join(', ')}</span>}
+  {initiative.locations?.length > 0 && <span>Locations: {initiative.locations.join(', ')}</span>}
+  {initiative.stage && <span>Stage: {initiative.stage}</span>}
+  {initiative.target_population && <span>Serves: {initiative.target_population}</span>}
+  {initiative.had_prior_experience !== null && initiative.had_prior_experience !== undefined && (
+    <span>Prior experience: {initiative.had_prior_experience ? "Yes" : "No"}</span>
+  )}
+  {initiative.ai_quality_score && (
+    <span className={`px-2 py-0.5 rounded-full border text-[10px] font-medium ${
+      initiative.ai_quality_score === "strong" ? "bg-[#2D6A4F]/20 text-[#6fcf97] border-[#2D6A4F]/30" :
+      initiative.ai_quality_score === "good"   ? "bg-amber-500/20 text-amber-300 border-amber-500/30" :
+                                                  "bg-white/10 text-white/50 border-white/20"
+    }`}>
+      {initiative.ai_quality_score} brief
+    </span>
+  )}
+</div>
+{initiative.specific_ask && (
+  <div className="mb-3">
+    <p className="text-white/40 text-xs uppercase tracking-wide mb-1">Specific ask</p>
+    <p className="text-white/70 text-sm leading-relaxed">{initiative.specific_ask}</p>
+  </div>
+)}
+<AdminTriageSummary
+  type="initiative"
+  data={{
+    title: initiative.title,
+    problem: initiative.problem,
+    outcome: initiative.outcome,
+    stage: initiative.stage,
+    partnerships: initiative.partnerships,
+    specific_ask: initiative.specific_ask,
+    budget: initiative.budget,
+    target_population: initiative.target_population,
+    had_prior_experience: initiative.had_prior_experience,
+    sectors: initiative.sectors,
+    locations: initiative.locations,
+  }}
+/>
             </div>
           ))}
         </div>
@@ -692,6 +776,13 @@ type VerificationProfile = {
   verification_requested: boolean
   is_verified: boolean
   created_at: string
+  // joined from organizations
+  org_description?: string | null
+  org_needs?: string[] | null
+  org_offers?: string[] | null
+  org_sdgs?: string[] | null
+  org_sectors?: string[] | null
+  org_country?: string | null
 }
 
 type VerificationDoc = {
@@ -732,7 +823,29 @@ function VerificationPanel() {
     const { data, error } = await query
     if (error) console.error(error)
     const profileList = data ?? []
-    setProfiles(profileList)
+    // Fetch org data for all profiles
+let enriched = profileList as VerificationProfile[];
+if (profileList.length > 0) {
+  const userIds = profileList.map(p => p.id);
+  const { data: orgData } = await supabase
+    .from("organizations")
+    .select("user_id,description,needs,offers,sdgs,sector,country")
+    .in("user_id", userIds);
+  const orgMap = new Map((orgData ?? []).map((o: any) => [o.user_id, o]));
+  enriched = profileList.map(p => {
+    const org = orgMap.get(p.id);
+    return {
+      ...p,
+      org_description: org?.description ?? null,
+      org_needs:       org?.needs       ?? null,
+      org_offers:      org?.offers      ?? null,
+      org_sdgs:        org?.sdgs        ?? null,
+      org_sectors:     normalizeArr(org?.sector),
+      org_country:     Array.isArray(org?.country) ? org.country[0] : org?.country ?? null,
+    };
+  });
+}
+setProfiles(enriched);
 
     // Fetch documents for all returned profiles in one query
     if (profileList.length > 0) {
@@ -762,16 +875,24 @@ function VerificationPanel() {
       .update({ is_verified: true, updated_at: new Date().toISOString() })
       .eq('id', profileId)
     if (error) { alert(`Failed to approve profile: ${error.message}`); return; }
-
+  
     const { error: orgError } = await supabase
       .from('organizations')
       .update({ verification_status: 'verified', status: 'published' })
       .eq('user_id', profileId)
-
+  
     if (orgError) {
       alert(`Failed to update org: ${orgError.message}`)
     }
-
+  
+    await supabase.from('notifications').insert({
+      user_id: profileId,
+      type:    'verification_approved',
+      title:   'Your organisation is now verified',
+      body:    'Your verification has been reviewed and approved. Your profile now shows a verified badge across the platform.',
+      link:    '/dashboard/natives',
+    })
+  
     setProfiles((prev) => prev.filter((p) => p.id !== profileId))
   }
 
@@ -861,6 +982,51 @@ function VerificationPanel() {
                     </span>
                   )}
                 </div>
+
+                {/* Org profile data */}
+                {(profile.org_description || profile.org_needs?.length || profile.org_offers?.length || profile.org_sdgs?.length) && (
+                  <div className="mb-4 grid grid-cols-2 gap-3 text-xs">
+                    {profile.org_description && (
+                      <div className="col-span-2">
+                        <p className="text-white/40 uppercase tracking-wide mb-1">Organisation description</p>
+                        <p className="text-white/70 leading-relaxed line-clamp-3">{profile.org_description}</p>
+                      </div>
+                    )}
+                    {profile.org_needs?.length ? (
+                      <div>
+                        <p className="text-white/40 uppercase tracking-wide mb-1">Needs</p>
+                        <p className="text-white/70">{profile.org_needs.join(", ")}</p>
+                      </div>
+                    ) : null}
+                    {profile.org_offers?.length ? (
+                      <div>
+                        <p className="text-white/40 uppercase tracking-wide mb-1">Offers</p>
+                        <p className="text-white/70">{profile.org_offers.join(", ")}</p>
+                      </div>
+                    ) : null}
+                    {profile.org_sdgs?.length ? (
+                      <div className="col-span-2">
+                        <p className="text-white/40 uppercase tracking-wide mb-1">SDGs</p>
+                        <p className="text-white/70">{profile.org_sdgs.join(", ")}</p>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+
+                <AdminTriageSummary
+                  type="verification"
+                  data={{
+                    full_name:   profile.full_name,
+                    org_name:    profile.org_name,
+                    role_title:  profile.role_title,
+                    org_type:    profile.org_type,
+                    description: profile.org_description,
+                    sectors:     profile.org_sectors,
+                    country:     profile.org_country,
+                    doc_count:   profileDocs.length,
+                    doc_names:   profileDocs.map(d => d.name),
+                  }}
+                />
 
                 {/* Documents */}
                 {profileDocs.length > 0 ? (

@@ -76,7 +76,7 @@ const AUDIENCE: Record<AudienceKey, {
       {
         icon: Lightbulb,
         title: "Adopt initiatives as CSR anchors",
-        body: "Browse the Impact Marketplace and express interest in initiatives that align with your ESG priorities. Adopt a listed initiative as your corporate social responsibility anchor — third-party verified impact, without building a programme from scratch.",
+        body: "Browse the Impact Marketplace and express interest in initiatives that align with your ESG priorities. For any initiative, generate an AI-powered CSR adoption brief in seconds - covering SDG alignment, local content fit, brand considerations, ESG framework match, implementer readiness, risk flags, and a recommended action. Third-party verified impact, without building a programme from scratch.",
       },
       {
         icon: Handshake,
@@ -106,13 +106,13 @@ const AUDIENCE: Record<AudienceKey, {
     features: [
       {
         icon: Search,
-        title: "Browse a verified organisation directory",
-        body: "Every organisation on the Natives platform carries a structured profile — sector focus, geography, programme history, and verification status. Filter by what your mandate requires and identify credible implementers before the first conversation.",
+        title: "Browse a verified organisation directory with DD readiness signals",
+        body: "Every organisation on Natives carries a structured profile — sector focus, geography, programme history, and verification status. Verified organisations also include a due diligence readiness profile: track record data, previous funders, grant delivery history, and third-party evaluation links. Filter by what your mandate requires and know what documentation exists before the first conversation.",
       },
       {
         icon: Globe,
-        title: "Discover active initiatives seeking funding",
-        body: "The Impact Marketplace surfaces initiatives actively seeking funding partners. Browse by sector, location, and partnership type. Express interest directly — no cold outreach, no three-month email chains before a first response.",
+        title: "Discover active initiatives and generate deal memos instantly",
+        body: "The Impact Marketplace surfaces initiatives actively seeking funding partners. Browse by sector, location, and partnership type. When you find a match, generate a structured AI deal memo in seconds — covering the problem, organisation credibility, financial context, and recommended next steps — ready to share with your team before the first conversation.",
       },
       {
         icon: Handshake,
@@ -259,7 +259,7 @@ export default function SolutionsPage() {
         width: '100vw',
         marginLeft: 'calc(-50vw + 50%)',
       }}>
-        <div className="w-full max-w-7xl mx-auto content-padding">
+        <div className="w-full max-w-screen-2xl mx-auto content-padding hp-hero">          
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
             marginBottom: '1.5rem', padding: '0.375rem 1rem', borderRadius: '9999px',
@@ -313,7 +313,7 @@ export default function SolutionsPage() {
         borderBottom: '1px solid hsl(var(--border))',
         background: 'hsl(var(--background))',
       }}>
-        <div className="w-full max-w-7xl mx-auto content-padding">
+        <div className="w-full max-w-screen-2xl mx-auto content-padding hp-hero">          
           <div style={{ maxWidth: '680px' }}>
             <p style={{
               fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.18em',
@@ -333,7 +333,7 @@ export default function SolutionsPage() {
 
       {/* ── FEATURES ── */}
       <section style={{ padding: 'clamp(3rem, 5vw, 5rem) 0', borderBottom: '1px solid hsl(var(--border))' }}>
-        <div className="w-full max-w-7xl mx-auto content-padding">
+        <div className="w-full max-w-screen-2xl mx-auto content-padding hp-hero">          
           <p style={{
             fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.18em',
             textTransform: 'uppercase', color: audience.accent, marginBottom: '2.5rem',
@@ -384,8 +384,7 @@ export default function SolutionsPage() {
 
       {/* ── PATHS ── */}
       <section style={{ padding: 'clamp(3rem, 5vw, 5rem) 0', background: 'hsl(var(--background))' }}>
-        <div className="w-full max-w-7xl mx-auto content-padding">
-          <p style={{
+        <div className="w-full max-w-screen-2xl mx-auto content-padding hp-hero">          <p style={{
             fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.18em',
             textTransform: 'uppercase', color: audience.accent, marginBottom: '1rem',
           }}>

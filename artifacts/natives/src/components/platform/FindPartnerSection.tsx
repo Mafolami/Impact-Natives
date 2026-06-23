@@ -3,6 +3,8 @@ import { ArrowRight, ShieldCheck, Zap, Network, Search, Loader2 } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes"
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/context/AuthContext";
+import { useLocation } from "wouter";
 import { FindPartnerModal } from "@/components/platform/FindPartnerModal";
 import { supabase } from "@/lib/supabase";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
@@ -41,19 +43,19 @@ const VALUE_PROPS = [
   {
     icon: <ShieldCheck className="w-5 h-5" />,
     headline: "Verified partners only",
-    body: "Every organisation in the ecosystem passes through a trust layer — legal standing, track record, sector credibility. Verified organisations are clearly identified and prioritized in matching.",
+    body: "Every organisation passes through a structured trust review — legal standing, track record, sector credibility. Verified organisations are clearly identified and prioritised in matching.",
     accent: "#2D6A4F",
   },
   {
     icon: <Network className="w-5 h-5" />,
-    headline: "Match on shared values",
-    body: "We match on sector, geography, SDG focus, what you need, and what you bring.",
+    headline: "AI-matched to your profile",
+    body: "Submit a brief describing what you need. AI analyses your sector, geography, SDG focus, and stated goals to surface the organisations most likely to be the right fit — in seconds, not months.",
     accent: "#B85C38",
   },
   {
     icon: <Zap className="w-5 h-5" />,
-    headline: "From listing to live partnership",
-    body: "Your profile goes into a structured lifecycle: discovery, workspace, execution, and verified impact report.",
+    headline: "From match to confirmed partnership",
+    body: "Every match moves through a structured lifecycle — expression of interest, conversation, and confirmed partnership — with a full record on both sides.",
     accent: "#1a4a2e",
   },
 ];
@@ -75,6 +77,7 @@ export function FindPartnerSection() {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true) }, []);
+  const [, navigate] = useLocation();
 
   // ── Fetch published orgs ──────────────────────────────────────────────────
   useEffect(() => {
@@ -176,11 +179,10 @@ export function FindPartnerSection() {
           </div>
 
           {/* Value Props */}
-          <div className="grid md:grid-cols-3 gap-0 divide-y md:divide-y-0 md:divide-x divide-neutral-300 dark:divide-white/10">
-            {VALUE_PROPS.map((vp) => (
+          <div className="grid md:grid-cols-3 gap-0 divide-y md:divide-y-0 md:divide-x divide-neutral-300 dark:divide-white/10 px-6 sm:px-10 lg:px-16">            {VALUE_PROPS.map((vp) => (
               <div
                 key={vp.headline}
-                className="group relative px-16 py-14 flex flex-col gap-5 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-300"
+                className="group relative px-8 py-12 flex flex-col gap-5 bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors duration-300"
               >
                 <div
                   className="absolute top-0 left-0 right-0 h-[3px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
@@ -207,75 +209,18 @@ export function FindPartnerSection() {
           <div className="border-t border-neutral-300 dark:border-white/10" />
 
           {/* ── Partner Directory ── */}
-          <div id="partner-directory" className="space-y-8 animate-in fade-in duration-500 sm:px-16 py-16 max-w-6xl mx-auto">
-            <div className="flex items-center justify-between">
+          <div id="partner-directory" className="space-y-8 animate-in fade-in duration-500 py-16 px-6 sm:px-18 lg:px-24">
+            <div className="flex flex-col gap-4 mb-10">
               <h1 className="text-4xl font-bold">Partner Directory</h1>
+              <p className="text-muted-foreground max-w-2xl leading-relaxed">
+                Verified NGOs, corporates, funders, and social enterprises actively seeking partnerships across Africa. 
+                The organisations listed here have passed a structured trust review — and they are looking for exactly what you bring.
+              </p>
             </div>
 
-            {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4 mb-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search organizations..."
-                  className="pl-10 h-12"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-              <select
-                value={sectorFilter}
-                onChange={(e) => setSectorFilter(e.target.value)}
-                className="border p-2 rounded bg-background text-foreground"
-              >
-                <option value="">All Sectors</option>
-                {SECTOR_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <select
-                value={countryFilter}
-                onChange={(e) => setCountryFilter(e.target.value)}
-                className="border p-2 rounded bg-background text-foreground"
-              >
-                <option value="">All Countries</option>
-                {COUNTRY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="border p-2 rounded bg-background text-foreground"
-              >
-                <option value="">All Types</option>
-                {ORG_TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-              <button
-                type="button"
-                onClick={() => setVerifiedOnly((prev) => !prev)}
-                className={`h-12 px-4 rounded border text-sm font-medium flex items-center gap-2 transition-all ${
-                  verifiedOnly
-                    ? "bg-[#2D6A4F] text-white border-[#2D6A4F]"
-                    : "bg-background text-foreground border-border hover:border-[#2D6A4F]/50"
-                }`}
-              >
-                <ShieldCheck className="w-4 h-4" /> Verified Only
-              </button>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="SDGs e.g. 2, 13"
-                  className="border p-2 rounded h-12 w-40 text-sm bg-background text-foreground"
-                  onChange={(e) => {
-                    const vals = e.target.value
-                      .split(",")
-                      .map((v) => Number(v.trim()))
-                      .filter((v) => !isNaN(v) && v > 0);
-                    setSdgFilter(vals);
-                  }}
-                />
-              </div>
-            </div>
-
+            {/* Filters removed for public view */}
             {/* Directory listing */}
-            <div className="border border-neutral-200 dark:border-white/10 rounded-lg overflow-hidden max-w-7xl mx-auto">
+            <div className="border border-neutral-200 dark:border-white/10 rounded-lg overflow-hidden relative">
               {loading ? (
                 <div className="py-16 flex items-center justify-center">
                   <Loader2 className="w-5 h-5 animate-spin text-[#2D6A4F]" />
@@ -287,10 +232,51 @@ export function FindPartnerSection() {
                     : "No organisations match your filters."}
                 </div>
               ) : (
-                <div className="divide-y divide-neutral-200 dark:divide-white/10">
-                  {filtered.map((org) => (
-                    <PublicOrgCard key={org.id} org={org} />
-                  ))}
+                <div className="relative">
+                  {/* Show first card clearly, blur the rest for guests */}
+                  <div className="divide-y divide-neutral-200 dark:divide-white/10">
+                    {filtered.slice(0, 1).map((org) => (
+                      <PublicOrgCard key={org.id} org={org} />
+                    ))}
+                  </div>
+
+                  {filtered.length > 1 && (
+                    <div className="relative">
+                      <div style={{ height: '220px' }} />
+
+                      {/* Overlay CTA */}
+                      <div
+                        className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center px-6"
+                        style={{
+                          background: 'linear-gradient(to bottom, transparent 0%, hsl(var(--background) / 0.95) 35%)',
+                        }}
+                      >
+                        <div className="max-w-sm">
+                          <p className="text-lg font-bold text-neutral-900 mb-2">
+                            {filtered.length - 1} more verified {filtered.length - 1 === 1 ? 'organisation' : 'organisations'} in the directory
+                          </p>
+                          <p className="text-sm text-neutral-500 mb-5 leading-relaxed">
+                            Create a free account to see the full directory, filter by sector and country, and express interest directly.
+                          </p>
+                          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                            <Button
+                              onClick={() => navigate('/signup')}                              
+                              className="px-6 py-2.5 text-white font-semibold rounded-full text-sm bg-[#2D6A4F] border-none hover:bg-[#245c43]"
+                            >
+                              Join free — see all partners
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => navigate('/signin')}
+                              className="px-6 py-2.5 font-semibold rounded-full text-sm"
+                            >
+                              Sign in
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -299,14 +285,14 @@ export function FindPartnerSection() {
           <div className="border-t border-neutral-300 dark:border-white/10" />
 
           {/* Partnership Lifecycle */}
-          <div data-reveal className="py-6 px-6 sm:px-18 w-full bg-white dark:bg-neutral-900">
+          <div data-reveal className="py-6 px-6 sm:px-10 lg:px-16 bg-white dark:bg-neutral-900">
             <div className="max-w-7xl mx-auto">
               <div className="w-full rounded-3xl py-24 px-10">
                 <h2 className="text-5xl font-bold mb-4 text-center">Partnership Lifecycle</h2>
                 <p className="text-center mb-16 max-w-3xl mx-auto text-neutral-500 dark:text-neutral-400">
                   Every Natives partnership follows a structured path from discovery to verified impact.
                 </p>
-                <div className="relative max-w-4xl mx-auto">
+                <div className="relative w-full">
                   <div
                     className="absolute top-5 left-0 right-0 h-0.5 hidden md:block"
                     style={{ background: "rgba(0,0,0,0.1)" }}
@@ -342,7 +328,7 @@ export function FindPartnerSection() {
           </div>
 
           {/* Bottom CTA */}
-          <div className="px-6 sm:px-10 py-20 flex flex-col items-center justify-center gap-7 bg-neutral-100 dark:bg-black/25 border-t border-neutral-300 dark:border-white/10 text-center">
+          <div className="px-6 sm:px-10 lg:px-16 py-20 flex flex-col items-center justify-center gap-7 bg-neutral-100 dark:bg-black/25 border-t border-neutral-300 dark:border-white/10 text-center">
             <p className="text-lg max-w-2xl mx-auto leading-relaxed text-neutral-600 dark:text-neutral-400">
               If your organisation isn't listed, qualified partners searching for a match based on sector, geography, goals, and delivery
               capability cannot discover or evaluate you through the network. So get matched with verified partners that

@@ -131,10 +131,47 @@ export default function DashboardSettings() {
     { value: "danger",        label: "Danger zone" },
   ];
 
+  const tabHelp: Record<string, { title: string; items: string[] }> = {
+    account: {
+      title: "Account tips",
+      items: [
+        "Your email address cannot be changed once set.",
+        "Use a strong password and enable 2FA if available.",
+        "Sign out of shared devices after each session.",
+      ],
+    },
+    privacy: {
+      title: "Privacy tips",
+      items: [
+        "Setting your profile to Private hides you from the ecosystem feed.",
+        "Your initiatives remain visible in the marketplace regardless of this setting.",
+        "You can change this at any time.",
+      ],
+    },
+    notifications: {
+      title: "Notification tips",
+      items: [
+        "EOI notifications alert you when someone expresses interest in your initiative.",
+        "Partnership notifications fire when a conversation is confirmed.",
+        "Weekly digest summarises ecosystem activity in your sectors.",
+      ],
+    },
+    danger: {
+      title: "Before you proceed",
+      items: [
+        "Deactivation hides your profile but preserves your data.",
+        "Deletion is permanent and cannot be undone.",
+        "Contact the team if you need help recovering your account.",
+      ],
+    },
+  };
+
+  const currentHelp = tabHelp[tab];
+
   return (
-    <div className="max-w-2xl space-y-6">
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: "2rem", alignItems: "start", width: "100%", position: "relative" }}>
+    <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-foreground tracking-tight">Settings</h2>
         <p className="text-sm text-muted-foreground mt-1">Manage your account and preferences.</p>
       </div>
 
@@ -370,6 +407,40 @@ export default function DashboardSettings() {
 
         </div>
       )}
+    </div>
+
+    {/* Right column */}
+    <div className="space-y-4" style={{top: "10rem" }}>
+      <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {currentHelp.title}
+        </p>
+        <div className="space-y-3">
+          {currentHelp.items.map((item, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F] shrink-0 mt-1.5" />
+              <p className="text-xs text-muted-foreground leading-relaxed">{item}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-5 space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Quick links</p>
+        <a href="/dashboard/profile" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+          <span className="w-1 h-1 rounded-full bg-[#C45C26] shrink-0" />
+          Edit your profile
+        </a>
+        <a href="/verification-standard" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+          <span className="w-1 h-1 rounded-full bg-[#C45C26] shrink-0" />
+          Verification standards
+        </a>
+        <a href="/dashboard/natives" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+          <span className="w-1 h-1 rounded-full bg-[#C45C26] shrink-0" />
+          View directory
+        </a>
+      </div>
+    </div>
     </div>
   );
 }

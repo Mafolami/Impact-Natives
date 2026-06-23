@@ -713,7 +713,7 @@ export default function HomePage() {
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(9,8,10,0.25) 0%, rgba(9,8,10,0.08) 35%, rgba(9,8,10,0.6) 80%, rgba(9,8,10,1) 100%)' }} />
         </div>
 
-        <div className="hp-section-wrap" style={{ ...S.contentMax, position: 'relative', zIndex: 10, paddingTop: '7rem', paddingBottom: '6rem', width: '100%' }}>          {/* Live badge */}
+        <div className="hp-section-wrap hp-hero" style={{ position: 'relative', zIndex: 10, paddingTop: '7rem', paddingBottom: '6rem', width: '100%' }}>          {/* Live badge */}
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2rem', padding: '0.375rem 1rem', borderRadius: '9999px', background: 'rgba(196,92,38,0.1)', border: '1px solid rgba(196,92,38,0.28)', backdropFilter: 'blur(12px)' }}>
             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#C45C26', display: 'block', animation: 'hp-glowPulse 2s ease-in-out infinite' }} />
             <span style={{ fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#e07a4a' }}>
@@ -754,11 +754,10 @@ export default function HomePage() {
       {/* ── PROBLEM ───────────────────────────────────────── */}
       <section className="hp-reveal" style={{ ...S.sectionPad, ...S.reveal, position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', width: '500px', height: '500px', top: '-50px', left: '-150px', background: 'radial-gradient(circle, rgba(45,122,212,0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
-        <div className="hp-section-wrap" style={S.contentMax}>
+        <div className="hp-section-wrap hp-hero">
           <div className="hp-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'clamp(2.5rem, 6vw, 6rem)', alignItems: 'center' }}>
             <div className="hp-mobile-text-first">
-              <div style={S.sectionLabel}>The Challenge</div>
-              <h2 style={{ ...S.h2, marginBottom: '1.5rem' }}>
+              <div style={S.sectionLabel}>The Challenge</div>              <h2 style={{ ...S.h2, marginBottom: '1.5rem' }}>
                 Not short of capital or ideas. Short of{' '}
                 <em style={{ fontStyle: 'normal', color: '#e07a4a' }}>coordination.</em>
               </h2>
@@ -823,7 +822,8 @@ export default function HomePage() {
 
       {/* ── FEATURES ──────────────────────────────────────── */}
       <section style={S.sectionPad}>
-        <div className="hp-reveal hp-section-wrap" style={{ ...S.contentMax, ...S.reveal, marginBottom: '3.5rem' }}>          <div style={S.sectionLabel}>Platform Features</div>
+        <div className="hp-reveal hp-section-wrap hp-hero" style={{ ...S.reveal, marginBottom: '3.5rem' }}>
+          <div style={S.sectionLabel}>Platform Features</div>
           <h2 style={S.h2}>How Natives helps you</h2>
         </div>
         <div style={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: '1.25rem', overflow: 'hidden' }}>
@@ -833,7 +833,8 @@ export default function HomePage() {
 
       {/* ── WHO IT'S FOR ──────────────────────────────────── */}
       <section style={{ borderTop: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
-        <div className="hp-reveal hp-section-wrap" style={{ ...S.contentMax, ...S.reveal, paddingTop: '5rem', paddingBottom: '2.5rem' }}>          <div style={S.sectionLabel}>Who it's for</div>
+        <div className="hp-reveal hp-section-wrap hp-hero" style={{ ...S.reveal, paddingTop: '5rem', paddingBottom: '2.5rem' }}>
+          <div style={S.sectionLabel}>Who it's for</div>
           <h2 style={S.h2}>Natives</h2>
         </div>
         <RolesStack />
@@ -842,7 +843,7 @@ export default function HomePage() {
       {/* ── ABOUT ─────────────────────────────────────────── */}
       <section className="hp-reveal" style={{ ...S.sectionPad, ...S.reveal, borderTop: '1px solid rgba(255,255,255,0.06)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', width: '500px', height: '500px', top: '-80px', right: '-80px', background: 'radial-gradient(circle, rgba(196,92,38,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
-        <div className="hp-section-wrap" style={S.contentMax}>
+        <div className="hp-section-wrap hp-hero">
           <div className="hp-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'clamp(2.5rem, 6vw, 6rem)', alignItems: 'center' }}>
             
             <div className="hp-mobile-text-first">
@@ -897,7 +898,7 @@ export default function HomePage() {
       {/* ── THREE PATHS ───────────────────────────────────── */}
 <section className="hp-reveal hp-light-section" style={{ ...S.sectionPad, ...S.reveal, borderTop: '1px solid rgba(255,255,255,0.06)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', width: '700px', height: '700px', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: 'radial-gradient(ellipse, rgba(196,92,38,0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
-        <div className="hp-section-wrap" style={{ ...S.contentMax, position: 'relative', zIndex: 1 }}>
+        <div className="hp-section-wrap hp-hero" style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ marginBottom: '3.5rem' }}>
             <div style={S.sectionLabel}>Choose Your Path</div>
             <h2 style={{ ...S.h2, marginBottom: '0.875rem' }}>What would you like to do?</h2>
@@ -962,9 +963,8 @@ export default function HomePage() {
 
       {/* ── FAQ ───────────────────────────────────────────── */}
       <section className="hp-reveal" style={{ ...S.sectionPad, ...S.reveal, borderTop: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-        <div className="hp-section-wrap" style={S.contentMax}>
-<div className="hp-faq-grid hp-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 'clamp(3rem, 6vw, 6rem)', alignItems: 'start' }}>
-            <div className="hp-mobile-unstick" style={{ position: 'sticky', top: '6rem' }}>
+        <div className="hp-section-wrap hp-hero">
+          <div className="hp-faq-grid hp-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 'clamp(3rem, 6vw, 6rem)', alignItems: 'start' }}>            <div className="hp-mobile-unstick" style={{ position: 'sticky', top: '6rem' }}>
               <div style={S.sectionLabel}>FAQ</div>
               <h2 style={{ ...S.h2, marginBottom: '1rem' }}>Common questions</h2>
               <p style={{ fontSize: '1.0625rem', color: 'rgba(247,243,237,0.5)', lineHeight: 1.7, marginBottom: '2rem' }}>

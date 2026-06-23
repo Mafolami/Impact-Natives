@@ -1,66 +1,31 @@
 // ─── FindPartnerModalDashboard.tsx ───────────────────────────────────────────
-// 9 steps (0–8):
-//   0: Have you identified partners? (Yes → org list, No → skip)
-//   1: Where do you operate?
-//   2: Which sectors?
-//   3: Which SDGs?
-//   4: Organisation type?
-//   5: What do you need?
-//   6: What can you offer?
-//   7: Tell us about your organisation
-//   8: Review & submit
-// Pre-filled silently: org_name, email, website
-// On submit: upsert organizations + insert partner_requests
+// Flow:
+//   0: Free-text intent → AI prefill
+//   1: Review & edit prefilled fields
+//   2: Submit → AI matching → show results with Reach Out option
+//
+// Rate limit: disabled for test period (re-enable by setting RATE_LIMIT_ENABLED = true)
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { ORG_TYPE_OPTIONS } from "@/lib/orgTypes";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
-import { useLocation } from "wouter";
-
+import { Loader2, Sparkles, CheckCircle2, ArrowLeft, ExternalLink } from "lucide-react";
+import { ORG_TYPE_OPTIONS } from "@/lib/orgTypes";
 import { SECTOR_OPTIONS as SECTORS } from "@/lib/sectors";
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+const RATE_LIMIT_ENABLED = false; // flip to true post-validation
 
 const COUNTRIES = [
-  "Nigeria", "Kenya", "Ghana", "South Africa",
-  "Ethiopia", "Rwanda", "Senegal", "Other",
+  "Nigeria", "Kenya", "Ghana", "South Africa", "Ethiopia",
+  "Rwanda", "Senegal", "United Kingdom", "Germany", "France", "Other",
 ];
-
-
-const NEEDS_OPTIONS = [
-  "Funding", "Partnership", "Data",
-  "Visibility", "Technical Assistance", "Networks",
-];
-
-const OFFERS_OPTIONS = [
-  "Field access", "Data", "Networks",
-  "Execution", "Funding", "Research",
-];
-
+const NEEDS_OPTIONS = ["Funding", "Partnership", "Data", "Visibility", "Technical Assistance", "Networks"];
+const OFFERS_OPTIONS = ["Field access", "Data", "Networks", "Execution", "Funding", "Research"];
 const SDG_LIST = Array.from({ length: 17 }, (_, i) => i + 1);
 
-const TOTAL_STEPS = 9;
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-type OrgRow = { id: string; organisation_name: string; isFavorite?: boolean };
-type RateLimitState = { blocked: boolean; resetsAt: Date | null };
-
-type FormState = {
-  organisation_name: string;
-  email: string;
-  website: string;
+type PrefillData = {
   country: string[];
   sectors: string[];
   sdgs: number[];
@@ -68,34 +33,50 @@ type FormState = {
   needs: string[];
   offers: string[];
   description: string;
-  has_identified_partners: boolean | null;
-  selected_partners: string[];
+  partnership_sought: string;
 };
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+type MatchResult = {
+  org_id: string;
+  fit_score: number;
+  rationale: string;
+  key_synergy: string;
+  org: {
+    id: string;
+    organisation_name: string;
+    description: string;
+    organisation_type: string;
+    country: string | string[];
+    sector: string | string[];
+    needs: string[];
+    offers: string[];
+    sdgs: number[];
+    website?: string;
+    email?: string;
+    verification_status: string;
+  };
+};
 
-function stepClass(index: number, current: number) {
-  if (index === current) return "tf-active";
-  if (index < current)  return "tf-above";
-  return "tf-below";
-}
-
-function CheckboxGroup({
-  options, selected, onToggle,
+function ChipGroup({
+  options,
+  selected,
+  onToggle,
 }: {
-  options: string[]; selected: string[]; onToggle: (v: string) => void;
+  options: string[];
+  selected: string[];
+  onToggle: (v: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap justify-center gap-2 max-w-md">
+    <div className="flex flex-wrap gap-2">
       {options.map((opt) => {
         const on = selected.includes(opt);
         return (
           <button
             key={opt} type="button" onClick={() => onToggle(opt)}
-            className={`px-4 py-2 rounded-full border text-sm transition-all ${
+            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
               on
-                ? "bg-foreground text-background border-foreground"
-                : "bg-background text-foreground border-border hover:border-foreground/50"
+                ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
+                : "bg-background text-muted-foreground border-border hover:border-[#2D6A4F]/50 hover:text-foreground"
             }`}
           >
             {opt}
@@ -106,7 +87,13 @@ function CheckboxGroup({
   );
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+      {children}
+    </p>
+  );
+}
 
 export function FindPartnerModalDashboard({
   isOpen,
@@ -116,22 +103,23 @@ export function FindPartnerModalDashboard({
   onClose: () => void;
 }) {
   const { user } = useAuth();
-  const [, navigate] = useLocation()
 
-  const [profileLoading, setProfileLoading] = useState(true);
-  const [step, setStep]       = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  // Step: 'intent' | 'review' | 'matching' | 'results' | 'no_org' | 'rate_limited'
+  const [step, setStep] = useState<"intent" | "review" | "matching" | "results" | "no_org" | "rate_limited" | "new_request_prompt">("intent");
+  const [freeText, setFreeText] = useState("");
+  const [partnershipTitle, setPartnershipTitle] = useState("");
+  const [prefilling, setPrefilling] = useState(false);
+  const [prefillError, setPrefillError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [listPublicly, setListPublicly] = useState(true);
+  const [matches, setMatches] = useState<MatchResult[]>([]);
+  const [sentInvites, setSentInvites] = useState<Set<string>>(new Set());
+  const [sendingInvite, setSendingInvite] = useState<string | null>(null);
 
-    const [rateLimit, setRateLimit]         = useState<RateLimitState>({ blocked: false, resetsAt: null });
-  const [publishedOrgs, setPublishedOrgs] = useState<OrgRow[]>([]);
-  const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
-  const [hasOrg, setHasOrg]               = useState<boolean | null>(null);
+  const [orgProfile, setOrgProfile] = useState<any>(null);
+  const [hasOrg, setHasOrg] = useState<boolean | null>(null);
 
-  const [form, setForm] = useState<FormState>({
-    organisation_name: "",
-    email: "",
-    website: "",
+  const [form, setForm] = useState<PrefillData>({
     country: [],
     sectors: [],
     sdgs: [],
@@ -139,512 +127,266 @@ export function FindPartnerModalDashboard({
     needs: [],
     offers: [],
     description: "",
-    has_identified_partners: null,
-    selected_partners: [],
+    partnership_sought: "",
   });
 
-  // ─── Load on open ──────────────────────────────────────────────────────────
-
+  // Load org profile on open
   useEffect(() => {
     if (!user || !isOpen) return;
+    setStep("intent");
+    setFreeText("");
+    setPartnershipTitle("");
+    setPrefillError("");
+    setMatches([]);
+    setSentInvites(new Set());
 
-    async function init() {
-      setProfileLoading(true);
-
-      const [profileRes, rateRes, orgsRes, favRes, orgRow] = await Promise.all([
+    async function loadOrg() {
+      setOrgProfile(null);
+      const [orgRes, profileRes] = await Promise.all([
+        supabase
+          .from("organizations")
+          .select("id, organisation_name, description, sector, country, organisation_type, needs, offers, sdgs, website, email, verification_status, partnership_listed, partnership_formed, partnership_title")
+          .eq("user_id", user!.id)
+          .maybeSingle(),
         supabase
           .from("profiles")
-          .select("org_name, email, website")
+          .select("org_name")
           .eq("id", user!.id)
-          .single(),
-
-        supabase
-          .from("partner_requests")
-          .select("created_at")
-          .eq("user_id", user!.id)
-          .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-          .order("created_at", { ascending: true }),
-
-        supabase
-          .from("organizations")
-          .select("id, organisation_name")
-          .eq("status", "published"),
-
-        supabase
-          .from("favorites")
-          .select("organization_id")
-          .eq("user_id", user!.id),
-
-        supabase
-          .from("organizations")
-          .select("verification_status")
-          .eq("user_id", user!.id)
           .maybeSingle(),
       ]);
 
-      if (profileRes.data) {
-        setForm((p) => ({
-          ...p,
-          organisation_name: profileRes.data.org_name || "",
-          email:             profileRes.data.email    || user!.email || "",
-          website:           profileRes.data.website  || "",
-        }));
+      const data = orgRes.data;
+      // Always sync org name from profile to prevent mismatch
+      if (data && profileRes.data?.org_name && data.organisation_name !== profileRes.data.org_name) {
+        await supabase
+          .from("organizations")
+          .update({ organisation_name: profileRes.data.org_name })
+          .eq("id", data.id);
+        data.organisation_name = profileRes.data.org_name;
       }
 
-      const submissions = rateRes.data ?? [];
-      if (submissions.length >= 3) {
-        const oldest   = new Date(submissions[0].created_at);
-        const resetsAt = new Date(oldest.getTime() + 24 * 60 * 60 * 1000);
-        setRateLimit({ blocked: true, resetsAt });
-      }
-
-      const favoriteIds = new Set((favRes.data ?? []).map((f) => f.organization_id));
-      const orgs: OrgRow[] = (orgsRes.data ?? []).map((o) => ({
-        ...o,
-        isFavorite: favoriteIds.has(o.id),
-      }));
-      orgs.sort((a, b) => Number(b.isFavorite) - Number(a.isFavorite));
-      setPublishedOrgs(orgs);
-
-            if (orgRow.data) {
-        setVerificationStatus(orgRow.data.verification_status);
-        setHasOrg(true);
-      } else {
+      if (!data) {
         setHasOrg(false);
+        setStep("no_org");
+        return;
       }
 
-      setProfileLoading(false);
+      setHasOrg(true);
+      setOrgProfile(data);
+
+      // If already formed, show prompt before proceeding
+      if (data.partnership_formed) {
+        setStep("new_request_prompt");
+        return;
+      }
+
+      // Check rate limit if enabled
+      if (RATE_LIMIT_ENABLED) {
+        const cutoff = new Date(Date.now() - 7 * 60 * 60 * 1000).toISOString();
+        const { data: recent } = await supabase
+          .from("partnership_connections")
+          .select("created_at")
+          .eq("sender_user_id", user!.id)
+          .gte("created_at", cutoff)
+          .limit(1);
+        if (recent && recent.length > 0) {
+          setStep("rate_limited");
+          return;
+        }
+      }
     }
 
-    init();
+    loadOrg();
   }, [user, isOpen]);
 
   if (!isOpen) return null;
+  // orgProfile is reset in loadOrg on each open
 
-  // ─── Helpers ───────────────────────────────────────────────────────────────
-
-  function toggle(field: "country" | "sectors" | "needs" | "offers", value: string) {
-    setForm((p) => {
-      const has = p[field].includes(value);
-      return { ...p, [field]: has ? p[field].filter((v) => v !== value) : [...p[field], value] };
+  function toggle(field: keyof Pick<PrefillData, "country" | "sectors" | "needs" | "offers">, val: string) {
+    setForm(p => {
+      const arr = p[field] as string[];
+      return { ...p, [field]: arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val] };
     });
   }
 
   function toggleSdg(n: number) {
-    setForm((p) => ({
+    setForm(p => ({
       ...p,
-      sdgs: p.sdgs.includes(n) ? p.sdgs.filter((s) => s !== n) : [...p.sdgs, n],
+      sdgs: p.sdgs.includes(n) ? p.sdgs.filter(s => s !== n) : [...p.sdgs, n],
     }));
   }
 
-  function togglePartner(id: string) {
-    setForm((p) => {
-      const has = p.selected_partners.includes(id);
-      return {
-        ...p,
-        selected_partners: has
-          ? p.selected_partners.filter((x) => x !== id)
-          : [...p.selected_partners, id],
-      };
-    });
-  }
+  // ── Step 0: AI prefill ──────────────────────────────────────────────────────
+  async function runPrefill() {
+    if (!freeText.trim() || !orgProfile) return;
+    setPrefilling(true);
+    setPrefillError("");
 
-  function next() { setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1)); }
-  function prev() { setStep((s) => Math.max(s - 1, 0)); }
-
-  // ─── Submit ────────────────────────────────────────────────────────────────
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!user) return;
-    setLoading(true);
-
-        // Only upsert organizations if no existing published/pending row
-    const { data: existingOrg } = await supabase
-      .from("organizations")
-      .select("id, status")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    const proposedData = {
-      organisation_name:      form.organisation_name,
-      email:                  form.email,
-      website:                form.website,
-      country:                form.country,
-      sector:                 form.sectors,
-      sdgs:                   form.sdgs,
-      organisation_type:      form.organisation_type,
-      needs:                  form.needs,
-      offers:                 form.offers,
-      description:            form.description,
-    };
-
-    if (!existingOrg) {
-      // First time — create the org row
-      const { error: orgError } = await supabase.from("organizations").insert({
-        ...proposedData,
-        verification_consent:   "no",
-        verification_status:    "not_requested",
-        verification_documents: [],
-        status:                 "pending",
-        user_id:                user.id,
+    try {
+      // Strip partnership-specific fields so AI uses free_text, not old values
+      const { partnership_sought, partnership_title, needs, offers, ...baseProfile } = orgProfile;
+      const { data, error } = await supabase.functions.invoke("prefill-partnership-form", {
+        body: { free_text: freeText, org_profile: baseProfile },
       });
 
-      if (orgError) {
-        setLoading(false);
-        alert(orgError.message);
-        return;
-      }
-    }
-    // If org already exists, proposed changes go to partner_requests only
-    // Admin will apply them on approval
+      if (error || !data?.prefilled) throw new Error(error?.message ?? "Prefill failed");
 
-    const { error: prError } = await supabase.from("partner_requests").insert({
-      user_id:                 user.id,
-      contact_name:            form.organisation_name,
-      organisation_name:       form.organisation_name,
-      email:                   form.email,
-      has_identified_partners: form.has_identified_partners ?? false,
-      selected_partners:       form.selected_partners,
-      partner_sectors:         form.sectors,
-      status:                  "pending",
-      proposed_data:           proposedData,
-    });
-
-    setLoading(false);
-    if (prError) {
-      console.error('partner_requests insert error:', prError);
-      alert(prError.message);
-    } else {
-
-      setSubmitted(true);
+      setForm({
+        country: data.prefilled.country ?? [],
+        sectors: data.prefilled.sectors ?? [],
+        sdgs: data.prefilled.sdgs ?? [],
+        organisation_type: data.prefilled.organisation_type ?? "",
+        needs: data.prefilled.needs ?? [],
+        offers: data.prefilled.offers ?? [],
+        description: data.prefilled.description ?? "",
+        partnership_sought: data.prefilled.partnership_sought ?? "",
+      });
+      setStep("review");
+    } catch (e: any) {
+      setPrefillError("Something went wrong. Try again or simplify your description.");
+    } finally {
+      setPrefilling(false);
     }
   }
 
-  // ─── Steps ─────────────────────────────────────────────────────────────────
-  // key must match the step index (0–8) exactly — this is what drives animation
+  // ── Step 1: Submit + match ──────────────────────────────────────────────────
+  async function submitAndMatch() {
+    if (!user || !orgProfile) return;
+    setSubmitting(true);
+    setStep("matching");
 
-  const steps = [
+    try {
+      // 1. Update org with partnership data
+      const updatePayload: any = {
+        country: form.country,
+        sector: form.sectors,
+        sdgs: form.sdgs,
+        organisation_type: form.organisation_type,
+        needs: form.needs,
+        offers: form.offers,
+        description: form.description,
+        partnership_sought: form.partnership_sought,
+        partnership_title: partnershipTitle,
+        partnership_listed: listPublicly,
+        ...(listPublicly ? { status: 'published' } : {}),
+      };
 
-    // ── 0: Have you identified partners? ─────────────────────────────────────
-    {
-      key: 0,
-      content: (
-        <div className="flex flex-col items-center gap-6 w-full max-w-md">
-          <p className="text-sm text-muted-foreground">1 of {TOTAL_STEPS}</p>
-          <h2 className="text-3xl font-semibold text-center">
-            Have you identified potential partners?
-          </h2>
-          <p className="text-sm text-muted-foreground text-center">
-            We'll help surface relevant organisations either way.
-          </p>
+      // Re-fetch org id at submit time in case orgProfile was stale
+      console.log("submitAndMatch user.id:", user?.id, "user.email:", user?.email);
+      const { data: freshOrg } = await supabase
+        .from("organizations")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      console.log("freshOrg:", freshOrg);
 
-          <div className="flex gap-4">
-            {(["Yes", "No"] as const).map((opt) => {
-              const val    = opt === "Yes";
-              const active = form.has_identified_partners === val;
-              return (
-                <button
-                  key={opt} type="button"
-                  onClick={() => {
-                    setForm((p) => ({ ...p, has_identified_partners: val }));
-                    if (!val) setTimeout(() => next(), 300);
-                  }}
-                  className={`px-8 py-3 rounded-full border text-sm transition-all ${
-                    active
-                      ? "bg-foreground text-background border-foreground"
-                      : "bg-background text-foreground border-border hover:border-foreground/50"
-                  }`}
-                >
-                  {opt}
-                </button>
-              );
-            })}
-          </div>
+      const orgId = freshOrg?.id ?? orgProfile?.id;
 
-          {form.has_identified_partners === true && (
-            <div className="w-full flex flex-col gap-3">
-              <p className="text-sm text-muted-foreground">
-                Select the organisations you have in mind:
-              </p>
-              <div className="flex flex-col gap-0.5 max-h-52 overflow-y-auto border border-border rounded-xl p-3">
-                {publishedOrgs.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-2 text-center">
-                    No published organisations yet.
-                  </p>
-                ) : (
-                  publishedOrgs.map((org) => {
-                    const checked = form.selected_partners.includes(org.id);
-                    return (
-                      <label
-                        key={org.id}
-                        className="flex items-center gap-3 py-2 cursor-pointer hover:bg-muted/40 rounded-lg px-2"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => togglePartner(org.id)}
-                          className="accent-foreground"
-                        />
-                        <span className="text-sm text-foreground">
-                          {org.organisation_name}
-                          {org.isFavorite && (
-                            <span className="ml-2 text-xs text-amber-500">★</span>
-                          )}
-                        </span>
-                      </label>
-                    );
-                  })
-                )}
-              </div>
-              <Button type="button" onClick={next}>
-                Next →
-              </Button>
-            </div>
-          )}
-        </div>
-      ),
-    },
+      if (!orgId) {
+        console.error("No org id found at submit time");
+        setStep("intent");
+        setSubmitting(false);
+        return;
+      }
 
-    // ── 1: Where do you operate? ──────────────────────────────────────────────
-    {
-      key: 1,
-      content: (
-        <div className="flex flex-col items-center gap-6 w-full max-w-md">
-          <p className="text-sm text-muted-foreground">2 of {TOTAL_STEPS}</p>
-          <h2 className="text-3xl font-semibold text-center">Where do you operate?</h2>
-          <p className="text-sm text-muted-foreground">Select all that apply</p>
-          <CheckboxGroup
-            options={COUNTRIES}
-            selected={form.country}
-            onToggle={(v) => toggle("country", v)}
-          />
-          <Button type="button" onClick={next} disabled={form.country.length === 0}>
-            Next →
-          </Button>
-        </div>
-      ),
-    },
+      const { error: updateError } = await supabase
+        .from("organizations")
+        .update(updatePayload)
+        .eq("id", orgId)
+        .eq("user_id", user.id);
 
-    // ── 2: Which sectors? ─────────────────────────────────────────────────────
-    {
-      key: 2,
-      content: (
-        <div className="flex flex-col items-center gap-6 w-full max-w-md">
-          <p className="text-sm text-muted-foreground">3 of {TOTAL_STEPS}</p>
-          <h2 className="text-3xl font-semibold text-center">Which sectors?</h2>
-          <p className="text-sm text-muted-foreground">Select all that apply</p>
-          <CheckboxGroup
-            options={SECTORS}
-            selected={form.sectors}
-            onToggle={(v) => toggle("sectors", v)}
-          />
-          <Button type="button" onClick={next} disabled={form.sectors.length === 0}>
-            Next →
-          </Button>
-        </div>
-      ),
-    },
+      if (updateError) console.error("Org update error:", updateError);
 
-    // ── 3: SDGs ───────────────────────────────────────────────────────────────
-    {
-      key: 3,
-      content: (
-        <div className="flex flex-col items-center gap-6 w-full max-w-md">
-          <p className="text-sm text-muted-foreground">4 of {TOTAL_STEPS}</p>
-          <h2 className="text-3xl font-semibold text-center">
-            Which SDGs does your work address?
-          </h2>
-          <p className="text-sm text-muted-foreground">Select all that apply</p>
-          <div className="flex flex-wrap justify-center gap-2 max-w-lg">
-            {SDG_LIST.map((n) => {
-              const on = form.sdgs.includes(n);
-              return (
-                <button
-                  key={n} type="button" onClick={() => toggleSdg(n)}
-                  className={`px-3 py-1.5 rounded-full border text-sm transition-all ${
-                    on
-                      ? "bg-foreground text-background border-foreground"
-                      : "bg-background text-foreground border-border hover:border-foreground/50"
-                  }`}
-                >
-                  SDG {n}
-                </button>
-              );
-            })}
-          </div>
-          <Button type="button" onClick={next} disabled={form.sdgs.length === 0}>
-            Next →
-          </Button>
-        </div>
-      ),
-    },
+      // 2. Run AI matching (regardless of listing choice)
+      const { data: matchData } = await supabase.functions.invoke("match-orgs-for-partnership", {
+        body: {
+          submitting_org: { ...orgProfile, ...form, sector: form.sectors },
+          user_id: user.id,
+        },
+      });
 
-    // ── 4: Org type ───────────────────────────────────────────────────────────
-    {
-      key: 4,
-      content: (
-        <div className="flex flex-col items-center gap-6 w-full max-w-md">
-          <p className="text-sm text-muted-foreground">5 of {TOTAL_STEPS}</p>
-          <h2 className="text-3xl font-semibold text-center">Organisation type?</h2>
-          <div className="w-full">
-            <Select
-              onValueChange={(val) =>
-                setForm((p) => ({ ...p, organisation_type: val }))
-              }
-              value={form.organisation_type}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select type" />
-              </SelectTrigger>
-              <SelectContent>
-                {ORG_TYPE_OPTIONS.map((t) => (
-                  <SelectItem
-                    key={t}
-                    value={t.toLowerCase().replace(/[\s/]+/g, "_")}
-                  >
-                    {t}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button type="button" onClick={next} disabled={!form.organisation_type}>
-            Next →
-          </Button>
-        </div>
-      ),
-    },
+      setMatches(matchData?.matches ?? []);
+      setStep("results");
+    } catch (e) {
+      console.error("Submit/match error:", e);
+      setStep("results");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
-    // ── 5: Needs ──────────────────────────────────────────────────────────────
-    {
-      key: 5,
-      content: (
-        <div className="flex flex-col items-center gap-6 w-full max-w-md">
-          <p className="text-sm text-muted-foreground">6 of {TOTAL_STEPS}</p>
-          <h2 className="text-3xl font-semibold text-center">What do you need?</h2>
-          <p className="text-sm text-muted-foreground">Select all that apply</p>
-          <CheckboxGroup
-            options={NEEDS_OPTIONS}
-            selected={form.needs}
-            onToggle={(v) => toggle("needs", v)}
-          />
-          <Button type="button" onClick={next} disabled={form.needs.length === 0}>
-            Next →
-          </Button>
-        </div>
-      ),
-    },
+  // ── Reach out: send partnership invite ──────────────────────────────────────
+  async function sendInvite(match: MatchResult) {
+    if (!user || !orgProfile) return;
+    setSendingInvite(match.org_id);
 
-    // ── 6: Offers ─────────────────────────────────────────────────────────────
-    {
-      key: 6,
-      content: (
-        <div className="flex flex-col items-center gap-6 w-full max-w-md">
-          <p className="text-sm text-muted-foreground">7 of {TOTAL_STEPS}</p>
-          <h2 className="text-3xl font-semibold text-center">What can you offer?</h2>
-          <p className="text-sm text-muted-foreground">Select all that apply</p>
-          <CheckboxGroup
-            options={OFFERS_OPTIONS}
-            selected={form.offers}
-            onToggle={(v) => toggle("offers", v)}
-          />
-          <Button type="button" onClick={next} disabled={form.offers.length === 0}>
-            Next →
-          </Button>
-        </div>
-      ),
-    },
+    try {
+      // Insert partnership connection
+      const { error } = await supabase.from("partnership_connections").insert({
+        sender_org_id: orgProfile.id,
+        receiver_org_id: match.org.id,
+        sender_user_id: user.id,
+        source: "ai_match",
+        ai_rationale: match.rationale,
+        fit_score: match.fit_score,
+        status: "pending",
+      });
 
-    // ── 7: Description ────────────────────────────────────────────────────────
-    {
-      key: 7,
-      content: (
-        <div className="flex flex-col items-center gap-6 w-full max-w-md">
-          <p className="text-sm text-muted-foreground">8 of {TOTAL_STEPS}</p>
-          <h2 className="text-3xl font-semibold text-center">
-            Tell us about your organisation
-          </h2>
-          <p className="text-sm text-muted-foreground text-center">
-            A short description of what you do and why you want to find a partner.
-          </p>
-          <Textarea
-            className="w-full min-h-[120px]"
-            placeholder="We are..."
-            value={form.description}
-            onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-          />
-          <Button type="button" onClick={next} disabled={!form.description.trim()}>
-            Next →
-          </Button>
-        </div>
-      ),
-    },
+      if (error && !error.message.includes("unique")) throw error;
 
-    // ── 8: Review & submit ────────────────────────────────────────────────────
-    {
-      key: 8,
-      content: (
-        <div className="flex flex-col items-center gap-4 w-full max-w-md h-full">
-          <p className="text-sm text-muted-foreground">9 of {TOTAL_STEPS}</p>
-          <h2 className="text-3xl font-semibold text-center">Review & submit</h2>
+      // Create a partnership conversation
+      const { data: convData } = await supabase.from("conversations").insert({
+        conversation_type: "partnership",
+        status: "open",
+      }).select("id").single();
 
-          {/* Scrollable review card */}
-          <div className="w-full overflow-y-auto rounded-xl border border-border bg-card px-4 divide-y divide-border text-sm"
-            style={{ maxHeight: "38vh" }}>
-            {[
-              { label: "Organisation", value: form.organisation_name || "—" },
-              { label: "Countries",    value: form.country.join(", ") || "—" },
-              { label: "Sectors",      value: form.sectors.join(", ") || "—" },
-              { label: "SDGs",         value: form.sdgs.map((n) => `SDG ${n}`).join(", ") || "—" },
-              { label: "Type",         value: form.organisation_type?.replace(/_/g, " ") || "—" },
-              { label: "Needs",        value: form.needs.join(", ") || "—" },
-              { label: "Offers",       value: form.offers.join(", ") || "—" },
-              {
-                label: "Partners identified",
-                value: form.has_identified_partners ? "Yes" : "No",
-              },
-              ...(form.selected_partners.length > 0
-                ? [{
-                    label: "Selected partners",
-                    value: form.selected_partners
-                      .map((id) => publishedOrgs.find((o) => o.id === id)?.organisation_name ?? id)
-                      .join(", "),
-                  }]
-                : []),
-            ].map(({ label, value }) => (
-              <div key={label} className="flex justify-between gap-4 py-2.5">
-                <span className="text-muted-foreground shrink-0">{label}</span>
-                <span className="text-foreground text-right">{value}</span>
-              </div>
-            ))}
-          </div>
+      if (convData?.id) {
+        // Add both parties to conversation
+        await supabase.from("conversation_participants").insert([
+          { conversation_id: convData.id, user_id: user.id },
+        ]);
 
-          {/* Warning + button — spaced well clear of Back arrow */}
-          <div className="w-full flex flex-col gap-3 mt-2 mb-20">
-            {verificationStatus && verificationStatus !== "verified" && (
-              <div className="rounded-xl border border-yellow-400/40 bg-yellow-400/10 px-4 py-3 text-sm text-yellow-700 dark:text-yellow-300">
-                Your organisation is not yet verified. You can still submit, but
-                verified profiles get priority in matching.
-              </div>
-            )}
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Submitting...
-                </span>
-              ) : (
-                "Add to ecosystem"
-              )}
-            </Button>
-          </div>
-        </div>
-      ),
-    },
-  ];
+        // Send opening message with rationale
+        await supabase.from("messages").insert({
+          conversation_id: convData.id,
+          sender_id: user.id,
+          content: `Hi — I came across your organisation on Impact Natives and I think there's a strong case for exploring a partnership.\n\n${match.rationale}\n\nWould you be open to a conversation?`,
+        });
+      }
 
-  // ─── Render ────────────────────────────────────────────────────────────────
+      // Notify receiver via in-app notification
+      const receiverOrg = match.org;
+      const { data: receiverProfile } = await supabase
+        .from("organizations")
+        .select("user_id")
+        .eq("id", receiverOrg.id)
+        .single();
 
+      if (receiverProfile?.user_id) {
+        await supabase.from("notifications").insert({
+          user_id: receiverProfile.user_id,
+          type: "partnership_invite",
+          title: "New partnership invitation",
+          message: `${orgProfile.organisation_name} wants to explore a partnership with you.`,
+          metadata: {
+            sender_org_id: orgProfile.id,
+            sender_org_name: orgProfile.organisation_name,
+            fit_score: match.fit_score,
+            key_synergy: match.key_synergy,
+            conversation_id: convData?.id,
+          },
+        });
+      }
+
+      setSentInvites(prev => new Set(prev).add(match.org_id));
+    } catch (e) {
+      console.error("Send invite error:", e);
+    } finally {
+      setSendingInvite(null);
+    }
+  }
+
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div
       className="fixed inset-0 z-50 bg-background flex flex-col"
@@ -655,110 +397,404 @@ export function FindPartnerModalDashboard({
           from { transform: translateY(100%); opacity: 0; }
           to   { transform: translateY(0);    opacity: 1; }
         }
-        .tf-step {
-          position: absolute; inset: 0;
-          display: flex; flex-direction: column;
-          align-items: center; justify-content: center;
-          gap: 0; padding: 2rem;
-          transition: transform 0.45s cubic-bezier(0.4,0,0.2,1), opacity 0.45s;
-          overflow-y: auto;
-        }
-        .tf-active { transform: translateY(0);     opacity: 1; }
-        .tf-above  { transform: translateY(-100%); opacity: 0; pointer-events: none; }
-        .tf-below  { transform: translateY(100%);  opacity: 0; pointer-events: none; }
       `}</style>
 
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b shrink-0">
-        <span className="text-sm font-medium">Get Matched</span>
-        <button
-          type="button" onClick={onClose}
-          className="text-muted-foreground hover:text-foreground transition-colors text-sm"
-        >
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
+        <div className="flex items-center gap-3">
+          {step === "review" && (
+            <button type="button" onClick={() => setStep("intent")}
+              className="text-muted-foreground hover:text-foreground transition-colors">
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+          )}
+          <span className="text-sm font-medium">Get Matched</span>
+        </div>
+        <button type="button" onClick={onClose}
+          className="text-muted-foreground hover:text-foreground transition-colors text-sm">
           ✕ Close
         </button>
       </div>
 
-      {/* Progress bar */}
-      <div className="h-0.5 bg-muted shrink-0">
-        <div
-          className="h-full bg-foreground transition-all duration-300"
-          style={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
-        />
-      </div>
-
       {/* Body */}
-      {profileLoading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
-        </div>
+      <div className="flex-1 overflow-y-auto">
 
-            ) : hasOrg === false ? (
-              <div className="flex flex-col items-center justify-center flex-1 gap-5 text-center px-6">
-              <h2 className="text-2xl font-semibold">Get Matched is for organisations</h2>
-              <p className="text-muted-foreground max-w-sm">
-                Get Matched connects verified organisations with the right partners.
-                If you represent an organisation, create an org account to access this feature.
+        {/* New request prompt */}
+        {step === "new_request_prompt" && (
+          <div className="flex flex-col items-center justify-center h-full gap-6 text-center px-6">
+            <div className="w-10 h-10 rounded-full bg-[#2D6A4F]/10 flex items-center justify-center mx-auto">
+              <Sparkles className="w-5 h-5 text-[#2D6A4F]" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold mb-2">Start a new partnership request?</h2>
+              <p className="text-sm text-muted-foreground max-w-sm">
+                You've recently formed a partnership. Starting a new request will replace your current listing. Your confirmed partners will be saved in your Portfolio.
               </p>
-              <div className="flex gap-3">
-                <Button variant="outline" onClick={onClose}>Close</Button>
-                <Button onClick={() => { onClose(); navigate("/signup"); }}>
-                  Create an org account
-                </Button>
+            </div>
+            <div className="flex gap-3 w-full max-w-xs">
+              <Button variant="outline" onClick={onClose} className="flex-1 rounded-full">
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (!orgProfile) return;
+                  await supabase.from("organizations").update({
+                    partnership_formed: false,
+                    partnership_listed: false,
+                    partnership_title: null,
+                    partnership_sought: null,
+                  }).eq("id", orgProfile.id);
+                  // Re-fetch fresh org profile so AI doesn't use stale data
+                  const { data: freshOrg } = await supabase
+                    .from("organizations")
+                    .select("id, organisation_name, description, sector, country, organisation_type, needs, offers, sdgs, website, email, verification_status, partnership_listed, partnership_formed, partnership_title")
+                    .eq("id", orgProfile.id)
+                    .single();
+                  setOrgProfile(freshOrg);
+                  setPartnershipTitle("");
+                  setFreeText("");
+                  setStep("intent");
+                }}
+                className="flex-1 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white"
+              >
+                Start fresh
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* No org */}
+        {step === "no_org" && (
+          <div className="flex flex-col items-center justify-center h-full gap-5 text-center px-6">
+            <h2 className="text-2xl font-semibold">Get Matched is for organisations</h2>
+            <p className="text-muted-foreground max-w-sm text-sm">
+              Create an organisation profile first to access partnership matching.
+            </p>
+            <Button onClick={onClose}>Close</Button>
+          </div>
+        )}
+
+        {/* Rate limited */}
+        {step === "rate_limited" && (
+          <div className="flex flex-col items-center justify-center h-full gap-5 text-center px-6">
+            <h2 className="text-2xl font-semibold">Come back in 7 hours</h2>
+            <p className="text-muted-foreground max-w-sm text-sm">
+              You can run Get Matched once every 7 hours. This keeps your listing current and prevents duplicate matches.
+            </p>
+            <Button onClick={onClose}>Close</Button>
+          </div>
+        )}
+
+        {/* Step 0: Intent */}
+        {step === "intent" && (
+          <div className="flex flex-col items-center justify-center min-h-full gap-8 px-6 py-12 max-w-lg mx-auto">
+            <div className="text-center space-y-2">
+              <div className="w-10 h-10 rounded-full bg-[#2D6A4F]/10 flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="w-5 h-5 text-[#2D6A4F]" />
+              </div>
+              <h2 className="text-2xl font-semibold text-foreground">What are you looking for?</h2>
+              <p className="text-sm text-muted-foreground">
+                Give your request a title, then describe what you need. The AI will structure everything.
+              </p>
+            </div>
+
+            <div className="w-full space-y-3">
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">
+                  Partnership request title
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Research partner for Nigeria health programme"
+                  value={partnershipTitle}
+                  onChange={e => setPartnershipTitle(e.target.value)}
+                  className="w-full h-10 px-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">
+                  Describe your needs
+                </label>
+                <Textarea
+                  className="w-full min-h-[140px] text-sm resize-none"
+                  placeholder="e.g. We're an NGO working on last-mile health delivery in northern Nigeria. We're looking for a UK-based research partner who can help us design impact evaluations and co-author publications. We can offer field access, community relationships, and local implementation capacity."
+                  value={freeText}
+                  onChange={e => setFreeText(e.target.value)}
+                />
               </div>
             </div>
-      ) : rateLimit.blocked ? (
-        <div className="flex flex-col items-center justify-center flex-1 gap-5 text-center px-6">
-          <h2 className="text-2xl font-semibold">You've reached the daily limit</h2>
-          <p className="text-muted-foreground max-w-sm">
-            You can submit up to 3 match requests every 24 hours. Try again after{" "}
-            {rateLimit.resetsAt?.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-            .
-          </p>
-          <Button onClick={onClose}>Close</Button>
-        </div>
 
-      ) : submitted ? (
-        <div className="flex flex-col items-center justify-center flex-1 gap-5 text-center px-6">
-          <h2 className="text-3xl font-semibold">You're in the ecosystem.</h2>
-          <p className="text-muted-foreground max-w-sm">
-            Your organisation profile has been submitted. The team will review it
-            within 5 business days.
-          </p>
-          <Button onClick={onClose}>Close</Button>
-        </div>
-
-      ) : (
-        <form
-          onSubmit={submit}
-          className="relative flex-1 overflow-hidden"
-          onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
-        >
-          {steps.map(({ key, content }) => (
-            <div key={key} className={`tf-step ${stepClass(key, step)}`}>
-              {content}
-            </div>
-          ))}
-
-          {/* Back navigation — fixed to bottom, clear of submit button */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 z-10">
-            {step > 0 && (
-              <button
-                type="button" onClick={prev}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                ↑ Back
-              </button>
+            {prefillError && (
+              <p className="text-sm text-red-500">{prefillError}</p>
             )}
-            <span className="text-xs text-muted-foreground">
-              {step + 1} / {TOTAL_STEPS}
-            </span>
+
+            <Button
+              onClick={runPrefill}
+              disabled={!freeText.trim() || !partnershipTitle.trim() || prefilling}
+              className="w-full bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full h-11"
+            >
+              {prefilling ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Analysing...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" /> Prefill with AI
+                </span>
+              )}
+            </Button>
           </div>
-        </form>
-      )}
+        )}
+
+        {/* Step 1: Review */}
+        {step === "review" && (
+          <div className="max-w-lg mx-auto px-6 py-8 space-y-6">
+            <div className="text-center space-y-1">
+              <h2 className="text-xl font-semibold">Review your details</h2>
+              <p className="text-sm text-muted-foreground">
+                AI has prefilled these from your description. Edit anything that needs adjusting.
+              </p>
+            </div>
+
+            {/* Partnership sought */}
+            <div>
+              <SectionLabel>What you're looking for</SectionLabel>
+              <Textarea
+                className="w-full min-h-[80px] text-sm resize-none"
+                value={form.partnership_sought}
+                onChange={e => setForm(p => ({ ...p, partnership_sought: e.target.value }))}
+                placeholder="Describe the partnership you're seeking..."
+              />
+            </div>
+
+            
+
+            {/* Sectors */}
+            <div>
+              <SectionLabel>Sectors</SectionLabel>
+              <ChipGroup options={SECTORS} selected={form.sectors} onToggle={v => toggle("sectors", v)} />
+            </div>
+
+            {/* Countries */}
+            <div>
+              <SectionLabel>Where you operate</SectionLabel>
+              <ChipGroup options={COUNTRIES} selected={form.country} onToggle={v => toggle("country", v)} />
+            </div>
+
+            {/* SDGs */}
+            <div>
+              <SectionLabel>SDG alignment</SectionLabel>
+              <div className="flex flex-wrap gap-2">
+                {SDG_LIST.map(n => {
+                  const on = form.sdgs.includes(n);
+                  return (
+                    <button key={n} type="button" onClick={() => toggleSdg(n)}
+                      className={`px-2.5 py-1 rounded-full border text-xs font-medium transition-all ${
+                        on
+                          ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
+                          : "border-border text-muted-foreground hover:border-[#2D6A4F]/50"
+                      }`}>
+                      SDG {n}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Needs */}
+            <div>
+              <SectionLabel>What you need</SectionLabel>
+              <ChipGroup options={NEEDS_OPTIONS} selected={form.needs} onToggle={v => toggle("needs", v)} />
+            </div>
+
+            {/* Offers */}
+            <div>
+              <SectionLabel>What you offer</SectionLabel>
+              <ChipGroup options={OFFERS_OPTIONS} selected={form.offers} onToggle={v => toggle("offers", v)} />
+            </div>
+
+            {/* Org type */}
+            <div>
+              <SectionLabel>Organisation type</SectionLabel>
+              <div className="flex flex-wrap gap-2">
+                {ORG_TYPE_OPTIONS.map(t => {
+                  const val = t.toLowerCase().replace(/[\s/]+/g, "_");
+                  const on = form.organisation_type === val;
+                  return (
+                    <button key={t} type="button"
+                      onClick={() => setForm(p => ({ ...p, organisation_type: on ? "" : val }))}
+                      className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
+                        on
+                          ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
+                          : "border-border text-muted-foreground hover:border-[#2D6A4F]/50"
+                      }`}>
+                      {t}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Public listing toggle */}
+            <div className="rounded-xl border border-border bg-card px-4 py-4 space-y-1">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={listPublicly}
+                  onChange={e => setListPublicly(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded accent-[#2D6A4F] shrink-0"
+                />
+                <div>
+                  <p className="text-sm font-medium text-foreground">List publicly in Partnerships directory</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Other organisations can find and express interest in your listing.
+                    Uncheck to run AI matching privately without being listed.
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            <Button
+              onClick={submitAndMatch}
+              disabled={submitting || form.sectors.length === 0 || form.needs.length === 0}
+              className="w-full bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full h-11"
+            >
+              {listPublicly ? "List publicly + find matches" : "Find matches privately"}
+            </Button>
+
+            <p className="text-xs text-muted-foreground text-center">
+              {listPublicly
+                ? "Your card will appear in the Partnerships directory immediately."
+                : "Your details won't be listed publicly. The Natives team will follow up with matches."}
+            </p>
+          </div>
+        )}
+
+        {/* Matching in progress */}
+        {step === "matching" && (
+          <div className="flex flex-col items-center justify-center h-full gap-6 text-center px-6">
+            <div className="w-12 h-12 rounded-full bg-[#2D6A4F]/10 flex items-center justify-center">
+              <Loader2 className="w-6 h-6 text-[#2D6A4F] animate-spin" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold mb-2">Finding your matches</h2>
+              <p className="text-sm text-muted-foreground max-w-sm">
+                Analysing needs, offers, sectors, and SDG alignment across the ecosystem...
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Results */}
+        {step === "results" && (
+          <div className="max-w-lg mx-auto px-6 py-8 space-y-6">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="w-5 h-5 text-[#2D6A4F] shrink-0" />
+              <div>
+                <h2 className="text-lg font-semibold">You're listed</h2>
+                <p className="text-sm text-muted-foreground">
+                  Your organisation now appears in the Partnerships directory.
+                </p>
+              </div>
+            </div>
+
+            {matches.length === 0 ? (
+              <div className="rounded-xl border border-border bg-card px-5 py-6 text-center space-y-2">
+                <p className="text-sm font-medium text-foreground">No matches found yet</p>
+                <p className="text-sm text-muted-foreground">
+                  The Natives team has been notified and will follow up with relevant organisations.
+                  Check back as more organisations join.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {matches.length} potential match{matches.length !== 1 ? "es" : ""} found
+                </p>
+                {matches.map(match => {
+                  const invited = sentInvites.has(match.org_id);
+                  const sending = sendingInvite === match.org_id;
+                  const countries = Array.isArray(match.org.country) ? match.org.country : [match.org.country];
+
+                  return (
+                    <div key={match.org_id}
+                      className="rounded-xl border border-border bg-card px-5 py-4 space-y-3">
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-foreground text-sm">{match.org.organisation_name}</p>
+                            {match.org.verification_status === "verified" && (
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                                style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+                                ✓ Verified
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {match.org.organisation_type?.replace(/_/g, " ")}
+                            {countries.length > 0 && ` · ${countries.join(", ")}`}
+                          </p>
+                        </div>
+                        {/* Fit score */}
+                        <div className="shrink-0 text-right">
+                          <div className="text-lg font-bold text-[#2D6A4F]">{match.fit_score}</div>
+                          <div className="text-[10px] text-muted-foreground">fit score</div>
+                        </div>
+                      </div>
+
+                      {/* Key synergy */}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-[#C45C26]">
+                          Synergy
+                        </span>
+                        <span className="text-xs text-muted-foreground">{match.key_synergy}</span>
+                      </div>
+
+                      {/* Rationale */}
+                      <p className="text-xs text-muted-foreground leading-relaxed">{match.rationale}</p>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 pt-1">
+                        {invited ? (
+                          <span className="flex items-center gap-1.5 text-xs text-[#2D6A4F] font-medium">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            Invitation sent
+                          </span>
+                        ) : (
+                          <Button
+                            onClick={() => sendInvite(match)}
+                            disabled={sending}
+                            className="h-8 px-4 text-xs bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full"
+                          >
+                            {sending ? (
+                              <span className="flex items-center gap-1.5">
+                                <Loader2 className="w-3 h-3 animate-spin" /> Sending...
+                              </span>
+                            ) : "Reach out"}
+                          </Button>
+                        )}
+                        {match.org.website && match.org.website !== "https://" && (
+                          <a href={match.org.website} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                            <ExternalLink className="w-3 h-3" />
+                            Website
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <Button variant="outline" onClick={onClose} className="w-full rounded-full">
+              Done
+            </Button>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }

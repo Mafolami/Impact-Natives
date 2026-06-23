@@ -1,10 +1,15 @@
 // ─── DashboardPartnerships.tsx ───────────────────────────────────────────────
+// Only shows orgs where partnership_listed = true
+// Express Interest stores a partnership_connection with source = 'browse'
+// Get Matched opens FindPartnerModalDashboard
+
 import { useEffect, useState } from "react";
 import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 import { supabase } from "@/lib/supabase";
-import { Handshake, Loader2, Search } from "lucide-react";
+import { Handshake, Loader2, Search, CheckCircle2 } from "lucide-react";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
 import { FindPartnerModalDashboard } from "./FindPartnerModalDashboard";
+import { useAuth } from "@/context/AuthContext";
 
 function orgTypeLabel(value: string | null | undefined): string {
   if (!value) return "";
@@ -23,11 +28,15 @@ interface OrgRow {
   needs?: string[];
   offers?: string[];
   sdgs?: string[];
+  partnership_sought?: string;
   verification_status: string;
   status: string;
+  user_id: string;
+  partnership_listed: boolean;
+  partnership_formed?: boolean;
+  partnership_title?: string;
 }
 
-// sector and country are sometimes stored as JSON strings e.g. '["Health"]'
 function normalizeArr(val: string | string[] | null | undefined): string[] {
   if (!val) return [];
   if (Array.isArray(val)) return val;
@@ -39,9 +48,8 @@ function normalizeArr(val: string | string[] | null | undefined): string[] {
   }
 }
 
-
-
 export default function DashboardPartnerships() {
+  const { user } = useAuth();
   const [orgs, setOrgs]               = useState<OrgRow[]>([]);
   const [loading, setLoading]         = useState(true);
   const [showModal, setShowModal]     = useState(false);
@@ -51,34 +59,60 @@ export default function DashboardPartnerships() {
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [selectedOrg, setSelectedOrg]     = useState<OrgRow | null>(null);
   const [savedOrgs, setSavedOrgs]         = useState<Set<string>>(new Set());
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserOrgId, setCurrentUserOrgId] = useState<string | null>(null);
+  const [sentInterests, setSentInterests]  = useState<Set<string>>(new Set());
+  const [sendingInterest, setSendingInterest] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadAll() {
-      const { data: { session } } = await supabase.auth.getSession();
-      const uid = session?.user?.id ?? null;
-      setCurrentUserId(uid);
+    if (user) loadAll();
+  }, [user]);
 
-      const [orgsRes, savedRes] = await Promise.all([
-        supabase
-          .from("organizations")
-          .select("id, organisation_name, description, sector, country, organisation_type, website, email, needs, offers, sdgs, verification_status, status")
-          .eq("status", "published")
-          .order("created_at", { ascending: false }),
-        uid
-          ? supabase.from("saved_organizations").select("organization_id").eq("user_id", uid)
-          : Promise.resolve({ data: null }),
-      ]);
+  async function loadAll() {
+    const uid = user?.id ?? null;
+    console.log("loadAll uid:", uid, "expected:", "8a5d138a-216f-496f-aebc-7d0f76bb9fd2", "match:", uid === "8a5d138a-216f-496f-aebc-7d0f76bb9fd2");
 
-      if (orgsRes.error) console.error("Orgs load error:", orgsRes.error);
-      if (orgsRes.data) setOrgs(orgsRes.data as OrgRow[]);
-      if (savedRes.data) setSavedOrgs(new Set(savedRes.data.map((r: { organization_id: string }) => r.organization_id)));
-      setLoading(false);
+    const [orgsRes, savedRes, myOrgRes, existingConnectionsRes] = await Promise.all([
+      supabase
+        .from("organizations")
+       .select("id, organisation_name, description, sector, country, organisation_type, website, email, needs, offers, sdgs, partnership_sought, partnership_title, verification_status, status, user_id, partnership_listed, partnership_formed")
+       .eq("status", "published")
+       .eq("partnership_listed", true)
+        .order("created_at", { ascending: false }),
+
+      uid
+        ? supabase.from("saved_organizations").select("organization_id").eq("user_id", uid)
+        : Promise.resolve({ data: null }),
+
+      uid
+        ? supabase.from("organizations").select("id").eq("user_id", uid).maybeSingle()
+        : Promise.resolve({ data: null }),
+
+      uid
+        ? supabase.from("partnership_connections").select("receiver_org_id").eq("sender_user_id", uid)
+        : Promise.resolve({ data: null }),
+    ]);
+
+    if (orgsRes.data) setOrgs(orgsRes.data as OrgRow[]);
+    if (savedRes.data) setSavedOrgs(new Set(savedRes.data.map((r: any) => r.organization_id)));
+   console.log("myOrgRes data:", myOrgRes.data);
+    if (myOrgRes.data) setCurrentUserOrgId(myOrgRes.data.id);
+    console.log("isOrg will be:", !!myOrgRes.data?.id);
+    if (existingConnectionsRes.data && myOrgRes.data) {
+      setSentInterests(new Set(
+        existingConnectionsRes.data
+          .filter((r: any) => r.receiver_org_id !== myOrgRes.data!.id)
+          .map((r: any) => r.receiver_org_id)
+      ));
+    } else if (existingConnectionsRes.data) {
+      setSentInterests(new Set(existingConnectionsRes.data.map((r: any) => r.receiver_org_id)));
     }
-    loadAll();
-  }, []);
+    setLoading(false);
+  }
 
   const filtered = orgs.filter((org) => {
+    // Don't show the user's own org
+    if (user && org.user_id === user.id) return false;
+
     const sectors   = normalizeArr(org.sector);
     const countries = normalizeArr(org.country);
     const matchesSector =
@@ -88,6 +122,7 @@ export default function DashboardPartnerships() {
       !search.trim() ||
       org.organisation_name?.toLowerCase().includes(search.toLowerCase()) ||
       org.description?.toLowerCase().includes(search.toLowerCase()) ||
+      (org.partnership_sought ?? "").toLowerCase().includes(search.toLowerCase()) ||
       countries.some(c => c.toLowerCase().includes(search.toLowerCase()));
     const matchesFavorites = !favoritesOnly || savedOrgs.has(org.id);
     return matchesSector && matchesSearch && matchesFavorites;
@@ -97,16 +132,73 @@ export default function DashboardPartnerships() {
 
   async function toggleSave(orgId: string, e: React.MouseEvent) {
     e.stopPropagation();
-    if (!currentUserId) return;    if (savedOrgs.has(orgId)) {
-      const { error: delErr } = await supabase.from("saved_organizations").delete()
-        .eq("user_id", currentUserId).eq("organization_id", orgId);
-      if (delErr) return;
+    if (!user) return;
+    if (savedOrgs.has(orgId)) {
+      await supabase.from("saved_organizations").delete()
+        .eq("user_id", user.id).eq("organization_id", orgId);
       setSavedOrgs(prev => { const next = new Set(prev); next.delete(orgId); return next; });
     } else {
-      const { error: insErr } = await supabase.from("saved_organizations").insert({ user_id: currentUserId, organization_id: orgId });
-      if (insErr) return;      setSavedOrgs(prev => new Set(prev).add(orgId));
+      await supabase.from("saved_organizations").insert({ user_id: user.id, organization_id: orgId });
+      setSavedOrgs(prev => new Set(prev).add(orgId));
     }
   }
+
+  async function expressInterest(org: OrgRow, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!user) return;
+    if (sentInterests.has(org.id)) return;
+    if (org.partnership_formed) return;
+
+    let senderOrgId = currentUserOrgId;
+    if (!senderOrgId) {
+      const { data } = await supabase
+        .from("organizations")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!data) {
+        alert("You need an organisation profile to express interest. Complete your profile first.");
+        return;
+      }
+      senderOrgId = data.id;
+      setCurrentUserOrgId(data.id);
+    }
+
+    setSendingInterest(org.id);
+
+    try {
+      // Insert partnership connection
+      const { error } = await supabase.from("partnership_connections").insert({
+        sender_org_id: senderOrgId,
+        receiver_org_id: org.id,
+        sender_user_id: user.id,
+        source: "browse",
+        status: "pending",
+      });
+
+      if (error && !error.message.includes("unique")) throw error;
+
+      // Notify the receiving org's owner
+      await supabase.from("notifications").insert({
+        user_id: org.user_id,
+        type: "partnership_interest",
+        title: "Someone is interested in partnering",
+        message: `An organisation expressed interest in partnering with you from the Partnerships page.`,
+        metadata: {
+          sender_org_id: currentUserOrgId,
+          receiver_org_id: org.id,
+        },
+      });
+
+      setSentInterests(prev => new Set(prev).add(org.id));
+    } catch (e) {
+      console.error("Express interest error:", e);
+    } finally {
+      setSendingInterest(null);
+    }
+  }
+
+  const isOrg = !!user;
 
   return (
     <>
@@ -114,18 +206,19 @@ export default function DashboardPartnerships() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-foreground tracking-tight">Partnerships</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Find organisations aligned with your work.
+              Organisations actively seeking partnerships.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowModal(true)}
-            className="rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors"
-          >
-            + Get Matched
-          </button>
+          {user && (
+            <button
+              type="button"
+              onClick={() => setShowModal(true)}
+              className="rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors"
+            >
+              + Get Matched
+            </button>
+          )}
         </div>
 
         {/* Search + filter */}
@@ -162,13 +255,12 @@ export default function DashboardPartnerships() {
           </button>
         </div>
 
-         {/* Filter panel */}
+        {/* Filter panel */}
         {showFilters && (
           <div
             className="rounded-xl border border-border bg-card p-4 space-y-4"
             onMouseLeave={() => setShowFilters(false)}
-          >            
-          {/* Favorites */}
+          >
             <label className="flex items-center gap-2.5 cursor-pointer">
               <input
                 type="checkbox"
@@ -191,14 +283,11 @@ export default function DashboardPartnerships() {
             <div className="border-t border-border" />
 
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                Sector
-              </p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Sector</p>
               <div className="flex flex-wrap gap-1.5">
                 {SECTOR_OPTIONS.map(sector => (
                   <button
-                    key={sector}
-                    type="button"
+                    key={sector} type="button"
                     onClick={() => {
                       setSectorFilters(prev => {
                         const next = new Set(prev);
@@ -218,13 +307,10 @@ export default function DashboardPartnerships() {
               </div>
             </div>
 
-            {/* Clear */}
             {activeFilterCount > 0 && (
-              <button
-                type="button"
+              <button type="button"
                 onClick={() => { setSectorFilters(new Set()); setFavoritesOnly(false); }}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors">
                 Clear all filters
               </button>
             )}
@@ -244,16 +330,10 @@ export default function DashboardPartnerships() {
             </p>
             <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
               {orgs.length === 0
-                ? "Be the first to add your organisation to the ecosystem."
+                ? "Be the first to list your organisation for partnership discovery."
                 : "Try a different sector or search term."}
             </p>
-            <button
-              type="button"
-              onClick={() => setShowModal(true)}
-              className="rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors"
-            >
-              Add your organisation
-            </button>
+
           </div>
         ) : selectedOrg ? (
           <OrgDetail
@@ -261,6 +341,10 @@ export default function DashboardPartnerships() {
             isSaved={savedOrgs.has(selectedOrg.id)}
             onToggleSave={(e) => toggleSave(selectedOrg.id, e)}
             onBack={() => setSelectedOrg(null)}
+            isOrg={isOrg}
+            alreadySent={sentInterests.has(selectedOrg.id)}
+            sending={sendingInterest === selectedOrg.id}
+            onExpressInterest={(e) => expressInterest(selectedOrg, e)}
           />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -271,6 +355,10 @@ export default function DashboardPartnerships() {
                 isSaved={savedOrgs.has(org.id)}
                 onToggleSave={(e) => toggleSave(org.id, e)}
                 onClick={() => setSelectedOrg(org)}
+                isOrg={isOrg}
+                alreadySent={sentInterests.has(org.id)}
+                sending={sendingInterest === org.id}
+                onExpressInterest={(e) => expressInterest(org, e)}
               />
             ))}
           </div>
@@ -279,23 +367,25 @@ export default function DashboardPartnerships() {
 
       <FindPartnerModalDashboard
         isOpen={showModal}
-        onClose={() => setShowModal(false)}
+        onClose={() => { setShowModal(false); loadAll(); }}
       />
     </>
   );
 }
 
-// ─── Org detail ───────────────────────────────────────────────────────────────
+// ─── Org Detail ───────────────────────────────────────────────────────────────
 function OrgDetail({
-  org,
-  isSaved,
-  onToggleSave,
-  onBack,
+  org, isSaved, onToggleSave, onBack,
+  isOrg, alreadySent, sending, onExpressInterest,
 }: {
   org: OrgRow;
   isSaved: boolean;
   onToggleSave: (e: React.MouseEvent) => void;
   onBack: () => void;
+  isOrg: boolean;
+  alreadySent: boolean;
+  sending: boolean;
+  onExpressInterest: (e: React.MouseEvent) => void;
 }) {
   const isVerified = org.verification_status === "verified";
   const sectors    = normalizeArr(org.sector);
@@ -303,24 +393,17 @@ function OrgDetail({
 
   return (
     <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
-      {/* Back + save */}
       <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
+        <button type="button" onClick={onBack}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth={2} className="w-4 h-4">
             <path d="M19 12H5M12 5l-7 7 7 7" />
           </svg>
           Back
         </button>
-        <button
-          type="button"
-          onClick={onToggleSave}
-          className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full border border-border hover:border-[#2D6A4F]/60 transition-colors"
-        >
+        <button type="button" onClick={onToggleSave}
+          className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full border border-border hover:border-[#2D6A4F]/60 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
             className="w-4 h-4"
             fill={isSaved ? "#2D6A4F" : "none"}
@@ -332,7 +415,6 @@ function OrgDetail({
         </button>
       </div>
 
-      {/* Org name + type + verified */}
       <div>
         <div className="flex items-center gap-2 flex-wrap">
           <h3 className="text-xl font-bold text-foreground">{org.organisation_name}</h3>
@@ -349,7 +431,6 @@ function OrgDetail({
         </p>
       </div>
 
-      {/* Sectors */}
       {sectors.length > 0 && (
         <div className="flex gap-1.5 flex-wrap">
           {sectors.map(s => (
@@ -360,12 +441,18 @@ function OrgDetail({
         </div>
       )}
 
-      {/* Description */}
+      {/* Partnership sought — prominent */}
+      {org.partnership_sought && (
+        <div className="rounded-xl border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#2D6A4F] mb-1">Looking for</p>
+          <p className="text-sm text-foreground leading-relaxed">{org.partnership_sought}</p>
+        </div>
+      )}
+
       {org.description && (
         <p className="text-sm text-muted-foreground leading-relaxed">{org.description}</p>
       )}
 
-      {/* Needs / Offers */}
       {((org.needs && org.needs.length > 0) || (org.offers && org.offers.length > 0)) && (
         <div className="grid grid-cols-2 gap-4 text-sm">
           {org.needs && org.needs.length > 0 && (
@@ -397,7 +484,6 @@ function OrgDetail({
         </div>
       )}
 
-      {/* SDGs */}
       {org.sdgs && org.sdgs.length > 0 && (
         <div>
           <p className="font-medium text-foreground text-sm mb-1.5">SDG Alignment</p>
@@ -412,57 +498,62 @@ function OrgDetail({
         </div>
       )}
 
-      {/* Contact */}
-      {(org.website || org.email) && (
-        <div className="pt-2 border-t border-border space-y-1.5">
-          {org.website && org.website !== "https://" && (
-            <a href={org.website} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-primary hover:underline">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5">
-                <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-              </svg>
-              {org.website.replace(/^https?:\/\//, "")}
-            </a>
+      {/* Express Interest CTA */}
+      {isOrg && !org.partnership_formed && (
+        <div className="pt-2 border-t border-border">
+          {alreadySent ? (
+            <div className="flex items-center gap-2 text-sm text-[#2D6A4F]">
+              <CheckCircle2 className="w-4 h-4" />
+              Interest expressed — they've been notified
+            </div>
+          ) : (
+            <button type="button" onClick={onExpressInterest} disabled={sending}
+              className="w-full h-10 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium disabled:opacity-40 transition-colors">
+              {sending ? "Sending..." : "Express interest"}
+            </button>
           )}
-          {org.email && (
-            <a href={`mailto:${org.email}`}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-              </svg>
-              {org.email}
-            </a>
-          )}
+        </div>
+      )}
+
+      {(org.website && org.website !== "https://") && (
+        <div className="pt-2 border-t border-border">
+          <a href={org.website} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs text-primary hover:underline">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5">
+              <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            {org.website.replace(/^https?:\/\//, "")}
+          </a>
         </div>
       )}
     </div>
   );
 }
 
-// ─── Org card ─────────────────────────────────────────────────────────────────
+// ─── Org Card ─────────────────────────────────────────────────────────────────
 function OrgCard({
-  org,
-  isSaved,
-  onToggleSave,
-  onClick,
+  org, isSaved, onToggleSave, onClick,
+  isOrg, alreadySent, sending, onExpressInterest,
 }: {
   org: OrgRow;
   isSaved: boolean;
   onToggleSave: (e: React.MouseEvent) => void;
   onClick: () => void;
+  isOrg: boolean;
+  alreadySent: boolean;
+  sending: boolean;
+  onExpressInterest: (e: React.MouseEvent) => void;
 }) {
   const isVerified = org.verification_status === "verified";
-  const sectors   = normalizeArr(org.sector);
-  const countries = normalizeArr(org.country);
+  const sectors    = normalizeArr(org.sector);
+  const countries  = normalizeArr(org.country);
 
   return (
     <div
       className="rounded-xl border border-border bg-card px-5 py-4 flex flex-col gap-3 cursor-pointer hover:border-[#2D6A4F]/40 transition-colors"
       onClick={onClick}
     >
-      {/* Name + verified badge */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -475,7 +566,7 @@ function OrgCard({
             )}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5 capitalize">
-  {orgTypeLabel(org.organisation_type)}
+            {orgTypeLabel(org.organisation_type)}
             {countries.length > 0 && ` · ${countries.join(", ")}`}
           </p>
         </div>
@@ -485,12 +576,9 @@ function OrgCard({
               {sectors[0]}
             </span>
           )}
-          <button
-            type="button"
-            onClick={onToggleSave}
+          <button type="button" onClick={onToggleSave}
             className="p-1.5 rounded-full hover:bg-muted transition-colors"
-            aria-label={isSaved ? "Unsave" : "Save"}
-          >
+            aria-label={isSaved ? "Unsave" : "Save"}>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
               className="w-4 h-4 transition-colors"
               fill={isSaved ? "#2D6A4F" : "none"}
@@ -502,35 +590,52 @@ function OrgCard({
         </div>
       </div>
 
-      {/* Description */}
-      {org.description && (
+      {/* Partnership sought — visible on card */}
+      {org.partnership_formed && (
+        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full w-fit"
+          style={{ background: "#f0f9ff", color: "#0369a1" }}>
+          Partnership formed
+        </span>
+      )}
+      {(org.partnership_title || org.partnership_sought) && (
+        <div>
+          {org.partnership_title && (
+            <p className="text-xs font-semibold text-foreground mb-0.5">{org.partnership_title}</p>
+          )}
+          {org.partnership_sought && (
+            <p className="text-xs text-[#2D6A4F] leading-relaxed line-clamp-2">
+              {org.partnership_sought}
+            </p>
+          )}
+        </div>
+      )}
+
+      {org.description && !org.partnership_sought && (
         <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
           {org.description}
         </p>
       )}
 
-      {/* Needs / Offers */}
       {((org.needs && org.needs.length > 0) || (org.offers && org.offers.length > 0)) && (
         <div className="flex gap-4 text-xs">
           {org.needs && org.needs.length > 0 && (
             <div>
               <span className="text-muted-foreground font-medium">Needs: </span>
-              <span className="text-foreground">{org.needs.slice(0, 3).join(", ")}</span>
+              <span className="text-foreground">{org.needs.slice(0, 2).join(", ")}</span>
             </div>
           )}
           {org.offers && org.offers.length > 0 && (
             <div>
               <span className="text-muted-foreground font-medium">Offers: </span>
-              <span className="text-foreground">{org.offers.slice(0, 3).join(", ")}</span>
+              <span className="text-foreground">{org.offers.slice(0, 2).join(", ")}</span>
             </div>
           )}
         </div>
       )}
 
-      {/* SDGs */}
       {org.sdgs && org.sdgs.length > 0 && (
         <div className="flex gap-1.5 flex-wrap">
-          {org.sdgs.map(sdg => (
+          {org.sdgs.slice(0, 4).map(sdg => (
             <span key={sdg} className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
               style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
               SDG {sdg}
@@ -539,12 +644,21 @@ function OrgCard({
         </div>
       )}
 
-      {/* Website */}
-      {org.website && org.website !== "https://" && (
-        <a href={org.website} target="_blank" rel="noopener noreferrer"
-          className="text-xs text-primary hover:underline truncate">
-          {org.website.replace(/^https?:\/\//, "")}
-        </a>
+      {/* Express interest — on card for orgs */}
+      {isOrg && !org.partnership_formed && (
+        <div onClick={e => e.stopPropagation()}>
+          {alreadySent ? (
+            <div className="flex items-center gap-1.5 text-xs text-[#2D6A4F]">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Interest expressed
+            </div>
+          ) : (
+            <button type="button" onClick={onExpressInterest} disabled={sending}
+              className="h-8 px-4 rounded-full border border-[#2D6A4F] text-[#2D6A4F] text-xs font-medium hover:bg-[#2D6A4F] hover:text-white disabled:opacity-40 transition-colors">
+              {sending ? "Sending..." : "Express interest"}
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

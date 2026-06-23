@@ -1,14 +1,35 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import {
-  ArrowRight, Lightbulb, Handshake, Compass, Plus,
-  Users, Sprout, MessageSquare, ChevronDown, ChevronUp,
+  ArrowRight, Plus, MessageSquare, CheckCircle2, Circle, Sparkles,
 } from "lucide-react";
+import FunderHome from "./DashboardFunderHome";
+import CorporateHome from "./DashboardCorporateHome";
 import { Button } from "@/components/ui/button";
 import CreateInitiativeModal from "@/components/platform/CreateInitiativeModal";
-import { formatDistanceToNow } from "date-fns";
+
+// ---------------------------------------------------------------------------
+// Hooks
+// ---------------------------------------------------------------------------
+function useCountUp(target: number, duration = 600): number {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (target === 0) { setCount(0); return; }
+    let start: number | null = null;
+    const step = (ts: number) => {
+      if (!start) start = ts;
+      const p = Math.min((ts - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setCount(Math.round(eased * target));
+      if (p < 1) requestAnimationFrame(step);
+      else setCount(target);
+    };
+    requestAnimationFrame(step);
+  }, [target, duration]);
+  return count;
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -23,30 +44,12 @@ interface InitiativeRow {
   created_at: string;
 }
 
-interface FeedEvent {
-  id: string;
-  type: "initiative" | "partnership" | "member";
-  created_at: string;
-  // initiative
-  initiative_title?: string;
-  initiative_id?: string;
-  initiative_sectors?: string[];
-creator_name?: string;
-  creator_org?: string;
-  creator_id?: string;
-  // partnership
-  partner_name?: string;
-  partner_role?: string;
-  // member
-  member_name?: string;
-  member_org?: string;
-  member_role_title?: string;
-  member_id?: string;
-}
+
 
 interface ActivitySnapshot {
   openConversations: number;
   pendingEOIs: number;
+  openEnquiries: number;
 }
 
 const STATUS_MAP: Record<string, { label: string; dot: string }> = {
@@ -58,12 +61,174 @@ const STATUS_MAP: Record<string, { label: string; dot: string }> = {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-function timeAgo(ts: string) {
-  try {
-    return formatDistanceToNow(new Date(ts), { addSuffix: true });
-  } catch {
-    return "";
-  }
+
+
+// ---------------------------------------------------------------------------
+// Metric Card
+// ---------------------------------------------------------------------------
+function MetricCard({ label, value, sub, onClick, accent, showSkeleton }: {
+  label: string;
+  value: number | string;
+  sub: string;
+  onClick: () => void;
+  accent: boolean;
+  showSkeleton?: boolean;
+}) {
+  const numeric = typeof value === "number" ? value : 0;
+  const animated = useCountUp(numeric);
+  const isLoading = value === "—" && showSkeleton;
+
+  return (
+    <button type="button" onClick={onClick}
+      className="text-left rounded-xl border bg-card px-4 py-4 hover:border-[#2D6A4F]/40 transition-colors group card-interactive"
+      style={{ borderColor: accent ? "#C45C26" : undefined }}>
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">{label}</p>
+      {isLoading ? (
+        <div className="skeleton h-9 w-12 mb-1" />
+      ) : (
+        <p className="text-3xl font-bold text-foreground tracking-tight group-hover:text-[#2D6A4F] transition-colors">
+          {animated}
+        </p>
+      )}
+      {isLoading ? (
+        <div className="skeleton h-3 w-20 mt-2" />
+      ) : (
+        <p className="text-xs text-muted-foreground mt-1">{sub}</p>
+      )}
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Getting Started Checklist
+// Shown only to new users with zero activity
+// ---------------------------------------------------------------------------
+function GettingStarted({
+  userType,
+  isVerified,
+  onCreateInitiative,
+}: {
+  userType?: string;
+  isVerified?: boolean;
+  onCreateInitiative: () => void;
+}) {
+  const [location, navigate] = useLocation();
+  const isOrg = userType === "organisation";
+
+  const tasks = [
+    {
+      id: "initiative",
+      label: "Post your first initiative",
+      sub: "Let funders and partners discover what you're working on.",
+      action: onCreateInitiative,
+      actionLabel: "Create initiative",
+      done: false,
+    },
+    {
+      id: "marketplace",
+      label: "Explore the marketplace",
+      sub: "Browse initiatives from organisations across Africa.",
+      action: () => navigate("/dashboard/marketplace"),
+      actionLabel: "Browse now",
+      done: false,
+    },
+    ...(isOrg ? [{
+      id: "verify",
+      label: "Get verified",
+      sub: "A verified badge builds trust with funders and partners.",
+      action: () => navigate("/verify"),
+      actionLabel: "Start verification",
+      done: isVerified ?? false,
+    }] : []),
+    {
+      id: "natives",
+      label: "Explore the directory",
+      sub: "Find organisations and individuals in the ecosystem.",
+      action: () => navigate("/dashboard/natives"),
+      actionLabel: "Browse directory",
+      done: false,
+    },
+  ];
+
+  return (
+    <section>
+      <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
+        Get started
+      </h3>
+      <div className="rounded-2xl border border-border bg-card overflow-hidden">
+        {tasks.map((task, i) => (
+          <div key={task.id}
+            className={`flex items-start gap-4 px-5 py-4 ${
+              i < tasks.length - 1 ? "border-b border-border" : ""
+            }`}>
+            <div className="mt-0.5 shrink-0">
+              {task.done
+                ? <CheckCircle2 className="w-5 h-5 text-[#2D6A4F]" />
+                : <Circle className="w-5 h-5 text-muted-foreground/30" />
+              }
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-medium ${task.done ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                {task.label}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">{task.sub}</p>
+            </div>
+            {!task.done && (
+              <button type="button" onClick={task.action}
+                className="shrink-0 text-xs font-medium text-[#2D6A4F] hover:underline underline-offset-2 transition-colors whitespace-nowrap">
+                {task.actionLabel} →
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// My Initiatives — mini list shown on Dashboard Home
+// ---------------------------------------------------------------------------
+function MyInitiativesMini({ initiatives }: { initiatives: InitiativeRow[] }) {
+  const [location, navigate] = useLocation();
+  if (initiatives.length === 0) return null;
+
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Your initiatives
+        </h3>
+        <button type="button" onClick={() => navigate("/dashboard/initiatives")}
+          className="text-xs text-[#2D6A4F] hover:underline underline-offset-2 transition-colors">
+          View all →
+        </button>
+      </div>
+      <div className="space-y-2">
+        {initiatives.map(ini => {
+          const s = STATUS_MAP[ini.status] ?? { label: ini.status, dot: "#6b7280" };
+          return (
+            <button key={ini.id} type="button"
+              onClick={() => navigate("/dashboard/initiatives")}
+              className="w-full text-left rounded-xl border border-border bg-card px-5 py-3.5 hover:border-[#2D6A4F]/30 transition-colors group flex items-center justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.dot }} />
+                  <span className="text-xs text-muted-foreground">{s.label}</span>
+                  <span className="text-xs text-muted-foreground">·</span>
+                  <span className="text-xs text-muted-foreground">{ini.eois} EOI{ini.eois !== 1 ? "s" : ""}</span>
+                </div>
+                <p className="text-sm font-medium text-foreground group-hover:text-[#2D6A4F] transition-colors truncate">
+                  {ini.title}
+                </p>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-[#2D6A4F] shrink-0 transition-colors" />
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -71,276 +236,237 @@ function timeAgo(ts: string) {
 // ---------------------------------------------------------------------------
 export default function DashboardHome() {
   const { user, profile } = useAuth();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
 
-  // personal data
-  const [myInitiatives, setMyInitiatives] = useState<InitiativeRow[]>([]);
-  const [snapshot, setSnapshot]           = useState<ActivitySnapshot>({ openConversations: 0, pendingEOIs: 0 });
-  const [snapshotOpen, setSnapshotOpen]   = useState(false);
-  const [loadingPersonal, setLoadingPersonal] = useState(true);
+  const [myInitiatives, setMyInitiatives]         = useState<InitiativeRow[]>([]);
+  const [snapshot, setSnapshot] = useState<ActivitySnapshot>({ openConversations: 0, pendingEOIs: 0, openEnquiries: 0 });
+  const [loadingPersonal, setLoadingPersonal]     = useState(true);
+  const [showSkeleton, setShowSkeleton]           = useState(false);
+  
+  const [showCreateModal, setShowCreateModal]     = useState(false);
+  const [marketplaceCount, setMarketplaceCount]   = useState<number>(0);
+  const [allMyInits, setAllMyInits]               = useState<{id: string; status: string}[]>([]);
 
-  // global feed
-  const [feedEvents, setFeedEvents]   = useState<FeedEvent[]>([]);
-  const [loadingFeed, setLoadingFeed] = useState(true);
-
-  const [showCreateModal, setShowCreateModal] = useState(false);
-
-  const hour     = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const hour      = new Date().getHours();
+  const greeting  = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const firstName = profile?.full_name?.split(" ")[0] ?? profile?.email?.split("@")[0] ?? "there";
 
-  // -------------------------------------------------------------------------
-  // Personal data fetch
-  // -------------------------------------------------------------------------
-  useEffect(() => {
-    if (!user) return;
-    async function loadPersonal() {
-      const [initRes, convRes, eoiRes] = await Promise.all([
-        supabase
-          .from("initiative_requests")
-          .select("id,title,sectors,locations,status,eois,created_at")
-          .or(`user_id.eq.${user!.id},submitter_email.eq.${user!.email}`)
-          .order("created_at", { ascending: false })
-          .limit(3),
-        supabase
-          .from("conversation_participants")
-          .select("conversation_id, conversations!inner(status)")
-          .eq("user_id", user!.id)
-          .eq("conversations.status", "pending"),
-        supabase
-          .from("expressions_of_interest")
-          .select("id, conversations!inner(status)")
-          .eq("user_id", user!.id)
-          .eq("conversations.status", "pending"),
-      ]);
-
-      if (initRes.data) setMyInitiatives(initRes.data as InitiativeRow[]);
-      setSnapshot({
-        openConversations: convRes.data?.length ?? 0,
-        pendingEOIs:       eoiRes.data?.length  ?? 0,
-      });
-      setLoadingPersonal(false);
+  // ── Dynamic status subtitle ───────────────────────────────────────────────
+  function getStatusLine(): string {
+    if (snapshot.openConversations > 0 || snapshot.pendingEOIs > 0) {
+      const parts = [
+        snapshot.openConversations > 0 && `${snapshot.openConversations} pending conversation${snapshot.openConversations !== 1 ? "s" : ""}`,
+        snapshot.pendingEOIs > 0       && `${snapshot.pendingEOIs} pending EOI${snapshot.pendingEOIs !== 1 ? "s" : ""}`,
+      ].filter(Boolean);
+      return `You have ${parts.join(" and ")}.`;
     }
-    loadPersonal();
-  }, [user]);
+    if (myInitiatives.length === 0 && !loadingPersonal) {
+      return "Start by posting your first initiative.";
+    }
+    if (profile?.user_type === "organisation" && !profile?.is_verified && myInitiatives.length > 0) {
+      return "Complete verification to build trust with funders.";
+    }
+    if (myInitiatives.length > 0) {
+      const listed = myInitiatives.filter(i => i.status === "published").length;
+      return listed > 0
+        ? `${listed} initiative${listed !== 1 ? "s" : ""} live in the marketplace.`
+        : "Your initiatives are under review.";
+    }
+    return "Here's what's moving across your ecosystem.";
+  }
 
-  // -------------------------------------------------------------------------
-  // Global feed fetch
-  // TODO: move to a get_feed_events() RPC when pagination is needed
-  // -------------------------------------------------------------------------
-  useEffect(() => {
-    async function loadFeed() {
-      const events: FeedEvent[] = [];
+  // ── Is new user (no initiatives, no messages) ─────────────────────────────
+  const isNewUser = !loadingPersonal
+    && myInitiatives.length === 0
+    && snapshot.openConversations === 0
+    && snapshot.pendingEOIs === 0
+    && snapshot.openEnquiries === 0;
 
-      // 1. Recent published initiatives
-      const { data: initiatives } = await supabase
+  // ── Personal data fetch ───────────────────────────────────────────────────
+  const loadPersonal = useCallback(async () => {
+    if (!user?.id) return;
+    const [initRes, allInitRes, convRes, eoiRes, mktRes] = await Promise.all([
+      supabase
         .from("initiative_requests")
-        .select("id,title,sectors,created_at,user_id")
-        .eq("status", "published")
+        .select("id,title,sectors,locations,status,eois,created_at")
+        .or(`user_id.eq.${user.id},submitter_email.eq.${user.email}`)
         .order("created_at", { ascending: false })
-        .limit(10);
-
-      if (initiatives && initiatives.length > 0) {
-        const creatorIds = [...new Set(initiatives.map((i: any) => i.user_id).filter(Boolean))];
-        const { data: creators } = await supabase
-          .from("profiles")
-          .select("id,full_name,org_name")
-          .in("id", creatorIds);
-
-        const creatorMap = Object.fromEntries((creators ?? []).map((p: any) => [p.id, p]));
-
-        for (const ini of initiatives as any[]) {
-          const creator = creatorMap[ini.user_id];
-          events.push({
-            id:                 `ini-${ini.id}`,
-            type:               "initiative",
-            created_at:         ini.created_at,
-            initiative_id:      ini.id,
-            initiative_title:   ini.title,
-            initiative_sectors: ini.sectors,
-            creator_name:       creator?.full_name ?? "A member",
-            creator_org:        creator?.org_name  ?? null,
-            creator_id:         ini.user_id,
-          });
-        }
-      }
-
-      // 2. Confirmed partnerships (public_on_feed = true)
-      // TODO: wire public_on_feed checkbox into DashboardMessages confirm flow
-      const { data: partnerInitiatives } = await supabase
+        .limit(3),
+      supabase
         .from("initiative_requests")
-        .select("id,title,confirmed_partners,user_id,created_at")
-        .not("confirmed_partners", "eq", "[]")
-        .not("confirmed_partners", "is", null)
-        .eq("status", "published");
+        .select("id,status")
+        .or(`user_id.eq.${user.id},submitter_email.eq.${user.email}`),
+      supabase
+        .from("conversation_participants")
+        .select("conversation_id")
+        .eq("user_id", user.id),
+      supabase
+        .from("initiative_requests")
+        .select("id")
+        .or(`user_id.eq.${user.id},submitter_email.eq.${user.email}`),
+      supabase
+        .from("initiative_requests")
+        .select("id")
+        .eq("status", "published"),
+    ]);
 
-      if (partnerInitiatives) {
-        for (const ini of partnerInitiatives as any[]) {
-          const partners: any[] = ini.confirmed_partners ?? [];
-          for (const p of partners) {
-           if (!p.public_on_feed) continue;
-            events.push({
-              id:               `partner-${ini.id}-${p.user_id}`,
-              type:             "partnership",
-              created_at:       p.confirmed_at,
-              initiative_id:    ini.id,
-              initiative_title: ini.title,
-              partner_name:     p.name,
-              partner_role:     p.role,
-            });
-          }
-        }
-      }
+    if (initRes.data) setMyInitiatives(initRes.data as InitiativeRow[]);
+    const allInits = allInitRes.data ?? [];
+    const convIds = (convRes.data ?? []).map((r: any) => r.conversation_id).filter(Boolean);
+    const myInitiativeIds = (eoiRes.data ?? []).map((r: any) => r.id).filter(Boolean);
 
-      // 3. New members (feed_visibility != 'none')
-      const { data: newMembers } = await supabase
-        .from("profiles")
-        .select("id,full_name,org_name,role_title,created_at,feed_visibility")
-        .neq("feed_visibility", "none")
-        .order("created_at", { ascending: false })
-        .limit(10);
+    let eoiConvIds: string[] = [];
+    if (myInitiativeIds.length > 0) {
+      const { data: eoiData } = await supabase
+        .from("expressions_of_interest")
+        .select("conversation_id")
+        .in("initiative_id", myInitiativeIds);
+      eoiConvIds = (eoiData ?? []).map((r: any) => r.conversation_id).filter(Boolean);
+    }
 
-      for (const m of newMembers ?? [] as any[]) {
-        events.push({
-          id:               `member-${m.id}`,
-          type:             "member",
-          created_at:       m.created_at,
-          member_id:        m.id,
-          member_name:      m.full_name,
-          member_org:       m.org_name,
-          member_role_title: m.role_title,
+    const allConvIds = [...new Set([...convIds, ...eoiConvIds])];
+    let openConversations = 0;
+    let pendingEOIs = 0;
+    let openEnquiries = 0;
+
+    if (allConvIds.length > 0) {
+      const { data: convStatuses } = await supabase
+        .from("conversations")
+        .select("id, status, conversation_type")
+        .in("id", allConvIds);
+      const statusMap = Object.fromEntries((convStatuses ?? []).map((c: any) => [c.id, c.status]));
+      const typeMap = Object.fromEntries((convStatuses ?? []).map((c: any) => [c.id, c.conversation_type]));
+      openConversations = convIds.filter((id: string) => statusMap[id] === "open" && typeMap[id] !== "question").length;
+      const questionConvIds = convIds.filter((id: string) => statusMap[id] === "open" && typeMap[id] === "question");
+      if (questionConvIds.length > 0) {
+        const { data: lastMsgs } = await supabase
+          .from("messages")
+          .select("conversation_id, sender_id, read_at")
+          .in("conversation_id", questionConvIds)
+          .order("created_at", { ascending: false });
+        const lastMsgMap = new Map<string, string>();
+        (lastMsgs ?? []).forEach((m: any) => {
+          if (!lastMsgMap.has(m.conversation_id)) lastMsgMap.set(m.conversation_id, m.sender_id);
         });
+        openEnquiries = questionConvIds.filter(id => {
+          const lastMsg = (lastMsgs ?? []).find((m: any) => m.conversation_id === id);
+          return lastMsg && lastMsg.sender_id !== user.id && !lastMsg.read_at;
+        }).length;
       }
-
-      // Sort all events by date desc, cap at 20
-      events.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      setFeedEvents(events.slice(0, 20));
-      setLoadingFeed(false);
+      pendingEOIs = eoiConvIds.filter((id: string) => statusMap[id] === "pending").length;
     }
 
-    loadFeed();
-  }, []);
+    setSnapshot({ openConversations, pendingEOIs, openEnquiries });
+    setAllMyInits(allInits);
+    setMarketplaceCount(mktRes.data?.length ?? 0);
+    setLoadingPersonal(false);
+  }, [user?.id]);
 
-  const hasActivity = snapshot.openConversations > 0 || snapshot.pendingEOIs > 0;
+  useEffect(() => {
+    if (!user?.id) return;
+    const skeletonTimer = setTimeout(() => setShowSkeleton(true), 300);
+    loadPersonal().then(() => {
+      clearTimeout(skeletonTimer);
+      setShowSkeleton(false);
+    });
+    return () => clearTimeout(skeletonTimer);
+  }, [loadPersonal, location]);
 
-  // -------------------------------------------------------------------------
-  // Render
-  // -------------------------------------------------------------------------
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === "visible") {
+        loadPersonal();
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [loadPersonal]);
+
+  const hasActivity = snapshot.openConversations > 0 || snapshot.pendingEOIs > 0 || snapshot.openEnquiries > 0;  const experience = (() => {
+    const t = profile?.org_type;
+    if (!t) return "implementer";
+    if (["philanthropic_foundation", "venture_capital"].includes(t)) return "funder";
+    if (["corporation", "technology_company", "public_sector"].includes(t)) return "corporate";
+    return "implementer";
+  })();
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+  if (experience === "funder") return <FunderHome profile={profile} />;
+  if (experience === "corporate") return <CorporateHome profile={profile} />;
+
   return (
     <>
       <div className="space-y-10">
 
-        {/* Welcome */}
-        <div>
-          <p className="text-sm text-muted-foreground mb-1">{greeting}</p>
-          <h2 className="text-3xl font-bold text-foreground tracking-tight">{firstName}.</h2>
-          <p className="text-muted-foreground mt-2 text-sm">
-            Here's what's moving across your ecosystem.
-          </p>
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">{greeting}</p>
+            <h2 className="text-2xl font-bold text-foreground tracking-tight">{firstName}.</h2>
+            {!loadingPersonal && (
+              <p className="text-muted-foreground mt-1 text-sm">{getStatusLine()}</p>
+            )}
+          </div>
+          
         </div>
 
-        {/* Quick Actions */}
-        <section>
-          <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
-            Actions
-          </h3>
-          <div className="flex flex-wrap gap-3">
-            <Button
-              className="bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full px-5 text-sm"
-              onClick={() => setShowCreateModal(true)}
-            >
-              <Plus className="w-4 h-4 mr-1.5" />
-              Create Initiative
-            </Button>
-            <Button
-              variant="outline"
-              className="rounded-full px-5 text-sm"
-              onClick={() => navigate("/dashboard/marketplace")}
-            >
-              Explore Marketplace
-              <ArrowRight className="w-3.5 h-3.5 ml-2" />
-            </Button>
-            <Button
-              variant="outline"
-              className="rounded-full px-5 text-sm"
-              onClick={() => navigate("/dashboard/messages")}
-            >
-              <MessageSquare className="w-4 h-4 mr-1.5" />
-              Messages
-            </Button>
-          </div>
-        </section>
+        {/* Metrics strip */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <MetricCard
+            label="My Initiatives"
+            value={loadingPersonal ? "—" : allMyInits.length}
+            sub={allMyInits.filter(i => i.status === "published").length > 0
+              ? `${allMyInits.filter(i => i.status === "published").length} live`
+              : "none live yet"}
+            onClick={() => navigate("/dashboard/initiatives")}
+            accent={false}
+            showSkeleton={showSkeleton}
+          />
+          <MetricCard
+            label="Pending EOIs"
+            value={loadingPersonal ? "—" : snapshot.pendingEOIs}
+            sub={snapshot.pendingEOIs > 0 ? "needs your review" : "all clear"}
+            onClick={() => navigate("/dashboard/messages")}
+            accent={snapshot.pendingEOIs > 0}
+            showSkeleton={showSkeleton}
+          />
+          <MetricCard
+            label="Messages"
+            value={loadingPersonal ? "—" : snapshot.openConversations + snapshot.openEnquiries}
+            sub={
+              snapshot.openConversations > 0
+                ? `${snapshot.openConversations} open`
+                : "none open"
+            }
+            onClick={() => navigate("/dashboard/messages")}
+            accent={snapshot.openConversations > 0}
+            showSkeleton={showSkeleton}
+          />
+          <MetricCard
+            label="In Marketplace"
+            value={loadingPersonal ? "—" : marketplaceCount}
+            sub="active initiatives"
+            onClick={() => navigate("/dashboard/marketplace")}
+            accent={false}
+            showSkeleton={showSkeleton}
+          />
+        </div>
 
-        {/* Activity Snapshot — collapsed card */}
-        {!loadingPersonal && hasActivity && (
-          <section>
-            <button
-              onClick={() => setSnapshotOpen(o => !o)}
-              className="w-full rounded-xl border border-border bg-card px-5 py-4 flex items-center justify-between hover:border-[#2D6A4F]/30 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
-                  <Lightbulb className="w-4 h-4 text-[#2D6A4F]" />
-                </div>
-                <span className="text-sm font-medium text-foreground">
-                  {[
-                    snapshot.openConversations > 0 && `${snapshot.openConversations} pending conversation${snapshot.openConversations !== 1 ? "s" : ""}`,
-                    snapshot.pendingEOIs > 0        && `${snapshot.pendingEOIs} pending EOI${snapshot.pendingEOIs !== 1 ? "s" : ""}`,
-                  ].filter(Boolean).join(" · ")}
-                </span>
-              </div>
-              {snapshotOpen
-                ? <ChevronUp   className="w-4 h-4 text-muted-foreground" />
-                : <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              }
-            </button>
-            {snapshotOpen && (
-              <div className="mt-2 rounded-xl border border-border bg-card px-5 py-4 flex flex-wrap gap-3">
-                {snapshot.openConversations > 0 && (
-                  <Link href="/dashboard/messages">
-                    <Button variant="outline" size="sm" className="rounded-full text-xs">
-                      Review conversations <ArrowRight className="w-3 h-3 ml-1" />
-                    </Button>
-                  </Link>
-                )}
-                {snapshot.pendingEOIs > 0 && (
-                  <Link href="/dashboard/messages">
-                    <Button variant="outline" size="sm" className="rounded-full text-xs">
-                      Review EOIs <ArrowRight className="w-3 h-3 ml-1" />
-                    </Button>
-                  </Link>
-                )}
-              </div>
-            )}
-          </section>
+        {/* Getting Started — new users only */}
+        {!loadingPersonal && isNewUser && (
+          <GettingStarted
+            userType={profile?.user_type ?? undefined}
+            isVerified={profile?.is_verified ?? undefined}
+            onCreateInitiative={() => setShowCreateModal(true)}
+          />
         )}
 
-        {/* Global Activity Feed */}
-        <section>
-          <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
-            Recent Activity
-          </h3>
-          {loadingFeed ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="h-16 rounded-xl border border-border bg-card animate-pulse" />
-              ))}
-            </div>
-          ) : feedEvents.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-card p-8 text-center">
-              <Compass className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">
-                No activity yet. Be the first to publish an initiative.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-                            {feedEvents.map(event => (
-                <FeedCard key={event.id} event={event} currentUserId={user?.id} />
-              ))}
-            </div>
-          )}
-        </section>
+        {/* My Initiatives — returning users with activity */}
+        {!loadingPersonal && !isNewUser && myInitiatives.length > 0 && (
+          <MyInitiativesMini initiatives={myInitiatives} />
+        )}
+
+        
 
       </div>
 
@@ -362,97 +488,4 @@ export default function DashboardHome() {
       />
     </>
   );
-}
-
-// ---------------------------------------------------------------------------
-// Feed Card
-// ---------------------------------------------------------------------------
-function FeedCard({ event, currentUserId }: { event: FeedEvent; currentUserId?: string }) {
-  if (event.type === "initiative") {
-    return (
-      <Link href={`/dashboard/marketplace/${event.initiative_id}`}>
-        <div className="rounded-xl border border-border bg-card px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors cursor-pointer group flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0 mt-0.5">
-              <Lightbulb className="w-4 h-4 text-[#2D6A4F]" />
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
-                New Initiative
-              </p>
-              <p className="text-sm font-medium text-foreground group-hover:text-[#2D6A4F] transition-colors">
-                {event.initiative_title}
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {event.creator_id === currentUserId ? "You" : event.creator_name}
-                {event.creator_org ? ` · ${event.creator_org}` : ""}
-                {event.initiative_sectors?.length
-                  ? ` · ${event.initiative_sectors.join(", ")}`
-                  : ""}
-                {" · "}{timeAgo(event.created_at)}
-              </p>
-            </div>
-          </div>
-          <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-[#2D6A4F] shrink-0 mt-1 transition-colors" />
-        </div>
-      </Link>
-    );
-  }
-
-  if (event.type === "partnership") {
-    return (
-      <Link href={`/dashboard/marketplace/${event.initiative_id}`}>
-        <div className="rounded-xl border border-border bg-card px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors cursor-pointer group flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0 mt-0.5">
-              <Handshake className="w-4 h-4 text-[#C45C26]" />
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
-                Partnership Confirmed
-              </p>
-              <p className="text-sm font-medium text-foreground group-hover:text-[#2D6A4F] transition-colors">
-                {event.partner_name} joined {event.initiative_title}
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                As {event.partner_role} partner · {timeAgo(event.created_at)}
-              </p>
-            </div>
-          </div>
-          <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-[#2D6A4F] shrink-0 mt-1 transition-colors" />
-        </div>
-      </Link>
-    );
-  }
-
-  if (event.type === "member") {
-    return (
-      <Link href={`/dashboard/natives?user=${event.member_id}`}>
-        <div className="rounded-xl border border-border bg-card px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors cursor-pointer group flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0 mt-0.5">
-              <Users className="w-4 h-4 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
-                New Member
-              </p>
-              <p className="text-sm font-medium text-foreground group-hover:text-[#2D6A4F] transition-colors">
-                {event.member_name} joined Impact Natives
-              </p>
-              {(event.member_role_title || event.member_org) && (
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {[event.member_role_title, event.member_org].filter(Boolean).join(" · ")}
-                  {" · "}{timeAgo(event.created_at)}
-                </p>
-              )}
-            </div>
-          </div>
-          <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-[#2D6A4F] shrink-0 mt-1 transition-colors" />
-        </div>
-      </Link>
-    );
-  }
-
-  return null;
 }

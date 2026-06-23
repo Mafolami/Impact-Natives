@@ -12,11 +12,12 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { label: "Home",         href: "/dashboard",              icon: Home },
-  { label: "My Initiatives",  href: "/dashboard/initiatives",  icon: Lightbulb },
+  { label: "Portfolio",  href: "/dashboard/initiatives",  icon: Lightbulb },
   { label: "Marketplace",  href: "/dashboard/marketplace",  icon: Compass },
   { label: "Partnerships", href: "/dashboard/partnerships", icon: Handshake },
   { label: "Labs",         href: "/dashboard/labs",         icon: FlaskConical },
   { label: "Natives",      href: "/dashboard/natives",      icon: Globe },
+  
   { label: "Messages",     href: "/dashboard/messages",     icon: MessageSquare },
   { label: "Profile",      href: "/dashboard/profile",      icon: User },
   { label: "Settings",     href: "/dashboard/settings",     icon: Settings },
@@ -64,7 +65,52 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
         }
       }
 
-    setUnreadMessages(pendingEoiCount);
+    // Also count question conversations with unread messages
+      if (myInitIds.length > 0) {
+        const { data: questionConvos } = await supabase
+          .from("conversations")
+          .select("id")
+          .in("initiative_id", myInitIds)
+          .eq("conversation_type", "question")
+          .eq("status", "open");
+        const questionConvoIds = (questionConvos ?? []).map((c: any) => c.id);
+        if (questionConvoIds.length > 0) {
+          const { data: unreadMsgs } = await supabase
+            .from("messages")
+            .select("id")
+            .in("conversation_id", questionConvoIds)
+            .neq("sender_id", user.id)
+            .is("read_at", null);
+          pendingEoiCount += (unreadMsgs ?? []).length > 0 ? (unreadMsgs ?? []).length : 0;
+        }
+      }
+
+      // Also count unread messages in open conversations where last msg is not from me
+      const { data: myConvos } = await supabase
+        .from("conversation_participants")
+        .select("conversation_id")
+        .eq("user_id", user.id);
+      const myConvoIds = (myConvos ?? []).map((c: any) => c.conversation_id).filter(Boolean);
+      if (myConvoIds.length > 0) {
+        const { data: openConvos } = await supabase
+          .from("conversations")
+          .select("id")
+          .in("id", myConvoIds)
+          .eq("status", "open")
+          .is("funder_closed_at", null);
+        const openConvoIds = (openConvos ?? []).map((c: any) => c.id);
+        if (openConvoIds.length > 0) {
+          const { data: unreadMsgs } = await supabase
+            .from("messages")
+            .select("id")
+            .in("conversation_id", openConvoIds)
+            .neq("sender_id", user.id)
+            .is("read_at", null);
+          pendingEoiCount += (unreadMsgs ?? []).length;
+        }
+      }
+
+      setUnreadMessages(pendingEoiCount);
     }
 
     fetchUnread();
@@ -104,10 +150,10 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
 
   return (
     <aside
-      className={cn(
-        "fixed left-0 top-0 h-screen bg-card border-r border-border flex flex-col z-40 transition-all duration-200",
-        collapsed ? "w-16" : "w-56"
-      )}
+    className={cn(
+      "fixed left-0 top-0 h-screen flex flex-col z-40 transition-all duration-200 border-r bg-card border-border",
+      collapsed ? "w-16" : "w-56"
+    )}
     >
       {/* Brand + toggle */}
       <div className="px-3 py-5 shrink-0 flex items-center justify-between">

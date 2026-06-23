@@ -28,6 +28,7 @@ import {
     user_type: string | null;
     is_verified: boolean | null;
     is_admin: boolean | null;
+    investment_thesis: string | null;
     created_at: string;
     updated_at: string;
   }

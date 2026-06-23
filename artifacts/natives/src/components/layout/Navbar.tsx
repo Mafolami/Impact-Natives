@@ -70,7 +70,7 @@ const isHomePage = location === "/" || location === "/labs/commission"
     : isHomePage ? "bg-transparent border-b border-transparent backdrop-blur-none"
     : ""
 }`} style={{ background: isHomePage && !scrolled ? 'transparent' : undefined }}>
-<div className="max-w-7xl mx-auto content-padding py-2 w-full flex items-center justify-between min-w-0">
+<div className="max-w-8xl mx-auto content-padding py-2 w-full flex items-center justify-between min-w-0">
 
           {/* ── LEFT — Logo ── */}
           <Link href="/" className="flex items-center shrink-0" ref={logoRef}>
@@ -99,7 +99,7 @@ const isHomePage = location === "/" || location === "/labs/commission"
                   label: "Solutions",
                   description: "Tailored pathways for every actor in the impact ecosystem.",
                   links: [
-{ href: "/solutions/ngos", label: "NGOs & Non-Profits" },
+                    { href: "/solutions/ngos", label: "NGOs & Non-Profits" },
                     { href: "/solutions/corporates", label: "Corporations" },
                     { href: "/solutions/donors", label: "Funders & Donors" },
                     { href: "/solutions/startups", label: "Startups & Social Enterprises" },

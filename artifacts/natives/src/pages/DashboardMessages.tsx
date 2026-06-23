@@ -47,6 +47,8 @@ interface Conversation {
   unread: boolean;
   status: string;
   partnerStatus: "confirmed" | "active" | "closed";
+  conversation_type?: string | null;
+  funder_closed_at?: string | null;
 }
 
 interface Message {
@@ -79,16 +81,18 @@ const PARTNERSHIP_OPTIONS = [
   { value: "strategic",   label: "Strategic" },
   { value: "lead",        label: "Project Lead" },
   { value: "other",       label: "Other" },
+  { value: "interest",    label: "Interest" },
 ];
 
 function partnershipLabel(value: string) {
-  return PARTNERSHIP_OPTIONS.find((o) => o.value === value)?.label ?? value;
+  return PARTNERSHIP_OPTIONS.find(o => o.value === value)?.label ?? value;
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardMessages() {
-  const { user } = useAuth();
+ const { user, profile } = useAuth();
+  const isFunder = ["philanthropic_foundation", "venture_capital"].includes(profile?.org_type ?? "");
   const [pendingEOIs, setPendingEOIs]     = useState<PendingEOI[]>([]);
   const [outboundEOIs, setOutboundEOIs]   = useState<OutboundEOI[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -100,11 +104,20 @@ export default function DashboardMessages() {
     loadAll();
   }, [user]);
 
+  useEffect(() => {
+    if (!conversations.length) return;
+    const params = new URLSearchParams(window.location.search);
+    const convId = params.get("conversation");
+    if (convId) {
+      const match = conversations.find(c => c.id === convId);
+      if (match) setActiveConvo(match);
+    }
+  }, [conversations.length]);
+
   async function loadAll() {
     if (!user) return;
     setLoading(true);
 
-    // ── Inbound: pending EOIs on my initiatives ──────────────────────────────
     const { data: myInitiatives } = await supabase
       .from("initiative_requests")
       .select("id, title")
@@ -125,44 +138,40 @@ export default function DashboardMessages() {
       if (eoiData && eoiData.length > 0) {
         const convoIds = eoiData.map((e: any) => e.conversation_id).filter(Boolean);
         const { data: convoData } = await supabase
-          .from("conversations")
-          .select("id, status")
-          .in("id", convoIds);
+          .from("conversations").select("id, status").in("id", convoIds);
         const convoStatusMap = new Map((convoData ?? []).map((c: any) => [c.id, c.status]));
 
         const pendingEois = eoiData.filter((e: any) =>
           e.conversation_id && convoStatusMap.get(e.conversation_id) === "pending"
         );
 
-const expresserIds = [...new Set(pendingEois.map((e: any) => e.user_id))];
-                const { data: profiles } = await supabase
+        const expresserIds = [...new Set(pendingEois.map((e: any) => e.user_id))];
+        const { data: profiles } = await supabase
           .from("profiles").select("id, full_name, org_name, user_type, is_verified").in("id", expresserIds);
         const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
 
         pendingList = pendingEois.map((e: any) => {
           const p = profileMap.get(e.user_id);
-          const expresserName = p?.user_type === "organisation" && p?.org_name
-            ? p.org_name
-            : p?.full_name ?? "Someone";
-          return ({
-          eoi_id:            e.id,
-          conversation_id:   e.conversation_id,
-          initiative_id:     e.initiative_id,
-          initiative_title:  initiativeTitleMap.get(e.initiative_id) ?? "Initiative",
-          expresser_id:      e.user_id,
-          expresser_name:    expresserName,
-          expresser_verified: p?.is_verified ?? false,
-          partnership_type:  e.partnership_type,
-          message:           e.message,
-          created_at:        e.created_at,
-          esg_adoption:      e.esg_adoption ?? false,
-        });});
+          const expresserName = p?.user_type === "organisation" && p?.org_name ? p.org_name : p?.full_name ?? "Someone";
+          return {
+            eoi_id:             e.id,
+            conversation_id:    e.conversation_id,
+            initiative_id:      e.initiative_id,
+            initiative_title:   initiativeTitleMap.get(e.initiative_id) ?? "Initiative",
+            expresser_id:       e.user_id,
+            expresser_name:     expresserName,
+            expresser_verified: p?.is_verified ?? false,
+            partnership_type:   e.partnership_type,
+            message:            e.message,
+            created_at:         e.created_at,
+            esg_adoption:       e.esg_adoption ?? false,
+          };
+        });
       }
     }
 
     setPendingEOIs(pendingList);
 
-    // ── Outbound: EOIs I've sent ─────────────────────────────────────────────
     const { data: sentEois } = await supabase
       .from("expressions_of_interest")
       .select("id, initiative_id, partnership_type, message, created_at, conversation_id")
@@ -176,7 +185,7 @@ const expresserIds = [...new Set(pendingEois.map((e: any) => e.user_id))];
       const sentConvoStatusMap = new Map((sentConvoData ?? []).map((c: any) => [c.id, c.status]));
 
       const initIds = [...new Set(sentEois.map((e: any) => e.initiative_id))];
-const { data: initData } = await supabase
+      const { data: initData } = await supabase
         .from("initiative_requests").select("id, title, user_id").in("id", initIds);
       const initTitleMap = new Map((initData ?? []).map((i: any) => [i.id, i.title]));
       const initOwnerMap = new Map((initData ?? []).map((i: any) => [i.id, i.user_id]));
@@ -196,7 +205,6 @@ const { data: initData } = await supabase
       setOutboundEOIs([]);
     }
 
-    // ── Open conversations ───────────────────────────────────────────────────
     const { data: myConvos } = await supabase
       .from("conversation_participants")
       .select("conversation_id")
@@ -207,25 +215,23 @@ const { data: initData } = await supabase
     if (myConvoIds.length > 0) {
       const { data: convoData } = await supabase
         .from("conversations")
-        .select("id, initiative_id, status, initiative_owner_id")
+        .select("id, initiative_id, status, initiative_owner_id, conversation_type, funder_closed_at")
         .in("id", myConvoIds)
-        .in("status", ["open", "rejected"]);
+        .in("status", ["open", "rejected"])
+        .or("initiative_id.not.is.null,conversation_type.eq.partnership");
 
       if (convoData && convoData.length > 0) {
         const initIds = [...new Set(convoData.map((c: any) => c.initiative_id).filter(Boolean))];
-        const { data: inits } = await supabase
-          .from("initiative_requests").select("id, title").in("id", initIds);
+        const { data: inits } = initIds.length > 0 ? await supabase
+          .from("initiative_requests").select("id, title").in("id", initIds) : { data: [] };
         const initTitleMap = new Map((inits ?? []).map((i: any) => [i.id, i.title]));
+        // Partnership conversations have no initiative — title falls back to other user's name
 
         const { data: allParticipants } = await supabase
-          .rpc("get_conversation_participants", {
-            p_conversation_ids: convoData.map((c: any) => c.id)
-          });
+          .rpc("get_conversation_participants", { p_conversation_ids: convoData.map((c: any) => c.id) });
 
         const otherUserIds = [...new Set(
-          (allParticipants ?? [])
-            .filter((p: any) => p.user_id !== user.id)
-            .map((p: any) => p.user_id)
+          (allParticipants ?? []).filter((p: any) => p.user_id !== user.id).map((p: any) => p.user_id)
         )];
 
         const { data: otherProfiles } = await supabase
@@ -254,7 +260,7 @@ const { data: initData } = await supabase
           return {
             id:                  c.id,
             initiative_id:       c.initiative_id,
-            initiative_title:    initTitleMap.get(c.initiative_id) ?? "Initiative",
+            initiative_title:    initTitleMap.get(c.initiative_id) ?? (c.conversation_type === "partnership" ? "Partnership conversation" : "Initiative"),
             initiative_owner_id: c.initiative_owner_id ?? null,
             other_user_id:       otherId,
             other_user_name:     otherProfileMap.get(otherId) ?? "Unknown",
@@ -262,10 +268,12 @@ const { data: initData } = await supabase
             last_message_at:     lastMsg?.created_at ?? c.created_at ?? "",
             unread:              lastMsg && lastMsg.sender_id !== user.id && !lastMsg.read_at,
             status:              c.status ?? "open",
+            conversation_type:   c.conversation_type ?? "eoi",
+            funder_closed_at:    c.funder_closed_at ?? null,
           };
         });
 
-        const baseConvos: Conversation[] = convos.map((c) => ({
+        const baseConvos: Conversation[] = convos.map(c => ({
           ...c,
           partnerStatus: (c.status === "rejected" || c.status === "closed") ? "closed" : "active",
         } as Conversation));
@@ -273,20 +281,14 @@ const { data: initData } = await supabase
         baseConvos.sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
         setConversations(baseConvos);
 
-        // Enrich with confirmed status in background
-        const uniqueInitIds = [...new Set(baseConvos.map((c) => c.initiative_id).filter(Boolean))];
+        const uniqueInitIds = [...new Set(baseConvos.map(c => c.initiative_id).filter(Boolean))];
         if (uniqueInitIds.length > 0) {
-          supabase
-            .from("initiative_requests")
-            .select("id, confirmed_partners")
-            .in("id", uniqueInitIds)
+          supabase.from("initiative_requests").select("id, confirmed_partners").in("id", uniqueInitIds)
             .then(({ data: confirmedData }) => {
               const confirmedMap = new Map((confirmedData ?? []).map((i: any) => [i.id, i.confirmed_partners ?? []]));
-              setConversations((prev) => prev.map((c) => {
+              setConversations(prev => prev.map(c => {
                 const partners = confirmedMap.get(c.initiative_id) ?? [];
-                const isConfirmed = partners.some((p: any) =>
-                  p.user_id === c.other_user_id || p.user_id === user!.id
-                );
+                const isConfirmed = partners.some((p: any) => p.user_id === c.other_user_id || p.user_id === user!.id);
                 return isConfirmed ? { ...c, partnerStatus: "confirmed" } : c;
               }));
             });
@@ -303,14 +305,14 @@ const { data: initData } = await supabase
 
   async function acceptEOI(eoi: PendingEOI) {
     await supabase.from("conversations").update({ status: "open" }).eq("id", eoi.conversation_id);
-        await supabase.from("notifications").insert({
+    await supabase.from("notifications").insert({
       user_id: eoi.expresser_id,
       type:    "eoi_accepted",
       title:   "Expression of interest accepted",
-      body:    `Your ${partnershipLabel(eoi.partnership_type)} Partnership interest in "${eoi.initiative_title}" was accepted. A chat has been opened.`,
+      body:    `Your ${partnershipLabel(eoi.partnership_type)} interest in "${eoi.initiative_title}" was accepted.`,
       link:    "/dashboard/messages",
     });
-    setPendingEOIs((prev) => prev.filter((e) => e.eoi_id !== eoi.eoi_id));
+    setPendingEOIs(prev => prev.filter(e => e.eoi_id !== eoi.eoi_id));
     loadAll();
   }
 
@@ -320,10 +322,10 @@ const { data: initData } = await supabase
       user_id: eoi.expresser_id,
       type:    "eoi_declined",
       title:   "Expression of interest not accepted",
-      body:    `Your ${eoi.partnership_type} interest in "${eoi.initiative_title}" was not taken forward.`,
+      body:    `Your interest in "${eoi.initiative_title}" was not taken forward.`,
       link:    "/dashboard/messages",
     });
-    setPendingEOIs((prev) => prev.filter((e) => e.eoi_id !== eoi.eoi_id));
+    setPendingEOIs(prev => prev.filter(e => e.eoi_id !== eoi.eoi_id));
   }
 
   if (loading) {
@@ -335,7 +337,7 @@ const { data: initData } = await supabase
   }
 
   const pendingOutbound = outboundEOIs.filter(
-    (e) => !["open", "rejected", "closed"].includes(e.conversation_status ?? "")
+    e => !["open", "rejected", "closed", "declined"].includes(e.conversation_status ?? "")
   );
 
   if (activeConvo) {
@@ -344,6 +346,10 @@ const { data: initData } = await supabase
         conversation={activeConvo}
         currentUserId={user!.id}
         onBack={() => { setActiveConvo(null); loadAll(); }}
+        onUpdate={(id, changes) => {
+          setConversations(prev => prev.map(c => c.id === id ? { ...c, ...changes } : c));
+        }}
+        isFunder={["philanthropic_foundation", "venture_capital"].includes(profile?.org_type ?? "")}
       />
     );
   }
@@ -351,12 +357,9 @@ const { data: initData } = await supabase
   const hasAnything = pendingEOIs.length > 0 || conversations.length > 0 || pendingOutbound.length > 0;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold text-foreground tracking-tight">Messages</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Expressions of interest and active conversations.
-        </p>
+    <div className="space-y-8 min-w-0 overflow-hidden">
+    <div>
+        <p className="text-sm text-muted-foreground mt-1">Expressions of interest and active conversations.</p>
       </div>
 
       {!hasAnything ? (
@@ -382,29 +385,26 @@ const { data: initData } = await supabase
                 Awaiting review — {pendingEOIs.length}
               </h3>
               <div className="space-y-2">
-                {pendingEOIs.map((eoi) => (
+                {pendingEOIs.map(eoi => (
                   <div key={eoi.eoi_id}
                     className="rounded-xl border border-border bg-card px-5 py-4 flex items-start gap-4">
                     <div className="w-8 h-8 rounded-lg bg-[#eaf5ee] flex items-center justify-center shrink-0 mt-0.5">
                       <CheckCircle2 className="w-4 h-4 text-[#2D6A4F]" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-0.5">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">
-                              {eoi.expresser_name} expressed interest
-                            </p>
-                            {eoi.expresser_verified && (
-                              <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
-                                style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
-                                ✓ Verified
-                              </span>
-                            )}
-                          </div>
+                      <div className="flex items-center justify-between gap-2 mb-0.5 flex-wrap">
+                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                          <p className="text-sm font-medium text-foreground">
+                            {eoi.expresser_name} expressed interest
+                          </p>
+                          {eoi.expresser_verified && (
+                            <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
+                              style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+                              ✓ Verified
+                            </span>
+                          )}
                           {eoi.expresser_id && (
-                            <Link
-                              href={`/dashboard/natives?user=${eoi.expresser_id}&tab=organisations`}
+                            <Link href={`/dashboard/natives?user=${eoi.expresser_id}&tab=organisations`}
                               className="text-[10px] text-muted-foreground hover:text-[#2D6A4F] transition-colors shrink-0 underline underline-offset-2">
                               View profile
                             </Link>
@@ -415,7 +415,7 @@ const { data: initData } = await supabase
                       <p className="text-xs text-muted-foreground mb-1">
                         <span className="text-foreground/70">{eoi.initiative_title}</span>
                       </p>
-                                            <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                      <div className="flex items-center gap-1.5 flex-wrap mt-1">
                         {eoi.partnership_type && (
                           <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
                             style={{ background: "#f5ede8", color: "#C45C26" }}>
@@ -430,7 +430,7 @@ const { data: initData } = await supabase
                         )}
                       </div>
                       {eoi.message && (
-                        <p className="text-xs text-muted-foreground mt-2 leading-relaxed line-clamp-2">
+                        <p className="text-xs text-muted-foreground mt-2 leading-relaxed break-words">
                           "{eoi.message}"
                         </p>
                       )}
@@ -452,7 +452,34 @@ const { data: initData } = await supabase
           )}
 
           {/* 2 — Active conversations */}
-          {conversations.length > 0 && (
+          {conversations.filter(c => c.conversation_type === "question" && !c.funder_closed_at).length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  Enquiries
+                </h3>
+              </div>
+              <div className="space-y-2 min-w-0 overflow-hidden">
+                {conversations.filter(c => c.conversation_type === "question" && !c.funder_closed_at).map(convo => (
+                  <button key={convo.id} type="button" onClick={() => setActiveConvo(convo)}
+                  className="w-full min-w-0 text-left rounded-xl border border-[#2D6A4F]/20 bg-card px-5 py-4 flex items-start gap-4 hover:border-[#2D6A4F]/40 transition-colors overflow-hidden">
+                    <div className="w-8 h-8 rounded-full bg-[#2D6A4F]/10 flex items-center justify-center shrink-0 mt-0.5 text-[#2D6A4F] text-xs font-bold">
+                      ?
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{convo.initiative_title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">{convo.other_user_name}</p>
+                      {convo.last_message && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{convo.last_message}</p>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {conversations.filter(c => c.conversation_type !== "question" && (isFunder ? !c.funder_closed_at : true)).length > 0 && (
             <section>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
@@ -464,10 +491,10 @@ const { data: initData } = await supabase
                   <ExternalLink className="w-2.5 h-2.5" />
                 </Link>
               </div>
-              <div className="space-y-2">
-                {conversations.map((convo) => (
+              <div className="space-y-2 min-w-0 overflow-hidden">
+                {conversations.filter(c => c.conversation_type !== "question" && (isFunder ? !c.funder_closed_at : true)).map(convo => (
                   <button key={convo.id} type="button" onClick={() => setActiveConvo(convo)}
-                    className="w-full text-left rounded-xl border border-border bg-card px-5 py-4 flex items-start gap-4 hover:border-[#2D6A4F]/40 transition-colors">
+                  className="w-full min-w-0 text-left rounded-xl border border-border bg-card px-5 py-4 flex items-start gap-4 hover:border-[#2D6A4F]/40 transition-colors overflow-hidden">
                     <div className="w-8 h-8 rounded-full bg-[#2D6A4F] flex items-center justify-center shrink-0 mt-0.5 text-white text-xs font-bold">
                       {((convo.other_user_name ?? "?")[0]).toUpperCase()}
                     </div>
@@ -477,17 +504,10 @@ const { data: initData } = await supabase
                           <p className={`text-sm font-medium truncate ${convo.unread ? "text-foreground" : "text-foreground/80"}`}>
                             {convo.other_user_name ?? "Unknown"}
                           </p>
-                          {convo.other_user_id && (
-                            <Link href={`/dashboard/natives?user=${convo.other_user_id}&tab=organisations`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-[10px] text-muted-foreground hover:text-[#2D6A4F] transition-colors shrink-0 underline underline-offset-2">
-                              View profile
-                            </Link>
-                          )}
                         </div>
                         <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(convo.last_message_at)}</span>
                       </div>
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <p className="text-xs text-muted-foreground truncate">Re: {convo.initiative_title}</p>
                         {convo.partnerStatus === "confirmed" && (
                           <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
@@ -502,7 +522,7 @@ const { data: initData } = await supabase
                             style={{ background: "#fffbeb", color: "#f59e0b" }}>Active</span>
                         )}
                       </div>
-                      <p className={`text-xs truncate ${convo.unread ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                      <p className={`text-xs leading-relaxed ${convo.unread ? "text-foreground font-medium" : "text-muted-foreground"}`}>
                         {convo.last_message}
                       </p>
                     </div>
@@ -513,21 +533,40 @@ const { data: initData } = await supabase
             </section>
           )}
 
-          {/* 3 — Sent (pending only) */}
-          {pendingOutbound.length > 0 && (
+          {/* Archived conversations — funder closed */}
+          {isFunder && conversations.filter(c => !!c.funder_closed_at).length > 0 && (
             <section>
               <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-                Sent
+                Archived
               </h3>
+              <div className="space-y-2 min-w-0 overflow-hidden opacity-60">
+                {conversations.filter(c => !!c.funder_closed_at).map(convo => (                  <button key={convo.id} type="button" onClick={() => setActiveConvo(convo)}
+                    className="w-full min-w-0 text-left rounded-xl border border-border bg-card px-5 py-3 flex items-center gap-3 hover:border-[#2D6A4F]/40 transition-colors overflow-hidden">
+                    <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0 text-muted-foreground text-xs font-bold">
+                      {((convo.other_user_name ?? "?")[0]).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-muted-foreground truncate">{convo.other_user_name ?? "Unknown"}</p>
+                      <p className="text-xs text-muted-foreground/70 truncate">Re: {convo.initiative_title}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* 3 — Sent */}
+          {pendingOutbound.length > 0 && (
+            <section>
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">Sent</h3>
               <div className="space-y-2">
-                {pendingOutbound.map((eoi) => {
+                {pendingOutbound.map(eoi => {
                   const status = eoi.conversation_status;
                   const statusConfig = status === "open"
                     ? { label: "Accepted", bg: "#eaf5ee", color: "#2D6A4F" }
                     : status === "declined"
                     ? { label: "Declined", bg: "#fef2f2", color: "#ef4444" }
-                    : { label: "Pending", bg: "#fffbeb", color: "#f59e0b" };
-
+                    : { label: "Pending",  bg: "#fffbeb", color: "#f59e0b" };
                   return (
                     <div key={eoi.eoi_id}
                       className="rounded-xl border border-border bg-card px-5 py-4 flex items-start gap-4">
@@ -537,29 +576,21 @@ const { data: initData } = await supabase
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2 mb-0.5">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">
-                              {eoi.initiative_title}
-                            </p>
-                            {eoi.initiative_owner_id && (
-                              <Link href={`/dashboard/natives?user=${eoi.initiative_owner_id}&tab=organisations`}
-                                className="text-[10px] text-muted-foreground hover:text-[#2D6A4F] transition-colors shrink-0 underline underline-offset-2">
-                                View profile
-                              </Link>
-                            )}
-                          </div>
+                          <p className="text-sm font-medium text-foreground truncate">{eoi.initiative_title}</p>
                           <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(eoi.created_at)}</span>
                         </div>
-                        <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full mr-2"
-                          style={{ background: "#f5ede8", color: "#C45C26" }}>
-                          {eoi.partnership_type}
-                        </span>
-                        <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                          style={{ background: statusConfig.bg, color: statusConfig.color }}>
-                          {statusConfig.label}
-                        </span>
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                            style={{ background: "#f5ede8", color: "#C45C26" }}>
+                            {eoi.partnership_type}
+                          </span>
+                          <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                            style={{ background: statusConfig.bg, color: statusConfig.color }}>
+                            {statusConfig.label}
+                          </span>
+                        </div>
                         {eoi.message && (
-                          <p className="text-xs text-muted-foreground mt-2 leading-relaxed line-clamp-2">
+                          <p className="text-xs text-muted-foreground mt-2 leading-relaxed break-words line-clamp-2">
                             "{eoi.message}"
                           </p>
                         )}
@@ -570,39 +601,262 @@ const { data: initData } = await supabase
               </div>
             </section>
           )}
-
         </div>
       )}
     </div>
   );
 }
 
+function PartnershipConfirmButton({ conversation, currentUserId }: {
+  conversation: Conversation;
+  currentUserId: string;
+}) {
+  const [open, setOpen]             = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [partnershipType, setType]  = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone]             = useState<"accepted" | "rejected" | "pending_confirmation" | null>(null);
+
+  useEffect(() => {
+    // Check current connection status on mount
+    supabase.from("partnership_connections")
+      .select("status, partnership_type")
+      .eq("sender_user_id", conversation.other_user_id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.status === "pending_confirmation") setDone("pending_confirmation");
+      if (data?.status === "formed") setDone("accepted");
+      if (data?.status === "declined") setDone("rejected");
+      });
+  }, [conversation.id]);
+
+  const PARTNERSHIP_TYPES = [
+    "Co-funder", "Implementing partner", "Research partner",
+    "Technical advisor", "CSR partner", "Strategic partner", "Other",
+  ];
+
+  async function sendConfirmationRequest() {
+    if (!partnershipType || submitting) return;
+    setSubmitting(true);
+
+    // Update connection with proposed partnership type + pending confirmation status
+    const { data: conn } = await supabase
+      .from("partnership_connections")
+      .select("id")
+      .eq("status", "accepted")
+      .eq("sender_user_id", conversation.other_user_id)
+      .maybeSingle();
+
+    if (conn) {
+      await supabase.from("partnership_connections")
+        .update({ partnership_type: partnershipType, status: "pending_confirmation" })
+        .eq("id", conn.id);
+    }
+
+    // Send confirmation prompt to the other party
+    await supabase.from("notifications").insert({
+      user_id: conversation.other_user_id,
+      type: "partnership_confirmation_requested",
+      title: "Partnership confirmation requested",
+      body: `${conversation.initiative_title} — you've been proposed as ${partnershipType}. Go to Messages to confirm or decline.`,
+      link: `/dashboard/messages?conversation=${conversation.id}`,
+    });
+
+    // Post a message in the thread
+    await supabase.from("messages").insert({
+      conversation_id: conversation.id,
+      sender_id: currentUserId,
+      body: `I'd like to confirm our partnership as: ${partnershipType}. Please confirm or decline below.`,
+    });
+
+    setDone("pending_confirmation");
+    setSubmitting(false);
+    setOpen(false);
+  }
+
+  async function rejectPartnership() {
+    if (submitting) return;
+    setSubmitting(true);
+
+    await supabase.from("conversations")
+      .update({ status: "rejected" })
+      .eq("id", conversation.id);
+
+    await supabase.from("notifications").insert({
+      user_id: conversation.other_user_id,
+      type: "partnership_rejected",
+      title: "Partnership interest not taken forward",
+      body: `Your partnership interest was not taken forward.`,
+      link: "/dashboard/messages",
+    });
+
+    setDone("rejected");
+    setSubmitting(false);
+    setRejectOpen(false);
+  }
+
+  if (done === "pending_confirmation") {
+    return (
+      <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0"
+        style={{ background: "#fffbeb", color: "#b45309" }}>
+        Awaiting their confirmation
+      </span>
+    );
+  }
+
+  if (done === "accepted") {
+    return (
+      <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0"
+        style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+        ✓ Partnership confirmed
+      </span>
+    );
+  }
+
+  if (done === "rejected") {
+    return (
+      <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0"
+        style={{ background: "#fef2f2", color: "#ef4444" }}>
+        Partnership declined
+      </span>
+    );
+  }
+
+  return (
+    <>
+      <div className="flex items-center gap-2 shrink-0">
+        <button type="button" onClick={() => setOpen(true)}
+          className="text-xs px-3 py-1.5 rounded-full border border-[#2D6A4F] text-[#2D6A4F] hover:bg-[#eaf5ee] transition-colors font-medium flex items-center gap-1.5">
+          <UserCheck className="w-3.5 h-3.5" />
+          Accept Partnership
+        </button>
+        <button type="button" onClick={() => setRejectOpen(true)}
+          className="text-xs px-3 py-1.5 rounded-full border border-red-400/40 text-red-500 hover:bg-red-50 transition-colors font-medium">
+          Reject
+        </button>
+      </div>
+
+      {/* Accept modal */}
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl border border-border w-full max-w-sm shadow-xl p-6 space-y-4">
+            <h3 className="text-base font-semibold text-foreground">Accept Partnership</h3>
+            <p className="text-sm text-muted-foreground">
+              Select the role for <span className="font-medium text-foreground">{conversation.other_user_name}</span>.
+              They'll be asked to confirm.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {PARTNERSHIP_TYPES.map(t => (
+                <button key={t} type="button" onClick={() => setType(t)}
+                  className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                    partnershipType === t
+                      ? "bg-[#2D6A4F] text-white border-[#2D6A4F]"
+                      : "border-border text-muted-foreground hover:border-[#2D6A4F]"
+                  }`}>
+                  {t}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button type="button" onClick={() => { setOpen(false); setType(""); }}
+                className="flex-1 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Cancel
+              </button>
+              <button type="button" onClick={sendConfirmationRequest}
+                disabled={!partnershipType || submitting}
+                className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium disabled:opacity-40 transition-colors">
+                {submitting ? "Sending..." : "Send for confirmation"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject modal */}
+      {rejectOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl border border-border w-full max-w-sm shadow-xl p-6 space-y-4">
+            <h3 className="text-base font-semibold text-foreground">Reject Partnership</h3>
+            <p className="text-sm text-muted-foreground">
+              This will notify {conversation.other_user_name} that you're not taking the partnership forward, and close this conversation.
+            </p>
+            <div className="flex gap-2 pt-2">
+              <button type="button" onClick={() => setRejectOpen(false)}
+                className="flex-1 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Cancel
+              </button>
+              <button type="button" onClick={rejectPartnership} disabled={submitting}
+                className="flex-1 h-9 rounded-full bg-red-500 hover:bg-red-600 text-white text-sm font-medium disabled:opacity-40 transition-colors">
+                {submitting ? "Rejecting..." : "Confirm rejection"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 // ─── Chat Thread ──────────────────────────────────────────────────────────────
 
-function ChatThread({
-  conversation,
-  currentUserId,
-  onBack,
-}: {
+function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }: {
   conversation: Conversation;
   currentUserId: string;
   onBack: () => void;
+  onUpdate?: (id: string, changes: Partial<Conversation>) => void;
+  isFunder?: boolean;
 }) {
-  const [messages, setMessages]           = useState<Message[]>([]);
-  const [loading, setLoading]             = useState(true);
-  const [body, setBody]                   = useState("");
-  const [sending, setSending]             = useState(false);
-  const [confirmOpen, setConfirmOpen]     = useState(false);
-  const [confirmRole, setConfirmRole]     = useState("");
-  const [confirming, setConfirming]       = useState(false);
-  const [publicOnFeed, setPublicOnFeed]   = useState(false);
+  const [messages, setMessages]         = useState<Message[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [body, setBody]                 = useState("");
+  const [sending, setSending]           = useState(false);
+  const [confirmOpen, setConfirmOpen]   = useState(false);
+  const [confirmRole, setConfirmRole]   = useState("");
+  const [confirming, setConfirming]     = useState(false);
+  const [publicOnFeed, setPublicOnFeed] = useState(false);
   const [confirmedRole, setConfirmedRole] = useState<string | null>(null);
-    const [rejecting, setRejecting]         = useState(false);
+  const [rejecting, setRejecting]       = useState(false);
   const [otherUserType, setOtherUserType] = useState<string | null>(null);
-  const [isRejected, setIsRejected]       = useState(conversation.status === "rejected");
-  const bottomRef                         = useRef<HTMLDivElement>(null);
+  const [isRejected, setIsRejected]     = useState(conversation.status === "rejected");
+  const bottomRef                       = useRef<HTMLDivElement>(null);
+  const textareaRef                     = useRef<HTMLTextAreaElement>(null);
 
   const isOwner = conversation.initiative_owner_id === currentUserId;
+  const [funderClosed, setFunderClosed] = useState(!!conversation.funder_closed_at);
+
+  // Listen for funder_closed_at changes in real-time
+  useEffect(() => {
+    const channel = supabase
+      .channel(`convo-status-${conversation.id}`)
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "conversations",
+        filter: `id=eq.${conversation.id}`,
+      }, payload => {
+        const updated = payload.new as any;
+        setFunderClosed(!!updated.funder_closed_at);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [conversation.id]);
+
+  async function closeConversation() {
+    const now = new Date().toISOString();
+    await supabase.from("conversations")
+      .update({ funder_closed_at: now })
+      .eq("id", conversation.id);
+    setFunderClosed(true);
+    onUpdate?.(conversation.id, { funder_closed_at: now });
+  }
+
+  async function reopenConversation() {
+    await supabase.from("conversations")
+      .update({ funder_closed_at: null })
+      .eq("id", conversation.id);
+    setFunderClosed(false);
+    onUpdate?.(conversation.id, { funder_closed_at: null });
+  }
 
   useEffect(() => {
     loadMessages();
@@ -610,22 +864,18 @@ function ChatThread({
 
     const channel = supabase
       .channel(`chat-thread-${conversation.id}-${Date.now()}`)
-      .on("postgres_changes", {
-        event: "INSERT",
-        schema: "public",
-        table: "messages",
-      }, (payload) => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, payload => {
         if ((payload.new as any).conversation_id !== conversation.id) return;
         const msg = payload.new as any;
         if (msg.sender_id === currentUserId) {
-          setMessages((prev) => prev.map((m) =>
+          setMessages(prev => prev.map(m =>
             m.id.startsWith("optimistic-") && m.body === msg.body
               ? { ...m, id: msg.id, created_at: msg.created_at }
               : m
           ));
           return;
         }
-        setMessages((prev) => [...prev, {
+        setMessages(prev => [...prev, {
           id:          msg.id,
           sender_id:   msg.sender_id,
           sender_name: conversation.other_user_name,
@@ -645,46 +895,31 @@ function ChatThread({
 
   async function checkIfConfirmed() {
     const { data } = await supabase
-      .from("initiative_requests")
-      .select("confirmed_partners")
-      .eq("id", conversation.initiative_id)
-      .single();
-
+      .from("initiative_requests").select("confirmed_partners")
+      .eq("id", conversation.initiative_id).single();
     if (data?.confirmed_partners) {
       const partners = data.confirmed_partners as any[];
-      const match = partners.find((p) =>
-        p.user_id === conversation.other_user_id || p.user_id === currentUserId
-      );
+      const match = partners.find(p => p.user_id === conversation.other_user_id || p.user_id === currentUserId);
       if (match) setConfirmedRole(match.role);
     }
   }
 
   async function loadMessages() {
-    
     setLoading(true);
-
     const { data } = await supabase
-      .from("messages")
-      .select("id, sender_id, body, created_at, read_at")
+      .from("messages").select("id, sender_id, body, created_at, read_at")
       .eq("conversation_id", conversation.id)
       .order("created_at", { ascending: true });
 
     const { data: participants } = await supabase
       .rpc("get_conversation_participants", { p_conversation_ids: [conversation.id] });
 
-    const otherIds = (participants ?? [])
-      .map((p: any) => p.user_id)
-      .filter((id: string) => id !== currentUserId);
-    
-
+    const otherIds = (participants ?? []).map((p: any) => p.user_id).filter((id: string) => id !== currentUserId);
     const { data: profiles } = await supabase
       .from("profiles").select("id, full_name, user_type").in("id", otherIds);
     const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p.full_name]));
     const otherProfile = (profiles ?? []).find((p: any) => p.id === conversation.other_user_id);
-    if (otherProfile) {
-      setOtherUserType((otherProfile as any).user_type ?? null);
-  
-    }
+    if (otherProfile) setOtherUserType((otherProfile as any).user_type ?? null);
 
     setMessages((data ?? []).map((m: any) => ({
       id:          m.id,
@@ -695,17 +930,15 @@ function ChatThread({
       read_at:     m.read_at,
     })));
 
-    const unreadIds = (data ?? [])
-      .filter((m: any) => m.sender_id !== currentUserId && !m.read_at)
-      .map((m: any) => m.id);
+    const unreadIds = (data ?? []).filter((m: any) => m.sender_id !== currentUserId && !m.read_at).map((m: any) => m.id);
     if (unreadIds.length > 0) {
       await supabase.from("messages").update({ read_at: new Date().toISOString() }).in("id", unreadIds);
     }
-
     setLoading(false);
   }
 
   async function sendMessage() {
+    if (funderClosed) return;
     if (!body.trim() || sending) return;
     const text = body.trim();
     setBody("");
@@ -719,14 +952,13 @@ function ChatThread({
       created_at:  new Date().toISOString(),
       read_at:     null,
     };
-    setMessages((prev) => [...prev, optimistic]);
+    setMessages(prev => [...prev, optimistic]);
 
     await supabase.from("messages").insert({
       conversation_id: conversation.id,
       sender_id:       currentUserId,
       body:            text,
     });
-
     setSending(false);
   }
 
@@ -735,48 +967,35 @@ function ChatThread({
     setConfirming(true);
 
     const { data: otherProfile } = await supabase
-      .from("profiles")
-      .select("user_type, org_name, full_name")
-      .eq("id", conversation.other_user_id)
-      .single();
-
+      .from("profiles").select("user_type, org_name, full_name").eq("id", conversation.other_user_id).single();
     const displayName = otherProfile?.user_type === "organisation" && otherProfile?.org_name
-      ? otherProfile.org_name
-      : otherProfile?.full_name ?? conversation.other_user_name;
+      ? otherProfile.org_name : otherProfile?.full_name ?? conversation.other_user_name;
 
     const { data: iniData } = await supabase
-      .from("initiative_requests")
-      .select("confirmed_partners, title")
-      .eq("id", conversation.initiative_id)
-      .single();
-
+      .from("initiative_requests").select("confirmed_partners, title").eq("id", conversation.initiative_id).single();
     const existing = (iniData?.confirmed_partners as any[]) ?? [];
-    const alreadyConfirmed = existing.find((p) => p.user_id === conversation.other_user_id);
+    const alreadyConfirmed = existing.find(p => p.user_id === conversation.other_user_id);
 
     if (!alreadyConfirmed) {
-      const newEntry = {
-        user_id:       conversation.other_user_id,
-        name:          displayName,
-        role:          confirmRole,
-        profile_link:  `/dashboard/natives?user=${conversation.other_user_id}`,
-        confirmed_at:  new Date().toISOString(),
-        public_on_feed: publicOnFeed,
-      };
-      await supabase
-        .from("initiative_requests")
-        .update({ confirmed_partners: [...existing, newEntry] })
-        .eq("id", conversation.initiative_id);
+      await supabase.from("initiative_requests").update({
+        confirmed_partners: [...existing, {
+          user_id:        conversation.other_user_id,
+          name:           displayName,
+          role:           confirmRole,
+          profile_link:   `/dashboard/natives?user=${conversation.other_user_id}`,
+          confirmed_at:   new Date().toISOString(),
+          public_on_feed: publicOnFeed,
+        }],
+      }).eq("id", conversation.initiative_id);
     } else {
-const updated = existing.map((p) =>
-        p.user_id === conversation.other_user_id ? { ...p, role: confirmRole, public_on_feed: publicOnFeed } : p
-      );
-      await supabase
-        .from("initiative_requests")
-        .update({ confirmed_partners: updated })
-        .eq("id", conversation.initiative_id);
+      await supabase.from("initiative_requests").update({
+        confirmed_partners: existing.map(p =>
+          p.user_id === conversation.other_user_id ? { ...p, role: confirmRole, public_on_feed: publicOnFeed } : p
+        ),
+      }).eq("id", conversation.initiative_id);
     }
 
-await supabase.from("notifications").insert({
+    await supabase.from("notifications").insert({
       user_id: conversation.other_user_id,
       type:    "partner_confirmed",
       title:   "You've been confirmed as a partner",
@@ -784,6 +1003,7 @@ await supabase.from("notifications").insert({
       link:    "/dashboard/initiatives?tab=partners",
     });
 
+    await supabase.from("conversations").update({ status: "confirmed" }).eq("id", conversation.id);
     setConfirmedRole(confirmRole);
     setConfirmOpen(false);
     setConfirming(false);
@@ -792,10 +1012,7 @@ await supabase.from("notifications").insert({
   async function rejectConversation() {
     if (rejecting) return;
     setRejecting(true);
-    await supabase
-      .from("conversations")
-      .update({ status: "rejected" })
-      .eq("id", conversation.id);
+    await supabase.from("conversations").update({ status: "rejected" }).eq("id", conversation.id);
     await supabase.from("notifications").insert({
       user_id: conversation.other_user_id,
       type:    "conversation_closed",
@@ -809,34 +1026,93 @@ await supabase.from("notifications").insert({
 
   const [initiativePartnerships, setInitiativePartnerships] = useState<string[]>([]);
   useEffect(() => {
-    supabase
-      .from("initiative_requests")
-      .select("partnerships")
-      .eq("id", conversation.initiative_id)
-      .single()
-      .then(({ data }) => {
-        if (data?.partnerships) setInitiativePartnerships([...data.partnerships, "other"]);
-      });
+    supabase.from("initiative_requests").select("partnerships").eq("id", conversation.initiative_id).single()
+      .then(({ data }) => { if (data?.partnerships) setInitiativePartnerships([...data.partnerships, "other"]); });
   }, [conversation.initiative_id]);
 
+  const [pendingConfirmation, setPendingConfirmation] = useState<{ id: string; partnership_type: string } | null>(null);
+  const [confirmingPartnership, setConfirmingPartnership] = useState(false);
+  const [partnershipResolved, setPartnershipResolved] = useState<"confirmed" | "declined" | null>(null);
+
+  useEffect(() => {
+    if (conversation.conversation_type !== "partnership") return;
+    // Check if there's a pending confirmation for the current user
+    supabase.from("partnership_connections")
+      .select("id, partnership_type")
+      .eq("status", "pending_confirmation")
+      .eq("sender_user_id", currentUserId)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setPendingConfirmation(data); });
+  }, [conversation.id, currentUserId]);
+
+  async function confirmPartnershipFromOtherSide() {
+    if (!pendingConfirmation || confirmingPartnership) return;
+    setConfirmingPartnership(true);
+
+    await supabase.from("partnership_connections")
+      .update({ status: "formed" })
+      .eq("id", pendingConfirmation.id);
+
+    await supabase.from("conversations")
+      .update({ status: "rejected" })
+      .eq("id", conversation.id);
+
+    await supabase.from("notifications").insert({
+      user_id: conversation.other_user_id,
+      type: "partnership_confirmed",
+      title: "Partnership confirmed",
+      body: `${conversation.other_user_name} confirmed the partnership as ${pendingConfirmation.partnership_type}.`,
+      link: "/dashboard/portfolio?tab=partnerships",
+    });
+
+    setPartnershipResolved("confirmed");
+    setConfirmingPartnership(false);
+  }
+
+  async function declinePartnershipFromOtherSide() {
+    if (!pendingConfirmation || confirmingPartnership) return;
+    setConfirmingPartnership(true);
+
+    await supabase.from("partnership_connections")
+      .update({ status: "declined" })
+      .eq("id", pendingConfirmation.id);
+
+    await supabase.from("conversations")
+      .update({ status: "rejected" })
+      .eq("id", conversation.id);
+
+    await supabase.from("notifications").insert({
+      user_id: conversation.other_user_id,
+      type: "partnership_declined_by_expresser",
+      title: "Partnership declined",
+      body: `${conversation.other_user_name} declined the partnership.`,
+      link: "/dashboard/messages",
+    });
+
+    setPartnershipResolved("declined");
+    setConfirmingPartnership(false);
+  }
+
   return (
-    <div className="flex flex-col h-[calc(100vh-10rem)]">
+    <div className="flex flex-col overflow-hidden w-full" style={{ height: "calc(100vh - 10rem)" }}>
       {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-border mb-4">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between pb-4 border-b border-border mb-4 gap-3 flex-wrap">
+        <div className="flex items-center gap-3 min-w-0">
           <button type="button" onClick={onBack}
-            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0">
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <div>
-            <p className="text-sm font-semibold text-foreground">{conversation.other_user_name}</p>
-            <p className="text-xs text-muted-foreground">Re: {conversation.initiative_title}</p>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground truncate">{conversation.other_user_name}</p>
+            <p className="text-xs text-muted-foreground truncate">Re: {conversation.initiative_title}</p>
           </div>
         </div>
 
-        {/* Owner actions */}
-        {isOwner && (
-          <div className="flex items-center gap-2">
+        {isOwner && conversation.conversation_type === "partnership" && (
+          <PartnershipConfirmButton conversation={conversation} currentUserId={currentUserId} />
+        )}
+        {isOwner && conversation.conversation_type !== "question" && conversation.conversation_type !== "partnership" && (
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
             {confirmedRole ? (
               <span className="text-xs px-3 py-1.5 rounded-full font-medium"
                 style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
@@ -848,7 +1124,7 @@ await supabase.from("notifications").insert({
                 Conversation closed
               </span>
             ) : (
-              <div className="flex items-center gap-2">
+              <>
                 <button type="button" onClick={() => setConfirmOpen(true)}
                   className="text-xs px-3 py-1.5 rounded-full border border-[#2D6A4F] text-[#2D6A4F] hover:bg-[#eaf5ee] transition-colors font-medium flex items-center gap-1.5">
                   <UserCheck className="w-3.5 h-3.5" />
@@ -858,24 +1134,33 @@ await supabase.from("notifications").insert({
                   className="text-xs px-3 py-1.5 rounded-full border border-red-400/40 text-red-500 hover:bg-red-50 transition-colors font-medium disabled:opacity-40">
                   {rejecting ? "Closing..." : "Reject & close"}
                 </button>
-              </div>
+              </>
             )}
           </div>
         )}
 
-        {/* Non-owner status */}
-        {!isOwner && (
+        {!isOwner && isFunder && (
           isRejected ? (
-            <span className="text-xs px-3 py-1.5 rounded-full font-medium"
+            <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0"
               style={{ background: "#fef2f2", color: "#ef4444" }}>
               This conversation was closed
             </span>
           ) : confirmedRole ? (
-            <span className="text-xs px-3 py-1.5 rounded-full font-medium"
+            <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0"
               style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
               ✓ You're confirmed as {partnershipLabel(confirmedRole)}
             </span>
-          ) : null
+          ) : funderClosed ? (
+            <button type="button" onClick={reopenConversation}
+              className="text-xs px-3 py-1.5 rounded-full border border-[#2D6A4F]/30 text-[#2D6A4F] hover:bg-[#2D6A4F]/5 transition-colors shrink-0">
+              Reopen
+            </button>
+          ) : (
+            <button type="button" onClick={closeConversation}
+              className="text-xs px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:border-red-300 hover:text-red-500 transition-colors shrink-0">
+              Close
+            </button>
+          )
         )}
       </div>
 
@@ -886,13 +1171,10 @@ await supabase.from("notifications").insert({
             <h3 className="text-base font-semibold text-foreground">
               Confirm {conversation.other_user_name} as partner
             </h3>
-            <p className="text-sm text-muted-foreground">
-              Select the role they'll play in this initiative.
-            </p>
+            <p className="text-sm text-muted-foreground">Select the role they'll play in this initiative.</p>
             <div className="flex flex-wrap gap-2">
-              {initiativePartnerships.map((p) => (
-                <button key={p} type="button"
-                  onClick={() => setConfirmRole(p)}
+              {initiativePartnerships.map(p => (
+                <button key={p} type="button" onClick={() => setConfirmRole(p)}
                   className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                     confirmRole === p
                       ? "bg-[#2D6A4F] text-white border-[#2D6A4F]"
@@ -903,23 +1185,18 @@ await supabase.from("notifications").insert({
               ))}
             </div>
             <label className="flex items-start gap-2.5 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={publicOnFeed}
-                onChange={(e) => setPublicOnFeed(e.target.checked)}
-                className="mt-0.5 accent-[#2D6A4F]"
-              />
+              <input type="checkbox" checked={publicOnFeed} onChange={e => setPublicOnFeed(e.target.checked)}
+                className="mt-0.5 accent-[#2D6A4F]" />
               <span className="text-xs text-muted-foreground leading-relaxed">
-                Show this partnership on the Impact Natives activity feed
+                Show this partnership on the activity feed
               </span>
             </label>
             <div className="flex gap-2 pt-2">
-                            <button type="button" onClick={() => { setConfirmOpen(false); setConfirmRole(""); setPublicOnFeed(false); }}
+              <button type="button" onClick={() => { setConfirmOpen(false); setConfirmRole(""); setPublicOnFeed(false); }}
                 className="flex-1 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Cancel
               </button>
-              <button type="button" onClick={confirmPartner}
-                disabled={!confirmRole || confirming}
+              <button type="button" onClick={confirmPartner} disabled={!confirmRole || confirming}
                 className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium disabled:opacity-40 transition-colors">
                 {confirming ? "Confirming..." : "Confirm"}
               </button>
@@ -929,7 +1206,7 @@ await supabase.from("notifications").insert({
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-3 pr-1 min-w-0">
         {loading ? (
           <div className="flex items-center justify-center py-10">
             <Loader2 className="w-4 h-4 text-[#2D6A4F] animate-spin" />
@@ -937,15 +1214,16 @@ await supabase.from("notifications").insert({
         ) : messages.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-10">No messages yet. Say hello.</p>
         ) : (
-          messages.map((msg) => {
+          messages.map(msg => {
             const isMe = msg.sender_id === currentUserId;
             return (
               <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[72%] rounded-2xl px-4 py-2.5 text-sm ${
-                  isMe
-                    ? "bg-[#2D6A4F] text-white rounded-br-sm"
-                    : "bg-muted text-foreground rounded-bl-sm"
-                }`}>
+                <div className={`max-w-[72%] min-w-0 rounded-2xl px-4 py-2.5 text-sm ${
+                    isMe
+                      ? "bg-[#2D6A4F] text-white rounded-br-sm"
+                      : "bg-muted text-foreground rounded-bl-sm"
+                  }`}
+                    style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
                   <p className="leading-relaxed whitespace-pre-wrap">{msg.body}</p>
                   <p className={`text-[10px] mt-1 ${isMe ? "text-white/60" : "text-muted-foreground"}`}>
                     {timeAgo(msg.created_at)}
@@ -958,28 +1236,65 @@ await supabase.from("notifications").insert({
         <div ref={bottomRef} />
       </div>
 
+     {/* Partnership confirmation prompt for expresser */}
+      {conversation.conversation_type === "partnership" && pendingConfirmation && !partnershipResolved && !isOwner && (
+        <div className="mx-0 mb-3 rounded-xl border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-4 py-3 space-y-2">
+          <p className="text-sm font-medium text-foreground">
+            Partnership proposed: <span className="text-[#2D6A4F]">{pendingConfirmation.partnership_type}</span>
+          </p>
+          <p className="text-xs text-muted-foreground">Do you confirm this partnership?</p>
+          <div className="flex gap-2">
+            <button type="button" onClick={confirmPartnershipFromOtherSide} disabled={confirmingPartnership}
+              className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-xs font-medium disabled:opacity-40 transition-colors">
+              {confirmingPartnership ? "..." : "Confirm partnership"}
+            </button>
+            <button type="button" onClick={declinePartnershipFromOtherSide} disabled={confirmingPartnership}
+              className="flex-1 h-9 rounded-full border border-red-400/40 text-red-500 hover:bg-red-50 text-xs font-medium disabled:opacity-40 transition-colors">
+              Decline
+            </button>
+          </div>
+        </div>
+      )}
+
+      {partnershipResolved && (
+        <div className="mb-3 text-center text-xs text-muted-foreground">
+          {partnershipResolved === "confirmed" ? "Partnership confirmed. This conversation is now closed." : "Partnership declined."}
+        </div>
+      )}
+
       {/* Input */}
       {isRejected ? (
         <div className="pt-4 border-t border-border">
-          <p className="text-xs text-muted-foreground text-center py-2">
-            This conversation has been closed.
+          <p className="text-xs text-muted-foreground text-center py-2">This conversation has been closed.</p>
+        </div>
+      ) : funderClosed ? (
+        <div className="pt-4 border-t border-border flex items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground">
+            {isFunder ? "This conversation is archived. Reopen to send messages." : "The funder has paused this conversation."}
           </p>
+          {isFunder && (
+            <button type="button" onClick={reopenConversation}
+              className="shrink-0 text-xs font-semibold text-[#2D6A4F] hover:underline underline-offset-2 whitespace-nowrap">
+              Reopen →
+            </button>
+          )}
         </div>
       ) : (
-        <div className="pt-4 border-t border-border flex gap-2">
+        <div className="pt-4 border-t border-border flex gap-2 min-w-0">
           <textarea
+            ref={textareaRef}
             value={body}
-            onChange={(e) => setBody(e.target.value)}
-            onKeyDown={(e) => {
+            onChange={e => setBody(e.target.value)}
+            onKeyDown={e => {
               if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
             }}
             placeholder="Type a message... (Shift+Enter for new line)"
             rows={1}
-            className="flex-1 px-4 py-2.5 rounded-2xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors resize-none"
+            className="flex-1 min-w-0 px-4 py-2.5 rounded-2xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors resize-none"
             style={{ minHeight: "40px", maxHeight: "120px" }}
           />
           <button type="button" onClick={sendMessage} disabled={!body.trim() || sending}
-            className="w-10 h-10 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+            className="w-10 h-10 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0">
             {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </button>
         </div>

@@ -3,7 +3,7 @@ import { NewsletterSignup } from "@/components/platform/NewsletterSignup";
 export function Footer() {
   return (
 <footer className="border-t py-12 md:py-16" style={{ background: "hsl(193,20%,7%)", borderColor: "rgba(255,255,255,0.06)" }}>
-<div className="max-w-7xl mx-auto content-padding py-12 w-full text-sm">
+<div className="max-w-8xl mx-auto content-padding py-12 w-full text-sm">
   {/* Mobile: stacked. Desktop: single row */}
   <div id="footer-desktop" style={{ display: 'none', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '2rem' }}>
     <div className="md:col-span-2 space-y-3" style={{ maxWidth: '280px' }}>

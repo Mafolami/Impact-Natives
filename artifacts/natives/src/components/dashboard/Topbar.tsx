@@ -10,7 +10,7 @@ import { supabase } from "@/lib/supabase";
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard":               "Home",
   "/dashboard/partnerships":  "Partnerships",
-  "/dashboard/initiatives":   "Initiatives",
+  "/dashboard/initiatives":   "Initiatives", 
   "/dashboard/labs":          "Labs",
   "/dashboard/marketplace":   "Marketplace",
   "/dashboard/natives":       "Natives",
@@ -121,11 +121,22 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
   return (
     <header
       className={cn(
-        "fixed top-0 right-0 h-14 bg-background border-b border-border flex items-center justify-between px-6 z-30 transition-all duration-200",
+        "fixed top-0 right-0 h-18 bg-background border-b border-border flex items-center justify-between px-6 py-3 z-30 transition-all duration-200",
         sidebarCollapsed ? "left-16" : "left-56"
       )}
     >
-      <h1 className="text-sm font-semibold text-foreground">{title}</h1>
+      <div className="flex items-center gap-2">
+        <span className="w-1.5 h-1.5 rounded-full shrink-0 animate-pulse" style={{ background: "#C45C26" }} />
+        <h1 style={{
+          fontSize: "15px",
+          fontWeight: 700,
+          letterSpacing: "0.14em",
+          textTransform: "uppercase" as const,
+          color: "#C45C26",
+        }}>
+          {title}
+        </h1>
+      </div>
 
       <div className="flex items-center gap-3">
         

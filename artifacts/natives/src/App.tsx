@@ -46,7 +46,9 @@ import DashboardMessages from "@/pages/DashboardMessages";
 import DashboardProfile from "@/pages/DashboardProfile";
 import DashboardSettings from "@/pages/DashboardSettings";
 import DashboardNatives from "@/pages/DashboardNatives";
+import DashboardFeed from "@/pages/DashboardFeed";
 import DashboardLayout from "@/layouts/DashboardLayout";
+import VerificationStandardPage from "@/pages/VerificationStandardPage";
 
 function AdminGuard({ children }: { children: React.ReactNode }) {
   const { user, profile, loading } = useAuth();
@@ -145,6 +147,9 @@ if (isAdmin) {
           <Route path="/dashboard/natives">
             <DashboardLayout><DashboardNatives /></DashboardLayout>
           </Route>
+          <Route path="/dashboard/feed">
+            <DashboardLayout><DashboardFeed /></DashboardLayout>
+          </Route>
           <Route path="/dashboard/messages">
             <DashboardLayout><DashboardMessages /></DashboardLayout>
           </Route>
@@ -214,6 +219,7 @@ if (isAdmin) {
           <Route path="/initiatives/:id" component={InitiativeDetail} />
           <Route path="/test-supabase" component={SupabaseTest} />
           <Route path="/contact" component={ContactPage} />
+          <Route path="/verification-standard" component={VerificationStandardPage} />
           <Route component={NotFound} />
         </Switch>
       </main>

@@ -295,7 +295,7 @@ const [form, setForm] = useState({
           </div>
           <h2 className="text-3xl font-semibold">Lab request received.</h2>
           <p className="text-muted-foreground max-w-sm">
-            The Natives team will review your proposal and reach out within 5 business days.
+            The Natives team will review your proposal and reach out soon.
           </p>
           {!profile && (
             <div className="mt-2 p-4 rounded-xl border border-border bg-muted/40 max-w-sm w-full">

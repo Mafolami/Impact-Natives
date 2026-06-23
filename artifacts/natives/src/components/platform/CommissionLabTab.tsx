@@ -609,7 +609,7 @@ export function CommissionLabTab({
   .hero-inner {
     position: relative;
     width: 100%;
-    padding: 10rem 4rem 6rem;
+    padding: 10rem clamp(1.5rem, 5vw, 6rem) 6rem;
     zIndex: 4;
     display: flex;
     flex-direction: row;
@@ -625,8 +625,6 @@ export function CommissionLabTab({
     display: flex !important;
     flex-direction: column !important;
     padding: 3rem 1.5rem 3rem !important;
-    padding-left: 0.5rem !important;
-    padding-right: 1.5rem !important;
   }
   .hero-content-wrapper {
     order: 0 !important;
@@ -786,7 +784,7 @@ export function CommissionLabTab({
 
       {/* ── SECTION 2: PROBLEM REFRAME ─────────────────────────────────────────── */}
       <section data-reveal 
-        style={{ padding: "6rem 2rem", maxWidth: 1100, margin: "0 auto" }}
+        style={{ padding: "6rem clamp(1.5rem, 5vw, 6rem)", maxWidth: 1280, margin: "0 auto" }}
       >
         <div>
           <p
@@ -931,7 +929,7 @@ export function CommissionLabTab({
   data-reveal
   className="section3-bg"
   style={{
-    padding: "6rem 2rem",
+    padding: "6rem clamp(1.5rem, 5vw, 6rem)",
     position: "relative" as const,
     overflow: "hidden",
   }}
@@ -951,7 +949,7 @@ export function CommissionLabTab({
   />
   <div
     style={{
-      maxWidth: 1100,
+      maxWidth: 1280,
       margin: "0 auto",
       position: "relative" as const,
     }}
@@ -1088,10 +1086,12 @@ export function CommissionLabTab({
     </div>
   </div>
 </section>
+
+
       {/* ── SECTION 4: HOW IT WORKS ──────────────────────────────────────────── */}
       <section data-reveal 
         id="how-it-works"
-        style={{ padding: "6rem 2rem", maxWidth: 1100, margin: "0 auto" }}
+        style={{ padding: "6rem clamp(1.5rem, 5vw, 6rem)", maxWidth: 1280, margin: "0 auto" }}
       >
         <div>
           <p
@@ -1178,7 +1178,7 @@ export function CommissionLabTab({
       <section
           data-reveal
           style={{
-            padding: "6rem 2rem",
+            padding: "6rem clamp(1.5rem, 5vw, 6rem)",
             background: `
               linear-gradient(135deg, hsl(var(--primary)/0.45) 0%, hsl(24 80% 50% / 0.08) 100%),
               hsl(var(--muted)/0.4)
@@ -1186,7 +1186,7 @@ export function CommissionLabTab({
             borderRadius: "12px 12px 0 0",
           }}
         >
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+        <div style={{ maxWidth: 1280, margin: "0 auto" }}>
           <div>
             <p
               style={{
@@ -1228,8 +1228,8 @@ export function CommissionLabTab({
       </section>
 
       {/* ── SECTION 6: PRICING ────────────────────────────────────────────────── */}
-            <section id="pricing" data-reveal style={{ padding: "6rem 2rem" }} className="bg-muted/30">
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+            <section id="pricing" data-reveal style={{ padding: "6rem clamp(1.5rem, 5vw, 6rem)" }} className="bg-muted/30">
+        <div style={{ maxWidth: 1280, margin: "0 auto" }}>
           <div>
             <p
               style={{
@@ -1285,10 +1285,10 @@ export function CommissionLabTab({
       </section>
 
       {/* ── SECTION 7: WHY WORTH IT ───────────────────────────────────────────── */}
-      <section data-reveal style={{ padding: "6rem 2rem" }} className="bg-muted/30">
+      <section data-reveal style={{ padding: "6rem clamp(1.5rem, 5vw, 6rem)" }} className="bg-muted/30">
   <div
     style={{
-      maxWidth: 1100,
+      maxWidth: 1280,
       margin: "0 auto",
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
@@ -1433,7 +1433,7 @@ export function CommissionLabTab({
 <section
   data-reveal
   style={{
-    padding: "6rem 2rem",
+    padding: "6rem clamp(1.5rem, 5vw, 6rem)",
     background: "linear-gradient(160deg,rgb(6, 35, 5) 0%,rgb(42, 28, 2) 40%,rgb(1, 38, 10) 100%)",
     borderRadius: "12px 12px 0 0",
     position: "relative" as const,
@@ -1459,7 +1459,7 @@ export function CommissionLabTab({
   }} />
 
   <div style={{
-    maxWidth: 1100,
+    maxWidth: 1280,
     margin: "0 auto",
     position: "relative" as const,
     display: "flex",
