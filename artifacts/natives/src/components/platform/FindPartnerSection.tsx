@@ -226,10 +226,9 @@ export function FindPartnerSection() {
                   <Loader2 className="w-5 h-5 animate-spin text-[#2D6A4F]" />
                 </div>
               ) : filtered.length === 0 ? (
-                <div className="py-12 text-center text-muted-foreground text-sm px-6">
-                  {orgs.length === 0
-                    ? "No organisations listed yet. Be the first."
-                    : "No organisations match your filters."}
+                <div className="py-12 text-center px-6 space-y-2">
+                  <p className="text-sm font-medium text-foreground">No organisations match your search.</p>
+                  <p className="text-sm text-muted-foreground">Try adjusting your filters, or <a href="/signup" className="text-[#2D6A4F] hover:underline underline-offset-2 font-medium">create an account</a> to see the full directory.</p>
                 </div>
               ) : (
                 <div className="relative">
@@ -253,17 +252,17 @@ export function FindPartnerSection() {
                       >
                         <div className="max-w-sm">
                           <p className="text-lg font-bold text-neutral-900 mb-2">
-                            {filtered.length - 1} more verified {filtered.length - 1 === 1 ? 'organisation' : 'organisations'} in the directory
+                            Find your next partner
                           </p>
                           <p className="text-sm text-neutral-500 mb-5 leading-relaxed">
-                            Create a free account to see the full directory, filter by sector and country, and express interest directly.
+                            Create a free account to access the full directory and connect directly.
                           </p>
                           <div className="flex flex-col sm:flex-row gap-3 justify-center">
                             <Button
                               onClick={() => navigate('/signup')}                              
                               className="px-6 py-2.5 text-white font-semibold rounded-full text-sm bg-[#2D6A4F] border-none hover:bg-[#245c43]"
                             >
-                              Join free — see all partners
+                              See all partners
                             </Button>
                             <Button
                               variant="outline"
