@@ -451,17 +451,10 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Organisation
         </p>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label className="text-sm font-medium">Organisation name</Label>
-            <Input value={orgName} onChange={e => setOrgName(e.target.value)}
-              className="mt-1 h-10" placeholder="e.g. Ashoka Foundation" />
-          </div>
-          <div>
-            <Label className="text-sm font-medium">Role / Title</Label>
-            <Input value={roleTitle} onChange={e => setRoleTitle(e.target.value)}
-              className="mt-1 h-10" placeholder="e.g. Programme Director" />
-          </div>
+        <div>
+          <Label className="text-sm font-medium">Organisation name</Label>
+          <Input value={orgName} onChange={e => setOrgName(e.target.value)}
+            className="mt-1 h-10" placeholder="e.g. Ashoka Foundation" />
         </div>
         <div>
           <Label className="text-sm font-medium">Organisation type</Label>
@@ -922,6 +915,13 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
             </Label>
             <Input value={fullName} onChange={e => setFullName(e.target.value)}
               className="mt-1 h-10" placeholder="e.g. Amara Osei" required />
+          </div>
+          <div>
+            <Label className="text-sm font-medium">
+              Role / Title <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+            </Label>
+            <Input value={roleTitle} onChange={e => setRoleTitle(e.target.value)}
+              className="mt-1 h-10" placeholder="e.g. Executive Director, Programme Manager" />
           </div>
           <div>
             <Label className="text-sm font-medium">Email</Label>
