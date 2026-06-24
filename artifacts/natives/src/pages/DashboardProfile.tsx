@@ -278,6 +278,7 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
         social_links: socialLinks.length > 0 ? socialLinks : null,
         sectors:     sectors.length > 0 ? sectors : null,
         org_type:    orgType     || null,
+        ...(profile?.user_type === "organisation" ? { investment_thesis: investmentThesis || null } : {}),
         updated_at:  new Date().toISOString(),
       })
       .eq("id", user.id);
@@ -454,7 +455,7 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-sm font-medium">Headline</Label>
-              <Input value={roleTitle} onChange={e => setRoleTitle(e.target.value.slice(0, 30))}
+              <Input value={roleTitle} onChange={e => setRoleTitle(e.target.value.slice(0, 120))}
                 className="mt-1 h-10" placeholder="e.g. Impact Evaluator & Filmmaker" />
             </div>
             <div>
@@ -1058,10 +1059,16 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
             { label: "Full name", done: !!fullName },
             { label: profile?.user_type === "organisation" ? "Organisation description" : "Bio", done: profile?.user_type === "organisation" ? !!orgDescription : !!bio },
             { label: "Country", done: !!country },
-            { label: "Organisation", done: !!orgName },
+            ...(profile?.user_type === "organisation" ? [
+              { label: "Organisation name", done: !!orgName },
+            ] : []),
             { label: "Sectors", done: sectors.length > 0 },
             { label: "Online presence", done: !!linkedinUrl || !!website },
-            { label: "Profile photo", done: !!profile?.avatar_url },
+            ...(profile?.user_type !== "organisation" ? [
+              { label: "Profile photo", done: !!profile?.avatar_url },
+            ] : [
+              { label: "Organisation logo", done: !!logoUrl },
+            ]),
           ].map(item => (
             <div key={item.label} className="flex items-center gap-2">
               <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${item.done ? "bg-[#2D6A4F]" : "bg-muted"}`}>
