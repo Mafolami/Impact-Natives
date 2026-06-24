@@ -646,7 +646,7 @@ export default function Onboarding() {
         mandate_sdgs:      sdgTags.length > 0 ? sdgTags : null,
         stage_preference:  stagePreference.length > 0 ? stagePreference : null,
         partner_type_preference: partnerTypePreference.length > 0 ? partnerTypePreference : null,
-        status:            "pending",
+        status:            "published",
         verification_status: requestVerify ? "pending" : "not_requested",
         created_at:        new Date().toISOString(),
         updated_at:        new Date().toISOString(),
