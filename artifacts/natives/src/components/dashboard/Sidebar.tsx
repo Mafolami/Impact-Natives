@@ -30,6 +30,7 @@ interface SidebarProps {
 export default function Sidebar({ onCollapse }: SidebarProps) {
   const [location] = useLocation();
   const { profile, signOut } = useAuth();
+  console.log("Sidebar profile:", profile?.user_type, profile?.org_name, profile?.full_name);
   const [collapsed, setCollapsed] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
 
@@ -217,8 +218,8 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
           <div className="flex items-center gap-2">
             <UserAvatar
               id={profile?.id ?? ""}
-              name={profile?.full_name}
-              avatarUrl={profile?.avatar_url}
+              name={profile?.user_type === "organisation" ? (profile?.org_name || profile?.full_name) : profile?.full_name}
+              avatarUrl={profile?.user_type === "organisation" ? undefined : profile?.avatar_url}
               size="sm"
             />
                 <div className="min-w-0">
@@ -242,8 +243,8 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
           <div className="flex justify-center">
             <UserAvatar
               id={profile?.id ?? ""}
-              name={profile?.full_name}
-              avatarUrl={profile?.avatar_url}
+              name={profile?.user_type === "organisation" ? (profile?.org_name || profile?.full_name) : profile?.full_name}
+              avatarUrl={profile?.user_type === "organisation" ? undefined : profile?.avatar_url}
               size="sm"
             />
           </div>
