@@ -636,8 +636,17 @@ function PartnershipConfirmButton({ conversation, currentUserId }: {
       .maybeSingle()
       .then(({ data }) => {
         if (data?.status === "pending_confirmation") setDone("pending_confirmation");
-      if (data?.status === "formed") setDone("accepted");
-      if (data?.status === "declined") setDone("rejected");
+        if (data?.status === "formed") setDone("accepted");
+        if (data?.status === "declined") setDone("rejected");
+      });
+
+    // Also check conversation status directly
+    supabase.from("conversations")
+      .select("status")
+      .eq("id", conversation.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.status === "rejected") setDone("rejected");
       });
   }, [conversation.id]);
 
