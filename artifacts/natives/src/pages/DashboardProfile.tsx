@@ -342,116 +342,44 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
         </p>
       </div>
 
-      {/* Avatar upload */}
-      <div className="rounded-2xl border border-border bg-card p-6">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
-          Profile photo
-        </p>
-        <div className="flex items-center gap-5">
-                    <div className="relative w-14 h-14">
-            <UserAvatar
-              id={user?.id ?? ""}
-              name={profile?.full_name}
-              avatarUrl={profile?.avatar_url}
-              size="lg"
-            />
-            <label className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#2D6A4F] flex items-center justify-center cursor-pointer hover:bg-[#245c43] transition-colors z-10">
-              <Camera className="w-3 h-3 text-white" />
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                className="sr-only"
-                onChange={handleAvatarUpload}
+      {/* Avatar upload — individuals only */}
+      {profile?.user_type !== "organisation" && (
+        <div className="rounded-2xl border border-border bg-card p-6">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+            Profile photo
+          </p>
+          <div className="flex items-center gap-5">
+            <div className="relative w-14 h-14">
+              <UserAvatar
+                id={user?.id ?? ""}
+                name={profile?.full_name}
+                avatarUrl={profile?.avatar_url}
+                size="lg"
               />
-            </label>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">Upload a photo</p>
-            <p className="text-xs text-muted-foreground mt-0.5">PNG, JPG or WebP. Max 2 MB.</p>
-            {avatarUploading && (
-              <p className="text-xs text-[#2D6A4F] mt-1 flex items-center gap-1">
-                <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
-              </p>
-            )}
+              <label className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#2D6A4F] flex items-center justify-center cursor-pointer hover:bg-[#245c43] transition-colors z-10">
+                <Camera className="w-3 h-3 text-white" />
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="sr-only"
+                  onChange={handleAvatarUpload}
+                />
+              </label>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">Upload a photo</p>
+              <p className="text-xs text-muted-foreground mt-0.5">PNG, JPG or WebP. Max 2 MB.</p>
+              {avatarUploading && (
+                <p className="text-xs text-[#2D6A4F] mt-1 flex items-center gap-1">
+                  <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
+                </p>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Basic info */}
-      <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Basic info
-        </p>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label className="text-sm font-medium">Full name</Label>
-            <Input value={fullName} onChange={e => setFullName(e.target.value)}
-              className="mt-1 h-10" placeholder="e.g. Amara Osei" />
-          </div>
-          <div>
-            <Label className="text-sm font-medium">Country</Label>
-            <CountryPicker value={country} onChange={setCountry} />
-          </div>
-        </div>
-        {profile?.user_type !== "organisation" && (
-          <div>
-            <Label className="text-sm font-medium">Bio</Label>
-            <Textarea value={bio} onChange={e => setBio(e.target.value)}
-              className="mt-1 resize-none" rows={3}
-              placeholder="What do you work on? What's your focus area?" />
-          </div>
-        )}
-      </div>
-
-      {/* Organisation */}
-      <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Organisation
-        </p>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label className="text-sm font-medium">Organisation name</Label>
-            <Input value={orgName} onChange={e => setOrgName(e.target.value)}
-              className="mt-1 h-10" placeholder="e.g. Ashoka Foundation" />
-          </div>
-          <div>
-            <Label className="text-sm font-medium">Role / Title</Label>
-            <Input value={roleTitle} onChange={e => setRoleTitle(e.target.value)}
-              className="mt-1 h-10" placeholder="e.g. Programme Director" />
-          </div>
-        </div>
-        <div>
-          <Label className="text-sm font-medium">Organisation type</Label>
-          <Select value={orgType} onValueChange={setOrgType}>
-            <SelectTrigger className="mt-1 h-10">
-              <SelectValue placeholder="Select type" />
-            </SelectTrigger>
-            <SelectContent>
-              {ORG_TYPE_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-sm font-medium">Phone</Label>
-          <Input value={phone} onChange={e => setPhone(e.target.value)}
-            className="mt-1 h-10" placeholder="+234 800 000 0000" />
-        </div>
-        {profile?.user_type === "organisation" && (
-          <div>
-            <Label className="text-sm font-medium">Organisation description</Label>
-            <Textarea value={orgDescription} onChange={e => setOrgDescription(e.target.value)}
-              className="mt-1 resize-none" rows={4}
-              placeholder="What does your organisation do, where does it work, and who does it serve?" />
-            <p className="text-xs text-muted-foreground mt-1.5">
-              Shown on your directory profile and used by AI to match you with relevant partners.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Organisation logo — org users only */}
+      {/* Org logo — org users only, shown at top */}
       {profile?.user_type === "organisation" && (
         <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -492,6 +420,83 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
         </div>
       )}
 
+      {/* Basic info — individuals only */}
+      {profile?.user_type !== "organisation" && (
+        <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Basic info
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm font-medium">Full name</Label>
+              <Input value={fullName} onChange={e => setFullName(e.target.value)}
+                className="mt-1 h-10" placeholder="e.g. Amara Osei" />
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Country</Label>
+              <CountryPicker value={country} onChange={setCountry} />
+            </div>
+          </div>
+          <div>
+            <Label className="text-sm font-medium">Bio</Label>
+            <Textarea value={bio} onChange={e => setBio(e.target.value)}
+              className="mt-1 resize-none" rows={3}
+              placeholder="What do you work on? What's your focus area?" />
+          </div>
+        </div>
+      )}
+
+      {/* Organisation */}
+      <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Organisation
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label className="text-sm font-medium">Organisation name</Label>
+            <Input value={orgName} onChange={e => setOrgName(e.target.value)}
+              className="mt-1 h-10" placeholder="e.g. Ashoka Foundation" />
+          </div>
+          <div>
+            <Label className="text-sm font-medium">Role / Title</Label>
+            <Input value={roleTitle} onChange={e => setRoleTitle(e.target.value)}
+              className="mt-1 h-10" placeholder="e.g. Programme Director" />
+          </div>
+        </div>
+        <div>
+          <Label className="text-sm font-medium">Organisation type</Label>
+          <Select value={orgType} onValueChange={setOrgType}>
+            <SelectTrigger className="mt-1 h-10">
+              <SelectValue placeholder="Select type" />
+            </SelectTrigger>
+            <SelectContent>
+              {ORG_TYPE_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {profile?.user_type === "organisation" && (
+          <div>
+            <Label className="text-sm font-medium">Organisation description</Label>
+            <Textarea value={orgDescription} onChange={e => setOrgDescription(e.target.value)}
+              className="mt-1 resize-none" rows={4}
+              placeholder="What does your organisation do, where does it work, and who does it serve?" />
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Shown on your directory profile and used by AI to match you with relevant partners.
+            </p>
+          </div>
+        )}
+        {profile?.user_type === "organisation" && (
+          <div>
+            <Label className="text-sm font-medium">Country</Label>
+            <CountryPicker value={country} onChange={setCountry} />
+          </div>
+        )}
+      </div>
+
+      
+
       {/* Focus areas */}
       <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
         <div>
@@ -519,11 +524,13 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
           Online presence
         </p>
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label className="text-sm font-medium">LinkedIn</Label>
-            <Input value={linkedinUrl} onChange={e => setLinkedinUrl(e.target.value)}
-              className="mt-1 h-10" placeholder="https://linkedin.com/in/..." type="url" />
-          </div>
+          {profile?.user_type !== "organisation" && (
+            <div>
+              <Label className="text-sm font-medium">LinkedIn</Label>
+              <Input value={linkedinUrl} onChange={e => setLinkedinUrl(e.target.value)}
+                className="mt-1 h-10" placeholder="https://linkedin.com/in/..." type="url" />
+            </div>
+          )}
           <div>
             <Label className="text-sm font-medium">Website or portfolio</Label>
             <Input value={website} onChange={e => setWebsite(e.target.value)}
@@ -894,6 +901,50 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Contact details — org users only, shown last */}
+      {profile?.user_type === "organisation" && (
+        <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Contact details
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Shown to partners and funders who want to reach out directly.
+            </p>
+          </div>
+          <div>
+            <Label className="text-sm font-medium">
+              Full name <span className="text-destructive">*</span>
+            </Label>
+            <Input value={fullName} onChange={e => setFullName(e.target.value)}
+              className="mt-1 h-10" placeholder="e.g. Amara Osei" required />
+          </div>
+          <div>
+            <Label className="text-sm font-medium">Email</Label>
+            <Input
+              value={user?.email ?? ""}
+              className="mt-1 h-10 opacity-60 cursor-not-allowed"
+              readOnly
+            />
+            <p className="text-xs text-muted-foreground mt-1">Your sign-in email. Cannot be changed here.</p>
+          </div>
+          <div>
+            <Label className="text-sm font-medium">
+              Phone <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+            </Label>
+            <Input value={phone} onChange={e => setPhone(e.target.value)}
+              className="mt-1 h-10" placeholder="+234 800 000 0000" />
+          </div>
+          <div>
+            <Label className="text-sm font-medium">
+              LinkedIn <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+            </Label>
+            <Input value={linkedinUrl} onChange={e => setLinkedinUrl(e.target.value)}
+              className="mt-1 h-10" placeholder="https://linkedin.com/in/..." type="url" />
           </div>
         </div>
       )}
