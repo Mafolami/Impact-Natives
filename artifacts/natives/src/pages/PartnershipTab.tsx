@@ -218,15 +218,13 @@ export function PartnershipTab() {
         ]);
 
         // Opening message with rationale if available
-        const openingMsg = conn.ai_rationale
-          ? `Partnership conversation opened.\n\nMatch rationale: ${conn.ai_rationale}`
-          : "Partnership conversation opened. You can now discuss the details.";
-
-        await supabase.from("messages").insert({
-          conversation_id: conv.id,
-          sender_id: user!.id,
-          body: openingMsg,
-        });
+        if (conn.ai_rationale) {
+          await supabase.from("messages").insert({
+            conversation_id: conv.id,
+            sender_id: user!.id,
+            body: `Match rationale: ${conn.ai_rationale}`,
+          });
+        }
       }
 
       // Notify sender
