@@ -362,7 +362,8 @@ function PublicOrgCard({ org }: { org: OrgRow }) {
           {isVerified && (
             <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
               style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
-              ✓ Verified
+              <ShieldCheck className="w-3 h-3" />
+              Verified
             </span>
           )}
           {sectors.length > 0 && (

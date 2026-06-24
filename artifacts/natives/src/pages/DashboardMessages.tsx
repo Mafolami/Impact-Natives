@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2, Send, ArrowLeft, Clock, CheckCircle2, UserCheck, ExternalLink } from "lucide-react";
+import { Loader2, Send, ArrowLeft, Clock, CheckCircle2, UserCheck, ExternalLink, ShieldCheck } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 
@@ -400,7 +400,8 @@ export default function DashboardMessages() {
                           {eoi.expresser_verified && (
                             <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
                               style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
-                              ✓ Verified
+                              <ShieldCheck className="w-3 h-3" />
+                              Verified
                             </span>
                           )}
                           {eoi.expresser_id && (

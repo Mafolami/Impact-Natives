@@ -11,7 +11,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Sparkles, CheckCircle2, ArrowLeft, ExternalLink } from "lucide-react";
+import { Loader2, Sparkles, CheckCircle2, ArrowLeft, ExternalLink, ShieldCheck } from "lucide-react";
 import { ORG_TYPE_OPTIONS } from "@/lib/orgTypes";
 import { SECTOR_OPTIONS as SECTORS } from "@/lib/sectors";
 
@@ -725,9 +725,10 @@ export function FindPartnerModalDashboard({
                           <div className="flex items-center gap-2">
                             <p className="font-semibold text-foreground text-sm">{match.org.organisation_name}</p>
                             {match.org.verification_status === "verified" && (
-                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
                                 style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
-                                ✓ Verified
+                                <ShieldCheck className="w-3 h-3" />
+                                Verified
                               </span>
                             )}
                           </div>
