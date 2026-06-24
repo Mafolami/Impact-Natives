@@ -629,7 +629,7 @@ export default function Onboarding() {
         description:       description  || null,
         needs:             needs.length > 0 ? needs : null,
         offers:            offers.length > 0 ? offers : null,
-        sdgs:              sdgTags.length > 0 ? sdgTags : null,
+        sdgs:              null,
         year_founded:      yearFounded ? parseInt(yearFounded) : null,
         investment_stage:  investmentStage || null,
         business_model:    businessModel   || null,
