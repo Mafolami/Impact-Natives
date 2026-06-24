@@ -193,7 +193,9 @@ export default function DashboardProfile() {
     if (uploadError) { alert(`Upload failed: ${uploadError.message}`); setLogoUploading(false); return; }
     const { data } = supabase.storage.from("org-logos").getPublicUrl(filePath);
     await supabase.from("organizations").update({ logo_url: data.publicUrl }).eq("user_id", user.id);
+    await supabase.from("profiles").update({ avatar_url: data.publicUrl }).eq("id", user.id);
     setLogoUrl(data.publicUrl);
+    await refreshProfile();
     setLogoUploading(false);
   }
 
