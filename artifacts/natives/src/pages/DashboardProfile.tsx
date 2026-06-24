@@ -437,6 +437,18 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
               <CountryPicker value={country} onChange={setCountry} />
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm font-medium">Role / Title</Label>
+              <Input value={roleTitle} onChange={e => setRoleTitle(e.target.value)}
+                className="mt-1 h-10" placeholder="e.g. Impact Evaluator, Filmmaker" />
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Phone</Label>
+              <Input value={phone} onChange={e => setPhone(e.target.value)}
+                className="mt-1 h-10" placeholder="+234 800 000 0000" />
+            </div>
+          </div>
           <div>
             <Label className="text-sm font-medium">Bio</Label>
             <Textarea value={bio} onChange={e => setBio(e.target.value)}
@@ -446,7 +458,8 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
         </div>
       )}
 
-      {/* Organisation */}
+      {/* Organisation — org users only */}
+      {profile?.user_type === "organisation" && (
       <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Organisation
@@ -458,16 +471,14 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
         </div>
         <div>
           <Label className="text-sm font-medium">Organisation type</Label>
-          <Select value={orgType} onValueChange={setOrgType}>
-            <SelectTrigger className="mt-1 h-10">
-              <SelectValue placeholder="Select type" />
-            </SelectTrigger>
-            <SelectContent>
-              {ORG_TYPE_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="mt-1 h-10 px-3 rounded-lg border border-border bg-muted/30 flex items-center">
+            <span className="text-sm text-muted-foreground">
+              {ORG_TYPE_OPTIONS.find(o => o.value === (profile?.org_type ?? orgType))?.label ?? "Not set"}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Organisation type cannot be changed. Contact support if this is incorrect.
+          </p>
         </div>
         {profile?.user_type === "organisation" && (
           <div>
@@ -487,8 +498,7 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
           </div>
         )}
       </div>
-
-      
+      )}
 
       {/* Focus areas */}
       <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
