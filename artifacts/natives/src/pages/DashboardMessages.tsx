@@ -114,9 +114,9 @@ export default function DashboardMessages() {
     }
   }, [conversations.length]);
 
-  async function loadAll(): Promise<Conversation[]> {
+  async function loadAll(showLoader = true): Promise<Conversation[]> {
     if (!user) return [];
-    setLoading(true);
+    if (showLoader) setLoading(true);
 
     const { data: myInitiatives } = await supabase
       .from("initiative_requests")
@@ -280,8 +280,8 @@ export default function DashboardMessages() {
 
         baseConvos.sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
         setConversations(baseConvos);
-        return baseConvos;
 
+        // Fire confirmed partners check async — doesn't block return
         const uniqueInitIds = [...new Set(baseConvos.map(c => c.initiative_id).filter(Boolean))];
         if (uniqueInitIds.length > 0) {
           supabase.from("initiative_requests").select("id, confirmed_partners").in("id", uniqueInitIds)
@@ -294,16 +294,19 @@ export default function DashboardMessages() {
               }));
             });
         }
+
+        setLoading(false);
+        return baseConvos;
       } else {
         setConversations([]);
+        setLoading(false);
         return [];
       }
     } else {
       setConversations([]);
+      setLoading(false);
+      return [];
     }
-
-    setLoading(false);
-    return [];
   }
 
   async function acceptEOI(eoi: PendingEOI) {
@@ -316,8 +319,10 @@ export default function DashboardMessages() {
       link:    "/dashboard/messages",
     });
     setPendingEOIs(prev => prev.filter(e => e.eoi_id !== eoi.eoi_id));
-    const updatedConvos = await loadAll();
+    const updatedConvos = await loadAll(false);
+    console.log("updatedConvos:", updatedConvos.length, "looking for:", eoi.conversation_id);
     const match = updatedConvos.find(c => c.id === eoi.conversation_id);
+    console.log("match found:", match);
     if (match) setActiveConvo(match);
   }
 
