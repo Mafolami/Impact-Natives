@@ -184,7 +184,7 @@ export default function DashboardPartnerships() {
         type: "partnership_interest",
         title: "Someone is interested in partnering",
         body: `An organisation expressed interest in partnering with you from the Partnerships page.`,
-        link: "/dashboard/partnerships",
+        link: "/dashboard/messages",
         metadata: {
           sender_org_id: currentUserOrgId,
           receiver_org_id: org.id,
