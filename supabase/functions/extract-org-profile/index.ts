@@ -1,9 +1,9 @@
-const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
+const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY") ?? "";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 const PROMPTS: Record<string, string> = {
@@ -152,68 +152,64 @@ Deno.serve(async (req: Request) => {
       bytes[i] = binaryStr.charCodeAt(i);
     }
 
-    let claudeMessages: any[];
+    let docText = "";
 
     if (file_type === "application/pdf") {
-      claudeMessages = [
-        {
-          role: "user",
-          content: [
-            {
-              type: "document",
-              source: {
-                type: "base64",
-                media_type: "application/pdf",
-                data: file_base64,
-              },
-            },
-            {
-              type: "text",
-              text: prompt,
-            },
-          ],
-        },
-      ];
+      // Extract text from PDF by reading the raw bytes for text content
+      const pdfString = new TextDecoder("latin1").decode(bytes);
+      const textMatches = pdfString.match(/\(([^)]{3,})\)/g) ?? [];
+      docText = textMatches
+        .map(m => m.slice(1, -1))
+        .filter(t => /[a-zA-Z]{2,}/.test(t))
+        .join(" ")
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, " ")
+        .trim();
+
+      if (!docText || docText.length < 50) {
+        return new Response(
+          JSON.stringify({ error: "Could not extract readable text from this PDF. Try uploading a DOCX instead." }),
+          { status: 422, headers: { "Content-Type": "application/json", ...CORS_HEADERS } }
+        );
+      }
     } else {
-      const docText = await extractDocxText(bytes);
+      docText = await extractDocxText(bytes);
       if (!docText || docText.length < 50) {
         return new Response(
           JSON.stringify({ error: "Could not extract readable text from this document. Try a PDF instead." }),
           { status: 422, headers: { "Content-Type": "application/json", ...CORS_HEADERS } }
         );
       }
-      claudeMessages = [
-        {
-          role: "user",
-          content: `${prompt}\n\nDocument content:\n\n${docText}`,
-        },
-      ];
     }
 
-    const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
+    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
+        model: "llama-3.1-8b-instant",
         max_tokens: 1500,
-        messages: claudeMessages,
+        messages: [
+          {
+            role: "user",
+            content: `${prompt}\n\nDocument content:\n\n${docText.slice(0, 8000)}`,
+          },
+        ],
       }),
     });
 
-    if (!claudeRes.ok) {
-      const err = await claudeRes.text();
+    if (!groqRes.ok) {
+      const err = await groqRes.text();
       return new Response(
-        JSON.stringify({ error: `Claude API error: ${err}` }),
+        JSON.stringify({ error: `Groq API error: ${err}` }),
         { status: 502, headers: { "Content-Type": "application/json", ...CORS_HEADERS } }
       );
     }
 
-    const claudeData = await claudeRes.json();
-    const rawText = claudeData.content?.[0]?.text ?? "";
+    const groqData = await groqRes.json();
+    const rawText = groqData.choices?.[0]?.message?.content ?? "";
 
     let extracted: Record<string, any>;
     try {
