@@ -107,10 +107,12 @@ function GettingStarted({
   userType,
   isVerified,
   onCreateInitiative,
+  profile,
 }: {
   userType?: string;
   isVerified?: boolean;
   onCreateInitiative: () => void;
+  profile?: any;
 }) {
   const [location, navigate] = useLocation();
   const isOrg = userType === "organisation";
@@ -135,10 +137,12 @@ function GettingStarted({
     ...(isOrg ? [{
       id: "verify",
       label: "Get verified",
-      sub: "A verified badge builds trust with funders and partners.",
+      sub: profile?.verification_requested
+        ? "Your documents are under review. We'll notify you once confirmed."
+        : "A verified badge builds trust with funders and partners.",
       action: () => navigate("/verify"),
       actionLabel: "Start verification",
-      done: isVerified ?? false,
+      done: (isVerified || profile?.verification_requested) ?? false,
     }] : []),
     {
       id: "natives",
@@ -264,7 +268,9 @@ export default function DashboardHome() {
       return "Start by posting your first initiative.";
     }
     if (profile?.user_type === "organisation" && !profile?.is_verified && myInitiatives.length > 0) {
-      return "Complete verification to build trust with funders.";
+      return profile?.verification_requested
+        ? "Your verification is under review. We'll notify you once confirmed."
+        : "Complete verification to build trust with funders.";
     }
     if (myInitiatives.length > 0) {
       const listed = myInitiatives.filter(i => i.status === "published").length;
@@ -458,6 +464,7 @@ export default function DashboardHome() {
             userType={profile?.user_type ?? undefined}
             isVerified={profile?.is_verified ?? undefined}
             onCreateInitiative={() => setShowCreateModal(true)}
+            profile={profile}
           />
         )}
 
