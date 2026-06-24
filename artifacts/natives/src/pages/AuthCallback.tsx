@@ -49,10 +49,10 @@ export default function AuthCallback() {
   }, [navigate]);
 
   return (
-    <div className="light min-h-screen flex items-center justify-center" style={{ background: "#F7F5F2" }}>
-      <div className="text-center">
-        <Loader2 className="w-6 h-6 text-[#2D6A4F] animate-spin mx-auto mb-3" />
-        <p className="text-sm text-gray-500">Signing you in…</p>
+    <div style={{ background: "#F7F5F2", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ textAlign: "center" }}>
+        <Loader2 className="w-6 h-6 animate-spin mx-auto mb-3" style={{ color: "#2D6A4F" }} />
+        <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>Signing you in…</p>
       </div>
     </div>
   );
