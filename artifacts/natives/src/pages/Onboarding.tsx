@@ -308,7 +308,7 @@ function DocumentUploadStep({ track, onExtracted, onSkipToManual }: {
             <Upload className="w-8 h-8 text-muted-foreground/40" />
             <div>
               <p className="text-sm font-medium text-foreground">Drop your file here or click to browse</p>
-              <p className="text-xs text-muted-foreground mt-1">PDF or DOCX · Up to 10MB</p>
+              <p className="text-xs text-muted-foreground mt-1">For best results, upload a DOCX file. PDF support is limited. · Up to 10MB</p>
             </div>
           </div>
         )}
