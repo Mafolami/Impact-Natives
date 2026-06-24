@@ -76,6 +76,9 @@ export default function DashboardNatives() {
     return (params.get("tab") as Tab) ?? "individual";
   });
   const [search, setSearch] = useState("");
+  const [sectorFilter, setSectorFilter] = useState("");
+  const [countryFilter, setCountryFilter] = useState("");
+  const [orgTypeFilter, setOrgTypeFilter] = useState("");
   const [autoOpenUserId, setAutoOpenUserId] = useState<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("user");
@@ -126,17 +129,67 @@ export default function DashboardNatives() {
           className="w-full h-10 pl-9 pr-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
       </div>
 
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2">
+        <select value={sectorFilter} onChange={e => setSectorFilter(e.target.value)}
+          className="h-9 px-3 rounded-lg border border-border bg-background text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+          <option value="">All sectors</option>
+          {[
+            "Health","Education","Agriculture & Food Systems","Climate & Environment",
+            "Energy & Clean Tech","Water Sanitation & Hygiene","Financial Inclusion",
+            "Gender & Inclusion","Governance & Civic Tech","Livelihoods & Economic Empowerment",
+            "Technology & Innovation","Arts Culture & Creative Industries",
+            "Humanitarian & Emergency Response","Youth & Community Development",
+          ].map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+
+        <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)}
+          className="h-9 px-3 rounded-lg border border-border bg-background text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+          <option value="">All countries</option>
+          {["Nigeria","Kenya","Ghana","South Africa","Uganda","Tanzania","Ethiopia","Rwanda",
+            "Senegal","Côte d'Ivoire","Cameroon","Zimbabwe","Zambia","Mozambique","Mali",
+            "United Kingdom","United States","Germany","France","Netherlands","Sweden","Canada",
+          ].map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+
+        {tab === "organisation" && (
+          <select value={orgTypeFilter} onChange={e => setOrgTypeFilter(e.target.value)}
+            className="h-9 px-3 rounded-lg border border-border bg-background text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+            <option value="">All types</option>
+            <option value="ngo_non_profit">NGO / Non-Profit</option>
+            <option value="social_enterprise">Social Enterprise</option>
+            <option value="startup">Startup</option>
+            <option value="technology_company">Technology Company</option>
+            <option value="corporation">Corporation</option>
+            <option value="philanthropic_foundation">Philanthropic Foundation</option>
+            <option value="venture_capital">Venture Capital</option>
+            <option value="public_sector">Public Sector</option>
+            <option value="research_academic">Research & Academic</option>
+          </select>
+        )}
+
+        {(sectorFilter || countryFilter || orgTypeFilter) && (
+          <button type="button"
+            onClick={() => { setSectorFilter(""); setCountryFilter(""); setOrgTypeFilter(""); }}
+            className="h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Clear filters
+          </button>
+        )}
+      </div>
+
       {tab === "individual"
-        ? <IndividualsPanel search={search} autoOpenUserId={autoOpenUserId} onAutoOpened={() => setAutoOpenUserId(null)} />
-        : <OrgsPanel search={search} autoOpenUserId={autoOpenUserId} onAutoOpened={() => setAutoOpenUserId(null)} />}
+        ? <IndividualsPanel search={search} sectorFilter={sectorFilter} countryFilter={countryFilter} autoOpenUserId={autoOpenUserId} onAutoOpened={() => setAutoOpenUserId(null)} />
+        : <OrgsPanel search={search} sectorFilter={sectorFilter} countryFilter={countryFilter} orgTypeFilter={orgTypeFilter} autoOpenUserId={autoOpenUserId} onAutoOpened={() => setAutoOpenUserId(null)} />}
     </div>
   );
 }
 
 // ── Individuals Panel ─────────────────────────────────────────────────────────
 
-function IndividualsPanel({ search, autoOpenUserId, onAutoOpened }: {
+function IndividualsPanel({ search, sectorFilter, countryFilter, autoOpenUserId, onAutoOpened }: {
   search: string;
+  sectorFilter: string;
+  countryFilter: string;
   autoOpenUserId?: string | null;
   onAutoOpened?: () => void;
 }) {
@@ -166,11 +219,12 @@ function IndividualsPanel({ search, autoOpenUserId, onAutoOpened }: {
   }, []);
 
   const filtered = profiles.filter(p => {
+    if (sectorFilter && !p.sectors?.includes(sectorFilter)) return false;
+    if (countryFilter && p.country !== countryFilter) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return (
       p.full_name?.toLowerCase().includes(q) ||
-      p.org_name?.toLowerCase().includes(q) ||
       p.role_title?.toLowerCase().includes(q) ||
       p.country?.toLowerCase().includes(q) ||
       p.bio?.toLowerCase().includes(q)
@@ -291,8 +345,11 @@ function ProfileDetail({ profile, onBack }: { profile: ProfileRow; onBack: () =>
 
 // ── Orgs Panel ────────────────────────────────────────────────────────────────
 
-function OrgsPanel({ search, autoOpenUserId, onAutoOpened }: {
+function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, autoOpenUserId, onAutoOpened }: {
   search: string;
+  sectorFilter: string;
+  countryFilter: string;
+  orgTypeFilter: string;
   autoOpenUserId?: string | null;
   onAutoOpened?: () => void;
 }) {
@@ -334,10 +391,13 @@ function OrgsPanel({ search, autoOpenUserId, onAutoOpened }: {
   }, []);
 
   const filtered = orgs.filter(o => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
     const sectors   = normalizeArr(o.sector);
     const countries = normalizeArr(o.country);
+    if (sectorFilter && !sectors.includes(sectorFilter)) return false;
+    if (countryFilter && !countries.includes(countryFilter)) return false;
+    if (orgTypeFilter && o.organisation_type !== orgTypeFilter) return false;
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
     return (
       o.organisation_name?.toLowerCase().includes(q) ||
       sectors.some(s => s.toLowerCase().includes(q)) ||
