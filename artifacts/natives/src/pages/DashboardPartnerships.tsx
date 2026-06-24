@@ -6,7 +6,7 @@
 import { useEffect, useState } from "react";
 import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 import { supabase } from "@/lib/supabase";
-import { Handshake, Loader2, Search, CheckCircle2 } from "lucide-react";
+import { Handshake, Loader2, Search, CheckCircle2, ShieldCheck } from "lucide-react";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
 import { FindPartnerModalDashboard } from "./FindPartnerModalDashboard";
 import { useAuth } from "@/context/AuthContext";
@@ -422,7 +422,8 @@ function OrgDetail({
           {isVerified && (
             <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
               style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
-              ✓ Verified
+              <ShieldCheck className="w-3 h-3" />
+              Verified
             </span>
           )}
         </div>
@@ -562,7 +563,8 @@ function OrgCard({
             {isVerified && (
               <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
                 style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
-                ✓ Verified
+                <ShieldCheck className="w-3 h-3" />
+                Verified
               </span>
             )}
           </div>
