@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { supabase } from "@/lib/supabase";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type SettingsTab = "account" | "privacy" | "notifications" | "danger";
@@ -431,10 +431,24 @@ export default function DashboardSettings() {
           <span className="w-1 h-1 rounded-full bg-[#C45C26] shrink-0" />
           Edit your profile
         </a>
-        <a href="/verification-standard" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
-          <span className="w-1 h-1 rounded-full bg-[#C45C26] shrink-0" />
-          Verification standards
-        </a>
+        {profile?.user_type === "organisation" && (
+          <a href="/verification-standard" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+            <ArrowRight className="w-3 h-3 text-[#2D6A4F]" />
+            Verification standards
+          </a>
+        )}
+        {profile?.user_type !== "organisation" && (
+          <>
+            <a href="/dashboard/marketplace" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+              <ArrowRight className="w-3 h-3 text-[#2D6A4F]" />
+              Browse the marketplace
+            </a>
+            <a href="/dashboard/natives?tab=organisation" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+              <ArrowRight className="w-3 h-3 text-[#2D6A4F]" />
+              Browse organisations
+            </a>
+          </>
+        )}
         <a href="/dashboard/natives" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
           <span className="w-1 h-1 rounded-full bg-[#C45C26] shrink-0" />
           View directory
