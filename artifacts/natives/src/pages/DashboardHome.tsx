@@ -134,7 +134,7 @@ function GettingStarted({
       actionLabel: "Browse now",
       done: false,
     },
-    ...(isOrg ? [{
+    ...(isOrg && !isVerified ? [{
       id: "verify",
       label: "Get verified",
       sub: profile?.verification_requested
@@ -142,7 +142,7 @@ function GettingStarted({
         : "A verified badge builds trust with funders and partners.",
       action: () => navigate("/verify"),
       actionLabel: "Start verification",
-      done: (isVerified || profile?.verification_requested) ?? false,
+      done: profile?.verification_requested ?? false,
     }] : []),
     {
       id: "natives",
