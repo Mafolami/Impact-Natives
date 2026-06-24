@@ -1088,27 +1088,60 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
         </div>
       </div>
 
-      {/* Visibility */}
-      <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Visibility</p>
-        <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full shrink-0 ${profile?.is_verified ? "bg-[#2D6A4F]" : "bg-muted-foreground/40"}`} />
-          <span className="text-xs text-foreground">
-            {profile?.is_verified ? "Verified organisation" : "Not yet verified"}
-          </span>
+      {/* Visibility — org users only */}
+      {profile?.user_type === "organisation" && (
+        <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Visibility</p>
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full shrink-0 ${profile?.is_verified ? "bg-[#2D6A4F]" : "bg-muted-foreground/40"}`} />
+            <span className="text-xs text-foreground">
+              {profile?.is_verified ? "Verified organisation" : "Not yet verified"}
+            </span>
+          </div>
+          {!profile?.is_verified && (
+            profile?.verification_requested ? (
+              <p className="text-xs text-muted-foreground opacity-50 cursor-not-allowed">
+                Verification pending review
+              </p>
+            ) : (
+              <a href="/verify" className="text-xs text-[#2D6A4F] hover:underline underline-offset-2">
+                Apply for verification →
+              </a>
+            )
+          )}
         </div>
-        {!profile?.is_verified && profile?.user_type === "organisation" && (
-          profile?.verification_requested ? (
-            <p className="text-xs text-muted-foreground opacity-50 cursor-not-allowed">
-              Verification pending review
-            </p>
-          ) : (
-            <a href="/verify" className="text-xs text-[#2D6A4F] hover:underline underline-offset-2">
-              Apply for verification →
-            </a>
-          )
-        )}
-      </div>
+      )}
+
+      {/* Profile presence — individuals only */}
+      {profile?.user_type !== "organisation" && (
+        <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your presence</p>
+          <p className="text-xs text-muted-foreground">Complete these to be more discoverable.</p>
+          <div className="space-y-2">
+            {[
+              { label: "Headline", done: !!roleTitle },
+              { label: "Bio", done: !!bio },
+              { label: "Sectors", done: sectors.length > 0 },
+              { label: "Country", done: !!country },
+              { label: "Online link", done: !!linkedinUrl || !!website },
+              { label: "Profile photo", done: !!profile?.avatar_url },
+            ].map(item => (
+              <div key={item.label} className="flex items-center gap-2">
+                <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${item.done ? "bg-[#2D6A4F]" : "bg-muted"}`}>
+                  {item.done && (
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </div>
+                <span className={`text-xs ${item.done ? "text-foreground" : "text-muted-foreground"}`}>
+                  {item.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Quick links */}
       <div className="rounded-2xl border border-border bg-card p-5 space-y-2">
@@ -1121,10 +1154,24 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
           <ArrowRight className="w-3 h-3 text-[#2D6A4F]" />
           Account settings
         </a>
-        <a href="/verification-standard" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
-          <ArrowRight className="w-3 h-3 text-[#2D6A4F]" />
-          Verification standards
-        </a>
+        {profile?.user_type !== "organisation" && (
+          <>
+            <a href="/dashboard/marketplace" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+              <ArrowRight className="w-3 h-3 text-[#2D6A4F]" />
+              Browse the marketplace
+            </a>
+            <a href="/dashboard/natives?tab=organisation" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+              <ArrowRight className="w-3 h-3 text-[#2D6A4F]" />
+              Browse organisations
+            </a>
+          </>
+        )}
+        {profile?.user_type === "organisation" && (
+          <a href="/verification-standard" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+            <ArrowRight className="w-3 h-3 text-[#2D6A4F]" />
+            Verification standards
+          </a>
+        )}
       </div>
 
     </div>
