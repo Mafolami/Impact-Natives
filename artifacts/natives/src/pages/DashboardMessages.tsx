@@ -114,8 +114,8 @@ export default function DashboardMessages() {
     }
   }, [conversations.length]);
 
-  async function loadAll() {
-    if (!user) return;
+  async function loadAll(): Promise<Conversation[]> {
+    if (!user) return [];
     setLoading(true);
 
     const { data: myInitiatives } = await supabase
@@ -280,6 +280,7 @@ export default function DashboardMessages() {
 
         baseConvos.sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
         setConversations(baseConvos);
+        return baseConvos;
 
         const uniqueInitIds = [...new Set(baseConvos.map(c => c.initiative_id).filter(Boolean))];
         if (uniqueInitIds.length > 0) {
@@ -295,12 +296,14 @@ export default function DashboardMessages() {
         }
       } else {
         setConversations([]);
+        return [];
       }
     } else {
       setConversations([]);
     }
 
     setLoading(false);
+    return [];
   }
 
   async function acceptEOI(eoi: PendingEOI) {
@@ -313,7 +316,9 @@ export default function DashboardMessages() {
       link:    "/dashboard/messages",
     });
     setPendingEOIs(prev => prev.filter(e => e.eoi_id !== eoi.eoi_id));
-    loadAll();
+    const updatedConvos = await loadAll();
+    const match = updatedConvos.find(c => c.id === eoi.conversation_id);
+    if (match) setActiveConvo(match);
   }
 
   async function declineEOI(eoi: PendingEOI) {
