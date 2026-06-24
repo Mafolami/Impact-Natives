@@ -3,25 +3,43 @@ import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
 
-/**
- * Handles the OAuth redirect from Google.
- * Supabase processes the URL hash/params automatically; we just
- * wait for the session then redirect appropriately.
- */
 export default function AuthCallback() {
   const [, navigate] = useLocation();
+
   useEffect(() => {
-    const hash = window.location.hash;
-    const params = new URLSearchParams(hash.replace("#", "?"));
-    const type = params.get("type");
+    async function handleCallback() {
+      const searchParams = new URLSearchParams(window.location.search);
+      const tokenHash = searchParams.get("token_hash");
+      const type = searchParams.get("type") as any;
 
-    if (type === "recovery") {
-      navigate("/reset-password");
-      return;
-    }
+      const hash = window.location.hash;
+      const hashParams = new URLSearchParams(hash.replace("#", "?"));
+      const hashType = hashParams.get("type");
 
-    // Check for existing session immediately — token may already be processed
-    async function checkSession() {
+      if (hashType === "recovery") {
+        navigate("/reset-password");
+        return;
+      }
+
+      // Email confirmation via token_hash
+      if (tokenHash && type) {
+        const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+        if (error) {
+          navigate("/signin");
+          return;
+        }
+        if (data.session) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("onboarding_completed")
+            .eq("id", data.session.user.id)
+            .single();
+          navigate(profile?.onboarding_completed ? "/dashboard" : "/onboarding");
+          return;
+        }
+      }
+
+      // Fallback — check existing session (Google OAuth etc.)
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         const redirect = sessionStorage.getItem("redirectAfterAuth");
@@ -31,46 +49,35 @@ export default function AuthCallback() {
           .select("onboarding_completed")
           .eq("id", session.user.id)
           .single();
-        if (!profile?.onboarding_completed) {
-          navigate("/onboarding");
-        } else {
-          navigate(redirect || "/dashboard");
-        }
-        return true;
+        navigate(profile?.onboarding_completed ? (redirect || "/dashboard") : "/onboarding");
+        return;
       }
-      return false;
+
+      // No session yet — wait for auth state change
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === "PASSWORD_RECOVERY") {
+          subscription.unsubscribe();
+          navigate("/reset-password");
+        } else if (event === "SIGNED_IN" && session) {
+          subscription.unsubscribe();
+          const redirect = sessionStorage.getItem("redirectAfterAuth");
+          if (redirect) sessionStorage.removeItem("redirectAfterAuth");
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("onboarding_completed")
+            .eq("id", session.user.id)
+            .single();
+          navigate(profile?.onboarding_completed ? (redirect || "/dashboard") : "/onboarding");
+        } else if (event === "SIGNED_OUT") {
+          subscription.unsubscribe();
+          navigate("/signin");
+        }
+      });
+
+      return () => subscription.unsubscribe();
     }
 
-    checkSession().then(handled => {
-      if (handled) return;
-
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      
-      if (event === "PASSWORD_RECOVERY") {
-        subscription.unsubscribe();
-        navigate("/reset-password");
-      } else if (event === "SIGNED_IN" && session) {
-        subscription.unsubscribe();
-        const redirect = sessionStorage.getItem("redirectAfterAuth");
-        if (redirect) sessionStorage.removeItem("redirectAfterAuth");
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("onboarding_completed")
-          .eq("id", session.user.id)
-          .single();
-        if (!profile?.onboarding_completed) {
-          navigate("/onboarding");
-        } else {
-          navigate(redirect || "/dashboard");
-        }
-      } else if (event === "SIGNED_OUT") {
-        subscription.unsubscribe();
-        navigate("/signin");
-      }
-    });
-      // Store subscription cleanup
-      return () => subscription.unsubscribe();
-    });
+    handleCallback();
   }, [navigate]);
 
   return (
