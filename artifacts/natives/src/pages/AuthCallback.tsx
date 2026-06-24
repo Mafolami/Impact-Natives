@@ -49,7 +49,7 @@ export default function AuthCallback() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-[#F9F7F4] flex items-center justify-center">
+    <div className="light min-h-screen flex items-center justify-center" style={{ background: "#F7F5F2" }}>
       <div className="text-center">
         <Loader2 className="w-6 h-6 text-[#2D6A4F] animate-spin mx-auto mb-3" />
         <p className="text-sm text-gray-500">Signing you in…</p>
