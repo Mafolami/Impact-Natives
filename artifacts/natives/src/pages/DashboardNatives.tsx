@@ -149,7 +149,8 @@ function IndividualsPanel({ search, autoOpenUserId, onAutoOpened }: {
       setLoading(true);
       const { data, error } = await supabase
         .from("profiles")
-        .select("id,full_name,org_name,role_title,country,sectors,bio,avatar_url,linkedin_url,website,user_type,social_links")        .not("full_name", "is", null)
+        .select("id,full_name,role_title,country,sectors,bio,avatar_url,linkedin_url,website,user_type,social_links")
+        .not("full_name", "is", null)
         .or("user_type.eq.individual_creative,user_type.is.null")
         .order("full_name", { ascending: true });
       if (error) console.error(error);

@@ -231,8 +231,8 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
           <div className="cursor-pointer">
             <UserAvatar
               id={user?.id ?? ""}
-              name={profile?.full_name}
-              avatarUrl={profile?.avatar_url}
+              name={profile?.user_type === "organisation" ? (profile?.org_name || profile?.full_name) : profile?.full_name}
+              avatarUrl={profile?.user_type === "organisation" ? undefined : profile?.avatar_url}
               size="sm"
             />
           </div>

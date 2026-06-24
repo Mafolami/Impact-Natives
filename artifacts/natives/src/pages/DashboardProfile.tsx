@@ -439,9 +439,9 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-sm font-medium">Role / Title</Label>
-              <Input value={roleTitle} onChange={e => setRoleTitle(e.target.value)}
-                className="mt-1 h-10" placeholder="e.g. Impact Evaluator, Filmmaker" />
+              <Label className="text-sm font-medium">Headline</Label>
+              <Input value={roleTitle} onChange={e => setRoleTitle(e.target.value.slice(0, 30))}
+                className="mt-1 h-10" placeholder="e.g. Impact Evaluator & Filmmaker" />
             </div>
             <div>
               <Label className="text-sm font-medium">Phone</Label>
