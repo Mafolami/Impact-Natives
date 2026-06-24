@@ -234,6 +234,21 @@ export default function DashboardProfile() {
   const [phone, setPhone]               = useState(profile?.phone         ?? "");
   const [linkedinUrl, setLinkedinUrl]   = useState(profile?.linkedin_url  ?? "");
   const [website, setWebsite]           = useState(profile?.website       ?? "");
+
+  // Sync state when profile loads or refreshes
+  useEffect(() => {
+    if (!profile) return;
+    setFullName(profile.full_name     ?? "");
+    setCountry(profile.country        ?? "");
+    setBio(profile.bio                ?? "");
+    setOrgName(profile.org_name       ?? "");
+    setRoleTitle(profile.role_title   ?? "");
+    setPhone(profile.phone            ?? "");
+    setLinkedinUrl(profile.linkedin_url ?? "");
+    setWebsite(profile.website        ?? "");
+    setSectors(profile.sectors        ?? []);
+    if (profile.social_links) setSocialLinks(profile.social_links);
+  }, [profile?.id]);
 const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[]>(profile?.social_links ?? []);
   const [socialLabel, setSocialLabel]   = useState("");
   const [socialUrl, setSocialUrl]       = useState("");
@@ -263,7 +278,6 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
         social_links: socialLinks.length > 0 ? socialLinks : null,
         sectors:     sectors.length > 0 ? sectors : null,
         org_type:    orgType     || null,
-        investment_thesis: investmentThesis || null,
         updated_at:  new Date().toISOString(),
       })
       .eq("id", user.id);
@@ -785,7 +799,7 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
       )}
 
       {/* Investment thesis — funders/corporates only */}
-      {["philanthropic_foundation", "venture_capital", "corporation", "technology_company", "public_sector"].includes(profile?.org_type ?? "") && (
+      {profile?.user_type === "organisation" && ["philanthropic_foundation", "venture_capital", "corporation", "technology_company", "public_sector"].includes(profile?.org_type ?? "") && (
         <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Investment thesis
