@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { Loader2, Search, Users, Sparkles } from "lucide-react";
 import { UserAvatar, avatarColor, initials } from "@/components/ui/UserAvatar";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
+import { COUNTRIES } from "@/lib/countries";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -128,14 +129,12 @@ export default function DashboardNatives() {
             placeholder={tab === "individual" ? "Search people..." : "Search organisations..."}
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="h-9 w-64 pl-9 pr-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
+            className="h-9 w-52 pl-9 pr-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
         </div>
 
-        {/* Filters inline */}
-        <div className="flex flex-wrap items-center gap-2">
         <select value={sectorFilter} onChange={e => setSectorFilter(e.target.value)}
-          className="h-9 px-3 rounded-lg border border-border bg-background text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
-          <option value="">All sectors</option>
+          className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+          <option value="">Sector</option>
           {[
             "Health","Education","Agriculture & Food Systems","Climate & Environment",
             "Energy & Clean Tech","Water Sanitation & Hygiene","Financial Inclusion",
@@ -146,18 +145,15 @@ export default function DashboardNatives() {
         </select>
 
         <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)}
-          className="h-9 px-3 rounded-lg border border-border bg-background text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
-          <option value="">All countries</option>
-          {["Nigeria","Kenya","Ghana","South Africa","Uganda","Tanzania","Ethiopia","Rwanda",
-            "Senegal","Côte d'Ivoire","Cameroon","Zimbabwe","Zambia","Mozambique","Mali",
-            "United Kingdom","United States","Germany","France","Netherlands","Sweden","Canada",
-          ].map(c => <option key={c} value={c}>{c}</option>)}
+          className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+          <option value="">Country</option>
+          {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
 
         {tab === "organisation" && (
           <select value={orgTypeFilter} onChange={e => setOrgTypeFilter(e.target.value)}
-            className="h-9 px-3 rounded-lg border border-border bg-background text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
-            <option value="">All types</option>
+            className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+            <option value="">Type</option>
             <option value="ngo_non_profit">NGO / Non-Profit</option>
             <option value="social_enterprise">Social Enterprise</option>
             <option value="startup">Startup</option>
@@ -181,7 +177,7 @@ export default function DashboardNatives() {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
-            Verified only
+            Verified
           </button>
         )}
 
@@ -189,10 +185,9 @@ export default function DashboardNatives() {
           <button type="button"
             onClick={() => { setSectorFilter(""); setCountryFilter(""); setOrgTypeFilter(""); setVerifiedOnly(false); }}
             className="h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
-            Clear filters
+            ✕ Clear
           </button>
         )}
-        </div>
       </div>
 
       {tab === "individual"
