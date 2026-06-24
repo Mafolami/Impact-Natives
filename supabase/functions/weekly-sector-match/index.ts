@@ -1,11 +1,11 @@
-const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
-const SUPABASE_URL       = Deno.env.get("SUPABASE_URL")!;
+const GROQ_API_KEY         = Deno.env.get("GROQ_API_KEY") ?? "";
+const SUPABASE_URL         = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 async function supabaseFetch(path: string, options: RequestInit = {}) {
@@ -39,21 +39,20 @@ Write 1-2 sentences maximum. Mention their sector(s) naturally. Sound human and 
 
 Return ONLY the message text.`;
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
+      "Authorization": `Bearer ${GROQ_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-6",
+      model: "llama-3.1-8b-instant",
       max_tokens: 100,
       messages: [{ role: "user", content: prompt }],
     }),
   });
   const data = await res.json();
-  return data.content?.[0]?.text?.trim() ?? `${matchCount} new initiative${matchCount !== 1 ? "s" : ""} in your sectors this week.`;
+  return data.choices?.[0]?.message?.content?.trim() ?? `${matchCount} new initiative${matchCount !== 1 ? "s" : ""} in your sectors this week.`;
 }
 
 Deno.serve(async (req: Request) => {

@@ -1,9 +1,9 @@
-const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
+const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY") ?? "";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 Deno.serve(async (req: Request) => {
@@ -48,15 +48,14 @@ What they offer: ${offers?.join(", ") ?? "Not specified"}
 
 Return ONLY the partnership summary text. No labels, no preamble, no explanation.`;
 
-    const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
+    const claudeRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
+        model: "llama-3.1-8b-instant",
         max_tokens: 200,
         messages: [{ role: "user", content: prompt }],
       }),
@@ -65,13 +64,13 @@ Return ONLY the partnership summary text. No labels, no preamble, no explanation
     if (!claudeRes.ok) {
       const err = await claudeRes.text();
       return new Response(
-        JSON.stringify({ error: `Claude API error: ${err}` }),
+        JSON.stringify({ error: `Groq API error: ${err}` }),
         { status: 502, headers: { "Content-Type": "application/json", ...CORS_HEADERS } }
       );
     }
 
     const claudeData = await claudeRes.json();
-    const summary = claudeData.content?.[0]?.text?.trim() ?? "";
+    const summary = claudeData.choices?.[0]?.message?.content?.trim() ?? "";
 
     return new Response(JSON.stringify({ summary }), {
       status: 200,
