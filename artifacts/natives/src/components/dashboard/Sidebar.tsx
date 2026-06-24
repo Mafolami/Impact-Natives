@@ -223,11 +223,18 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
             />
                 <div className="min-w-0">
               <p className="text-xs font-semibold text-foreground truncate">
-              {(profile && profile.full_name) ? profile.full_name : "Your Account"}
+                {(profile && profile.full_name) ? profile.full_name : "Your Account"}
               </p>
               {profile?.org_name && (
                 <p className="text-[10px] text-muted-foreground truncate">{profile.org_name}</p>
               )}
+              <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                {profile?.user_type === "organisation"
+                  ? (profile?.org_type
+                      ? profile.org_type.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())
+                      : "Organisation")
+                  : "Individual"}
+              </p>
             </div>
           </div>
         )}
