@@ -148,11 +148,12 @@ export default function DashboardProfile() {
   useEffect(() => {
     if (!user) return;
     supabase.from("organizations")
-      .select("logo_url,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations")
+      .select("logo_url,description,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations")
       .eq("user_id", user.id).maybeSingle()
       .then(({ data }) => {
         if (!data) return;
         if (data.logo_url) setLogoUrl(data.logo_url);
+        if (data.description) setOrgDescription(data.description);
         if (data.grant_range_min) setGrantRangeMin(String(data.grant_range_min));
         if (data.grant_range_max) setGrantRangeMax(String(data.grant_range_max));
         if (data.grant_currency) setGrantCurrency(data.grant_currency);
@@ -227,6 +228,7 @@ export default function DashboardProfile() {
   const [fullName, setFullName]         = useState(profile?.full_name     ?? "");
   const [country, setCountry]           = useState(profile?.country       ?? "");
   const [bio, setBio]                   = useState(profile?.bio           ?? "");
+  const [orgDescription, setOrgDescription] = useState("");
   const [orgName, setOrgName]           = useState(profile?.org_name      ?? "");
   const [roleTitle, setRoleTitle]       = useState(profile?.role_title    ?? "");
   const [phone, setPhone]               = useState(profile?.phone         ?? "");
@@ -291,6 +293,7 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
       await supabase
         .from("organizations")
         .update({
+          description: orgDescription || null,
           dd_financial_model: ddFinancialModel,
           dd_audited_accounts: ddAuditedAccounts,
           dd_governance_doc: ddGovernanceDoc,
@@ -319,7 +322,7 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
 
   const profileStrength = [
     !!fullName,
-    !!bio,
+    profile?.user_type === "organisation" ? !!orgDescription : !!bio,
     !!country,
     !!orgName,
     sectors.length > 0,
@@ -390,12 +393,14 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
             <CountryPicker value={country} onChange={setCountry} />
           </div>
         </div>
-        <div>
-          <Label className="text-sm font-medium">Bio</Label>
-          <Textarea value={bio} onChange={e => setBio(e.target.value)}
-            className="mt-1 resize-none" rows={3}
-            placeholder="What do you work on? What's your focus area?" />
-        </div>
+        {profile?.user_type !== "organisation" && (
+          <div>
+            <Label className="text-sm font-medium">Bio</Label>
+            <Textarea value={bio} onChange={e => setBio(e.target.value)}
+              className="mt-1 resize-none" rows={3}
+              placeholder="What do you work on? What's your focus area?" />
+          </div>
+        )}
       </div>
 
       {/* Organisation */}
@@ -433,6 +438,17 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
           <Input value={phone} onChange={e => setPhone(e.target.value)}
             className="mt-1 h-10" placeholder="+234 800 000 0000" />
         </div>
+        {profile?.user_type === "organisation" && (
+          <div>
+            <Label className="text-sm font-medium">Organisation description</Label>
+            <Textarea value={orgDescription} onChange={e => setOrgDescription(e.target.value)}
+              className="mt-1 resize-none" rows={4}
+              placeholder="What does your organisation do, where does it work, and who does it serve?" />
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Shown on your directory profile and used by AI to match you with relevant partners.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Organisation logo — org users only */}
@@ -965,7 +981,7 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
         <div className="space-y-2">
           {[
             { label: "Full name", done: !!fullName },
-            { label: "Bio", done: !!bio },
+            { label: profile?.user_type === "organisation" ? "Organisation description" : "Bio", done: profile?.user_type === "organisation" ? !!orgDescription : !!bio },
             { label: "Country", done: !!country },
             { label: "Organisation", done: !!orgName },
             { label: "Sectors", done: sectors.length > 0 },
