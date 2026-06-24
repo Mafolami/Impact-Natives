@@ -595,7 +595,7 @@ export default function Onboarding() {
     }
     if (!userId) { setSaving(false); return; }
 
-    await supabase.from("profiles").update({
+    const { error: profileUpdateError } = await supabase.from("profiles").update({
       user_type:              userType,
       full_name:              fullName    || null,
       country:                country     || null,
@@ -613,8 +613,10 @@ export default function Onboarding() {
       onboarding_completed:   true,
       updated_at:             new Date().toISOString(),
     }).eq("id", userId);
+    if (profileUpdateError) console.error("Profile update error:", profileUpdateError);
 
     console.log("finish - userType:", userType, "orgName:", orgName, "requestVerify:", requestVerify);
+    console.log("finish - sectors:", sectors, "sdgTags:", sdgTags);
     if (userType === "organisation" && orgName.trim()) {
       const { error: orgInsertError } = await supabase.from("organizations").insert({
         user_id:           userId,
