@@ -79,6 +79,7 @@ export default function DashboardNatives() {
   const [sectorFilter, setSectorFilter] = useState("");
   const [countryFilter, setCountryFilter] = useState("");
   const [orgTypeFilter, setOrgTypeFilter] = useState("");
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [autoOpenUserId, setAutoOpenUserId] = useState<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("user");
@@ -120,17 +121,18 @@ export default function DashboardNatives() {
         ))}
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input type="text"
-          placeholder={tab === "individual" ? "Search people..." : "Search organisations..."}
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="w-full h-10 pl-9 pr-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
-      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input type="text"
+            placeholder={tab === "individual" ? "Search people..." : "Search organisations..."}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="h-9 w-64 pl-9 pr-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
+        </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2">
+        {/* Filters inline */}
+        <div className="flex flex-wrap items-center gap-2">
         <select value={sectorFilter} onChange={e => setSectorFilter(e.target.value)}
           className="h-9 px-3 rounded-lg border border-border bg-background text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
           <option value="">All sectors</option>
@@ -168,18 +170,34 @@ export default function DashboardNatives() {
           </select>
         )}
 
-        {(sectorFilter || countryFilter || orgTypeFilter) && (
+        {tab === "organisation" && (
           <button type="button"
-            onClick={() => { setSectorFilter(""); setCountryFilter(""); setOrgTypeFilter(""); }}
+            onClick={() => setVerifiedOnly(v => !v)}
+            className={`h-9 px-3 rounded-lg border text-sm font-medium transition-colors flex items-center gap-1.5 ${
+              verifiedOnly
+                ? "border-[#2D6A4F] bg-[#2D6A4F] text-white"
+                : "border-border text-muted-foreground hover:text-foreground"
+            }`}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            Verified only
+          </button>
+        )}
+
+        {(sectorFilter || countryFilter || orgTypeFilter || verifiedOnly) && (
+          <button type="button"
+            onClick={() => { setSectorFilter(""); setCountryFilter(""); setOrgTypeFilter(""); setVerifiedOnly(false); }}
             className="h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
             Clear filters
           </button>
         )}
+        </div>
       </div>
 
       {tab === "individual"
         ? <IndividualsPanel search={search} sectorFilter={sectorFilter} countryFilter={countryFilter} autoOpenUserId={autoOpenUserId} onAutoOpened={() => setAutoOpenUserId(null)} />
-        : <OrgsPanel search={search} sectorFilter={sectorFilter} countryFilter={countryFilter} orgTypeFilter={orgTypeFilter} autoOpenUserId={autoOpenUserId} onAutoOpened={() => setAutoOpenUserId(null)} />}
+        : <OrgsPanel search={search} sectorFilter={sectorFilter} countryFilter={countryFilter} orgTypeFilter={orgTypeFilter} verifiedOnly={verifiedOnly} autoOpenUserId={autoOpenUserId} onAutoOpened={() => setAutoOpenUserId(null)} />}
     </div>
   );
 }
@@ -345,11 +363,12 @@ function ProfileDetail({ profile, onBack }: { profile: ProfileRow; onBack: () =>
 
 // ── Orgs Panel ────────────────────────────────────────────────────────────────
 
-function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, autoOpenUserId, onAutoOpened }: {
+function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifiedOnly, autoOpenUserId, onAutoOpened }: {
   search: string;
   sectorFilter: string;
   countryFilter: string;
   orgTypeFilter: string;
+  verifiedOnly: boolean;
   autoOpenUserId?: string | null;
   onAutoOpened?: () => void;
 }) {
@@ -396,6 +415,7 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, autoOpe
     if (sectorFilter && !sectors.includes(sectorFilter)) return false;
     if (countryFilter && !countries.includes(countryFilter)) return false;
     if (orgTypeFilter && o.organisation_type !== orgTypeFilter) return false;
+    if (verifiedOnly && o.verification_status !== "verified") return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return (
