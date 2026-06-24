@@ -337,15 +337,9 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
     setTimeout(() => setSavedState(false), 3000);
   }
 
-  const profileStrength = [
-    !!fullName,
-    profile?.user_type === "organisation" ? !!orgDescription : !!bio,
-    !!country,
-    !!orgName,
-    sectors.length > 0,
-    !!linkedinUrl || !!website,
-    !!profile?.avatar_url,
-  ];
+  const profileStrength = profile?.user_type === "organisation"
+    ? [!!fullName, !!orgDescription, !!country, !!orgName, sectors.length > 0, !!linkedinUrl || !!website, !!logoUrl]
+    : [!!fullName, !!roleTitle, !!bio, !!country, sectors.length > 0, !!linkedinUrl || !!website, !!profile?.avatar_url];
   const strengthScore = Math.round((profileStrength.filter(Boolean).length / profileStrength.length) * 100);
   const strengthLabel = strengthScore >= 80 ? "Strong" : strengthScore >= 50 ? "Good" : "Needs work";
   const strengthColor = strengthScore >= 80 ? "#2D6A4F" : strengthScore >= 50 ? "#f59e0b" : "#C45C26";
@@ -1059,18 +1053,21 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
         <div className="space-y-2">
           {[
             { label: "Full name", done: !!fullName },
-            { label: profile?.user_type === "organisation" ? "Organisation description" : "Bio", done: profile?.user_type === "organisation" ? !!orgDescription : !!bio },
+            ...(profile?.user_type === "organisation"
+              ? [{ label: "Organisation description", done: !!orgDescription }]
+              : [
+                  { label: "Headline", done: !!roleTitle },
+                  { label: "Bio", done: !!bio },
+                ]),
             { label: "Country", done: !!country },
-            ...(profile?.user_type === "organisation" ? [
-              { label: "Organisation name", done: !!orgName },
-            ] : []),
+            ...(profile?.user_type === "organisation"
+              ? [{ label: "Organisation name", done: !!orgName }]
+              : []),
             { label: "Sectors", done: sectors.length > 0 },
             { label: "Online presence", done: !!linkedinUrl || !!website },
-            ...(profile?.user_type !== "organisation" ? [
-              { label: "Profile photo", done: !!profile?.avatar_url },
-            ] : [
-              { label: "Organisation logo", done: !!logoUrl },
-            ]),
+            ...(profile?.user_type === "organisation"
+              ? [{ label: "Organisation logo", done: !!logoUrl }]
+              : [{ label: "Profile photo", done: !!profile?.avatar_url }]),
           ].map(item => (
             <div key={item.label} className="flex items-center gap-2">
               <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${item.done ? "bg-[#2D6A4F]" : "bg-muted"}`}>
@@ -1112,36 +1109,7 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
         </div>
       )}
 
-      {/* Profile presence — individuals only */}
-      {profile?.user_type !== "organisation" && (
-        <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your presence</p>
-          <p className="text-xs text-muted-foreground">Complete these to be more discoverable.</p>
-          <div className="space-y-2">
-            {[
-              { label: "Headline", done: !!roleTitle },
-              { label: "Bio", done: !!bio },
-              { label: "Sectors", done: sectors.length > 0 },
-              { label: "Country", done: !!country },
-              { label: "Online link", done: !!linkedinUrl || !!website },
-              { label: "Profile photo", done: !!profile?.avatar_url },
-            ].map(item => (
-              <div key={item.label} className="flex items-center gap-2">
-                <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${item.done ? "bg-[#2D6A4F]" : "bg-muted"}`}>
-                  {item.done && (
-                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )}
-                </div>
-                <span className={`text-xs ${item.done ? "text-foreground" : "text-muted-foreground"}`}>
-                  {item.label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      
 
       {/* Quick links */}
       <div className="rounded-2xl border border-border bg-card p-5 space-y-2">
