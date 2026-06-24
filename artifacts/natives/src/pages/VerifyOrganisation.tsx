@@ -108,11 +108,12 @@ export default function VerifyOrganisation() {
       return;
     }
 
-    // Mark verification as requested on profile
+    // Mark verification as requested and onboarding complete on profile
     await supabase
       .from("profiles")
       .update({
         verification_requested: true,
+        onboarding_completed: true,
         updated_at: new Date().toISOString(),
       })
       .eq("id", user.id);
