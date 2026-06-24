@@ -247,20 +247,29 @@ function SupabaseTest() {
   );
 }
 
+const AUTH_PATHS = ["/signin", "/signup", "/onboarding", "/auth/callback", "/verify", "/forgot-password", "/reset-password"];
+
 function App() {
   useReveal();
+  const isAuthPage = AUTH_PATHS.some(p => window.location.pathname.startsWith(p));
   return (
-<ThemeProvider attribute="class" defaultTheme="system" enableSystem={true} disableTransitionOnChange storageKey="next-themes">
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AuthProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
-          </WouterRouter>
-          <Toaster />
-        </AuthProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme={isAuthPage ? "light" : "system"}
+      enableSystem={!isAuthPage}
+      forcedTheme={isAuthPage ? "light" : undefined}
+      disableTransitionOnChange
+      storageKey="next-themes">
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <AuthProvider>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <Router />
+            </WouterRouter>
+            <Toaster />
+          </AuthProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
     </ThemeProvider>
   );
 }
