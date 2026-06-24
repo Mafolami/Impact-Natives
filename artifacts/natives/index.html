@@ -16,24 +16,25 @@
     <style>
       html { background: #ffffff; }
       html.dark { background: hsl(193, 20%, 7%); }
-      html { background: #ffffff; }
       #root { min-height: 100vh; }
     </style>
     <script>
       (function() {
         try {
-          var stored = localStorage.getItem("next-themes");
-          if (stored === "dark") {
-            document.documentElement.classList.add("dark");
-          } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-            document.documentElement.classList.add("dark");
+          var authPaths = ["/signin", "/signup", "/onboarding", "/auth/callback", "/verify", "/forgot-password", "/reset-password"];
+          var isAuthPage = authPaths.some(function(p) { return window.location.pathname.startsWith(p); });
+          if (!isAuthPage) {
+            var stored = localStorage.getItem("next-themes");
+            if (stored === "dark") {
+              document.documentElement.classList.add("dark");
+            } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+              document.documentElement.classList.add("dark");
+            }
           }
         } catch(e) {}
       })();
     </script>
-    <style>
-      body { background: #F7F5F2 !important; }
-    </style>
+    
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
