@@ -11,7 +11,6 @@ import { Loader2 } from "lucide-react";
 export default function AuthCallback() {
   const [, navigate] = useLocation();
   useEffect(() => {
-    // Check if this is a password recovery link by inspecting the URL hash
     const hash = window.location.hash;
     const params = new URLSearchParams(hash.replace("#", "?"));
     const type = params.get("type");
@@ -21,7 +20,31 @@ export default function AuthCallback() {
       return;
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // Check for existing session immediately — token may already be processed
+    async function checkSession() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const redirect = sessionStorage.getItem("redirectAfterAuth");
+        if (redirect) sessionStorage.removeItem("redirectAfterAuth");
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("onboarding_completed")
+          .eq("id", session.user.id)
+          .single();
+        if (!profile?.onboarding_completed) {
+          navigate("/onboarding");
+        } else {
+          navigate(redirect || "/dashboard");
+        }
+        return true;
+      }
+      return false;
+    }
+
+    checkSession().then(handled => {
+      if (handled) return;
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       
       if (event === "PASSWORD_RECOVERY") {
         subscription.unsubscribe();
@@ -45,7 +68,9 @@ export default function AuthCallback() {
         navigate("/signin");
       }
     });
-    return () => subscription.unsubscribe();
+      // Store subscription cleanup
+      return () => subscription.unsubscribe();
+    });
   }, [navigate]);
 
   return (
