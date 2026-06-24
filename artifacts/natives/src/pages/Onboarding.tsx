@@ -614,8 +614,9 @@ export default function Onboarding() {
       updated_at:             new Date().toISOString(),
     }).eq("id", userId);
 
+    console.log("finish - userType:", userType, "orgName:", orgName, "requestVerify:", requestVerify);
     if (userType === "organisation" && orgName.trim()) {
-      await supabase.from("organizations").insert({
+      const { error: orgInsertError } = await supabase.from("organizations").insert({
         user_id:           userId,
         organisation_name: orgName.trim(),
         email:             userEmail ?? null,
@@ -648,6 +649,7 @@ export default function Onboarding() {
         created_at:        new Date().toISOString(),
         updated_at:        new Date().toISOString(),
       });
+      if (orgInsertError) console.error("Org insert error:", orgInsertError);
     }
 
     await refreshProfile();
