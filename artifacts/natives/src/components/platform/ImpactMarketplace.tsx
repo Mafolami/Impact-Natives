@@ -1011,7 +1011,7 @@ function FeaturedInitiativesSection({ onCreateClick }: { onCreateClick: () => vo
         {!loadingData && filtered.length > 4 && (
           <div className="text-center mt-16 pt-10 border-t border-border">
             <p className="text-sm text-muted-foreground mb-4">
-              Showing 4 of {filtered.length} active initiatives
+              Showing 4 of many active initiatives
             </p>
             <ViewMoreButton />
           </div>
