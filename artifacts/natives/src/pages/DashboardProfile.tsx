@@ -353,6 +353,24 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
     }
 
     await refreshProfile();
+
+    // Re-fetch org data to sync state
+    if (user && profile?.user_type === "organisation") {
+      const { data } = await supabase.from("organizations")
+        .select("logo_url,description,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")
+        .eq("user_id", user.id).maybeSingle();
+      if (data) {
+        if (data.previous_funders) setPreviousFunders(data.previous_funders);
+        if (data.geographic_focus) setGeographicFocus(data.geographic_focus);
+        if (data.funding_instruments) setFundingInstruments(data.funding_instruments);
+        if (data.stage_preference) setStagePreference(data.stage_preference);
+        if (data.partner_type_preference) setPartnerTypePreference(data.partner_type_preference);
+        if (data.esg_frameworks) setEsgFrameworks(data.esg_frameworks);
+        if (data.inkind_support) setInkindSupport(data.inkind_support);
+        if (data.tech_support_available) setTechSupport(data.tech_support_available);
+      }
+    }
+
     setSaving(false);
     setSavedState(true);
     setTimeout(() => setSavedState(false), 3000);
