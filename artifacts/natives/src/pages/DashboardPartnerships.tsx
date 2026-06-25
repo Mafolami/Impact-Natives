@@ -178,15 +178,21 @@ export default function DashboardPartnerships() {
 
       if (error && !error.message.includes("unique")) throw error;
 
-      // Notify the receiving org's owner
+      // Get sender org name for notification
+      const { data: senderOrg } = await supabase
+        .from("organizations")
+        .select("organisation_name")
+        .eq("id", senderOrgId)
+        .single();
+
       await supabase.from("notifications").insert({
         user_id: org.user_id,
         type: "partnership_interest",
-        title: "Someone is interested in partnering",
-        body: `An organisation expressed interest in partnering with you from the Partnerships page.`,
-        link: "/dashboard/messages",
+        title: "New partnership interest",
+        body: `${senderOrg?.organisation_name ?? "An organisation"} expressed interest in partnering with you.`,
+        link: "/dashboard/portfolio?tab=partnerships&view=inbound",
         metadata: {
-          sender_org_id: currentUserOrgId,
+          sender_org_id: senderOrgId,
           receiver_org_id: org.id,
         },
       });
