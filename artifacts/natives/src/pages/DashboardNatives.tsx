@@ -56,6 +56,15 @@ interface OrgRow {
   grants_delivered_on_time_pct?: number | null;
   previous_funders?: string[] | null;
   third_party_evaluations?: boolean | null;
+  csr_focus_statement?: string | null;
+  employee_engagement_available?: boolean | null;
+  cobranding_open?: boolean | null;
+  inkind_support?: string[] | null;
+  tech_support_available?: string[] | null;
+  sandbox_ready?: boolean | null;
+  sandbox_description?: string | null;
+  esg_frameworks?: string[] | null;
+  csr_budget_range?: string | null;
 }
 
 type Tab = "individual" | "organisation";
@@ -376,7 +385,7 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
       setLoading(true);
       const { data: orgData, error } = await supabase
         .from("organizations")
-        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations")        .eq("status", "published")
+        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range")        .eq("status", "published")
         .order("organisation_name", { ascending: true });
 
       if (error) { console.error(error); setLoading(false); return; }
@@ -762,6 +771,91 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
         <div className="rounded-xl border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-4 py-3">
           <p className="text-xs font-semibold uppercase tracking-wider text-[#2D6A4F] mb-2">Investment thesis</p>
           <p className="text-sm text-foreground leading-relaxed">{org.investment_thesis}</p>
+        </div>
+      )}
+
+      {/* CSR & ESG — corporates and tech companies */}
+      {["corporation", "technology_company"].includes(org.organisation_type ?? "") && (
+        org.csr_focus_statement || org.inkind_support?.length || org.esg_frameworks?.length || org.tech_support_available?.length
+      ) && (
+        <div className="space-y-4">
+          {org.csr_focus_statement && (
+            <div className="rounded-xl border border-[#C45C26]/20 bg-[#C45C26]/5 px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#C45C26] mb-2">CSR & ESG focus</p>
+              <p className="text-sm text-foreground leading-relaxed">{org.csr_focus_statement}</p>
+            </div>
+          )}
+
+          {org.csr_budget_range && (
+            <div className="flex gap-2 text-sm">
+              <span className="text-muted-foreground w-24 shrink-0">CSR budget</span>
+              <span className="text-foreground">{org.csr_budget_range}</span>
+            </div>
+          )}
+
+          {org.inkind_support && org.inkind_support.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">What we bring</p>
+              <div className="flex flex-wrap gap-1.5">
+                {org.inkind_support.map(s => (
+                  <span key={s} className="text-xs px-2.5 py-0.5 rounded-full border border-border text-muted-foreground">{s}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {org.esg_frameworks && org.esg_frameworks.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">ESG frameworks</p>
+              <div className="flex flex-wrap gap-1.5">
+                {org.esg_frameworks.map(f => (
+                  <span key={f} className="text-xs px-2.5 py-0.5 rounded-full font-medium"
+                    style={{ background: "#eaf5ee", color: "#2D6A4F" }}>{f}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {(org.employee_engagement_available || org.cobranding_open) && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Partnership preferences</p>
+              <div className="flex flex-wrap gap-1.5">
+                {org.employee_engagement_available && (
+                  <span className="text-xs px-2.5 py-0.5 rounded-full border border-border text-muted-foreground">
+                    Open to employee engagement
+                  </span>
+                )}
+                {org.cobranding_open && (
+                  <span className="text-xs px-2.5 py-0.5 rounded-full border border-border text-muted-foreground">
+                    Open to co-branding
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {org.tech_support_available && org.tech_support_available.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Technology support available</p>
+              <div className="flex flex-wrap gap-1.5">
+                {org.tech_support_available.map(t => (
+                  <span key={t} className="text-xs px-2.5 py-0.5 rounded-full font-medium"
+                    style={{ background: "#f5ede8", color: "#C45C26" }}>{t}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {org.sandbox_ready && (
+            <div className="rounded-xl border border-border px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                Open to sandbox/beta testing
+              </p>
+              {org.sandbox_description && (
+                <p className="text-sm text-muted-foreground leading-relaxed">{org.sandbox_description}</p>
+              )}
+            </div>
+          )}
         </div>
       )}
       {/* Meta grid */}      <div className="flex flex-col gap-2 text-sm">
