@@ -536,49 +536,44 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
   const [loadingAi, setLoadingAi]         = useState(false);
   const [aiError, setAiError]             = useState(false);
 
-  // Generate and cache AI partnership summary
-  useEffect(() => {
-    if (aiSummary) return; // Already cached
-    if (!org.description && !org.needs?.length && !org.offers?.length) return; // Not enough data
-
-    async function generateSummary() {
-      setLoadingAi(true);
-      setAiError(false);
-      try {
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-partnership-summary`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              organisation_name: org.organisation_name,
-              description:       org.description,
-              sectors:           sectors,
-              needs:             org.needs,
-              offers:            org.offers,
-              sdgs:              org.sdgs,
-              organisation_type: org.organisation_type,
-              country:           countries[0] ?? null,
-            }),
-          }
-        );
-        const result = await res.json();
-        if (result.summary) {
-          setAiSummary(result.summary);
-          // Cache in database so it's not regenerated on every view
-          await supabase
-            .from("organizations")
-            .update({ ai_partnership_summary: result.summary })
-            .eq("id", org.id);
-        } else {
-          setAiError(true);
+  async function generateSummary() {
+    if (!org.description && !org.needs?.length && !org.offers?.length) return;
+    setLoadingAi(true);
+    setAiError(false);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-partnership-summary`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            organisation_name: org.organisation_name,
+            description:       org.description,
+            sectors:           normalizeArr(org.sector),
+            needs:             org.needs,
+            offers:            org.offers,
+            sdgs:              org.sdgs,
+            organisation_type: org.organisation_type,
+            country:           normalizeArr(org.country)[0] ?? null,
+          }),
         }
-      } catch {
+      );
+      const result = await res.json();
+      if (result.summary) {
+        setAiSummary(result.summary);
+        await supabase.from("organizations").update({ ai_partnership_summary: result.summary }).eq("id", org.id);
+      } else {
         setAiError(true);
       }
-      setLoadingAi(false);
+    } catch {
+      setAiError(true);
     }
+    setLoadingAi(false);
+  }
 
+  // Generate and cache AI partnership summary on first view
+  useEffect(() => {
+    if (aiSummary) return;
     generateSummary();
   }, [org.id]);
 
@@ -622,11 +617,19 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
       {/* AI Partnership Summary */}
       {(aiSummary || loadingAi) && (
         <div className="rounded-xl border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-4 py-3">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-[#2D6A4F]" />
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#2D6A4F]">
-              Partnership fit
-            </p>
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-[#2D6A4F]" />
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-[#2D6A4F]">
+                Partnership fit
+              </p>
+            </div>
+            {!loadingAi && (
+              <button type="button" onClick={() => { setAiSummary(null); generateSummary(); }}
+                className="text-[10px] text-[#2D6A4F] hover:underline underline-offset-2 transition-colors">
+                Refresh
+              </button>
+            )}
           </div>
           {loadingAi ? (
             <div className="flex items-center gap-2">
