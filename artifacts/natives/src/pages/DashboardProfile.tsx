@@ -796,7 +796,7 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
       )}
 
       {/* Investment thesis — funders/corporates only */}
-      {profile?.user_type === "organisation" && ["philanthropic_foundation", "venture_capital", "corporation", "technology_company", "public_sector"].includes(profile?.org_type ?? "") && (
+      {profile?.user_type === "organisation" && ["philanthropic_foundation", "venture_capital"].includes(profile?.org_type ?? "") && (
         <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Investment thesis
