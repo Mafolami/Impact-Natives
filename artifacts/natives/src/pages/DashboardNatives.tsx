@@ -1,7 +1,7 @@
 // ─── DashboardNatives.tsx ─────────────────────────────────────────────────────
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Loader2, Search, Users, Sparkles } from "lucide-react";
+import { Loader2, Search, Users, Sparkles, RefreshCw } from "lucide-react";
 import { UserAvatar, avatarColor, initials } from "@/components/ui/UserAvatar";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { COUNTRIES } from "@/lib/countries";
@@ -626,8 +626,9 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
             </div>
             {!loadingAi && (
               <button type="button" onClick={() => { setAiSummary(null); generateSummary(); }}
-                className="text-[10px] text-[#2D6A4F] hover:underline underline-offset-2 transition-colors">
-                Refresh
+                className="p-1 rounded hover:bg-[#2D6A4F]/10 transition-colors"
+                title="Refresh partnership fit">
+                <RefreshCw className="w-3 h-3 text-[#2D6A4F]" />
               </button>
             )}
           </div>
