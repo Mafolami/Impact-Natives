@@ -28,6 +28,8 @@ interface InitiativeRow {
   // new fields
   submitter_is_verified?: boolean;
   submitter_org_type?: string | null;
+  submitter_name?: string | null;
+  submitter_user_type?: string | null;
   specific_ask?: string | null;
   stage?: string | null;
 }
@@ -207,11 +209,16 @@ function InitiativeCard({ ini, expressed, onClick }: {
         <h3 className="font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors leading-snug">
           {ini.title}
         </h3>
-        {ini.submitter_org && (
-          <a href={`/dashboard/natives?tab=organisation&user=${ini.user_id}`}
+        {(ini.submitter_org || ini.submitter_name) && (
+          <a
+            href={
+              ini.submitter_user_type === "organisation"
+                ? `/dashboard/natives?tab=organisation&user=${ini.user_id}`
+                : `/dashboard/natives?tab=individual&user=${ini.user_id}`
+            }
             onClick={e => e.stopPropagation()}
-            className="text-xs text-muted-foreground mt-0.5 hover:text-[#2D6A4F] hover:underline underline-offset-2 transition-colors block">
-            {ini.submitter_org}
+            className="text-xs text-muted-foreground mt-0.5 hover:text-[#2D6A4F] hover:underline underline-offset-2 transition-colors inline-block">            
+            {ini.submitter_user_type === "organisation" ? ini.submitter_org : ini.submitter_name}
           </a>
         )}
       </div>
@@ -315,14 +322,18 @@ export default function DashboardMarketplace() {
         // Fetch verification status for submitters
         const userIds = [...new Set((data as any[]).map(i => i.user_id).filter(Boolean))];
         const { data: profiles } = await supabase
-          .from("profiles").select("id,is_verified,org_type").in("id", userIds);
-        const verifiedMap = new Map((profiles ?? []).map((p: any) => [p.id, p.is_verified]));
-        const orgTypeMap = new Map((profiles ?? []).map((p: any) => [p.id, p.org_type]));
+          .from("profiles").select("id,is_verified,org_type,full_name,user_type").in("id", userIds);
+        const verifiedMap  = new Map((profiles ?? []).map((p: any) => [p.id, p.is_verified]));
+        const orgTypeMap   = new Map((profiles ?? []).map((p: any) => [p.id, p.org_type]));
+        const nameMap      = new Map((profiles ?? []).map((p: any) => [p.id, p.full_name]));
+        const userTypeMap  = new Map((profiles ?? []).map((p: any) => [p.id, p.user_type]));
 
         const enriched = (data as any[]).map(ini => ({
           ...ini,
           submitter_is_verified: verifiedMap.get(ini.user_id) ?? false,
-          submitter_org_type: orgTypeMap.get(ini.user_id) ?? null,
+          submitter_org_type:    orgTypeMap.get(ini.user_id) ?? null,
+          submitter_name:        nameMap.get(ini.user_id) ?? null,
+          submitter_user_type:   userTypeMap.get(ini.user_id) ?? null,
         }));
 
         setInitiatives(enriched as InitiativeRow[]);
@@ -793,8 +804,9 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
     try {
       const { data: ep } = await supabase.from("profiles").select("full_name,org_name,user_type,sectors").eq("id", user.id).single();
       const { data: orgRow } = await supabase.from("organizations").select("description,offers").eq("user_id", user.id).maybeSingle();
+      const { data: ownerProfile } = await supabase.from("profiles").select("full_name,org_name,user_type").eq("id", initiative.user_id).maybeSingle();
       const expresserName = ep?.user_type === "organisation" && ep?.org_name ? ep.org_name : ep?.full_name ?? "Someone";
-      let aiMessage = "";
+      const ownerName = ownerProfile?.user_type === "organisation" && ownerProfile?.org_name ? ownerProfile.org_name : ownerProfile?.full_name ?? null;      let aiMessage = "";
       try {
         const aiRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-funder-intro`, {
           method: "POST", headers: { "Content-Type": "application/json" },
@@ -818,8 +830,7 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
               { conversation_id: convoId, user_id: user.id },
               ...(initiative.user_id && initiative.user_id !== user.id ? [{ conversation_id: convoId, user_id: initiative.user_id }] : []),
             ]),
-            supabase.from("messages").insert({ conversation_id: convoId, sender_id: user.id, body: aiMessage || `${expresserName} expressed interest in this initiative.` }),
-          ]);
+            supabase.from("messages").insert({ conversation_id: convoId, sender_id: user.id, body: aiMessage || `Hi${ownerName ? ` ${ownerName}` : ""}, I'm ${expresserName}${ep?.org_name && ep.user_type === "organisation" ? ` from ${ep.org_name}` : ""}. I came across "${initiative.title}" on Impact Natives and I'm interested in exploring a partnership. Happy to connect and share more about what we do.` }),          ]);
           if (initiative.user_id && initiative.user_id !== user.id) {
             await supabase.from("notifications").insert({ user_id: initiative.user_id, type: "eoi_received", title: "New expression of interest", body: `${expresserName} expressed interest in "${initiative.title}"`, link: "/dashboard/messages" });
           }
@@ -954,7 +965,7 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
               )}
 
               {/* Action buttons */}
-              {!passed ? (
+              {!passed && !isOwnInitiative ? (
                 <div className="pt-2 border-t border-border space-y-3">
                   <div className="flex gap-2 flex-wrap">
                     {/* Ask a question */}
@@ -1189,11 +1200,18 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
         <div>
           <h2 className="text-2xl font-bold text-foreground tracking-tight leading-snug">{initiative.title}</h2>
           <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
-            {initiative.submitter_org && (
-              <a href={`/dashboard/natives?tab=organisation&user=${initiative.user_id}`}
+            {(initiative.submitter_org || initiative.submitter_name) && (
+              <a
+                href={
+                  initiative.submitter_user_type === "organisation"
+                    ? `/dashboard/natives?tab=organisation&user=${initiative.user_id}`
+                    : `/dashboard/natives?tab=individual&user=${initiative.user_id}`
+                }
                 onClick={e => e.stopPropagation()}
                 className="font-medium text-foreground/70 hover:text-[#2D6A4F] hover:underline underline-offset-2 transition-colors">
-                {initiative.submitter_org}
+                {initiative.submitter_user_type === "organisation"
+                  ? initiative.submitter_org
+                  : initiative.submitter_name}
               </a>
             )}
             <span>{initiative.eois} expression{initiative.eois !== 1 ? "s" : ""} of interest</span>
