@@ -340,27 +340,27 @@ export function FindPartnerModalDashboard({
         status: "open",
       }).select("id").single();
 
+      // Fetch receiver user_id before conversation setup
+      const { data: receiverProfile } = await supabase
+        .from("organizations")
+        .select("user_id")
+        .eq("id", match.org.id)
+        .single();
+
       if (convData?.id) {
         // Add both parties to conversation
         await supabase.from("conversation_participants").insert([
           { conversation_id: convData.id, user_id: user.id },
+          ...(receiverProfile?.user_id ? [{ conversation_id: convData.id, user_id: receiverProfile.user_id }] : []),
         ]);
 
-        // Send opening message with rationale
+        // Send opening message
         await supabase.from("messages").insert({
           conversation_id: convData.id,
           sender_id: user.id,
-          content: `Hi — I came across your organisation on Impact Natives and I think there's a strong case for exploring a partnership.\n\n${match.rationale}\n\nWould you be open to a conversation?`,
+          body: `Hi ${match.org.organisation_name}, I'm ${orgProfile.organisation_name} and I came across your listing on Impact Natives. ${match.rationale}\n\nWould you be open to a conversation?`,
         });
       }
-
-      // Notify receiver via in-app notification
-      const receiverOrg = match.org;
-      const { data: receiverProfile } = await supabase
-        .from("organizations")
-        .select("user_id")
-        .eq("id", receiverOrg.id)
-        .single();
 
       if (receiverProfile?.user_id) {
         await supabase.from("notifications").insert({
