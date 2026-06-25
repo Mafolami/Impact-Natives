@@ -368,7 +368,7 @@ export function FindPartnerModalDashboard({
           type: "partnership_invite",
           title: "New partnership invitation",
           body: `${orgProfile.organisation_name} wants to explore a partnership with you.`,
-          link: "/dashboard/portfolio?tab=partnerships&view=inbound",          
+          link: "/dashboard/initiatives?tab=partnerships",          
           metadata: {
             sender_org_id: orgProfile.id,
             sender_org_name: orgProfile.organisation_name,
