@@ -1044,7 +1044,7 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
                     </div>
                   )}
                 </div>
-              ) : (
+              ) : (!isOwnInitiative && (
                 <div className="pt-2 border-t border-border flex items-center justify-between">
                   <p className="text-xs text-muted-foreground">
                     Passed · <span className="text-foreground">{passReason}</span>
@@ -1055,7 +1055,7 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
                     Undo
                   </button>
                 </div>
-              )}
+              ))}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">Failed to generate memo. Try again.</p>
