@@ -300,7 +300,7 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
       .eq("id", user.id);
 
     // Save mandate fields for funders/corporates
-    const isFunderOrCorporate = ["philanthropic_foundation", "venture_capital", "corporation", "technology_company", "public_sector"].includes(profile?.org_type ?? "");
+    const isFunderOrCorporate = ["philanthropic_foundation", "venture_capital"].includes(profile?.org_type ?? "");
     if (isFunderOrCorporate) {
       await supabase
         .from("organizations")
@@ -936,7 +936,7 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
       )}
 
       {/* CSR & ESG positioning — corporates and tech companies only */}
-      {profile?.user_type === "organisation" && ["corporation", "technology_company"].includes(profile?.org_type ?? "") && (
+      {profile?.user_type === "organisation" && ["corporation", "technology_company", "public_sector"].includes(profile?.org_type ?? "") && (
         <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
