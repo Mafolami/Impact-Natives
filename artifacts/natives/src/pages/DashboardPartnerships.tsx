@@ -422,228 +422,259 @@ function OrgDetail({
   const score = ddScore(org);
   const fundingStatus = org.partnership_funding_status ?? "";
   const statusStyle = FUNDING_STATUS_COLORS[fundingStatus] ?? { color: "#2D6A4F", bg: "#eaf5ee" };
-
-  function DetailSection({ title, children }: { title: string; children: React.ReactNode }) {
-    return (
-      <div className="space-y-3">
-        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{title}</p>
-        {children}
-      </div>
-    );
-  }
-
-  function DetailRow({ label, value }: { label: string; value: string }) {
-    return (
-      <div className="flex items-start justify-between gap-4">
-        <span className="text-sm text-muted-foreground shrink-0">{label}</span>
-        <span className="text-sm font-semibold text-foreground text-right">{value}</span>
-      </div>
-    );
-  }
-
+ 
+  const signals = [
+    org.partnership_stage     && { label: "Stage",    value: STAGE_LABELS[org.partnership_stage] ?? org.partnership_stage,              color: "#2D6A4F", bg: "#eaf5ee" },
+    org.partnership_duration  && { label: "Duration",  value: DURATION_LABELS[org.partnership_duration] ?? org.partnership_duration,     color: "#7B5EA7", bg: "#f3f0fa" },
+    org.partnership_budget    && { label: "Budget",    value: BUDGET_LABELS[org.partnership_budget] ?? org.partnership_budget,           color: "#C45C26", bg: "#fdf5f2" },
+    org.partnership_decision_timeline && { label: "Timeline", value: TIMELINE_LABELS[org.partnership_decision_timeline] ?? org.partnership_decision_timeline, color: "#0369a1", bg: "#f0f9ff" },
+  ].filter(Boolean) as { label: string; value: string; color: string; bg: string }[];
+ 
+  const ddDocs = [
+    { key: "partnership_dd_financial_model",     label: "Financial model" },
+    { key: "partnership_dd_audited_accounts",    label: "Audited accounts" },
+    { key: "partnership_dd_safeguarding_policy", label: "Safeguarding policy" },
+    { key: "partnership_dd_data_policy",         label: "Data policy" },
+    { key: "partnership_dd_governance_doc",      label: "Governance doc" },
+  ];
+ 
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
-      {/* Status stripe */}
-      <div className="h-1.5 w-full" style={{ background: statusStyle.color }} />
-
-      <div className="p-6 space-y-6">
-        {/* Nav */}
-        <div className="flex items-center justify-between">
+ 
+      {/* ── Identity header ── */}
+      <div className="px-7 pt-6 pb-5" style={{ background: "linear-gradient(135deg, #0d2b1a 0%, #1a4a2e 100%)" }}>
+        <div className="flex items-start justify-between mb-4">
           <button type="button" onClick={onBack}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            className="flex items-center gap-1.5 text-xs font-medium text-white/60 hover:text-white transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+              stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5">
               <path d="M19 12H5M12 5l-7 7 7 7" />
             </svg>
             Back
           </button>
           <button type="button" onClick={onToggleSave}
-            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-border hover:border-[#2D6A4F]/60 transition-colors">
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
+            style={{ background: "rgba(255,255,255,0.1)", color: isSaved ? "#86efac" : "rgba(255,255,255,0.6)" }}>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-3.5 h-3.5"
-              fill={isSaved ? "#2D6A4F" : "none"} stroke={isSaved ? "#2D6A4F" : "currentColor"} strokeWidth={2}>
+              fill={isSaved ? "#86efac" : "none"} stroke={isSaved ? "#86efac" : "currentColor"} strokeWidth={2}>
               <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
             </svg>
             {isSaved ? "Saved" : "Save"}
           </button>
         </div>
-
-        {/* Identity */}
-        <div>
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <a
-              href={`/dashboard/natives?user=${org.user_id}`}
-              className="text-xl font-black text-foreground hover:text-[#2D6A4F] transition-colors hover:underline underline-offset-2"
-            >
-              {org.organisation_name}
-            </a>
-            {isVerified && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
-                style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
-                <ShieldCheck className="w-3 h-3" />Verified
-              </span>
+ 
+        <div className="flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <a href={`/dashboard/natives?user=${org.user_id}`}
+                className="text-xl font-black text-white hover:text-[#86efac] transition-colors">
+                {org.organisation_name}
+              </a>
+              {isVerified && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                  style={{ background: "rgba(134,239,172,0.15)", color: "#86efac" }}>
+                  <ShieldCheck className="w-3 h-3" />Verified
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-white/50 capitalize">
+              {orgTypeLabel(org.organisation_type)}
+              {countries.length > 0 && ` · ${countries.join(", ")}`}
+            </p>
+            {sectors.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {sectors.map(s => (
+                  <span key={s} className="text-[10px] font-semibold px-2.5 py-1 rounded-full"
+                    style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)" }}>
+                    {s}
+                  </span>
+                ))}
+              </div>
             )}
           </div>
-          <p className="text-base text-muted-foreground capitalize">
-            {orgTypeLabel(org.organisation_type)}
-            {countries.length > 0 && ` · ${countries.join(", ")}`}
-          </p>
-          {sectors.length > 0 && (
-            <div className="flex gap-1.5 flex-wrap mt-2">
-              {sectors.map(s => (
-                <span key={s} className="text-xs px-2.5 py-1 rounded-full border border-border text-muted-foreground">{s}</span>
-              ))}
-            </div>
+          {fundingStatus && (
+            <span className="text-[10px] font-bold px-3 py-1.5 rounded-full shrink-0"
+              style={{ background: statusStyle.bg, color: statusStyle.color }}>
+              {FUNDING_STATUS_LABELS[fundingStatus] ?? fundingStatus}
+            </span>
           )}
         </div>
-
-        {/* Partnership title + sought */}
-        {(org.partnership_title || org.partnership_sought) && (
-          <div className="rounded-2xl p-5 space-y-3" style={{ background: `${statusStyle.color}08`, border: `1.5px solid ${statusStyle.color}30` }}>
+      </div>
+ 
+      <div className="divide-y divide-border">
+ 
+        {/* ── Partnership request block ── */}
+        {(org.partnership_title || org.partnership_sought || org.partnership_success_definition) && (
+          <div className="px-7 py-6 space-y-4" style={{ background: `${statusStyle.color}06` }}>
             {org.partnership_title && (
-              <p className="text-base font-black text-foreground">{org.partnership_title}</p>
+              <h3 className="text-base font-black text-foreground leading-snug">{org.partnership_title}</h3>
             )}
             {org.partnership_sought && (
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ color: statusStyle.color }}>Seeking</p>
-                <p className="text-base text-foreground leading-relaxed">{org.partnership_sought}</p>              </div>
+                <p className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: statusStyle.color }}>Seeking</p>
+                <p className="text-sm text-foreground leading-relaxed">{org.partnership_sought}</p>
+              </div>
             )}
             {org.partnership_success_definition && (
-              <div className="pt-2 border-t" style={{ borderColor: `${statusStyle.color}20` }}>
-                <p className="text-[10px] font-black uppercase tracking-widest mb-1.5 text-muted-foreground/60">Success definition</p>
-                <p className="text-sm text-muted-foreground leading-relaxed italic">"{org.partnership_success_definition}"</p>
+              <div className="rounded-xl px-4 py-3" style={{ background: `${statusStyle.color}10`, borderLeft: `3px solid ${statusStyle.color}` }}>
+                <p className="text-[10px] font-black uppercase tracking-widest mb-1.5 text-muted-foreground">Success in 12 months</p>
+                <p className="text-sm text-foreground leading-relaxed italic">"{org.partnership_success_definition}"</p>
               </div>
             )}
           </div>
         )}
-
-        {/* About */}
-        {org.description && (
-          <DetailSection title="About">
-            <p className="text-base text-muted-foreground leading-relaxed">{org.description}</p>
-          </DetailSection>
-        )}
-
-        {/* Partnership signals */}
-        <DetailSection title="Partnership details">
-          <div className="rounded-xl border border-border divide-y divide-border">
-            {org.partnership_stage && <div className="px-4 py-2.5"><DetailRow label="Stage" value={STAGE_LABELS[org.partnership_stage] ?? org.partnership_stage} /></div>}
-            {org.partnership_duration && <div className="px-4 py-2.5"><DetailRow label="Duration" value={DURATION_LABELS[org.partnership_duration] ?? org.partnership_duration} /></div>}
-            {org.partnership_budget && <div className="px-4 py-2.5"><DetailRow label="Budget" value={BUDGET_LABELS[org.partnership_budget] ?? org.partnership_budget} /></div>}
-            {org.partnership_decision_timeline && <div className="px-4 py-2.5"><DetailRow label="Timeline" value={TIMELINE_LABELS[org.partnership_decision_timeline] ?? org.partnership_decision_timeline} /></div>}
-            {org.partnership_funding_status && <div className="px-4 py-2.5"><DetailRow label="Funding status" value={FUNDING_STATUS_LABELS[org.partnership_funding_status] ?? org.partnership_funding_status} /></div>}
-            {org.partnership_exclusivity && <div className="px-4 py-2.5"><DetailRow label="Exclusivity" value={org.partnership_exclusivity === "one_dedicated_partner" ? "One dedicated partner" : "Open to multiple partners"} /></div>}
-            {org.partnership_physically_present !== null && org.partnership_physically_present !== undefined && (
-              <div className="px-4 py-2.5"><DetailRow label="On the ground" value={org.partnership_physically_present ? "Yes" : "No — remote"} /></div>
-            )}
-            {org.partnership_geo_specificity && <div className="px-4 py-2.5"><DetailRow label="Location focus" value={org.partnership_geo_specificity} /></div>}
-            {org.partnership_team_capacity && <div className="px-4 py-2.5"><DetailRow label="Team capacity" value={org.partnership_team_capacity.replace(/_/g, " ").replace(/(\d)\s+(\d)/g, "$1–$2")} /></div>}            {org.partnership_contact_seniority && <div className="px-4 py-2.5"><DetailRow label="Lead contact" value={org.partnership_contact_seniority.replace(/_/g, " ")} /></div>}
-          </div>
-        </DetailSection>
-
-        {/* Expectations */}
-        {(org.partnership_working_style || org.partnership_financial_transfer || (org.partnership_reporting && org.partnership_reporting.length > 0) || org.partnership_ip_ownership || (org.partnership_legal_type && org.partnership_legal_type.length > 0)) && (
-          <DetailSection title="Working expectations">
-            <div className="rounded-xl border border-border divide-y divide-border">
-              {org.partnership_working_style && <div className="px-4 py-2.5"><DetailRow label="Working style" value={WORKING_STYLE_LABELS[org.partnership_working_style] ?? org.partnership_working_style} /></div>}
-              {org.partnership_financial_transfer && <div className="px-4 py-2.5"><DetailRow label="Financial arrangement" value={FINANCIAL_TRANSFER_LABELS[org.partnership_financial_transfer] ?? org.partnership_financial_transfer} /></div>}
-              {org.partnership_reporting && org.partnership_reporting.length > 0 && (
-                <div className="px-4 py-2.5"><DetailRow label="Reporting" value={org.partnership_reporting.map(r => r.replace(/_/g, " ")).join(", ")} /></div>
-              )}
-              {org.partnership_ip_ownership && <div className="px-4 py-2.5"><DetailRow label="IP ownership" value={org.partnership_ip_ownership.replace(/_/g, " ")} /></div>}
-              {org.partnership_legal_type && org.partnership_legal_type.length > 0 && (
-                <div className="px-4 py-2.5"><DetailRow label="Partnership type" value={org.partnership_legal_type.map(t => ({
-                  formal_mou: "Formal MoU", subcontracting: "Service provider arrangement",
-                  co_implementation: "Joint delivery", referral: "Referral / network",
-                  joint_venture: "Joint venture", informal: "Informal collaboration", open: "Open to discussion",
-                }[t] ?? t)).join(", ")} /></div>
+ 
+        {/* ── Signal pills ── */}
+        {signals.length > 0 && (
+          <div className="px-7 py-5">
+            <div className="flex flex-wrap gap-2">
+              {signals.map(s => (
+                <div key={s.label} className="flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-semibold"
+                  style={{ background: s.bg, color: s.color }}>
+                  <span className="font-black uppercase tracking-widest text-[9px] opacity-70">{s.label}</span>
+                  <span>{s.value}</span>
+                </div>
+              ))}
+              {org.partnership_exclusivity && (
+                <div className="flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-semibold"
+                  style={{ background: "#f5f5f5", color: "#555" }}>
+                  <span className="font-black uppercase tracking-widest text-[9px] opacity-70">Exclusivity</span>
+                  <span>{org.partnership_exclusivity === "one_dedicated_partner" ? "One partner only" : "Multiple partners"}</span>
+                </div>
               )}
             </div>
-          </DetailSection>
+          </div>
         )}
-
-        {/* Needs + offers */}
+ 
+        {/* ── About ── */}
+        {org.description && (
+          <div className="px-7 py-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">About</p>
+            <p className="text-sm text-foreground leading-relaxed">{org.description}</p>
+          </div>
+        )}
+ 
+        {/* ── Partnership details ── */}
+        {(org.partnership_funding_status || org.partnership_working_style || org.partnership_financial_transfer || org.partnership_geo_specificity || org.partnership_team_capacity || org.partnership_contact_seniority || (org.partnership_legal_type && org.partnership_legal_type.length > 0) || (org.partnership_reporting && org.partnership_reporting.length > 0) || org.partnership_ip_ownership || org.partnership_physically_present !== null) && (
+          <div className="px-7 py-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Details</p>
+            <div className="grid sm:grid-cols-2 gap-x-8 gap-y-3">
+              {[
+                org.partnership_funding_status && { label: "Funding status",      value: FUNDING_STATUS_LABELS[org.partnership_funding_status] ?? org.partnership_funding_status },
+                org.partnership_working_style  && { label: "Working style",       value: WORKING_STYLE_LABELS[org.partnership_working_style] ?? org.partnership_working_style },
+                org.partnership_financial_transfer && { label: "Financial arrangement", value: FINANCIAL_TRANSFER_LABELS[org.partnership_financial_transfer] ?? org.partnership_financial_transfer },
+                org.partnership_geo_specificity && { label: "Location focus",     value: org.partnership_geo_specificity },
+                org.partnership_team_capacity  && { label: "Team capacity",       value: org.partnership_team_capacity.replace(/_/g, " ").replace(/(\d) (\d)/g, "$1–$2") },
+                org.partnership_contact_seniority && { label: "Lead contact",     value: org.partnership_contact_seniority.replace(/_/g, " ") },
+                org.partnership_physically_present !== null && org.partnership_physically_present !== undefined && { label: "On the ground", value: org.partnership_physically_present ? "Yes" : "Remote" },
+                org.partnership_legal_type?.length && { label: "Partnership type", value: org.partnership_legal_type.map(t => ({ formal_mou: "Formal MoU", subcontracting: "Service provider", co_implementation: "Joint delivery", referral: "Referral", joint_venture: "Joint venture", informal: "Informal", open: "Open" }[t] ?? t)).join(", ") },
+                org.partnership_reporting?.length && { label: "Reporting",        value: org.partnership_reporting.map(r => r.replace(/_/g, " ")).join(", ") },
+                org.partnership_ip_ownership && { label: "IP ownership",          value: org.partnership_ip_ownership.replace(/_/g, " ") },
+              ].filter(Boolean).map((row: any) => (
+                <div key={row.label} className="flex items-start justify-between gap-4 py-2 border-b border-border/50 last:border-0">
+                  <span className="text-xs text-muted-foreground shrink-0">{row.label}</span>
+                  <span className="text-xs font-semibold text-foreground text-right capitalize">{row.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+ 
+        {/* ── Exchange ── */}
         {((org.needs && org.needs.length > 0) || (org.offers && org.offers.length > 0)) && (
-          <DetailSection title="Exchange">
-            <div className="space-y-4">
+          <div className="px-7 py-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Exchange</p>
+            <div className="grid grid-cols-2 gap-6">
               {org.needs && org.needs.length > 0 && (
                 <div>
-                  <p className="text-xs font-bold text-foreground mb-2">Needs</p>
-                  <div className="flex flex-wrap gap-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-2.5">Needs from partner</p>
+                  <div className="flex flex-wrap gap-1.5">
                     {org.needs.map(n => (
-                      <span key={n} className="text-xs px-3 py-1.5 rounded-full border border-border text-muted-foreground font-medium">{n}</span>
+                      <span key={n} className="text-xs font-medium px-3 py-1.5 rounded-full border border-border text-muted-foreground">{n}</span>
                     ))}
                   </div>
                 </div>
               )}
               {org.offers && org.offers.length > 0 && (
                 <div>
-                  <p className="text-xs font-bold text-foreground mb-2">Offers</p>
-                  <div className="flex flex-wrap gap-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-2.5">Brings to the table</p>
+                  <div className="flex flex-wrap gap-1.5">
                     {org.offers.map(o => (
-                      <span key={o} className="text-xs px-3 py-1.5 rounded-full font-semibold" style={{ background: "#eaf5ee", color: "#2D6A4F" }}>{o}</span>
+                      <span key={o} className="text-xs font-bold px-3 py-1.5 rounded-full"
+                        style={{ background: "#eaf5ee", color: "#2D6A4F" }}>{o}</span>
                     ))}
                   </div>
                 </div>
               )}
             </div>
-          </DetailSection>
-        )}
-
-        {/* DD readiness */}
-        <DetailSection title="Due diligence readiness">
-          <div className="flex items-center gap-3 mb-3">
-            <DDDots score={score} />
           </div>
-         <div className="flex flex-wrap gap-2">
-            {[
-              { key: "partnership_dd_financial_model", label: "Financial model" },
-              { key: "partnership_dd_audited_accounts", label: "Audited accounts" },
-              { key: "partnership_dd_safeguarding_policy", label: "Safeguarding policy" },
-              { key: "partnership_dd_data_policy", label: "Data / GDPR policy" },
-              { key: "partnership_dd_governance_doc", label: "Governance document" },
-            ].map(({ key, label }) => {
+        )}
+ 
+        {/* ── DD readiness ── */}
+        <div className="px-7 py-5">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Due diligence readiness</p>
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="w-6 h-1.5 rounded-full transition-colors"
+                    style={{ background: i < score ? "#2D6A4F" : "var(--border)" }} />
+                ))}
+              </div>
+              <span className="text-xs font-bold" style={{ color: score > 2 ? "#2D6A4F" : "#C45C26" }}>{score}/5</span>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {ddDocs.map(({ key, label }) => {
               const has = org[key as keyof OrgRow] as boolean;
               return (
-                <span key={key} className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full ${has ? "text-[#2D6A4F]" : "text-muted-foreground/50 line-through"}`}
-                  style={{ background: has ? "#eaf5ee" : "transparent", border: has ? "none" : "1px solid var(--border)" }}>
-                  {has && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                <span key={key} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
+                  style={has
+                    ? { background: "#eaf5ee", color: "#2D6A4F" }
+                    : { background: "var(--muted)", color: "var(--muted-foreground)", opacity: 0.5, textDecoration: "line-through" }
+                  }>
+                  {has && (
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  )}
                   {label}
                 </span>
               );
             })}
           </div>
-        </DetailSection>
-
-        {/* SDGs */}
+        </div>
+ 
+        {/* ── SDGs ── */}
         {org.sdgs && org.sdgs.length > 0 && (
-          <DetailSection title="SDG alignment">
-            <div className="flex gap-1.5 flex-wrap">
+          <div className="px-7 py-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">SDG alignment</p>
+            <div className="flex flex-wrap gap-2">
               {org.sdgs.map(sdg => (
-                <span key={sdg} className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+                <span key={sdg} className="text-xs font-bold px-3 py-1.5 rounded-full"
                   style={{ background: "#eaf5ee", color: "#2D6A4F" }}>SDG {sdg}</span>
               ))}
             </div>
-          </DetailSection>
+          </div>
         )}
-
-        {/* Context */}
+ 
+        {/* ── Context ── */}
         {(org.partnership_theory_of_change || org.partnership_prior_attempts || org.partnership_constraints) && (
-          <DetailSection title="Context">
-            <div className="space-y-3">
+          <div className="px-7 py-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Context</p>
+            <div className="space-y-4">
               {org.partnership_theory_of_change && (
                 <div className="space-y-1">
                   <p className="text-xs font-bold text-foreground">Approach to change</p>
                   <p className="text-sm text-muted-foreground leading-relaxed">{org.partnership_theory_of_change}</p>
                 </div>
               )}
-              {(org.partnership_theory_of_change && (org.partnership_prior_attempts || org.partnership_constraints)) && <div className="h-px bg-border" />}
               {org.partnership_prior_attempts && (
                 <div className="space-y-1">
                   <p className="text-xs font-bold text-foreground">Previous attempts</p>
                   <p className="text-sm text-muted-foreground leading-relaxed">{org.partnership_prior_attempts}</p>
                 </div>
               )}
-              {(org.partnership_prior_attempts && org.partnership_constraints) && <div className="h-px bg-border" />}
               {org.partnership_constraints && (
                 <div className="space-y-1">
                   <p className="text-xs font-bold text-foreground">Constraints</p>
@@ -651,48 +682,61 @@ function OrgDetail({
                 </div>
               )}
             </div>
-          </DetailSection>
+          </div>
         )}
-
-        {/* Prior experience */}
+ 
+        {/* ── Track record ── */}
         {org.partnership_prior_experience !== null && org.partnership_prior_experience !== undefined && (
-          <DetailSection title="Track record">
-            <div className="rounded-xl border border-border px-4 py-3 space-y-2">
-              <DetailRow label="Completed a partnership before" value={org.partnership_prior_experience ? "Yes" : "No"} />
-              {org.partnership_prior_experience && org.partnership_prior_experience_detail && (
-                <p className="text-xs text-muted-foreground leading-relaxed pt-1 border-t border-border">{org.partnership_prior_experience_detail}</p>
-              )}
+          <div className="px-7 py-5">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Track record</p>
+            <div className="flex items-center gap-2 mb-2">
+              <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${org.partnership_prior_experience ? "bg-[#2D6A4F]" : "bg-muted"}`}>
+                {org.partnership_prior_experience
+                  ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  : <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                }
+              </span>
+              <p className="text-sm text-foreground font-medium">
+                {org.partnership_prior_experience ? "Has completed a partnership before" : "No prior completed partnerships"}
+              </p>
             </div>
-          </DetailSection>
+            {org.partnership_prior_experience && org.partnership_prior_experience_detail && (
+              <p className="text-sm text-muted-foreground leading-relaxed pl-7">{org.partnership_prior_experience_detail}</p>
+            )}
+          </div>
         )}
-
-        {/* CTA */}
+ 
+        {/* ── CTA ── */}
         {isOrg && !org.partnership_formed && (
-          <div className="pt-2 border-t border-border">
+          <div className="px-7 py-5">
             {alreadySent ? (
               <div className="flex items-center gap-2 text-sm font-semibold text-[#2D6A4F]">
                 <CheckCircle2 className="w-4 h-4" />Interest expressed — they've been notified
               </div>
             ) : (
               <button type="button" onClick={onExpressInterest} disabled={sending}
-                className="w-full h-11 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-bold disabled:opacity-40 transition-colors">
+                className="w-full h-12 rounded-full text-white text-sm font-bold disabled:opacity-40 transition-colors"
+                style={{ background: "linear-gradient(135deg, #2D6A4F, #3d8f6a)" }}>
                 {sending ? "Sending..." : "Express interest"}
               </button>
             )}
           </div>
         )}
-
-        {/* Website */}
+ 
+        {/* ── Website ── */}
         {org.website && org.website !== "https://" && (
-          <a href={org.website} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs text-primary hover:underline">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5">
-              <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-            </svg>
-            {org.website.replace(/^https?:\/\//, "")}
-          </a>
+          <div className="px-7 py-4">
+            <a href={org.website} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-primary hover:underline">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5">
+                <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+              {org.website.replace(/^https?:\/\//, "")}
+            </a>
+          </div>
         )}
+ 
       </div>
     </div>
   );
