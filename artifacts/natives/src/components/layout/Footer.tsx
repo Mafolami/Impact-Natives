@@ -41,7 +41,7 @@ export function Footer() {
     </div>
     <div className="md:col-span-2 space-y-3" style={{ maxWidth: '280px' }}>
       <h4 className="font-bold text-lg tracking-tight" style={{ color: "#f7f3ed" }}>Natives</h4>
-      <p style={{ color: "rgba(247,243,237,0.55)" }}>
+      <p className="sm:max-w-xs" style={{ color: "rgba(247,243,237,0.55)" }}>
         Institutional-grade digital coordination and partnership infrastructure for Africa's social impact economy.
       </p>
       <div className="pt-2">

@@ -44,7 +44,7 @@ export function NewsletterSignup({ variant = "section" }: { variant?: "section" 
         {state === "success" ? (
           <p className="text-sm text-[#6fcf97]">You're subscribed. Welcome.</p>
         ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+          <form onSubmit={handleSubmit} className="flex flex-row gap-2">
             <input
               type="email"
               value={email}
@@ -89,8 +89,7 @@ export function NewsletterSignup({ variant = "section" }: { variant?: "section" 
             You're on the list.
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3 max-w-md mx-auto">
-            <input
+          <form onSubmit={handleSubmit} className="flex flex-row gap-3 max-w-md mx-auto">            <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
