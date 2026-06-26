@@ -344,12 +344,10 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
       }
 
       const { data, error } = await supabase.functions.invoke("prefill-partnership-form", { body });
-      console.log("prefill raw response:", JSON.stringify(data));
+  
       if (error || !data?.prefilled) throw new Error(error?.message ?? "Prefill failed");
       const p = data.prefilled;
-      console.log("theory_of_change:", p.partnership_theory_of_change);
-      console.log("prior_attempts:", p.partnership_prior_attempts);
-      console.log("constraints:", p.partnership_constraints);
+
       setForm(prev => ({
         ...prev,
         country: p.country ?? [], sectors: p.sectors ?? [], sdgs: p.sdgs ?? [],
@@ -361,7 +359,10 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
         partnership_success_definition: p.partnership_success_definition ?? "",
         partnership_legal_type: p.partnership_legal_type ?? [], partnership_exclusivity: p.partnership_exclusivity ?? "",
         partnership_language: p.partnership_language ?? [], partnership_team_capacity: p.partnership_team_capacity ?? "",
-        partnership_funding_status: p.partnership_funding_status ?? "",
+        partnership_funding_status:      p.partnership_funding_status ?? "",
+        partnership_theory_of_change:    p.partnership_theory_of_change ?? "",
+        partnership_prior_attempts:      p.partnership_prior_attempts ?? "",
+        partnership_constraints:         p.partnership_constraints ?? "",
       }));
       setPrefilled(true);
       setFormStep(1);
