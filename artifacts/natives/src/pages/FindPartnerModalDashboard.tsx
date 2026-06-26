@@ -344,8 +344,12 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
       }
 
       const { data, error } = await supabase.functions.invoke("prefill-partnership-form", { body });
+      console.log("prefill raw response:", JSON.stringify(data));
       if (error || !data?.prefilled) throw new Error(error?.message ?? "Prefill failed");
       const p = data.prefilled;
+      console.log("theory_of_change:", p.partnership_theory_of_change);
+      console.log("prior_attempts:", p.partnership_prior_attempts);
+      console.log("constraints:", p.partnership_constraints);
       setForm(prev => ({
         ...prev,
         country: p.country ?? [], sectors: p.sectors ?? [], sdgs: p.sdgs ?? [],
