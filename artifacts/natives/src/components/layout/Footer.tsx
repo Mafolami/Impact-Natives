@@ -6,15 +6,6 @@ export function Footer() {
 <div className="max-w-8xl mx-auto content-padding py-12 w-full text-sm">
   {/* Mobile: stacked. Desktop: single row */}
   <div id="footer-desktop" style={{ display: 'none', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '2rem' }}>
-    <div className="md:col-span-2 space-y-3" style={{ maxWidth: '280px' }}>
-      <h4 className="font-bold text-lg tracking-tight" style={{ color: "#f7f3ed" }}>Natives</h4>
-      <p style={{ color: "rgba(247,243,237,0.55)" }}>
-        Institutional-grade digital coordination and partnership infrastructure for Africa's social impact economy.
-      </p>
-      <div className="pt-2">
-        <NewsletterSignup variant="footer" />
-      </div>
-    </div>
     <div>
       <h5 className="font-bold mb-3" style={{ color: "#f7f3ed" }}>Platform</h5>
       <ul className="space-y-2" style={{ color: "rgba(247,243,237,0.55)" }}>
@@ -48,11 +39,7 @@ export function Footer() {
         <li><a href="/legal/cookies" className="hover:underline">Cookie Policy</a></li>
       </ul>
     </div>
-  </div>
-
-  {/* Mobile only */}
-  <div id="footer-mobile" className="space-y-8">
-    <div className="space-y-3">
+    <div className="md:col-span-2 space-y-3" style={{ maxWidth: '280px' }}>
       <h4 className="font-bold text-lg tracking-tight" style={{ color: "#f7f3ed" }}>Natives</h4>
       <p style={{ color: "rgba(247,243,237,0.55)" }}>
         Institutional-grade digital coordination and partnership infrastructure for Africa's social impact economy.
@@ -61,6 +48,10 @@ export function Footer() {
         <NewsletterSignup variant="footer" />
       </div>
     </div>
+  </div>
+
+  {/* Mobile only */}
+  <div id="footer-mobile" className="space-y-8">
     <div className="grid grid-cols-2 gap-8">
       <div>
         <h5 className="font-bold mb-3" style={{ color: "#f7f3ed" }}>Platform</h5>
@@ -95,6 +86,15 @@ export function Footer() {
           <li><a href="/legal/cookies" className="hover:underline">Cookie Policy</a></li>
         </ul>
       </div>
+      <div className="space-y-3">
+      <h4 className="font-bold text-lg tracking-tight" style={{ color: "#f7f3ed" }}>Natives</h4>
+      <p style={{ color: "rgba(247,243,237,0.55)" }}>
+        Institutional-grade digital coordination and partnership infrastructure for Africa's social impact economy.
+      </p>
+      <div className="pt-2">
+        <NewsletterSignup variant="footer" />
+      </div>
+    </div>
     </div>
   </div>
 </div>
