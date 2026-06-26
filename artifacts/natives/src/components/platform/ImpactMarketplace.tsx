@@ -870,6 +870,7 @@ function ViewMoreButton() {
 function FeaturedInitiativesSection({ onCreateClick }: { onCreateClick: () => void }) {
   const [initiatives, setInitiatives] = useState<Initiative[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchInitiatives() {
@@ -878,8 +879,10 @@ function FeaturedInitiativesSection({ onCreateClick }: { onCreateClick: () => vo
         .select('*')
         .eq('status', 'published')
         .order('created_at', { ascending: false });
-      if (error) console.error('Failed to fetch initiatives:', error);
-      else setInitiatives(data ?? []);
+      if (error) {
+        console.error('Failed to fetch initiatives:', error);
+        setFetchError(error.message);
+      } else setInitiatives(data ?? []);
       setLoadingData(false);
     }
     fetchInitiatives();
@@ -989,6 +992,9 @@ function FeaturedInitiativesSection({ onCreateClick }: { onCreateClick: () => vo
           </CardContent>
         </Card>
 
+        {fetchError && (
+          <div className="text-center py-8 text-red-500 text-sm">{fetchError}</div>
+        )}
         {loadingData ? (
           <div className="text-center py-16 text-muted-foreground">Loading initiatives...</div>
         ) : (
