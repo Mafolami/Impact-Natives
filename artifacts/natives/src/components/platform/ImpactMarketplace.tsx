@@ -583,7 +583,7 @@ function HeroSection({ onCreateClick }: { onCreateClick: () => void }) {
 
         <h1 style={{
           fontFamily: "'Bricolage Grotesque', sans-serif",
-          fontSize: 'clamp(2.75rem, 6vw, 5rem)',
+          fontSize: '2.75rem',
           fontWeight: 800,
           letterSpacing: '-0.04em',
           lineHeight: 1.05,
@@ -998,7 +998,7 @@ function FeaturedInitiativesSection({ onCreateClick }: { onCreateClick: () => vo
         {loadingData ? (
           <div className="text-center py-16 text-muted-foreground">Loading initiatives...</div>
         ) : (
-          <div className="grid md:grid-cols-2 gap-6 mb-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-16">
             {filtered.slice(0, 4).map((ini) => (
               <InitiativeCard key={ini.id} initiative={ini} />
             ))}
