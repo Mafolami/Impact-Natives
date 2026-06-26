@@ -962,21 +962,21 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
 
                 <Q label="Your approach to creating change" optional hint="One sentence. Helps partners check if your theories of change are compatible — a common reason good-looking partnerships fail." accent="#C45C26">
                   <Textarea className="w-full text-sm resize-none rounded-xl border-2"
-                    placeholder="e.g. We build local capacity through community-led delivery and evidence-based advocacy, prioritising long-term systems change over short-term outputs."
+                    placeholder=""
                     value={form.partnership_theory_of_change}
                     onChange={e => setF("partnership_theory_of_change", e.target.value)} />
                 </Q>
 
                 <Q label="Previous attempts at this type of partnership" optional hint="Transparency about what you've tried builds trust and helps us match you better." accent="#C45C26">
                   <Textarea className="w-full text-sm resize-none rounded-xl border-2"
-                    placeholder="Have you previously sought this type of partner? What happened?"
+                    placeholder=""
                     value={form.partnership_prior_attempts}
                     onChange={e => setF("partnership_prior_attempts", e.target.value)} />
                 </Q>
 
                 <Q label="Existing constraints" optional hint="Donor restrictions, exclusivity agreements, or legal constraints partners should know about before reaching out." accent="#C45C26">
                   <Textarea className="w-full text-sm resize-none rounded-xl border-2"
-                    placeholder="e.g. Our current USAID funding restricts us from partnering with organisations based in certain countries."
+                    placeholder=""
                     value={form.partnership_constraints}
                     onChange={e => setF("partnership_constraints", e.target.value)} />
                 </Q>
