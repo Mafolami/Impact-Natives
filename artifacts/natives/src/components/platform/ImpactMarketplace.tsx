@@ -875,18 +875,15 @@ function FeaturedInitiativesSection({ onCreateClick }: { onCreateClick: () => vo
   useEffect(() => {
     async function fetchInitiatives() {
       try {
-        const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/initiative_requests?select=id,title,sectors,locations,status,budget,partnerships,eois,problem,outcome,tags,created_at,submitter_name,submitter_org,submitter_email&status=eq.published&order=created_at.desc`;
-        const res = await fetch(url, {
-          headers: {
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-        });
-        const data = await res.json();
-        setFetchError(`raw fetch: ${Array.isArray(data) ? data.length : JSON.stringify(data).slice(0,100)}`);
-        if (Array.isArray(data)) setInitiatives(data as unknown as Initiative[]);
+        const { data, error } = await supabase
+          .from('initiative_requests')
+          .select('id,title,sectors,locations,status,budget,partnerships,eois,problem,outcome,tags,created_at,submitter_name,submitter_org,submitter_email')
+          .eq('status', 'published')
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        setInitiatives((data ?? []) as unknown as Initiative[]);
       } catch (e) {
-        setFetchError(`Error: ${String(e)}`);
+        console.error('Failed to fetch initiatives:', e);
       } finally {
         setLoadingData(false);
       }
