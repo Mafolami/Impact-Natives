@@ -426,7 +426,7 @@ function OrgDetail({
   function DetailSection({ title, children }: { title: string; children: React.ReactNode }) {
     return (
       <div className="space-y-3">
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{title}</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{title}</p>
         {children}
       </div>
     );
@@ -536,7 +536,7 @@ function OrgDetail({
               <div className="px-4 py-2.5"><DetailRow label="On the ground" value={org.partnership_physically_present ? "Yes" : "No — remote"} /></div>
             )}
             {org.partnership_geo_specificity && <div className="px-4 py-2.5"><DetailRow label="Location focus" value={org.partnership_geo_specificity} /></div>}
-            {org.partnership_team_capacity && <div className="px-4 py-2.5"><DetailRow label="Team capacity" value={org.partnership_team_capacity.replace(/_/g, "–")} /></div>}            {org.partnership_contact_seniority && <div className="px-4 py-2.5"><DetailRow label="Lead contact" value={org.partnership_contact_seniority.replace(/_/g, " ")} /></div>}
+            {org.partnership_team_capacity && <div className="px-4 py-2.5"><DetailRow label="Team capacity" value={org.partnership_team_capacity.replace(/_/g, " ").replace(/(\d)\s+(\d)/g, "$1–$2")} /></div>}            {org.partnership_contact_seniority && <div className="px-4 py-2.5"><DetailRow label="Lead contact" value={org.partnership_contact_seniority.replace(/_/g, " ")} /></div>}
           </div>
         </DetailSection>
 
@@ -564,13 +564,13 @@ function OrgDetail({
         {/* Needs + offers */}
         {((org.needs && org.needs.length > 0) || (org.offers && org.offers.length > 0)) && (
           <DetailSection title="Exchange">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
               {org.needs && org.needs.length > 0 && (
                 <div>
                   <p className="text-xs font-bold text-foreground mb-2">Needs</p>
-                  <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-wrap gap-2">
                     {org.needs.map(n => (
-                      <span key={n} className="text-xs px-3 py-1.5 rounded-lg bg-muted text-muted-foreground font-medium">{n}</span>
+                      <span key={n} className="text-xs px-3 py-1.5 rounded-full border border-border text-muted-foreground font-medium">{n}</span>
                     ))}
                   </div>
                 </div>
@@ -578,9 +578,9 @@ function OrgDetail({
               {org.offers && org.offers.length > 0 && (
                 <div>
                   <p className="text-xs font-bold text-foreground mb-2">Offers</p>
-                  <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-wrap gap-2">
                     {org.offers.map(o => (
-                      <span key={o} className="text-xs px-3 py-1.5 rounded-lg bg-[#eaf5ee] text-[#2D6A4F] font-semibold">{o}</span>
+                      <span key={o} className="text-xs px-3 py-1.5 rounded-full font-semibold" style={{ background: "#eaf5ee", color: "#2D6A4F" }}>{o}</span>
                     ))}
                   </div>
                 </div>
@@ -594,7 +594,7 @@ function OrgDetail({
           <div className="flex items-center gap-3 mb-3">
             <DDDots score={score} />
           </div>
-          <div className="grid grid-cols-1 gap-2">
+         <div className="flex flex-wrap gap-2">
             {[
               { key: "partnership_dd_financial_model", label: "Financial model" },
               { key: "partnership_dd_audited_accounts", label: "Audited accounts" },
@@ -604,12 +604,11 @@ function OrgDetail({
             ].map(({ key, label }) => {
               const has = org[key as keyof OrgRow] as boolean;
               return (
-                <div key={key} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium ${has ? "bg-[#eaf5ee] text-[#2D6A4F]" : "bg-muted/40 text-muted-foreground"}`}>
-                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${has ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-border"}`}>
-                    {has && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>}
-                  </div>
+                <span key={key} className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full ${has ? "text-[#2D6A4F]" : "text-muted-foreground/50 line-through"}`}
+                  style={{ background: has ? "#eaf5ee" : "transparent", border: has ? "none" : "1px solid var(--border)" }}>
+                  {has && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
                   {label}
-                </div>
+                </span>
               );
             })}
           </div>
@@ -632,21 +631,23 @@ function OrgDetail({
           <DetailSection title="Context">
             <div className="space-y-3">
               {org.partnership_theory_of_change && (
-                <div className="rounded-xl border border-border px-4 py-3">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">Approach to change</p>
-                  <p className="text-base text-muted-foreground leading-relaxed">{org.partnership_theory_of_change}</p>
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-foreground">Approach to change</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{org.partnership_theory_of_change}</p>
                 </div>
               )}
+              {(org.partnership_theory_of_change && (org.partnership_prior_attempts || org.partnership_constraints)) && <div className="h-px bg-border" />}
               {org.partnership_prior_attempts && (
-                <div className="rounded-xl border border-border px-4 py-3">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">Previous attempts</p>
-                  <p className="text-base text-muted-foreground leading-relaxed">{org.partnership_prior_attempts}</p>
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-foreground">Previous attempts</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{org.partnership_prior_attempts}</p>
                 </div>
               )}
+              {(org.partnership_prior_attempts && org.partnership_constraints) && <div className="h-px bg-border" />}
               {org.partnership_constraints && (
-                <div className="rounded-xl border border-border px-4 py-3">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">Constraints</p>
-                  <p className="text-base text-muted-foreground leading-relaxed">{org.partnership_constraints}</p>
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-foreground">Constraints</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{org.partnership_constraints}</p>
                 </div>
               )}
             </div>
