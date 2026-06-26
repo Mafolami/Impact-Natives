@@ -874,16 +874,19 @@ function FeaturedInitiativesSection({ onCreateClick }: { onCreateClick: () => vo
 
   useEffect(() => {
     async function fetchInitiatives() {
-      const { data, error } = await supabase
-        .from('initiative_requests')
-        .select('*')
-        .eq('status', 'published')
-        .order('created_at', { ascending: false });
-      if (error) {
-        console.error('Failed to fetch initiatives:', error);
-        setFetchError(error.message);
-      } else setInitiatives(data ?? []);
-      setLoadingData(false);
+      try {
+        const { data, error } = await supabase
+          .from('initiative_requests')
+          .select('id,title,sectors,locations,status,budget,partnerships,eois,problem,outcome,tags,created_at,submitter_name,submitter_org,submitter_email')
+          .eq('status', 'published')
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        setInitiatives((data ?? []) as unknown as Initiative[]);
+      } catch (e) {
+        console.error('Failed to fetch initiatives:', e);
+      } finally {
+        setLoadingData(false);
+      }
     }
     fetchInitiatives();
   }, []);
