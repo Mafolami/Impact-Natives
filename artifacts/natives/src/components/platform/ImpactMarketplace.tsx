@@ -933,7 +933,7 @@ function FeaturedInitiativesSection({ onCreateClick }: { onCreateClick: () => vo
 
         <Card className="mb-10">
           <CardContent className="pt-6">
-            <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
               {/* Search */}
               <div className="relative lg:col-span-1">
                 {!search && (
