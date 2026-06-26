@@ -882,7 +882,8 @@ function FeaturedInitiativesSection({ onCreateClick }: { onCreateClick: () => vo
           .order('created_at', { ascending: false });
         if (error) throw error;
         setInitiatives((data ?? []) as unknown as Initiative[]);
-        setFetchError(`Loaded ${data?.length ?? 0} initiatives`);
+        const hasKey = !!import.meta.env.VITE_SUPABASE_ANON_KEY;
+        setFetchError(`Loaded ${data?.length ?? 0} initiatives | key: ${hasKey}`);
       } catch (e) {
         console.error('Failed to fetch initiatives:', e);
         setFetchError(`Error: ${String(e)}`);
