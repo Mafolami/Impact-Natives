@@ -106,20 +106,20 @@ function StepShell({ step, title, subtitle, children, onBack, onNext, nextLabel,
   return (
     <div className="flex flex-col h-full">
       {/* Step header */}
-      <div className="shrink-0 px-10 pt-10 pb-8 border-b border-border" style={{ background: `linear-gradient(135deg, ${s.light} 0%, transparent 60%)` }}>
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold text-white" style={{ background: s.color }}>
+      <div className="shrink-0 px-10 pt-5 pb-4 border-b border-border" style={{ background: `linear-gradient(135deg, ${s.light} 0%, transparent 60%)` }}>
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white" style={{ background: s.color }}>
             {step + 1}
           </div>
           <div className="h-px flex-1 opacity-20" style={{ background: s.color }} />
         </div>
-        <h2 className="text-2xl font-bold text-foreground mb-1.5">{title}</h2>
-        <p className="text-sm text-muted-foreground leading-relaxed max-w-lg">{subtitle}</p>
+        <h2 className="text-lg font-bold text-foreground mb-1">{title}</h2>
+        <p className="text-sm text-muted-foreground leading-relaxed">{subtitle}</p>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-10 py-8">
-        <div className="max-w-2xl space-y-8">
+      <div className="flex-1 overflow-y-auto px-10 py-6">
+        <div className="w-full space-y-7">
           {children}
         </div>
       </div>
@@ -145,7 +145,7 @@ function StepShell({ step, title, subtitle, children, onBack, onNext, nextLabel,
 }
 
 // Question block -- each question gets its own visual treatment
-function Q({ label, hint, optional, accent, children }: { label: string; hint?: string; optional?: boolean; accent?: string; children: React.ReactNode; }) {
+function Q({ label, hint, mark, accent, children }: { label: string; hint?: string; mark?: boolean; optional?: boolean; accent?: string; children: React.ReactNode; }) {
   return (
     <div className="space-y-3">
       <div className="flex items-start gap-3">
@@ -153,7 +153,7 @@ function Q({ label, hint, optional, accent, children }: { label: string; hint?: 
         <div>
           <p className="text-sm font-semibold text-foreground">
             {label}
-            {optional && <span className="ml-2 text-xs font-normal text-muted-foreground px-1.5 py-0.5 rounded-md bg-muted">optional</span>}
+            {mark && <span className="ml-0.5 text-red-500">*</span>}
           </p>
           {hint && <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{hint}</p>}
         </div>
@@ -164,7 +164,6 @@ function Q({ label, hint, optional, accent, children }: { label: string; hint?: 
     </div>
   );
 }
-
 // Option cards -- large, visually distinct selection
 function OptionCards({ options, selected, onToggle, multi, cols }: {
   options: { value: string; label: string; sub?: string }[];
@@ -605,7 +604,7 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
                 loading={prefilling}>
 
                 {/* Title */}
-                <Q label="Partnership request title" hint="A short, specific title for this partnership listing.">
+                <Q label="Partnership request title" hint="A short, specific title for this partnership listing." mark>
                   <input type="text" placeholder="e.g. Research partner for Nigeria health programme"
                     value={partnershipTitle} onChange={e => setPartnershipTitle(e.target.value)}
                     className="w-full h-12 px-4 rounded-xl border-2 border-border bg-background text-sm focus:outline-none focus:border-[#2D6A4F] transition-colors font-medium" />
@@ -625,7 +624,7 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
 
                 {uploadMode === "text" ? (
                   <Q label="Describe your partnership need"
-                    hint="Include what you're working on, where, what kind of support you need, what you can offer, budget range, and timeline. The more detail, the better the AI can structure your brief.">
+                    hint="Include what you're working on, where, what kind of support you need, what you can offer, budget range, and timeline. The more detail, the better the AI can structure your brief." mark>
                     <textarea rows={8}
                       placeholder="e.g. We're an NGO working on last-mile health delivery in northern Nigeria. We need a UK-based research partner to help design impact evaluations and co-author publications. We can offer field access, community relationships, and local implementation capacity. Budget: £30K–£50K over 18 months starting Q3 2026..."
                       value={freeText} onChange={e => setFreeText(e.target.value)}
@@ -693,15 +692,15 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
                 subtitle="What kind of partnership are you creating? These signals help us match you with organisations whose working style and expectations align with yours."
                 onBack={() => setFormStep(0)}
                 onNext={() => setFormStep(2)}
-                nextDisabled={!form.partnership_sought.trim()}>
+                nextDisabled={!form.partnership_sought.trim() || !form.partnership_stage}>
 
-                <Q label="What are you looking for?" hint="Be specific. What would a good partner actually do?" accent="#C45C26">
+                <Q label="What are you looking for?" hint="Be specific. What would a good partner actually do?" accent="#C45C26" mark>
                   <Textarea className="w-full text-sm resize-none rounded-xl border-2 min-h-[100px]"
                     value={form.partnership_sought} onChange={e => setF("partnership_sought", e.target.value)}
                     placeholder="e.g. A UK-based research institution with experience in health systems evaluation who can co-design our M&E framework and co-author peer-reviewed publications." />
                 </Q>
 
-                <Q label="Stage of work" hint="Where is this initiative right now?" accent="#C45C26">
+                <Q label="Stage of work" hint="Where is this initiative right now?" accent="#C45C26" mark>                  
                   <OptionCards
                     options={[
                       { value: "concept", label: "Co-design from scratch", sub: "Idea defined, looking for a partner to shape it together" },
@@ -750,7 +749,8 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
                 title="Where and when"
                 subtitle="Location specificity, timeline, and resource signals save both sides from mismatched expectations before a single message is sent."
                 onBack={() => setFormStep(1)}
-                onNext={() => setFormStep(3)}>
+                onNext={() => setFormStep(3)}
+                nextDisabled={form.country.length === 0}>
 
                 <Q label="Specific location for this partnership" optional hint="Be as precise as possible — state, city, or corridor. More specific = better matches." accent="#2D6A4F">
                   <input type="text" placeholder="e.g. Kano State, Nigeria"
@@ -758,7 +758,7 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
                     className="w-full h-12 px-4 rounded-xl border-2 border-border bg-background text-sm focus:outline-none focus:border-[#2D6A4F] transition-colors" />
                 </Q>
 
-                <Q label="Where you operate" accent="#2D6A4F">
+                <Q label="Where you operate" accent="#2D6A4F" mark>
                   <Chips options={COUNTRIES.map(c => ({ value: c, label: c }))} selected={form.country} onToggle={v => toggleArr("country", v)} />
                 </Q>
 
@@ -819,17 +819,17 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
                 subtitle="Sectors, needs, offers, and the outcome you're aiming for. This is the core matching data — the more accurate, the better your matches."
                 onBack={() => setFormStep(2)}
                 onNext={() => setFormStep(4)}
-                nextDisabled={form.sectors.length === 0 || form.needs.length === 0}>
+                nextDisabled={form.sectors.length === 0 || form.needs.length === 0 || form.offers.length === 0 || !form.partnership_success_definition.trim()}>
 
-                <Q label="Sectors" hint="Select all that apply to this initiative." accent="#C45C26">
+                <Q label="Sectors" hint="Select all that apply to this initiative." accent="#C45C26" mark>
                   <ExpandChips label="Select sectors" options={SECTORS} selected={form.sectors} onToggle={v => toggleArr("sectors", v)} color="#C45C26" />
                 </Q>
 
-                <Q label="What you need from a partner" accent="#C45C26">
+                <Q label="What you need from a partner" accent="#C45C26" mark>
                   <Chips options={NEEDS_OPTIONS.map(o => ({ value: o, label: o }))} selected={form.needs} onToggle={v => toggleArr("needs", v)} color="#C45C26" />
                 </Q>
 
-                <Q label="What you offer a partner" accent="#C45C26">
+                <Q label="What you offer a partner" accent="#C45C26" mark>
                   <Chips options={OFFERS_OPTIONS.map(o => ({ value: o, label: o }))} selected={form.offers} onToggle={v => toggleArr("offers", v)} color="#C45C26" />
                 </Q>
 
@@ -846,7 +846,7 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
                   <Chips options={["English","French","Portuguese","Arabic","Swahili","Other"].map(l => ({ value: l, label: l }))} selected={form.partnership_language} onToggle={v => toggleArr("partnership_language", v)} color="#C45C26" />
                 </Q>
 
-                <Q label="What does success look like in 12 months?" hint="One sentence. This is the most important signal for match quality — it forces outcome clarity and tells the AI what to optimise for." accent="#C45C26">
+                <Q label="What does success look like in 12 months?" hint="One sentence. This is the most important signal for match quality — it forces outcome clarity and tells the AI what to optimise for." accent="#C45C26" mark>
                   <Textarea className="w-full text-sm resize-none rounded-xl border-2 min-h-[80px]"
                     placeholder="e.g. A published evaluation framework co-authored with our research partner, adopted by 3 state health ministries by end of 2027."
                     value={form.partnership_success_definition}
