@@ -109,7 +109,7 @@ const STATS = [
 const FEATURES = [
   {
     num: '01', title: 'Find the right partners', sub: 'You know what you need. We help you find who.',
-    desc: 'Browse and filter verified organisations by sector, country, and focus area. Send an expression of interest directly. No cold outreach, no guessing, no three-month email chains.',
+    desc: 'Browse and filter verified organisations by sector, country, and focus area. Send an expression of interest directly. No cold outreach, no guessing, no multi-month email chains.',
     image: '/find-partners.png',
     Illustration: IllustrationPartner,
     tint: 'rgba(45,184,122,0.05)', borderTint: 'rgba(45,184,122,0.12)', flip: false,
@@ -734,7 +734,7 @@ export default function HomePage() {
           </h1>
 
           <p style={{ fontSize: 'clamp(1rem, 2vw, 1.25rem)', lineHeight: 1.72, color: 'rgba(247,243,237,0.65)', maxWidth: '600px', marginBottom: '2.5rem' }}>
-            Impact Natives is the platform where NGOs, funders, corporates, and ecosystem builders find each other, verify trust, and form partnerships that work, without the email chains and three-month delays.
+            Impact Natives is the platform where NGOs, funders, corporates, and ecosystem builders find each other, verify trust, and form partnerships that work, without the email chains and multi-month delays.
           </p>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.875rem' }}>
