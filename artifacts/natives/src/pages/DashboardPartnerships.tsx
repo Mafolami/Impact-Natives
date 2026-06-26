@@ -435,8 +435,8 @@ function OrgDetail({
   function DetailRow({ label, value }: { label: string; value: string }) {
     return (
       <div className="flex items-start justify-between gap-4">
-        <span className="text-xs text-muted-foreground shrink-0">{label}</span>
-        <span className="text-xs font-semibold text-foreground text-right">{value}</span>
+        <span className="text-sm text-muted-foreground shrink-0">{label}</span>
+        <span className="text-sm font-semibold text-foreground text-right">{value}</span>
       </div>
     );
   }
@@ -470,10 +470,9 @@ function OrgDetail({
         {/* Identity */}
         <div>
           <div className="flex items-center gap-2 flex-wrap mb-1">
-            <a href={`/org/${org.id}`}
-              className="text-xl font-black text-foreground hover:text-[#2D6A4F] transition-colors">
+            <span className="text-xl font-black text-foreground">
               {org.organisation_name}
-            </a>
+            </span>
             {isVerified && (
               <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
                 style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
@@ -481,7 +480,7 @@ function OrgDetail({
               </span>
             )}
           </div>
-          <p className="text-sm text-muted-foreground capitalize">
+          <p className="text-base text-muted-foreground capitalize">
             {orgTypeLabel(org.organisation_type)}
             {countries.length > 0 && ` · ${countries.join(", ")}`}
           </p>
@@ -503,8 +502,7 @@ function OrgDetail({
             {org.partnership_sought && (
               <div>
                 <p className="text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ color: statusStyle.color }}>Seeking</p>
-                <p className="text-sm text-foreground leading-relaxed">{org.partnership_sought}</p>
-              </div>
+                <p className="text-base text-foreground leading-relaxed">{org.partnership_sought}</p>              </div>
             )}
             {org.partnership_success_definition && (
               <div className="pt-2 border-t" style={{ borderColor: `${statusStyle.color}20` }}>
@@ -518,7 +516,7 @@ function OrgDetail({
         {/* About */}
         {org.description && (
           <DetailSection title="About">
-            <p className="text-sm text-muted-foreground leading-relaxed">{org.description}</p>
+            <p className="text-base text-muted-foreground leading-relaxed">{org.description}</p>
           </DetailSection>
         )}
 
@@ -535,8 +533,7 @@ function OrgDetail({
               <div className="px-4 py-2.5"><DetailRow label="On the ground" value={org.partnership_physically_present ? "Yes" : "No — remote"} /></div>
             )}
             {org.partnership_geo_specificity && <div className="px-4 py-2.5"><DetailRow label="Location focus" value={org.partnership_geo_specificity} /></div>}
-            {org.partnership_team_capacity && <div className="px-4 py-2.5"><DetailRow label="Team capacity" value={org.partnership_team_capacity.replace(/_/g, " ")} /></div>}
-            {org.partnership_contact_seniority && <div className="px-4 py-2.5"><DetailRow label="Lead contact" value={org.partnership_contact_seniority.replace(/_/g, " ")} /></div>}
+            {org.partnership_team_capacity && <div className="px-4 py-2.5"><DetailRow label="Team capacity" value={org.partnership_team_capacity.replace(/_/g, "–")} /></div>}            {org.partnership_contact_seniority && <div className="px-4 py-2.5"><DetailRow label="Lead contact" value={org.partnership_contact_seniority.replace(/_/g, " ")} /></div>}
           </div>
         </DetailSection>
 
@@ -551,7 +548,11 @@ function OrgDetail({
               )}
               {org.partnership_ip_ownership && <div className="px-4 py-2.5"><DetailRow label="IP ownership" value={org.partnership_ip_ownership.replace(/_/g, " ")} /></div>}
               {org.partnership_legal_type && org.partnership_legal_type.length > 0 && (
-                <div className="px-4 py-2.5"><DetailRow label="Partnership type" value={org.partnership_legal_type.map(t => t.replace(/_/g, " ")).join(", ")} /></div>
+                <div className="px-4 py-2.5"><DetailRow label="Partnership type" value={org.partnership_legal_type.map(t => ({
+                  formal_mou: "Formal MoU", subcontracting: "Service provider arrangement",
+                  co_implementation: "Joint delivery", referral: "Referral / network",
+                  joint_venture: "Joint venture", informal: "Informal collaboration", open: "Open to discussion",
+                }[t] ?? t)).join(", ")} /></div>
               )}
             </div>
           </DetailSection>
@@ -630,19 +631,19 @@ function OrgDetail({
               {org.partnership_theory_of_change && (
                 <div className="rounded-xl border border-border px-4 py-3">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">Approach to change</p>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{org.partnership_theory_of_change}</p>
+                  <p className="text-base text-muted-foreground leading-relaxed">{org.partnership_theory_of_change}</p>
                 </div>
               )}
               {org.partnership_prior_attempts && (
                 <div className="rounded-xl border border-border px-4 py-3">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">Previous attempts</p>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{org.partnership_prior_attempts}</p>
+                  <p className="text-base text-muted-foreground leading-relaxed">{org.partnership_prior_attempts}</p>
                 </div>
               )}
               {org.partnership_constraints && (
                 <div className="rounded-xl border border-border px-4 py-3">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">Constraints</p>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{org.partnership_constraints}</p>
+                  <p className="text-base text-muted-foreground leading-relaxed">{org.partnership_constraints}</p>
                 </div>
               )}
             </div>
@@ -799,13 +800,9 @@ function OrgCard({
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-0.5">
-              <a
-                href={`/org/${org.id}`}
-                onClick={e => e.stopPropagation()}
-                className="font-bold text-foreground hover:text-[#2D6A4F] transition-colors truncate"
-              >
+                <span className="font-bold text-foreground truncate">
                 {org.organisation_name}
-              </a>
+              </span>
               {isVerified && (
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
                   style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
