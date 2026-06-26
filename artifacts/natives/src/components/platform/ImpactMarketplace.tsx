@@ -1003,7 +1003,7 @@ function FeaturedInitiativesSection({ onCreateClick }: { onCreateClick: () => vo
           <div className="text-center py-16">
             <p className="text-4xl mb-4">🌱</p>
             <h3 className="text-xl font-bold mb-2">No initiatives match your filters</h3>
-            <p className="text-muted-foreground mb-6">Try adjusting your filters or be the first to publish.</p>
+            <p className="text-muted-foreground mb-6">Try adjusting your filters or sign in to view all initiatives.</p>
             <CreateInitiativeButton className="rounded-full bg-primary hover:bg-primary/90 text-white" onClick={onCreateClick} />
           </div>
         )}
