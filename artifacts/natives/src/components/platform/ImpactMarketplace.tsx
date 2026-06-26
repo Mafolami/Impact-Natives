@@ -882,8 +882,10 @@ function FeaturedInitiativesSection({ onCreateClick }: { onCreateClick: () => vo
           .order('created_at', { ascending: false });
         if (error) throw error;
         setInitiatives((data ?? []) as unknown as Initiative[]);
+        setFetchError(`Loaded ${data?.length ?? 0} initiatives`);
       } catch (e) {
         console.error('Failed to fetch initiatives:', e);
+        setFetchError(`Error: ${String(e)}`);
       } finally {
         setLoadingData(false);
       }
