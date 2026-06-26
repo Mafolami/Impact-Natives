@@ -470,9 +470,12 @@ function OrgDetail({
         {/* Identity */}
         <div>
           <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className="text-xl font-black text-foreground">
+            <a
+              href={`/dashboard/natives?user=${org.user_id}`}
+              className="text-xl font-black text-foreground hover:text-[#2D6A4F] transition-colors hover:underline underline-offset-2"
+            >
               {org.organisation_name}
-            </span>
+            </a>
             {isVerified && (
               <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
                 style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
@@ -800,9 +803,13 @@ function OrgCard({
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                <span className="font-bold text-foreground truncate">
+              <a
+                href={`/dashboard/natives?user=${org.user_id}`}
+                onClick={e => e.stopPropagation()}
+                className="font-bold text-foreground hover:text-[#2D6A4F] transition-colors truncate hover:underline underline-offset-2"
+              >
                 {org.organisation_name}
-              </span>
+              </a>
               {isVerified && (
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
                   style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
