@@ -1082,7 +1082,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
       type: "partnership_confirmed",
       title: "Partnership confirmed",
       body: `${conversation.other_user_name} confirmed the partnership as ${pendingConfirmation.partnership_type}.`,
-      link: "/dashboard/portfolio?tab=partnerships",
+      link: "/dashboard/initiatives?tab=partnerships",
     });
 
     setPartnershipResolved("confirmed");
