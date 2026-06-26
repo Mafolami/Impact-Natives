@@ -882,9 +882,8 @@ function FeaturedInitiativesSection({ onCreateClick }: { onCreateClick: () => vo
           .order('created_at', { ascending: false });
         if (error) throw error;
         setInitiatives((data ?? []) as unknown as Initiative[]);
-        const hasKey = !!import.meta.env.VITE_SUPABASE_ANON_KEY;
-        setFetchError(`Loaded ${data?.length ?? 0} initiatives | key: ${hasKey}`);
-      } catch (e) {
+        const keyLen = import.meta.env.VITE_SUPABASE_ANON_KEY?.length ?? 0;
+        setFetchError(`Loaded ${data?.length ?? 0} | keyLen: ${keyLen} | url: ${import.meta.env.VITE_SUPABASE_URL?.slice(0,30)}`);      } catch (e) {
         console.error('Failed to fetch initiatives:', e);
         setFetchError(`Error: ${String(e)}`);
       } finally {
