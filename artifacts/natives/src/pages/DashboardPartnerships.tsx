@@ -152,14 +152,52 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave }: {
   );}
 
 // ─── Detail panel ─────────────────────────────────────────────────────────────
-function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, onExpressInterest, onClose }: {
+type FitResult = {
+  fit_score: number;
+  reasons: string[];
+  gaps: string[];
+  rationale: string;
+  opening_message: string;
+};
+
+function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, onExpressInterest, onClose, viewerOrg }: {
   org: OrgRow | null; isSaved: boolean; onToggleSave: (e: React.MouseEvent) => void;
   isOrg: boolean; alreadySent: boolean; sending: boolean;
   onExpressInterest: (e: React.MouseEvent) => void; onClose: () => void;
+  viewerOrg: OrgRow | null;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => { if (org && ref.current) ref.current.scrollTop = 0; }, [org?.id]);
+  const [fit, setFit] = useState<FitResult | null>(null);
+  const [fitLoading, setFitLoading] = useState(false);
+  const [openingMsg, setOpeningMsg] = useState<string | null>(null);
+  const [msgEditing, setMsgEditing] = useState(false);
 
+  useEffect(() => {
+    if (org && ref.current) ref.current.scrollTop = 0;
+    setFit(null);
+    setOpeningMsg(null);
+    setMsgEditing(false);
+    if (org && viewerOrg && org.user_id !== viewerOrg.user_id) {
+      scoreFit(org, viewerOrg);
+    }
+  }, [org?.id, viewerOrg?.id]);
+
+  async function scoreFit(listing: OrgRow, viewer: OrgRow) {
+    setFitLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("score-partnership-fit", {
+        body: { viewer_org: viewer, listing_org: listing },
+      });
+      if (!error && data?.result) {
+        setFit(data.result);
+        setOpeningMsg(data.result.opening_message ?? null);
+      }
+    } catch (e) {
+      console.error("Fit score error:", e);
+    } finally {
+      setFitLoading(false);
+    }
+  }
   if (!org) {
     return (
       <div className="hidden lg:flex flex-col items-center justify-center h-full gap-4 text-center px-10"
@@ -210,13 +248,29 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
                 {org.organisation_name}
               </a>
               {isVerified && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
-                  style={{ background: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0" }}>
-                  <ShieldCheck className="w-3 h-3" />Verified
-                </span>
-              )}
-            </div>
-            <p className="text-sm text-[#374151] capitalize">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+                style={{ background: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0" }}>
+                <ShieldCheck className="w-3 h-3" />Verified
+              </span>
+            )}
+            {fitLoading && (
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0"
+                style={{ background: "#F3F4F6", color: "#6B7280", border: "1px solid #E5E7EB" }}>
+                <Loader2 className="w-3 h-3 animate-spin" />Scoring fit...
+              </span>
+            )}
+            {fit && !fitLoading && (
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0"
+                style={{
+                  background: fit.fit_score >= 70 ? "#ECFDF5" : fit.fit_score >= 50 ? "#FFF7ED" : "#FEF2F2",
+                  color: fit.fit_score >= 70 ? "#065F46" : fit.fit_score >= 50 ? "#92400E" : "#991B1B",
+                  border: `1px solid ${fit.fit_score >= 70 ? "#A7F3D0" : fit.fit_score >= 50 ? "#FDE68A" : "#FECACA"}`,
+                }}>
+                {fit.fit_score}% fit
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-[#374151] capitalize">
               {orgTypeLabel(org.organisation_type)}
               {countries.length > 0 && ` · ${countries.join(", ")}`}
             </p>
@@ -266,8 +320,35 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
             )}
             {org.partnership_success_definition && (
               <div className="rounded-xl px-5 py-4" style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderLeft: "3px solid #2D6A4F" }}>
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#374151] mb-2">Success in 12 months</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#6B7280] mb-2">Success in 12 months</p>
                 <p className="text-sm text-[#374151] leading-relaxed italic">"{org.partnership_success_definition}"</p>
+              </div>
+            )}
+
+            {/* AI fit rationale */}
+            {fit && !fitLoading && (
+              <div className="space-y-3 pt-2">
+                <p className="text-sm text-[#374151] leading-relaxed">{fit.rationale}</p>
+                {fit.reasons.length > 0 && (
+                  <div className="flex flex-col gap-1.5">
+                    {fit.reasons.map((r, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <span className="mt-1 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#2D6A4F" }} />
+                        <span className="text-xs text-[#374151]">{r}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* Gap alert */}
+                {fit.gaps.length > 0 && (
+                  <div className="rounded-xl px-4 py-3 space-y-1.5"
+                    style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderLeft: "3px solid #F59E0B" }}>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#92400E]">Gaps to address</p>
+                    {fit.gaps.map((g, i) => (
+                      <p key={i} className="text-xs text-[#92400E] leading-relaxed">{g}</p>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -449,17 +530,55 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
 
         {/* CTA */}
         {isOrg && !org.partnership_formed && (
-          <div className="px-8 py-6 sticky bottom-0 bg-white" style={{ borderTop: "1px solid #F3F4F6" }}>
+          <div className="px-8 py-6 sticky bottom-0 bg-white space-y-3" style={{ borderTop: "1px solid #F3F4F6" }}>
             {alreadySent ? (
               <div className="flex items-center gap-2 text-sm font-semibold text-[#065F46]">
                 <CheckCircle2 className="w-4 h-4" />Interest expressed — they've been notified
               </div>
             ) : (
-              <button type="button" onClick={onExpressInterest} disabled={sending}
-                className="w-full h-11 rounded-full text-white text-sm font-bold disabled:opacity-40 transition-all hover:opacity-90 active:scale-[0.98]"
-                style={{ background: "#111827" }}>
-                {sending ? "Sending..." : "Express interest"}
-              </button>
+              <>
+                {/* AI opening message draft */}
+                {openingMsg && !msgEditing && (
+                  <div className="rounded-xl p-4 space-y-2" style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-[#6B7280]">AI-drafted opening message</p>
+                      <button type="button" onClick={() => setMsgEditing(true)}
+                        className="text-[10px] font-semibold text-[#374151] hover:text-[#111827] underline underline-offset-2">
+                        Edit
+                      </button>
+                    </div>
+                    <p className="text-xs text-[#374151] leading-relaxed">{openingMsg}</p>
+                  </div>
+                )}
+                {msgEditing && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-[#6B7280]">Edit opening message</p>
+                      <button type="button" onClick={() => setMsgEditing(false)}
+                        className="text-[10px] font-semibold text-[#374151] hover:text-[#111827] underline underline-offset-2">
+                        Done
+                      </button>
+                    </div>
+                    <textarea rows={4} value={openingMsg ?? ""}
+                      onChange={e => setOpeningMsg(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl text-xs text-[#374151] resize-none focus:outline-none"
+                      style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }} />
+                  </div>
+                )}
+                <button type="button"
+                  onClick={e => {
+                    if (openingMsg) {
+                      // Pass edited message to parent
+                      (e as any).customMessage = openingMsg;
+                    }
+                    onExpressInterest(e);
+                  }}
+                  disabled={sending}
+                  className="w-full h-11 rounded-full text-white text-sm font-bold disabled:opacity-40 transition-all hover:opacity-90 active:scale-[0.98]"
+                  style={{ background: "#111827" }}>
+                  {sending ? "Sending..." : fitLoading ? "Express interest" : `Express interest${fit ? ` · ${fit.fit_score}% fit` : ""}`}
+                </button>
+              </>
             )}
           </div>
         )}
@@ -481,7 +600,7 @@ export default function DashboardPartnerships() {
   const [selectedOrg, setSelectedOrg]         = useState<OrgRow | null>(null);
   const [savedOrgs, setSavedOrgs]             = useState<Set<string>>(new Set());
   const [currentUserOrgId, setCurrentUserOrgId] = useState<string | null>(null);
-  const [sentInterests, setSentInterests]     = useState<Set<string>>(new Set());
+  const [viewerOrg, setViewerOrg] = useState<OrgRow | null>(null);  const [sentInterests, setSentInterests]     = useState<Set<string>>(new Set());
   const [sendingInterest, setSendingInterest] = useState<string | null>(null);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
 
@@ -494,8 +613,7 @@ export default function DashboardPartnerships() {
         .select("id,organisation_name,description,sector,country,organisation_type,website,email,needs,offers,sdgs,partnership_sought,partnership_title,verification_status,status,user_id,partnership_listed,partnership_formed,partnership_stage,partnership_duration,partnership_budget,partnership_decision_timeline,partnership_success_definition,partnership_funding_status,partnership_exclusivity,partnership_working_style,partnership_financial_transfer,partnership_reporting,partnership_ip_ownership,partnership_legal_type,partnership_team_capacity,partnership_contact_seniority,partnership_geo_specificity,partnership_theory_of_change,partnership_prior_attempts,partnership_constraints,partnership_dd_financial_model,partnership_dd_audited_accounts,partnership_dd_safeguarding_policy,partnership_dd_data_policy,partnership_dd_governance_doc,partnership_prior_experience,partnership_prior_experience_detail,partnership_physically_present")
         .eq("status", "published").eq("partnership_listed", true).order("created_at", { ascending: false }),
       uid ? supabase.from("saved_organizations").select("organization_id").eq("user_id", uid) : Promise.resolve({ data: null }),
-      uid ? supabase.from("organizations").select("id").eq("user_id", uid).maybeSingle() : Promise.resolve({ data: null }),
-      uid ? supabase.from("partnership_connections").select("receiver_org_id").eq("sender_user_id", uid) : Promise.resolve({ data: null }),
+      uid ? supabase.from("organizations").select("id,organisation_name,description,sector,country,organisation_type,needs,offers,sdgs,partnership_working_style,partnership_dd_financial_model,partnership_dd_audited_accounts,partnership_dd_safeguarding_policy,partnership_dd_data_policy,partnership_dd_governance_doc").eq("user_id", uid).maybeSingle() : Promise.resolve({ data: null }),      uid ? supabase.from("partnership_connections").select("receiver_org_id").eq("sender_user_id", uid) : Promise.resolve({ data: null }),
     ]);
 
     if (orgsRes.data) {
@@ -503,7 +621,10 @@ export default function DashboardPartnerships() {
       if (orgsRes.data.length > 0) setSelectedOrg(orgsRes.data[0] as OrgRow);
     }
     if (savedRes.data) setSavedOrgs(new Set(savedRes.data.map((r: any) => r.organization_id)));
-    if (myOrgRes.data) setCurrentUserOrgId(myOrgRes.data.id);
+    if (myOrgRes.data) {
+      setCurrentUserOrgId(myOrgRes.data.id);
+      setViewerOrg(myOrgRes.data as OrgRow);
+    }
     if (connRes.data && myOrgRes.data) {
       setSentInterests(new Set(connRes.data.filter((r: any) => r.receiver_org_id !== myOrgRes.data!.id).map((r: any) => r.receiver_org_id)));
     } else if (connRes.data) {
@@ -557,9 +678,10 @@ export default function DashboardPartnerships() {
           { conversation_id: convData.id, user_id: user.id },
           { conversation_id: convData.id, user_id: org.user_id },
         ]);
+        const customMsg = (e as any).customMessage;
         await supabase.from("messages").insert({
           conversation_id: convData.id, sender_id: user.id,
-          body: `Hi ${org.organisation_name}, I came across your partnership listing on Impact Natives and I'm interested in exploring a potential collaboration.${org.partnership_sought ? ` I see you're looking for: ${org.partnership_sought}` : ""}\n\nWould you be open to a conversation?`,
+          body: customMsg || `Hi ${org.organisation_name}, I came across your partnership listing on Impact Natives and I'm interested in exploring a potential collaboration.${org.partnership_sought ? ` I see you're looking for: ${org.partnership_sought}` : ""}\n\nWould you be open to a conversation?`,
         });
         await supabase.from("notifications").insert({
           user_id: org.user_id, type: "partnership_interest",
@@ -675,6 +797,7 @@ export default function DashboardPartnerships() {
                 sending={selectedOrg ? sendingInterest === selectedOrg.id : false}
                 onExpressInterest={e => selectedOrg && expressInterest(selectedOrg, e)}
                 onClose={() => setMobileDetailOpen(false)}
+                viewerOrg={viewerOrg}
               />
             </div>
           </div>
