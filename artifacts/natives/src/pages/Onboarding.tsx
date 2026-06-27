@@ -615,8 +615,6 @@ export default function Onboarding() {
     }).eq("id", userId);
     if (profileUpdateError) console.error("Profile update error:", profileUpdateError);
 
-    console.log("finish - userType:", userType, "orgName:", orgName, "requestVerify:", requestVerify);
-    console.log("finish - sectors:", sectors, "sdgTags:", sdgTags);
     if (userType === "organisation" && orgName.trim()) {
       const { error: orgInsertError } = await supabase.from("organizations").insert({
         user_id:           userId,

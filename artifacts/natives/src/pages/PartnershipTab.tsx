@@ -134,7 +134,6 @@ export function PartnershipTab() {
   const [accepting, setAccepting]     = useState(false);
 
   useEffect(() => {
-    console.log("PartnershipTab user:", user?.id, user?.email);
     if (user) load();
   }, [user]);
 
@@ -299,7 +298,6 @@ export function PartnershipTab() {
         .update({ partnership_title: myListing.partnership_title })
         .in("id", formedIds);
     }
-    console.log("markFormed - myOrgId:", myOrgId, "error:", formedError);
 
     // Mark one accepted connection as formed, decline all remaining pending
     const pendingIds = inbound
@@ -354,7 +352,6 @@ export function PartnershipTab() {
   const acceptedInbound  = inbound.filter(c => c.status === "accepted");
   const confirmedInbound = inbound.filter(c => c.status === "formed");
   const isListed         = myListing?.partnership_listed;
-  console.log("myListing full:", JSON.stringify(myListing));
 
   const subTabs: { key: PartnershipView; label: string; count: number | null }[] = [
     { key: "requested", label: "Requested",  count: isListed ? 1 : 0 },
@@ -390,7 +387,6 @@ export function PartnershipTab() {
       {/* ── Requested ── */}
       {activeView === "requested" && (
         <>
-        {console.log("Requested render - isListed:", isListed, "activeView:", activeView)}
           {!isListed ? (
             <EmptyState
               icon={Briefcase}
