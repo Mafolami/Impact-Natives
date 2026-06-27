@@ -654,9 +654,6 @@ export default function DashboardPartnerships() {
             {/* Left list */}
             <div className={`w-full lg:w-72 xl:w-80 shrink-0 overflow-y-auto ${mobileDetailOpen ? "hidden lg:block" : "block"}`}
               style={{ borderRight: "1px solid #F3F4F6", background: "#FAFAFA" }}>
-              <div className="px-5 py-2.5" style={{ borderBottom: "1px solid #F3F4F6" }}>
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#9CA3AF]">{filtered.length} listing{filtered.length !== 1 ? "s" : ""}</p>
-              </div>
               {filtered.map(org => (
                 <ListCard key={org.id} org={org}
                   selected={selectedOrg?.id === org.id}
