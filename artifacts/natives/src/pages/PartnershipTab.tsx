@@ -78,7 +78,13 @@ const STATUS_STYLES: Record<string, { label: string; bg: string; color: string }
 function normalizeArr(val: string | string[] | null | undefined): string[] {
   if (!val) return [];
   if (Array.isArray(val)) return val;
-  try { const p = JSON.parse(val); return Array.isArray(p) ? p : [val]; } catch { return [val]; }
+  if (typeof val === "string" && val.startsWith("{") && val.endsWith("}")) {
+    const inner = val.slice(1, -1);
+    const matches = inner.match(/("(?:[^"\\]|\\.)*"|[^,]+)/g) ?? [];
+    return matches.map(m => m.replace(/^"|"$/g, "").trim()).filter(Boolean);
+  }
+  try { const p = JSON.parse(val); return Array.isArray(p) ? p : [val]; }
+  catch { return [val]; }
 }
 
 function timeAgo(dateStr: string): string {
