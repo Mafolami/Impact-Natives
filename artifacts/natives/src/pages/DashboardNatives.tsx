@@ -64,6 +64,13 @@ interface OrgRow {
   sandbox_ready?: boolean | null;
   sandbox_description?: string | null;
   esg_frameworks?: string[] | null;
+  partnership_listed?: boolean;
+  partnership_title?: string | null;
+  partnership_sought?: string | null;
+  partnership_stage?: string | null;
+  partnership_budget?: string | null;
+  partnership_decision_timeline?: string | null;
+  partnership_funding_status?: string | null;
   csr_budget_range?: string | null;
 }
 
@@ -390,7 +397,7 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
       setLoading(true);
       const { data: orgData, error } = await supabase
         .from("organizations")
-        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range")        .eq("status", "published")
+        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status")        .eq("status", "published")
         .order("organisation_name", { ascending: true });
 
       if (error) { console.error(error); setLoading(false); return; }
@@ -582,8 +589,32 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
     generateSummary();
   }, [org.id]);
 
+  const [orgInitiatives, setOrgInitiatives] = useState<any[]>([]);
+  const [orgPartnership, setOrgPartnership] = useState<any | null>(null);
+
+  useEffect(() => {
+    supabase.from("initiative_requests")
+      .select("id,title,sectors,locations,budget,eois,status,co_funding_status")
+      .eq("user_id", org.user_id)
+      .eq("status", "published")
+      .order("created_at", { ascending: false })
+      .limit(3)
+      .then(({ data }) => setOrgInitiatives(data ?? []));
+
+    if (org.partnership_listed) {
+      setOrgPartnership({
+        title: org.partnership_title,
+        sought: org.partnership_sought,
+        stage: org.partnership_stage,
+        budget: org.partnership_budget,
+        timeline: org.partnership_decision_timeline,
+        funding_status: org.partnership_funding_status,
+      });
+    }
+  }, [org.id]);
+
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 space-y-6 max-w-2xl">
+    <div className="space-y-4">
       {/* Back */}
       <button type="button" onClick={onBack}
         className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -592,6 +623,10 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
         </svg>
         Back
       </button>
+
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 items-start">
+      {/* Left col -- identity */}
+      <div className="lg:col-span-3 rounded-2xl border border-border bg-card p-6 space-y-6">
 
       {/* Header */}
       <div className="flex items-start gap-4">
@@ -942,6 +977,76 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
           <p className="text-sm text-foreground">{org.contact_name}</p>
         </div>
       )}
+    </div>{/* end left col */}
+
+      {/* Right col -- initiatives + partnership listing */}
+      <div className="lg:col-span-2 space-y-4">
+
+        {/* Partnership listing */}
+        {orgPartnership?.title && (
+          <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#2D6A4F]">Partnership listing</p>
+            <p className="text-sm font-bold text-foreground leading-snug">{orgPartnership.title}</p>
+            {orgPartnership.sought && (
+              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">{orgPartnership.sought}</p>
+            )}
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {orgPartnership.stage && (
+                <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full" style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+                  {orgPartnership.stage.replace(/_/g, " ")}
+                </span>
+              )}
+              {orgPartnership.funding_status && (
+                <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full" style={{ background: "#fdf5f2", color: "#C45C26" }}>
+                  {orgPartnership.funding_status.replace(/_/g, " ")}
+                </span>
+              )}
+              {orgPartnership.budget && (
+                <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
+                  {orgPartnership.budget.replace(/_/g, " ")}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Initiatives */}
+        {orgInitiatives.length > 0 && (
+          <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Active initiatives</p>
+            <div className="space-y-3">
+              {orgInitiatives.map(ini => (
+                <div key={ini.id} className="pb-3 border-b border-border last:border-0 last:pb-0 space-y-1.5">
+                  <p className="text-xs font-semibold text-foreground leading-snug">{ini.title}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {ini.locations?.[0] && (
+                      <span className="text-[10px] text-muted-foreground">{ini.locations.slice(0,2).join(", ")}</span>
+                    )}
+                    {ini.budget && (
+                      <span className="text-[10px] text-muted-foreground">{ini.budget}</span>
+                    )}
+                    <span className="text-[10px] text-muted-foreground ml-auto">{ini.eois} EOI{ini.eois !== 1 ? "s" : ""}</span>
+                  </div>
+                  {ini.sectors?.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {ini.sectors.slice(0,2).map((s: string) => (
+                        <span key={s} className="text-[9px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#fdf5f2", color: "#C45C26" }}>{s}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {orgInitiatives.length === 0 && !orgPartnership?.title && (
+          <div className="rounded-2xl border border-dashed border-border p-5 text-center">
+            <p className="text-xs text-muted-foreground">No active initiatives or partnership listing yet.</p>
+          </div>
+        )}
+      </div>{/* end right col */}
+      </div>{/* end grid */}
     </div>
   );
 }
