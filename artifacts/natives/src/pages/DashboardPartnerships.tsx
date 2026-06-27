@@ -120,7 +120,7 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave }: {
           : "hover:bg-[#FAFAFA] border-l-[3px] border-l-transparent border-b-[#F3F4F6]"
       }`}>
 
-      {/* Org name row */}
+      {/* Org name + save */}
       <div className="flex items-center justify-between gap-2 mb-0.5">
         <div className="flex items-center gap-1.5 min-w-0">
           <span className={`text-sm font-bold truncate ${selected ? "text-[#2D6A4F]" : "text-[#111827]"}`}>
@@ -137,46 +137,19 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave }: {
         </button>
       </div>
 
-      {/* Org type */}
-      <p className="text-[11px] text-[#6B7280] capitalize mb-2">
-        {orgTypeLabel(org.organisation_type)}{countries.length > 0 && ` · ${countries[0]}`}
+      {/* Location */}
+      <p className="text-[11px] text-[#6B7280] capitalize mb-3">
+        {countries.length > 0 ? countries.join(", ") : orgTypeLabel(org.organisation_type)}
       </p>
 
-      {/* Partnership title */}
+      {/* Partnership title -- full, no clamp */}
       {org.partnership_title && (
-        <p className="text-xs font-semibold text-[#374151] mb-1.5 leading-snug line-clamp-1">
+        <p className="text-xs font-semibold text-[#374151] leading-snug">
           {org.partnership_title}
         </p>
       )}
-
-      {/* Seeking */}
-      {org.partnership_sought && (
-        <p className="text-[11px] text-[#6B7280] leading-relaxed line-clamp-2 mb-2.5">
-          {org.partnership_sought}
-        </p>
-      )}
-
-      {/* Signals */}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {org.partnership_stage && (
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md"
-            style={{ background: "#ECFDF5", color: "#065F46" }}>
-            {STAGE_LABELS[org.partnership_stage] ?? org.partnership_stage}
-          </span>
-        )}
-        {org.partnership_budget && (
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md"
-            style={{ background: "#FFF7ED", color: "#92400E" }}>
-            {BUDGET_LABELS[org.partnership_budget] ?? org.partnership_budget}
-          </span>
-        )}
-        {score > 0 && (
-          <span className="text-[10px] text-[#9CA3AF] ml-auto font-medium">DD {score}/5</span>
-        )}
-      </div>
     </div>
-  );
-}
+  );}
 
 // ─── Detail panel ─────────────────────────────────────────────────────────────
 function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, onExpressInterest, onClose }: {
@@ -275,14 +248,18 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
       {/* ── Scrollable content ── */}
       <div className="flex-1 divide-y" style={{ borderColor: "#F3F4F6" }}>
 
-        {/* Partnership request */}
-        {(org.partnership_title || org.partnership_sought || org.partnership_success_definition) && (
-          <div className="px-8 py-6">
-            {org.partnership_title && (
-              <h3 className="text-lg font-black text-[#111827] leading-snug mb-4">{org.partnership_title}</h3>
-            )}
+        {/* About -- directly under header */}
+        {org.description && (
+          <div className="px-8 py-5" style={{ borderBottom: "1px solid #F3F4F6" }}>
+            <p className="text-sm text-[#6B7280] leading-relaxed">{org.description}</p>
+          </div>
+        )}
+
+        {/* Seeking + success */}
+        {(org.partnership_sought || org.partnership_success_definition) && (
+          <div className="px-8 py-6 space-y-4">
             {org.partnership_sought && (
-              <div className="mb-4">
+              <div>
                 <Eyebrow>Seeking</Eyebrow>
                 <p className="text-sm text-[#374151] leading-relaxed">{org.partnership_sought}</p>
               </div>
@@ -314,13 +291,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
           </div>
         )}
 
-        {/* About */}
-        {org.description && (
-          <div className="px-8 py-6">
-            <Eyebrow>About</Eyebrow>
-            <p className="text-sm text-[#374151] leading-relaxed">{org.description}</p>
-          </div>
-        )}
+        
 
         {/* Working style */}
         {(org.partnership_working_style || org.partnership_financial_transfer || (org.partnership_legal_type && org.partnership_legal_type.length > 0) || (org.partnership_reporting && org.partnership_reporting.length > 0) || org.partnership_ip_ownership) && (
@@ -347,32 +318,29 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
 
         {/* Exchange */}
         {((org.needs && org.needs.length > 0) || (org.offers && org.offers.length > 0)) && (
-          <div className="px-8 py-6">
-            <Eyebrow>Exchange</Eyebrow>
-            <div className="grid grid-cols-2 gap-6">
-              {org.needs && org.needs.length > 0 && (
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] mb-2.5">Needs from partner</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {org.needs.map(n => (
-                      <span key={n} className="text-xs font-medium px-3 py-1.5 rounded-lg text-[#374151]"
-                        style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>{n}</span>
-                    ))}
-                  </div>
+          <div className="px-8 py-6 space-y-5">
+            {org.needs && org.needs.length > 0 && (
+              <div>
+                <Eyebrow>Looking for in a partner</Eyebrow>
+                <div className="flex flex-wrap gap-2">
+                  {org.needs.map(n => (
+                    <span key={n} className="text-sm font-semibold px-4 py-2 rounded-lg text-[#374151]"
+                      style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>{n}</span>
+                  ))}
                 </div>
-              )}
-              {org.offers && org.offers.length > 0 && (
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] mb-2.5">Brings to the table</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {org.offers.map(o => (
-                      <span key={o} className="text-xs font-bold px-3 py-1.5 rounded-lg"
-                        style={{ background: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0" }}>{o}</span>
-                    ))}
-                  </div>
+              </div>
+            )}
+            {org.offers && org.offers.length > 0 && (
+              <div>
+                <Eyebrow>What they bring</Eyebrow>
+                <div className="flex flex-wrap gap-2">
+                  {org.offers.map(o => (
+                    <span key={o} className="text-sm font-bold px-4 py-2 rounded-lg"
+                      style={{ background: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0" }}>{o}</span>
+                  ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -386,22 +354,19 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
           <div className="h-1.5 rounded-full mb-4 overflow-hidden" style={{ background: "#F3F4F6" }}>
             <div className="h-full rounded-full transition-all" style={{ width: `${(score / 5) * 100}%`, background: score > 2 ? "#2D6A4F" : "#C45C26" }} />
           </div>
-          <div className="grid grid-cols-1 gap-1.5">
-            {ddDocs.map(({ key, label }) => {
-              const has = org[key as keyof OrgRow] as boolean;
-              return (
-                <div key={key} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-medium transition-colors ${has ? "" : "opacity-50"}`}
-                  style={has
-                    ? { background: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0" }
-                    : { background: "#F9FAFB", color: "#6B7280", border: "1px solid #E5E7EB" }}>
-                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${has ? "border-[#2D6A4F] bg-[#2D6A4F]" : "border-[#D1D5DB]"}`}>
-                    {has && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>}
-                  </div>
+          {score === 0 ? (
+            <p className="text-xs text-[#9CA3AF]">No documents confirmed ready yet.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {ddDocs.filter(({ key }) => org[key as keyof OrgRow] as boolean).map(({ label }) => (
+                <span key={label} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg"
+                  style={{ background: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0" }}>
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
                   {label}
-                </div>
-              );
-            })}
-          </div>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* SDGs */}
@@ -423,23 +388,26 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
         {(org.partnership_theory_of_change || org.partnership_prior_attempts || org.partnership_constraints) && (
           <div className="px-8 py-6">
             <Eyebrow>Context</Eyebrow>
-            <div className="space-y-5">
+            <div className="grid gap-3">
               {org.partnership_theory_of_change && (
-                <div>
-                  <p className="text-xs font-bold text-[#111827] mb-1.5">Approach to change</p>
-                  <p className="text-sm text-[#6B7280] leading-relaxed">{org.partnership_theory_of_change}</p>
+                <div className="rounded-xl px-5 py-4 space-y-1.5"
+                  style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#9CA3AF]">Approach to change</p>
+                  <p className="text-sm text-[#374151] leading-relaxed">{org.partnership_theory_of_change}</p>
                 </div>
               )}
               {org.partnership_prior_attempts && (
-                <div>
-                  <p className="text-xs font-bold text-[#111827] mb-1.5">Previous attempts</p>
-                  <p className="text-sm text-[#6B7280] leading-relaxed">{org.partnership_prior_attempts}</p>
+                <div className="rounded-xl px-5 py-4 space-y-1.5"
+                  style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#9CA3AF]">Previous attempts</p>
+                  <p className="text-sm text-[#374151] leading-relaxed">{org.partnership_prior_attempts}</p>
                 </div>
               )}
               {org.partnership_constraints && (
-                <div>
-                  <p className="text-xs font-bold text-[#111827] mb-1.5">Constraints</p>
-                  <p className="text-sm text-[#6B7280] leading-relaxed">{org.partnership_constraints}</p>
+                <div className="rounded-xl px-5 py-4 space-y-1.5"
+                  style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#9CA3AF]">Constraints</p>
+                  <p className="text-sm text-[#374151] leading-relaxed">{org.partnership_constraints}</p>
                 </div>
               )}
             </div>
