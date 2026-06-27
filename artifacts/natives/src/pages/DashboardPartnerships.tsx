@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 import { supabase } from "@/lib/supabase";
-import { Handshake, Loader2, Search, CheckCircle2, ShieldCheck, X, SlidersHorizontal, ArrowUpRight } from "lucide-react";
+import { Handshake, Loader2, Search, CheckCircle2, ShieldCheck, X, SlidersHorizontal, ArrowUpRight, Sparkles } from "lucide-react";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
 import { FindPartnerModalDashboard } from "./FindPartnerModalDashboard";
 import { useAuth } from "@/context/AuthContext";
@@ -325,28 +325,67 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
               </div>
             )}
 
-            {/* AI fit rationale */}
+            
+          </div>
+        )}
+
+        {/* AI fit analysis -- own distinct section */}
+        {(fit || fitLoading) && (
+          <div className="px-8 py-6" style={{ background: "linear-gradient(135deg, #0d2b1a08 0%, #1a4a2e05 100%)", borderBottom: "1px solid #E5E7EB", borderTop: "1px solid #E5E7EB" }}>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: "#2D6A4F" }}>
+                <Sparkles className="w-3.5 h-3.5 text-white" />
+              </div>
+              <p className="text-xs font-black uppercase tracking-widest text-[#2D6A4F]">Your fit analysis</p>
+              {fitLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#2D6A4F] ml-auto" />}
+              {fit && !fitLoading && (
+                <div className="ml-auto flex items-center gap-2">
+                  <div className="h-1.5 w-24 rounded-full overflow-hidden" style={{ background: "#E5E7EB" }}>
+                    <div className="h-full rounded-full transition-all" style={{
+                      width: `${fit.fit_score}%`,
+                      background: fit.fit_score >= 70 ? "#2D6A4F" : fit.fit_score >= 50 ? "#F59E0B" : "#EF4444"
+                    }} />
+                  </div>
+                  <span className="text-sm font-black" style={{
+                    color: fit.fit_score >= 70 ? "#065F46" : fit.fit_score >= 50 ? "#92400E" : "#991B1B"
+                  }}>{fit.fit_score}%</span>
+                </div>
+              )}
+            </div>
+
+            {fitLoading && (
+              <p className="text-xs text-[#374151]">Analysing compatibility with your organisation profile...</p>
+            )}
+
             {fit && !fitLoading && (
-              <div className="space-y-3 pt-2">
+              <div className="space-y-4">
                 <p className="text-sm text-[#374151] leading-relaxed">{fit.rationale}</p>
+
                 {fit.reasons.length > 0 && (
-                  <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-col gap-2">
                     {fit.reasons.map((r, i) => (
-                      <div key={i} className="flex items-start gap-2">
-                        <span className="mt-1 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#2D6A4F" }} />
-                        <span className="text-xs text-[#374151]">{r}</span>
+                      <div key={i} className="flex items-start gap-2.5">
+                        <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "#ECFDF5" }}>
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#065F46" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                        </div>
+                        <span className="text-xs text-[#374151] leading-relaxed">{r}</span>
                       </div>
                     ))}
                   </div>
                 )}
-                {/* Gap alert */}
+
                 {fit.gaps.length > 0 && (
-                  <div className="rounded-xl px-4 py-3 space-y-1.5"
-                    style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderLeft: "3px solid #F59E0B" }}>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-[#92400E]">Gaps to address</p>
-                    {fit.gaps.map((g, i) => (
-                      <p key={i} className="text-xs text-[#92400E] leading-relaxed">{g}</p>
-                    ))}
+                  <div className="rounded-xl px-4 py-3.5 space-y-2"
+                    style={{ background: "#FFFBEB", border: "1px solid #FDE68A" }}>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#92400E]">Gaps to address before reaching out</p>
+                    <div className="flex flex-col gap-1.5">
+                      {fit.gaps.map((g, i) => (
+                        <div key={i} className="flex items-start gap-2">
+                          <span className="mt-1 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#F59E0B" }} />
+                          <p className="text-xs text-[#92400E] leading-relaxed">{g}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
