@@ -404,8 +404,7 @@ export default function DashboardMarketplace() {
         const { data: profiles } = await supabase
           .from("profiles").select("id,is_verified,org_type,full_name,user_type").in("id", userIds);
         const verifiedMap  = new Map((profiles ?? []).map((p: any) => [p.id, p.is_verified]));
-        const orgTypeMap   = new Map((profiles ?? []).map((p: any) => [p.id, p.org_type]));
-        const nameMap      = new Map((profiles ?? []).map((p: any) => [p.id, p.full_name]));
+       const orgTypeMap   = new Map((profiles ?? []).map((p: any) => [p.id, p.org_type ?? p.user_type]));        const nameMap      = new Map((profiles ?? []).map((p: any) => [p.id, p.full_name]));
         const userTypeMap  = new Map((profiles ?? []).map((p: any) => [p.id, p.user_type]));
 
         const enriched = (data as any[]).map(ini => ({
@@ -425,8 +424,10 @@ export default function DashboardMarketplace() {
 
   const filtered = initiatives.filter(ini => {
     if (startupPipeline) {
-      const isStartup = ["startup", "social_enterprise", "creative_agency_studio"].includes(ini.submitter_org_type ?? "");
-      if (!isStartup) return false;
+      const isStartupType = ["startup", "social_enterprise", "technology_company"].includes(ini.submitter_org_type ?? "");
+      const isEarlyStage = ["concept", "pilot"].includes(ini.stage ?? "");
+      const isSeeking = ["seeking_co_funding", "partially_funded"].includes((ini as any).co_funding_status ?? "");
+      if (!isStartupType || (!isEarlyStage && !isSeeking)) return false;
     }
     if (search.trim()) {
       const q = search.toLowerCase();
