@@ -275,7 +275,7 @@ const [showLabModal, setShowLabModal] = useState(false);
                   </div>
                   <h3 className="font-bold text-lg mb-0.5 group-hover:text-primary transition-colors">{org.name}</h3>
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
-                    <MapPin className="w-3 h-3" />{org.country} · {org.sector} · {org.type}
+                    <MapPin className="w-3 h-3" />{Array.isArray(org.country) ? org.country[0] : String(org.country ?? "").replace(/^\{|\}$/g, "").split(",")[0]?.replace(/"/g, "").trim()} · {org.sector} · {org.type}
                   </div>
                   <p className="text-sm text-muted-foreground mb-4 line-clamp-2">Providing essential infrastructure services and capacity building for local communities.</p>
                   <div className="flex flex-wrap gap-2">

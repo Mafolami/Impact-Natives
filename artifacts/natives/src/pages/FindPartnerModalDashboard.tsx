@@ -547,7 +547,7 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
                   {matches.map(match => {
                     const invited = sentInvites.has(match.org_id);
                     const sending = sendingInvite === match.org_id;
-                    const countries = Array.isArray(match.org.country) ? match.org.country : [match.org.country];
+                    const countries = Array.isArray(match.org.country) ? match.org.country : String(match.org.country ?? "").startsWith("{") ? String(match.org.country).slice(1,-1).split(",").map((s:string) => s.replace(/"/g,"").trim()) : [match.org.country];
                     return (
                       <div key={match.org_id} className="rounded-2xl border-2 border-border overflow-hidden hover:border-[#2D6A4F]/30 transition-colors">
                         <div className="px-6 py-5 border-b border-border flex items-start justify-between gap-4">
