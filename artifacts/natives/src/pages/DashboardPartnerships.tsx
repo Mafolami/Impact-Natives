@@ -87,7 +87,7 @@ function ddScore(org: OrgRow): number {
 // ─── Eyebrow label ────────────────────────────────────────────────────────────
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#6B7280] mb-3">
+    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#374151] mb-3">
       {children}
     </p>
   );
@@ -97,7 +97,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 function BentoCell({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
     <div className="rounded-xl p-3.5" style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-      <p className="text-[9px] font-black uppercase tracking-widest text-[#9CA3AF] mb-1">{label}</p>
+      <p className="text-[9px] font-black uppercase tracking-widest text-[#374151] mb-1">{label}</p>
       <p className={`text-sm font-bold leading-snug ${accent ? "text-[#2D6A4F]" : "text-[#111827]"}`}>{value}</p>
     </div>
   );
@@ -138,7 +138,7 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave }: {
       </div>
 
       {/* Location */}
-      <p className="text-[11px] text-[#6B7280] capitalize mb-3">
+      <p className="text-[11px] text-[#374151] capitalize mb-3">
         {countries.length > 0 ? countries.join(", ") : orgTypeLabel(org.organisation_type)}
       </p>
 
@@ -165,11 +165,11 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
       <div className="hidden lg:flex flex-col items-center justify-center h-full gap-4 text-center px-10"
         style={{ background: "#FAFAFA" }}>
         <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "#F3F4F6", border: "1px solid #E5E7EB" }}>
-          <Handshake className="w-6 h-6 text-[#9CA3AF]" />
+          <Handshake className="w-6 h-6 text-[#374151]" />
         </div>
         <div>
           <p className="text-sm font-bold text-[#111827] mb-1">Select a listing</p>
-          <p className="text-xs text-[#6B7280] max-w-xs leading-relaxed">Click any organisation from the list to view their full partnership profile.</p>
+          <p className="text-xs text-[#374151] max-w-xs leading-relaxed">Click any organisation from the list to view their full partnership profile.</p>
         </div>
       </div>
     );
@@ -197,7 +197,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
         {/* Mobile close */}
         <div className="lg:hidden flex justify-end mb-4">
           <button type="button" onClick={onClose}
-            className="p-1.5 rounded-lg text-[#6B7280] hover:bg-[#F3F4F6] transition-colors">
+            className="p-1.5 rounded-lg text-[#374151] hover:bg-[#F3F4F6] transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -216,7 +216,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
                 </span>
               )}
             </div>
-            <p className="text-sm text-[#6B7280] capitalize">
+            <p className="text-sm text-[#374151] capitalize">
               {orgTypeLabel(org.organisation_type)}
               {countries.length > 0 && ` · ${countries.join(", ")}`}
             </p>
@@ -251,7 +251,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
         {/* About -- directly under header */}
         {org.description && (
           <div className="px-8 py-5" style={{ borderBottom: "1px solid #F3F4F6" }}>
-            <p className="text-sm text-[#6B7280] leading-relaxed">{org.description}</p>
+            <p className="text-sm text-[#374151] leading-relaxed">{org.description}</p>
           </div>
         )}
 
@@ -266,7 +266,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
             )}
             {org.partnership_success_definition && (
               <div className="rounded-xl px-5 py-4" style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderLeft: "3px solid #2D6A4F" }}>
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#6B7280] mb-2">Success in 12 months</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#374151] mb-2">Success in 12 months</p>
                 <p className="text-sm text-[#374151] leading-relaxed italic">"{org.partnership_success_definition}"</p>
               </div>
             )}
@@ -308,7 +308,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
               ].filter(Boolean).map((row: any) => (
                 <div key={row.label} className="flex items-start justify-between gap-6 py-2.5"
                   style={{ borderBottom: "1px solid #F3F4F6" }}>
-                  <span className="text-xs text-[#6B7280] shrink-0">{row.label}</span>
+                  <span className="text-xs text-[#374151] shrink-0">{row.label}</span>
                   <span className="text-xs font-semibold text-[#111827] text-right capitalize">{row.value}</span>
                 </div>
               ))}
@@ -355,7 +355,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
             <div className="h-full rounded-full transition-all" style={{ width: `${(score / 5) * 100}%`, background: score > 2 ? "#2D6A4F" : "#C45C26" }} />
           </div>
           {score === 0 ? (
-            <p className="text-xs text-[#9CA3AF]">No documents confirmed ready yet.</p>
+            <p className="text-xs text-[#374151]">No documents confirmed ready yet.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {ddDocs.filter(({ key }) => org[key as keyof OrgRow] as boolean).map(({ label }) => (
@@ -392,21 +392,21 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
               {org.partnership_theory_of_change && (
                 <div className="rounded-xl px-5 py-4 space-y-1.5"
                   style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#9CA3AF]">Approach to change</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#374151]">Approach to change</p>
                   <p className="text-sm text-[#374151] leading-relaxed">{org.partnership_theory_of_change}</p>
                 </div>
               )}
               {org.partnership_prior_attempts && (
                 <div className="rounded-xl px-5 py-4 space-y-1.5"
                   style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#9CA3AF]">Previous attempts</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#374151]">Previous attempts</p>
                   <p className="text-sm text-[#374151] leading-relaxed">{org.partnership_prior_attempts}</p>
                 </div>
               )}
               {org.partnership_constraints && (
                 <div className="rounded-xl px-5 py-4 space-y-1.5"
                   style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#9CA3AF]">Constraints</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#374151]">Constraints</p>
                   <p className="text-sm text-[#374151] leading-relaxed">{org.partnership_constraints}</p>
                 </div>
               )}
@@ -429,7 +429,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
                   {org.partnership_prior_experience ? "Has completed a partnership before" : "No prior completed partnerships"}
                 </p>
                 {org.partnership_prior_experience && org.partnership_prior_experience_detail && (
-                  <p className="text-sm text-[#6B7280] leading-relaxed mt-1">{org.partnership_prior_experience_detail}</p>
+                  <p className="text-sm text-[#374151] leading-relaxed mt-1">{org.partnership_prior_experience_detail}</p>
                 )}
               </div>
             </div>
@@ -583,10 +583,10 @@ export default function DashboardPartnerships() {
         {/* Top bar */}
         <div className="shrink-0 px-5 py-3 flex items-center gap-2" style={{ background: "#FFFFFF", borderBottom: "1px solid #F3F4F6" }}>
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#9CA3AF]" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#374151]" />
             <input type="text" placeholder="Search listings..." value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full h-9 pl-9 pr-3 rounded-lg text-xs text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none transition-colors"
+              className="w-full h-9 pl-9 pr-3 rounded-lg text-xs text-[#111827] placeholder:text-[#374151] focus:outline-none transition-colors"
               style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }} />
           </div>
           <button type="button" onClick={() => setShowFilters(v => !v)}
@@ -629,7 +629,7 @@ export default function DashboardPartnerships() {
             </div>
             {activeFilterCount > 0 && (
               <button type="button" onClick={() => { setSectorFilters(new Set()); setFavoritesOnly(false); }}
-                className="text-xs text-[#6B7280] hover:text-[#111827] transition-colors">
+                className="text-xs text-[#374151] hover:text-[#111827] transition-colors">
                 Clear all
               </button>
             )}
@@ -646,7 +646,7 @@ export default function DashboardPartnerships() {
             <Handshake className="w-7 h-7 text-[#D1D5DB]" />
             <div>
               <p className="text-sm font-bold text-[#111827] mb-1">{orgs.length === 0 ? "No listings yet" : "No results"}</p>
-              <p className="text-xs text-[#6B7280]">{orgs.length === 0 ? "Be the first to list your organisation." : "Try a different search or filter."}</p>
+              <p className="text-xs text-[#374151]">{orgs.length === 0 ? "Be the first to list your organisation." : "Try a different search or filter."}</p>
             </div>
           </div>
         ) : (
