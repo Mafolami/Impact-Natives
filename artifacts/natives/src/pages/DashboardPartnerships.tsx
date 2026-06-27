@@ -183,9 +183,10 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
     setFit(null);
     setOpeningMsg(null);
     setMsgEditing(false);
-    if (org && viewerOrg && org.user_id !== viewerOrg.user_id) {
+    if (org && viewerOrg && org.user_id !== viewerOrg.user_id && org.id !== viewerOrg.id) {
       scoreFit(org, viewerOrg);
     }
+
   }, [org?.id, viewerOrg?.id]);
 
   async function scoreFit(listing: OrgRow, viewer: OrgRow) {
@@ -335,7 +336,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
         )}
 
         {/* AI fit analysis -- own distinct section */}
-        {(fit || fitLoading) && (
+        {(fit || fitLoading) && org.user_id !== viewerOrg?.user_id && (
           <div className="px-8 py-6" style={{ background: "linear-gradient(135deg, #0d2b1a08 0%, #1a4a2e05 100%)", borderBottom: "1px solid #E5E7EB", borderTop: "1px solid #E5E7EB" }}>
             <div className="flex items-center gap-2 mb-4">
               <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: "#2D6A4F" }}>
