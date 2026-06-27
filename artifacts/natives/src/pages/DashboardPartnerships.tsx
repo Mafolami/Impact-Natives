@@ -231,8 +231,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
     <div ref={ref} className="flex flex-col h-full overflow-y-auto" style={{ background: "#FFFFFF" }}>
 
       {/* ── Identity block ── */}
-      <div className="shrink-0 px-8 pt-7 pb-6" style={{ borderBottom: "1px solid #F3F4F6" }}>
-        {/* Mobile close */}
+      <div className="shrink-0 px-8 pt-7 pb-6" style={{ background: "linear-gradient(to bottom, #F0F9F4, #ffffff)", borderBottom: "2px solid #E5E7EB" }}>        {/* Mobile close */}
         <div className="lg:hidden flex justify-end mb-4">
           <button type="button" onClick={onClose}
             className="p-1.5 rounded-lg text-[#374151] hover:bg-[#F3F4F6] transition-colors">
@@ -244,7 +243,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <a href={`/dashboard/natives?user=${org.user_id}`}
-                className="text-2xl font-black text-[#111827] hover:text-[#2D6A4F] transition-colors leading-tight">
+                className="text-2xl font-black text-[#111827] hover:text-[#2D6A4F] transition-colors leading-tight tracking-tight">
                 {org.organisation_name}
               </a>
               {isVerified && (
@@ -739,8 +738,7 @@ export default function DashboardPartnerships() {
 
   return (
     <>
-      <div className="flex flex-col h-full min-h-0 -mx-4 sm:-mx-6">
-
+      <div className="flex flex-col -mx-4 sm:-mx-6" style={{ height: "100vh", maxHeight: "100vh", overflow: "hidden" }}>
         {/* Top bar */}
         <div className="shrink-0 px-5 py-3 flex items-center gap-2" style={{ background: "#FFFFFF", borderBottom: "1px solid #F3F4F6" }}>
           <div className="relative flex-1 max-w-sm">
@@ -811,10 +809,9 @@ export default function DashboardPartnerships() {
             </div>
           </div>
         ) : (
-          <div className="flex flex-1 min-h-0 overflow-hidden" style={{ height: "calc(100vh - 180px)" }}>
-            {/* Left list */}
+          <div className="flex min-h-0 overflow-hidden" style={{ flex: 1 }}>            {/* Left list */}
             <div className={`w-full lg:w-72 xl:w-80 shrink-0 overflow-y-auto ${mobileDetailOpen ? "hidden lg:block" : "block"}`}
-              style={{ borderRight: "2px solid #E5E7EB", background: "#F9FAFB" }}>              {filtered.map(org => (
+              style={{ borderRight: "2px solid #E5E7EB", background: "#F4F4F5" }}>              {filtered.map(org => (
                 <ListCard key={org.id} org={org}
                   selected={selectedOrg?.id === org.id}
                   onClick={() => { setSelectedOrg(org); setMobileDetailOpen(true); }}
