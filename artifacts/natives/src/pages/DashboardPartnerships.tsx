@@ -811,11 +811,10 @@ export default function DashboardPartnerships() {
             </div>
           </div>
         ) : (
-          <div className="flex flex-1 min-h-0 overflow-hidden">
+          <div className="flex flex-1 min-h-0 overflow-hidden" style={{ height: "calc(100vh - 180px)" }}>
             {/* Left list */}
             <div className={`w-full lg:w-72 xl:w-80 shrink-0 overflow-y-auto ${mobileDetailOpen ? "hidden lg:block" : "block"}`}
-              style={{ borderRight: "1px solid #F3F4F6", background: "#FAFAFA" }}>
-              {filtered.map(org => (
+              style={{ borderRight: "2px solid #E5E7EB", background: "#F9FAFB" }}>              {filtered.map(org => (
                 <ListCard key={org.id} org={org}
                   selected={selectedOrg?.id === org.id}
                   onClick={() => { setSelectedOrg(org); setMobileDetailOpen(true); }}
@@ -826,7 +825,7 @@ export default function DashboardPartnerships() {
             </div>
 
             {/* Right detail */}
-            <div className={`flex-1 min-w-0 overflow-hidden ${mobileDetailOpen ? "block" : "hidden lg:block"}`}>
+            <div className={`flex-1 min-w-0 overflow-y-auto ${mobileDetailOpen ? "block" : "hidden lg:block"}`}>
               <DetailPanel
                 org={selectedOrg}
                 isSaved={selectedOrg ? savedOrgs.has(selectedOrg.id) : false}
