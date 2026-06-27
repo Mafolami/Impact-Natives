@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { supabase } from "@/lib/supabase";
 import { Loader2, CheckCircle2, X, SlidersHorizontal, Search, Leaf, Zap, MessageSquare, ShieldCheck } from "lucide-react";
-import { SECTOR_OPTIONS } from "@/lib/sectors";
 import { useAuth } from "@/context/AuthContext";
 import { FileText, Sparkles } from "lucide-react";
 import { useLocation } from "wouter";
@@ -34,10 +33,8 @@ interface InitiativeRow {
   stage?: string | null;
 }
 
-const LOCATION_OPTIONS = [
-  "Nigeria", "Kenya", "Ghana", "South Africa", "Uganda", "Tanzania",
-  "West Africa", "East Africa", "Sub-Saharan Africa", "Pan-Africa", "Global",
-];
+// REPLACE WITH:
+// Location options derived dynamically from loaded initiatives (see useDynamicOptions below)
 
 const BUDGET_OPTIONS = [
   { label: "Under $50K",   value: "under_50k" },
@@ -54,6 +51,18 @@ const PARTNERSHIP_OPTIONS = [
   { value: "strategic",   label: "Strategic"    },
   { value: "lead",        label: "Project Lead" },
 ];
+
+function useDynamicOptions(initiatives: InitiativeRow[]) {
+  const sectors = Array.from(
+    new Set(initiatives.flatMap(i => i.sectors ?? []))
+  ).filter(Boolean).sort();
+
+  const locations = Array.from(
+    new Set(initiatives.flatMap(i => i.locations ?? []))
+  ).filter(Boolean).sort();
+
+  return { sectors, locations };
+}
 
 // EOI partnership types now aligned with initiative vocabulary
 const EOI_PARTNERSHIP_TYPES = [
@@ -81,13 +90,14 @@ function budgetMatches(budget: string | null | undefined, filter: string): boole
 function FilterPanel({
   sectors, setSectors, locations, setLocations,
   budgets, setBudgets, partnerships, setPartnerships,
-  onClear, activeCount,
+  onClear, activeCount, sectorOptions, locationOptions,
 }: {
   sectors: string[]; setSectors: (v: string[]) => void;
   locations: string[]; setLocations: (v: string[]) => void;
   budgets: string[]; setBudgets: (v: string[]) => void;
   partnerships: string[]; setPartnerships: (v: string[]) => void;
   onClear: () => void; activeCount: number;
+  sectorOptions: string[]; locationOptions: string[];
 }) {
   function toggle(arr: string[], val: string, set: (v: string[]) => void) {
     set(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val]);
@@ -103,8 +113,8 @@ function FilterPanel({
         )}
       </div>
       {[
-        { label: "Sector", options: SECTOR_OPTIONS, selected: sectors, set: setSectors, accent: "primary" },
-        { label: "Location", options: LOCATION_OPTIONS, selected: locations, set: setLocations, accent: "primary" },
+        { label: "Sector", options: sectorOptions, selected: sectors, set: setSectors, accent: "primary" },
+        { label: "Location", options: locationOptions, selected: locations, set: setLocations, accent: "primary" },      
       ].map(({ label, options, selected, set }) => (
         <div key={label}>
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2.5">{label}</p>
@@ -267,7 +277,8 @@ function InitiativeCard({ ini, expressed, onClick }: {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function DashboardMarketplace() {
   const [initiatives, setInitiatives]     = useState<InitiativeRow[]>([]);
-  const [loading, setLoading]             = useState(true);
+  const { sectors: dynamicSectors, locations: dynamicLocations } = useDynamicOptions(initiatives);
+  const [locations, setLocations]     = useState<string[]>([]);
   const [search, setSearch]               = useState("");
   const [showFilters, setShowFilters]     = useState(false);
   const [selected, setSelected]           = useState<InitiativeRow | null>(null);
@@ -278,14 +289,13 @@ export default function DashboardMarketplace() {
   const [location] = useLocation();
 
   const [sectors, setSectors]         = useState<string[]>([]);
-  const [locations, setLocations]     = useState<string[]>([]);
-  const [budgets, setBudgets]         = useState<string[]>([]);
-  const [partnerships, setPartnerships] = useState<string[]>([]);
+  const [budgets, setBudgets]         = useState<string[]>([]);  const [partnerships, setPartnerships] = useState<string[]>([]);
 
   const activeFilterCount = sectors.length + locations.length + budgets.length + partnerships.length;
 
   function clearFilters() { setSectors([]); setLocations([]); setBudgets([]); setPartnerships([]); setStartupPipeline(false); }
 
+  const [loading, setLoading] = useState(true);
   const [startupPipeline, setStartupPipeline] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
@@ -439,6 +449,7 @@ export default function DashboardMarketplace() {
           budgets={budgets} setBudgets={setBudgets}
           partnerships={partnerships} setPartnerships={setPartnerships}
           onClear={clearFilters} activeCount={activeFilterCount}
+          sectorOptions={dynamicSectors} locationOptions={dynamicLocations}
         />
       )}
 
