@@ -388,26 +388,26 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
         {(org.partnership_theory_of_change || org.partnership_prior_attempts || org.partnership_constraints) && (
           <div className="px-8 py-6">
             <Eyebrow>Context</Eyebrow>
-            <div className="grid gap-3">
+            <div className="grid grid-cols-3 gap-3">
               {org.partnership_theory_of_change && (
-                <div className="rounded-xl px-5 py-4 space-y-1.5"
+                <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col"
                   style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#374151]">Approach to change</p>
-                  <p className="text-sm text-[#374151] leading-relaxed">{org.partnership_theory_of_change}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#6B7280]">Approach to change</p>
+                  <p className="text-sm text-[#374151] leading-relaxed flex-1">{org.partnership_theory_of_change}</p>
                 </div>
               )}
               {org.partnership_prior_attempts && (
-                <div className="rounded-xl px-5 py-4 space-y-1.5"
+                <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col"
                   style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#374151]">Previous attempts</p>
-                  <p className="text-sm text-[#374151] leading-relaxed">{org.partnership_prior_attempts}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#6B7280]">Previous attempts</p>
+                  <p className="text-sm text-[#374151] leading-relaxed flex-1">{org.partnership_prior_attempts}</p>
                 </div>
               )}
               {org.partnership_constraints && (
-                <div className="rounded-xl px-5 py-4 space-y-1.5"
+                <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col"
                   style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#374151]">Constraints</p>
-                  <p className="text-sm text-[#374151] leading-relaxed">{org.partnership_constraints}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#6B7280]">Constraints</p>
+                  <p className="text-sm text-[#374151] leading-relaxed flex-1">{org.partnership_constraints}</p>
                 </div>
               )}
             </div>
