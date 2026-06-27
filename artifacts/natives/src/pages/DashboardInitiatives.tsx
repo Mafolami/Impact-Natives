@@ -11,6 +11,7 @@ import { Link, useLocation } from "wouter";
 import CreateInitiativeModalDashboard from "./CreateInitiativeModalDashboard";
 import { useRoute } from "wouter";
 import { PartnershipTab } from "./PartnershipTab";
+import { normalizeArr } from "@/lib/normalizeArr";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -198,7 +199,7 @@ function InitiativeDetail({ initiative, onBack }: { initiative: InitiativeRow; o
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {[
-          { label: "Sectors",   value: initiative.sectors?.join(", ")   || "—" },
+          { label: "Sectors",   value: normalizeArr(initiative.sectors).join(", ") || "—" },          
           { label: "Locations", value: initiative.locations?.join(", ") || "—" },
           { label: "Budget",    value: initiative.budget                || "—" },
         ].map(({ label, value }) => (
@@ -709,8 +710,7 @@ export default function DashboardInitiatives() {
                                 <span className="text-xs text-muted-foreground">{ini.eois} EOI{ini.eois !== 1 ? "s" : ""}</span>
                               </div>
                               <p className="font-medium text-foreground group-hover:text-[#2D6A4F] transition-colors truncate">{ini.title}</p>
-                              <p className="text-xs text-muted-foreground mt-1">{ini.sectors?.join(", ")} · {ini.locations?.slice(0, 2).join(", ")}</p>
-                            </div>
+                              <p className="text-xs text-muted-foreground mt-1">{normalizeArr(ini.sectors).join(", ")} · {normalizeArr(ini.locations).slice(0, 2).join(", ")}</p>                            </div>
                             <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-[#2D6A4F] transition-colors shrink-0 mt-1" />
                           </div>
                         </button>
