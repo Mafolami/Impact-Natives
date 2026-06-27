@@ -30,6 +30,11 @@ interface OrgRow {
 function normalizeArr(val: string | string[] | null | undefined): string[] {
   if (!val) return [];
   if (Array.isArray(val)) return val;
+  if (typeof val === "string" && val.startsWith("{") && val.endsWith("}")) {
+    const inner = val.slice(1, -1);
+    const matches = inner.match(/("(?:[^"\\]|\\.)*"|[^,]+)/g) ?? [];
+    return matches.map(m => m.replace(/^"|"$/g, "").trim()).filter(Boolean);
+  }
   try {
     const parsed = JSON.parse(val);
     return Array.isArray(parsed) ? parsed : [val];
