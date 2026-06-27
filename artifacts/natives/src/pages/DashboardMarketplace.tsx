@@ -102,60 +102,130 @@ function FilterPanel({
   function toggle(arr: string[], val: string, set: (v: string[]) => void) {
     set(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val]);
   }
+  const [sectorSearch, setSectorSearch] = useState("");
+  const [locationSearch, setLocationSearch] = useState("");
+
+  const filteredSectorOptions = sectorOptions.filter(o =>
+    o.toLowerCase().includes(sectorSearch.toLowerCase())
+  );
+  const filteredLocationOptions = locationOptions.filter(o =>
+    o.toLowerCase().includes(locationSearch.toLowerCase())
+  );
+
+  function DropdownFilter({ label, search, setSearch, options, selected, set }: {
+    label: string; search: string; setSearch: (v: string) => void;
+    options: string[]; selected: string[]; set: (v: string[]) => void;
+  }) {
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-bold uppercase tracking-wider text-[#374151]">{label}</p>
+          {selected.length > 0 && (
+            <button type="button" onClick={() => set([])}
+              className="text-[10px] text-[#2D6A4F] hover:underline">
+              Clear ({selected.length})
+            </button>
+          )}
+        </div>
+        {selected.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {selected.map(s => (
+              <span key={s} className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full text-white"
+                style={{ background: "#2D6A4F" }}>
+                {s}
+                <button type="button" onClick={() => toggle(selected, s, set)}
+                  className="hover:opacity-70 transition-opacity">
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="relative mb-2">
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+            placeholder={`Search ${label.toLowerCase()}...`}
+            className="w-full h-8 pl-3 pr-3 rounded-lg text-xs text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]/30"
+            style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }} />
+        </div>
+        <div className="max-h-36 overflow-y-auto space-y-0.5 pr-1">
+          {filteredLocationOptions.length === 0 && options === locationOptions && (
+            <p className="text-xs text-[#6B7280] py-1">No results</p>
+          )}
+          {(options === sectorOptions ? filteredSectorOptions : filteredLocationOptions).map(o => {
+            const on = selected.includes(o);
+            return (
+              <button key={o} type="button" onClick={() => toggle(selected, o, set)}
+                className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-xs text-left transition-colors ${
+                  on ? "bg-[#eaf5ee] text-[#2D6A4F] font-semibold" : "text-[#374151] hover:bg-[#F3F4F6]"
+                }`}>
+                <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
+                  on ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-[#D1D5DB]"
+                }`}>
+                  {on && <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>}
+                </div>
+                {o}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-xl border border-border bg-card p-5 space-y-5">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-foreground">Filters</p>
+        <p className="text-sm font-bold text-[#111827]">Filters</p>
         {activeCount > 0 && (
-          <button type="button" onClick={onClear} className="text-xs text-primary hover:underline">
+          <button type="button" onClick={onClear} className="text-xs font-semibold text-[#2D6A4F] hover:underline">
             Clear all ({activeCount})
           </button>
         )}
       </div>
-      {[
-        { label: "Sector", options: sectorOptions, selected: sectors, set: setSectors, accent: "primary" },
-        { label: "Location", options: locationOptions, selected: locations, set: setLocations, accent: "primary" },      
-      ].map(({ label, options, selected, set }) => (
-        <div key={label}>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2.5">{label}</p>
-          <div className="flex flex-wrap gap-1.5">
-            {options.map(o => (
-              <button key={o} type="button" onClick={() => toggle(selected, o, set)}
-                className={`h-7 px-3 rounded-full text-xs border transition-colors ${
-                  selected.includes(o)
-                    ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
-                    : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
-                }`}>
-                {o}
-              </button>
-            ))}
-          </div>
-        </div>
-      ))}
+
+      <DropdownFilter
+        label="Sector" search={sectorSearch} setSearch={setSectorSearch}
+        options={sectorOptions} selected={sectors} set={setSectors}
+      />
+
+      <div className="h-px bg-[#F3F4F6]" />
+
+      <DropdownFilter
+        label="Location" search={locationSearch} setSearch={setLocationSearch}
+        options={locationOptions} selected={locations} set={setLocations}
+      />
+
+      <div className="h-px bg-[#F3F4F6]" />
+
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2.5">Budget range</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-[#374151] mb-2.5">Budget range</p>
         <div className="flex flex-wrap gap-1.5">
           {BUDGET_OPTIONS.map(b => (
             <button key={b.value} type="button" onClick={() => toggle(budgets, b.value, setBudgets)}
-              className={`h-7 px-3 rounded-full text-xs border transition-colors ${
+              className={`h-7 px-3 rounded-full text-xs font-medium border transition-colors ${
                 budgets.includes(b.value)
                   ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
-                  : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+                  : "border-[#E5E7EB] text-[#374151] hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F]"
               }`}>
               {b.label}
             </button>
           ))}
         </div>
       </div>
+
+      <div className="h-px bg-[#F3F4F6]" />
+
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2.5">Partnership sought</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-[#374151] mb-2.5">Partnership sought</p>
         <div className="flex flex-wrap gap-1.5">
           {PARTNERSHIP_OPTIONS.map(p => (
             <button key={p.value} type="button" onClick={() => toggle(partnerships, p.value, setPartnerships)}
-              className={`h-7 px-3 rounded-full text-xs border transition-colors ${
+              className={`h-7 px-3 rounded-full text-xs font-medium border transition-colors ${
                 partnerships.includes(p.value)
-                   ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
-                  : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+                  ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
+                  : "border-[#E5E7EB] text-[#374151] hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F]"
               }`}>
               {p.label}
             </button>
