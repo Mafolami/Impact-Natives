@@ -573,8 +573,11 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
         )}
 
         {/* CTA */}
-        {isOrg && !org.partnership_formed && (
-          <div className="px-8 py-6 sticky bottom-0 bg-white space-y-3" style={{ borderTop: "1px solid #F3F4F6" }}>
+        {org.user_id === viewerOrg?.user_id ? (
+          <div className="px-8 py-4 border-t border-border">
+            <span className="text-xs font-semibold text-[#2D6A4F]">Your listing</span>
+          </div>
+        ) : isOrg && !org.partnership_formed && (          <div className="px-8 py-6 sticky bottom-0 bg-white space-y-3" style={{ borderTop: "1px solid #F3F4F6" }}>
             {alreadySent ? (
               <div className="flex items-center gap-2 text-sm font-semibold text-[#065F46]">
                 <CheckCircle2 className="w-4 h-4" />Interest expressed — they've been notified
@@ -678,7 +681,6 @@ export default function DashboardPartnerships() {
   }
 
   const filtered = orgs.filter(org => {
-    if (user && org.user_id === user.id) return false;
     const sectors = normalizeArr(org.sector);
     const countries = normalizeArr(org.country);
     const matchesSector    = sectorFilters.size === 0 || sectors.some(s => [...sectorFilters].some(f => s.toLowerCase().includes(f.toLowerCase())));
