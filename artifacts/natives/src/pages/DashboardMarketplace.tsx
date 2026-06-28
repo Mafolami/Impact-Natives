@@ -783,7 +783,6 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
       if (!error && data?.message) {
         setMessage(data.message);
       } else {
-        console.error("generate-funder-intro error:", error, data);
         setAiMessageFailed(true);
       }
     } catch {
