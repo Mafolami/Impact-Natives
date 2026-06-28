@@ -763,6 +763,13 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
       const { data: ep } = await supabase.from("profiles").select("full_name,org_name,user_type,sectors").eq("id", user!.id).single();
       const { data: orgRow } = await supabase.from("organizations").select("description,offers").eq("user_id", user!.id).maybeSingle();
       const expresserName = ep?.user_type === "organisation" && ep?.org_name ? ep.org_name : ep?.full_name ?? "Us";
+      const { data: ownerProfile } = await supabase
+        .from("profiles").select("full_name,org_name,user_type")
+        .eq("id", initiative.user_id).maybeSingle();
+      const ownerName = ownerProfile?.user_type === "organisation"
+        ? (ownerProfile?.org_name ?? ownerProfile?.full_name)
+        : ownerProfile?.full_name;
+
       const { data, error } = await supabase.functions.invoke("generate-funder-intro", {
         body: {
           expresser_name: expresserName, expresser_org: ep?.org_name ?? null,
@@ -770,7 +777,7 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
           expresser_sectors: ep?.sectors ?? [], expresser_offers: orgRow?.offers ?? [],
           initiative_title: initiative.title, initiative_problem: initiative.problem ?? null,
           initiative_outcome: initiative.outcome ?? null, initiative_sectors: initiative.sectors ?? [],
-          esg_intent: false,
+          esg_intent: false, initiative_owner_name: ownerName ?? null,
         },
       });
       if (!error && data?.message) {
