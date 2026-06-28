@@ -763,20 +763,18 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
       const { data: ep } = await supabase.from("profiles").select("full_name,org_name,user_type,sectors").eq("id", user!.id).single();
       const { data: orgRow } = await supabase.from("organizations").select("description,offers").eq("user_id", user!.id).maybeSingle();
       const expresserName = ep?.user_type === "organisation" && ep?.org_name ? ep.org_name : ep?.full_name ?? "Us";
-      const aiRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-funder-intro`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke("generate-funder-intro", {
+        body: {
           expresser_name: expresserName, expresser_org: ep?.org_name ?? null,
           expresser_description: orgRow?.description ?? null,
           expresser_sectors: ep?.sectors ?? [], expresser_offers: orgRow?.offers ?? [],
           initiative_title: initiative.title, initiative_problem: initiative.problem ?? null,
           initiative_outcome: initiative.outcome ?? null, initiative_sectors: initiative.sectors ?? [],
           esg_intent: false,
-        }),
+        },
       });
-      const aiData = await aiRes.json();
-      if (aiData.message) {
-        setMessage(aiData.message);
+      if (!error && data?.message) {
+        setMessage(data.message);
       } else {
         setAiMessageFailed(true);
       }
