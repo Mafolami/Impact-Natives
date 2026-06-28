@@ -840,6 +840,9 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
     open_to_coalition:    "Open to co-funding coalition",
     co_funder_confirmed:  "Co-funder already confirmed",
     fully_funded:         "Fully funded",
+    seeking_co_funding:   "Seeking co-funding",
+    partially_funded:     "Partially funded",
+    seeking_funding:      "Seeking funding",
   };
 
   const QUALITY_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
