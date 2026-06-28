@@ -600,6 +600,8 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
   const [partnershipTypes, setPartnershipTypes] = useState<string[]>([]);
   const [esgAdoption, setEsgAdoption]           = useState(false);
   const [message, setMessage]                   = useState("");
+  const [aiMessageLoading, setAiMessageLoading] = useState(false);
+  const [aiMessageFailed, setAiMessageFailed]   = useState(false);
   const [submitting, setSubmitting]             = useState(false);
   const [submitted, setSubmitted]               = useState(false);
   const [eoiError, setEoiError]                 = useState<string | null>(null);
@@ -753,6 +755,36 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
     setQuestionSubmitting(false);
   }
       
+
+  async function generateAiMessage() {
+    setAiMessageLoading(true);
+    setAiMessageFailed(false);
+    try {
+      const { data: ep } = await supabase.from("profiles").select("full_name,org_name,user_type,sectors").eq("id", user!.id).single();
+      const { data: orgRow } = await supabase.from("organizations").select("description,offers").eq("user_id", user!.id).maybeSingle();
+      const expresserName = ep?.user_type === "organisation" && ep?.org_name ? ep.org_name : ep?.full_name ?? "Us";
+      const aiRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-funder-intro`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          expresser_name: expresserName, expresser_org: ep?.org_name ?? null,
+          expresser_description: orgRow?.description ?? null,
+          expresser_sectors: ep?.sectors ?? [], expresser_offers: orgRow?.offers ?? [],
+          initiative_title: initiative.title, initiative_problem: initiative.problem ?? null,
+          initiative_outcome: initiative.outcome ?? null, initiative_sectors: initiative.sectors ?? [],
+          esg_intent: false,
+        }),
+      });
+      const aiData = await aiRes.json();
+      if (aiData.message) {
+        setMessage(aiData.message);
+      } else {
+        setAiMessageFailed(true);
+      }
+    } catch {
+      setAiMessageFailed(true);
+    }
+    setAiMessageLoading(false);
+  }
 
   async function saveFunderDecision(decision: "pass" | "save" | "interest", reason?: string) {
     if (!user?.id) return;
@@ -1643,60 +1675,19 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
             </div>
           )}
 
-          {!alreadyExpressed && !quickSubmitted && !quickSubmitting && (
-            <div className="rounded-xl border border-[#2D6A4F]/30 bg-[#2D6A4F]/3 px-4 py-3 space-y-3">
-              <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-[#2D6A4F] shrink-0" />
-                <p className="text-sm font-medium text-foreground">Quick introduction</p>
-              </div>
-              {initiative.esg_alignment && (
-                <button type="button" onClick={() => setQuickEsgIntent(v => !v)}
-                  className={`w-full flex items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors ${
-                    quickEsgIntent ? "border-[#2e7d32] bg-[#f1f8f2]" : "border-border hover:border-[#2e7d32]/40 bg-background"
-                  }`}>
-                  <div className={`w-4 h-4 mt-0.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                    quickEsgIntent ? "bg-[#2e7d32] border-[#2e7d32]" : "border-border"
-                  }`}>
-                    {quickEsgIntent && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>}
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-foreground">I'm interested in ESG/CSR adoption</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Flag this as your primary intent so the introduction reflects it.</p>
-                  </div>
-                </button>
-              )}
-              <button type="button" onClick={submitQuickInterest}
-                className="w-full rounded-full h-9 text-sm font-semibold transition-colors bg-[#2D6A4F] hover:bg-[#245c43] text-white">
-                Send introduction
-              </button>
-              <p className="text-[10px] text-muted-foreground text-center">We'll generate a brief introduction based on your profile.</p>
-            </div>
-          )}
-
-          {!alreadyExpressed && !quickSubmitted && quickSubmitting && (
-            <div className="w-full rounded-full h-11 flex items-center justify-center gap-2 text-sm text-muted-foreground border border-border">
-              <Loader2 className="w-4 h-4 animate-spin text-[#2D6A4F]" />
-              Sending introduction...
-            </div>
-          )}
+          
 
 
           <button type="button"
-            onClick={() => !alreadyExpressed && !quickSubmitted && setEoiOpen(true)}
+            onClick={() => { if (!alreadyExpressed && !quickSubmitted) { setEoiOpen(true); generateAiMessage(); } }}
             disabled={alreadyExpressed || quickSubmitted}
             className={`w-full rounded-full h-11 text-sm font-semibold transition-colors ${
               alreadyExpressed || quickSubmitted
                 ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
                 : "bg-[#2D6A4F] hover:bg-[#245c43] text-white"
             }`}>
-            {alreadyExpressed || quickSubmitted ? "Interest expressed" : "Express Interest with message"}
+            {alreadyExpressed || quickSubmitted ? "Interest expressed" : "Express interest"}
           </button>
-
-          {!alreadyExpressed && !quickSubmitted && (
-            <p className="text-center text-xs text-muted-foreground">
-              "Send introduction" sends a brief AI-generated message. "Express Interest with message" lets you write your own.
-            </p>
-          )}
 
           {quickSubmitted && (
             <div className="flex items-center gap-2 justify-center text-xs text-[#2D6A4F]">
@@ -1773,13 +1764,31 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
                   </div>
                 )}
                 {!canSubmit && <p className="text-xs text-muted-foreground">Select at least one partnership type{initiative.esg_alignment ? " or choose ESG/CSR adoption" : ""}.</p>}
-                <div>
-                  <label className="text-sm font-medium text-foreground block mb-1.5">
-                    Message <span className="text-muted-foreground font-normal text-xs">(optional)</span>
-                  </label>
-                  <textarea value={message} onChange={e => setMessage(e.target.value)}
-                    placeholder="Briefly describe how you could contribute..." rows={4}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-foreground">Message</label>
+                    <button type="button" onClick={generateAiMessage} disabled={aiMessageLoading}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-[#2D6A4F] hover:underline disabled:opacity-40 transition-opacity">
+                      {aiMessageLoading
+                        ? <><Loader2 className="w-3 h-3 animate-spin" />Generating...</>
+                        : <><Sparkles className="w-3 h-3" />Regenerate</>}
+                    </button>
+                  </div>
+                  {aiMessageLoading && !message && (
+                    <div className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2.5 h-28 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#2D6A4F]" />
+                      Drafting your message...
+                    </div>
+                  )}
+                  {(!aiMessageLoading || message) && (
+                    <textarea value={message} onChange={e => setMessage(e.target.value)}
+                      placeholder={aiMessageFailed ? "AI draft unavailable — write your message here..." : "Generating message..."}
+                      rows={5}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
+                  )}
+                  {aiMessageFailed && !message && (
+                    <p className="text-xs text-[#C45C26]">AI draft failed — write your own message above.</p>
+                  )}
                 </div>
                 {eoiError && <p className="text-sm text-red-600 bg-red-50 rounded-md px-3 py-2">{eoiError}</p>}
                 <button type="button" onClick={submitEOI} disabled={!canSubmit || submitting}
