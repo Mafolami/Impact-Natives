@@ -91,6 +91,7 @@ export function FindPartnerSection() {
         .from("organizations")
         .select("id, organisation_name, description, sector, country, organisation_type, website, email, needs, offers, sdgs, verification_status, status")
         .eq("status", "published")
+        .eq("partnership_listed", true)
         .order("created_at", { ascending: false });
       if (error) console.error("FindPartnerSection orgs error:", error);
       if (data) setOrgs(data as OrgRow[]);
