@@ -36,6 +36,8 @@ interface OrgRow {
   contact_name?: string;
   description?: string;
   investment_thesis?: string | null;
+  stage_preference?: string[] | null;
+  geographic_focus?: string[] | null;
   dd_financial_model?: boolean;
   dd_audited_accounts?: boolean;
   dd_governance_doc?: boolean;
@@ -406,7 +408,7 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
       setLoading(true);
       const { data: orgData, error } = await supabase
         .from("organizations")
-        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status,investment_thesis")        .eq("status", "published")
+        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status,investment_thesis,stage_preference,geographic_focus")        .eq("status", "published")
         .order("organisation_name", { ascending: true });
 
       if (error) { console.error(error); setLoading(false); return; }
@@ -824,6 +826,31 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
           <p className="text-sm text-foreground leading-relaxed">{org.investment_thesis}</p>
         </div>
       )}
+
+      {(org.stage_preference?.length || org.geographic_focus?.length) ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {org.stage_preference && org.stage_preference.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Stage preference</p>
+              <div className="flex flex-wrap gap-1.5">
+                {org.stage_preference.map(s => (
+                  <span key={s} className="text-xs px-2.5 py-0.5 rounded-full border border-border text-muted-foreground">{s}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          {org.geographic_focus && org.geographic_focus.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Geographic focus</p>
+              <div className="flex flex-wrap gap-1.5">
+                {org.geographic_focus.map(g => (
+                  <span key={g} className="text-xs px-2.5 py-0.5 rounded-full border border-border text-muted-foreground">{g}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : null}
 
       {/* CSR & ESG — corporates and tech companies */}
       {["corporation", "technology_company"].includes(org.organisation_type ?? "") && (
