@@ -820,6 +820,39 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
         </div>
       )}
 
+      {(sectors.length > 0 || countries.length > 0) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {sectors.length > 0 && (
+            <div className="rounded-xl px-4 py-3.5"
+              style={{ background: "linear-gradient(135deg, rgba(196,92,38,0.05) 0%, transparent 100%)", border: "1px solid rgba(196,92,38,0.14)" }}>
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: "#C45C26" }}>Sector</p>
+              <div className="flex flex-wrap gap-1.5">
+                {sectors.map(s => (
+                  <span key={s} className="text-xs font-medium px-2.5 py-1 rounded-full"
+                    style={{ background: "rgba(196,92,38,0.08)", color: "#C45C26" }}>
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {countries.length > 0 && (
+            <div className="rounded-xl px-4 py-3.5"
+              style={{ background: "linear-gradient(135deg, rgba(45,106,79,0.05) 0%, transparent 100%)", border: "1px solid rgba(45,106,79,0.14)" }}>
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: "#2D6A4F" }}>Location</p>
+              <div className="flex flex-wrap gap-1.5">
+                {countries.map(c => (
+                  <span key={c} className="text-xs font-medium px-2.5 py-1 rounded-full"
+                    style={{ background: "rgba(45,106,79,0.08)", color: "#2D6A4F" }}>
+                    {c}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {org.investment_thesis && (
         <div className="relative rounded-2xl overflow-hidden"
           style={{
@@ -956,28 +989,15 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
           )}
         </div>
       )}
-      {/* Meta grid */}      <div className="flex flex-col gap-2 text-sm">
-        {sectors.length > 0 && (
-          <div className="flex gap-2">
-            <span className="text-muted-foreground w-24 shrink-0">Sector</span>
-            <span className="text-foreground">{sectors.join(", ")}</span>
-          </div>
-        )}
-        {countries.length > 0 && (
-          <div className="flex gap-2">
-            <span className="text-muted-foreground w-24 shrink-0">Location</span>
-            <span className="text-foreground">{countries.join(", ")}</span>
-          </div>
-        )}
-        {org.website && org.website !== "https://" && (
-          <div className="flex gap-2">
-            <span className="text-muted-foreground w-24 shrink-0">Website</span>
-            <a href={org.website} target="_blank" rel="noopener noreferrer"
-              className="text-primary hover:underline truncate">
-              {org.website.replace(/^https?:\/\//, "")}
-            </a>
-          </div>
-        )}
+      {org.website && org.website !== "https://" && (
+        <div className="flex gap-2 text-sm">
+          <span className="text-muted-foreground w-24 shrink-0">Website</span>
+          <a href={org.website} target="_blank" rel="noopener noreferrer"
+            className="text-primary hover:underline truncate">
+            {org.website.replace(/^https?:\/\//, "")}
+          </a>
+        </div>
+      )}
       </div>
 
       {/* SDGs */}
@@ -1106,7 +1126,6 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
           </div>
         )}
       </div>{/* end right col */}
-      </div>{/* end grid */}
     </div>
   );
 }
