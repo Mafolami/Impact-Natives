@@ -298,8 +298,7 @@ function ProfileCard({ profile, onClick }: { profile: ProfileRow; onClick: () =>
               style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
               {profile.org_name}
             </span>
-          )}          {profile.org_name  && <p className="text-xs text-muted-foreground truncate">{profile.org_name}</p>}
-        </div>
+          )}        </div>
       </div>
       {profile.country && <p className="text-xs text-muted-foreground">{profile.country}</p>}
       {profile.bio && <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{profile.bio}</p>}
@@ -335,8 +334,7 @@ function ProfileDetail({ profile, onBack }: { profile: ProfileRow; onBack: () =>
               style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
               {profile.org_name}
             </span>
-          )}          {profile.org_name  && <p className="text-sm text-muted-foreground">{profile.org_name}</p>}
-          {profile.country   && <p className="text-xs text-muted-foreground mt-1">{profile.country}</p>}
+          )}          {profile.country   && <p className="text-xs text-muted-foreground mt-1">{profile.country}</p>}
         </div>
       </div>
       {sectors.length > 0 && (

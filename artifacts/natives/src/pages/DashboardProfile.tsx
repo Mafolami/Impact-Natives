@@ -280,7 +280,7 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
   async function handleSave() {
     if (!user) return;
     setSaving(true);
-    await supabase
+    const { error: profileError } = await supabase
       .from("profiles")
       .update({
         full_name:   fullName    || null,
@@ -298,6 +298,8 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
         updated_at:  new Date().toISOString(),
       })
       .eq("id", user.id);
+
+    if (profileError) console.error("Profile update error:", profileError);
 
     // Save mandate fields for funders/corporates
     const isFunderOrCorporate = ["philanthropic_foundation", "venture_capital"].includes(profile?.org_type ?? "");
