@@ -336,7 +336,7 @@ export default function DashboardProfile() {
     }
     const orgTypeNow = profile?.org_type ?? orgType ?? "";
     const isFunderOrCorporate = ["philanthropic_foundation", "venture_capital", "technology_company", "corporation", "public_sector"].includes(orgTypeNow);
-    console.log("isFunderOrCorporate:", isFunderOrCorporate, "orgType:", orgTypeNow);
+    
     if (isFunderOrCorporate) {
       await supabase
         .from("organizations")
