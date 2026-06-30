@@ -182,6 +182,7 @@ export default function DashboardProfile() {
       .eq("user_id", user.id).maybeSingle()
       .then(({ data }) => {
         if (!data) return;
+        console.log("Org data loaded:", data.grant_range_min, data.stage_preference, data.geographic_focus);
         if (data.logo_url) setLogoUrl(data.logo_url);
         if (data.description) setOrgDescription(data.description);
         if (data.grant_range_min) setGrantRangeMin(String(data.grant_range_min));
