@@ -52,11 +52,11 @@ export default function DashboardSettings() {
   const [privacySaved, setPrivacySaved]       = useState(false);
 
   useEffect(() => {
-    if (!profile) return;
+    if (!profile?.id) return;
     setFeedVisibility((profile as any).feed_visibility === "public" ? "public" : "none");
     setAllowMessages((profile as any).allow_messages !== false);
     setShowIndividualProfile((profile as any).show_individual_profile === true);
-  }, [profile]);
+  }, [profile?.id]);
 
   async function savePrivacy() {
     if (!user) return;

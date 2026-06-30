@@ -333,7 +333,9 @@ export default function DashboardProfile() {
         .eq("user_id", user.id);
       if (thesisError) console.error("Investment thesis update error:", thesisError);
     }
-    const isFunderOrCorporate = ["philanthropic_foundation", "venture_capital", "technology_company", "corporation", "public_sector"].includes(profile?.org_type ?? "");
+    const orgTypeNow = profile?.org_type ?? orgType ?? "";
+    const isFunderOrCorporate = ["philanthropic_foundation", "venture_capital", "technology_company", "corporation", "public_sector"].includes(orgTypeNow);
+    console.log("isFunderOrCorporate:", isFunderOrCorporate, "orgType:", orgTypeNow);
     if (isFunderOrCorporate) {
       await supabase
         .from("organizations")
