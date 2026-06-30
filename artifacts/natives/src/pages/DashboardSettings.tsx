@@ -179,7 +179,7 @@ export default function DashboardSettings() {
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1 border-b border-border">
+      <div className="flex gap-1 border-b border-border overflow-x-auto scrollbar-hide">
         {TABS.map(({ value, label }) => (
           <button key={value} type="button" onClick={() => setTab(value)}
             className={`pb-3 px-1 mr-4 text-sm font-medium border-b-2 transition-colors -mb-px ${

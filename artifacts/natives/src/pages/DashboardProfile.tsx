@@ -444,7 +444,7 @@ export default function DashboardProfile() {
 
             {/* Inner left pane nav */}
             <div className="md:w-[200px] shrink-0 border-b md:border-b-0 md:border-r border-border bg-muted/20">
-              <div className="flex md:flex-col overflow-x-auto md:overflow-visible p-2 gap-1">
+              <div className="flex md:flex-col overflow-x-auto md:overflow-visible p-2 gap-1 scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
                 {panes.map(p => (
                   <button key={p.key} type="button" onClick={() => setActivePane(p.key)}
                     className={`text-left px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap md:whitespace-normal transition-colors shrink-0 ${
