@@ -111,6 +111,7 @@ export default function DashboardProfile() {
   const [saved, setSavedState]            = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
+  const [personalPhotoUploading, setPersonalPhotoUploading] = useState(false);
   const [logoUrl, setLogoUrl]             = useState<string | null>(null);
 
   // Mandate fields (funders/corporates)
@@ -207,10 +208,26 @@ export default function DashboardProfile() {
     if (uploadError) { alert(`Upload failed: ${uploadError.message}`); setLogoUploading(false); return; }
     const { data } = supabase.storage.from("org-logos").getPublicUrl(filePath);
     await supabase.from("organizations").update({ logo_url: data.publicUrl }).eq("user_id", user.id);
-    await supabase.from("profiles").update({ avatar_url: data.publicUrl }).eq("id", user.id);
     setLogoUrl(data.publicUrl);
     await refreshProfile();
     setLogoUploading(false);
+  }
+
+  async function handlePersonalPhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (file.size > 2 * 1024 * 1024) { alert("File size must be under 2 MB."); return; }
+    setPersonalPhotoUploading(true);
+    const ext = file.name.split(".").pop();
+    const filePath = `${user.id}/avatar.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("org-logos")
+      .upload(filePath, file, { upsert: true });
+    if (uploadError) { alert(`Upload failed: ${uploadError.message}`); setPersonalPhotoUploading(false); return; }
+    const { data } = supabase.storage.from("org-logos").getPublicUrl(filePath);
+    await supabase.from("profiles").update({ avatar_url: data.publicUrl }).eq("id", user.id);
+    await refreshProfile();
+    setPersonalPhotoUploading(false);
   }
 
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -476,6 +493,47 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
               )}
               {logoUrl && !logoUploading && (
                 <p className="text-xs text-[#2D6A4F] mt-1">Logo saved.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Personal photo — only for org users who show as individual */}
+      {profile?.user_type === "organisation" && (profile as any)?.show_individual_profile && (
+        <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Your personal photo
+          </p>
+          <p className="text-xs text-muted-foreground -mt-2">
+            Shown on your individual profile in the Natives directory, separate from your organisation logo.
+          </p>
+          <div className="flex items-center gap-5">
+            <div className="w-16 h-16 rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="Personal photo" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-2xl font-bold text-muted-foreground">
+                  {(fullName || "?")[0].toUpperCase()}
+                </span>
+              )}
+            </div>
+            <div>
+              <label className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
+                <Camera className="w-3.5 h-3.5" />
+                {profile?.avatar_url ? "Replace photo" : "Upload photo"}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="sr-only"
+                  onChange={handlePersonalPhotoUpload}
+                />
+              </label>
+              <p className="text-xs text-muted-foreground mt-1.5">PNG, JPG or WebP. Max 2 MB.</p>
+              {personalPhotoUploading && (
+                <p className="text-xs text-[#2D6A4F] mt-1 flex items-center gap-1">
+                  <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
+                </p>
               )}
             </div>
           </div>
