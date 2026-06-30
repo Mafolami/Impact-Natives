@@ -301,6 +301,7 @@ export default function DashboardProfile() {
 
   async function handleSave() {
     if (!user) return;
+    console.log("handleSave triggered, investmentThesis:", investmentThesis);
     setSaving(true);
     const { error: profileError } = await supabase
       .from("profiles")
