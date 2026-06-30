@@ -309,7 +309,7 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
     }
 
     // Save mandate fields for funders/corporates
-    const isFunderOrCorporate = ["philanthropic_foundation", "venture_capital"].includes(profile?.org_type ?? "");
+    const isFunderOrCorporate = ["philanthropic_foundation", "venture_capital", "technology_company", "corporation", "public_sector"].includes(profile?.org_type ?? "");
     if (isFunderOrCorporate) {
       await supabase
         .from("organizations")
