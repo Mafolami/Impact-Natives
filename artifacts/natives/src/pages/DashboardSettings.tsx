@@ -47,6 +47,7 @@ export default function DashboardSettings() {
   // ── Privacy ───────────────────────────────────────────────────────────────
   const [feedVisibility, setFeedVisibility]   = useState<"none" | "public">("none");
   const [allowMessages, setAllowMessages]     = useState(true);
+  const [showIndividualProfile, setShowIndividualProfile] = useState(false);
   const [privacySaving, setPrivacySaving]     = useState(false);
   const [privacySaved, setPrivacySaved]       = useState(false);
 
@@ -54,6 +55,7 @@ export default function DashboardSettings() {
     if (!profile) return;
     setFeedVisibility((profile as any).feed_visibility === "public" ? "public" : "none");
     setAllowMessages((profile as any).allow_messages !== false);
+    setShowIndividualProfile((profile as any).show_individual_profile === true);
   }, [profile]);
 
   async function savePrivacy() {
@@ -62,6 +64,7 @@ export default function DashboardSettings() {
     setPrivacySaved(false);
     await supabase.from("profiles").update({
       feed_visibility: feedVisibility,
+      show_individual_profile: showIndividualProfile,
     }).eq("id", user.id);
     setPrivacySaving(false);
     setPrivacySaved(true);
@@ -282,6 +285,29 @@ export default function DashboardSettings() {
               ))}
             </div>
           </div>
+
+          {profile?.user_type === "organisation" && (
+            <div className="px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Individual profile</p>
+              <button type="button"
+                onClick={() => setShowIndividualProfile(v => !v)}
+                className={`w-full flex items-start gap-3 text-left px-4 py-3.5 rounded-xl border transition-colors ${
+                  showIndividualProfile
+                    ? "border-[#2D6A4F] bg-[#f0f9f4]"
+                    : "border-border hover:border-foreground/20"
+                }`}>
+                <div className={`w-4 h-4 mt-0.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                  showIndividualProfile ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-border"
+                }`}>
+                  {showIndividualProfile && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">Also show me as an individual</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Your personal profile will also appear in the Natives directory under Individuals, tagged with your organisation.</p>
+                </div>
+              </button>
+            </div>
+          )}
 
           <div className="px-5 py-4 flex justify-end">
             <Button type="button" onClick={savePrivacy} disabled={privacySaving}
