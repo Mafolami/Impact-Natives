@@ -327,6 +327,7 @@ export default function DashboardProfile() {
         .from("organizations")
         .update({
           investment_thesis: investmentThesis || null,
+          website: website || null,
           ...(orgType ? { organisation_type: orgType } : {}),
         })
         .eq("user_id", user.id);
