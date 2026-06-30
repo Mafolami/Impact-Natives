@@ -915,55 +915,76 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
       {["corporation", "technology_company"].includes(org.organisation_type ?? "") && (
         org.csr_focus_statement || org.inkind_support?.length || org.esg_frameworks?.length || org.tech_support_available?.length
       ) && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {org.csr_focus_statement && (
-            <div className="rounded-xl border border-[#C45C26]/20 bg-[#C45C26]/5 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#C45C26] mb-2">CSR & ESG focus</p>
-              <p className="text-sm text-foreground leading-relaxed">{org.csr_focus_statement}</p>
+            <div className="relative rounded-2xl overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, rgba(196,92,38,0.08) 0%, rgba(196,92,38,0.02) 100%)",
+                border: "1px solid rgba(196,92,38,0.18)",
+              }}>
+              <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-40"
+                style={{ background: "radial-gradient(circle at top left, rgba(196,92,38,0.12), transparent 60%)" }} />
+              <div className="relative px-5 py-4">
+                <div className="flex items-center gap-1.5 mb-2.5">
+                  <Sparkles className="w-3 h-3 text-[#C45C26]" />
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#C45C26]">CSR & ESG focus</p>
+                </div>
+                <p className="text-sm text-foreground leading-relaxed">{org.csr_focus_statement}</p>
+              </div>
             </div>
           )}
 
           {org.csr_budget_range && (
-            <div className="flex gap-2 text-sm">
-              <span className="text-muted-foreground w-24 shrink-0">CSR budget</span>
-              <span className="text-foreground">{org.csr_budget_range}</span>
+            <div className="rounded-xl px-4 py-3.5 flex items-center justify-between"
+              style={{ background: "linear-gradient(135deg, rgba(196,92,38,0.04) 0%, transparent 100%)", border: "1px solid rgba(196,92,38,0.12)" }}>
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: "#C45C26" }}>CSR Budget</p>
+              <p className="text-sm font-bold text-foreground">{org.csr_budget_range}</p>
             </div>
           )}
 
-          {org.inkind_support && org.inkind_support.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">What we bring</p>
-              <div className="flex flex-wrap gap-1.5">
-                {org.inkind_support.map(s => (
-                  <span key={s} className="text-xs px-2.5 py-0.5 rounded-full border border-border text-muted-foreground">{s}</span>
-                ))}
-              </div>
+          {(org.inkind_support?.length || org.esg_frameworks?.length) ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {org.inkind_support && org.inkind_support.length > 0 && (
+                <div className="rounded-xl px-4 py-3.5"
+                  style={{ background: "linear-gradient(135deg, rgba(196,92,38,0.05) 0%, transparent 100%)", border: "1px solid rgba(196,92,38,0.14)" }}>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] mb-2.5" style={{ color: "#C45C26" }}>What we bring</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {org.inkind_support.map(s => (
+                      <span key={s} className="text-xs font-medium px-2.5 py-1 rounded-full"
+                        style={{ background: "rgba(196,92,38,0.08)", color: "#C45C26" }}>{s}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {org.esg_frameworks && org.esg_frameworks.length > 0 && (
+                <div className="rounded-xl px-4 py-3.5"
+                  style={{ background: "linear-gradient(135deg, rgba(45,106,79,0.05) 0%, transparent 100%)", border: "1px solid rgba(45,106,79,0.14)" }}>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] mb-2.5" style={{ color: "#2D6A4F" }}>ESG frameworks</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {org.esg_frameworks.map(f => (
+                      <span key={f} className="text-xs font-medium px-2.5 py-1 rounded-full"
+                        style={{ background: "rgba(45,106,79,0.08)", color: "#2D6A4F" }}>{f}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-
-          {org.esg_frameworks && org.esg_frameworks.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">ESG frameworks</p>
-              <div className="flex flex-wrap gap-1.5">
-                {org.esg_frameworks.map(f => (
-                  <span key={f} className="text-xs px-2.5 py-0.5 rounded-full font-medium"
-                    style={{ background: "#eaf5ee", color: "#2D6A4F" }}>{f}</span>
-                ))}
-              </div>
-            </div>
-          )}
+          ) : null}
 
           {(org.employee_engagement_available || org.cobranding_open) && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Partnership preferences</p>
+            <div className="rounded-xl px-4 py-3.5"
+              style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.015) 0%, transparent 100%)", border: "1px solid rgba(0,0,0,0.06)" }}>
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground mb-2.5">Partnership preferences</p>
               <div className="flex flex-wrap gap-1.5">
                 {org.employee_engagement_available && (
-                  <span className="text-xs px-2.5 py-0.5 rounded-full border border-border text-muted-foreground">
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-full"
+                    style={{ background: "rgba(45,106,79,0.06)", color: "#2D6A4F", border: "1px solid rgba(45,106,79,0.15)" }}>
                     Open to employee engagement
                   </span>
                 )}
                 {org.cobranding_open && (
-                  <span className="text-xs px-2.5 py-0.5 rounded-full border border-border text-muted-foreground">
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-full"
+                    style={{ background: "rgba(45,106,79,0.06)", color: "#2D6A4F", border: "1px solid rgba(45,106,79,0.15)" }}>
                     Open to co-branding
                   </span>
                 )}
@@ -972,25 +993,33 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
           )}
 
           {org.tech_support_available && org.tech_support_available.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Technology support available</p>
+            <div className="rounded-xl px-4 py-3.5"
+              style={{ background: "linear-gradient(135deg, rgba(196,92,38,0.05) 0%, transparent 100%)", border: "1px solid rgba(196,92,38,0.14)" }}>
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] mb-2.5" style={{ color: "#C45C26" }}>Technology support available</p>
               <div className="flex flex-wrap gap-1.5">
                 {org.tech_support_available.map(t => (
-                  <span key={t} className="text-xs px-2.5 py-0.5 rounded-full font-medium"
-                    style={{ background: "#f5ede8", color: "#C45C26" }}>{t}</span>
+                  <span key={t} className="text-xs font-medium px-2.5 py-1 rounded-full"
+                    style={{ background: "rgba(196,92,38,0.08)", color: "#C45C26" }}>{t}</span>
                 ))}
               </div>
             </div>
           )}
 
           {org.sandbox_ready && (
-            <div className="rounded-xl border border-border px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                Open to sandbox/beta testing
-              </p>
-              {org.sandbox_description && (
-                <p className="text-sm text-muted-foreground leading-relaxed">{org.sandbox_description}</p>
-              )}
+            <div className="relative rounded-2xl overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, rgba(45,106,79,0.06) 0%, rgba(45,106,79,0.01) 100%)",
+                border: "1px solid rgba(45,106,79,0.16)",
+              }}>
+              <div className="relative px-5 py-4">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Sparkles className="w-3 h-3 text-[#2D6A4F]" />
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#2D6A4F]">Open to sandbox/beta testing</p>
+                </div>
+                {org.sandbox_description && (
+                  <p className="text-sm text-foreground leading-relaxed">{org.sandbox_description}</p>
+                )}
+              </div>
             </div>
           )}
         </div>
