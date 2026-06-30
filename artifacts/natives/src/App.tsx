@@ -44,6 +44,7 @@ import DashboardLabs from "@/pages/DashboardLabs";
 import DashboardMarketplace from "@/pages/DashboardMarketplace";
 import DashboardMessages from "@/pages/DashboardMessages";
 import DashboardProfile from "@/pages/DashboardProfile";
+import UpgradeToOrganisation from "@/pages/UpgradeToOrganisation";
 import DashboardSettings from "@/pages/DashboardSettings";
 import DashboardNatives from "@/pages/DashboardNatives";
 import DashboardFeed from "@/pages/DashboardFeed";
@@ -155,6 +156,9 @@ if (isAdmin) {
           </Route>
           <Route path="/dashboard/profile">
             <DashboardLayout><DashboardProfile /></DashboardLayout>
+          </Route>
+          <Route path="/dashboard/upgrade-organisation">
+            <DashboardLayout><UpgradeToOrganisation /></DashboardLayout>
           </Route>
           <Route path="/dashboard/settings">
             <DashboardLayout><DashboardSettings /></DashboardLayout>
