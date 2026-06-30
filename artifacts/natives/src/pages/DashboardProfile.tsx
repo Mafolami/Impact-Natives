@@ -294,12 +294,19 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
         social_links: socialLinks.length > 0 ? socialLinks : null,
         sectors:     sectors.length > 0 ? sectors : null,
         org_type:    orgType     || null,
-        ...(profile?.user_type === "organisation" ? { investment_thesis: investmentThesis || null } : {}),
         updated_at:  new Date().toISOString(),
       })
       .eq("id", user.id);
 
     if (profileError) console.error("Profile update error:", profileError);
+
+    // Save investment thesis separately on organizations table
+    if (profile?.user_type === "organisation") {
+      await supabase
+        .from("organizations")
+        .update({ investment_thesis: investmentThesis || null })
+        .eq("user_id", user.id);
+    }
 
     // Save mandate fields for funders/corporates
     const isFunderOrCorporate = ["philanthropic_foundation", "venture_capital"].includes(profile?.org_type ?? "");
