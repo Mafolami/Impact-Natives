@@ -106,7 +106,8 @@ export default function DashboardProfile() {
   const [logoUrl, setLogoUrl]             = useState<string | null>(null);
 
   const isOrg = profile?.user_type === "organisation";
-  const orgTypeNow = profile?.org_type ?? "";
+  const [orgType, setOrgType] = useState<string>(profile?.org_type ?? "");
+  const orgTypeNow = profile?.org_type ?? orgType ?? "";
   const isFunder = ["philanthropic_foundation", "venture_capital"].includes(orgTypeNow);
   const isCorporate = ["corporation", "technology_company", "public_sector"].includes(orgTypeNow);
   const isImplementer = isOrg && !isFunder && !isCorporate;
@@ -297,7 +298,7 @@ export default function DashboardProfile() {
   }, [profile?.social_links]);
 
   const [sectors, setSectors]   = useState<string[]>(profile?.sectors  ?? []);
-  const [orgType, setOrgType]   = useState<string>(profile?.org_type   ?? "");
+  
 
   async function handleSave() {
     if (!user) return;
