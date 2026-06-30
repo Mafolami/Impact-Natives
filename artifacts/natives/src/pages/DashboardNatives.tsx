@@ -660,6 +660,12 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
           {org.year_founded && (
             <p className="text-xs text-muted-foreground mt-0.5">Est. {org.year_founded}</p>
           )}
+          {org.website && org.website !== "https://" && (
+            <a href={org.website} target="_blank" rel="noopener noreferrer"
+              className="text-xs text-[#2D6A4F] hover:underline mt-0.5 inline-block">
+              {org.website.replace(/^https?:\/\//, "")}
+            </a>
+          )}
         </div>
       </div>
 
@@ -989,16 +995,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
           )}
         </div>
       )}
-      {org.website && org.website !== "https://" && (
-        <div className="flex gap-2 text-sm">
-          <span className="text-muted-foreground w-24 shrink-0">Website</span>
-          <a href={org.website} target="_blank" rel="noopener noreferrer"
-            className="text-primary hover:underline truncate">
-            {org.website.replace(/^https?:\/\//, "")}
-          </a>
-        </div>
-      )}
-
+      
       {/* SDGs */}
       {org.sdgs && org.sdgs.length > 0 && (
         <div className="rounded-xl px-4 py-3.5"
