@@ -406,7 +406,7 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
       setLoading(true);
       const { data: orgData, error } = await supabase
         .from("organizations")
-        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status")        .eq("status", "published")
+        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status,investment_thesis")        .eq("status", "published")
         .order("organisation_name", { ascending: true });
 
       if (error) { console.error(error); setLoading(false); return; }
@@ -414,14 +414,12 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
 
       const userIds = [...new Set(orgData.map(o => o.user_id).filter(Boolean))];
       const { data: profileData } = await supabase
-        .from("profiles").select("id,full_name,investment_thesis").in("id", userIds);
+        .from("profiles").select("id,full_name").in("id", userIds);
       const profileMap = new Map((profileData ?? []).map(p => [p.id, p]));
 
       const enriched: OrgRow[] = orgData.map(o => ({
         ...o,
-        contact_name: profileMap.get(o.user_id)?.full_name,
-        investment_thesis: profileMap.get(o.user_id)?.investment_thesis ?? null,
-      }));
+        contact_name: profileMap.get(o.user_id)?.full_name,      }));
 
       setOrgs(enriched);
 
