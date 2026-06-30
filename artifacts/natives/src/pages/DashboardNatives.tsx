@@ -998,7 +998,6 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
           </a>
         </div>
       )}
-      </div>
 
       {/* SDGs */}
       {org.sdgs && org.sdgs.length > 0 && (
@@ -1126,6 +1125,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
           </div>
         )}
       </div>{/* end right col */}
+      </div>{/* end grid */}
     </div>
   );
 }
