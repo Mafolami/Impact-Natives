@@ -499,47 +499,7 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
         </div>
       )}
 
-      {/* Personal photo — only for org users who show as individual */}
-      {profile?.user_type === "organisation" && (profile as any)?.show_individual_profile && (
-        <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Your personal photo
-          </p>
-          <p className="text-xs text-muted-foreground -mt-2">
-            Shown on your individual profile in the Natives directory, separate from your organisation logo.
-          </p>
-          <div className="flex items-center gap-5">
-            <div className="w-16 h-16 rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0">
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="Personal photo" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-2xl font-bold text-muted-foreground">
-                  {(fullName || "?")[0].toUpperCase()}
-                </span>
-              )}
-            </div>
-            <div>
-              <label className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
-                <Camera className="w-3.5 h-3.5" />
-                {profile?.avatar_url ? "Replace photo" : "Upload photo"}
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="sr-only"
-                  onChange={handlePersonalPhotoUpload}
-                />
-              </label>
-              <p className="text-xs text-muted-foreground mt-1.5">PNG, JPG or WebP. Max 2 MB.</p>
-              {personalPhotoUploading && (
-                <p className="text-xs text-[#2D6A4F] mt-1 flex items-center gap-1">
-                  <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
+      
       {/* Basic info — individuals only */}
       {profile?.user_type !== "organisation" && (
         <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
@@ -1202,9 +1162,52 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
               Contact details
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Shown to partners and funders who want to reach out directly.
+              Used as your organisation's contact person. If you've opted to also appear as an individual, this also becomes your personal profile in the Natives directory.
             </p>
           </div>
+
+          {(profile as any)?.show_individual_profile && (
+            <div className="rounded-xl border border-dashed border-border p-4 space-y-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Your personal photo
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Shown on your individual profile in the Natives directory, separate from your organisation logo.
+                </p>
+              </div>
+              <div className="flex items-center gap-5">
+                <div className="w-14 h-14 rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="Personal photo" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-xl font-bold text-muted-foreground">
+                      {(fullName || "?")[0].toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <label className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
+                    <Camera className="w-3.5 h-3.5" />
+                    {profile?.avatar_url ? "Replace photo" : "Upload photo"}
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      className="sr-only"
+                      onChange={handlePersonalPhotoUpload}
+                    />
+                  </label>
+                  <p className="text-xs text-muted-foreground mt-1.5">PNG, JPG or WebP. Max 2 MB.</p>
+                  {personalPhotoUploading && (
+                    <p className="text-xs text-[#2D6A4F] mt-1 flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div>
             <Label className="text-sm font-medium">
               Full name <span className="text-destructive">*</span>
@@ -1270,7 +1273,7 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
               <div>
                 <p className="text-sm font-medium text-foreground">Verification pending</p>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  Your documents are under review. This takes less than 48 hours.
+                  Your documents are under review.
                 </p>
               </div>
             </div>
