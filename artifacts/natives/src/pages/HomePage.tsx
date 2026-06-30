@@ -744,8 +744,8 @@ export default function HomePage() {
                 <ArrowRight style={{ width: '1rem', height: '1rem' }} />
               </button>
             </Link>
-            <Link href="/labs/commission">
-              <button className="hp-btn-glass">Commission a Lab</button>
+            <Link href="/platform/impact-marketplace">
+              <button className="hp-btn-glass">Create an Initiative</button>
             </Link>
           </div>
         </div>
