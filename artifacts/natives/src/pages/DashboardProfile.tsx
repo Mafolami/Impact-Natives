@@ -10,8 +10,7 @@ import {
   SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Link } from "wouter";
-import { Loader2, CheckCircle2, ShieldCheck, Camera, ArrowRight } from "lucide-react";
-import { UserAvatar } from "@/components/ui/UserAvatar";
+import { Loader2, CheckCircle2, ShieldCheck, Camera, ArrowRight, Building2 } from "lucide-react";import { UserAvatar } from "@/components/ui/UserAvatar";
 import { COUNTRIES } from "@/lib/countries";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
 
@@ -454,6 +453,26 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
                 </p>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Register an organisation — individuals only */}
+      {profile?.user_type !== "organisation" && (
+        <div className="rounded-2xl border border-dashed border-[#2D6A4F]/40 bg-[#2D6A4F]/5 p-6 flex items-start gap-4">
+          <div className="w-10 h-10 rounded-xl bg-[#eaf5ee] flex items-center justify-center shrink-0">
+            <Building2 className="w-5 h-5 text-[#2D6A4F]" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-foreground">Represent an organisation?</p>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              Register your organisation without losing your individual profile or activity. You'll
+              be discoverable both as yourself and through your organisation.
+            </p>
+            <a href="/dashboard/upgrade-organisation"
+              className="inline-flex items-center gap-1.5 mt-3 text-sm font-semibold text-[#2D6A4F] hover:underline underline-offset-2">
+              Register an organisation →
+            </a>
           </div>
         </div>
       )}
