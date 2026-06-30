@@ -439,7 +439,7 @@ export default function DashboardProfile() {
         </div>
 
         {/* ── Pane shell ── */}
-        <div className="rounded-2xl border border-border bg-card overflow-hidden">
+        <div className="rounded-2xl border border-border bg-card">
           <div className="flex flex-col md:flex-row">
 
             {/* Inner left pane nav */}
