@@ -300,11 +300,14 @@ const [socialLinks, setSocialLinks]   = useState<{ label: string; url: string }[
 
     if (profileError) console.error("Profile update error:", profileError);
 
-    // Save investment thesis separately on organizations table
+    // Sync org_type to organizations.organisation_type and save investment thesis
     if (profile?.user_type === "organisation") {
       await supabase
         .from("organizations")
-        .update({ investment_thesis: investmentThesis || null })
+        .update({
+          investment_thesis: investmentThesis || null,
+          ...(orgType ? { organisation_type: orgType } : {}),
+        })
         .eq("user_id", user.id);
     }
 
