@@ -324,15 +324,16 @@ export default function DashboardProfile() {
     if (profileError) console.error("Profile update error:", profileError);
 
     if (profile?.user_type === "organisation") {
-      await supabase
+      const { error: thesisError } = await supabase
         .from("organizations")
         .update({
           investment_thesis: investmentThesis || null,
           ...(orgType ? { organisation_type: orgType } : {}),
         })
         .eq("user_id", user.id);
+      if (thesisError) console.error("Investment thesis update error:", thesisError);
+      else console.log("Investment thesis update succeeded");
     }
-
     const isFunderOrCorporate = ["philanthropic_foundation", "venture_capital", "technology_company", "corporation", "public_sector"].includes(profile?.org_type ?? "");
     if (isFunderOrCorporate) {
       await supabase
