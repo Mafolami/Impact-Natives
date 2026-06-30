@@ -21,6 +21,7 @@ interface ProfileRow {
   website?: string;
   user_type?: string;
   social_links?: { label: string; url: string }[];
+  show_individual_profile?: boolean;
 }
 
 interface OrgRow {
@@ -236,9 +237,9 @@ function IndividualsPanel({ search, sectorFilter, countryFilter, autoOpenUserId,
       setLoading(true);
       const { data, error } = await supabase
         .from("profiles")
-        .select("id,full_name,role_title,country,sectors,bio,avatar_url,linkedin_url,website,user_type,social_links")
+        .select("id,full_name,role_title,country,sectors,bio,avatar_url,linkedin_url,website,user_type,social_links,org_name,show_individual_profile")
         .not("full_name", "is", null)
-        .or("user_type.eq.individual_creative,user_type.is.null")
+        .or("user_type.eq.individual_creative,user_type.is.null,show_individual_profile.eq.true")
         .order("full_name", { ascending: true });
       if (error) console.error(error);
       const rows = data ?? [];
@@ -292,7 +293,12 @@ function ProfileCard({ profile, onClick }: { profile: ProfileRow; onClick: () =>
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-foreground truncate">{profile.full_name}</p>
           {profile.role_title && <p className="text-xs text-muted-foreground truncate">{profile.role_title}</p>}
-          {profile.org_name  && <p className="text-xs text-muted-foreground truncate">{profile.org_name}</p>}
+          {profile.user_type === "organisation" && profile.org_name && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1"
+              style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+              {profile.org_name}
+            </span>
+          )}          {profile.org_name  && <p className="text-xs text-muted-foreground truncate">{profile.org_name}</p>}
         </div>
       </div>
       {profile.country && <p className="text-xs text-muted-foreground">{profile.country}</p>}
@@ -324,7 +330,12 @@ function ProfileDetail({ profile, onBack }: { profile: ProfileRow; onBack: () =>
         <div className="min-w-0">
           <h3 className="text-xl font-bold text-foreground">{profile.full_name}</h3>
           {profile.role_title && <p className="text-sm text-muted-foreground">{profile.role_title}</p>}
-          {profile.org_name  && <p className="text-sm text-muted-foreground">{profile.org_name}</p>}
+          {profile.user_type === "organisation" && profile.org_name && (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full mt-1.5"
+              style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+              {profile.org_name}
+            </span>
+          )}          {profile.org_name  && <p className="text-sm text-muted-foreground">{profile.org_name}</p>}
           {profile.country   && <p className="text-xs text-muted-foreground mt-1">{profile.country}</p>}
         </div>
       </div>
