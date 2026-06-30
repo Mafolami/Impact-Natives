@@ -172,7 +172,7 @@ export default function DashboardSettings() {
   const currentHelp = tabHelp[tab];
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: "2rem", alignItems: "start", width: "100%", position: "relative" }}>
+    <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-8 items-start w-full relative">
     <div className="space-y-6">
       <div>
         <p className="text-sm text-muted-foreground mt-1">Manage your account and preferences.</p>
