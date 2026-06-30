@@ -301,7 +301,6 @@ export default function DashboardProfile() {
 
   async function handleSave() {
     if (!user) return;
-    console.log("handleSave triggered, investmentThesis:", investmentThesis);
     setSaving(true);
     const { error: profileError } = await supabase
       .from("profiles")
@@ -332,7 +331,6 @@ export default function DashboardProfile() {
         })
         .eq("user_id", user.id);
       if (thesisError) console.error("Investment thesis update error:", thesisError);
-      else console.log("Investment thesis update succeeded");
     }
     const isFunderOrCorporate = ["philanthropic_foundation", "venture_capital", "technology_company", "corporation", "public_sector"].includes(profile?.org_type ?? "");
     if (isFunderOrCorporate) {
