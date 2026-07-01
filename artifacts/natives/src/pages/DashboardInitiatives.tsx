@@ -162,6 +162,7 @@ function CloseInitiativeButton({ initiative, onClosed }: { initiative: Initiativ
 function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeRow; onPublished: () => void }) {
   const [editing, setEditing]         = useState(false);
   const [problem, setProblem]         = useState(initiative.problem ?? "");
+  const [outcome, setOutcome]         = useState(initiative.outcome ?? "");
   const [partnerships, setPartnerships] = useState<string[]>(initiative.partnerships ?? []);
   const [publishing, setPublishing]   = useState(false);
 
@@ -174,6 +175,7 @@ function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeR
     await supabase.from("initiative_requests").update({
       status: "published",
       problem,
+      outcome,
       partnerships,
     }).eq("id", initiative.id);
     setPublishing(false);
@@ -208,6 +210,18 @@ function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeR
 
       <div>
         <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">
+          Expected outcome
+        </label>
+        <textarea
+          value={outcome}
+          onChange={e => setOutcome(e.target.value)}
+          rows={3}
+          className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+        />
+      </div>
+
+      <div>
+        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">
           Partnership types needed
         </label>
         <div className="flex flex-wrap gap-2">
@@ -229,7 +243,7 @@ function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeR
           className="flex-1 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
           Cancel
         </button>
-        <button type="button" onClick={publish} disabled={publishing || !problem.trim() || partnerships.length === 0}
+        <button type="button" onClick={publish} disabled={publishing || !problem.trim() || !outcome.trim() || partnerships.length === 0}
           className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium disabled:opacity-40 transition-colors">
           {publishing ? "Publishing..." : "Publish to marketplace"}
         </button>
