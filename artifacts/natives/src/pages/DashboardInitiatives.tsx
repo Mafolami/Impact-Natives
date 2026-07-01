@@ -43,6 +43,7 @@ interface InitiativeRow {
   submitter_org?: string | null;
   confirmed_partners?: ConfirmedPartner[];
   user_id?: string;
+  source?: string;
 }
 
 interface OutboundEOI {
@@ -85,6 +86,7 @@ const STATUS_MAP: Record<string, { label: string; dot: string; bg: string }> = {
   published: { label: "Listed",             dot: "#2D6A4F", bg: "#eaf5ee" },
   rejected:  { label: "Not approved",       dot: "#ef4444", bg: "#fef2f2" },
   closed:    { label: "Partnership formed", dot: "#6b7280", bg: "#f3f4f6" },
+  draft:     { label: "AI draft — needs review", dot: "#C45C26", bg: "#fdf5f2" },
 };
 
 const PARTNERSHIP_OPTIONS = [
@@ -149,6 +151,87 @@ function CloseInitiativeButton({ initiative, onClosed }: { initiative: Initiativ
         <button type="button" onClick={closeInitiative} disabled={closing}
           className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium disabled:opacity-40 transition-colors">
           {closing ? "Closing..." : "Yes, close it"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Publish RFP Button ───────────────────────────────────────────────────────
+
+function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeRow; onPublished: () => void }) {
+  const [editing, setEditing]         = useState(false);
+  const [problem, setProblem]         = useState(initiative.problem ?? "");
+  const [partnerships, setPartnerships] = useState<string[]>(initiative.partnerships ?? []);
+  const [publishing, setPublishing]   = useState(false);
+
+  function toggle(value: string) {
+    setPartnerships(prev => prev.includes(value) ? prev.filter(x => x !== value) : [...prev, value]);
+  }
+
+  async function publish() {
+    setPublishing(true);
+    await supabase.from("initiative_requests").update({
+      status: "published",
+      problem,
+      partnerships,
+    }).eq("id", initiative.id);
+    setPublishing(false);
+    setEditing(false);
+    onPublished();
+  }
+
+  if (!editing) {
+    return (
+      <button type="button" onClick={() => setEditing(true)}
+        className="w-full rounded-xl border border-[#C45C26]/40 bg-[#fdf5f2] px-5 py-3 text-sm text-left hover:border-[#C45C26]/70 transition-colors">
+        <span className="text-foreground font-medium">Review and publish this AI-generated RFP →</span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-[#C45C26]/40 bg-[#fdf5f2] px-5 py-4 space-y-4">
+      <p className="text-sm font-medium text-foreground">Review before publishing</p>
+
+      <div>
+        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">
+          Problem statement
+        </label>
+        <textarea
+          value={problem}
+          onChange={e => setProblem(e.target.value)}
+          rows={3}
+          className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+        />
+      </div>
+
+      <div>
+        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">
+          Partnership types needed
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {PARTNERSHIP_OPTIONS.map(opt => (
+            <button key={opt.value} type="button" onClick={() => toggle(opt.value)}
+              className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
+                partnerships.includes(opt.value)
+                  ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
+                  : "border-border text-muted-foreground hover:border-foreground/30"
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex gap-2">
+        <button type="button" onClick={() => setEditing(false)}
+          className="flex-1 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
+          Cancel
+        </button>
+        <button type="button" onClick={publish} disabled={publishing || !problem.trim() || partnerships.length === 0}
+          className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium disabled:opacity-40 transition-colors">
+          {publishing ? "Publishing..." : "Publish to marketplace"}
         </button>
       </div>
     </div>
@@ -289,6 +372,10 @@ function InitiativeDetail({ initiative, onBack }: { initiative: InitiativeRow; o
 
       {initiative.status === "published" && (
         <CloseInitiativeButton initiative={initiative} onClosed={onBack} />
+      )}
+
+      {initiative.status === "draft" && initiative.source === "ai_generated" && (
+        <PublishRFPButton initiative={initiative} onPublished={onBack} />
       )}
 
       {initiative.status === "pending" && (
@@ -600,7 +687,7 @@ export default function DashboardInitiatives() {
     if (!user) return;
     const { data } = await supabase
       .from("initiative_requests")
-      .select("id,title,sectors,locations,status,eois,created_at,problem,outcome,partnerships,esg_alignment,budget,tags,detail_content,resource_link,submitter_name,submitter_org,confirmed_partners,user_id")
+      .select("id,title,sectors,locations,status,eois,created_at,problem,outcome,partnerships,esg_alignment,budget,tags,detail_content,resource_link,submitter_name,submitter_org,confirmed_partners,user_id,source")
       .or(`user_id.eq.${user.id},submitter_email.eq.${user.email}`)
       .order("created_at", { ascending: false });
     if (data) setInitiatives(data as InitiativeRow[]);
