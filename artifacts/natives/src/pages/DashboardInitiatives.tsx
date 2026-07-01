@@ -33,6 +33,7 @@ interface InitiativeRow {
   created_at: string;
   problem?: string;
   outcome?: string;
+  specific_ask?: string | null;
   partnerships?: string[];
   esg_alignment?: boolean | null;
   budget?: string | null;
@@ -163,6 +164,7 @@ function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeR
   const [editing, setEditing]         = useState(false);
   const [problem, setProblem]         = useState(initiative.problem ?? "");
   const [outcome, setOutcome]         = useState(initiative.outcome ?? "");
+  const [specificAsk, setSpecificAsk] = useState(initiative.specific_ask ?? "");
   const [partnerships, setPartnerships] = useState<string[]>(initiative.partnerships ?? []);
   const [publishing, setPublishing]   = useState(false);
 
@@ -176,6 +178,7 @@ function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeR
       status: "published",
       problem,
       outcome,
+      specific_ask: specificAsk,
       partnerships,
     }).eq("id", initiative.id);
     setPublishing(false);
@@ -216,6 +219,19 @@ function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeR
           value={outcome}
           onChange={e => setOutcome(e.target.value)}
           rows={3}
+          className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+        />
+      </div>
+
+      <div>
+        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">
+          Specific ask
+        </label>
+        <textarea
+          value={specificAsk}
+          onChange={e => setSpecificAsk(e.target.value)}
+          rows={2}
+          placeholder="What would a partner actually do?"
           className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
         />
       </div>
@@ -701,7 +717,7 @@ export default function DashboardInitiatives() {
     if (!user) return;
     const { data } = await supabase
       .from("initiative_requests")
-      .select("id,title,sectors,locations,status,eois,created_at,problem,outcome,partnerships,esg_alignment,budget,tags,detail_content,resource_link,submitter_name,submitter_org,confirmed_partners,user_id,source")
+      .select("id,title,sectors,locations,status,eois,created_at,problem,outcome,specific_ask,partnerships,esg_alignment,budget,tags,detail_content,resource_link,submitter_name,submitter_org,confirmed_partners,user_id,source")
       .or(`user_id.eq.${user.id},submitter_email.eq.${user.email}`)
       .order("created_at", { ascending: false });
     if (data) setInitiatives(data as InitiativeRow[]);
