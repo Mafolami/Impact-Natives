@@ -73,7 +73,10 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-impact-strategy`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
           body: JSON.stringify({
             organization_id: organizationId,
             ...form,
