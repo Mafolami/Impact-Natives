@@ -10,6 +10,7 @@ import { Loader2, CheckCircle2, ShieldCheck, Camera, ArrowRight, Building2 } fro
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { COUNTRIES } from "@/lib/countries";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
+import { ImpactStrategyPane } from "@/components/platform/ImpactStrategyPane";
 
 const ORG_TYPE_OPTIONS = [
   { value: "ngo_non_profit",              label: "NGO / Non-Profit" },
@@ -92,7 +93,7 @@ function PaneHeader({ title, subtitle }: { title: string; subtitle?: string }) {
 
 type PaneKey =
   | "basic" | "organisation" | "focus" | "presence"
-  | "dd" | "track" | "mandate" | "csr" | "verification";
+  | "dd" | "track" | "mandate" | "csr" | "impact_strategy" | "verification";
 
 interface PaneDef { key: PaneKey; label: string; }
 
@@ -107,6 +108,7 @@ export default function DashboardProfile() {
 
   const isOrg = profile?.user_type === "organisation";
   const [orgType, setOrgType] = useState<string>(profile?.org_type ?? "");
+  const [orgId, setOrgId] = useState<string | null>(null);
   const orgTypeNow = profile?.org_type ?? orgType ?? "";
   const isFunder = ["philanthropic_foundation", "venture_capital"].includes(orgTypeNow);
   const isCorporate = ["corporation", "technology_company", "public_sector"].includes(orgTypeNow);
@@ -123,6 +125,7 @@ export default function DashboardProfile() {
         ...(isImplementer ? [{ key: "track" as PaneKey, label: "Track Record" }] : []),
         ...(isFunder ? [{ key: "mandate" as PaneKey, label: "Mandate" }] : []),
         ...(isCorporate ? [{ key: "csr" as PaneKey, label: "CSR & ESG" }] : []),
+        ...(isCorporate ? [{ key: "impact_strategy" as PaneKey, label: "Impact Strategy" }] : []),
         { key: "verification", label: "Verification" },
       ]
     : [
@@ -178,9 +181,10 @@ export default function DashboardProfile() {
   useEffect(() => {
     if (!user) return;
     supabase.from("organizations")
-     .select("logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")      .eq("user_id", user.id).maybeSingle()
+     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")      .eq("user_id", user.id).maybeSingle()
       .then(({ data }) => {
         if (!data) return;
+        setOrgId(data.id ?? null);
         if (data.logo_url) setLogoUrl(data.logo_url);
         if (data.description) setOrgDescription(data.description);
         if (data.investment_thesis) setInvestmentThesis(data.investment_thesis);
@@ -1109,6 +1113,11 @@ export default function DashboardProfile() {
                   )}
                   <SaveBar />
                 </div>
+              )}
+
+              {/* ── IMPACT STRATEGY PANE (corporates/tech/telecom) ── */}
+              {activePane === "impact_strategy" && isCorporate && orgId && (
+                <ImpactStrategyPane organizationId={orgId} />
               )}
 
               {/* ── VERIFICATION PANE ── */}
