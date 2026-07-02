@@ -13,6 +13,9 @@ type Pillar = {
   sasb_material_topic: string;
   au_agenda_2063_goal: string | null;
   compliance_note: string;
+  specific_ask_draft: string;
+  suggested_partnerships: string[];
+  pushed?: boolean;
 };
 
 type FormState = {
@@ -37,6 +40,8 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
   const [pillars, setPillars] = useState<Pillar[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pushingIndex, setPushingIndex] = useState<number | null>(null);
+  const [pushError, setPushError] = useState<string | null>(null);
 
   useEffect(() => {
     loadExistingStrategy();
@@ -96,6 +101,53 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
       setError("Could not reach the strategy generator. Check your connection and try again.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handlePushPillar(pillar: Pillar, index: number) {
+    setPushingIndex(index);
+    setPushError(null);
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-impact-strategy`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            action: "push_pillar",
+            organization_id: organizationId,
+            pillar: { ...pillar, operating_region: form.operating_country },
+          }),
+        }
+      );
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        setPushError(json.error || "Could not push this pillar to Initiatives.");
+        return;
+      }
+
+      const updatedPillars = pillars
+        ? pillars.map((p, i) => (i === index ? { ...p, pushed: true } : p))
+        : null;
+
+      if (updatedPillars) {
+        await supabase
+          .from("organizations")
+          .update({ impact_strategy: JSON.stringify({ pillars: updatedPillars }) })
+          .eq("id", organizationId);
+      }
+
+      setPillars(updatedPillars);
+    } catch {
+      setPushError("Could not reach the server. Check your connection and try again.");
+    } finally {
+      setPushingIndex(null);
     }
   }
 
@@ -229,8 +281,26 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
                   <p className="text-xs italic text-muted-foreground">{pillar.compliance_note}</p>
                 )}
               </dl>
+
+              <div className="mt-4 pt-4 border-t" style={{ borderColor: "rgba(45,106,79,0.18)" }}>
+                {pillar.pushed ? (
+                  <p className="text-sm font-medium" style={{ color: "#2D6A4F" }}>
+                    ✓ Sent to Initiatives — review and publish there
+                  </p>
+                ) : (
+                  <button
+                    onClick={() => handlePushPillar(pillar, i)}
+                    disabled={pushingIndex === i}
+                    className="text-sm font-semibold rounded px-4 py-2"
+                    style={{ backgroundColor: "#2D6A4F", color: "white" }}
+                  >
+                    {pushingIndex === i ? "Pushing..." : "Push to Initiatives"}
+                  </button>
+                )}
+              </div>
             </div>
           ))}
+          {pushError && <p className="text-sm text-red-600">{pushError}</p>}
         </div>
       )}
     </div>
