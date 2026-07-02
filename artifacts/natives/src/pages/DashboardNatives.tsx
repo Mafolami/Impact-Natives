@@ -75,6 +75,7 @@ interface OrgRow {
   partnership_decision_timeline?: string | null;
   partnership_funding_status?: string | null;
   csr_budget_range?: string | null;
+  impact_strategy?: string | null;
 }
 
 type Tab = "individual" | "organisation";
@@ -408,7 +409,7 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
       setLoading(true);
       const { data: orgData, error } = await supabase
         .from("organizations")
-        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status,investment_thesis,stage_preference,geographic_focus")        .eq("status", "published")
+        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status,investment_thesis,stage_preference,geographic_focus,impact_strategy")        .eq("status", "published")
         .order("organisation_name", { ascending: true });
 
       if (error) { console.error(error); setLoading(false); return; }
@@ -1150,6 +1151,48 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
             <p className="text-xs text-muted-foreground">No active initiatives or partnership listing yet.</p>
           </div>
         )}
+
+        {(() => {
+          if (!org.impact_strategy) return null;
+          let pillars: any[] = [];
+          try {
+            const parsed = JSON.parse(org.impact_strategy);
+            pillars = parsed?.pillars ?? [];
+          } catch {
+            return null;
+          }
+          if (pillars.length === 0) return null;
+          return (
+            <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-[#2D6A4F]" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#2D6A4F]">
+                  Impact strategy
+                </p>
+              </div>
+              <div className="space-y-3">
+                {pillars.map((pillar: any, i: number) => (
+                  <div key={i} className="pb-3 border-b border-border last:border-0 last:pb-0 space-y-1.5">
+                    <p className="text-xs font-semibold text-foreground leading-snug">
+                      {pillar.pillar_name}
+                    </p>
+                    {pillar.specific_ask_draft && (
+                      <p className="text-[10px] text-muted-foreground leading-relaxed">
+                        {pillar.specific_ask_draft}
+                      </p>
+                    )}
+                    {pillar.un_sdg_code && (
+                      <span className="inline-block text-[9px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+                        {pillar.un_sdg_code}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </div>{/* end right col */}
       </div>{/* end grid */}
     </div>
