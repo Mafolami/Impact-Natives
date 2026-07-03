@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { Sparkles, Upload } from "lucide-react";
+import { Sparkles, Upload, Lightbulb } from "lucide-react";
 import { ImpactStrategyPane } from "@/components/platform/ImpactStrategyPane";
 import { UploadStrategyPane } from "@/components/platform/UploadStrategyPane";
+import { DraftInitiativesPane } from "@/components/platform/DraftInitiativesPane";
 
-type StrategyTab = "build" | "upload";
+type StrategyTab = "build" | "upload" | "initiatives";
 
 export default function DashboardStrategy() {
   const { user, profile } = useAuth();
@@ -36,8 +37,9 @@ export default function DashboardStrategy() {
       {/* Tab switcher */}
       <div className="flex gap-1 p-1 rounded-lg bg-muted w-fit">
         {([
-          { key: "build" as const,  label: "Build from scratch", icon: Sparkles },
-          { key: "upload" as const, label: "Upload strategy",    icon: Upload   },
+          { key: "build"        as const, label: "Build from scratch", icon: Sparkles  },
+          { key: "upload"       as const, label: "Upload strategy",    icon: Upload    },
+          { key: "initiatives"  as const, label: "Initiatives",        icon: Lightbulb },
         ]).map(({ key, label, icon: Icon }) => (
           <button key={key} type="button"
             onClick={() => setTab(key)}
@@ -52,8 +54,9 @@ export default function DashboardStrategy() {
         ))}
       </div>
 
-      {tab === "build" && <ImpactStrategyPane organizationId={orgId} />}
-      {tab === "upload" && <UploadStrategyPane organizationId={orgId} operatingCountry={profile?.country ?? ""} />}
+      {tab === "build"       && <ImpactStrategyPane organizationId={orgId} />}
+      {tab === "upload"      && <UploadStrategyPane organizationId={orgId} operatingCountry={profile?.country ?? ""} />}
+      {tab === "initiatives" && <DraftInitiativesPane userId={user!.id} onPublished={() => setTab("initiatives")} />}
     </div>
   );
 }
