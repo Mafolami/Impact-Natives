@@ -162,7 +162,7 @@ export function UploadStrategyPane({
             operating_country: operatingCountry,
             csi_budget: parsed?.csr_budget_range ?? null,
             org_name: parsed?.organisation_name ?? null,
-            sector_label: parsed?.esg_frameworks?.join(", ") ?? null,
+            sector_label: "Technology / FinTech",
           }),
         }
       );
