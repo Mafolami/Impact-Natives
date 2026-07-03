@@ -48,6 +48,7 @@ import UpgradeToOrganisation from "@/pages/UpgradeToOrganisation";
 import DashboardSettings from "@/pages/DashboardSettings";
 import DashboardNatives from "@/pages/DashboardNatives";
 import DashboardFeed from "@/pages/DashboardFeed";
+import DashboardStrategy from "@/pages/DashboardStrategy";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import VerificationStandardPage from "@/pages/VerificationStandardPage";
 
@@ -144,6 +145,9 @@ if (isAdmin) {
           </Route>
           <Route path="/dashboard/marketplace">
             <DashboardLayout><DashboardMarketplace /></DashboardLayout>
+          </Route>
+          <Route path="/dashboard/strategy">
+            <DashboardLayout><DashboardStrategy /></DashboardLayout>
           </Route>
           <Route path="/dashboard/natives">
             <DashboardLayout><DashboardNatives /></DashboardLayout>

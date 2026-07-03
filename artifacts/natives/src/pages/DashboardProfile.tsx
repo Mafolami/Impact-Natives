@@ -10,7 +10,7 @@ import { Loader2, CheckCircle2, ShieldCheck, Camera, ArrowRight, Building2 } fro
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { COUNTRIES } from "@/lib/countries";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
-import { ImpactStrategyPane } from "@/components/platform/ImpactStrategyPane";
+
 
 const ORG_TYPE_OPTIONS = [
   { value: "ngo_non_profit",              label: "NGO / Non-Profit" },
@@ -93,7 +93,7 @@ function PaneHeader({ title, subtitle }: { title: string; subtitle?: string }) {
 
 type PaneKey =
   | "basic" | "organisation" | "focus" | "presence"
-  | "dd" | "track" | "mandate" | "csr" | "impact_strategy" | "verification";
+  | "dd" | "track" | "mandate" | "csr" | "verification";
 
 interface PaneDef { key: PaneKey; label: string; }
 
@@ -125,7 +125,6 @@ export default function DashboardProfile() {
         ...(isImplementer ? [{ key: "track" as PaneKey, label: "Track Record" }] : []),
         ...(isFunder ? [{ key: "mandate" as PaneKey, label: "Mandate" }] : []),
         ...(isCorporate ? [{ key: "csr" as PaneKey, label: "CSR & ESG" }] : []),
-        ...(isCorporate ? [{ key: "impact_strategy" as PaneKey, label: "Impact Strategy" }] : []),
         { key: "verification", label: "Verification" },
       ]
     : [
@@ -1116,9 +1115,7 @@ export default function DashboardProfile() {
               )}
 
               {/* ── IMPACT STRATEGY PANE (corporates/tech/telecom) ── */}
-              {activePane === "impact_strategy" && isCorporate && orgId && (
-                <ImpactStrategyPane organizationId={orgId} />
-              )}
+              
 
               {/* ── VERIFICATION PANE ── */}
               {activePane === "verification" && isOrg && (

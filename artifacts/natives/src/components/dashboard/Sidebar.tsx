@@ -5,22 +5,22 @@ import { useAuth } from "@/context/AuthContext";
 import {
   Home, Handshake, Lightbulb, FlaskConical, Compass,
   MessageSquare, User, Settings, LogOut, ShieldCheck,
-  ChevronLeft, ChevronRight, Globe,
+  ChevronLeft, ChevronRight, Globe, Sparkles,
 } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { cn } from "@/lib/utils";
 
-const NAV_ITEMS = [
-  { label: "Home",         href: "/dashboard",              icon: Home },
-  { label: "Portfolio",  href: "/dashboard/initiatives",  icon: Lightbulb },
-  { label: "Marketplace",  href: "/dashboard/marketplace",  icon: Compass },
-  { label: "Partnerships", href: "/dashboard/partnerships", icon: Handshake },
-  { label: "Labs",         href: "/dashboard/labs",         icon: FlaskConical },
-  { label: "Natives",      href: "/dashboard/natives",      icon: Globe },
-  
-  { label: "Messages",     href: "/dashboard/messages",     icon: MessageSquare },
-  { label: "Profile",      href: "/dashboard/profile",      icon: User },
-  { label: "Settings",     href: "/dashboard/settings",     icon: Settings },
+const ALL_NAV_ITEMS = [
+  { label: "Home",         href: "/dashboard",                icon: Home,          corporateOnly: false },
+  { label: "Strategy",     href: "/dashboard/strategy",       icon: Sparkles,      corporateOnly: true  },
+  { label: "Portfolio",    href: "/dashboard/initiatives",    icon: Lightbulb,     corporateOnly: false },
+  { label: "Marketplace",  href: "/dashboard/marketplace",    icon: Compass,       corporateOnly: false },
+  { label: "Partnerships", href: "/dashboard/partnerships",   icon: Handshake,     corporateOnly: false },
+  { label: "Labs",         href: "/dashboard/labs",           icon: FlaskConical,  corporateOnly: false },
+  { label: "Natives",      href: "/dashboard/natives",        icon: Globe,         corporateOnly: false },
+  { label: "Messages",     href: "/dashboard/messages",       icon: MessageSquare, corporateOnly: false },
+  { label: "Profile",      href: "/dashboard/profile",        icon: User,          corporateOnly: false },
+  { label: "Settings",     href: "/dashboard/settings",       icon: Settings,      corporateOnly: false },
 ];
 
 interface SidebarProps {
@@ -33,6 +33,9 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
   console.log("Sidebar profile:", profile?.user_type, profile?.org_name, profile?.full_name);
   const [collapsed, setCollapsed] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
+
+  const isCorporate = ["corporation", "technology_company", "public_sector"].includes(profile?.org_type ?? "");
+  const NAV_ITEMS = ALL_NAV_ITEMS.filter(item => !item.corporateOnly || isCorporate);
 
   useEffect(() => {
     if (!profile) return;
@@ -172,7 +175,7 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-4 px-2">
         <ul className="space-y-0.5">
-          {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
+          {NAV_ITEMS.map(({ label, href, icon: Icon, corporateOnly: _ }) => {
             const isMessages = href === "/dashboard/messages";
             const showBadge  = isMessages && unreadMessages > 0;
             return (
