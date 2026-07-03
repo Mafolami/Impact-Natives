@@ -10,17 +10,32 @@ type StrategyTab = "build" | "upload" | "initiatives";
 
 export default function DashboardStrategy() {
   const { user, profile } = useAuth();
-  const [orgId, setOrgId] = useState<string | null>(null);
-  const [tab, setTab] = useState<StrategyTab>("build");
+  const [orgId, setOrgId]                   = useState<string | null>(null);
+  const [orgCountry, setOrgCountry]         = useState<string>("");
+  const [tab, setTab]                       = useState<StrategyTab>("build");
 
   useEffect(() => {
     if (!user) return;
     supabase
       .from("organizations")
-      .select("id")
+      .select("id,country")
       .eq("user_id", user.id)
       .maybeSingle()
-      .then(({ data }) => { if (data?.id) setOrgId(data.id); });
+      .then(({ data }) => {
+        if (data?.id) setOrgId(data.id);
+        if (data?.country) {
+          let countryVal = data.country;
+          try {
+            const parsed = JSON.parse(data.country);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              countryVal = parsed[0];
+            }
+          } catch {
+            // not JSON, use raw string as-is
+          }
+          setOrgCountry(countryVal);
+        }
+      });
   }, [user]);
 
   if (!orgId) return null;
@@ -55,7 +70,7 @@ export default function DashboardStrategy() {
       </div>
 
       {tab === "build"       && <ImpactStrategyPane organizationId={orgId} />}
-      {tab === "upload"      && <UploadStrategyPane organizationId={orgId} operatingCountry={profile?.country ?? ""} />}
+    {tab === "upload"        && <UploadStrategyPane organizationId={orgId} operatingCountry={orgCountry} />}
       {tab === "initiatives" && <DraftInitiativesPane userId={user!.id} onPublished={() => setTab("initiatives")} />}
     </div>
   );
