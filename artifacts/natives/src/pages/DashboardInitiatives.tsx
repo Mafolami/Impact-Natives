@@ -358,17 +358,6 @@ function InitiativeDetail({ initiative, onBack }: { initiative: InitiativeRow; o
         </div>
       )}
 
-      {initiative.partnerships && initiative.partnerships.length > 0 && (
-        <div className="rounded-xl border border-border bg-card px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Partnership needs</p>
-          <div className="flex flex-wrap gap-2">
-            {initiative.partnerships.map(p => (
-              <span key={p} className="px-3 py-1 rounded-full text-xs font-medium border border-border text-foreground capitalize">{p}</span>
-            ))}
-          </div>
-        </div>
-      )}
-
       {initiative.tags && initiative.tags.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {initiative.tags.map(t => (
