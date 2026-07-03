@@ -52,8 +52,10 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
   const [executiveSummary, setExecutiveSummary] = useState<ExecutiveSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pushingIndex, setPushingIndex] = useState<number | null>(null);
-  const [pushError, setPushError] = useState<string | null>(null);
+  const [pushingIndex, setPushingIndex]   = useState<number | null>(null);
+  const [pushError, setPushError]         = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError]   = useState<string | null>(null);
 
   useEffect(() => {
     loadExistingStrategy();
@@ -110,11 +112,51 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
       }
 
       setPillars(json.pillars);
-      if (json.executive_summary) setExecutiveSummary(json.executive_summary);
     } catch (err) {
       setError("Could not reach the strategy generator. Check your connection and try again.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleGenerateSummary() {
+    if (!pillars) return;
+    setSummaryLoading(true);
+    setSummaryError(null);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-impact-strategy`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            action: "generate_executive_summary",
+            organization_id: organizationId,
+            pillars,
+            operating_country: form.operating_country,
+            csi_budget: form.csi_budget,
+            org_name: "Impact Natives",
+            sector_label: form.industry_sector === "technology_fintech"
+              ? "Technology / FinTech"
+              : form.industry_sector === "telecommunications"
+              ? "Telecommunications"
+              : form.industry_sector,
+          }),
+        }
+      );
+      const json = await res.json();
+      if (!res.ok) {
+        setSummaryError(json.error ?? "Could not generate summary. Try again.");
+        return;
+      }
+      setExecutiveSummary(json.executive_summary);
+    } catch {
+      setSummaryError("Could not reach the server. Try again.");
+    } finally {
+      setSummaryLoading(false);
     }
   }
 
@@ -258,6 +300,24 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
           >
             Generate a new strategy
           </button>
+
+          {!executiveSummary && (
+            <div className="rounded-xl border border-dashed border-[#2D6A4F]/30 p-5 text-center space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Pillars confirmed. Generate your executive summary when ready.
+              </p>
+              {summaryError && <p className="text-xs text-red-600">{summaryError}</p>}
+              <button
+                type="button"
+                onClick={handleGenerateSummary}
+                disabled={summaryLoading}
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold text-white transition-colors disabled:opacity-40"
+                style={{ backgroundColor: "#2D6A4F" }}
+              >
+                {summaryLoading ? "Generating..." : "Generate Executive Summary"}
+              </button>
+            </div>
+          )}
 
           {executiveSummary && (
             <div className="rounded-xl border border-border bg-card p-5 space-y-4 mb-2">

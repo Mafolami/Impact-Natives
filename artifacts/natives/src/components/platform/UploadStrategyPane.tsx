@@ -52,8 +52,10 @@ export function UploadStrategyPane({
   const [parsed, setParsed]           = useState<ParsedStrategy | null>(null);
   const [pillars, setPillars]               = useState<Pillar[] | null>(null);
   const [executiveSummary, setExecutiveSummary] = useState<ExecutiveSummary | null>(null);
-  const [pushingIndex, setPushingIndex]     = useState<number | null>(null);
-  const [pushError, setPushError]           = useState<string | null>(null);
+  const [pushingIndex, setPushingIndex]       = useState<number | null>(null);
+  const [pushError, setPushError]             = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading]   = useState(false);
+  const [summaryError, setSummaryError]       = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(file: File) {
@@ -134,11 +136,47 @@ export function UploadStrategyPane({
         return;
       }
       setPillars(json.pillars);
-      if (json.executive_summary) setExecutiveSummary(json.executive_summary);
     } catch {
       setError("Could not reach the server. Check your connection and try again.");
     }
     setConverting(false);
+  }
+
+  async function handleGenerateSummary() {
+    if (!pillars) return;
+    setSummaryLoading(true);
+    setSummaryError(null);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-impact-strategy`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            action: "generate_executive_summary",
+            organization_id: organizationId,
+            pillars,
+            operating_country: operatingCountry,
+            csi_budget: parsed?.csr_budget_range ?? null,
+            org_name: parsed?.organisation_name ?? null,
+            sector_label: parsed?.esg_frameworks?.join(", ") ?? null,
+          }),
+        }
+      );
+      const json = await res.json();
+      if (!res.ok) {
+        setSummaryError(json.error ?? "Could not generate summary. Try again.");
+        return;
+      }
+      setExecutiveSummary(json.executive_summary);
+    } catch {
+      setSummaryError("Could not reach the server. Try again.");
+    } finally {
+      setSummaryLoading(false);
+    }
   }
 
   async function handlePushPillar(pillar: Pillar, index: number) {
@@ -337,6 +375,24 @@ export function UploadStrategyPane({
             style={{ color: "#C45C26" }}>
             Upload a different document
           </button>
+
+          {!executiveSummary && (
+            <div className="rounded-xl border border-dashed border-[#2D6A4F]/30 p-5 text-center space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Pillars confirmed. Generate your executive summary when ready.
+              </p>
+              {summaryError && <p className="text-xs text-red-600">{summaryError}</p>}
+              <button
+                type="button"
+                onClick={handleGenerateSummary}
+                disabled={summaryLoading}
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold text-white transition-colors disabled:opacity-40"
+                style={{ backgroundColor: "#2D6A4F" }}
+              >
+                {summaryLoading ? "Generating..." : "Generate Executive Summary"}
+              </button>
+            </div>
+          )}
 
           {executiveSummary && (
             <div className="rounded-xl border border-border bg-card p-5 space-y-4 mb-2">
