@@ -23,6 +23,11 @@ interface DraftInitiative {
   locations: string[];
   budget: string | null;
   target_population: string | null;
+  stage: string | null;
+  duration: string | null;
+  target_beneficiaries: number | null;
+  esg_alignment: boolean;
+  sdg_tags: string[] | null;
   created_at: string;
 }
 
@@ -34,12 +39,17 @@ function DraftCard({
   onPublished: (id: string) => void;
 }) {
   const [expanded, setExpanded]         = useState(false);
-  const [problem, setProblem]           = useState(initiative.problem ?? "");
-  const [outcome, setOutcome]           = useState(initiative.outcome ?? "");
-  const [specificAsk, setSpecificAsk]   = useState(initiative.specific_ask ?? "");
-  const [partnerships, setPartnerships] = useState<string[]>(initiative.partnerships ?? []);
-  const [publishing, setPublishing]     = useState(false);
-  const [error, setError]               = useState<string | null>(null);
+  const [problem, setProblem]                     = useState(initiative.problem ?? "");
+  const [outcome, setOutcome]                     = useState(initiative.outcome ?? "");
+  const [specificAsk, setSpecificAsk]             = useState(initiative.specific_ask ?? "");
+  const [partnerships, setPartnerships]           = useState<string[]>(initiative.partnerships ?? []);
+  const [stage, setStage]                         = useState(initiative.stage ?? "");
+  const [budget, setBudget]                       = useState(initiative.budget ?? "");
+  const [targetBeneficiaries, setTargetBeneficiaries] = useState<string>(initiative.target_beneficiaries?.toString() ?? "");
+  const [duration, setDuration]                   = useState(initiative.duration ?? "");
+  const [esgAlignment, setEsgAlignment]           = useState(initiative.esg_alignment ?? false);
+  const [publishing, setPublishing]               = useState(false);
+  const [error, setError]                         = useState<string | null>(null);
 
   function toggle(value: string) {
     setPartnerships(prev =>
@@ -48,8 +58,8 @@ function DraftCard({
   }
 
   async function publish() {
-    if (!problem.trim() || !outcome.trim() || partnerships.length === 0) {
-      setError("Problem, outcome and at least one partnership type are required.");
+    if (!problem.trim() || !outcome.trim() || !stage || !budget.trim() || partnerships.length === 0) {
+      setError("Problem, outcome, stage, budget and at least one partnership type are required.");
       return;
     }
     setPublishing(true);
@@ -62,6 +72,12 @@ function DraftCard({
         outcome,
         specific_ask: specificAsk,
         partnerships,
+        stage,
+        budget,
+        target_beneficiaries: targetBeneficiaries ? parseInt(targetBeneficiaries) : null,
+        duration,
+        esg_alignment: esgAlignment,
+        sdg_tags: initiative.sdg_tags ?? [],
       })
       .eq("id", initiative.id);
     if (dbError) {
@@ -102,6 +118,84 @@ function DraftCard({
       {/* Expanded — review and edit */}
       {expanded && (
         <div className="px-5 pb-5 space-y-4 border-t border-border pt-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground block mb-1">
+                Stage
+              </label>
+              <select
+                value={stage}
+                onChange={e => setStage(e.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+              >
+                <option value="">Select stage</option>
+                <option value="concept">Concept</option>
+                <option value="planning">Planning</option>
+                <option value="active">Active</option>
+                <option value="scaling">Scaling</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground block mb-1">
+                Budget
+              </label>
+              <input
+                value={budget}
+                onChange={e => setBudget(e.target.value)}
+                placeholder="e.g. ₦50M or $35,000–$70,000"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground block mb-1">
+                Target beneficiaries (optional)
+              </label>
+              <input
+                type="number"
+                value={targetBeneficiaries}
+                onChange={e => setTargetBeneficiaries(e.target.value)}
+                placeholder="e.g. 5000"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground block mb-1">
+                Duration (optional)
+              </label>
+              <select
+                value={duration}
+                onChange={e => setDuration(e.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+              >
+                <option value="">Select duration</option>
+                <option value="3 months">3 months</option>
+                <option value="6 months">6 months</option>
+                <option value="12 months">12 months</option>
+                <option value="18 months">18 months</option>
+                <option value="24 months">24 months</option>
+                <option value="36 months">36 months</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setEsgAlignment(v => !v)}
+              className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors ${
+                esgAlignment ? "bg-[#2D6A4F]" : "bg-muted"
+              }`}
+            >
+              <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                esgAlignment ? "translate-x-4" : "translate-x-0"
+              }`} />
+            </button>
+            <label className="text-xs text-foreground">Open to corporate ESG/CSR adoption</label>
+          </div>
+
           <div>
             <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground block mb-1">
               Problem statement
@@ -188,7 +282,7 @@ export function DraftInitiativesPane({
     setLoading(true);
     const { data } = await supabase
       .from("initiative_requests")
-      .select("id,title,problem,outcome,specific_ask,partnerships,sectors,locations,budget,target_population,created_at")
+      .select("id,title,problem,outcome,specific_ask,partnerships,sectors,locations,budget,target_population,stage,duration,target_beneficiaries,esg_alignment,sdg_tags,created_at")
       .eq("user_id", userId)
       .eq("source", "ai_generated")
       .eq("status", "draft")

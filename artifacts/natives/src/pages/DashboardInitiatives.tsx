@@ -704,11 +704,12 @@ export default function DashboardInitiatives() {
 
   async function load() {
     if (!user) return;
-    const { data } = await supabase
-      .from("initiative_requests")
-      .select("id,title,sectors,locations,status,eois,created_at,problem,outcome,specific_ask,partnerships,esg_alignment,budget,tags,detail_content,resource_link,submitter_name,submitter_org,confirmed_partners,user_id,source")
-      .or(`user_id.eq.${user.id},submitter_email.eq.${user.email}`)
-      .order("created_at", { ascending: false });
+    const { data, error } = await supabase
+        .from("initiative_requests")
+        .select("id,title,sectors,locations,status,eois,created_at,problem,outcome,partnerships,esg_alignment,budget,tags,detail_content,resource_link,submitter_name,submitter_org,confirmed_partners,user_id,source")
+        .eq("user_id", user.id)
+        .not("status", "eq", "draft")
+        .order("created_at", { ascending: false });
     if (data) setInitiatives(data as InitiativeRow[]);
     setLoading(false);
   }
