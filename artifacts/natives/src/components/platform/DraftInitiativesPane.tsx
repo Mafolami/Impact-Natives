@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { normalizeArr } from "@/lib/normalizeArr";
 
 const PARTNERSHIP_OPTIONS = [
@@ -48,8 +48,24 @@ function DraftCard({
   const [targetBeneficiaries, setTargetBeneficiaries] = useState<string>(initiative.target_beneficiaries?.toString() ?? "");
   const [duration, setDuration]                   = useState(initiative.duration ?? "");
   const [esgAlignment, setEsgAlignment]           = useState(initiative.esg_alignment ?? false);
-  const [publishing, setPublishing]               = useState(false);
-  const [error, setError]                         = useState<string | null>(null);
+  const [publishing, setPublishing]     = useState(false);
+  const [deleting, setDeleting]         = useState(false);
+  const [error, setError]               = useState<string | null>(null);
+
+  async function handleDelete() {
+    if (!confirm("Delete this draft? This cannot be undone.")) return;
+    setDeleting(true);
+    const { error: dbError } = await supabase
+      .from("initiative_requests")
+      .delete()
+      .eq("id", initiative.id);
+    if (dbError) {
+      setError("Could not delete. Try again.");
+      setDeleting(false);
+      return;
+    }
+    onPublished(initiative.id);
+  }
 
   function toggle(value: string) {
     setPartnerships(prev =>
@@ -109,10 +125,23 @@ function DraftCard({
             )}
           </div>
         </div>
-        {expanded
-          ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0 ml-3" />
-          : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0 ml-3" />
-        }
+        <div className="flex items-center gap-2 shrink-0 ml-3">
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); handleDelete(); }}
+            disabled={deleting}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
+          >
+            {deleting
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : <Trash2 className="w-3.5 h-3.5" />
+            }
+          </button>
+          {expanded
+            ? <ChevronUp className="w-4 h-4 text-muted-foreground" />
+            : <ChevronDown className="w-4 h-4 text-muted-foreground" />
+          }
+        </div>
       </button>
 
       {/* Expanded — review and edit */}
