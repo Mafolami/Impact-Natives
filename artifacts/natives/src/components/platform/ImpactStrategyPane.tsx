@@ -2,6 +2,17 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext"; // adjust import to your actual auth hook path
 import { supabase } from "@/lib/supabase"; // adjust to your actual client path
 
+type ExecutiveSummary = {
+  introduction: string;
+  problem_statement: string;
+  strategic_approach: string;
+  impact_goals: string;
+  target_beneficiaries: string;
+  regulatory_alignment: string;
+  budget_allocation: string;
+  next_steps: string;
+};
+
 type Pillar = {
   pillar_name: string;
   corporate_input: string;
@@ -38,6 +49,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
     csi_budget: "",
   });
   const [pillars, setPillars] = useState<Pillar[] | null>(null);
+  const [executiveSummary, setExecutiveSummary] = useState<ExecutiveSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pushingIndex, setPushingIndex] = useState<number | null>(null);
@@ -59,6 +71,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
     try {
       const parsed = JSON.parse(data.impact_strategy);
       if (parsed?.pillars) setPillars(parsed.pillars);
+      if (parsed?.executive_summary) setExecutiveSummary(parsed.executive_summary);
     } catch {
       // stored value is malformed — skip, treat as no strategy yet
     }
@@ -97,6 +110,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
       }
 
       setPillars(json.pillars);
+      if (json.executive_summary) setExecutiveSummary(json.executive_summary);
     } catch (err) {
       setError("Could not reach the strategy generator. Check your connection and try again.");
     } finally {
@@ -139,7 +153,12 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
       if (updatedPillars) {
         await supabase
           .from("organizations")
-          .update({ impact_strategy: JSON.stringify({ pillars: updatedPillars }) })
+          .update({
+            impact_strategy: JSON.stringify({
+              pillars: updatedPillars,
+              executive_summary: executiveSummary,
+            }),
+          })
           .eq("id", organizationId);
       }
 
@@ -233,12 +252,41 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
       {pillars && (
         <div className="space-y-4">
           <button
-            onClick={() => setPillars(null)}
+            onClick={() => { setPillars(null); setExecutiveSummary(null); }}
             className="text-sm underline"
             style={{ color: "#C45C26" }}
           >
             Generate a new strategy
           </button>
+
+          {executiveSummary && (
+            <div className="rounded-xl border border-border bg-card p-5 space-y-4 mb-2">
+              <p className="text-[10px] font-black uppercase tracking-widest"
+                style={{ color: "#2D6A4F" }}>Executive Summary</p>
+
+              {([
+                { key: "introduction",        label: "Introduction & Purpose"         },
+                { key: "problem_statement",   label: "Problem Statement"              },
+                { key: "strategic_approach",  label: "Strategic Approach"             },
+                { key: "impact_goals",        label: "Impact Goals & KPIs"            },
+                { key: "target_beneficiaries",label: "Target Beneficiaries"           },
+                { key: "regulatory_alignment",label: "Regulatory & Framework Alignment"},
+                { key: "budget_allocation",   label: "Budget & Allocation"            },
+                { key: "next_steps",          label: "Implementation Roadmap"         },
+              ] as { key: keyof ExecutiveSummary; label: string }[]).map(({ key, label }) =>
+                executiveSummary[key] ? (
+                  <div key={key}>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground mb-1">
+                      {label}
+                    </p>
+                    <p className="text-sm text-foreground leading-relaxed">
+                      {executiveSummary[key]}
+                    </p>
+                  </div>
+                ) : null
+              )}
+            </div>
+          )}
 
           {pillars.map((pillar, i) => (
             <div

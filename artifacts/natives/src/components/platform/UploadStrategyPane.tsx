@@ -2,6 +2,17 @@ import { useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { Upload, Loader2, CheckCircle2, X, Sparkles } from "lucide-react";
 
+type ExecutiveSummary = {
+  introduction: string;
+  problem_statement: string;
+  strategic_approach: string;
+  impact_goals: string;
+  target_beneficiaries: string;
+  regulatory_alignment: string;
+  budget_allocation: string;
+  next_steps: string;
+};
+
 type Pillar = {
   pillar_name: string;
   corporate_input: string;
@@ -39,9 +50,10 @@ export function UploadStrategyPane({
   const [fileName, setFileName]       = useState<string | null>(null);
   const [error, setError]             = useState<string | null>(null);
   const [parsed, setParsed]           = useState<ParsedStrategy | null>(null);
-  const [pillars, setPillars]         = useState<Pillar[] | null>(null);
-  const [pushingIndex, setPushingIndex] = useState<number | null>(null);
-  const [pushError, setPushError]     = useState<string | null>(null);
+  const [pillars, setPillars]               = useState<Pillar[] | null>(null);
+  const [executiveSummary, setExecutiveSummary] = useState<ExecutiveSummary | null>(null);
+  const [pushingIndex, setPushingIndex]     = useState<number | null>(null);
+  const [pushError, setPushError]           = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(file: File) {
@@ -122,6 +134,7 @@ export function UploadStrategyPane({
         return;
       }
       setPillars(json.pillars);
+      if (json.executive_summary) setExecutiveSummary(json.executive_summary);
     } catch {
       setError("Could not reach the server. Check your connection and try again.");
     }
@@ -319,11 +332,40 @@ export function UploadStrategyPane({
       {pillars && (
         <div className="space-y-4">
           <button type="button"
-            onClick={() => { setPillars(null); setParsed(null); setFileName(null); }}
+            onClick={() => { setPillars(null); setParsed(null); setFileName(null); setExecutiveSummary(null); }}
             className="text-sm underline"
             style={{ color: "#C45C26" }}>
             Upload a different document
           </button>
+
+          {executiveSummary && (
+            <div className="rounded-xl border border-border bg-card p-5 space-y-4 mb-2">
+              <p className="text-[10px] font-black uppercase tracking-widest"
+                style={{ color: "#2D6A4F" }}>Executive Summary</p>
+
+              {([
+                { key: "introduction",        label: "Introduction & Purpose"          },
+                { key: "problem_statement",   label: "Problem Statement"               },
+                { key: "strategic_approach",  label: "Strategic Approach"              },
+                { key: "impact_goals",        label: "Impact Goals & KPIs"             },
+                { key: "target_beneficiaries",label: "Target Beneficiaries"            },
+                { key: "regulatory_alignment",label: "Regulatory & Framework Alignment" },
+                { key: "budget_allocation",   label: "Budget & Allocation"             },
+                { key: "next_steps",          label: "Implementation Roadmap"          },
+              ] as { key: keyof ExecutiveSummary; label: string }[]).map(({ key, label }) =>
+                executiveSummary[key] ? (
+                  <div key={key}>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground mb-1">
+                      {label}
+                    </p>
+                    <p className="text-sm text-foreground leading-relaxed">
+                      {executiveSummary[key]}
+                    </p>
+                  </div>
+                ) : null
+              )}
+            </div>
+          )}
 
           {pillars.map((pillar, i) => (
             <div key={i} className="rounded-lg p-4"
