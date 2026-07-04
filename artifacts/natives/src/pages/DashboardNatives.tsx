@@ -604,7 +604,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
 
   useEffect(() => {
     supabase.from("initiative_requests")
-      .select("id,title,sectors,locations,budget,eois,status,co_funding_status")
+      .select("id,title,sectors,locations,budget,eois,status,co_funding_status,specific_ask")
       .eq("user_id", org.user_id)
       .eq("status", "published")
       .order("created_at", { ascending: false })
@@ -1171,14 +1171,19 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                 </p>
               </div>
               <div className="space-y-3">
-                {pillars.map((pillar: any, i: number) => (
+                {pillars.map((pillar: any, i: number) => {
+                  const publishedRow = orgInitiatives.find(
+                    ini => ini.title === pillar.pillar_name
+                  );
+                  const specificAsk = publishedRow?.specific_ask ?? pillar.specific_ask_draft;
+                  return (
                   <div key={i} className="pb-3 border-b border-border last:border-0 last:pb-0 space-y-1.5">
                     <p className="text-xs font-semibold text-foreground leading-snug">
                       {pillar.pillar_name}
                     </p>
-                    {pillar.specific_ask_draft && (
+                    {specificAsk && (
                       <p className="text-[10px] text-muted-foreground leading-relaxed">
-                        {pillar.specific_ask_draft}
+                        {specificAsk}
                       </p>
                     )}
                     {pillar.un_sdg_code && (
@@ -1188,7 +1193,8 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                       </span>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );
