@@ -56,6 +56,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
   const [pushError, setPushError]         = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError]   = useState<string | null>(null);
+  const [orgName, setOrgName]             = useState<string | null>(null);
 
   useEffect(() => {
     loadExistingStrategy();
@@ -64,7 +65,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
   async function loadExistingStrategy() {
     const { data, error } = await supabase
       .from("organizations")
-      .select("impact_strategy")
+      .select("impact_strategy,name")
       .eq("id", organizationId)
       .single();
 
@@ -74,6 +75,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
       const parsed = JSON.parse(data.impact_strategy);
       if (parsed?.pillars) setPillars(parsed.pillars);
       if (parsed?.executive_summary) setExecutiveSummary(parsed.executive_summary);
+      if (data.name) setOrgName(data.name);
     } catch {
       // stored value is malformed — skip, treat as no strategy yet
     }
@@ -138,7 +140,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
             pillars,
             operating_country: form.operating_country,
             csi_budget: form.csi_budget,
-            org_name: "Impact Natives",
+            org_name: orgName ?? "Not specified",
             sector_label: form.industry_sector === "technology_fintech"
               ? "Technology / FinTech"
               : form.industry_sector === "telecommunications"
