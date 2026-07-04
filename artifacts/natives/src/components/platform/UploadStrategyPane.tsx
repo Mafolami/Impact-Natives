@@ -194,7 +194,7 @@ export function UploadStrategyPane({
           body: JSON.stringify({
             action: "push_pillar",
             organization_id: organizationId,
-            pillar: { ...pillar, operating_region: operatingCountry },
+            pillar: { ...pillar, operating_region: operatingCountry, csi_budget: parsed?.csr_budget_range ?? null },
           }),
         }
       );
