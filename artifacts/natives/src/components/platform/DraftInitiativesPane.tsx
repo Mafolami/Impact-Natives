@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Placeholder from "@tiptap/extension-placeholder";
 import { supabase } from "@/lib/supabase";
-import { Loader2, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { Loader2, ChevronDown, ChevronUp, Trash2, Sparkles } from "lucide-react";
 import { normalizeArr } from "@/lib/normalizeArr";
 
 const PARTNERSHIP_OPTIONS = [
@@ -48,9 +51,66 @@ function DraftCard({
   const [targetBeneficiaries, setTargetBeneficiaries] = useState<string>(initiative.target_beneficiaries?.toString() ?? "");
   const [duration, setDuration]                   = useState(initiative.duration ?? "");
   const [esgAlignment, setEsgAlignment]           = useState(initiative.esg_alignment ?? false);
-  const [publishing, setPublishing]     = useState(false);
-  const [deleting, setDeleting]         = useState(false);
-  const [error, setError]               = useState<string | null>(null);
+  const [publishing, setPublishing]       = useState(false);
+  const [deleting, setDeleting]           = useState(false);
+  const [error, setError]                 = useState<string | null>(null);
+  const [detailContent, setDetailContent] = useState<string>("");
+  const [generatingDesc, setGeneratingDesc] = useState(false);
+  const [descError, setDescError]         = useState<string | null>(null);
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Placeholder.configure({ placeholder: "Generate or write a full initiative description..." }),
+    ],
+    onUpdate: ({ editor }) => setDetailContent(editor.getHTML()),
+  });
+
+  async function generateDescription() {
+    setGeneratingDesc(true);
+    setDescError(null);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+      const res = await fetch(`${supabaseUrl}/functions/v1/generate-initiative-description`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          form: {
+            title: initiative.title,
+            problem,
+            outcome,
+            specificAsk,
+            partnerships,
+            stage,
+            budget,
+            targetBeneficiaries: targetBeneficiaries || null,
+            duration,
+            esg: esgAlignment,
+            sectors: initiative.sectors ?? [],
+            locations: initiative.locations ?? [],
+            sdgTags: initiative.sdg_tags ?? [],
+            targetPopulation: initiative.target_population ?? null,
+            hadPriorExperience: null,
+            priorExperienceDetail: null,
+            impactEvidence: null,
+            targetJobs: null,
+            targetFemalePct: null,
+            targetTimelineMonths: null,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (data.description) {
+        editor?.commands.setContent(data.description);
+        setDetailContent(data.description);
+      } else {
+        setDescError("Generation failed. Write the description manually below.");
+      }
+    } catch {
+      setDescError("Could not reach the server. Try again.");
+    }
+    setGeneratingDesc(false);
+  }
 
   async function handleDelete() {
     if (!confirm("Delete this draft? This cannot be undone.")) return;
@@ -81,48 +141,11 @@ function DraftCard({
     setPublishing(true);
     setError(null);
 
-    let detailContent: string | null = null;
-    try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-      const descRes = await fetch(`${supabaseUrl}/functions/v1/generate-initiative-description`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          form: {
-            title: initiative.title,
-            problem,
-            outcome,
-            specificAsk,
-            partnerships,
-            stage,
-            budget,
-            targetBeneficiaries: targetBeneficiaries || null,
-            duration,
-            esg: esgAlignment,
-            sectors: initiative.sectors ?? [],
-            locations: initiative.locations ?? [],
-            sdgTags: initiative.sdg_tags ?? [],
-            targetPopulation: initiative.target_population ?? null,
-            hadPriorExperience: null,
-            priorExperienceDetail: null,
-            impactEvidence: null,
-            targetJobs: null,
-            targetFemalePct: null,
-            targetTimelineMonths: null,
-          },
-        }),
-      });
-      const descData = await descRes.json();
-      if (descData.description) detailContent = descData.description;
-    } catch {
-      // silent — publish proceeds without description if generation fails
-    }
-
     const { error: dbError } = await supabase
       .from("initiative_requests")
       .update({
         status: "published",
-        detail_content: detailContent,
+        detail_content: detailContent || null,
         problem,
         outcome,
         specific_ask: specificAsk,
@@ -317,6 +340,48 @@ function DraftCard({
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground block">
+              Full description (optional)
+            </label>
+            <button
+              type="button"
+              onClick={generateDescription}
+              disabled={generatingDesc}
+              className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-[#2D6A4F]/40 text-sm text-[#2D6A4F] hover:bg-[#2D6A4F]/5 transition-colors disabled:opacity-40"
+            >
+              {generatingDesc
+                ? <><Loader2 className="w-4 h-4 animate-spin shrink-0" />Generating description...</>
+                : <><Sparkles className="w-4 h-4 shrink-0" />Generate full description</>
+              }
+            </button>
+            {descError && <p className="text-xs text-red-600">{descError}</p>}
+            {(detailContent || generatingDesc) && (
+              <div>
+                <div className="flex gap-1 border border-border rounded-t-lg px-2 py-1.5 bg-muted/40">
+                  {[
+                    { label: "B",      action: () => editor?.chain().focus().toggleBold().run(),                 active: editor?.isActive("bold"),                  style: "font-bold" },
+                    { label: "I",      action: () => editor?.chain().focus().toggleItalic().run(),               active: editor?.isActive("italic"),                style: "italic" },
+                    { label: "H2",     action: () => editor?.chain().focus().toggleHeading({ level: 2 }).run(), active: editor?.isActive("heading", { level: 2 }), style: "" },
+                    { label: "• List", action: () => editor?.chain().focus().toggleBulletList().run(),          active: editor?.isActive("bulletList"),            style: "" },
+                  ].map(btn => (
+                    <button key={btn.label} type="button" onMouseDown={e => { e.preventDefault(); btn.action(); }}
+                      className={`px-2 py-0.5 rounded text-xs transition-colors ${btn.style} ${btn.active ? "bg-primary text-white" : "hover:bg-muted text-muted-foreground"}`}>
+                      {btn.label}
+                    </button>
+                  ))}
+                </div>
+                <div
+                  className="border border-border border-t-0 rounded-b-lg min-h-[160px] bg-background focus-within:ring-1 focus-within:ring-primary/20 cursor-text"
+                  onClick={() => editor?.chain().focus().run()}
+                >
+                  <EditorContent editor={editor}
+                    className="[&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[140px] [&_.ProseMirror]:px-3 [&_.ProseMirror]:py-2 [&_.ProseMirror]:text-sm [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_li]:mb-1 [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h2]:text-base [&_.ProseMirror_h2]:mt-4 [&_.ProseMirror_h2]:mb-2" />
+                </div>
+              </div>
+            )}
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
