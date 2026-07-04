@@ -80,10 +80,49 @@ function DraftCard({
     }
     setPublishing(true);
     setError(null);
+
+    let detailContent: string | null = null;
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+      const descRes = await fetch(`${supabaseUrl}/functions/v1/generate-initiative-description`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          form: {
+            title: initiative.title,
+            problem,
+            outcome,
+            specificAsk,
+            partnerships,
+            stage,
+            budget,
+            targetBeneficiaries: targetBeneficiaries || null,
+            duration,
+            esg: esgAlignment,
+            sectors: initiative.sectors ?? [],
+            locations: initiative.locations ?? [],
+            sdgTags: initiative.sdg_tags ?? [],
+            targetPopulation: initiative.target_population ?? null,
+            hadPriorExperience: null,
+            priorExperienceDetail: null,
+            impactEvidence: null,
+            targetJobs: null,
+            targetFemalePct: null,
+            targetTimelineMonths: null,
+          },
+        }),
+      });
+      const descData = await descRes.json();
+      if (descData.description) detailContent = descData.description;
+    } catch {
+      // silent — publish proceeds without description if generation fails
+    }
+
     const { error: dbError } = await supabase
       .from("initiative_requests")
       .update({
         status: "published",
+        detail_content: detailContent,
         problem,
         outcome,
         specific_ask: specificAsk,
