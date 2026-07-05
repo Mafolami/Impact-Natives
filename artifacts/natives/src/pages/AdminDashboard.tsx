@@ -45,6 +45,7 @@ export default function AdminDashboard() {
     totalInitiatives: 0,
     publishedInitiatives: 0,
     pendingInitiatives: 0,
+    draftInitiatives: 0,
     initiativesThisMonth: 0,
     totalOrgs: 0,
     verifiedOrgs: 0,
@@ -74,6 +75,7 @@ export default function AdminDashboard() {
       { count: totalInitiatives },
       { count: publishedInitiatives },
       { count: pendingInitiatives },
+      { count: draftInitiatives },
       { count: initiativesThisMonth },
       { count: totalOrgs },
       { count: verifiedOrgs },
@@ -89,7 +91,7 @@ export default function AdminDashboard() {
       supabase.from("initiative_requests").select("*", { count: "exact", head: true }),
       supabase.from("initiative_requests").select("*", { count: "exact", head: true }).eq("status", "published"),
       supabase.from("initiative_requests").select("*", { count: "exact", head: true }).eq("status", "pending"),
-      supabase.from("initiative_requests").select("*", { count: "exact", head: true }).gte("created_at", startOfMonth),
+      supabase.from("initiative_requests").select("*", { count: "exact", head: true }).eq("status", "draft"),      supabase.from("initiative_requests").select("*", { count: "exact", head: true }).gte("created_at", startOfMonth),
       supabase.from("organizations").select("*", { count: "exact", head: true }),
       supabase.from("organizations").select("*", { count: "exact", head: true }).eq("verification_status", "verified"),
       supabase.from("profiles").select("*", { count: "exact", head: true }).eq("verification_requested", true).eq("is_verified", false),      supabase.from("expressions_of_interest").select("*", { count: "exact", head: true }).gte("created_at", startOfMonth),
@@ -111,6 +113,7 @@ export default function AdminDashboard() {
       totalInitiatives: totalInitiatives ?? 0,
       publishedInitiatives: publishedInitiatives ?? 0,
       pendingInitiatives: pendingInitiatives ?? 0,
+      draftInitiatives: draftInitiatives ?? 0,      
       initiativesThisMonth: initiativesThisMonth ?? 0,
       totalOrgs: totalOrgs ?? 0,
       verifiedOrgs: verifiedOrgs ?? 0,
@@ -152,10 +155,11 @@ export default function AdminDashboard() {
       {/* INITIATIVES */}
       <div className="mb-8">
         <SectionHeader title="Initiatives" />
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-5 gap-4">
           <StatCard label="Total" value={stats.totalInitiatives} accent="#2D6A4F" />
           <StatCard label="Published" value={stats.publishedInitiatives} accent="#2D6A4F" />
           <StatCard label="Pending Review" value={stats.pendingInitiatives} accent="#C45C26" />
+          <StatCard label="Drafts" value={stats.draftInitiatives} accent="#C45C26" />          
           <StatCard label="This Month" value={stats.initiativesThisMonth} accent="#2D6A4F" />
         </div>
       </div>
