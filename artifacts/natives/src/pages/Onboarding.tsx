@@ -25,6 +25,11 @@ const SDG_OPTIONS = [
   "Life on Land", "Peace Justice and Strong Institutions", "Partnerships for the Goals",
 ];
 
+function sdgNameToNumber(name: string): number | null {
+  const index = SDG_OPTIONS.indexOf(name);
+  return index === -1 ? null : index + 1;
+}
+
 const STAGE_OPTIONS = [
   { value: "concept",  label: "Concept",  sub: "Idea defined, no funding yet" },
   { value: "planning", label: "Planning", sub: "Funded, building implementation plan" },
@@ -671,7 +676,7 @@ export default function Onboarding() {
         description:       description  || null,
         needs:             needs.length > 0 ? needs : null,
         offers:            offers.length > 0 ? offers : null,
-        sdgs:              sdgTags.length > 0 ? sdgTags : null,
+        sdgs:              sdgTags.length > 0 ? sdgTags.map(sdgNameToNumber).filter((n): n is number => n !== null) : null,
         year_founded:      yearFounded ? parseInt(yearFounded) : null,
         investment_stage:  investmentStage || null,
         business_model:    businessModel   || null,
