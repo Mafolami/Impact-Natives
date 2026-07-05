@@ -601,6 +601,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
 
   const [orgInitiatives, setOrgInitiatives] = useState<any[]>([]);
   const [orgPartnership, setOrgPartnership] = useState<any | null>(null);
+  const [reputationPartners, setReputationPartners] = useState<any[]>([]);
 
   useEffect(() => {
     supabase.from("initiative_requests")
@@ -621,6 +622,31 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
         funding_status: org.partnership_funding_status,
       });
     }
+
+    // Reputation: confirmed partnerships, owner side and partner side
+    supabase.from("initiative_requests")
+      .select("id,title,user_id,confirmed_partners")
+      .not("confirmed_partners", "eq", "[]")
+      .then(({ data }) => {
+        if (!data) return;
+        const results: any[] = [];
+        data.forEach((ini: any) => {
+          const partners = ini.confirmed_partners ?? [];
+          if (ini.user_id === org.user_id) {
+            // org owns this initiative — every confirmed partner counts
+            partners.forEach((p: any) => {
+              results.push({ initiative_title: ini.title, partner_name: p.name, role: p.role, as: "owner" });
+            });
+          } else {
+            // org may appear as a partner on someone else's initiative
+            const asPartner = partners.find((p: any) => p.user_id === org.user_id);
+            if (asPartner) {
+              results.push({ initiative_title: ini.title, partner_name: null, role: asPartner.role, as: "partner" });
+            }
+          }
+        });
+        setReputationPartners(results);
+      });
   }, [org.id]);
 
   return (
@@ -751,6 +777,27 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
           </div>
         );
       })()}
+
+      {/* Reputation — confirmed partnerships */}
+      {reputationPartners.length > 0 && (
+        <div className="rounded-xl border border-border bg-card px-4 py-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Confirmed partnerships</p>
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+              {reputationPartners.length}
+            </span>
+          </div>
+          <div className="space-y-1.5 pt-1">
+            {reputationPartners.slice(0, 5).map((p, i) => (
+              <p key={i} className="text-xs text-foreground">
+                {p.as === "owner"
+                  ? `Partnered with ${p.partner_name} on "${p.initiative_title}"`
+                  : `Confirmed as ${p.role} partner on "${p.initiative_title}"`}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Impact & Track Record */}
       {(org.total_beneficiaries_reached || org.jobs_created || org.grants_received_count || org.years_of_operation) && (
