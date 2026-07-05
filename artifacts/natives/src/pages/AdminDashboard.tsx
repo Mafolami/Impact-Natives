@@ -92,8 +92,7 @@ export default function AdminDashboard() {
       supabase.from("initiative_requests").select("*", { count: "exact", head: true }).gte("created_at", startOfMonth),
       supabase.from("organizations").select("*", { count: "exact", head: true }),
       supabase.from("organizations").select("*", { count: "exact", head: true }).eq("verification_status", "verified"),
-      supabase.from("organizations").select("*", { count: "exact", head: true }).eq("status", "pending"),
-      supabase.from("expressions_of_interest").select("*", { count: "exact", head: true }).gte("created_at", startOfMonth),
+      supabase.from("profiles").select("*", { count: "exact", head: true }).eq("verification_requested", true).eq("is_verified", false),      supabase.from("expressions_of_interest").select("*", { count: "exact", head: true }).gte("created_at", startOfMonth),
       supabase.from("profiles").select("id,full_name,email,user_type,org_name,created_at").order("created_at", { ascending: false }).limit(8),
       supabase.from("initiative_requests").select("user_id,confirmed_partners").not("confirmed_partners", "is", null),
     ]);
