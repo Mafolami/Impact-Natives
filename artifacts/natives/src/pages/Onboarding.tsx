@@ -530,7 +530,9 @@ export default function Onboarding() {
     if (data.country)           setCountry(data.country);
     if (data.role_title)        setRoleTitle(data.role_title);
     if (data.organisation_type) setOrgType(data.organisation_type);
-    if (data.sectors?.length)   setSectors(data.sectors);
+    if (data.sectors?.length) {
+      const validSectors = data.sectors.filter(s => SECTOR_OPTIONS.includes(s));
+      if (validSectors.length > 0) setSectors(validSectors);}
     if (data.sdg_tags?.length)  setSdgTags(data.sdg_tags);
     if (data.needs?.length)     setNeeds(data.needs);
     if (data.offers?.length)    setOffers(data.offers);
