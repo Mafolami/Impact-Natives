@@ -247,7 +247,10 @@ function DocumentUploadStep({ track, onExtracted, onSkipToManual }: {
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-org-profile`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
           body: JSON.stringify({ file_base64: base64, file_type: file.type, track }),
         }
       );
