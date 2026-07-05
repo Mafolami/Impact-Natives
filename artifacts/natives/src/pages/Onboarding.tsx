@@ -657,8 +657,11 @@ export default function Onboarding() {
     if (profileUpdateError) console.error("Profile update error:", profileUpdateError);
 
     if (userType === "organisation" && orgName.trim()) {
-      const { error: orgInsertError } = await supabase.from("organizations").insert({
-        user_id:           userId,
+      console.log("ORG INSERT PAYLOAD:", JSON.stringify({
+        user_id: userId, organisation_name: orgName.trim(), sector: sectors, sdgs: sdgTags,
+        year_founded: yearFounded, grant_range_min: grantRangeMin, grant_range_max: grantRangeMax,
+      }));
+      const { error: orgInsertError } = await supabase.from("organizations").insert({        user_id:           userId,
         organisation_name: orgName.trim(),
         email:             userEmail ?? null,
         website:           website      || null,
