@@ -525,32 +525,68 @@ export default function Onboarding() {
   function applyExtracted(data: ExtractedProfile) {
     setExtracted(data);
     setExtractionDone(true);
+
+    const orgTypeValues = ORG_TYPE_OPTIONS.map(o => o.value);
+    const stageValues = STAGE_OPTIONS.map(o => o.value);
+    const teamSizeValues = TEAM_SIZE_OPTIONS.map(o => o.value);
+    const businessModelValues = BUSINESS_MODEL_OPTIONS.map(o => o.value);
+    const runwayValues = RUNWAY_OPTIONS.map(o => o.value);
+
     if (data.organisation_name) setOrgName(data.organisation_name);
     if (data.description)       setDescription(data.description);
     if (data.country)           setCountry(data.country);
     if (data.role_title)        setRoleTitle(data.role_title);
-    if (data.organisation_type) setOrgType(data.organisation_type);
+
+    if (data.organisation_type && orgTypeValues.includes(data.organisation_type)) {
+      setOrgType(data.organisation_type);
+    }
+
     if (data.sectors?.length) {
-      const validSectors = data.sectors.filter(s => SECTOR_OPTIONS.includes(s));
-      if (validSectors.length > 0) setSectors(validSectors);}
-    if (data.sdg_tags?.length)  setSdgTags(data.sdg_tags);
-    if (data.needs?.length)     setNeeds(data.needs);
-    if (data.offers?.length)    setOffers(data.offers);
-    if (data.stage)             setStage(data.stage);
-    if (data.team_size)         setTeamSize(data.team_size);
-    if (data.year_founded)      setYearFounded(String(data.year_founded));
-    if (data.investment_stage)  setInvestmentStage(data.investment_stage);
-    if (data.business_model)    setBusinessModel(data.business_model);
-    if (data.runway)            setRunway(data.runway);
-    if (data.funding_ask)       setFundingAsk(data.funding_ask);
-    if (data.grant_range_min)   setGrantRangeMin(String(data.grant_range_min));
-    if (data.grant_range_max)   setGrantRangeMax(String(data.grant_range_max));
-    if (data.grant_currency)    setGrantCurrency(data.grant_currency);
-    if (data.funding_instruments?.length) setFundingInstruments(data.funding_instruments);
-    if (data.geographic_focus?.length)    setGeographicFocus(data.geographic_focus);
-    if (data.csr_budget_range)  setCsrBudgetRange(data.csr_budget_range);
-    if (data.esg_frameworks?.length)      setEsgFrameworks(data.esg_frameworks);
-    if (data.research_methods?.length)    setResearchMethods(data.research_methods);
+      const valid = data.sectors.filter(s => SECTOR_OPTIONS.includes(s));
+      if (valid.length > 0) setSectors(valid);
+    }
+
+    if (data.sdg_tags?.length) {
+      const valid = data.sdg_tags.filter(s => SDG_OPTIONS.includes(s));
+      if (valid.length > 0) setSdgTags(valid);
+    }
+
+    if (data.needs?.length)  setNeeds(data.needs);
+    if (data.offers?.length) setOffers(data.offers);
+
+    if (data.stage && stageValues.includes(data.stage)) setStage(data.stage);
+    if (data.team_size && teamSizeValues.includes(data.team_size)) setTeamSize(data.team_size);
+    if (data.year_founded) setYearFounded(String(data.year_founded));
+
+    if (data.investment_stage && INVESTMENT_STAGE_OPTIONS.includes(data.investment_stage)) {
+      setInvestmentStage(data.investment_stage);
+    }
+    if (data.business_model && businessModelValues.includes(data.business_model)) {
+      setBusinessModel(data.business_model);
+    }
+    if (data.runway && runwayValues.includes(data.runway)) setRunway(data.runway);
+    if (data.funding_ask) setFundingAsk(data.funding_ask);
+    if (data.grant_range_min) setGrantRangeMin(String(data.grant_range_min));
+    if (data.grant_range_max) setGrantRangeMax(String(data.grant_range_max));
+    if (data.grant_currency)  setGrantCurrency(data.grant_currency);
+
+    if (data.funding_instruments?.length) {
+      const valid = data.funding_instruments.filter(f => FUNDING_INSTRUMENTS.includes(f));
+      if (valid.length > 0) setFundingInstruments(valid);
+    }
+
+    if (data.geographic_focus?.length) setGeographicFocus(data.geographic_focus);
+    if (data.csr_budget_range) setCsrBudgetRange(data.csr_budget_range);
+
+    if (data.esg_frameworks?.length) {
+      const valid = data.esg_frameworks.filter(f => ESG_FRAMEWORKS.includes(f));
+      if (valid.length > 0) setEsgFrameworks(valid);
+    }
+
+    if (data.research_methods?.length) {
+      const valid = data.research_methods.filter(m => RESEARCH_METHODS.includes(m));
+      if (valid.length > 0) setResearchMethods(valid);
+    }
   }
 
   // ── Validation ───────────────────────────────────────────────────────────
