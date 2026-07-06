@@ -664,7 +664,7 @@ function PartnershipConfirmButton({ conversation, currentUserId }: {
     const { data: conn } = await supabase
       .from("partnership_connections")
       .select("id")
-      .eq("status", "accepted")
+      .in("status", ["pending", "accepted"])
       .eq("sender_user_id", conversation.other_user_id)
       .maybeSingle();
 
