@@ -739,7 +739,7 @@ export default function DashboardPartnerships() {
       const { data: convData } = await supabase.from("conversations").insert({
         conversation_type: "partnership",
         status: "open",
-        initiative_owner_id: org.user_id,
+        initiative_owner_id: user.id,
       }).select("id").single();
 
       if (convData?.id) {
