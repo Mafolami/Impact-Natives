@@ -221,6 +221,7 @@ export default function DashboardMessages() {
         .or("initiative_id.not.is.null,conversation_type.eq.partnership");
 
       if (convoData && convoData.length > 0) {
+        console.log("convoData initiative_owner_ids:", convoData.map((c: any) => ({ id: c.id, type: c.conversation_type, owner: c.initiative_owner_id })));
         const initIds = [...new Set(convoData.map((c: any) => c.initiative_id).filter(Boolean))];
         const { data: inits } = initIds.length > 0 ? await supabase
           .from("initiative_requests").select("id, title").in("id", initIds) : { data: [] };
