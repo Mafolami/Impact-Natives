@@ -236,29 +236,36 @@ export function PartnershipTab() {
 
     let newConvId: string | undefined;
     if (status === "accepted") {
-      // Open a partnership conversation
-      const { data: conv, error: convError } = await supabase.from("conversations").insert({
-        conversation_type: "partnership",
-        status: "open",
-        initiative_owner_id: user!.id,
-      }).select("id").single();
-      
-      newConvId = conv?.id;
-
-      if (conv?.id) {
-        // Add both parties
+      // Reuse existing conversation from expressInterest if available
+      if (conn.conversation_id) {
+        newConvId = conn.conversation_id;
+        // Add participants — participants may already exist from expressInterest, ignore errors
         await supabase.from("conversation_participants").insert([
-          { conversation_id: conv.id, user_id: user!.id },
-          { conversation_id: conv.id, user_id: conn.sender_user_id },
+          { conversation_id: conn.conversation_id, user_id: user!.id },
+          { conversation_id: conn.conversation_id, user_id: conn.sender_user_id },
         ]);
+      } else {
+        // Fallback: create new conversation if no existing one
+        const { data: conv } = await supabase.from("conversations").insert({
+          conversation_type: "partnership",
+          status: "open",
+          initiative_owner_id: user!.id,
+        }).select("id").single();
 
-        // Opening message with rationale if available
-        if (conn.ai_rationale) {
-          await supabase.from("messages").insert({
-            conversation_id: conv.id,
-            sender_id: user!.id,
-            body: `Match rationale: ${conn.ai_rationale}`,
-          });
+        newConvId = conv?.id;
+
+        if (conv?.id) {
+          await supabase.from("conversation_participants").insert([
+            { conversation_id: conv.id, user_id: user!.id },
+            { conversation_id: conv.id, user_id: conn.sender_user_id },
+          ]);
+          if (conn.ai_rationale) {
+            await supabase.from("messages").insert({
+              conversation_id: conv.id,
+              sender_id: user!.id,
+              body: `Match rationale: ${conn.ai_rationale}`,
+            });
+          }
         }
       }
 
