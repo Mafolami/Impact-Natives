@@ -154,6 +154,12 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave }: {
           {org.partnership_title}
         </p>
       )}
+      {org.partnership_formed && (
+        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full mt-1.5"
+          style={{ background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE" }}>
+          <CheckCircle2 className="w-2.5 h-2.5" />Partnership formed
+        </span>
+      )}
     </div>
   );}
 
@@ -578,7 +584,18 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
           <div className="px-8 py-4 border-t border-border">
             <span className="text-xs font-semibold text-[#2D6A4F]">Your listing</span>
           </div>
-        ) : isOrg && !org.partnership_formed && (          <div className="px-8 py-6 sticky bottom-0 bg-white space-y-3" style={{ borderTop: "1px solid #F3F4F6" }}>
+        ) : org.partnership_formed ? (
+          <div className="px-8 py-6 sticky bottom-0 bg-white" style={{ borderTop: "1px solid #F3F4F6" }}>
+            <div className="flex items-center gap-2.5 px-4 py-3.5 rounded-xl"
+              style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}>
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-[#1D4ED8]" />
+              <p className="text-xs font-semibold text-[#1D4ED8]">
+                This organisation has formed a partnership and closed this listing.
+              </p>
+            </div>
+          </div>
+        ) : isOrg && (          
+          <div className="px-8 py-6 sticky bottom-0 bg-white space-y-3" style={{ borderTop: "1px solid #F3F4F6" }}>
             {alreadySent ? (
               <div className="flex items-center gap-2 text-sm font-semibold text-[#065F46]">
                 <CheckCircle2 className="w-4 h-4" />Interest expressed — they've been notified
