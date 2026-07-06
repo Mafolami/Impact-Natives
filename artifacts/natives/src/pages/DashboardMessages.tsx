@@ -859,6 +859,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
   const textareaRef                     = useRef<HTMLTextAreaElement>(null);
 
   const isOwner = conversation.initiative_owner_id === currentUserId;
+  const [convStatus, setConvStatus] = useState(conversation.status);
   const [funderClosed, setFunderClosed] = useState(!!conversation.funder_closed_at);
 
   // Listen for funder_closed_at changes in real-time
@@ -874,7 +875,10 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
         const updated = payload.new as any;
         setFunderClosed(!!updated.funder_closed_at);
         if (updated.status === "rejected") setIsRejected(true);
-        if (updated.status === "open") onUpdate?.(conversation.id, { status: "open" });
+        if (updated.status === "open") {
+          setConvStatus("open");
+          onUpdate?.(conversation.id, { status: "open" });
+        }
       })
       .on("postgres_changes", {
         event: "UPDATE",
@@ -1352,7 +1356,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
       )}
 
       {/* Input */}
-      {conversation.status === "pending_acceptance" && isOwner ? (
+      {convStatus === "pending_acceptance" && isOwner ? (
         <div className="pt-4 border-t border-border space-y-2">
           <p className="text-xs text-muted-foreground text-center">
             {conversation.other_user_name} wants to connect. Open the conversation to start chatting, or decline.
@@ -1370,6 +1374,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
                   body: `${conversation.initiative_title} — your message was accepted. You can now chat.`,
                   link: `/dashboard/messages?conversation=${conversation.id}`,
                 });
+                setConvStatus("open");
                 onUpdate?.(conversation.id, { status: "open" });
               }}
               className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-xs font-semibold transition-colors">
@@ -1387,6 +1392,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
                   body: `${conversation.initiative_title} — your partnership interest was not taken forward.`,
                   link: `/dashboard/messages?conversation=${conversation.id}`,
                 });
+                setConvStatus("rejected");
                 onUpdate?.(conversation.id, { status: "rejected" });
               }}
               className="flex-1 h-9 rounded-full border border-red-300 text-red-500 hover:bg-red-50 text-xs font-semibold transition-colors">
@@ -1394,7 +1400,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
             </button>
           </div>
         </div>
-      ) : conversation.status === "pending_acceptance" && !isOwner ? (
+      ) : convStatus === "pending_acceptance" && !isOwner ? (
         <div className="pt-4 border-t border-border">
           <p className="text-xs text-muted-foreground text-center py-2">
             Waiting for {conversation.other_user_name} to open this conversation.
