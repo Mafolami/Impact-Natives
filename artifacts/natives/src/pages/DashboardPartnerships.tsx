@@ -736,11 +736,21 @@ export default function DashboardPartnerships() {
       });
       if (error && !error.message.includes("unique")) throw error;
       const { data: senderOrg } = await supabase.from("organizations").select("organisation_name").eq("id", senderOrgId).single();
-      const { data: convData } = await supabase.from("conversations").insert({
+      await supabase.from("conversations").insert({
         conversation_type: "partnership",
         status: "open",
-        initiative_owner_id: user.id,
-      }).select("id").single();
+        initiative_owner_id: org.user_id,
+      });
+
+      const { data: convData } = await supabase
+        .from("conversations")
+        .select("id")
+        .eq("initiative_owner_id", org.user_id)
+        .eq("conversation_type", "partnership")
+        .eq("status", "open")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
 
       if (convData?.id) {
         const { error: updateErr, data: updateData } = await supabase.from("partnership_connections")

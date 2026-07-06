@@ -841,9 +841,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
   const bottomRef                       = useRef<HTMLDivElement>(null);
   const textareaRef                     = useRef<HTMLTextAreaElement>(null);
 
-  const isOwner = conversation.conversation_type === "partnership"
-    ? conversation.other_user_id !== currentUserId
-    : conversation.initiative_owner_id === currentUserId;
+  const isOwner = conversation.initiative_owner_id === currentUserId;
   const [funderClosed, setFunderClosed] = useState(!!conversation.funder_closed_at);
 
   // Listen for funder_closed_at changes in real-time
