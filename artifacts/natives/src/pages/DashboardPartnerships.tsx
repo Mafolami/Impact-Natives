@@ -743,10 +743,12 @@ export default function DashboardPartnerships() {
       }).select("id").single();
 
       if (convData?.id) {
-        await supabase.from("partnership_connections")
+        const { error: updateErr, data: updateData } = await supabase.from("partnership_connections")
           .update({ conversation_id: convData.id })
           .eq("sender_org_id", senderOrgId)
-          .eq("receiver_org_id", org.id);
+          .eq("receiver_org_id", org.id)
+          .select();
+        console.log("connection update result:", JSON.stringify({ updateErr, updateData, senderOrgId, receiverOrgId: org.id, convId: convData.id }));
 
         await supabase.from("conversation_participants").insert([
           { conversation_id: convData.id, user_id: user.id },
