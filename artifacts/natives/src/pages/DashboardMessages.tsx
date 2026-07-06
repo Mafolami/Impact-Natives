@@ -1400,6 +1400,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
             </button>
           </div>
         </div>
+        
       ) : convStatus === "pending_acceptance" && !isOwner ? (
         <div className="pt-4 border-t border-border">
           <p className="text-xs text-muted-foreground text-center py-2">
