@@ -40,11 +40,13 @@ type ConnectionRow = {
   status: "pending" | "accepted" | "declined" | "formed" | "pending_confirmation";
   partnership_type: string | null;
   partnership_title: string | null;
+  conversation_id: string | null;
   created_at: string;
   updated_at: string;
   sender_org?: OrgSnippet;
   receiver_org?: OrgSnippet;
   sender_profile?: { full_name: string; email: string };
+  opening_message?: string | null;
 };
 
 type OrgSnippet = {
@@ -130,7 +132,11 @@ export function PartnershipTab() {
   const [myListing, setMyListing]     = useState<MyListing | null>(null);
   const [inbound, setInbound]         = useState<ConnectionRow[]>([]);
   const [outbound, setOutbound]       = useState<ConnectionRow[]>([]);
-  const [activeView, setActiveView]   = useState<PartnershipView>("inbound");
+  const [activeView, setActiveView] = useState<PartnershipView>(() => {
+    const p = new URLSearchParams(window.location.search);
+    const v = p.get("view") as PartnershipView;
+    return (["requested", "inbound", "outbound", "confirmed"].includes(v)) ? v : "inbound";
+  });
   const [updating, setUpdating]       = useState<string | null>(null);
   const [formingAll, setFormingAll]   = useState(false);
 
@@ -157,7 +163,7 @@ export function PartnershipTab() {
     setMyListing(myOrg as MyListing);
 
     const [inboundRes, outboundRes] = await Promise.all([
-      supabase.from("partnership_connections").select("*")
+      supabase.from("partnership_connections").select("*, conversation_id")
         .eq("receiver_org_id", myOrg.id)
         .order("fit_score", { ascending: false, nullsFirst: false }),
       supabase.from("partnership_connections").select("*")
@@ -182,10 +188,34 @@ export function PartnershipTab() {
     const orgMap     = new Map((orgsRes.data ?? []).map((o: any) => [o.id, o]));
     const profileMap = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p]));
 
-    setInbound((inboundRes.data ?? []).map((r: any) => ({
+    const inboundWithOrgs = (inboundRes.data ?? []).map((r: any) => ({
       ...r,
       sender_org:     orgMap.get(r.sender_org_id),
       sender_profile: profileMap.get(r.sender_user_id),
+    }));
+
+    const conversationIds = inboundWithOrgs
+      .map((r: any) => r.conversation_id)
+      .filter(Boolean);
+
+    let messageMap = new Map<string, string>();
+    if (conversationIds.length > 0) {
+      const { data: messages } = await supabase
+        .from("messages")
+        .select("conversation_id, body")
+        .in("conversation_id", conversationIds)
+        .order("created_at", { ascending: true });
+
+      (messages ?? []).forEach((m: any) => {
+        if (!messageMap.has(m.conversation_id)) {
+          messageMap.set(m.conversation_id, m.body);
+        }
+      });
+    }
+
+    setInbound(inboundWithOrgs.map((r: any) => ({
+      ...r,
+      opening_message: r.conversation_id ? messageMap.get(r.conversation_id) ?? null : null,
     })));
 
     setOutbound((outboundRes.data ?? []).map((r: any) => ({
@@ -522,6 +552,19 @@ export function PartnershipTab() {
                       <p className="text-xs text-muted-foreground leading-relaxed border-l-2 border-[#2D6A4F]/30 pl-3">
                         {conn.ai_rationale}
                       </p>
+                    )}
+
+                    {/* Opening message */}
+                    {conn.opening_message && (
+                      <div className="rounded-xl px-4 py-3 space-y-1.5"
+                        style={{ background: "#f9fafb", border: "1px solid #e5e7eb" }}>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Opening message
+                        </p>
+                        <p className="text-xs text-foreground leading-relaxed">
+                          {conn.opening_message}
+                        </p>
+                      </div>
                     )}
 
                     {/* Needs/Offers */}
