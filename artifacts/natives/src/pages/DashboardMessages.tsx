@@ -1144,7 +1144,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
     setConfirmingPartnership(true);
 
     await supabase.from("partnership_connections")
-      .update({ status: "formed" })
+      .update({ status: "formed", updated_at: new Date().toISOString() })
       .eq("id", pendingConfirmation.id);
 
     await supabase.from("conversations")
@@ -1156,7 +1156,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
       type: "partnership_confirmed",
       title: "Partnership confirmed",
       body: `${conversation.other_user_name} confirmed the partnership as ${pendingConfirmation.partnership_type}.`,
-      link: "/dashboard/portfolio?tab=partnerships",
+      link: "/dashboard/portfolio?tab=partnerships&view=confirmed",
     });
 
     setPartnershipResolved("confirmed");
@@ -1400,7 +1400,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
             </button>
           </div>
         </div>
-        
+
       ) : convStatus === "pending_acceptance" && !isOwner ? (
         <div className="pt-4 border-t border-border">
           <p className="text-xs text-muted-foreground text-center py-2">
