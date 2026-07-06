@@ -743,6 +743,11 @@ export default function DashboardPartnerships() {
       }).select("id").single();
 
       if (convData?.id) {
+        await supabase.from("partnership_connections")
+          .update({ conversation_id: convData.id })
+          .eq("sender_org_id", senderOrgId)
+          .eq("receiver_org_id", org.id);
+
         await supabase.from("conversation_participants").insert([
           { conversation_id: convData.id, user_id: user.id },
           { conversation_id: convData.id, user_id: org.user_id },
@@ -756,7 +761,7 @@ export default function DashboardPartnerships() {
           user_id: org.user_id, type: "partnership_interest",
           title: "New partnership interest",
           body: `${senderOrg?.organisation_name ?? "An organisation"} expressed interest in partnering with you.`,
-          link: "/dashboard/initiatives?tab=partnerships",
+          link: "/dashboard/initiatives?tab=partnerships&view=inbound",
           metadata: { sender_org_id: senderOrgId, receiver_org_id: org.id, conversation_id: convData.id },
         });
       }
