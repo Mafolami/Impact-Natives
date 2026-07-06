@@ -619,15 +619,21 @@ export default function DashboardMessages() {
   );
 }
 
-function PartnershipConfirmButton({ conversation, currentUserId }: {
+function PartnershipConfirmButton({ conversation, currentUserId, partnershipResolved }: {
   conversation: Conversation;
   currentUserId: string;
+  partnershipResolved: "confirmed" | "declined" | null;
 }) {
   const [open, setOpen]             = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [partnershipType, setType]  = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone]             = useState<"accepted" | "rejected" | "pending_confirmation" | null>(null);
+
+  useEffect(() => {
+    if (partnershipResolved === "confirmed") setDone("accepted");
+    if (partnershipResolved === "declined") setDone("rejected");
+  }, [partnershipResolved]);
 
   useEffect(() => {
     // Check current connection status on mount
@@ -683,12 +689,7 @@ function PartnershipConfirmButton({ conversation, currentUserId }: {
       link: `/dashboard/messages?conversation=${conversation.id}`,
     });
 
-    // Post a message in the thread
-    await supabase.from("messages").insert({
-      conversation_id: conversation.id,
-      sender_id: currentUserId,
-      body: `I'd like to confirm our partnership as: ${partnershipType}. Please confirm or decline below.`,
-    });
+    // Message removed — confirmation handled by real-time popup
 
     setDone("pending_confirmation");
     setSubmitting(false);
@@ -1182,8 +1183,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
         </div>
 
         {isOwner && conversation.conversation_type === "partnership" && (
-          <PartnershipConfirmButton conversation={conversation} currentUserId={currentUserId} />
-        )}
+          <PartnershipConfirmButton conversation={conversation} currentUserId={currentUserId} partnershipResolved={partnershipResolved} />        )}
         {isOwner && conversation.conversation_type !== "question" && conversation.conversation_type !== "partnership" && (
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
             {confirmedRole ? (
