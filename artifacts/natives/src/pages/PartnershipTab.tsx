@@ -69,10 +69,11 @@ const PARTNERSHIP_TYPES = [
 ];
 
 const STATUS_STYLES: Record<string, { label: string; bg: string; color: string }> = {
-  pending:  { label: "Pending",            bg: "#fffbeb", color: "#b45309" },
-  accepted: { label: "Accepted",           bg: "#eaf5ee", color: "#2D6A4F" },
-  declined: { label: "Declined",           bg: "#fef2f2", color: "#ef4444" },
-  formed:   { label: "Partnership formed", bg: "#f0f9ff", color: "#0369a1" },
+  pending:              { label: "Pending",               bg: "#fffbeb", color: "#b45309" },
+  accepted:             { label: "Accepted",              bg: "#eaf5ee", color: "#2D6A4F" },
+  declined:             { label: "Declined",              bg: "#fef2f2", color: "#ef4444" },
+  formed:               { label: "Partnership formed",    bg: "#f0f9ff", color: "#0369a1" },
+  pending_confirmation: { label: "Awaiting confirmation", bg: "#fdf5f2", color: "#C45C26" },
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
