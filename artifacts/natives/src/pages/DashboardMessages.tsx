@@ -857,14 +857,15 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
       }, payload => {
         const updated = payload.new as any;
         setFunderClosed(!!updated.funder_closed_at);
+        if (updated.status === "rejected") setIsRejected(true);
       })
       .on("postgres_changes", {
         event: "UPDATE",
         schema: "public",
         table: "partnership_connections",
+        filter: `sender_user_id=eq.${currentUserId}`,
       }, payload => {
         const updated = payload.new as any;
-        console.log("partnership_connections realtime:", JSON.stringify(updated));
         if (updated.status === "pending_confirmation" && updated.sender_user_id === currentUserId) {
           setPendingConfirmation({ id: updated.id, partnership_type: updated.partnership_type });
         }
@@ -1069,17 +1070,53 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
   const [pendingConfirmation, setPendingConfirmation] = useState<{ id: string; partnership_type: string } | null>(null);
   const [confirmingPartnership, setConfirmingPartnership] = useState(false);
   const [partnershipResolved, setPartnershipResolved] = useState<"confirmed" | "declined" | null>(null);
+  const [myOrgId, setMyOrgId] = useState<string | null>(null);
 
   useEffect(() => {
     if (conversation.conversation_type !== "partnership") return;
-    // Check if there's a pending confirmation for the current user
+
+    // Fetch own org ID for lister-side listener
+    supabase.from("organizations").select("id").eq("user_id", currentUserId).maybeSingle()
+      .then(({ data }) => { if (data) setMyOrgId(data.id); });
+
+    // Check existing pending confirmation for expresser
     supabase.from("partnership_connections")
       .select("id, partnership_type")
       .eq("status", "pending_confirmation")
       .eq("sender_user_id", currentUserId)
       .maybeSingle()
       .then(({ data }) => { if (data) setPendingConfirmation(data); });
+
+    // Check if already resolved
+    supabase.from("partnership_connections")
+      .select("status")
+      .or(`sender_user_id.eq.${currentUserId},receiver_org_id.eq.${myOrgId}`)
+      .in("status", ["formed", "declined"])
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.status === "formed") setPartnershipResolved("confirmed");
+        if (data?.status === "declined") setPartnershipResolved("declined");
+      });
   }, [conversation.id, currentUserId]);
+
+  // Lister-side real-time listener — fires when expresser confirms or declines
+  useEffect(() => {
+    if (!myOrgId || conversation.conversation_type !== "partnership") return;
+    const channel = supabase
+      .channel(`partnership-lister-${conversation.id}`)
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "partnership_connections",
+        filter: `receiver_org_id=eq.${myOrgId}`,
+      }, payload => {
+        const updated = payload.new as any;
+        if (updated.status === "formed") setPartnershipResolved("confirmed");
+        if (updated.status === "declined") setPartnershipResolved("declined");
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [myOrgId, conversation.id]);
 
   async function confirmPartnershipFromOtherSide() {
     if (!pendingConfirmation || confirmingPartnership) return;
