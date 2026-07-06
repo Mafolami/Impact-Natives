@@ -858,6 +858,20 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
         const updated = payload.new as any;
         setFunderClosed(!!updated.funder_closed_at);
       })
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "partnership_connections",
+      }, payload => {
+        const updated = payload.new as any;
+        if (updated.status === "pending_confirmation" && updated.sender_user_id === currentUserId) {
+          setPendingConfirmation({ id: updated.id, partnership_type: updated.partnership_type });
+        }
+        if (updated.status === "formed" || updated.status === "declined") {
+          setPendingConfirmation(null);
+          setPartnershipResolved(updated.status === "formed" ? "confirmed" : "declined");
+        }
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [conversation.id]);
