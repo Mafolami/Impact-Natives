@@ -217,7 +217,7 @@ export default function DashboardMessages() {
         .from("conversations")
         .select("id, initiative_id, status, initiative_owner_id, conversation_type, funder_closed_at")
         .in("id", myConvoIds)
-        .in("status", ["open", "rejected"])
+        .in("status", ["open", "rejected", "pending_acceptance"])
         .or("initiative_id.not.is.null,conversation_type.eq.partnership");
 
       if (convoData && convoData.length > 0) {
@@ -283,7 +283,7 @@ export default function DashboardMessages() {
             last_message:        lastMsg?.body ?? "",
             last_message_at:     lastMsg?.created_at ?? c.created_at ?? "",
             unread:              lastMsg && lastMsg.sender_id !== user.id && !lastMsg.read_at,
-            status:              c.status ?? "open",
+            status:              c.status ?? "pending_acceptance",
             conversation_type:   c.conversation_type ?? "eoi",
             funder_closed_at:    c.funder_closed_at ?? null,
           };
@@ -874,6 +874,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
         const updated = payload.new as any;
         setFunderClosed(!!updated.funder_closed_at);
         if (updated.status === "rejected") setIsRejected(true);
+        if (updated.status === "open") onUpdate?.(conversation.id, { status: "open" });
       })
       .on("postgres_changes", {
         event: "UPDATE",
@@ -1351,7 +1352,55 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
       )}
 
       {/* Input */}
-      {isRejected ? (
+      {conversation.status === "pending_acceptance" && isOwner ? (
+        <div className="pt-4 border-t border-border space-y-2">
+          <p className="text-xs text-muted-foreground text-center">
+            {conversation.other_user_name} wants to connect. Open the conversation to start chatting, or decline.
+          </p>
+          <div className="flex gap-2">
+            <button type="button"
+              onClick={async () => {
+                await supabase.from("conversations")
+                  .update({ status: "open" })
+                  .eq("id", conversation.id);
+                await supabase.from("notifications").insert({
+                  user_id: conversation.other_user_id,
+                  type: "partnership_accepted",
+                  title: "Conversation opened",
+                  body: `${conversation.initiative_title} — your message was accepted. You can now chat.`,
+                  link: `/dashboard/messages?conversation=${conversation.id}`,
+                });
+                onUpdate?.(conversation.id, { status: "open" });
+              }}
+              className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-xs font-semibold transition-colors">
+              Open conversation
+            </button>
+            <button type="button"
+              onClick={async () => {
+                await supabase.from("conversations")
+                  .update({ status: "rejected" })
+                  .eq("id", conversation.id);
+                await supabase.from("notifications").insert({
+                  user_id: conversation.other_user_id,
+                  type: "partnership_declined",
+                  title: "Interest not taken forward",
+                  body: `${conversation.initiative_title} — your partnership interest was not taken forward.`,
+                  link: `/dashboard/messages?conversation=${conversation.id}`,
+                });
+                onUpdate?.(conversation.id, { status: "rejected" });
+              }}
+              className="flex-1 h-9 rounded-full border border-red-300 text-red-500 hover:bg-red-50 text-xs font-semibold transition-colors">
+              Decline
+            </button>
+          </div>
+        </div>
+      ) : conversation.status === "pending_acceptance" && !isOwner ? (
+        <div className="pt-4 border-t border-border">
+          <p className="text-xs text-muted-foreground text-center py-2">
+            Waiting for {conversation.initiative_title} to open this conversation.
+          </p>
+        </div>
+      ) : isRejected ? (
         <div className="pt-4 border-t border-border">
           <p className="text-xs text-muted-foreground text-center py-2">This conversation has been closed.</p>
         </div>

@@ -766,7 +766,7 @@ export default function DashboardPartnerships() {
           user_id: org.user_id, type: "partnership_interest",
           title: "New partnership interest",
           body: `${senderOrg?.organisation_name ?? "An organisation"} expressed interest in partnering with you.`,
-          link: "/dashboard/portfolio?tab=partnerships&view=inbound",
+          link: `/dashboard/messages?conversation=${convData.id}`,
           metadata: { sender_org_id: senderOrgId, receiver_org_id: org.id, conversation_id: convData.id },
         });
       }
