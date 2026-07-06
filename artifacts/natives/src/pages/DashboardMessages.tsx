@@ -864,6 +864,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
         table: "partnership_connections",
       }, payload => {
         const updated = payload.new as any;
+        console.log("partnership_connections realtime:", JSON.stringify(updated));
         if (updated.status === "pending_confirmation" && updated.sender_user_id === currentUserId) {
           setPendingConfirmation({ id: updated.id, partnership_type: updated.partnership_type });
         }
