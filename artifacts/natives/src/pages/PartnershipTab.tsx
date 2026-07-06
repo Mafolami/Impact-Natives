@@ -509,9 +509,8 @@ export function PartnershipTab() {
                 const profile = conn.sender_profile;
                 const s       = STATUS_STYLES[conn.status];
                 const countries = normalizeArr(org?.country);
-                const isAccepted = conn.status === "accepted";
+                const isAccepted = conn.status === "accepted" || conn.status === "formed";
                 const isPending  = conn.status === "pending";
-
                 return (
                   <div key={conn.id}
                     className="rounded-xl border border-border bg-card px-5 py-4 space-y-3">
@@ -592,21 +591,10 @@ export function PartnershipTab() {
                       </div>
                     ) : null}
 
-                    {/* Actions */}
                     {isPending && (
-                      <div className="flex gap-2 pt-1">
-                        <button type="button"
-                          onClick={() => updateStatus(conn, "accepted")}
-                          disabled={updating === conn.id}
-                          className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-xs font-medium disabled:opacity-40 transition-colors">
-                          {updating === conn.id ? "..." : "Accept → open conversation"}
-                        </button>
-                        <button type="button"
-                          onClick={() => updateStatus(conn, "declined")}
-                          disabled={updating === conn.id}
-                          className="h-9 px-4 rounded-full border border-border text-xs text-muted-foreground hover:text-red-500 hover:border-red-300 disabled:opacity-40 transition-colors">
-                          Decline
-                        </button>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                        Awaiting response in Messages
                       </div>
                     )}
 
