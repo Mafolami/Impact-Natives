@@ -560,19 +560,6 @@ export function PartnershipTab() {
                       </p>
                     )}
 
-                    {/* Opening message */}
-                    {conn.opening_message && (
-                      <div className="rounded-xl px-4 py-3 space-y-1.5"
-                        style={{ background: "#f9fafb", border: "1px solid #e5e7eb" }}>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Opening message
-                        </p>
-                        <p className="text-xs text-foreground leading-relaxed">
-                          {conn.opening_message}
-                        </p>
-                      </div>
-                    )}
-
                     {/* Needs/Offers */}
                     {(org?.needs?.length || org?.offers?.length) ? (
                       <div className="flex gap-4 text-xs">
