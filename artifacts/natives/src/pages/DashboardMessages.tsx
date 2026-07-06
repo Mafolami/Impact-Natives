@@ -255,14 +255,29 @@ export default function DashboardMessages() {
           if (p.user_id !== user.id) participantMap.set(p.conversation_id, p.user_id);
         });
 
+        // Fetch partnership titles for partnership conversations
+        const partnershipOwnerIds = convoData
+          .filter((c: any) => c.conversation_type === "partnership" && c.initiative_owner_id)
+          .map((c: any) => c.initiative_owner_id);
+
+        const partnershipTitleMap = new Map<string, string>();
+        if (partnershipOwnerIds.length > 0) {
+          const { data: partnerOrgs } = await supabase
+            .from("organizations")
+            .select("user_id, partnership_title")
+            .in("user_id", [...new Set(partnershipOwnerIds)]);
+          (partnerOrgs ?? []).forEach((o: any) => {
+            if (o.partnership_title) partnershipTitleMap.set(o.user_id, o.partnership_title);
+          });
+        }
+
         const convos = convoData.map((c: any) => {
           const otherId = participantMap.get(c.id) ?? "";
           const lastMsg = lastMsgMap.get(c.id);
           return {
             id:                  c.id,
             initiative_id:       c.initiative_id,
-            initiative_title:    initTitleMap.get(c.initiative_id) ?? (c.conversation_type === "partnership" ? "Partnership conversation" : "Initiative"),
-            initiative_owner_id: c.initiative_owner_id ?? null,
+            initiative_title:    initTitleMap.get(c.initiative_id) ?? (c.conversation_type === "partnership" ? (partnershipTitleMap.get(c.initiative_owner_id) ?? "Partnership conversation") : "Initiative"),            initiative_owner_id: c.initiative_owner_id ?? null,
             other_user_id:       otherId,
             other_user_name:     otherProfileMap.get(otherId) ?? "Unknown",
             last_message:        lastMsg?.body ?? "",
