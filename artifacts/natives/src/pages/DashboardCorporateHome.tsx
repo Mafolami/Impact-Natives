@@ -228,7 +228,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
             label: "ESG/CSR adoptions",
             value: esgAdoptions,
             sub: "confirmed",
-            onClick: () => navigate("/dashboard/initiatives?tab=confirmed"),
+            onClick: () => navigate("/dashboard/portfolio?tab=confirmed"),
           },
         ].map(m => (
           <button key={m.label} type="button" onClick={m.onClick}

@@ -496,7 +496,7 @@ export default function DashboardMessages() {
                 <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   Conversations
                 </h3>
-                <Link href="/dashboard/initiatives?tab=partners"
+                <Link href="/dashboard/portfolio?tab=partners"
                   className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-[#2D6A4F] hover:underline underline-offset-2">
                   Confirmed partnerships
                   <ExternalLink className="w-2.5 h-2.5" />
@@ -1020,7 +1020,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
       type:    "partner_confirmed",
       title:   "You've been confirmed as a partner",
       body:    `You were confirmed as ${partnershipLabel(confirmRole)} Partner on "${iniData?.title ?? "an initiative"}".`,
-      link:    "/dashboard/initiatives?tab=partners",
+      link:    "/dashboard/portfolio?tab=partners",
     });
 
     await supabase.from("conversations").update({ status: "confirmed" }).eq("id", conversation.id);
@@ -1082,7 +1082,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
       type: "partnership_confirmed",
       title: "Partnership confirmed",
       body: `${conversation.other_user_name} confirmed the partnership as ${pendingConfirmation.partnership_type}.`,
-      link: "/dashboard/initiatives?tab=partnerships",
+      link: "/dashboard/portfolio?tab=partnerships",
     });
 
     setPartnershipResolved("confirmed");

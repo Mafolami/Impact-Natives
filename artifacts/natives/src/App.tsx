@@ -39,7 +39,7 @@ import ResetPassword from "@/pages/ResetPassword";
 import InitiativeDetail from "@/pages/InitiativeDetail";
 import DashboardHome from "@/pages/DashboardHome";
 import DashboardPartnerships from "@/pages/DashboardPartnerships";
-import DashboardInitiatives from "@/pages/DashboardInitiatives";
+import DashboardPortfolio from "@/pages/DashboardPortfolio";
 import DashboardLabs from "@/pages/DashboardLabs";
 import DashboardMarketplace from "@/pages/DashboardMarketplace";
 import DashboardMessages from "@/pages/DashboardMessages";
@@ -131,11 +131,11 @@ if (isAdmin) {
           <Route path="/dashboard/partnerships">
             <DashboardLayout><DashboardPartnerships /></DashboardLayout>
           </Route>
-          <Route path="/dashboard/initiatives/:id">
-            <DashboardLayout><DashboardInitiatives /></DashboardLayout>
+          <Route path="/dashboard/portfolio/:id">
+            <DashboardLayout><DashboardPortfolio /></DashboardLayout>
           </Route>
-          <Route path="/dashboard/initiatives">
-            <DashboardLayout><DashboardInitiatives /></DashboardLayout>
+          <Route path="/dashboard/portfolio">
+            <DashboardLayout><DashboardPortfolio /></DashboardLayout>
           </Route>
           <Route path="/dashboard/labs">
             <DashboardLayout><DashboardLabs /></DashboardLayout>

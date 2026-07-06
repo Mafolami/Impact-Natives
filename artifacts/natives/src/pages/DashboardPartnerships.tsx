@@ -721,6 +721,7 @@ export default function DashboardPartnerships() {
 
   async function expressInterest(org: OrgRow, e: React.MouseEvent) {
     e.stopPropagation();
+    console.log("expressInterest called with org.user_id:", org.user_id, "org.organisation_name:", org.organisation_name);
     if (!user || sentInterests.has(org.id) || org.partnership_formed) return;
     let senderOrgId = currentUserOrgId;
     if (!senderOrgId) {
@@ -765,7 +766,7 @@ export default function DashboardPartnerships() {
           user_id: org.user_id, type: "partnership_interest",
           title: "New partnership interest",
           body: `${senderOrg?.organisation_name ?? "An organisation"} expressed interest in partnering with you.`,
-          link: "/dashboard/initiatives?tab=partnerships&view=inbound",
+          link: "/dashboard/portfolio?tab=partnerships&view=inbound",
           metadata: { sender_org_id: senderOrgId, receiver_org_id: org.id, conversation_id: convData.id },
         });
       }

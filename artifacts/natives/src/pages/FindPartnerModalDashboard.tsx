@@ -434,7 +434,7 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
         await supabase.from("messages").insert({ conversation_id: convData.id, sender_id: user.id, body: `Hi ${match.org.organisation_name}, I'm ${orgProfile.organisation_name} and I came across your listing on Impact Natives. ${match.rationale}\n\nWould you be open to a conversation?` });
       }
       if (receiverProfile?.user_id) {
-        await supabase.from("notifications").insert({ user_id: receiverProfile.user_id, type: "partnership_invite", title: "New partnership invitation", body: `${orgProfile.organisation_name} wants to explore a partnership with you.`, link: "/dashboard/initiatives?tab=partnerships", metadata: { sender_org_id: orgProfile.id, sender_org_name: orgProfile.organisation_name, fit_score: match.fit_score, key_synergy: match.key_synergy, conversation_id: convData?.id } });
+        await supabase.from("notifications").insert({ user_id: receiverProfile.user_id, type: "partnership_invite", title: "New partnership invitation", body: `${orgProfile.organisation_name} wants to explore a partnership with you.`, link: "/dashboard/portfolio?tab=partnerships", metadata: { sender_org_id: orgProfile.id, sender_org_name: orgProfile.organisation_name, fit_score: match.fit_score, key_synergy: match.key_synergy, conversation_id: convData?.id } });
       }
       setSentInvites(prev => new Set(prev).add(match.org_id));
     } catch (e) { console.error("Send invite error:", e); }
