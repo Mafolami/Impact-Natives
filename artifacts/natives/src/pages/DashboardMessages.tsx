@@ -374,7 +374,7 @@ export default function DashboardMessages() {
         onBack={() => { setActiveConvo(null); loadAll(); }}
         onUpdate={(id, changes) => {
           setConversations(prev => prev.map(c => c.id === id ? { ...c, ...changes } : c));
-        }}
+          setActiveConvo(prev => prev?.id === id ? { ...prev, ...changes } : prev);        }}
         isFunder={["philanthropic_foundation", "venture_capital"].includes(profile?.org_type ?? "")}
       />
     );
@@ -1397,7 +1397,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
       ) : conversation.status === "pending_acceptance" && !isOwner ? (
         <div className="pt-4 border-t border-border">
           <p className="text-xs text-muted-foreground text-center py-2">
-            Waiting for {conversation.initiative_title} to open this conversation.
+            Waiting for {conversation.other_user_name} to open this conversation.
           </p>
         </div>
       ) : isRejected ? (
