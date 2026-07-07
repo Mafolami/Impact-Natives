@@ -909,11 +909,20 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
   }
 
   async function reopenConversation() {
-    await supabase.from("conversations")
-      .update({ funder_closed_at: null })
-      .eq("id", conversation.id);
-    setFunderClosed(false);
-    onUpdate?.(conversation.id, { funder_closed_at: null });
+    if (conversation.conversation_type === "partnership") {
+      await supabase.from("conversations")
+        .update({ status: "open" })
+        .eq("id", conversation.id);
+      setIsRejected(false);
+      setConvStatus("open");
+      onUpdate?.(conversation.id, { status: "open" });
+    } else {
+      await supabase.from("conversations")
+        .update({ funder_closed_at: null })
+        .eq("id", conversation.id);
+      setFunderClosed(false);
+      onUpdate?.(conversation.id, { funder_closed_at: null });
+    }
   }
 
   useEffect(() => {
@@ -1206,7 +1215,16 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
         </div>
 
         {isOwner && conversation.conversation_type === "partnership" && (
-          <PartnershipConfirmButton conversation={conversation} currentUserId={currentUserId} partnershipResolved={partnershipResolved} />        )}
+          <>
+            <PartnershipConfirmButton conversation={conversation} currentUserId={currentUserId} partnershipResolved={partnershipResolved} />
+            {isRejected && (
+              <button type="button" onClick={reopenConversation}
+                className="text-xs px-3 py-1.5 rounded-full border border-[#2D6A4F]/30 text-[#2D6A4F] hover:bg-[#2D6A4F]/5 transition-colors shrink-0">
+                Reopen
+              </button>
+            )}
+          </>
+        )}
         {isOwner && conversation.conversation_type !== "question" && conversation.conversation_type !== "partnership" && (
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
             {confirmedRole ? (
