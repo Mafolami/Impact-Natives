@@ -952,6 +952,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
   }, [messages]);
 
   async function checkIfConfirmed() {
+    if (!conversation.initiative_id) return;
     const { data } = await supabase
       .from("initiative_requests").select("confirmed_partners")
       .eq("id", conversation.initiative_id).single();
@@ -1029,6 +1030,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
     const displayName = otherProfile?.user_type === "organisation" && otherProfile?.org_name
       ? otherProfile.org_name : otherProfile?.full_name ?? conversation.other_user_name;
 
+    if (!conversation.initiative_id) return;
     const { data: iniData } = await supabase
       .from("initiative_requests").select("confirmed_partners, title").eq("id", conversation.initiative_id).single();
     const existing = (iniData?.confirmed_partners as any[]) ?? [];
@@ -1084,6 +1086,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
 
   const [initiativePartnerships, setInitiativePartnerships] = useState<string[]>([]);
   useEffect(() => {
+    if (!conversation.initiative_id) return;
     supabase.from("initiative_requests").select("partnerships").eq("id", conversation.initiative_id).single()
       .then(({ data }) => { if (data?.partnerships) setInitiativePartnerships([...data.partnerships, "other"]); });
   }, [conversation.initiative_id]);
