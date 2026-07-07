@@ -915,6 +915,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
         .eq("id", conversation.id);
       setIsRejected(false);
       setConvStatus("open");
+      setPartnershipResolved(null);
       onUpdate?.(conversation.id, { status: "open" });
     } else {
       await supabase.from("conversations")
