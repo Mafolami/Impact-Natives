@@ -1399,13 +1399,12 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
                 await supabase.from("conversations")
                   .update({ status: "rejected" })
                   .eq("id", conversation.id);
-                await supabase.from("notifications").insert({
-                  user_id: conversation.other_user_id,
-                  type: "partnership_declined",
-                  title: "Interest not taken forward",
-                  body: `${conversation.initiative_title} — your partnership interest was not taken forward.`,
-                  link: `/dashboard/messages?conversation=${conversation.id}`,
-                });
+                if (myOrgId) {
+                  await supabase.from("partnership_connections")
+                    .update({ status: "declined", updated_at: new Date().toISOString() })
+                    .eq("receiver_org_id", myOrgId)
+                    .eq("sender_user_id", conversation.other_user_id);
+                }
                 setConvStatus("rejected");
                 onUpdate?.(conversation.id, { status: "rejected" });
               }}
