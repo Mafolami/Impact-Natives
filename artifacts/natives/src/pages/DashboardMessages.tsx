@@ -1215,15 +1215,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
         </div>
 
         {isOwner && conversation.conversation_type === "partnership" && (
-          <>
-            <PartnershipConfirmButton conversation={conversation} currentUserId={currentUserId} partnershipResolved={partnershipResolved} />
-            {isRejected && (
-              <button type="button" onClick={reopenConversation}
-                className="text-xs px-3 py-1.5 rounded-full border border-[#2D6A4F]/30 text-[#2D6A4F] hover:bg-[#2D6A4F]/5 transition-colors shrink-0">
-                Reopen
-              </button>
-            )}
-          </>
+          <PartnershipConfirmButton conversation={conversation} currentUserId={currentUserId} partnershipResolved={partnershipResolved} />
         )}
         {isOwner && conversation.conversation_type !== "question" && conversation.conversation_type !== "partnership" && (
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
@@ -1429,8 +1421,14 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
           </p>
         </div>
       ) : isRejected ? (
-        <div className="pt-4 border-t border-border">
+        <div className="pt-4 border-t border-border space-y-2">
           <p className="text-xs text-muted-foreground text-center py-2">This conversation has been closed.</p>
+          {isOwner && conversation.conversation_type === "partnership" && (
+            <button type="button" onClick={reopenConversation}
+              className="w-full h-9 rounded-full border border-[#2D6A4F]/30 text-[#2D6A4F] text-xs font-semibold hover:bg-[#2D6A4F]/5 transition-colors">
+              Reopen conversation
+            </button>
+          )}
         </div>
       ) : funderClosed ? (
         <div className="pt-4 border-t border-border flex items-center justify-between gap-3">
