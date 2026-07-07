@@ -46,7 +46,7 @@ interface Conversation {
   last_message_at: string;
   unread: boolean;
   status: string;
-  partnerStatus: "confirmed" | "active" | "closed";
+  partnerStatus: "confirmed" | "active" | "closed" | "pending";
   conversation_type?: string | null;
   funder_closed_at?: string | null;
 }
@@ -291,7 +291,7 @@ export default function DashboardMessages() {
 
         const baseConvos: Conversation[] = convos.map(c => ({
           ...c,
-          partnerStatus: (c.status === "rejected" || c.status === "closed") ? "closed" : "active",
+          partnerStatus: (c.status === "rejected" || c.status === "closed") ? "closed" : c.status === "pending_acceptance" ? "pending" : "active",
         } as Conversation));
 
         baseConvos.sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
@@ -547,6 +547,10 @@ export default function DashboardMessages() {
                         {convo.partnerStatus === "active" && (
                           <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
                             style={{ background: "#fffbeb", color: "#f59e0b" }}>Active</span>
+                        )}
+                        {convo.partnerStatus === "pending" && (
+                          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                            style={{ background: "#f3f4f6", color: "#6b7280" }}>Pending</span>
                         )}
                       </div>
                       <p className={`text-xs leading-relaxed ${convo.unread ? "text-foreground font-medium" : "text-muted-foreground"}`}>
