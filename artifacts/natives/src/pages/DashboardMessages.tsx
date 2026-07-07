@@ -1412,12 +1412,6 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
                 await supabase.from("conversations")
                   .update({ status: "rejected" })
                   .eq("id", conversation.id);
-                if (myOrgId) {
-                  await supabase.from("partnership_connections")
-                    .update({ status: "declined", updated_at: new Date().toISOString() })
-                    .eq("receiver_org_id", myOrgId)
-                    .eq("sender_user_id", conversation.other_user_id);
-                }
                 setConvStatus("rejected");
                 onUpdate?.(conversation.id, { status: "rejected" });
               }}
