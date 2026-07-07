@@ -373,7 +373,16 @@ export default function DashboardMessages() {
         currentUserId={user!.id}
         onBack={() => { setActiveConvo(null); loadAll(); }}
         onUpdate={(id, changes) => {
-          setConversations(prev => prev.map(c => c.id === id ? { ...c, ...changes } : c));
+          setConversations(prev => prev.map(c => {
+            if (c.id !== id) return c;
+            const updated = { ...c, ...changes };
+            if (changes.status) {
+              updated.partnerStatus = (updated.status === "rejected" || updated.status === "closed") ? "closed"
+                : updated.status === "pending_acceptance" ? "pending"
+                : "active";
+            }
+            return updated;
+          }));
           setActiveConvo(prev => prev?.id === id ? { ...prev, ...changes } : prev);        }}
         isFunder={["philanthropic_foundation", "venture_capital"].includes(profile?.org_type ?? "")}
       />
