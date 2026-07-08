@@ -13,6 +13,8 @@ interface NotificationPrefs {
   eoi_declined: boolean;
   partner_confirmed: boolean;
   new_message: boolean;
+  weekly_sector_match: boolean;
+  partner_match: boolean;
 }
 
 const NOTIFICATION_LABELS: { key: keyof NotificationPrefs; label: string; sub: string }[] = [
@@ -21,6 +23,8 @@ const NOTIFICATION_LABELS: { key: keyof NotificationPrefs; label: string; sub: s
   { key: "eoi_declined",      label: "EOI declined",               sub: "Your expression of interest is not taken forward" },
   { key: "partner_confirmed", label: "Partner confirmed",          sub: "You are confirmed as a partner on an initiative" },
   { key: "new_message",       label: "New message",                sub: "Someone sends you a message in a conversation" },
+  { key: "weekly_sector_match",  label: "Weekly sector matches",      sub: "New initiatives and partnership listings in your sectors every Monday" },
+  { key: "partner_match",        label: "Partner match suggestions",  sub: "Organisations open to partnership that match your sectors" },
 ];
 
 export default function DashboardSettings() {
@@ -75,6 +79,7 @@ export default function DashboardSettings() {
   const [notifPrefs, setNotifPrefs]     = useState<NotificationPrefs>({
     new_eoi: true, eoi_accepted: true, eoi_declined: true,
     partner_confirmed: true, new_message: true,
+    weekly_sector_match: true, partner_match: true,
   });
   const [notifSaving, setNotifSaving]   = useState(false);
   const [notifSaved, setNotifSaved]     = useState(false);

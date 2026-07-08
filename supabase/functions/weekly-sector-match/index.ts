@@ -145,7 +145,8 @@ Deno.serve(async (req: Request) => {
   try {
     // Get all active users who have sectors and feed_visibility != 'none'
     const profiles = await supabaseFetch(
-      "profiles?select=id,full_name,email,sectors&feed_visibility=neq.none&onboarding_completed=eq.true&sectors=not.is.null",
+      // REPLACE
+      "profiles?select=id,full_name,email,sectors,org_type,notification_preferences&feed_visibility=neq.none&onboarding_completed=eq.true&sectors=not.is.null",
     );
     // Fetch org IDs for all eligible users (needed for partnership exclusion)
     const userIds = Array.isArray(profiles) ? profiles.map((p: any) => p.id) : [];
@@ -238,9 +239,10 @@ Deno.serve(async (req: Request) => {
           })
         : [];
       const partnerListingNames = partnerMatches.slice(0, 3).map((o: any) => o.organisation_name);
+      const weeklyOptIn = profile.notification_preferences?.weekly_sector_match !== false;
+      if (!weeklyOptIn) continue;
       // Generate AI-personalised copy
       const body = await generatePersonalisedCopy(firstName, userSectors, matches.length, sampleTitles);
-
       // Insert notification
       await supabaseFetch("notifications", {
         method: "POST",
@@ -318,6 +320,8 @@ Deno.serve(async (req: Request) => {
         return orgSectors.some((s: string) => userSectors.includes(s));
       });
       if (matched.length === 0) continue;
+      const partnerMatchOptIn = profile.notification_preferences?.partner_match !== false;
+      if (!partnerMatchOptIn) continue;
       const topOrg = matched[0];
       const extra = matched.length > 1 ? ` and ${matched.length - 1} other${matched.length > 2 ? "s" : ""}` : "";
       const overlapSector = userSectors.find((s) => {
