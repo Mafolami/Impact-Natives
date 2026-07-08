@@ -51,6 +51,7 @@ import DashboardFeed from "@/pages/DashboardFeed";
 import DashboardStrategy from "@/pages/DashboardStrategy";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import VerificationStandardPage from "@/pages/VerificationStandardPage";
+import UnsubscribePage from "@/pages/UnsubscribePage";
 
 function AdminGuard({ children }: { children: React.ReactNode }) {
   const { user, profile, loading } = useAuth();
@@ -227,6 +228,7 @@ if (isAdmin) {
           <Route path="/initiatives/:id" component={InitiativeDetail} />
           <Route path="/test-supabase" component={SupabaseTest} />
           <Route path="/contact" component={ContactPage} />
+          <Route path="/unsubscribe" component={UnsubscribePage} />
           <Route path="/verification-standard" component={VerificationStandardPage} />
           <Route component={NotFound} />
         </Switch>

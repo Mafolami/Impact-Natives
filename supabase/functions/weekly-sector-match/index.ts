@@ -55,7 +55,7 @@ Return ONLY the message text.`;
   return data.choices?.[0]?.message?.content?.trim() ?? `${matchCount} new initiative${matchCount !== 1 ? "s" : ""} in your sectors this week.`;
 }
 
-function buildEmailHtml(headline: { name: string; sub: string }, bodyText: string, matchTitles: string[], partnerListings: string[], ctaLabel: string, ctaLink: string): string {  const bulletBlock = matchTitles.length > 0
+function buildEmailHtml(headline: { name: string; sub: string }, bodyText: string, matchTitles: string[], partnerListings: string[], ctaLabel: string, ctaLink: string, userId: string): string {  const bulletBlock = matchTitles.length > 0
     ? `
       <div style="margin: 0 0 20px;">
         <p style="font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 10px;">New initiatives</p>
@@ -108,7 +108,10 @@ function buildEmailHtml(headline: { name: string; sub: string }, bodyText: strin
           <p style="font-size: 12px; color: #999; margin: 0 0 12px; padding-top: 24px; border-top: 1px solid #e5e5e5;">
             Questions? Visit the <a href="https://app.impactnatives.com/faq" style="color: #2D6A4F;">Help Centre</a> or <a href="https://app.impactnatives.com/contact" style="color: #2D6A4F;">contact us</a>.
           </p>
-          <p style="font-size: 11px; color: #bbb; margin: 0;">Impact Natives · This message was sent to you as part of your Impact Natives membership.</p>
+          <p style="font-size: 11px; color: #bbb; margin: 0;">
+            Impact Natives · This message was sent to you as part of your Impact Natives membership. ·
+            <a href="https://lzpxlnjvegpxjuexyjdj.supabase.co/functions/v1/unsubscribe-email?user_id=${userId}&type=weekly_sector_match" style="color: #bbb;">Unsubscribe</a>
+          </p>
         </td>
             </tr>
           </table>
@@ -264,7 +267,8 @@ Deno.serve(async (req: Request) => {
         sampleTitles,
         partnerListingNames,
         "View matches",
-        "https://app.impactnatives.com/dashboard/marketplace"
+        "https://app.impactnatives.com/dashboard/marketplace",
+        profile.id
       );
       const emailSubject = `Opportunity Alert — ${weeklyMatchCount} Recommended Match${weeklyMatchCount !== 1 ? "es" : ""}`;
       await sendEmail(profile.email, emailSubject, emailHtml);
