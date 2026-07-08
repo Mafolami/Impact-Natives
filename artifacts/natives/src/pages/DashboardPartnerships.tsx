@@ -660,11 +660,22 @@ export default function DashboardPartnerships() {
   const [showModal, setShowModal]             = useState(false);
   const [search, setSearch]                   = useState("");
   const [sectorFilters, setSectorFilters]     = useState<Set<string>>(new Set());
-  const [showFilters, setShowFilters]         = useState(false);
   const [favoritesOnly, setFavoritesOnly]     = useState(false);
   const [orgTypeFilters, setOrgTypeFilters]   = useState<Set<string>>(new Set());
   const [stageFilters, setStageFilters]       = useState<Set<string>>(new Set());
   const [ddReadyOnly, setDdReadyOnly]         = useState(false);
+  const [openDropdown, setOpenDropdown]       = useState<string | null>(null);
+  const filterBarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (filterBarRef.current && !filterBarRef.current.contains(e.target as Node)) {
+        setOpenDropdown(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   const [selectedOrg, setSelectedOrg]         = useState<OrgRow | null>(null);
   const [savedOrgs, setSavedOrgs]             = useState<Set<string>>(new Set());
   const [currentUserOrgId, setCurrentUserOrgId] = useState<string | null>(null);
@@ -801,15 +812,136 @@ export default function DashboardPartnerships() {
               className="w-full h-9 pl-9 pr-3 rounded-lg text-xs text-[#111827] placeholder:text-[#374151] focus:outline-none transition-colors"
               style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }} />
           </div>
-          <button type="button" onClick={() => setShowFilters(v => !v)}
-            className="h-9 px-3.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
-            style={showFilters || activeFilterCount > 0
-              ? { background: "#111827", color: "#FFFFFF", border: "1px solid #111827" }
-              : { background: "#FFFFFF", color: "#374151", border: "1px solid #E5E7EB" }}>
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            Filter
-            {activeFilterCount > 0 && <span className="w-4 h-4 rounded-full bg-white text-[#111827] text-[9px] font-black flex items-center justify-center">{activeFilterCount}</span>}
-          </button>
+          <div ref={filterBarRef} className="flex items-center gap-1.5 relative">
+            {([
+              {
+                key: "sector",
+                label: "Sector",
+                count: sectorFilters.size,
+                options: SECTOR_OPTIONS.map(s => ({ value: s, label: s })),
+                selected: sectorFilters,
+                toggle: (v: string) => setSectorFilters(prev => { const n = new Set(prev); n.has(v) ? n.delete(v) : n.add(v); return n; }),
+                clear: () => setSectorFilters(new Set()),
+              },
+              {
+                key: "orgtype",
+                label: "Org type",
+                count: orgTypeFilters.size,
+                options: [
+                  { value: "ngo_non_profit",          label: "NGO / Non-profit" },
+                  { value: "social_enterprise",       label: "Social enterprise" },
+                  { value: "startup",                 label: "Startup" },
+                  { value: "technology_company",      label: "Tech company" },
+                  { value: "venture_capital",         label: "Venture capital" },
+                  { value: "corporation",             label: "Corporation" },
+                  { value: "philanthropic_foundation",label: "Foundation" },
+                  { value: "public_sector",           label: "Public sector" },
+                ],
+                selected: orgTypeFilters,
+                toggle: (v: string) => setOrgTypeFilters(prev => { const n = new Set(prev); n.has(v) ? n.delete(v) : n.add(v); return n; }),
+                clear: () => setOrgTypeFilters(new Set()),
+              },
+              {
+                key: "stage",
+                label: "Stage",
+                count: stageFilters.size,
+                options: [
+                  { value: "pilot",           label: "Pilot" },
+                  { value: "joining_running", label: "Joining existing" },
+                  { value: "scaling",         label: "Scaling" },
+                ],
+                selected: stageFilters,
+                toggle: (v: string) => setStageFilters(prev => { const n = new Set(prev); n.has(v) ? n.delete(v) : n.add(v); return n; }),
+                clear: () => setStageFilters(new Set()),
+              },
+              {
+                key: "toggles",
+                label: `More${(favoritesOnly ? 1 : 0) + (ddReadyOnly ? 1 : 0) > 0 ? ` (${(favoritesOnly ? 1 : 0) + (ddReadyOnly ? 1 : 0)})` : ""}`,
+                count: (favoritesOnly ? 1 : 0) + (ddReadyOnly ? 1 : 0),
+                options: [],
+                selected: new Set(),
+                toggle: () => {},
+                clear: () => { setFavoritesOnly(false); setDdReadyOnly(false); },
+              },
+            ] as const).map(f => (
+              <div key={f.key} className="relative">
+                <button type="button"
+                  onClick={() => setOpenDropdown(prev => prev === f.key ? null : f.key)}
+                  className="h-8 px-3 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-colors"
+                  style={f.count > 0 || openDropdown === f.key
+                    ? { background: "#111827", color: "#FFFFFF", border: "1px solid #111827" }
+                    : { background: "#FFFFFF", color: "#374151", border: "1px solid #E5E7EB" }}>
+                  {f.label}
+                  {f.count > 0 && (
+                    <span className="w-4 h-4 rounded-full bg-white text-[#111827] text-[9px] font-black flex items-center justify-center">
+                      {f.count}
+                    </span>
+                  )}
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+                {openDropdown === f.key && (
+                  <div className="absolute top-full left-0 mt-1 z-50 rounded-xl shadow-lg border border-[#E5E7EB] bg-white min-w-[180px] p-2"
+                    style={{ maxHeight: "280px", overflowY: "auto" }}>
+                    {f.key === "toggles" ? (
+                      <div className="space-y-1">
+                        {[
+                          { label: "Saved only",        checked: favoritesOnly, set: setFavoritesOnly },
+                          { label: "DD docs available", checked: ddReadyOnly,   set: setDdReadyOnly   },
+                        ].map(t => (
+                          <label key={t.label} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-[#F3F4F6] transition-colors">
+                            <input type="checkbox" checked={t.checked} onChange={e => t.set(e.target.checked)}
+                              className="w-3.5 h-3.5 rounded accent-[#2D6A4F]" />
+                            <span className="text-xs text-[#374151] font-medium">{t.label}</span>
+                          </label>
+                        ))}
+                        {(favoritesOnly || ddReadyOnly) && (
+                          <button type="button" onClick={f.clear}
+                            className="w-full text-left px-2 py-1 text-[10px] text-[#9CA3AF] hover:text-[#374151] transition-colors">
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        {f.options.map(o => {
+                          const on = f.selected.has(o.value);
+                          return (
+                            <button key={o.value} type="button"
+                              onClick={() => f.toggle(o.value)}
+                              className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-xs text-left transition-colors ${
+                                on ? "bg-[#eaf5ee] text-[#2D6A4F] font-semibold" : "text-[#374151] hover:bg-[#F3F4F6]"
+                              }`}>
+                              <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
+                                on ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-[#D1D5DB]"
+                              }`}>
+                                {on && <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>}
+                              </div>
+                              {o.label}
+                            </button>
+                          );
+                        })}
+                        {f.count > 0 && (
+                          <button type="button" onClick={f.clear}
+                            className="w-full text-left px-2 py-1 mt-1 text-[10px] text-[#9CA3AF] hover:text-[#374151] transition-colors border-t border-[#F3F4F6]">
+                            Clear ({f.count})
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+            {activeFilterCount > 0 && (
+              <button type="button"
+                onClick={() => { setSectorFilters(new Set()); setOrgTypeFilters(new Set()); setStageFilters(new Set()); setFavoritesOnly(false); setDdReadyOnly(false); }}
+                className="text-[11px] text-[#9CA3AF] hover:text-[#374151] transition-colors px-1">
+                Clear all
+              </button>
+            )}
+          </div>
           <div className="flex-1" />
           {user && (
             <button type="button" onClick={() => setShowModal(true)}
@@ -820,90 +952,7 @@ export default function DashboardPartnerships() {
           )}
         </div>
 
-        {/* Filter panel */}
-        {showFilters && (
-          <div className="shrink-0 px-5 py-4 space-y-4" style={{ background: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
-            {/* Row 1 — toggles */}
-            <div className="flex flex-wrap gap-3">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={favoritesOnly} onChange={e => setFavoritesOnly(e.target.checked)} className="w-3.5 h-3.5 rounded accent-[#2D6A4F]" />
-                <span className="text-xs font-semibold text-[#374151]">Saved only</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={ddReadyOnly} onChange={e => setDdReadyOnly(e.target.checked)} className="w-3.5 h-3.5 rounded accent-[#2D6A4F]" />
-                <span className="text-xs font-semibold text-[#374151]">DD docs available</span>
-              </label>
-            </div>
-            {/* Row 2 — org type */}
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] mb-1.5">Organisation type</p>
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  { value: "ngo_non_profit",     label: "NGO / Non-profit" },
-                  { value: "social_enterprise",  label: "Social enterprise" },
-                  { value: "startup",            label: "Startup" },
-                  { value: "technology_company", label: "Tech company" },
-                  { value: "venture_capital",    label: "Venture capital" },
-                  { value: "corporation",        label: "Corporation" },
-                  { value: "philanthropic_foundation", label: "Foundation" },
-                  { value: "public_sector",      label: "Public sector" },
-                ].map(({ value, label }) => (
-                  <button key={value} type="button"
-                    onClick={() => setOrgTypeFilters(prev => { const n = new Set(prev); n.has(value) ? n.delete(value) : n.add(value); return n; })}
-                    className="h-6 px-2.5 rounded-md text-[10px] font-semibold transition-colors"
-                    style={orgTypeFilters.has(value)
-                      ? { background: "#111827", color: "#FFFFFF", border: "1px solid #111827" }
-                      : { background: "#FFFFFF", color: "#6B7280", border: "1px solid #E5E7EB" }}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {/* Row 3 — partnership stage */}
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] mb-1.5">Partnership stage</p>
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  { value: "pilot",          label: "Pilot" },
-                  { value: "joining_running", label: "Joining existing" },
-                  { value: "scaling",        label: "Scaling" },
-                ].map(({ value, label }) => (
-                  <button key={value} type="button"
-                    onClick={() => setStageFilters(prev => { const n = new Set(prev); n.has(value) ? n.delete(value) : n.add(value); return n; })}
-                    className="h-6 px-2.5 rounded-md text-[10px] font-semibold transition-colors"
-                    style={stageFilters.has(value)
-                      ? { background: "#111827", color: "#FFFFFF", border: "1px solid #111827" }
-                      : { background: "#FFFFFF", color: "#6B7280", border: "1px solid #E5E7EB" }}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {/* Row 4 — sectors */}
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] mb-1.5">Sector</p>
-              <div className="flex flex-wrap gap-1.5">
-                {SECTOR_OPTIONS.map(sector => (
-                  <button key={sector} type="button"
-                    onClick={() => setSectorFilters(prev => { const n = new Set(prev); n.has(sector) ? n.delete(sector) : n.add(sector); return n; })}
-                    className="h-6 px-2.5 rounded-md text-[10px] font-semibold transition-colors"
-                    style={sectorFilters.has(sector)
-                      ? { background: "#111827", color: "#FFFFFF", border: "1px solid #111827" }
-                      : { background: "#FFFFFF", color: "#6B7280", border: "1px solid #E5E7EB" }}>
-                    {sector}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {activeFilterCount > 0 && (
-              <button type="button"
-                onClick={() => { setSectorFilters(new Set()); setOrgTypeFilters(new Set()); setStageFilters(new Set()); setFavoritesOnly(false); setDdReadyOnly(false); }}
-                className="text-xs text-[#374151] hover:text-[#111827] transition-colors">
-                Clear all ({activeFilterCount})
-              </button>
-            )}
-          </div>
-        )}
+        
 
         {/* Split layout */}
         {loading ? (
