@@ -1021,45 +1021,8 @@ export default function HomePage() {
       </section>
 
       {/* ── NEWSLETTER ────────────────────────────────────── */}
-      <div style={{
-        background: isDark ? 'transparent' : '#0a0a0a',
-        borderTop: `1px solid ${T.border}`,
-        borderBottom: `1px solid ${isDark ? T.border : '#1a1a1a'}`,
-      }}>
-        <NewsletterSignup variant="section" />
-      </div>
+      <NewsletterSignup variant="section" />
 
-      {/* ── FINAL CTA ─────────────────────────────────────── */}
-      <section className="hp-light-section" style={{ ...S.sectionPad, borderTop: `1px solid ${T.border}`, position: 'relative', overflow: 'hidden', textAlign: 'center' }}>
-        <div style={{ position: 'absolute', width: '80vw', height: '60vh', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: 'radial-gradient(ellipse, rgba(196,92,38,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
-        <div className="hp-section-wrap" style={{ ...S.contentMax, position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', padding: '0.375rem 1rem', borderRadius: '9999px', background: 'rgba(196,92,38,0.08)', border: '1px solid rgba(196,92,38,0.2)' }}>
-            <Zap style={{ width: '0.75rem', height: '0.75rem', color: '#C45C26' }} />
-            <span style={{ fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#e07a4a' }}>
-              Early Access
-            </span>
-          </div>
-          <h2 style={{ ...S.h2, fontSize: 'clamp(1.875rem, 4vw, 3rem)', maxWidth: '700px', margin: '0 auto 1.25rem' }}>
-            The infrastructure is being built now.
-          </h2>
-          <p style={{ fontSize: '1.125rem', color: T.textDimmer, maxWidth: '500px', margin: '0 auto 3rem', lineHeight: 1.7 }}>
-            Join the organisations already on Natives and be part of how Africa's impact sector coordinates next.
-          </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '1rem' }}>
-            <Link href="/signup">
-              <button className="hp-btn-primary" style={{ padding: '0 2rem', height: '3rem', fontSize: '1rem' }}>
-                Join Impact Natives
-                <ArrowRight style={{ width: '1rem', height: '1rem' }} />
-              </button>
-            </Link>
-            <Link href="/partner">
-              <button className="hp-btn-glass" style={{ padding: '0 2rem', height: '3rem', fontSize: '1rem' }}>
-                Partner with us
-              </button>
-            </Link>
-          </div>
-        </div>
-      </section>
     </div>
   )
 }

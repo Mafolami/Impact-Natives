@@ -5,6 +5,18 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ChevronDown } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+
+function useIsDark() {
+  const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'))
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains('dark'))
+    })
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => observer.disconnect()
+  }, [])
+  return isDark
+}
 import { LogOut, User } from "lucide-react";
 
 export function Navbar() {
@@ -18,6 +30,7 @@ export function Navbar() {
   const logoRef = useRef<HTMLAnchorElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const { user, profile, signOut } = useAuth();
+  const isDark = useIsDark();
 const [scrolled, setScrolled] = useState(false);
 const isHomePage = location === "/" || location === "/labs/commission" 
 || location.startsWith("/labs/commission") || location === "/partner" 
@@ -71,7 +84,7 @@ const isHomePage = location === "/" || location === "/labs/commission"
     : ""
 }`} style={{
   background: isHomePage && !scrolled
-    ? (document.documentElement.classList.contains('dark') ? 'transparent' : '#ffffff')
+    ? (isDark ? 'transparent' : '#ffffff')
     : undefined
 }}>
 <div className="max-w-8xl mx-auto content-padding py-2 w-full flex items-center justify-between min-w-0">
@@ -170,7 +183,7 @@ const isHomePage = location === "/" || location === "/labs/commission"
                 >
                                                         <button
                       className={`nav-trigger inline-flex h-7 items-center justify-center rounded-md px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors focus:outline-none ${
-                      scrolled || !isHomePage || !document.documentElement.classList.contains('dark') ? "text-foreground" : "text-white"
+                      scrolled || !isHomePage || !isDark ? "text-foreground" : "text-white"
                     } ${openSection === item.label || item.links.some(l => location.startsWith(l.href)) ? 'active' : ''}`}
                   >
                     {item.label}
@@ -217,7 +230,7 @@ const isHomePage = location === "/" || location === "/labs/commission"
              <Link
                 href="/partner"
                 className={`nav-trigger inline-flex h-7 items-center justify-center rounded-md px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors focus:outline-none ${
-                  scrolled || !isHomePage || !document.documentElement.classList.contains('dark') ? "text-foreground" : "text-white"
+                  scrolled || !isHomePage || !isDark ? "text-foreground" : "text-white"
                 } ${location.startsWith("/partner") ? "active" : ""}`}
               >
                 Partner With Us
@@ -242,7 +255,7 @@ const isHomePage = location === "/" || location === "/labs/commission"
                     {((profile && profile.full_name && profile.full_name.trim()) || (user && user.email) || "?")[0].toUpperCase()}
                     </span>
                   </div>
-                  <span className={`text-sm font-medium ${scrolled || !isHomePage || !document.documentElement.classList.contains('dark') ? "text-foreground" : "text-white"}`}>
+                  <span className={`text-sm font-medium ${scrolled || !isHomePage || !isDark ? "text-foreground" : "text-white"}`}>
                   {(profile && profile.full_name) ? profile.full_name.split(" ")[0] : "Account"}
                   </span>
                   <ChevronDown className={`w-3 h-3 text-muted-foreground transition-transform ${userMenuOpen ? "rotate-180" : ""}`} />
@@ -275,12 +288,12 @@ const isHomePage = location === "/" || location === "/labs/commission"
             ) : (
               <>
                 <Link href="/signin">
-                  <Button variant="ghost" className={`sign-in-btn transition-all duration-200 ${!scrolled && document.documentElement.classList.contains('dark') ? "text-white hover:text-white hover:bg-white/10" : ""}`}>
+                  <Button variant="ghost" className={`sign-in-btn transition-all duration-200 ${!scrolled && isDark ? "text-white hover:text-white hover:bg-white/10" : ""}`}>
                     Log In
                   </Button>
                 </Link>
                 <Link href="/signup">
-                  <Button className={`transition-all duration-200 ${!scrolled && document.documentElement.classList.contains('dark') ? "bg-white text-[#2D6A4F] hover:bg-white/90" : "bg-primary text-white hover:bg-primary/90"}`}>
+                  <Button className={`transition-all duration-200 ${!scrolled && isDark ? "bg-white text-[#2D6A4F] hover:bg-white/90" : "bg-primary text-white hover:bg-primary/90"}`}>
                     Sign Up
                   </Button>
                 </Link>
@@ -294,7 +307,7 @@ const isHomePage = location === "/" || location === "/labs/commission"
               <ThemeToggle />
             </div>
             <button
-              className={`p-2 rounded-md ${scrolled || !isHomePage || !document.documentElement.classList.contains('dark') ? "hover:bg-accent text-foreground" : "hover:bg-white/10 text-white"}`}
+              className={`p-2 rounded-md ${scrolled || !isHomePage || !isDark ? "hover:bg-accent text-foreground" : "hover:bg-white/10 text-white"}`}
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle Menu"
             >

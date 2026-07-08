@@ -114,11 +114,7 @@ export function NewsletterSignup({ variant = "section" }: { variant?: "section" 
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
               required
-              className="flex-1 h-12 rounded-full border border-border px-5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-muted-foreground"
-              style={{
-                backgroundColor: email ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)',
-                color: email ? '#f7f3ed' : 'rgba(247,243,237,0.4)',
-              }}
+              className="flex-1 h-12 rounded-full border border-border px-5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-muted-foreground bg-background text-foreground"
             />
             <button
               type="submit"
