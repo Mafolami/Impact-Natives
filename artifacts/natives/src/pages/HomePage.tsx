@@ -613,11 +613,8 @@ function RolesStack() {
 /* ── HOME PAGE ─────────────────────────────────────────── */
 export default function HomePage() {
   const isDark = useIsDark()
-  const videos = ['/hero3.mp4', '/hero1.mp4']
-  const [currentVideo, setCurrentVideo] = useState(0)
-  const [videoError, setVideoError] = useState(false)
+  const [videoError] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
-  
   const statsRef = useRef<HTMLDivElement>(null)
   const [statsVisible, setStatsVisible] = useState(false)
 
@@ -695,8 +692,7 @@ export default function HomePage() {
         <div style={{ position: 'absolute', inset: 0, zIndex: 0, background: isDark ? 'hsl(193,20%,7%)' : '#ffffff' }} />
         <div style={{ position: 'absolute', width: '70vw', height: '70vh', top: '-15%', right: '-10%', background: 'radial-gradient(ellipse, rgba(196,92,38,0.08) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 1 }} />
         <div style={{ position: 'absolute', width: '50vw', height: '50vh', bottom: '0', left: '10%', background: 'radial-gradient(ellipse, rgba(45,184,122,0.04) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 1 }} />
-        <div className="hp-section-wrap hp-hero" style={{ position: 'relative', zIndex: 10, paddingTop: '7rem', paddingBottom: '6rem', width: '100%' }}>
-
+        <div className="hp-section-wrap hp-hero" style={{ position: 'relative', zIndex: 10, paddingTop: '7rem', paddingBottom: '6rem', width: '100%', textAlign: isDark ? 'left' : 'center', display: 'flex', flexDirection: 'column', alignItems: isDark ? 'flex-start' : 'center' }}>
           <h1 style={{
             fontFamily: "'Bricolage Grotesque', sans-serif",
             fontSize: 'clamp(2.75rem, 6.5vw, 5rem)',
@@ -711,7 +707,7 @@ export default function HomePage() {
           <p style={{ fontSize: 'clamp(1rem, 2vw, 1.25rem)', lineHeight: 1.72, color: T.textDim, maxWidth: '600px', marginBottom: '2.5rem' }}>
             Impact Natives is the platform where NGOs, funders, corporates, and ecosystem builders find each other, verify trust, and form partnerships that work, without the email chains and multi-month delays.
           </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.875rem' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.875rem', justifyContent: isDark ? 'flex-start' : 'center' }}>
             <Link href="/platform/partnership-os">
               <button className="hp-btn-primary">
                 Find a Partner
@@ -719,7 +715,17 @@ export default function HomePage() {
               </button>
             </Link>
             <Link href="/platform/impact-marketplace">
-              <button className="hp-btn-glass">Create an Initiative</button>
+              <button style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.625rem 1.5rem', borderRadius: '9999px',
+                fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                background: isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
+                border: isDark ? '1px solid rgba(255,255,255,0.14)' : '1px solid #0a0a0a',
+                color: isDark ? '#f7f3ed' : '#0a0a0a',
+              }}>
+                Create an Initiative
+              </button>
             </Link>
           </div>
         </div>
