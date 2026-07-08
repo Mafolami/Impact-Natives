@@ -30,7 +30,7 @@ async function supabaseFetch(path: string, options: RequestInit = {}) {
   return res.json();
 }
 
-async function groq(prompt: string, maxTokens = 1400): Promise<string> {
+async function groq(prompt: string, maxTokens = 3000): Promise<string> {
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -38,12 +38,16 @@ async function groq(prompt: string, maxTokens = 1400): Promise<string> {
       "Authorization": `Bearer ${GROQ_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "llama-3.1-8b-instant",
+      model: "llama-3.3-70b-versatile",
       max_tokens: maxTokens,
       messages: [{ role: "user", content: prompt }],
     }),
   });
   const data = await res.json();
+  if (data.error) {
+    console.log("Groq API error:", JSON.stringify(data.error));
+    return "";
+  }
   return data.choices?.[0]?.message?.content?.trim() ?? "";
 }
 
@@ -117,23 +121,22 @@ function buildEmailHtml(content: {
   const spotlightBlock = (content.spotlight || content.partnerSpotlight) ? `
     <tr>
       <td style="padding: 32px 0 0 0;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: #0f1a14; border-radius: 12px; overflow: hidden;">
+        <table role="presentation" class="spotlight-card" width="100%" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 12px; overflow: hidden;">
           <tr>
             <td style="padding: 28px 28px 8px;">
-              <p style="font-size: 13px; font-weight: 700; color:rgb(50, 129, 92); text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 4px; font-family: -apple-system, sans-serif;">Natives Opportunity Spotlight</p>
-              <p style="font-size: 13px; color: rgba(255,255,255,0.4); margin: 0 0 20px; font-family: -apple-system, sans-serif;">Curated from the Impact Natives platform</p>
+               <p class="spotlight-label" style="font-size: 13px; font-weight: 700; color: #2D6A4F; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 4px; font-family: -apple-system, sans-serif;">Natives Opportunity Spotlight</p>
+                    <p class="spotlight-meta" style="font-size: 13px; color: #6B7280; margin: 0 0 20px; font-family: -apple-system, sans-serif;">Curated from the Impact Natives platform</p>
             </td>
           </tr>
           ${content.spotlight ? `
           <tr>
             <td style="padding: 0 28px 24px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 20px;">
-                <tr>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top: 1px solid #e5e7eb; padding-top: 20px;">                <tr>
                   <td style="padding-top: 20px;">
-                    <p style="font-size: 11px; font-weight: 700; color: #e07a3a; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 10px; font-family: -apple-system, sans-serif;">Initiative</p>
-                    <p style="font-size: 18px; font-weight: 800; color: #ffffff; margin: 0 0 5px; line-height: 1.3; font-family: Georgia, serif;">${content.spotlight.title}</p>
-                    <p style="font-size: 12px; color: #9CA3AF; margin: 0 0 12px; font-family: -apple-system, sans-serif;">${content.spotlight.org} &middot; ${content.spotlight.sector}</p>
-                    <p style="font-size: 14px; color: #D1FAE5; line-height: 1.75; margin: 0 0 16px; font-family: -apple-system, sans-serif;">${content.spotlight.ask}</p>
+                    <p class="spotlight-label" style="font-size: 11px; font-weight: 700; color: #2D6A4F; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 10px; font-family: -apple-system, sans-serif;">Initiative</p>
+                    <p style="font-size: 18px; font-weight: 800; color: #111827; margin: 0 0 5px; line-height: 1.3; font-family: Georgia, serif;">${content.spotlight.title}</p>
+                    <p class="spotlight-meta" style="font-size: 12px; color: #6B7280; margin: 0 0 12px; font-family: -apple-system, sans-serif;">${content.spotlight.org} &middot; ${content.spotlight.sector}</p>
+                    <p class="spotlight-body" style="font-size: 14px; color: #374151; line-height: 1.75; margin: 0 0 16px; font-family: -apple-system, sans-serif;">${content.spotlight.ask}</p>
                     <a href="https://app.impactnatives.com/dashboard/marketplace" style="display: inline-block; background: #2D6A4F; color: #ffffff; font-size: 13px; font-weight: 600; padding: 11px 22px; border-radius: 6px; text-decoration: none; font-family: -apple-system, sans-serif;">View initiative</a>
                   </td>
                 </tr>
@@ -144,14 +147,14 @@ function buildEmailHtml(content: {
           ${content.partnerSpotlight ? `
           <tr>
             <td style="padding: 0 28px 28px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top: 1px solid rgba(255,255,255,0.08);">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top: 1px solid #e5e7eb;">
                 <tr>
                   <td style="padding-top: 20px;">
-                    <p style="font-size: 11px; font-weight: 700; color: #52b788; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 10px; font-family: -apple-system, sans-serif;">Partnership listing</p>
-                    <p style="font-size: 18px; font-weight: 800; color: #ffffff; margin: 0 0 5px; line-height: 1.3; font-family: Georgia, serif;">${content.partnerSpotlight.org}</p>
-                    <p style="font-size: 12px; color: #9CA3AF; margin: 0 0 12px; font-family: -apple-system, sans-serif; text-transform: capitalize;">${content.partnerSpotlight.type} &middot; ${content.partnerSpotlight.sector}</p>
-                    <p style="font-size: 14px; color: #D1FAE5; line-height: 1.75; margin: 0 0 6px; font-family: -apple-system, sans-serif; font-weight: 600;">${content.partnerSpotlight.org} is looking for:</p>
-                    <p style="font-size: 14px; color: #D1FAE5; line-height: 1.75; margin: 0 0 16px; font-family: -apple-system, sans-serif;">${content.partnerSpotlight.seeking}</p>
+                    <p class="spotlight-label" style="font-size: 11px; font-weight: 700; color: #2D6A4F; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 10px; font-family: -apple-system, sans-serif;">Partnership listing</p>
+                    <p style="font-size: 18px; font-weight: 800; color: #111827; margin: 0 0 5px; line-height: 1.3; font-family: Georgia, serif;">${content.partnerSpotlight.org}</p>
+                    <p class="spotlight-meta" style="font-size: 12px; color: #6B7280; margin: 0 0 12px; font-family: -apple-system, sans-serif; text-transform: capitalize;">${content.partnerSpotlight.type} &middot; ${content.partnerSpotlight.sector}</p>
+                    <p class="spotlight-body" style="font-size: 14px; color: #374151; line-height: 1.75; margin: 0 0 6px; font-family: -apple-system, sans-serif; font-weight: 600;">${content.partnerSpotlight.org} is looking for:</p>
+                    <p class="spotlight-body" style="font-size: 14px; color: #374151; line-height: 1.75; margin: 0 0 16px; font-family: -apple-system, sans-serif;">${content.partnerSpotlight.seeking}</p>
                     <a href="https://app.impactnatives.com/dashboard/partnerships" style="display: inline-block; background: #2D6A4F; color: #ffffff; font-size: 13px; font-weight: 600; padding: 11px 22px; border-radius: 6px; text-decoration: none; font-family: -apple-system, sans-serif;">View listing</a>
                   </td>
                 </tr>
@@ -189,6 +192,12 @@ function buildEmailHtml(content: {
   @media (prefers-color-scheme: dark) {
     .masthead-bg { background-color: #3d1f0a !important; }
     .footer-bg   { background-color: #3d1f0a !important; }
+    .spotlight-card { background-color: #1c1c1e !important; }
+    .spotlight-card p { color: #e5e7eb !important; }
+    .spotlight-card span { color: #e5e7eb !important; }
+    .spotlight-label { color: #52b788 !important; }
+    .spotlight-meta { color: #9CA3AF !important; }
+    .spotlight-body { color: #d1d5db !important; }
   }
   @media only screen and (max-width: 620px) {
     .outer-td { padding: 16px 8px !important; }
@@ -393,25 +402,19 @@ function buildEmailHtml(content: {
           <p style="font-size:12px;font-weight:700;color:#ffffff;text-transform:uppercase;letter-spacing:0.12em;margin:0 0 16px;font-family:-apple-system,sans-serif;">Connect with us</p>
           <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 32px;">
             <tr>
-              <td style="padding-right:14px;">
-                <a href="${LINKEDIN_URL}" style="display:inline-block;background:rgba(255,255,255,0.1);border-radius:8px;padding:10px 12px;text-decoration:none;">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#ffffff">
-                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                  </svg>
+              <td style="padding-right:10px;">
+                <a href="${LINKEDIN_URL}" style="display:inline-block;background:rgba(255,255,255,0.12);border-radius:8px;padding:10px 12px;text-decoration:none;">
+                  <img src="https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/linkedin.svg" width="20" height="20" alt="LinkedIn" style="display:block;filter:invert(1);" />
                 </a>
               </td>
-              <td style="padding-right:14px;">
-                <a href="${TWITTER_URL}" style="display:inline-block;background:rgba(255,255,255,0.1);border-radius:8px;padding:10px 12px;text-decoration:none;">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#ffffff">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.259 5.63 5.905-5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                  </svg>
+              <td style="padding-right:10px;">
+                <a href="${TWITTER_URL}" style="display:inline-block;background:rgba(255,255,255,0.12);border-radius:8px;padding:10px 12px;text-decoration:none;">
+                  <img src="https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/x.svg" width="20" height="20" alt="X" style="display:block;filter:invert(1);" />
                 </a>
               </td>
               <td>
-                <a href="${INSTAGRAM_URL}" style="display:inline-block;background:rgba(255,255,255,0.1);border-radius:8px;padding:10px 12px;text-decoration:none;">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#ffffff">
-                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/>
-                  </svg>
+                <a href="${INSTAGRAM_URL}" style="display:inline-block;background:rgba(255,255,255,0.12);border-radius:8px;padding:10px 12px;text-decoration:none;">
+                  <img src="https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/instagram.svg" width="20" height="20" alt="Instagram" style="display:block;filter:invert(1);" />
                 </a>
               </td>
             </tr>
@@ -505,12 +508,21 @@ Deno.serve(async (req: Request) => {
     const searchSnippets = searchItems
       .map(r => `- ${r.title}: ${r.description} [URL: ${r.url}]`)
       .join("\n");
-
-    const grantSnippets = grantItems
+    
+    const EXCLUDED_TERMS = ["lgbti", "lgbtq", "lgbt", "lesbian", "gay", "bisexual", "transgender", "queer"];
+    const filteredGrantItems = grantItems.filter(r => {
+      const text = `${r.title} ${r.description}`.toLowerCase();
+      return !EXCLUDED_TERMS.some(term => text.includes(term));
+    });
+    const grantSnippets = filteredGrantItems
       .map(r => `- ${r.title}: ${r.description} [URL: ${r.url}]`)
       .join("\n");
 
-    const acceleratorSnippets = acceleratorItems
+    const filteredAcceleratorItems = acceleratorItems.filter(r => {
+      const text = `${r.title} ${r.description}`.toLowerCase();
+      return !EXCLUDED_TERMS.some(term => text.includes(term));
+    });
+    const acceleratorSnippets = filteredAcceleratorItems
       .map(r => `- ${r.title}: ${r.description} [URL: ${r.url}]`)
       .join("\n");
 
@@ -587,12 +599,12 @@ Deno.serve(async (req: Request) => {
       
       Absolute rules: No em dashes. No exclamation marks. No filler. No sentences beginning with 'Africa is' or 'Across Africa'. No generic development sector language. Every claim must be grounded in something real and specific. Geographic diversity is mandatory across the three news items. Do not invent company names, fund names, or specific investment figures. If a specific actor or number cannot be confirmed from the search results provided, describe the trend without naming the actor. It is better to write "climate-focused startups in Kenya are attracting DFI attention" than to name a company you cannot verify. Only name organisations, funds, or people when their names appear in the search results provided. Exclude any grants, accelerators, or funding calls that are specifically focused on LGBTQI themes or beneficiaries. Do not include them even if they appear in search results.`;
 
-    const raw = await groq(contentPrompt, 1400);
+    const raw = await groq(contentPrompt, 3000);
     let aiContent: any = {};
     try {
       const clean = raw.replace(/```json|```/g, "").trim();
       aiContent = JSON.parse(clean);
-    } catch {
+    } catch (parseErr) {
       aiContent = {
         opening: `${month} brought continued movement across Africa's impact sector. Here is what happened on Impact Natives and across the ecosystem this month.`,
         ecosystemNews: [],
