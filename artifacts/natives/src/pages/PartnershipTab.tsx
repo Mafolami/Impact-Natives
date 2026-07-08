@@ -397,18 +397,18 @@ export function PartnershipTab() {
   const confirmedInbound = inbound.filter(c => c.status === "formed");
   const isListed         = myListing?.partnership_listed;
 
-  const subTabs: { key: PartnershipView; label: string; count: number | null }[] = [
-    { key: "requested", label: "Requested",  count: isListed ? 1 : 0 },
-    { key: "inbound",   label: "Inbound",    count: pendingInbound.length + acceptedInbound.length },
-    { key: "outbound",  label: "Outbound",   count: outbound.length },
-    { key: "confirmed", label: "Confirmed",  count: confirmedInbound.length },
+  const subTabs: { key: PartnershipView; label: string }[] = [
+    { key: "requested", label: "Requested" },
+    { key: "inbound",   label: "Inbound"   },
+    { key: "outbound",  label: "Outbound"  },
+    { key: "confirmed", label: "Confirmed" },
   ];
 
   return (
     <div className="space-y-8">
       {/* Sub-tabs — pill style */}
       <div className="flex gap-1.5 p-1 rounded-xl bg-muted w-fit overflow-x-auto">
-        {subTabs.map(({ key, label, count }) => (
+        {subTabs.map(({ key, label}) => (
           <button key={key} type="button" onClick={() => setActiveView(key)}
             className={`h-8 px-4 rounded-lg text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 ${
               activeView === key
@@ -416,13 +416,6 @@ export function PartnershipTab() {
                 : "text-muted-foreground hover:text-foreground"
             }`}>
             {label}
-            {count !== null && count > 0 && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                activeView === key ? "bg-[#2D6A4F]/10 text-[#2D6A4F]" : "bg-background/60 text-muted-foreground"
-              }`}>
-                {count}
-              </span>
-            )}
           </button>
         ))}
       </div>

@@ -728,9 +728,9 @@ export default function DashboardInitiatives() {
   }
 
   const initSubTabs = [
-    { value: "created"   as const, label: "Created",            count: initiatives.length },
-    { value: "expressed" as const, label: "Interests Expressed", count: null },
-    { value: "confirmed" as const, label: "Confirmed",           count: null },
+    { value: "created"   as const, label: "Created" },
+    { value: "expressed" as const, label: "Interests Expressed" },
+    { value: "confirmed" as const, label: "Confirmed" },
   ];
 
   return (
@@ -770,21 +770,14 @@ export default function DashboardInitiatives() {
           <div className="space-y-8">
             {/* Initiative sub-tabs — pill style, visually distinct from top tabs */}
             <div className="flex gap-1.5 p-1 rounded-xl bg-muted w-fit">
-              {initSubTabs.map(({ value, label, count }) => (
+              {initSubTabs.map(({ value, label}) => (
                 <button key={value} type="button" onClick={() => setInitSubTab(value)}
                   className={`h-8 px-4 rounded-lg text-xs font-semibold transition-all ${
                     initSubTab === value
                       ? "bg-white text-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
                   }`}>
-                  {label}
-                  {count !== null && count > 0 && (
-                    <span className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full ${
-                      initSubTab === value ? "bg-[#2D6A4F]/10 text-[#2D6A4F]" : "bg-background/60 text-muted-foreground"
-                    }`}>
-                      {count}
-                    </span>
-                  )}
+                    {label}
                 </button>
               ))}
             </div>
