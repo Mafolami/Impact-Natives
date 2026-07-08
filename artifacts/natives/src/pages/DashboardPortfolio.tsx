@@ -735,12 +735,12 @@ export default function DashboardInitiatives() {
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* Page header */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-4 pb-2">
           <div>
-            <h2 className="text-xl font-bold text-foreground tracking-tight">Portfolio</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">Your initiatives and org-to-org partnerships.</p>
+            <h2 className="text-2xl font-bold text-foreground tracking-tight">Portfolio</h2>
+            <p className="text-sm text-muted-foreground mt-1">Your initiatives and org-to-org partnerships.</p>
           </div>
           {topTab === "initiatives" && initSubTab === "created" && (
             <button type="button" onClick={() => setShowModal(true)}
@@ -749,17 +749,17 @@ export default function DashboardInitiatives() {
             </button>
           )}
         </div>
-        {/* Top-level tabs */}
-        <div className="flex gap-1 border-b border-border">
+        {/* Top-level tabs — segmented control */}
+        <div className="flex gap-1 p-1 rounded-xl bg-muted w-fit">
           {[
             { key: "initiatives"  as const, label: "Initiatives" },
             { key: "partnerships" as const, label: "Partnerships" },
           ].map(({ key, label }) => (
             <button key={key} type="button" onClick={() => setTopTab(key)}
-              className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-colors -mb-px ${
+              className={`h-9 px-6 rounded-lg text-sm font-semibold transition-all ${
                 topTab === key
-                  ? "border-[#2D6A4F] text-[#2D6A4F]"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  ? "bg-white text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               }`}>
               {label}
             </button>
