@@ -69,6 +69,7 @@ export function NewsletterSignup({ variant = "section" }: { variant?: "section" 
             >
               {state === "loading" ? "..." : "Subscribe"}
             </button>
+            </div>
           </form>
         )}
         {state === "error" && (
