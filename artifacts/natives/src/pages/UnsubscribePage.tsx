@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 const TYPE_LABELS: Record<string, string> = {
   weekly_sector_match: "Weekly sector match emails",
   partner_match:       "Partner match suggestions",
-  newsletter:          "The Dispatch newsletter",
+  newsletter:          "Native Signal",
 };
 
 export default function UnsubscribePage() {
