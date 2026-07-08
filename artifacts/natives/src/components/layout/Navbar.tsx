@@ -67,9 +67,13 @@ const isHomePage = location === "/" || location === "/labs/commission"
   isHomePage ? "fixed" : "sticky bg-background border-b border-border"
 } ${isHomePage && scrolled
     ? "bg-background border-b border-border shadow-sm"
-    : isHomePage ? "bg-transparent border-b border-transparent backdrop-blur-none"
+    : isHomePage ? "border-b border-transparent backdrop-blur-none"
     : ""
-}`} style={{ background: isHomePage && !scrolled ? 'transparent' : undefined }}>
+}`} style={{
+  background: isHomePage && !scrolled
+    ? (document.documentElement.classList.contains('dark') ? 'transparent' : '#ffffff')
+    : undefined
+}}>
 <div className="max-w-8xl mx-auto content-padding py-2 w-full flex items-center justify-between min-w-0">
 
           {/* ── LEFT — Logo ── */}
@@ -166,7 +170,7 @@ const isHomePage = location === "/" || location === "/labs/commission"
                 >
                                                         <button
                       className={`nav-trigger inline-flex h-7 items-center justify-center rounded-md px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors focus:outline-none ${
-                      scrolled || !isHomePage ? "text-foreground" : "text-white"
+                      scrolled || !isHomePage || !document.documentElement.classList.contains('dark') ? "text-foreground" : "text-white"
                     } ${openSection === item.label || item.links.some(l => location.startsWith(l.href)) ? 'active' : ''}`}
                   >
                     {item.label}
@@ -213,7 +217,7 @@ const isHomePage = location === "/" || location === "/labs/commission"
              <Link
                 href="/partner"
                 className={`nav-trigger inline-flex h-7 items-center justify-center rounded-md px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors focus:outline-none ${
-                  scrolled || !isHomePage ? "text-foreground" : "text-white"
+                  scrolled || !isHomePage || !document.documentElement.classList.contains('dark') ? "text-foreground" : "text-white"
                 } ${location.startsWith("/partner") ? "active" : ""}`}
               >
                 Partner With Us
@@ -238,7 +242,7 @@ const isHomePage = location === "/" || location === "/labs/commission"
                     {((profile && profile.full_name && profile.full_name.trim()) || (user && user.email) || "?")[0].toUpperCase()}
                     </span>
                   </div>
-                  <span className={`text-sm font-medium ${scrolled || !isHomePage ? "text-foreground" : "text-white"}`}>
+                  <span className={`text-sm font-medium ${scrolled || !isHomePage || !document.documentElement.classList.contains('dark') ? "text-foreground" : "text-white"}`}>
                   {(profile && profile.full_name) ? profile.full_name.split(" ")[0] : "Account"}
                   </span>
                   <ChevronDown className={`w-3 h-3 text-muted-foreground transition-transform ${userMenuOpen ? "rotate-180" : ""}`} />
@@ -271,12 +275,12 @@ const isHomePage = location === "/" || location === "/labs/commission"
             ) : (
               <>
                 <Link href="/signin">
-                  <Button variant="ghost" className={`sign-in-btn transition-all duration-200 ${!scrolled ? "text-white hover:text-white hover:bg-white/10" : ""}`}>
+                  <Button variant="ghost" className={`sign-in-btn transition-all duration-200 ${!scrolled && document.documentElement.classList.contains('dark') ? "text-white hover:text-white hover:bg-white/10" : ""}`}>
                     Log In
                   </Button>
                 </Link>
                 <Link href="/signup">
-                  <Button className={`transition-all duration-200 ${!scrolled ? "bg-white text-[#2D6A4F] hover:bg-white/90" : "bg-primary text-white hover:bg-primary/90"}`}>
+                  <Button className={`transition-all duration-200 ${!scrolled && document.documentElement.classList.contains('dark') ? "bg-white text-[#2D6A4F] hover:bg-white/90" : "bg-primary text-white hover:bg-primary/90"}`}>
                     Sign Up
                   </Button>
                 </Link>
@@ -290,7 +294,7 @@ const isHomePage = location === "/" || location === "/labs/commission"
               <ThemeToggle />
             </div>
             <button
-              className={`p-2 rounded-md ${scrolled || !isHomePage ? "hover:bg-accent text-foreground" : "hover:bg-white/10 text-white"}`}
+              className={`p-2 rounded-md ${scrolled || !isHomePage || !document.documentElement.classList.contains('dark') ? "hover:bg-accent text-foreground" : "hover:bg-white/10 text-white"}`}
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle Menu"
             >
