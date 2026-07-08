@@ -940,6 +940,38 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── CTA ───────────────────────────────────────────── */}
+      <section className="hp-reveal" style={{ ...S.sectionPadSm, ...S.reveal, borderTop: `1px solid ${T.border}`, background: isDark ? 'transparent' : '#ffffff' }}>
+        <div className="hp-section-wrap" style={{ ...S.contentMax, textAlign: 'center' }}>
+          <h2 style={{ ...S.h2, fontSize: 'clamp(1.5rem, 3vw, 2.25rem)', marginBottom: '0.875rem' }}>
+            Not sure where to start?
+          </h2>
+          <p style={{ color: T.textDimmer, fontSize: '1.0625rem', lineHeight: 1.65, maxWidth: '460px', margin: '0 auto 2.5rem' }}>
+            Tell us what you're trying to do and we'll route you to the right place.
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.875rem' }}>
+            {['I want to find partners', 'I want to solve a complex challenge', 'I want to post an initiative'].map((label, i) => {
+              const hrefs = ['/platform/partnership-os', '/labs/commission', '/platform/impact-marketplace']
+              return (
+                <Link key={i} href={hrefs[i]}>
+                  <button style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                    padding: '0.625rem 1.25rem', borderRadius: '9999px',
+                    fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    background: isDark ? 'rgba(255,255,255,0.05)' : '#0a0a0a',
+                    border: isDark ? '1px solid rgba(255,255,255,0.14)' : '1px solid #0a0a0a',
+                    color: isDark ? '#f7f3ed' : '#ffffff',
+                  }}>
+                    {label}
+                  </button>
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
       {/* ── FAQ ───────────────────────────────────────────── */}
       <section className="hp-reveal" style={{ ...S.sectionPad, ...S.reveal, borderTop: `1px solid ${T.border}`, background: T.surface }}>
         <div className="hp-section-wrap hp-hero">
@@ -986,39 +1018,7 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-      </section>
-
-      {/* ── CTA ───────────────────────────────────────────── */}
-      <section className="hp-reveal" style={{ ...S.sectionPadSm, ...S.reveal, borderTop: `1px solid ${T.border}`, background: isDark ? 'transparent' : '#ffffff' }}>
-        <div className="hp-section-wrap" style={{ ...S.contentMax, textAlign: 'center' }}>
-          <h2 style={{ ...S.h2, fontSize: 'clamp(1.5rem, 3vw, 2.25rem)', marginBottom: '0.875rem' }}>
-            Not sure where to start?
-          </h2>
-          <p style={{ color: T.textDimmer, fontSize: '1.0625rem', lineHeight: 1.65, maxWidth: '460px', margin: '0 auto 2.5rem' }}>
-            Tell us what you're trying to do and we'll route you to the right place.
-          </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.875rem' }}>
-            {['I want to find partners', 'I want to solve a complex challenge', 'I want to post an initiative'].map((label, i) => {
-              const hrefs = ['/platform/partnership-os', '/labs/commission', '/platform/impact-marketplace']
-              return (
-                <Link key={i} href={hrefs[i]}>
-                  <button style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-                    padding: '0.625rem 1.25rem', borderRadius: '9999px',
-                    fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    background: isDark ? 'rgba(255,255,255,0.05)' : '#0a0a0a',
-                    border: isDark ? '1px solid rgba(255,255,255,0.14)' : '1px solid #0a0a0a',
-                    color: isDark ? '#f7f3ed' : '#ffffff',
-                  }}>
-                    {label}
-                  </button>
-                </Link>
-              )
-            })}
-          </div>
-        </div>
-      </section>
+      </section>      
 
       {/* ── NEWSLETTER ────────────────────────────────────── */}
       <NewsletterSignup variant="section" />
