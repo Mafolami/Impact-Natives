@@ -881,26 +881,26 @@ export default function HomePage() {
           <div style={{ marginBottom: '3.5rem' }}>
             <div style={S.sectionLabel}>Choose Your Path</div>
             <h2 style={{ ...S.h2, marginBottom: '0.875rem' }}>What would you like to do?</h2>
-            <p style={{ fontSize: '1.0625rem', color: T.textDimmer, maxWidth: '520px', lineHeight: 1.65 }}>
-              Natives serves three distinct purposes. Choose the one that fits your intent.
+            <p style={{ fontSize: '1.0625rem', color: T.textDimmer, maxWidth: '700px', lineHeight: 1.65 }}>
+              Natives serves three distinct purposes. Choose the one that fits your intent. Tell us what you're trying to do and we'll route you to the right place.
             </p>
           </div>
           <div className="hp-path-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
             {[
               {
-                icon: Network, title: 'Connect with Partners',
+                icon: Network, title: 'I want to find partners',
                 desc: 'Search and connect with verified NGOs, funders, founders, corporates, and implementers, tailored to your needs.',
                 points: ['NGO to funder matching', 'Founder to pilot partner', 'Corporate to implementer'],
                 href: '/platform/partnership-os', cta: 'Get Matched', featured: true,
               },
               {
-                icon: FlaskConical, title: 'Commission an Innovation Lab',
+                icon: FlaskConical, title: 'I want to solve a complex challenge',
                 desc: "Natives convenes and structures stakeholders around a specific systemic challenge. A managed coordination process, not a self-service product.",
                 points: ['You define the problem, Natives designs the room', 'Curated participants, not open networking', 'You leave with a partnership roadmap and a path to execution'],
                 href: '/labs/commission', cta: 'Submit Lab Proposal', featured: false,
               },
               {
-                icon: Handshake, title: 'Create an Initiative',
+                icon: Handshake, title: 'I want to post an initiative',
                 desc: "Post your initiative to the marketplace and connect with the funders, implementers, and partners already looking for what you're building.",
                 points: ['Marketplace visibility', 'Direct expressions of interest', 'Confirmed partnership tracking'],
                 href: '/platform/impact-marketplace', cta: 'Create Initiative', featured: false,
@@ -936,38 +936,6 @@ export default function HomePage() {
                 </Link>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA ───────────────────────────────────────────── */}
-      <section className="hp-reveal" style={{ ...S.sectionPadSm, ...S.reveal, borderTop: `1px solid ${T.border}`, background: isDark ? 'transparent' : '#ffffff' }}>
-        <div className="hp-section-wrap" style={{ ...S.contentMax, textAlign: 'center' }}>
-          <h2 style={{ ...S.h2, fontSize: 'clamp(1.5rem, 3vw, 2.25rem)', marginBottom: '0.875rem' }}>
-            Not sure where to start?
-          </h2>
-          <p style={{ color: T.textDimmer, fontSize: '1.0625rem', lineHeight: 1.65, maxWidth: '460px', margin: '0 auto 2.5rem' }}>
-            Tell us what you're trying to do and we'll route you to the right place.
-          </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.875rem' }}>
-            {['I want to find partners', 'I want to solve a complex challenge', 'I want to post an initiative'].map((label, i) => {
-              const hrefs = ['/platform/partnership-os', '/labs/commission', '/platform/impact-marketplace']
-              return (
-                <Link key={i} href={hrefs[i]}>
-                  <button style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-                    padding: '0.625rem 1.25rem', borderRadius: '9999px',
-                    fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    background: isDark ? 'rgba(255,255,255,0.05)' : '#0a0a0a',
-                    border: isDark ? '1px solid rgba(255,255,255,0.14)' : '1px solid #0a0a0a',
-                    color: isDark ? '#f7f3ed' : '#ffffff',
-                  }}>
-                    {label}
-                  </button>
-                </Link>
-              )
-            })}
           </div>
         </div>
       </section>
