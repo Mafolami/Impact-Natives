@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 
 export function NewsletterSignup({ variant = "section" }: { variant?: "section" | "footer" }): React.ReactElement {
   const [email, setEmail] = useState("");
+  const [name, setName]   = useState("");
   const [state, setState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -15,7 +16,7 @@ export function NewsletterSignup({ variant = "section" }: { variant?: "section" 
 
     const { error } = await supabase
       .from("newsletter_subscribers")
-      .insert({ email: email.trim().toLowerCase() });
+      .insert({ email: email.trim().toLowerCase(), name: name.trim() || null });
 
       if (error) {
         console.error("Newsletter insert error:", error);
@@ -44,7 +45,15 @@ export function NewsletterSignup({ variant = "section" }: { variant?: "section" 
         {state === "success" ? (
           <p className="text-sm text-[#6fcf97]">You're subscribed. Welcome.</p>
         ) : (
-          <form onSubmit={handleSubmit} className="flex flex-row gap-2">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="First name"
+              className={`w-full h-9 rounded-lg bg-white/10 border border-white/20 px-3 text-sm placeholder:text-white/40 focus:outline-none focus:border-white/40 transition-colors ${name ? 'text-white' : 'text-white/40'}`}
+            />
+            <div className="flex flex-row gap-2">
             <input
               type="email"
               value={email}
@@ -73,10 +82,10 @@ export function NewsletterSignup({ variant = "section" }: { variant?: "section" 
     <section className="py-20 border-t border-border">
       <div className="max-w-2xl mx-auto px-6 text-center">
         <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-          The Dispatch
+          Native Signal
         </p>
         <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-3">
-          Stay close to what's moving in Africa's impact economy.
+          Native Signal: Stay close to what's moving in Africa's impact economy.
         </h2>
         <p className="text-muted-foreground mb-8 max-w-md mx-auto">
           Partnership signals, ecosystem updates, and platform news — straight to your inbox. No noise.
@@ -89,7 +98,16 @@ export function NewsletterSignup({ variant = "section" }: { variant?: "section" 
             You're on the list.
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="flex flex-row gap-3 max-w-md mx-auto">            <input
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3 max-w-md mx-auto">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="First name"
+              className="w-full h-12 rounded-full border border-border px-5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-muted-foreground"
+            />
+            <div className="flex flex-row gap-3">
+            <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -108,6 +126,7 @@ export function NewsletterSignup({ variant = "section" }: { variant?: "section" 
             >
               {state === "loading" ? "Subscribing..." : "Subscribe"}
             </button>
+            </div>
           </form>
         )}
         {state === "error" && (

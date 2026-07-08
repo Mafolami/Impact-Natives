@@ -30,14 +30,15 @@ serve(async (req) => {
       body: JSON.stringify({
         from: FROM_EMAIL,
         to: email,
-        subject: "Welcome to The Dispatch — Impact Natives",
+        subject: "Welcome to Native Signal from Impact Natives",
         html: `
           <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 24px; background: #ffffff;">
             <h1 style="font-size: 24px; font-weight: 700; color: #0a0a0a; margin: 0 0 12px;">
               You're on the list.
             </h1>
             <p style="font-size: 16px; color: #555; line-height: 1.7; margin: 0 0 24px;">
-              Welcome to The Dispatch — ecosystem updates, partnership signals, and platform news from Impact Natives. No noise, no filler.
+              // REPLACE
+              Welcome to Native Signal, the Impact Natives monthly newsletter covering ecosystem intelligence, partnership signals, and platform updates across Africa's impact economy. No noise, no filler.
             </p>
             <p style="font-size: 16px; color: #555; line-height: 1.7; margin: 0 0 32px;">
               We'll be in touch when something worth reading happens.
