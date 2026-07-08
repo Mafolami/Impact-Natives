@@ -405,21 +405,20 @@ export function PartnershipTab() {
   ];
 
   return (
-    <div className="space-y-5">
-
-      {/* Sub-tabs */}
-      <div className="flex gap-1 border-b border-border overflow-x-auto">
+    <div className="space-y-8">
+      {/* Sub-tabs — pill style */}
+      <div className="flex gap-1.5 p-1 rounded-xl bg-muted w-fit overflow-x-auto">
         {subTabs.map(({ key, label, count }) => (
           <button key={key} type="button" onClick={() => setActiveView(key)}
-            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors -mb-px flex items-center gap-1.5 whitespace-nowrap ${
+            className={`h-8 px-4 rounded-lg text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 ${
               activeView === key
-                ? "border-[#2D6A4F] text-[#2D6A4F]"
-                : "border-transparent text-muted-foreground hover:text-foreground"
+                ? "bg-white text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
             }`}>
             {label}
             {count !== null && count > 0 && (
-              <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                activeView === key ? "bg-[#2D6A4F]/10 text-[#2D6A4F]" : "bg-muted text-muted-foreground"
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                activeView === key ? "bg-[#2D6A4F]/10 text-[#2D6A4F]" : "bg-background/60 text-muted-foreground"
               }`}>
                 {count}
               </span>
@@ -514,8 +513,7 @@ export function PartnershipTab() {
                 const isPending  = conn.status === "pending";
                 return (
                   <div key={conn.id}
-                    className="rounded-xl border border-border bg-card px-5 py-4 space-y-3">
-
+                    className="rounded-2xl border border-border bg-card px-6 py-5 space-y-4">
                     {/* Header */}
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -629,7 +627,7 @@ export function PartnershipTab() {
 
                 return (
                   <div key={conn.id}
-                    className="rounded-xl border border-border bg-card px-5 py-4 space-y-3">
+                    className="rounded-2xl border border-border bg-card px-6 py-5 space-y-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold text-foreground text-sm">

@@ -767,7 +767,7 @@ export default function DashboardInitiatives() {
         </div>
         {/* ── Initiatives tab ── */}
         {topTab === "initiatives" && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             {/* Initiative sub-tabs — pill style, visually distinct from top tabs */}
             <div className="flex gap-1.5 p-1 rounded-xl bg-muted w-fit">
               {initSubTabs.map(({ value, label, count }) => (
