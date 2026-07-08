@@ -176,6 +176,7 @@ function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeR
     setPublishing(true);
     await supabase.from("initiative_requests").update({
       status: "published",
+      published_at: new Date().toISOString(),
       problem,
       outcome,
       specific_ask: specificAsk,

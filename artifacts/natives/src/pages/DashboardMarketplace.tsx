@@ -237,8 +237,9 @@ function FilterPanel({
 }
 
 // ─── Initiative Card ──────────────────────────────────────────────────────────
-function InitiativeCard({ ini, expressed, onClick }: {
+function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave }: {
   ini: InitiativeRow; expressed: boolean; onClick: () => void;
+  saved: boolean; onToggleSave: (id: string, wasSaved: boolean) => void;
 }) {
   return (
     <button type="button" onClick={onClick}
@@ -265,6 +266,17 @@ function InitiativeCard({ ini, expressed, onClick }: {
           )}
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); onToggleSave(ini.id, saved); }}
+            className="p-1 rounded hover:bg-muted transition-colors"
+            title={saved ? "Remove from saved" : "Save initiative"}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+              fill={saved ? "#2D6A4F" : "none"} stroke={saved ? "#2D6A4F" : "currentColor"}
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+            </svg>
+          </button>
           {ini.submitter_is_verified && (
             <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full"
               style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
@@ -365,9 +377,34 @@ export default function DashboardMarketplace() {
 
   function clearFilters() { setSectors([]); setLocations([]); setBudgets([]); setPartnerships([]); setStartupPipeline(false); }
 
+  async function handleToggleSave(id: string, wasSaved: boolean) {
+    if (!user?.id) return;
+    if (wasSaved) {
+      await supabase.from("saved_initiatives").delete()
+        .eq("user_id", user.id).eq("initiative_id", id);
+      setSavedIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+    } else {
+      await supabase.from("saved_initiatives").insert({ user_id: user.id, initiative_id: id });
+      setSavedIds(prev => new Set(prev).add(id));
+    }
+  }
+
   const [loading, setLoading] = useState(true);
   const [startupPipeline, setStartupPipeline] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showSaved, setShowSaved] = useState(false);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase
+      .from("saved_initiatives")
+      .select("initiative_id")
+      .eq("user_id", user.id)
+      .then(({ data }) => {
+        setSavedIds(new Set((data ?? []).map((r: any) => r.initiative_id)));
+      });
+  }, [user?.id]);
 
   function toggleStartupPipeline() {
     setStartupPipeline(v => !v);
@@ -423,6 +460,7 @@ export default function DashboardMarketplace() {
   }, []);
 
   const filtered = initiatives.filter(ini => {
+    if (showSaved && !savedIds.has(ini.id)) return false;
     if (startupPipeline) {
       const isStartupType = ["startup", "social_enterprise", "technology_company"].includes(ini.submitter_org_type ?? "");
       const isEarlyStage = ["concept", "pilot"].includes(ini.stage ?? "");
@@ -511,6 +549,20 @@ export default function DashboardMarketplace() {
             </span>
           )}
         </button>
+        <button type="button" onClick={() => setShowSaved(v => !v)}
+          className={`h-10 px-4 rounded-lg border text-sm flex items-center gap-2 transition-colors shrink-0 ${
+            showSaved
+              ? "border-[#2D6A4F] text-[#2D6A4F] bg-[#eaf5ee]"
+              : "border-border text-muted-foreground hover:border-foreground/30"
+          }`}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill={showSaved ? "#2D6A4F" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+          Saved
+          {savedIds.size > 0 && (
+            <span className="w-4 h-4 rounded-full bg-[#2D6A4F] text-white text-[10px] flex items-center justify-center font-bold">
+              {savedIds.size}
+            </span>
+          )}
+        </button>
       </div>
 
       {showFilters && (
@@ -544,7 +596,7 @@ export default function DashboardMarketplace() {
       {!loading && (
         <p className="text-xs text-muted-foreground">
           {filtered.length} initiative{filtered.length !== 1 ? "s" : ""}
-          {activeFilterCount > 0 ? " matching filters" : ""}
+          {showSaved ? " saved" : activeFilterCount > 0 ? " matching filters" : ""}
         </p>
       )}
 
@@ -571,6 +623,8 @@ export default function DashboardMarketplace() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {filtered.map(ini => (
             <InitiativeCard key={ini.id} ini={ini}
+              saved={savedIds.has(ini.id)}
+              onToggleSave={handleToggleSave}
               expressed={expressedIds.has(ini.id)}
               onClick={() => setSelected(ini)} />
           ))}

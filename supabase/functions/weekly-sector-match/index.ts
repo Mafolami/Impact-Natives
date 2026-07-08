@@ -55,11 +55,24 @@ Return ONLY the message text.`;
   return data.choices?.[0]?.message?.content?.trim() ?? `${matchCount} new initiative${matchCount !== 1 ? "s" : ""} in your sectors this week.`;
 }
 
-function buildEmailHtml(headline: { name: string; sub: string }, bodyText: string, matchTitles: string[], ctaLabel: string, ctaLink: string): string {  const bulletBlock = matchTitles.length > 0
+function buildEmailHtml(headline: { name: string; sub: string }, bodyText: string, matchTitles: string[], partnerListings: string[], ctaLabel: string, ctaLink: string): string {  const bulletBlock = matchTitles.length > 0
     ? `
-      <div style="margin: 0 0 28px;">
+      <div style="margin: 0 0 20px;">
+        <p style="font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 10px;">New initiatives</p>
         ${matchTitles.map((t) => `
           <p style="font-size: 14px; color: #333; margin: 0 0 8px; padding-left: 16px; border-left: 2px solid #2D6A4F;">
+            ${t}
+          </p>
+        `).join("")}
+      </div>
+    `
+    : "";
+  const partnerBlock = partnerListings.length > 0
+    ? `
+      <div style="margin: 0 0 28px;">
+        <p style="font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 10px;">Partnership listings in your sectors</p>
+        ${partnerListings.map((t) => `
+          <p style="font-size: 14px; color: #333; margin: 0 0 8px; padding-left: 16px; border-left: 2px solid #52b788;">
             ${t}
           </p>
         `).join("")}
@@ -89,6 +102,7 @@ function buildEmailHtml(headline: { name: string; sub: string }, bodyText: strin
               <td style="padding: 32px;">
           <p style="font-size: 15px; color: #333; line-height: 1.7; margin: 0 0 20px;">${bodyText}</p>
           ${bulletBlock}
+          ${partnerBlock}
           <a href="${ctaLink}" style="display: block; text-align: center; background: #2D6A4F; color: #ffffff; font-size: 14px; font-weight: 600; line-height: 20px; padding: 14px 28px; border-radius: 8px; text-decoration: none; margin: 0 0 12px;">${ctaLabel}</a>
           <a href="https://app.impactnatives.com/dashboard/marketplace" style="display: block; text-align: center; background: transparent; color: #2D6A4F; font-size: 14px; font-weight: 600; line-height: 20px; padding: 13px 28px; border-radius: 8px; text-decoration: none; border: 1px solid #2D6A4F; margin: 0 0 40px;">Browse All Opportunities</a>
           <p style="font-size: 12px; color: #999; margin: 0 0 12px; padding-top: 24px; border-top: 1px solid #e5e5e5;">
@@ -131,7 +145,21 @@ Deno.serve(async (req: Request) => {
   try {
     // Get all active users who have sectors and feed_visibility != 'none'
     const profiles = await supabaseFetch(
-      "profiles?select=id,full_name,email,sectors&feed_visibility=neq.none&onboarding_completed=eq.true&sectors=not.is.null",    );
+      "profiles?select=id,full_name,email,sectors&feed_visibility=neq.none&onboarding_completed=eq.true&sectors=not.is.null",
+    );
+    // Fetch org IDs for all eligible users (needed for partnership exclusion)
+    const userIds = Array.isArray(profiles) ? profiles.map((p: any) => p.id) : [];
+    const userOrgs = userIds.length > 0
+      ? await supabaseFetch(
+          `organizations?select=id,user_id&user_id=in.(${userIds.join(",")})`,
+        )
+      : [];
+    const userOrgMap: Record<string, string> = {};
+    if (Array.isArray(userOrgs)) {
+      for (const o of userOrgs) {
+        userOrgMap[o.user_id] = o.id;
+      }
+    }
     console.log("profiles result:", JSON.stringify(profiles).slice(0, 300));
     if (!Array.isArray(profiles) || profiles.length === 0) {
       console.log("Exiting early — no eligible users");
@@ -143,7 +171,23 @@ Deno.serve(async (req: Request) => {
     // Get initiatives published in the last 7 days
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const recentInitiatives = await supabaseFetch(
-      `initiative_requests?select=id,title,sectors&status=eq.published&created_at=gte.${oneWeekAgo}`,    );
+      `initiative_requests?select=id,title,sectors&status=eq.published&published_at=gte.${oneWeekAgo}`,
+    );
+    // Get orgs listed for partnership in the last 7 days, not yet formed
+    const listedOrgs = await supabaseFetch(
+      `organizations?select=id,organisation_name,sector,user_id&partnership_listed=eq.true&partnership_formed=eq.false&updated_at=gte.${oneWeekAgo}`,
+    );
+    // Get all existing partnership connections for exclusion
+    const allConnections = await supabaseFetch(
+      `partnership_connections?select=sender_org_id,receiver_org_id`,
+    );
+    const connectionPairs = new Set<string>();
+    if (Array.isArray(allConnections)) {
+      for (const c of allConnections) {
+        connectionPairs.add(`${c.sender_org_id}:${c.receiver_org_id}`);
+        connectionPairs.add(`${c.receiver_org_id}:${c.sender_org_id}`);
+      }
+    }
 
     const hasRecentInitiatives = Array.isArray(recentInitiatives) && recentInitiatives.length > 0;
 
@@ -163,7 +207,37 @@ Deno.serve(async (req: Request) => {
 
       const firstName = profile.full_name?.split(" ")[0] ?? "there";
       const sampleTitles = matches.slice(0, 3).map((m: any) => m.title);
-
+      // Partnership listings matching this user's sectors, excluding existing connections
+      const userOrgId = userOrgMap[profile.id] ?? null;
+      const partnerMatches = Array.isArray(listedOrgs)
+        ? listedOrgs.filter((org: any) => {
+            // Exclude the user's own org
+            if (org.id === userOrgId) return false;
+            // Exclude orgs with an existing connection
+            if (userOrgId && (
+              connectionPairs.has(`${userOrgId}:${org.id}`) ||
+              connectionPairs.has(`${org.id}:${userOrgId}`)
+            )) return false;
+            // Sector match
+            const raw = org.sector ?? "";
+            let orgSectors: string[] = [];
+            try {
+              if (Array.isArray(raw)) {
+                orgSectors = raw;
+              } else if (typeof raw === "string" && raw.startsWith("[")) {
+                orgSectors = JSON.parse(raw);
+              } else if (typeof raw === "string" && raw.startsWith("{")) {
+                orgSectors = raw.slice(1, -1).split(",").map((s: string) =>
+                  s.trim().replace(/^[\s"']+|[\s"']+$/g, "")
+                );
+              } else if (raw) {
+                orgSectors = [raw];
+              }
+            } catch { orgSectors = []; }
+            return orgSectors.some((s: string) => userSectors.includes(s));
+          })
+        : [];
+      const partnerListingNames = partnerMatches.slice(0, 3).map((o: any) => o.organisation_name);
       // Generate AI-personalised copy
       const body = await generatePersonalisedCopy(firstName, userSectors, matches.length, sampleTitles);
 
@@ -186,11 +260,88 @@ Deno.serve(async (req: Request) => {
         headline,
         body,
         sampleTitles,
+        partnerListingNames,
         "View matches",
         "https://app.impactnatives.com/dashboard/marketplace"
       );
       const emailSubject = `Opportunity Alert — ${weeklyMatchCount} Recommended Match${weeklyMatchCount !== 1 ? "es" : ""}`;
       await sendEmail(profile.email, emailSubject, emailHtml);
+      notificationsSent++;
+    }
+
+    // ── Proactive partner-match notifications ──────────────────────────────
+    // Notify NGO/implementer/startup users when a corporate/funder in their
+    // sectors is listed for partnership and they have no existing connection
+    const IMPLEMENTER_ORG_TYPES = ["ngo_non_profit", "social_enterprise", "startup"];
+    const implementerProfiles = Array.isArray(profiles)
+      ? profiles.filter((p: any) =>
+          IMPLEMENTER_ORG_TYPES.includes(p.org_type) &&
+          Array.isArray(p.sectors) && p.sectors.length > 0
+        )
+      : [];
+    // Fetch all listed corporate/funder orgs (not just last 7 days — full pool)
+    const allListedOrgs = await supabaseFetch(
+      `organizations?select=id,organisation_name,sector,user_id,organisation_type&partnership_listed=eq.true&partnership_formed=eq.false`,
+    );
+    const CORPORATE_ORG_TYPES = [
+      "corporation", "technology_company", "public_sector",
+      "philanthropic_foundation", "venture_capital",
+    ];
+    const listedCorporates = Array.isArray(allListedOrgs)
+      ? allListedOrgs.filter((o: any) => CORPORATE_ORG_TYPES.includes(o.organisation_type))
+      : [];
+    for (const profile of implementerProfiles) {
+      const userSectors: string[] = profile.sectors ?? [];
+      if (userSectors.length === 0) continue;
+      const userOrgId = userOrgMap[profile.id] ?? null;
+      const matched = listedCorporates.filter((org: any) => {
+        if (org.id === userOrgId) return false;
+        if (userOrgId && (
+          connectionPairs.has(`${userOrgId}:${org.id}`) ||
+          connectionPairs.has(`${org.id}:${userOrgId}`)
+        )) return false;
+        const raw = org.sector ?? "";
+        let orgSectors: string[] = [];
+        try {
+          if (Array.isArray(raw)) {
+            orgSectors = raw;
+          } else if (typeof raw === "string" && raw.startsWith("[")) {
+            orgSectors = JSON.parse(raw);
+          } else if (typeof raw === "string" && raw.startsWith("{")) {
+            orgSectors = raw.slice(1, -1).split(",").map((s: string) =>
+              s.trim().replace(/^[\s"']+|[\s"']+$/g, "")
+            );
+          } else if (raw) {
+            orgSectors = [raw];
+          }
+        } catch { orgSectors = []; }
+        return orgSectors.some((s: string) => userSectors.includes(s));
+      });
+      if (matched.length === 0) continue;
+      const topOrg = matched[0];
+      const extra = matched.length > 1 ? ` and ${matched.length - 1} other${matched.length > 2 ? "s" : ""}` : "";
+      const overlapSector = userSectors.find((s) => {
+        const raw = topOrg.sector ?? "";
+        let orgSectors: string[] = [];
+        try {
+          if (Array.isArray(raw)) orgSectors = raw;
+          else if (typeof raw === "string" && raw.startsWith("[")) orgSectors = JSON.parse(raw);
+          else if (typeof raw === "string" && raw.startsWith("{")) orgSectors = raw.slice(1, -1).split(",").map((s: string) => s.trim().replace(/^[\s"']+|[\s"']+$/g, ""));
+          else if (raw) orgSectors = [raw];
+        } catch { orgSectors = []; }
+        return orgSectors.includes(s);
+      }) ?? userSectors[0];
+      await supabaseFetch("notifications", {
+        method: "POST",
+        body: JSON.stringify({
+          user_id: profile.id,
+          type:    "partner_match",
+          title:   `A potential partner match in ${overlapSector}`,
+          body:    `${topOrg.organisation_name}${extra} is listed in your sectors and open to partnerships.`,
+          link:    "/dashboard/natives?tab=organisation",
+          read:    false,
+        }),
+      });
       notificationsSent++;
     }
 

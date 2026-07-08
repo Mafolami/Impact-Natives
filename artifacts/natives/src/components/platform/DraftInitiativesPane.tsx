@@ -145,6 +145,7 @@ function DraftCard({
       .from("initiative_requests")
       .update({
         status: "published",
+        published_at: new Date().toISOString(),
         detail_content: detailContent || null,
         problem,
         outcome,
