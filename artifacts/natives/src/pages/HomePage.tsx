@@ -617,7 +617,7 @@ export default function HomePage() {
   const [currentVideo, setCurrentVideo] = useState(0)
   const [videoError, setVideoError] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
+  
   const statsRef = useRef<HTMLDivElement>(null)
   const [statsVisible, setStatsVisible] = useState(false)
 
@@ -632,16 +632,7 @@ export default function HomePage() {
     return () => obs.disconnect()
   }, [])
 
-  useEffect(() => {
-    const vid = videoRef.current
-    if (!vid) return
-    vid.muted = true
-    vid.playbackRate = 0.45
-    vid.load()
-    const tryPlay = () => vid.play().catch(() => {})
-    if (vid.readyState >= 3) tryPlay()
-    else vid.addEventListener('canplay', tryPlay, { once: true })
-  }, [currentVideo])
+  
 
   useEffect(() => {
     const targets = document.querySelectorAll('.hp-reveal')
@@ -701,28 +692,9 @@ export default function HomePage() {
 
       {/* ── HERO ──────────────────────────────────────────── */}
       <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', width: '70vw', height: '70vh', top: '-15%', right: '-10%', background: 'radial-gradient(ellipse, rgba(196,92,38,0.1) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 1 }} />
-        <div style={{ position: 'absolute', width: '50vw', height: '50vh', bottom: '0', left: '10%', background: 'radial-gradient(ellipse, rgba(45,184,122,0.05) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 1 }} />
-        <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-          {videoError ? (
-            <div style={{ width: '100%', height: '100%', background: isDark ? 'linear-gradient(135deg, #0e0a14 0%, #1a0e0a 40%, #0a0e14 100%)' : 'linear-gradient(135deg, #e8e0d6 0%, #f0e8df 40%, #e0e8f0 100%)' }} />
-          ) : (
-            <video
-              ref={videoRef}
-              key={currentVideo}
-              autoPlay muted playsInline
-              onEnded={() => setCurrentVideo(v => (v + 1) % videos.length)}
-              onError={() => setVideoError(true)}
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: isDark ? 'brightness(0.3) saturate(0.7)' : 'brightness(0.55) saturate(0.8)' }}
-            >
-              <source src={videos[currentVideo]} type="video/mp4" />
-            </video>
-          )}
-          <div style={{ position: 'absolute', inset: 0, background: isDark
-            ? 'linear-gradient(to bottom, rgba(9,8,10,0.25) 0%, rgba(9,8,10,0.08) 35%, rgba(9,8,10,0.6) 80%, rgba(9,8,10,1) 100%)'
-            : 'linear-gradient(to bottom, rgba(247,243,237,0.3) 0%, rgba(247,243,237,0.1) 35%, rgba(247,243,237,0.7) 80%, rgba(247,243,237,1) 100%)'
-          }} />
-        </div>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 0, background: isDark ? 'hsl(193,20%,7%)' : '#ffffff' }} />
+        <div style={{ position: 'absolute', width: '70vw', height: '70vh', top: '-15%', right: '-10%', background: 'radial-gradient(ellipse, rgba(196,92,38,0.08) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 1 }} />
+        <div style={{ position: 'absolute', width: '50vw', height: '50vh', bottom: '0', left: '10%', background: 'radial-gradient(ellipse, rgba(45,184,122,0.04) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 1 }} />
         <div className="hp-section-wrap hp-hero" style={{ position: 'relative', zIndex: 10, paddingTop: '7rem', paddingBottom: '6rem', width: '100%' }}>
 
           <h1 style={{
