@@ -276,6 +276,19 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── Proactive partner-match notifications ──────────────────────────────
+    // Fetch recent partner_match notifications (last 30 days) for deduplication
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const recentPartnerNotifs = await supabaseFetch(
+      `notifications?select=user_id,metadata&type=eq.partner_match&created_at=gte.${thirtyDaysAgo}`,
+    );
+    // Build a set of "user_id:org_id" pairs already notified
+    const recentPartnerPairs = new Set<string>();
+    if (Array.isArray(recentPartnerNotifs)) {
+      for (const n of recentPartnerNotifs) {
+        const orgId = n.metadata?.org_id;
+        if (orgId) recentPartnerPairs.add(`${n.user_id}:${orgId}`);
+      }
+    }
     // Notify NGO/implementer/startup users when a corporate/funder in their
     // sectors is listed for partnership and they have no existing connection
     const IMPLEMENTER_ORG_TYPES = ["ngo_non_profit", "social_enterprise", "startup"];
@@ -326,7 +339,9 @@ Deno.serve(async (req: Request) => {
       if (matched.length === 0) continue;
       const partnerMatchOptIn = profile.notification_preferences?.partner_match !== false;
       if (!partnerMatchOptIn) continue;
-      const topOrg = matched[0];
+      // Pick first match not already notified in last 30 days
+      const topOrg = matched.find((o: any) => !recentPartnerPairs.has(`${profile.id}:${o.id}`));
+      if (!topOrg) continue;
       const extra = matched.length > 1 ? ` and ${matched.length - 1} other${matched.length > 2 ? "s" : ""}` : "";
       const overlapSector = userSectors.find((s) => {
         const raw = topOrg.sector ?? "";
@@ -342,12 +357,13 @@ Deno.serve(async (req: Request) => {
       await supabaseFetch("notifications", {
         method: "POST",
         body: JSON.stringify({
-          user_id: profile.id,
-          type:    "partner_match",
-          title:   `A potential partner match in ${overlapSector}`,
-          body:    `${topOrg.organisation_name}${extra} is listed in your sectors and open to partnerships.`,
-          link:    "/dashboard/natives?tab=organisation",
-          read:    false,
+          user_id:  profile.id,
+          type:     "partner_match",
+          title:    `A potential partner match in ${overlapSector}`,
+          body:     `${topOrg.organisation_name}${extra} is listed in your sectors and open to partnerships.`,
+          link:     "/dashboard/natives?tab=organisation",
+          read:     false,
+          metadata: { org_id: topOrg.id },
         }),
       });
       notificationsSent++;

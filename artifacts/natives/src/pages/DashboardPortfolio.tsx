@@ -736,13 +736,19 @@ export default function DashboardInitiatives() {
   return (
     <>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground mt-1">
-            Your initiatives and org-to-org partnerships.
-          </p>
-
+        {/* Page header */}
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-foreground tracking-tight">Portfolio</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">Your initiatives and org-to-org partnerships.</p>
+          </div>
+          {topTab === "initiatives" && initSubTab === "created" && (
+            <button type="button" onClick={() => setShowModal(true)}
+              className="shrink-0 rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
+              + New Initiative
+            </button>
+          )}
         </div>
-
         {/* Top-level tabs */}
         <div className="flex gap-1 border-b border-border">
           {[
@@ -750,7 +756,7 @@ export default function DashboardInitiatives() {
             { key: "partnerships" as const, label: "Partnerships" },
           ].map(({ key, label }) => (
             <button key={key} type="button" onClick={() => setTopTab(key)}
-              className={`pb-3 px-3 text-sm font-semibold border-b-2 transition-colors -mb-px ${
+              className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-colors -mb-px ${
                 topTab === key
                   ? "border-[#2D6A4F] text-[#2D6A4F]"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -759,23 +765,22 @@ export default function DashboardInitiatives() {
             </button>
           ))}
         </div>
-
         {/* ── Initiatives tab ── */}
         {topTab === "initiatives" && (
-          <div className="space-y-5">
-            {/* Initiative sub-tabs */}
-            <div className="flex gap-2 border-b border-border">
+          <div className="space-y-6">
+            {/* Initiative sub-tabs — pill style, visually distinct from top tabs */}
+            <div className="flex gap-1.5 p-1 rounded-xl bg-muted w-fit">
               {initSubTabs.map(({ value, label, count }) => (
                 <button key={value} type="button" onClick={() => setInitSubTab(value)}
-                  className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors -mb-px ${
+                  className={`h-8 px-4 rounded-lg text-xs font-semibold transition-all ${
                     initSubTab === value
-                      ? "border-[#2D6A4F] text-[#2D6A4F]"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
+                      ? "bg-white text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}>
                   {label}
-                  {count !== null && (
-                    <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${
-                      initSubTab === value ? "bg-[#2D6A4F]/10 text-[#2D6A4F]" : "bg-muted text-muted-foreground"
+                  {count !== null && count > 0 && (
+                    <span className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full ${
+                      initSubTab === value ? "bg-[#2D6A4F]/10 text-[#2D6A4F]" : "bg-background/60 text-muted-foreground"
                     }`}>
                       {count}
                     </span>
@@ -799,7 +804,7 @@ export default function DashboardInitiatives() {
                     </p>
                     <button type="button" onClick={() => setShowModal(true)}
                       className="rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
-                      Create Initiative
+                      + New Initiative
                     </button>
                   </div>
                 ) : (
@@ -808,17 +813,29 @@ export default function DashboardInitiatives() {
                       const s = STATUS_MAP[ini.status] ?? { label: ini.status, dot: "#6b7280", bg: "#f9fafb" };
                       return (
                         <button key={ini.id} type="button" onClick={() => setSelected(ini)}
-                          className="w-full text-left rounded-xl border border-border bg-card px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group">
+                          className="w-full text-left rounded-2xl border border-border bg-card px-6 py-5 hover:border-[#2D6A4F]/40 hover:shadow-sm transition-all group">
                           <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.dot }} />
-                                <span className="text-xs text-muted-foreground">{s.label}</span>
-                                <span className="text-xs text-muted-foreground">·</span>
-                                <span className="text-xs text-muted-foreground">{ini.eois} EOI{ini.eois !== 1 ? "s" : ""}</span>
+                            <div className="flex-1 min-w-0 space-y-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-0.5 rounded-full"
+                                  style={{ background: s.bg, color: s.dot }}>
+                                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.dot }} />
+                                  {s.label}
+                                </span>
+                                <span className="text-[11px] text-muted-foreground">
+                                  {ini.eois} EOI{ini.eois !== 1 ? "s" : ""}
+                                </span>
                               </div>
-                              <p className="font-medium text-foreground group-hover:text-[#2D6A4F] transition-colors truncate">{ini.title}</p>
-                              <p className="text-xs text-muted-foreground mt-1">{normalizeArr(ini.sectors).join(", ")} · {normalizeArr(ini.locations).slice(0, 2).join(", ")}</p>                            </div>
+                              <p className="font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors leading-snug">
+                                {ini.title}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {normalizeArr(ini.sectors).slice(0, 2).join(", ")}
+                                {normalizeArr(ini.locations).length > 0 && (
+                                  <> · {normalizeArr(ini.locations).slice(0, 2).join(", ")}</>
+                                )}
+                              </p>
+                            </div>
                             <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-[#2D6A4F] transition-colors shrink-0 mt-1" />
                           </div>
                         </button>
