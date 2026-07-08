@@ -662,6 +662,9 @@ export default function DashboardPartnerships() {
   const [sectorFilters, setSectorFilters]     = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters]         = useState(false);
   const [favoritesOnly, setFavoritesOnly]     = useState(false);
+  const [orgTypeFilters, setOrgTypeFilters]   = useState<Set<string>>(new Set());
+  const [stageFilters, setStageFilters]       = useState<Set<string>>(new Set());
+  const [ddReadyOnly, setDdReadyOnly]         = useState(false);
   const [selectedOrg, setSelectedOrg]         = useState<OrgRow | null>(null);
   const [savedOrgs, setSavedOrgs]             = useState<Set<string>>(new Set());
   const [currentUserOrgId, setCurrentUserOrgId] = useState<string | null>(null);
@@ -704,7 +707,16 @@ export default function DashboardPartnerships() {
     const matchesSector    = sectorFilters.size === 0 || sectors.some(s => [...sectorFilters].some(f => s.toLowerCase().includes(f.toLowerCase())));
     const matchesSearch    = !search.trim() || org.organisation_name?.toLowerCase().includes(search.toLowerCase()) || org.description?.toLowerCase().includes(search.toLowerCase()) || (org.partnership_sought ?? "").toLowerCase().includes(search.toLowerCase()) || countries.some(c => c.toLowerCase().includes(search.toLowerCase()));
     const matchesFavorites = !favoritesOnly || savedOrgs.has(org.id);
-    return matchesSector && matchesSearch && matchesFavorites;
+    const matchesOrgType   = orgTypeFilters.size === 0 || orgTypeFilters.has(org.organisation_type ?? "");
+    const matchesStage     = stageFilters.size === 0 || stageFilters.has(org.partnership_stage ?? "");
+    const matchesDDReady   = !ddReadyOnly || [
+      org.partnership_dd_financial_model,
+      org.partnership_dd_audited_accounts,
+      org.partnership_dd_safeguarding_policy,
+      org.partnership_dd_data_policy,
+      org.partnership_dd_governance_doc,
+    ].some(Boolean);
+    return matchesSector && matchesSearch && matchesFavorites && matchesOrgType && matchesStage && matchesDDReady;
   });
 
   async function toggleSave(orgId: string, e: React.MouseEvent) {
@@ -775,7 +787,7 @@ export default function DashboardPartnerships() {
     finally { setSendingInterest(null); }
   }
 
-  const activeFilterCount = sectorFilters.size + (favoritesOnly ? 1 : 0);
+  const activeFilterCount = sectorFilters.size + orgTypeFilters.size + stageFilters.size + (favoritesOnly ? 1 : 0) + (ddReadyOnly ? 1 : 0);
 
   return (
     <>
@@ -810,27 +822,84 @@ export default function DashboardPartnerships() {
 
         {/* Filter panel */}
         {showFilters && (
-          <div className="shrink-0 px-5 py-4 space-y-3" style={{ background: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={favoritesOnly} onChange={e => setFavoritesOnly(e.target.checked)} className="w-3.5 h-3.5 rounded accent-[#2D6A4F]" />
-              <span className="text-xs font-semibold text-[#374151]">Saved only</span>
-            </label>
-            <div className="flex flex-wrap gap-1.5">
-              {SECTOR_OPTIONS.map(sector => (
-                <button key={sector} type="button"
-                  onClick={() => setSectorFilters(prev => { const n = new Set(prev); n.has(sector) ? n.delete(sector) : n.add(sector); return n; })}
-                  className="h-6 px-2.5 rounded-md text-[10px] font-semibold transition-colors"
-                  style={sectorFilters.has(sector)
-                    ? { background: "#111827", color: "#FFFFFF", border: "1px solid #111827" }
-                    : { background: "#FFFFFF", color: "#6B7280", border: "1px solid #E5E7EB" }}>
-                  {sector}
-                </button>
-              ))}
+          <div className="shrink-0 px-5 py-4 space-y-4" style={{ background: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
+            {/* Row 1 — toggles */}
+            <div className="flex flex-wrap gap-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={favoritesOnly} onChange={e => setFavoritesOnly(e.target.checked)} className="w-3.5 h-3.5 rounded accent-[#2D6A4F]" />
+                <span className="text-xs font-semibold text-[#374151]">Saved only</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={ddReadyOnly} onChange={e => setDdReadyOnly(e.target.checked)} className="w-3.5 h-3.5 rounded accent-[#2D6A4F]" />
+                <span className="text-xs font-semibold text-[#374151]">DD docs available</span>
+              </label>
+            </div>
+            {/* Row 2 — org type */}
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] mb-1.5">Organisation type</p>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { value: "ngo_non_profit",     label: "NGO / Non-profit" },
+                  { value: "social_enterprise",  label: "Social enterprise" },
+                  { value: "startup",            label: "Startup" },
+                  { value: "technology_company", label: "Tech company" },
+                  { value: "venture_capital",    label: "Venture capital" },
+                  { value: "corporation",        label: "Corporation" },
+                  { value: "philanthropic_foundation", label: "Foundation" },
+                  { value: "public_sector",      label: "Public sector" },
+                ].map(({ value, label }) => (
+                  <button key={value} type="button"
+                    onClick={() => setOrgTypeFilters(prev => { const n = new Set(prev); n.has(value) ? n.delete(value) : n.add(value); return n; })}
+                    className="h-6 px-2.5 rounded-md text-[10px] font-semibold transition-colors"
+                    style={orgTypeFilters.has(value)
+                      ? { background: "#111827", color: "#FFFFFF", border: "1px solid #111827" }
+                      : { background: "#FFFFFF", color: "#6B7280", border: "1px solid #E5E7EB" }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Row 3 — partnership stage */}
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] mb-1.5">Partnership stage</p>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { value: "pilot",          label: "Pilot" },
+                  { value: "joining_running", label: "Joining existing" },
+                  { value: "scaling",        label: "Scaling" },
+                ].map(({ value, label }) => (
+                  <button key={value} type="button"
+                    onClick={() => setStageFilters(prev => { const n = new Set(prev); n.has(value) ? n.delete(value) : n.add(value); return n; })}
+                    className="h-6 px-2.5 rounded-md text-[10px] font-semibold transition-colors"
+                    style={stageFilters.has(value)
+                      ? { background: "#111827", color: "#FFFFFF", border: "1px solid #111827" }
+                      : { background: "#FFFFFF", color: "#6B7280", border: "1px solid #E5E7EB" }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Row 4 — sectors */}
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] mb-1.5">Sector</p>
+              <div className="flex flex-wrap gap-1.5">
+                {SECTOR_OPTIONS.map(sector => (
+                  <button key={sector} type="button"
+                    onClick={() => setSectorFilters(prev => { const n = new Set(prev); n.has(sector) ? n.delete(sector) : n.add(sector); return n; })}
+                    className="h-6 px-2.5 rounded-md text-[10px] font-semibold transition-colors"
+                    style={sectorFilters.has(sector)
+                      ? { background: "#111827", color: "#FFFFFF", border: "1px solid #111827" }
+                      : { background: "#FFFFFF", color: "#6B7280", border: "1px solid #E5E7EB" }}>
+                    {sector}
+                  </button>
+                ))}
+              </div>
             </div>
             {activeFilterCount > 0 && (
-              <button type="button" onClick={() => { setSectorFilters(new Set()); setFavoritesOnly(false); }}
+              <button type="button"
+                onClick={() => { setSectorFilters(new Set()); setOrgTypeFilters(new Set()); setStageFilters(new Set()); setFavoritesOnly(false); setDdReadyOnly(false); }}
                 className="text-xs text-[#374151] hover:text-[#111827] transition-colors">
-                Clear all
+                Clear all ({activeFilterCount})
               </button>
             )}
           </div>
