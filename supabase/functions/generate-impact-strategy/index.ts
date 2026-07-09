@@ -704,17 +704,31 @@ ${sharedPillarRules(complianceBlock)}
 
 STRICT OUTPUT: return only a JSON object with exactly three keys: "reply" (string), "pillars" (array or null), "proposal" (object or null). No prose outside the JSON.`;
 
+  // Only inject pillar context on the first turn.
+  // On subsequent turns the model already has it from conversation history.
+  const isFirstTurn = messages.length === 1;
+
   const groqMessages = [
     { role: "system", content: systemPrompt },
-    {
-      role: "user",
-      content: `Current pillars:\n${JSON.stringify(pillars, null, 2)}\n\nConversation starts now.`,
-    },
-    { role: "assistant", content: JSON.stringify({ reply: "Got it. What would you like to change?", pillars: null }) },
-    ...messages.map((m: { role: string; content: string }) => ({
-      role: m.role,
-      content: m.content,
-    })),
+    ...(isFirstTurn
+      ? [
+          {
+            role: "user",
+            content: `Current pillars:\n${JSON.stringify(pillars, null, 2)}\n\nConversation starts now. First instruction: ${messages[0].content}`,
+          },
+        ]
+      : [
+          {
+            role: "user",
+            content: `Current pillars (compact):\n${JSON.stringify(pillars.map((p: any) => ({ name: p.pillar_name, demographics: p.target_demographics, outcome: p.measurable_outcome })))}\n\nConversation starts now.`,
+          },
+          { role: "assistant", content: JSON.stringify({ reply: "Got it. What would you like to change?", pillars: null, proposal: null }) },
+          ...messages.map((m: { role: string; content: string }) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        ]
+    ),
   ];
 
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -726,7 +740,7 @@ STRICT OUTPUT: return only a JSON object with exactly three keys: "reply" (strin
       },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
-        max_tokens: 4000,
+        max_tokens: 2500,
         response_format: { type: "json_object" },
         messages: groqMessages,
       }),
