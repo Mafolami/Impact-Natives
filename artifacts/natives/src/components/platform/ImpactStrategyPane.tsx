@@ -357,11 +357,16 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
               Generate a new strategy
             </button>
             <button
-              onClick={() => setChatOpen(o => !o)}
+              onClick={() => {
+                setChatOpen(true);
+                setTimeout(() => {
+                  document.getElementById("strategy-advisor")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 50);
+              }}
               className="text-sm underline"
               style={{ color: "#2D6A4F" }}
             >
-              {chatOpen ? "Hide advisor" : "Show advisor"}
+              Refine with Strategy Advisor
             </button>
             {previousPillars && (
               <button
@@ -483,7 +488,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
           {pushError && <p className="text-sm text-red-600">{pushError}</p>}
 
           {/* Strategy Advisor — below pillars */}
-          <div className="rounded-2xl border border-[#2D6A4F]/20 overflow-hidden mt-2"
+          <div id="strategy-advisor" className="rounded-2xl border border-[#2D6A4F]/20 overflow-hidden mt-2"
             style={{ background: "rgba(45,106,79,0.02)" }}>
             <div className="px-5 py-4 border-b border-[#2D6A4F]/12 flex items-center justify-between"
               style={{ background: "rgba(45,106,79,0.05)" }}>
