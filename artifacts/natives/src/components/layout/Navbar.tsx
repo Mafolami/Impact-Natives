@@ -240,7 +240,7 @@ const isHomePage = location === "/" || location === "/labs/commission"
 
           {/* ── RIGHT — Desktop auth buttons ── */}
           <div className="hidden md:flex items-center gap-3 shrink-0">
-<div style={{ color: scrolled || !isHomePage ? undefined : "white" }}>
+<div className="theme-toggle-wrap" style={{ color: scrolled || !isHomePage || !isDark ? undefined : "white" }}>
               <ThemeToggle />
             </div>
             {user ? (
@@ -303,7 +303,7 @@ const isHomePage = location === "/" || location === "/labs/commission"
 
           {/* ── MOBILE — Hamburger ── */}
 <div className="md:hidden flex items-center gap-2">
-            <div style={{ color: scrolled || !isHomePage ? undefined : "white" }}>
+            <div className="theme-toggle-wrap" style={{ color: scrolled || !isHomePage || !isDark ? undefined : "white" }}>
               <ThemeToggle />
             </div>
             <button

@@ -711,7 +711,6 @@ export default function HomePage() {
             <Link href="/platform/partnership-os">
               <button className="hp-btn-primary">
                 Find a Partner
-                <ArrowRight style={{ width: '1rem', height: '1rem' }} />
               </button>
             </Link>
             <Link href="/platform/impact-marketplace">

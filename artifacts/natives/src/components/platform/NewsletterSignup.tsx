@@ -89,7 +89,7 @@ export function NewsletterSignup({ variant = "section" }: { variant?: "section" 
           Native Signal: Stay close to what's moving in Africa's impact economy.
         </h2>
         <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-          Partnership signals, ecosystem updates, and platform news — straight to your inbox. No noise.
+          Partnership signals, ecosystem updates, and platform news delivered straight to your inbox.
         </p>
         {state === "success" ? (
           <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#eaf5ee] text-[#2D6A4F] text-sm font-medium">
