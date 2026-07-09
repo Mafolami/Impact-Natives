@@ -663,11 +663,11 @@ Operating country: ${operating_country ?? "Not specified"}`;
 }
 
 async function handleRefineStrategy(body: any): Promise<Response> {
-  const { organization_id, pillars, instruction, operating_country, industry_sector } = body;
+  const { organization_id, pillars, messages, operating_country, industry_sector } = body;
 
-  if (!organization_id || !pillars || !instruction) {
+  if (!organization_id || !pillars || !messages?.length) {
     return new Response(
-      JSON.stringify({ error: "organization_id, pillars, and instruction are required" }),
+      JSON.stringify({ error: "organization_id, pillars, and messages are required" }),
       { status: 400, headers: { "Content-Type": "application/json", ...CORS_HEADERS } }
     );
   }
@@ -677,51 +677,99 @@ async function handleRefineStrategy(body: any): Promise<Response> {
   const sectorData = SECTOR_MATRIX[industry_sector] ?? null;
   const complianceBlock = buildComplianceBlock(countryData);
 
-  const systemPrompt = `You are refining an existing corporate social impact strategy for Impact Natives.
+  const systemPrompt = `You are a strategy advisor helping a corporate refine their social impact pillars on Impact Natives. You are having a conversation with the user.
 
-The user has confirmed their pillars but wants targeted changes. Apply ONLY what the instruction asks for. Do not change pillars the instruction does not mention. Do not invent new fields or remove existing ones.
+The current pillars are provided in the first user message. As the conversation continues, apply changes the user requests. Pillars not mentioned must stay unchanged.
+
+After each user message you MUST return a JSON object with exactly two keys:
+- "reply": a short conversational response (1-2 sentences) confirming what you changed or asking a clarifying question if the instruction is ambiguous
+- "pillars": the full updated pillars array (all pillars, even unchanged ones)
+
+If the user asks a question rather than requesting a change, set "pillars" to null and answer in "reply".
 
 ${sectorData ? `SECTOR CONSTRAINT — pillars must still draw only from these SASB material topics:\n${sectorData.sasb_material_topics.map((t: string) => `- ${t}`).join("\n")}` : ""}
 
-${sharedPillarRules(complianceBlock)}`;
+${sharedPillarRules(complianceBlock)}
 
-  const userPrompt = `Here are the current confirmed pillars:
-${JSON.stringify(pillars, null, 2)}
+STRICT OUTPUT: return only a JSON object with "reply" (string) and "pillars" (array or null). No prose outside the JSON.`;
 
-Refinement instruction from the user:
-"${instruction}"
+  const groqMessages = [
+    { role: "system", content: systemPrompt },
+    {
+      role: "user",
+      content: `Current pillars:\n${JSON.stringify(pillars, null, 2)}\n\nConversation starts now.`,
+    },
+    { role: "assistant", content: JSON.stringify({ reply: "Got it. What would you like to change?", pillars: null }) },
+    ...messages.map((m: { role: string; content: string }) => ({
+      role: m.role,
+      content: m.content,
+    })),
+  ];
 
-Apply the instruction and return the full updated pillars array. Pillars not mentioned in the instruction must be returned unchanged.`;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        max_tokens: 4000,
+        response_format: { type: "json_object" },
+        messages: groqMessages,
+      }),
+    });
 
-  const refined = await callGroqWithRetry(systemPrompt, userPrompt);
+    if (!res.ok) {
+      const err = await res.text();
+      return new Response(JSON.stringify({ error: `Groq API error: ${err}` }), {
+        status: 502,
+        headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      });
+    }
 
-  if (!refined) {
-    return new Response(
-      JSON.stringify({ error: "refinement_failed", message: "Could not refine the strategy. Try again." }),
-      { status: 502, headers: { "Content-Type": "application/json", ...CORS_HEADERS } }
-    );
+    const data = await res.json();
+    const rawText = data.choices?.[0]?.message?.content ?? "";
+
+    let parsed: { reply: string; pillars: any[] | null } | null = null;
+    try {
+      const clean = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
+      parsed = JSON.parse(clean);
+    } catch {
+      continue;
+    }
+
+    if (!parsed?.reply) continue;
+
+    if (parsed.pillars) {
+      const validation = validatePillars(parsed.pillars);
+      if (!validation.valid) {
+        groqMessages.push(
+          { role: "assistant", content: rawText },
+          { role: "user", content: `The pillars you returned failed validation: ${validation.errors?.join(", ")}. Fix and return the corrected JSON.` }
+        );
+        continue;
+      }
+      const saveError = await saveStrategy(organization_id, parsed.pillars, []);
+      if (saveError) {
+        return new Response(JSON.stringify({ error: "save_failed", message: saveError }), {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+        });
+      }
+    }
+
+    return new Response(JSON.stringify({ reply: parsed.reply, pillars: parsed.pillars ?? null }), {
+      status: 200,
+      headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+    });
   }
 
-  const validation = validatePillars(refined);
-  if (!validation.valid) {
-    return new Response(
-      JSON.stringify({ error: "schema_validation_failed", details: validation.errors }),
-      { status: 502, headers: { "Content-Type": "application/json", ...CORS_HEADERS } }
-    );
-  }
-
-  const saveError = await saveStrategy(organization_id, refined, []);
-  if (saveError) {
-    return new Response(
-      JSON.stringify({ error: "save_failed", message: saveError }),
-      { status: 500, headers: { "Content-Type": "application/json", ...CORS_HEADERS } }
-    );
-  }
-
-  return new Response(JSON.stringify({ pillars: refined }), {
-    status: 200,
-    headers: { "Content-Type": "application/json", ...CORS_HEADERS },
-  });
+  return new Response(
+    JSON.stringify({ error: "refinement_failed", message: "Could not refine the strategy. Try again." }),
+    { status: 502, headers: { "Content-Type": "application/json", ...CORS_HEADERS } }
+  );
 }
 
 // --- Main handler ---

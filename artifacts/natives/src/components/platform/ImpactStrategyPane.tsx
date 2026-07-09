@@ -56,10 +56,12 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
   const [pushError, setPushError]         = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError]   = useState<string | null>(null);
-  const [refineOpen, setRefineOpen]         = useState(false);
-  const [refineInstruction, setRefineInstruction] = useState("");
-  const [refineLoading, setRefineLoading]   = useState(false);
-  const [refineError, setRefineError]       = useState<string | null>(null);
+  const [chatOpen, setChatOpen]             = useState(false);
+  const [chatInput, setChatInput]           = useState("");
+  const [chatMessages, setChatMessages]     = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [chatLoading, setChatLoading]       = useState(false);
+  const [chatError, setChatError]           = useState<string | null>(null);
+  const [previousPillars, setPreviousPillars] = useState<Pillar[] | null>(null);
   const [orgName, setOrgName]             = useState<string | null>(null);
 
   useEffect(() => {
@@ -166,10 +168,14 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
     }
   }
 
-  async function handleRefine() {
-    if (!pillars || !refineInstruction.trim()) return;
-    setRefineLoading(true);
-    setRefineError(null);
+  async function handleChat() {
+    if (!pillars || !chatInput.trim()) return;
+    const userMessage = { role: "user" as const, content: chatInput.trim() };
+    const updatedMessages = [...chatMessages, userMessage];
+    setChatMessages(updatedMessages);
+    setChatInput("");
+    setChatLoading(true);
+    setChatError(null);
     try {
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-impact-strategy`,
@@ -183,7 +189,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
             action: "refine_strategy",
             organization_id: organizationId,
             pillars,
-            instruction: refineInstruction.trim(),
+            messages: updatedMessages,
             operating_country: form.operating_country,
             industry_sector: form.industry_sector,
           }),
@@ -191,17 +197,21 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
       );
       const json = await res.json();
       if (!res.ok) {
-        setRefineError(json.message || "Refinement failed. Try again.");
+        setChatError(json.message || "Something went wrong. Try again.");
+        setChatMessages(prev => prev.slice(0, -1));
         return;
       }
-      setPillars(json.pillars);
-      setExecutiveSummary(null);
-      setRefineInstruction("");
-      setRefineOpen(false);
+      setChatMessages(prev => [...prev, { role: "assistant", content: json.reply }]);
+      if (json.pillars) {
+        setPreviousPillars(pillars);
+        setPillars(json.pillars);
+        if (executiveSummary) setExecutiveSummary(null);
+      }
     } catch {
-      setRefineError("Could not reach the server. Check your connection and try again.");
+      setChatError("Could not reach the server. Check your connection and try again.");
+      setChatMessages(prev => prev.slice(0, -1));
     } finally {
-      setRefineLoading(false);
+      setChatLoading(false);
     }
   }
 
@@ -340,47 +350,103 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
         <div className="space-y-4">
           <div className="flex items-center gap-4 flex-wrap">
             <button
-              onClick={() => { setPillars(null); setExecutiveSummary(null); setRefineOpen(false); }}
+              onClick={() => { setPillars(null); setExecutiveSummary(null); setChatOpen(false); setChatMessages([]); }}
               className="text-sm underline"
               style={{ color: "#C45C26" }}
             >
               Generate a new strategy
             </button>
             <button
-              onClick={() => setRefineOpen(o => !o)}
+              onClick={() => setChatOpen(o => !o)}
               className="text-sm underline"
               style={{ color: "#2D6A4F" }}
             >
-              {refineOpen ? "Cancel refinement" : "Refine this strategy"}
+              {chatOpen ? "Close chat" : "Refine with AI"}
             </button>
-          </div>
-          {refineOpen && (
-            <div className="rounded-xl border border-[#2D6A4F]/25 bg-[#2D6A4F]/04 p-4 space-y-3">
-              <p className="text-xs text-muted-foreground">
-                Describe what you want changed. Pillars you don't mention will stay as-is.
-              </p>
-              <textarea
-                className="w-full rounded-lg border border-border bg-background p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/30"
-                rows={3}
-                placeholder='e.g. "Make the financial inclusion pillar focus on rural women aged 18–35 in Kaduna" or "Replace the data security pillar with an e-waste initiative"'
-                value={refineInstruction}
-                onChange={e => setRefineInstruction(e.target.value)}
-              />
-              {refineError && <p className="text-xs text-red-600">{refineError}</p>}
+            {previousPillars && (
               <button
-                type="button"
-                onClick={handleRefine}
-                disabled={refineLoading || !refineInstruction.trim()}
-                className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold text-white transition-colors disabled:opacity-40"
-                style={{ backgroundColor: "#2D6A4F" }}
+                onClick={() => { setPillars(previousPillars); setPreviousPillars(null); }}
+                className="text-sm underline"
+                style={{ color: "#888" }}
               >
-                {refineLoading ? "Refining..." : "Apply refinement"}
+                Undo last change
               </button>
-              {executiveSummary && !refineLoading && (
-                <p className="text-xs text-amber-600">
-                  Your executive summary will be cleared when you apply this refinement. You can regenerate it after.
+            )}
+          </div>
+          {chatOpen && (
+            <div className="rounded-xl border border-[#2D6A4F]/25 overflow-hidden">
+              {/* Chat header */}
+              <div className="px-4 py-3 border-b border-[#2D6A4F]/15 flex items-center gap-2"
+                style={{ background: "rgba(45,106,79,0.04)" }}>
+                <div className="w-2 h-2 rounded-full bg-[#2D6A4F]" />
+                <p className="text-xs font-semibold text-foreground">Strategy Advisor</p>
+                <p className="text-xs text-muted-foreground ml-1">— tell me what to change</p>
+              </div>
+              {/* Messages */}
+              <div className="flex flex-col gap-3 p-4 max-h-72 overflow-y-auto">
+                {chatMessages.length === 0 && (
+                  <p className="text-xs text-muted-foreground italic">
+                    Ask me to change anything. Pillars you don't mention stay as-is. Try: "Make the financial inclusion pillar focus on rural women in Kaduna" or "Replace the data security pillar with an e-waste initiative".
+                  </p>
+                )}
+                {chatMessages.map((m, i) => (
+                  <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed"
+                      style={{
+                        background: m.role === "user" ? "#2D6A4F" : "rgba(45,106,79,0.08)",
+                        color: m.role === "user" ? "#ffffff" : "inherit",
+                        borderBottomRightRadius: m.role === "user" ? "4px" : undefined,
+                        borderBottomLeftRadius: m.role === "assistant" ? "4px" : undefined,
+                      }}
+                    >
+                      {m.content}
+                    </div>
+                  </div>
+                ))}
+                {chatLoading && (
+                  <div className="flex justify-start">
+                    <div className="rounded-2xl px-4 py-2.5 text-sm"
+                      style={{ background: "rgba(45,106,79,0.08)", borderBottomLeftRadius: "4px" }}>
+                      <span className="inline-flex gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F] animate-bounce" style={{ animationDelay: "0ms" }} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F] animate-bounce" style={{ animationDelay: "150ms" }} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F] animate-bounce" style={{ animationDelay: "300ms" }} />
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              {/* Input */}
+              {chatError && <p className="text-xs text-red-600 px-4 pb-2">{chatError}</p>}
+              {executiveSummary && chatMessages.length > 0 && (
+                <p className="text-xs text-amber-600 px-4 pb-2">
+                  Your executive summary will be cleared if pillars change. You can regenerate it after.
                 </p>
               )}
+              <div className="flex gap-2 px-4 pb-4">
+                <input
+                  type="text"
+                  className="flex-1 rounded-full border border-border bg-background px-4 text-sm h-10 focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/30"
+                  placeholder="What would you like to change?"
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleChat(); } }}
+                  disabled={chatLoading}
+                />
+                <button
+                  type="button"
+                  onClick={handleChat}
+                  disabled={chatLoading || !chatInput.trim()}
+                  className="h-10 w-10 rounded-full flex items-center justify-center text-white transition-colors disabled:opacity-40 shrink-0"
+                  style={{ backgroundColor: "#2D6A4F" }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                  </svg>
+                </button>
+              </div>
             </div>
           )}
 
