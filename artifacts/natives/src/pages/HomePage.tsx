@@ -707,11 +707,12 @@ export default function HomePage() {
             Impact Natives is the platform where NGOs, funders, corporates, and ecosystem builders find each other, verify trust, and form partnerships that work, without the email chains and multi-month delays.
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.875rem', justifyContent: 'center' }}>
-            <Link href="/platform/partnership-os">
+          <a href={window.location.hostname === "impactnatives.com" ? "https://app.impactnatives.com/signup" : "/platform/partnership-os"}>
               <button className="hp-btn-primary">
                 Find a Partner
+                <ArrowRight style={{ width: '1rem', height: '1rem' }} />
               </button>
-            </Link>
+            </a>
             <Link href="/platform/impact-marketplace">
               <button style={{
                 display: 'inline-flex', alignItems: 'center', gap: '0.5rem',

@@ -19,6 +19,8 @@ function useIsDark() {
 }
 import { LogOut, User } from "lucide-react";
 
+const IS_APP_DOMAIN = window.location.hostname === "app.impactnatives.com" || window.location.hostname === "localhost";
+
 export function Navbar() {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -287,16 +289,16 @@ const isHomePage = location === "/" || location === "/labs/commission"
               </div>
             ) : (
               <>
-                <Link href="/signin">
+                <a href={IS_APP_DOMAIN ? "/signin" : "https://app.impactnatives.com/signin"}>
                   <Button variant="ghost" className={`sign-in-btn transition-all duration-200 ${!scrolled && isDark ? "text-white hover:text-white hover:bg-white/10" : ""}`}>
                     Log In
                   </Button>
-                </Link>
-                <Link href="/signup">
+                </a>
+                <a href={IS_APP_DOMAIN ? "/signup" : "https://app.impactnatives.com/signup"}>
                   <Button className={`transition-all duration-200 ${!scrolled && isDark ? "bg-white text-[#2D6A4F] hover:bg-white/90" : "bg-primary text-white hover:bg-primary/90"}`}>
                     Sign Up
                   </Button>
-                </Link>
+                </a>
               </>
             )}
           </div>

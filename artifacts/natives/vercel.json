@@ -1,4 +1,19 @@
 {
+  "redirects": [
+    { "source": "/signin", "destination": "https://app.impactnatives.com/signin", "permanent": false, "has": [{ "type": "host", "value": "impactnatives.com" }] },
+    { "source": "/signup/:path*", "destination": "https://app.impactnatives.com/signup/:path*", "permanent": false, "has": [{ "type": "host", "value": "impactnatives.com" }] },
+    { "source": "/signup", "destination": "https://app.impactnatives.com/signup", "permanent": false, "has": [{ "type": "host", "value": "impactnatives.com" }] },
+    { "source": "/login", "destination": "https://app.impactnatives.com/login", "permanent": false, "has": [{ "type": "host", "value": "impactnatives.com" }] },
+    { "source": "/register", "destination": "https://app.impactnatives.com/register", "permanent": false, "has": [{ "type": "host", "value": "impactnatives.com" }] },
+    { "source": "/onboarding", "destination": "https://app.impactnatives.com/onboarding", "permanent": false, "has": [{ "type": "host", "value": "impactnatives.com" }] },
+    { "source": "/auth/callback", "destination": "https://app.impactnatives.com/auth/callback", "permanent": false, "has": [{ "type": "host", "value": "impactnatives.com" }] },
+    { "source": "/verify", "destination": "https://app.impactnatives.com/verify", "permanent": false, "has": [{ "type": "host", "value": "impactnatives.com" }] },
+    { "source": "/forgot-password", "destination": "https://app.impactnatives.com/forgot-password", "permanent": false, "has": [{ "type": "host", "value": "impactnatives.com" }] },
+    { "source": "/reset-password", "destination": "https://app.impactnatives.com/reset-password", "permanent": false, "has": [{ "type": "host", "value": "impactnatives.com" }] },
+    { "source": "/dashboard/:path*", "destination": "https://app.impactnatives.com/dashboard/:path*", "permanent": false, "has": [{ "type": "host", "value": "impactnatives.com" }] },
+    { "source": "/dashboard", "destination": "https://app.impactnatives.com/dashboard", "permanent": false, "has": [{ "type": "host", "value": "impactnatives.com" }] },
+    { "source": "/admin/:path*", "destination": "https://app.impactnatives.com/admin/:path*", "permanent": false, "has": [{ "type": "host", "value": "impactnatives.com" }] }
+  ],
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
