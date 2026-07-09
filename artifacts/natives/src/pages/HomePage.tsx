@@ -558,6 +558,7 @@ function RolesStack() {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         cursor: 'pointer', color: item.accent, transition: 'all 0.2s ease',
                       }}>
+                        <ArrowRight style={{ width: '0.8125rem', height: '0.8125rem' }} />
                       </button>
                     </div>
                   </div>
@@ -878,7 +879,7 @@ export default function HomePage() {
           <div style={{ marginBottom: '3.5rem' }}>
             <div style={S.sectionLabel}>Choose Your Path</div>
             <h2 style={{ ...S.h2, marginBottom: '0.875rem' }}>What would you like to do?</h2>
-            <p style={{ fontSize: '1.0625rem', color: T.textDimmer, maxWidth: '850px', lineHeight: 1.65 }}>
+            <p style={{ fontSize: '1.0625rem', color: T.textDimmer, maxWidth: '1000px', lineHeight: 1.65 }}>
               Natives serves three distinct purposes. Choose the one that fits your intent. Tell us what you're trying to do and we'll route you to the right place.
             </p>
           </div>
