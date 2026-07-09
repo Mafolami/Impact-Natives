@@ -662,6 +662,68 @@ Operating country: ${operating_country ?? "Not specified"}`;
   });
 }
 
+async function handleRefineStrategy(body: any): Promise<Response> {
+  const { organization_id, pillars, instruction, operating_country, industry_sector } = body;
+
+  if (!organization_id || !pillars || !instruction) {
+    return new Response(
+      JSON.stringify({ error: "organization_id, pillars, and instruction are required" }),
+      { status: 400, headers: { "Content-Type": "application/json", ...CORS_HEADERS } }
+    );
+  }
+
+  const countryKey = String(operating_country || "").toLowerCase();
+  const countryData = COUNTRY_MATRIX[countryKey] ?? null;
+  const sectorData = SECTOR_MATRIX[industry_sector] ?? null;
+  const complianceBlock = buildComplianceBlock(countryData);
+
+  const systemPrompt = `You are refining an existing corporate social impact strategy for Impact Natives.
+
+The user has confirmed their pillars but wants targeted changes. Apply ONLY what the instruction asks for. Do not change pillars the instruction does not mention. Do not invent new fields or remove existing ones.
+
+${sectorData ? `SECTOR CONSTRAINT — pillars must still draw only from these SASB material topics:\n${sectorData.sasb_material_topics.map((t: string) => `- ${t}`).join("\n")}` : ""}
+
+${sharedPillarRules(complianceBlock)}`;
+
+  const userPrompt = `Here are the current confirmed pillars:
+${JSON.stringify(pillars, null, 2)}
+
+Refinement instruction from the user:
+"${instruction}"
+
+Apply the instruction and return the full updated pillars array. Pillars not mentioned in the instruction must be returned unchanged.`;
+
+  const refined = await callGroqWithRetry(systemPrompt, userPrompt);
+
+  if (!refined) {
+    return new Response(
+      JSON.stringify({ error: "refinement_failed", message: "Could not refine the strategy. Try again." }),
+      { status: 502, headers: { "Content-Type": "application/json", ...CORS_HEADERS } }
+    );
+  }
+
+  const validation = validatePillars(refined);
+  if (!validation.valid) {
+    return new Response(
+      JSON.stringify({ error: "schema_validation_failed", details: validation.errors }),
+      { status: 502, headers: { "Content-Type": "application/json", ...CORS_HEADERS } }
+    );
+  }
+
+  const saveError = await saveStrategy(organization_id, refined, []);
+  if (saveError) {
+    return new Response(
+      JSON.stringify({ error: "save_failed", message: saveError }),
+      { status: 500, headers: { "Content-Type": "application/json", ...CORS_HEADERS } }
+    );
+  }
+
+  return new Response(JSON.stringify({ pillars: refined }), {
+    status: 200,
+    headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+  });
+}
+
 // --- Main handler ---
 
 Deno.serve(async (req: Request) => {
@@ -681,6 +743,10 @@ Deno.serve(async (req: Request) => {
 
     if (body.action === "convert_uploaded_strategy") {
       return handleConvertUploadedStrategy(body);
+    }
+
+    if (body.action === "refine_strategy") {
+      return handleRefineStrategy(body);
     }
 
     if (body.action === "generate_executive_summary") {

@@ -56,6 +56,10 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
   const [pushError, setPushError]         = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError]   = useState<string | null>(null);
+  const [refineOpen, setRefineOpen]         = useState(false);
+  const [refineInstruction, setRefineInstruction] = useState("");
+  const [refineLoading, setRefineLoading]   = useState(false);
+  const [refineError, setRefineError]       = useState<string | null>(null);
   const [orgName, setOrgName]             = useState<string | null>(null);
 
   useEffect(() => {
@@ -159,6 +163,45 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
       setSummaryError("Could not reach the server. Try again.");
     } finally {
       setSummaryLoading(false);
+    }
+  }
+
+  async function handleRefine() {
+    if (!pillars || !refineInstruction.trim()) return;
+    setRefineLoading(true);
+    setRefineError(null);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-impact-strategy`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            action: "refine_strategy",
+            organization_id: organizationId,
+            pillars,
+            instruction: refineInstruction.trim(),
+            operating_country: form.operating_country,
+            industry_sector: form.industry_sector,
+          }),
+        }
+      );
+      const json = await res.json();
+      if (!res.ok) {
+        setRefineError(json.message || "Refinement failed. Try again.");
+        return;
+      }
+      setPillars(json.pillars);
+      setExecutiveSummary(null);
+      setRefineInstruction("");
+      setRefineOpen(false);
+    } catch {
+      setRefineError("Could not reach the server. Check your connection and try again.");
+    } finally {
+      setRefineLoading(false);
     }
   }
 
@@ -295,13 +338,51 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
 
       {pillars && (
         <div className="space-y-4">
-          <button
-            onClick={() => { setPillars(null); setExecutiveSummary(null); }}
-            className="text-sm underline"
-            style={{ color: "#C45C26" }}
-          >
-            Generate a new strategy
-          </button>
+          <div className="flex items-center gap-4 flex-wrap">
+            <button
+              onClick={() => { setPillars(null); setExecutiveSummary(null); setRefineOpen(false); }}
+              className="text-sm underline"
+              style={{ color: "#C45C26" }}
+            >
+              Generate a new strategy
+            </button>
+            <button
+              onClick={() => setRefineOpen(o => !o)}
+              className="text-sm underline"
+              style={{ color: "#2D6A4F" }}
+            >
+              {refineOpen ? "Cancel refinement" : "Refine this strategy"}
+            </button>
+          </div>
+          {refineOpen && (
+            <div className="rounded-xl border border-[#2D6A4F]/25 bg-[#2D6A4F]/04 p-4 space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Describe what you want changed. Pillars you don't mention will stay as-is.
+              </p>
+              <textarea
+                className="w-full rounded-lg border border-border bg-background p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/30"
+                rows={3}
+                placeholder='e.g. "Make the financial inclusion pillar focus on rural women aged 18–35 in Kaduna" or "Replace the data security pillar with an e-waste initiative"'
+                value={refineInstruction}
+                onChange={e => setRefineInstruction(e.target.value)}
+              />
+              {refineError && <p className="text-xs text-red-600">{refineError}</p>}
+              <button
+                type="button"
+                onClick={handleRefine}
+                disabled={refineLoading || !refineInstruction.trim()}
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold text-white transition-colors disabled:opacity-40"
+                style={{ backgroundColor: "#2D6A4F" }}
+              >
+                {refineLoading ? "Refining..." : "Apply refinement"}
+              </button>
+              {executiveSummary && !refineLoading && (
+                <p className="text-xs text-amber-600">
+                  Your executive summary will be cleared when you apply this refinement. You can regenerate it after.
+                </p>
+              )}
+            </div>
+          )}
 
           {!executiveSummary && (
             <div className="rounded-xl border border-dashed border-[#2D6A4F]/30 p-5 text-center space-y-3">
