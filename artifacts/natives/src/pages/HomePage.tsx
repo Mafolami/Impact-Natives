@@ -1,6 +1,7 @@
 // src/pages/HomePage.tsx
 import { useState, useEffect, useRef } from 'react'
-import { Link } from 'wouter'
+import { Link, useLocation } from 'wouter'
+import { useAuth } from '@/context/AuthContext'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation } from 'swiper/modules'
 import 'swiper/css'
@@ -612,10 +613,19 @@ function RolesStack() {
 /* ── HOME PAGE ─────────────────────────────────────────── */
 export default function HomePage() {
   const isDark = useIsDark()
+  const { user, loading } = useAuth()
+  const [, navigate] = useLocation()
   const [videoError] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const statsRef = useRef<HTMLDivElement>(null)
   const [statsVisible, setStatsVisible] = useState(false)
+
+  useEffect(() => {
+    if (loading) return
+    if (user) navigate('/dashboard')
+  }, [user, loading])
+
+  if (loading) return null
 
   useEffect(() => {
     const el = statsRef.current
