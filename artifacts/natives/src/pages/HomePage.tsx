@@ -625,8 +625,6 @@ export default function HomePage() {
     if (user) navigate('/dashboard')
   }, [user, loading])
 
-  if (loading) return null
-
   useEffect(() => {
     const el = statsRef.current
     if (!el) return
