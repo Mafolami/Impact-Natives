@@ -132,7 +132,7 @@ export function ExitIntentPopup() {
             <>
               <div className="mb-6">
                 <p className="text-xs font-semibold uppercase tracking-widest text-[#C45C26] mb-2">
-                  The Dispatch
+                  Native Signal
                 </p>
                 <h3 className="text-xl font-bold text-foreground mb-2">
                   Before you go — stay in the loop.
@@ -159,7 +159,7 @@ export function ExitIntentPopup() {
                   disabled={state === "loading"}
                                     className="w-full h-11 rounded-full bg-[#C45C26] hover:bg-[#a84e20] text-white text-sm font-semibold transition-colors disabled:opacity-50"
                 >
-                  {state === "loading" ? "Subscribing..." : "Subscribe to The Dispatch"}
+                  {state === "loading" ? "Subscribing..." : "Subscribe to Native Signal"}
                 </button>
               </form>
 
