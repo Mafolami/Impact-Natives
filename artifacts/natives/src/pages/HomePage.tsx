@@ -692,7 +692,7 @@ export default function HomePage() {
         <div style={{ position: 'absolute', inset: 0, zIndex: 0, background: isDark ? 'hsl(193,20%,7%)' : '#ffffff' }} />
         <div style={{ position: 'absolute', width: '70vw', height: '70vh', top: '-15%', right: '-10%', background: 'radial-gradient(ellipse, rgba(196,92,38,0.08) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 1 }} />
         <div style={{ position: 'absolute', width: '50vw', height: '50vh', bottom: '0', left: '10%', background: 'radial-gradient(ellipse, rgba(45,184,122,0.04) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 1 }} />
-        <div className="hp-section-wrap hp-hero" style={{ position: 'relative', zIndex: 10, paddingTop: '7rem', paddingBottom: '6rem', width: '100%', textAlign: isDark ? 'left' : 'center', display: 'flex', flexDirection: 'column', alignItems: isDark ? 'flex-start' : 'center' }}>
+        <div className="hp-section-wrap hp-hero" style={{ position: 'relative', zIndex: 10, paddingTop: '7rem', paddingBottom: '6rem', width: '100%', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <h1 style={{
             fontFamily: "'Bricolage Grotesque', sans-serif",
             fontSize: 'clamp(2.75rem, 6.5vw, 5rem)',
@@ -707,7 +707,7 @@ export default function HomePage() {
           <p style={{ fontSize: 'clamp(1rem, 2vw, 1.25rem)', lineHeight: 1.72, color: T.textDim, maxWidth: '600px', marginBottom: '2.5rem' }}>
             Impact Natives is the platform where NGOs, funders, corporates, and ecosystem builders find each other, verify trust, and form partnerships that work, without the email chains and multi-month delays.
           </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.875rem', justifyContent: isDark ? 'flex-start' : 'center' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.875rem', justifyContent: 'center' }}>
             <Link href="/platform/partnership-os">
               <button className="hp-btn-primary">
                 Find a Partner

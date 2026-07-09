@@ -461,7 +461,15 @@
   background: rgba(255,252,248,0.1);
   border-color: rgba(255,252,248,0.2);
 }
-
+:root:not(.dark) .hp-btn-glass {
+  background: #ffffff;
+  color: #0a0a0a;
+  border: 1px solid rgba(0,0,0,0.18);
+}
+:root:not(.dark) .hp-btn-glass:hover {
+  background: #f5f5f5;
+  border-color: rgba(0,0,0,0.28);
+}
 .hp-btn-outline {
   display: inline-flex;
   align-items: center;
@@ -481,6 +489,14 @@
 .hp-btn-outline:hover {
   border-color: rgba(255,255,255,0.3);
   color: #f7f3ed;
+}
+:root:not(.dark) .hp-btn-outline {
+  color: #0a0a0a;
+  border: 1px solid rgba(0,0,0,0.2);
+}
+:root:not(.dark) .hp-btn-outline:hover {
+  border-color: rgba(0,0,0,0.4);
+  color: #0a0a0a;
 }
 
 @media (max-width: 768px) {
@@ -564,6 +580,13 @@
   100% { background-position: 0% 50%; }
 }
 
+/* Theme toggle visibility in light mode */
+:root:not(.dark) #main-header [data-theme-toggle],
+:root:not(.dark) #main-header button[aria-label*="theme"],
+:root:not(.dark) #main-header button[aria-label*="Toggle"],
+:root:not(.dark) #main-header button[aria-label*="mode"] {
+  color: #0a0a0a !important;
+} 
 /* Light mode overrides for specific homepage sections */
 :root:not(.dark) .hp-light-section {
   background: #ffffff !important;
@@ -800,3 +823,6 @@ h1 {
   animation: skeleton-pulse 1.5s ease-in-out infinite;
 }
 
+:root:not(.dark) #main-header .theme-toggle-wrap {
+  color: #0a0a0a !important;
+}
