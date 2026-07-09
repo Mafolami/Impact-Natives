@@ -702,7 +702,17 @@ ${sectorData ? `SECTOR CONSTRAINT — pillars must still draw only from these SA
 
 ${sharedPillarRules(complianceBlock)}
 
-STRICT OUTPUT: return only a JSON object with exactly three keys: "reply" (string), "pillars" (array or null), "proposal" (object or null). No prose outside the JSON.`;
+STRICT OUTPUT RULES — NEVER VIOLATE:
+1. Return ONLY a valid JSON object. No prose, no markdown, no text outside the JSON.
+2. The JSON must have EXACTLY three keys: "reply", "pillars", "proposal".
+3. "reply" is always a string.
+4. "pillars" is either the full updated pillars array OR null. Never omit it.
+5. "proposal" is either an object with keys "summary", "changes", "proposed_pillars" OR null. Never omit it.
+6. NEVER describe a proposal inside "reply". If you want to suggest a change the user did not explicitly request, you MUST put it in "proposal" and set "pillars" to null.
+7. If you write anything like "I suggest", "Here's a proposal", "we could", "consider" inside "reply", that is a violation — move it to "proposal" instead.
+
+Example of a valid proposal response:
+{"reply":"I noticed the current pillars don't cover environmental sustainability. I've prepared a proposal below for your review.","pillars":null,"proposal":{"summary":"Adding a tree-planting pillar targeting schools in Lagos to address SDG 15 and AU Agenda 2063 Goal 7.","changes":[{"pillar_name":"Urban Reforestation in Schools","what_changes":"New pillar added: 500 trees planted across 20 Lagos schools, targeting students aged 10-15, measurable outcome of 30% green coverage increase within 12 months."}],"proposed_pillars":[...]}}`;
 
   // Only inject pillar context on the first turn.
   // On subsequent turns the model already has it from conversation history.
@@ -739,8 +749,8 @@ STRICT OUTPUT: return only a JSON object with exactly three keys: "reply" (strin
         Authorization: `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        max_tokens: 2500,
+        model: "llama-3.1-8b-instant",
+        max_tokens: 3000,
         response_format: { type: "json_object" },
         messages: groqMessages,
       }),

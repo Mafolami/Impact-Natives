@@ -223,7 +223,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
       );
       const json = await res.json();
       if (!res.ok) {
-        setChatError(json.message || "Something went wrong. Try again.");
+        setChatError(json.error || json.message || "Something went wrong. Try again.");
         setChatMessages(prev => prev.slice(0, -1));
         return;
       }
@@ -549,7 +549,16 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
                 {previousPillars && (
                   <button
                     title="Undo last change"
-                    onClick={() => { setPillars(previousPillars); setPreviousPillars(null); setPendingProposal(null); }}
+                    onClick={async () => {
+                      const reverted = previousPillars;
+                      setPillars(reverted);
+                      setPreviousPillars(null);
+                      setPendingProposal(null);
+                      await supabase
+                        .from("organizations")
+                        .update({ impact_strategy: JSON.stringify({ pillars: reverted, executive_summary: executiveSummary }) })
+                        .eq("id", organizationId);
+                    }}
                     className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/5 transition-colors"
                   >
                     <Undo2 className="w-4 h-4" />
