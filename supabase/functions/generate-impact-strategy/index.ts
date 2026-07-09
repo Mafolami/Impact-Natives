@@ -677,21 +677,32 @@ async function handleRefineStrategy(body: any): Promise<Response> {
   const sectorData = SECTOR_MATRIX[industry_sector] ?? null;
   const complianceBlock = buildComplianceBlock(countryData);
 
-  const systemPrompt = `You are a strategy advisor helping a corporate refine their social impact pillars on Impact Natives. You are having a conversation with the user.
+  const systemPrompt = `You are a strategy advisor helping a corporate refine their social impact pillars on Impact Natives. You are having a thoughtful, substantive conversation with the user.
 
-The current pillars are provided in the first user message. As the conversation continues, apply changes the user requests. Pillars not mentioned must stay unchanged.
+The current pillars are provided in the first user message. As the conversation continues, follow these rules precisely:
 
-After each user message you MUST return a JSON object with exactly two keys:
-- "reply": a short conversational response (1-2 sentences) confirming what you changed or asking a clarifying question if the instruction is ambiguous
-- "pillars": the full updated pillars array (all pillars, even unchanged ones)
+RULE 1 — USER REQUESTS A CHANGE:
+If the user explicitly asks you to change something, apply it immediately. Set "pillars" to the full updated array and "proposal" to null. In "reply", explain in 3-5 sentences: what you changed, why you made the specific choices you did, any trade-offs or compliance implications, and what they might want to consider next.
 
-If the user asks a question rather than requesting a change, set "pillars" to null and answer in "reply".
+RULE 2 — YOU WANT TO SUGGEST AN ADDITIONAL CHANGE:
+If you notice something that could be improved beyond what the user asked, do NOT apply it. Instead set "pillars" to null and "proposal" to a JSON object describing the suggestion. The user must confirm before you touch the pillars.
+
+RULE 3 — USER CONFIRMS A PROPOSAL:
+If the last assistant message contained a proposal and the user says yes/confirmed/go ahead or similar, apply the proposed changes. Set "pillars" to the updated array and "proposal" to null. Explain what was applied in "reply".
+
+RULE 4 — QUESTIONS OR CLARIFICATIONS:
+If the user asks a question or the instruction is ambiguous, set "pillars" to null, "proposal" to null, and answer fully in "reply".
+
+The "proposal" object when present must have:
+- "summary": 2-3 sentences describing exactly what would change and why
+- "changes": array of objects, each with "pillar_name" (string) and "what_changes" (string describing the specific field changes in plain English)
+- "proposed_pillars": the full pillars array with the proposed changes applied — this is what gets applied if the user confirms
 
 ${sectorData ? `SECTOR CONSTRAINT — pillars must still draw only from these SASB material topics:\n${sectorData.sasb_material_topics.map((t: string) => `- ${t}`).join("\n")}` : ""}
 
 ${sharedPillarRules(complianceBlock)}
 
-STRICT OUTPUT: return only a JSON object with "reply" (string) and "pillars" (array or null). No prose outside the JSON.`;
+STRICT OUTPUT: return only a JSON object with exactly three keys: "reply" (string), "pillars" (array or null), "proposal" (object or null). No prose outside the JSON.`;
 
   const groqMessages = [
     { role: "system", content: systemPrompt },
@@ -732,7 +743,7 @@ STRICT OUTPUT: return only a JSON object with "reply" (string) and "pillars" (ar
     const data = await res.json();
     const rawText = data.choices?.[0]?.message?.content ?? "";
 
-    let parsed: { reply: string; pillars: any[] | null } | null = null;
+    let parsed: { reply: string; pillars: any[] | null; proposal: any | null } | null = null;
     try {
       const clean = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
       parsed = JSON.parse(clean);
@@ -760,7 +771,19 @@ STRICT OUTPUT: return only a JSON object with "reply" (string) and "pillars" (ar
       }
     }
 
-    return new Response(JSON.stringify({ reply: parsed.reply, pillars: parsed.pillars ?? null }), {
+    // Validate proposed_pillars inside proposal if present
+    if (parsed.proposal?.proposed_pillars) {
+      const validation = validatePillars(parsed.proposal.proposed_pillars);
+      if (!validation.valid) {
+        parsed.proposal.proposed_pillars = null;
+      }
+    }
+
+    return new Response(JSON.stringify({
+      reply: parsed.reply,
+      pillars: parsed.pillars ?? null,
+      proposal: parsed.proposal ?? null,
+    }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...CORS_HEADERS },
     });

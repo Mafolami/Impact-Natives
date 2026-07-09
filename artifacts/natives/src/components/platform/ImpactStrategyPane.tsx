@@ -62,6 +62,11 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
   const [chatLoading, setChatLoading]       = useState(false);
   const [chatError, setChatError]           = useState<string | null>(null);
   const [previousPillars, setPreviousPillars] = useState<Pillar[] | null>(null);
+  const [pendingProposal, setPendingProposal] = useState<{
+    summary: string;
+    changes: { pillar_name: string; what_changes: string }[];
+    proposed_pillars: Pillar[];
+  } | null>(null);
   const [orgName, setOrgName]             = useState<string | null>(null);
 
   useEffect(() => {
@@ -176,6 +181,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
     setChatInput("");
     setChatLoading(true);
     setChatError(null);
+    setPendingProposal(null);
     try {
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-impact-strategy`,
@@ -207,12 +213,32 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
         setPillars(json.pillars);
         if (executiveSummary) setExecutiveSummary(null);
       }
+      if (json.proposal?.proposed_pillars) {
+        setPendingProposal(json.proposal);
+      }
     } catch {
       setChatError("Could not reach the server. Check your connection and try again.");
       setChatMessages(prev => prev.slice(0, -1));
     } finally {
       setChatLoading(false);
     }
+  }
+
+  async function handleApplyProposal() {
+    if (!pendingProposal?.proposed_pillars || !pillars) return;
+    setPreviousPillars(pillars);
+    setPillars(pendingProposal.proposed_pillars);
+    if (executiveSummary) setExecutiveSummary(null);
+    setChatMessages(prev => [...prev, {
+      role: "assistant",
+      content: "Done — I've applied the proposed changes to your pillars.",
+    }]);
+    setPendingProposal(null);
+    const { error } = await supabase
+      .from("organizations")
+      .update({ impact_strategy: JSON.stringify({ pillars: pendingProposal.proposed_pillars, executive_summary: null }) })
+      .eq("id", organizationId);
+    if (error) setChatError("Changes applied locally but could not save. Refresh and check.");
   }
 
   async function handlePushPillar(pillar: Pillar, index: number) {
@@ -350,7 +376,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
         <div className="space-y-4">
           <div className="flex items-center gap-4 flex-wrap">
             <button
-              onClick={() => { setPillars(null); setExecutiveSummary(null); setChatOpen(false); setChatMessages([]); }}
+              onClick={() => { setPillars(null); setExecutiveSummary(null); setChatOpen(false); setChatMessages([]); setPendingProposal(null); }}
               className="text-sm underline"
               style={{ color: "#C45C26" }}
             >
@@ -368,15 +394,6 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
             >
               Refine with Strategy Advisor
             </button>
-            {previousPillars && (
-              <button
-                onClick={() => { setPillars(previousPillars); setPreviousPillars(null); }}
-                className="text-sm underline"
-                style={{ color: "#888" }}
-              >
-                Undo last change
-              </button>
-            )}
           </div>
           {!executiveSummary && (
             <div className="rounded-xl border border-dashed border-[#2D6A4F]/30 p-5 text-center space-y-3">
@@ -497,12 +514,22 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
                 <p className="text-sm font-semibold text-foreground">Strategy Advisor</p>
                 <span className="text-xs text-muted-foreground">— refine your pillars conversationally</span>
               </div>
-              <button
-                onClick={() => setChatOpen(o => !o)}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {chatOpen ? "Collapse" : "Expand"}
-              </button>
+              <div className="flex items-center gap-3">
+                {previousPillars && (
+                  <button
+                    onClick={() => { setPillars(previousPillars); setPreviousPillars(null); setPendingProposal(null); }}
+                    className="text-xs text-muted-foreground hover:text-foreground underline transition-colors"
+                  >
+                    Undo last change
+                  </button>
+                )}
+                <button
+                  onClick={() => setChatOpen(o => !o)}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {chatOpen ? "Collapse" : "Expand"}
+                </button>
+              </div>
             </div>
             {chatOpen && (
               <>
@@ -558,6 +585,44 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
                           <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F] animate-bounce" style={{ animationDelay: "150ms" }} />
                           <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F] animate-bounce" style={{ animationDelay: "300ms" }} />
                         </span>
+                      </div>
+                    </div>
+                  )}
+                  {pendingProposal && !chatLoading && (
+                    <div className="rounded-2xl border border-[#2D6A4F]/25 overflow-hidden"
+                      style={{ background: "rgba(45,106,79,0.04)" }}>
+                      <div className="px-4 py-3 border-b border-[#2D6A4F]/15">
+                        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#2D6A4F" }}>
+                          Proposed changes
+                        </p>
+                      </div>
+                      <div className="px-4 py-3 space-y-2">
+                        <p className="text-sm text-foreground leading-relaxed">{pendingProposal.summary}</p>
+                        {pendingProposal.changes.map((c, i) => (
+                          <div key={i} className="rounded-lg px-3 py-2 text-sm"
+                            style={{ background: "rgba(45,106,79,0.07)", borderLeft: "3px solid rgba(45,106,79,0.4)" }}>
+                            <p className="font-semibold text-foreground text-xs mb-0.5">{c.pillar_name}</p>
+                            <p className="text-muted-foreground text-xs leading-relaxed">{c.what_changes}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="px-4 py-3 border-t border-[#2D6A4F]/15 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={handleApplyProposal}
+                          className="px-4 py-1.5 rounded-full text-xs font-semibold text-white transition-colors"
+                          style={{ backgroundColor: "#2D6A4F" }}
+                        >
+                          Apply this
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPendingProposal(null)}
+                          className="px-4 py-1.5 rounded-full text-xs font-medium border transition-colors"
+                          style={{ borderColor: "rgba(45,106,79,0.25)", color: "#2D6A4F", background: "transparent" }}
+                        >
+                          Dismiss
+                        </button>
                       </div>
                     </div>
                   )}
