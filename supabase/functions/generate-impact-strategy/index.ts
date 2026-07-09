@@ -748,7 +748,8 @@ STRICT OUTPUT: return only a JSON object with exactly three keys: "reply" (strin
 
     if (!res.ok) {
       const err = await res.text();
-      return new Response(JSON.stringify({ error: `Groq API error: ${err}` }), {
+      console.error("Groq API error:", err);
+      return new Response(JSON.stringify({ error: `Groq API error: ${err}`, detail: err }), {
         status: 502,
         headers: { "Content-Type": "application/json", ...CORS_HEADERS },
       });
