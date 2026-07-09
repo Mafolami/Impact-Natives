@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "@/context/AuthContext"; // adjust import to your actual auth hook path
-import { supabase } from "@/lib/supabase"; // adjust to your actual client path
+import { useState, useEffect, useRef } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
+import { Trash2, Undo2, ChevronDown, ChevronUp } from "lucide-react";
 
 type ExecutiveSummary = {
   introduction: string;
@@ -58,10 +59,16 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
   const [summaryError, setSummaryError]   = useState<string | null>(null);
   const [chatOpen, setChatOpen]             = useState(true);
   const [chatInput, setChatInput]           = useState("");
-  const [chatMessages, setChatMessages]     = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [chatMessages, setChatMessages]     = useState<{ role: "user" | "assistant"; content: string }[]>(() => {
+    try {
+      const stored = localStorage.getItem(`strategy-chat-${organizationId}`);
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  });
   const [chatLoading, setChatLoading]       = useState(false);
   const [chatError, setChatError]           = useState<string | null>(null);
   const [previousPillars, setPreviousPillars] = useState<Pillar[] | null>(null);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
   const [pendingProposal, setPendingProposal] = useState<{
     summary: string;
     changes: { pillar_name: string; what_changes: string }[];
@@ -72,6 +79,18 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
   useEffect(() => {
     loadExistingStrategy();
   }, [organizationId]);
+
+  // Persist chat messages to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(`strategy-chat-${organizationId}`, JSON.stringify(chatMessages));
+    } catch {}
+  }, [chatMessages, organizationId]);
+
+  // Auto-scroll chat to bottom on new messages
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages, chatLoading, pendingProposal]);
 
   async function loadExistingStrategy() {
     const { data, error } = await supabase
@@ -195,7 +214,8 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
             action: "refine_strategy",
             organization_id: organizationId,
             pillars,
-            messages: updatedMessages,
+            // Only send the last 10 messages to avoid context window overflow
+            messages: updatedMessages.slice(-10),
             operating_country: form.operating_country,
             industry_sector: form.industry_sector,
           }),
@@ -239,6 +259,13 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
       .update({ impact_strategy: JSON.stringify({ pillars: pendingProposal.proposed_pillars, executive_summary: null }) })
       .eq("id", organizationId);
     if (error) setChatError("Changes applied locally but could not save. Refresh and check.");
+  }
+
+  function handleClearChat() {
+    setChatMessages([]);
+    setPendingProposal(null);
+    setChatError(null);
+    try { localStorage.removeItem(`strategy-chat-${organizationId}`); } catch {}
   }
 
   async function handlePushPillar(pillar: Pillar, index: number) {
@@ -376,7 +403,11 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
         <div className="space-y-4">
           <div className="flex items-center gap-4 flex-wrap">
             <button
-              onClick={() => { setPillars(null); setExecutiveSummary(null); setChatOpen(false); setChatMessages([]); setPendingProposal(null); }}
+              onClick={() => {
+                setPillars(null); setExecutiveSummary(null); setChatOpen(false);
+                setChatMessages([]); setPendingProposal(null);
+                try { localStorage.removeItem(`strategy-chat-${organizationId}`); } catch {}
+              }}
               className="text-sm underline"
               style={{ color: "#C45C26" }}
             >
@@ -514,20 +545,29 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
                 <p className="text-sm font-semibold text-foreground">Strategy Advisor</p>
                 <span className="text-xs text-muted-foreground">— refine your pillars conversationally</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
                 {previousPillars && (
                   <button
+                    title="Undo last change"
                     onClick={() => { setPillars(previousPillars); setPreviousPillars(null); setPendingProposal(null); }}
-                    className="text-xs text-muted-foreground hover:text-foreground underline transition-colors"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/5 transition-colors"
                   >
-                    Undo last change
+                    <Undo2 className="w-4 h-4" />
                   </button>
                 )}
                 <button
-                  onClick={() => setChatOpen(o => !o)}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  title="Clear chat"
+                  onClick={handleClearChat}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
                 >
-                  {chatOpen ? "Collapse" : "Expand"}
+                  <Trash2 className="w-4 h-4" />
+                </button>
+                <button
+                  title={chatOpen ? "Collapse" : "Expand"}
+                  onClick={() => setChatOpen(o => !o)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/5 transition-colors"
+                >
+                  {chatOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </button>
               </div>
             </div>
@@ -588,6 +628,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
                       </div>
                     </div>
                   )}
+                  <div ref={chatBottomRef} />
                   {pendingProposal && !chatLoading && (
                     <div className="rounded-2xl border border-[#2D6A4F]/25 overflow-hidden"
                       style={{ background: "rgba(45,106,79,0.04)" }}>
