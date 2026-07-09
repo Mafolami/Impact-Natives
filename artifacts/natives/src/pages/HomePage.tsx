@@ -538,7 +538,6 @@ function RolesStack() {
                     <Link href={item.href}>
                       <button className="hp-btn-glass" style={{ borderColor: `${item.accent}40` }}>
                         Learn more
-                        <ArrowRight style={{ width: '0.8125rem', height: '0.8125rem', marginLeft: '0.375rem' }} />
                       </button>
                     </Link>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
