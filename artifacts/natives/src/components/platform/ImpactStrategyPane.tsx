@@ -56,7 +56,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
   const [pushError, setPushError]         = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError]   = useState<string | null>(null);
-  const [chatOpen, setChatOpen]             = useState(false);
+  const [chatOpen, setChatOpen]             = useState(true);
   const [chatInput, setChatInput]           = useState("");
   const [chatMessages, setChatMessages]     = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [chatLoading, setChatLoading]       = useState(false);
@@ -361,7 +361,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
               className="text-sm underline"
               style={{ color: "#2D6A4F" }}
             >
-              {chatOpen ? "Close chat" : "Refine with AI"}
+              {chatOpen ? "Hide advisor" : "Show advisor"}
             </button>
             {previousPillars && (
               <button
@@ -373,82 +373,119 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
               </button>
             )}
           </div>
-          {chatOpen && (
-            <div className="rounded-xl border border-[#2D6A4F]/25 overflow-hidden">
-              {/* Chat header */}
-              <div className="px-4 py-3 border-b border-[#2D6A4F]/15 flex items-center gap-2"
-                style={{ background: "rgba(45,106,79,0.04)" }}>
-                <div className="w-2 h-2 rounded-full bg-[#2D6A4F]" />
-                <p className="text-xs font-semibold text-foreground">Strategy Advisor</p>
-                <p className="text-xs text-muted-foreground ml-1">— tell me what to change</p>
+          {/* Strategy Advisor — always open below pillars */}
+          <div className="rounded-2xl border border-[#2D6A4F]/20 overflow-hidden mt-2"
+            style={{ background: "rgba(45,106,79,0.02)" }}>
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-[#2D6A4F]/12 flex items-center justify-between"
+              style={{ background: "rgba(45,106,79,0.05)" }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-2 h-2 rounded-full bg-[#2D6A4F]" style={{ boxShadow: "0 0 6px rgba(45,106,79,0.6)" }} />
+                <p className="text-sm font-semibold text-foreground">Strategy Advisor</p>
+                <span className="text-xs text-muted-foreground">— refine your pillars conversationally</span>
               </div>
-              {/* Messages */}
-              <div className="flex flex-col gap-3 p-4 max-h-72 overflow-y-auto">
-                {chatMessages.length === 0 && (
-                  <p className="text-xs text-muted-foreground italic">
-                    Ask me to change anything. Pillars you don't mention stay as-is. Try: "Make the financial inclusion pillar focus on rural women in Kaduna" or "Replace the data security pillar with an e-waste initiative".
+              <button
+                onClick={() => setChatOpen(o => !o)}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {chatOpen ? "Collapse" : "Expand"}
+              </button>
+            </div>
+            {chatOpen && (
+              <>
+                {/* Messages */}
+                <div className="flex flex-col gap-4 p-5 overflow-y-auto" style={{ minHeight: "320px", maxHeight: "520px" }}>
+                  {chatMessages.length === 0 && (
+                    <div className="flex flex-col gap-2 mt-2">
+                      <div className="flex justify-start">
+                        <div className="max-w-[80%] rounded-2xl rounded-bl-sm px-4 py-3 text-sm leading-relaxed"
+                          style={{ background: "rgba(45,106,79,0.1)", color: "inherit" }}>
+                          Your pillars are confirmed. Tell me what you'd like to change — I'll update them and you can keep refining until they're right.
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-1 pl-1">
+                        {[
+                          "Make the financial inclusion pillar more specific",
+                          "Replace the data security pillar with e-waste",
+                          "Narrow the target demographic to youth under 25",
+                        ].map(suggestion => (
+                          <button
+                            key={suggestion}
+                            type="button"
+                            onClick={() => setChatInput(suggestion)}
+                            className="text-xs px-3 py-1.5 rounded-full border transition-colors hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F]"
+                            style={{ borderColor: "rgba(45,106,79,0.2)", color: "rgba(45,106,79,0.7)", background: "transparent" }}
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {chatMessages.map((m, i) => (
+                    <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                      <div
+                        className="max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed"
+                        style={{
+                          background: m.role === "user" ? "#2D6A4F" : "rgba(45,106,79,0.1)",
+                          color: m.role === "user" ? "#ffffff" : "inherit",
+                          borderBottomRightRadius: m.role === "user" ? "4px" : undefined,
+                          borderBottomLeftRadius: m.role === "assistant" ? "4px" : undefined,
+                        }}
+                      >
+                        {m.content}
+                      </div>
+                    </div>
+                  ))}
+                  {chatLoading && (
+                    <div className="flex justify-start">
+                      <div className="rounded-2xl rounded-bl-sm px-4 py-3"
+                        style={{ background: "rgba(45,106,79,0.1)" }}>
+                        <span className="inline-flex gap-1 items-center">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F] animate-bounce" style={{ animationDelay: "0ms" }} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F] animate-bounce" style={{ animationDelay: "150ms" }} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F] animate-bounce" style={{ animationDelay: "300ms" }} />
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {/* Notices */}
+                {chatError && (
+                  <p className="text-xs text-red-600 px-5 pb-2">{chatError}</p>
+                )}
+                {executiveSummary && chatMessages.length > 0 && (
+                  <p className="text-xs text-amber-600 px-5 pb-2">
+                    Your executive summary will be cleared if pillars change. Regenerate it after you're done refining.
                   </p>
                 )}
-                {chatMessages.map((m, i) => (
-                  <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div
-                      className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed"
-                      style={{
-                        background: m.role === "user" ? "#2D6A4F" : "rgba(45,106,79,0.08)",
-                        color: m.role === "user" ? "#ffffff" : "inherit",
-                        borderBottomRightRadius: m.role === "user" ? "4px" : undefined,
-                        borderBottomLeftRadius: m.role === "assistant" ? "4px" : undefined,
-                      }}
-                    >
-                      {m.content}
-                    </div>
-                  </div>
-                ))}
-                {chatLoading && (
-                  <div className="flex justify-start">
-                    <div className="rounded-2xl px-4 py-2.5 text-sm"
-                      style={{ background: "rgba(45,106,79,0.08)", borderBottomLeftRadius: "4px" }}>
-                      <span className="inline-flex gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F] animate-bounce" style={{ animationDelay: "0ms" }} />
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F] animate-bounce" style={{ animationDelay: "150ms" }} />
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F] animate-bounce" style={{ animationDelay: "300ms" }} />
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-              {/* Input */}
-              {chatError && <p className="text-xs text-red-600 px-4 pb-2">{chatError}</p>}
-              {executiveSummary && chatMessages.length > 0 && (
-                <p className="text-xs text-amber-600 px-4 pb-2">
-                  Your executive summary will be cleared if pillars change. You can regenerate it after.
-                </p>
-              )}
-              <div className="flex gap-2 px-4 pb-4">
-                <input
-                  type="text"
-                  className="flex-1 rounded-full border border-border bg-background px-4 text-sm h-10 focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/30"
-                  placeholder="What would you like to change?"
-                  value={chatInput}
-                  onChange={e => setChatInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleChat(); } }}
-                  disabled={chatLoading}
-                />
-                <button
-                  type="button"
-                  onClick={handleChat}
-                  disabled={chatLoading || !chatInput.trim()}
-                  className="h-10 w-10 rounded-full flex items-center justify-center text-white transition-colors disabled:opacity-40 shrink-0"
-                  style={{ backgroundColor: "#2D6A4F" }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13" />
-                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          )}
+                {/* Input */}
+                <div className="flex gap-3 px-5 py-4 border-t border-[#2D6A4F]/12">
+                  <input
+                    type="text"
+                    className="flex-1 rounded-full border border-border bg-background px-4 text-sm h-11 focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/30 transition-all"
+                    placeholder="What would you like to change?"
+                    value={chatInput}
+                    onChange={e => setChatInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleChat(); } }}
+                    disabled={chatLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleChat}
+                    disabled={chatLoading || !chatInput.trim()}
+                    className="h-11 w-11 rounded-full flex items-center justify-center text-white transition-colors disabled:opacity-40 shrink-0"
+                    style={{ backgroundColor: "#2D6A4F" }}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13" />
+                      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                    </svg>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
 
           {!executiveSummary && (
             <div className="rounded-xl border border-dashed border-[#2D6A4F]/30 p-5 text-center space-y-3">
