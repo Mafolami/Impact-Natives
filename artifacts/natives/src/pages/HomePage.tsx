@@ -128,7 +128,7 @@ const FEATURES = [
   {
     num: '01', title: 'Find the right partners', sub: 'You know what you need. We help you find who.',
     desc: 'Browse and filter verified organisations by sector, country, and focus area. Send an expression of interest directly. No cold outreach, no guessing, no multi-month email chains.',
-    image: '/find-partners.png',
+    image: '/find-partners.webp',
     Illustration: IllustrationPartner,
     tint: 'rgba(45,184,122,0.05)', borderTint: 'rgba(45,184,122,0.12)',
     tintLight: 'rgba(45,184,122,0.07)', borderTintLight: 'rgba(45,184,122,0.25)',
@@ -138,7 +138,7 @@ const FEATURES = [
   {
     num: '02', title: 'Post and discover initiatives', sub: 'Put your work in front of the right people.',
     desc: 'Create an initiative on the marketplace and let funders, implementers, and partners find you. Or browse what others are building and express interest in seconds.',
-    image: '/create-initiative.png',
+    image: '/create-initiative.webp',
     Illustration: IllustrationMarketplace,
     tint: 'rgba(45,122,212,0.05)', borderTint: 'rgba(45,122,212,0.12)',
     tintLight: 'rgba(45,122,212,0.07)', borderTintLight: 'rgba(45,122,212,0.25)',
@@ -148,7 +148,7 @@ const FEATURES = [
   {
     num: '03', title: 'Build verified trust', sub: "Know who you're working with before you commit.",
     desc: 'Verified organisation badges are earned through document review. Every profile is structured so you can assess fit before the first conversation, removing ambiguity at the top of the funnel.',
-    image: '/build-trust.png',
+    image: '/build-trust.webp',
     Illustration: IllustrationVerification,
     tint: 'rgba(196,92,38,0.05)', borderTint: 'rgba(196,92,38,0.12)',
     tintLight: 'rgba(196,92,38,0.07)', borderTintLight: 'rgba(196,92,38,0.25)',
@@ -158,7 +158,7 @@ const FEATURES = [
   {
     num: '04', title: 'Commission an Innovation Lab', sub: "There's a challenge you want solved. We'll convene the room.",
     desc: "Natives Labs bring together the right mix of organisations, expertise, and resources around a specific systemic challenge. You define the problem. We structure the process and manage delivery.",
-    image: '/commission-lab.png',
+    image: '/commission-lab.webp',
     Illustration: IllustrationLab,
     tint: 'rgba(168,77,212,0.05)', borderTint: 'rgba(168,77,212,0.12)',
     tintLight: 'rgba(168,77,212,0.07)', borderTintLight: 'rgba(168,77,212,0.25)',
@@ -322,6 +322,7 @@ function FeatureRow({ feat, i }: { feat: typeof FEATURES[0]; i: number }) {
           <img
             src={feat.image}
             alt={feat.title}
+            loading="lazy"
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             onError={(e) => {
               (e.currentTarget as HTMLImageElement).style.display = 'none';
