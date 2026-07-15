@@ -111,7 +111,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
       .select("id,title,sectors,locations,status,eois,created_at,problem,outcome,budget,esg_alignment,specific_ask,stage,sdg_tags,submitter_org,user_id")
       .eq("status", "published")
       .order("created_at", { ascending: false })
-      .limit(40);
+      .limit(15);
 
     if (!initiatives?.length) {
       setLoadingMatches(false);
