@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
@@ -11,47 +11,51 @@ import { ThemeProvider } from "next-themes"
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ExitIntentPopup } from "@/components/platform/ExitIntentPopup";
-
-// Pages
-import HomePage from "@/pages/HomePage";
-import PlatformPage from "@/pages/PlatformPage";
-import { ImpactMarketplace } from "@/components/platform/ImpactMarketplace";
-import AdminInitiativeReview from '@/pages/AdminInitiativeReview'
-import SolutionsPage from "@/pages/SolutionsPage";
-import LabsPage from "@/pages/LabsPage";
-import InsightsPage from "@/pages/InsightsPage";
-import PartnerPage from "@/pages/PartnerPage";
-import FAQPage from "@/pages/FAQPage";
-import AboutPage from "@/pages/AboutPage";
-import ContactPage from "@/pages/contact";
-import { LoginPage, SignupRolePage } from "@/pages/AuthPages";
-import NotFound from "@/pages/not-found";
-import AdminDashboard from "./pages/AdminDashboard";
 import { AuthProvider } from "@/context/AuthContext";
-import SignIn from "@/pages/SignIn";
-import SignUp from "@/pages/SignUp";
-import LegalPage from "@/pages/LegalPage";
-import Onboarding from "@/pages/Onboarding";
-import AuthCallback from "@/pages/AuthCallback";
-import VerifyOrganisation from "@/pages/VerifyOrganisation";
-import ForgotPassword from "@/pages/ForgotPassword";
-import ResetPassword from "@/pages/ResetPassword";
-import InitiativeDetail from "@/pages/InitiativeDetail";
-import DashboardHome from "@/pages/DashboardHome";
-import DashboardPartnerships from "@/pages/DashboardPartnerships";
-import DashboardPortfolio from "@/pages/DashboardPortfolio";
-import DashboardLabs from "@/pages/DashboardLabs";
-import DashboardMarketplace from "@/pages/DashboardMarketplace";
-import DashboardMessages from "@/pages/DashboardMessages";
-import DashboardProfile from "@/pages/DashboardProfile";
-import UpgradeToOrganisation from "@/pages/UpgradeToOrganisation";
-import DashboardSettings from "@/pages/DashboardSettings";
-import DashboardNatives from "@/pages/DashboardNatives";
-import DashboardFeed from "@/pages/DashboardFeed";
-import DashboardStrategy from "@/pages/DashboardStrategy";
-import DashboardLayout from "@/layouts/DashboardLayout";
-import VerificationStandardPage from "@/pages/VerificationStandardPage";
-import UnsubscribePage from "@/pages/UnsubscribePage";
+// Public pages — loaded eagerly (homepage visitors need these immediately)
+import HomePage from "@/pages/HomePage";
+import NotFound from "@/pages/not-found";
+// Public pages — lazy loaded
+const PlatformPage = lazy(() => import("@/pages/PlatformPage"));
+const ImpactMarketplace = lazy(() => import("@/components/platform/ImpactMarketplace").then(m => ({ default: m.ImpactMarketplace })));
+const SolutionsPage = lazy(() => import("@/pages/SolutionsPage"));
+const LabsPage = lazy(() => import("@/pages/LabsPage"));
+const InsightsPage = lazy(() => import("@/pages/InsightsPage"));
+const PartnerPage = lazy(() => import("@/pages/PartnerPage"));
+const FAQPage = lazy(() => import("@/pages/FAQPage"));
+const AboutPage = lazy(() => import("@/pages/AboutPage"));
+const ContactPage = lazy(() => import("@/pages/contact"));
+const LegalPage = lazy(() => import("@/pages/LegalPage"));
+const InitiativeDetail = lazy(() => import("@/pages/InitiativeDetail"));
+const VerificationStandardPage = lazy(() => import("@/pages/VerificationStandardPage"));
+const UnsubscribePage = lazy(() => import("@/pages/UnsubscribePage"));
+// Auth pages — lazy loaded
+const LoginPage = lazy(() => import("@/pages/AuthPages").then(m => ({ default: m.LoginPage })));
+const SignupRolePage = lazy(() => import("@/pages/AuthPages").then(m => ({ default: m.SignupRolePage })));
+const SignIn = lazy(() => import("@/pages/SignIn"));
+const SignUp = lazy(() => import("@/pages/SignUp"));
+const Onboarding = lazy(() => import("@/pages/Onboarding"));
+const AuthCallback = lazy(() => import("@/pages/AuthCallback"));
+const VerifyOrganisation = lazy(() => import("@/pages/VerifyOrganisation"));
+const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+// Dashboard pages — lazy loaded
+const DashboardHome = lazy(() => import("@/pages/DashboardHome"));
+const DashboardPartnerships = lazy(() => import("@/pages/DashboardPartnerships"));
+const DashboardPortfolio = lazy(() => import("@/pages/DashboardPortfolio"));
+const DashboardLabs = lazy(() => import("@/pages/DashboardLabs"));
+const DashboardMarketplace = lazy(() => import("@/pages/DashboardMarketplace"));
+const DashboardMessages = lazy(() => import("@/pages/DashboardMessages"));
+const DashboardProfile = lazy(() => import("@/pages/DashboardProfile"));
+const UpgradeToOrganisation = lazy(() => import("@/pages/UpgradeToOrganisation"));
+const DashboardSettings = lazy(() => import("@/pages/DashboardSettings"));
+const DashboardNatives = lazy(() => import("@/pages/DashboardNatives"));
+const DashboardFeed = lazy(() => import("@/pages/DashboardFeed"));
+const DashboardStrategy = lazy(() => import("@/pages/DashboardStrategy"));
+const DashboardLayout = lazy(() => import("@/layouts/DashboardLayout"));
+// Admin pages — lazy loaded
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AdminInitiativeReview = lazy(() => import('@/pages/AdminInitiativeReview'));
 
 function AdminGuard({ children }: { children: React.ReactNode }) {
   const { user, profile, loading } = useAuth();
@@ -257,8 +261,13 @@ function SupabaseTest() {
   );
 }
 
-const AUTH_PATHS = ["/signin", "/signup", "/onboarding", "/auth/callback", "/verify", "/forgot-password", "/reset-password"];
+const PageLoader = () => (
+  <div className="min-h-screen bg-background flex items-center justify-center">
+    <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
+  </div>
+);
 
+const AUTH_PATHS = ["/signin", "/signup", "/onboarding", "/auth/callback", "/verify", "/forgot-password", "/reset-password"];
 function App() {
   useReveal();
   const isAuthPage = AUTH_PATHS.some(p => window.location.pathname.startsWith(p));
@@ -274,7 +283,9 @@ function App() {
         <TooltipProvider>
           <AuthProvider>
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <Router />
+              <Suspense fallback={<PageLoader />}>
+                <Router />
+              </Suspense>
             </WouterRouter>
             <Toaster />
           </AuthProvider>

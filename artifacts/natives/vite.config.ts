@@ -47,6 +47,17 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          router: ['wouter'],
+          query: ['@tanstack/react-query'],
+          supabase: ['@supabase/supabase-js'],
+          swiper: ['swiper'],
+        },
+      },
+    },
   },
   server: {
     port,
