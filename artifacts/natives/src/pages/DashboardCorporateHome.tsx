@@ -152,7 +152,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
         body: JSON.stringify({ mandate, initiatives: esgFirst }),
       });
       const result = await res.json();
-
+      console.log("match-initiatives-to-funder result:", JSON.stringify(result).slice(0, 500));
       if (result.data?.length) {
         const scoreMap = Object.fromEntries(
           result.data.map((r: any) => [r.id, { score: r.score, match_reason: r.match_reason }])
