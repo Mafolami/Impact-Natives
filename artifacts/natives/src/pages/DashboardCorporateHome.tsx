@@ -129,11 +129,19 @@ export default function CorporateHome({ profile }: { profile: any }) {
     setAiMatching(true);
     const mandate = {
       org_type: profile.org_type,
+      investment_thesis: org?.esg_frameworks?.length
+        ? `ESG-aligned corporate seeking implementation partners across: ${org.esg_frameworks.join(", ")}`
+        : "Corporate seeking ESG and CSR implementation partners",
+      funding_instruments: ["partnership", "csr_funding"],
+      grant_currency: "NGN",
+      grant_range_min: null,
+      grant_range_max: null,
+      stage_preference: ["pilot", "growth", "scale"],
+      geographic_focus: org?.geographic_focus ?? (org?.country ? [org.country] : ["Nigeria"]),
+      mandate_sectors: org?.mandate_sectors ?? (org?.sector ? [org.sector] : []),
+      mandate_sdgs: org?.mandate_sdgs ?? [],
       esg_frameworks: org?.esg_frameworks,
       csr_budget_range: org?.csr_budget_range,
-      geographic_focus: org?.geographic_focus ?? org?.country,
-      mandate_sectors: org?.mandate_sectors ?? org?.sector,
-      mandate_sdgs: org?.mandate_sdgs,
       partnership_types: ESG_PARTNERSHIP_TYPES,
     };
 
