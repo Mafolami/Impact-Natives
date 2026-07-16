@@ -21,6 +21,7 @@ import {
     website: string | null;
     social_links: { label: string; url: string }[] | null;
     avatar_url: string | null;
+    logo_url: string | null;
     sectors: string[] | null;
     org_type: string | null;
     onboarding_completed: boolean | null;
@@ -59,8 +60,20 @@ import {
         .select("*")
         .eq("id", userId)
         .single();
-        
-      if (data) setProfile(data as Profile);
+
+      if (!data) return;
+
+      let logoUrl: string | null = null;
+      if (data.user_type === "organisation") {
+        const { data: org } = await supabase
+          .from("organizations")
+          .select("logo_url")
+          .eq("user_id", userId)
+          .maybeSingle();
+        logoUrl = org?.logo_url ?? null;
+      }
+
+      setProfile({ ...data, logo_url: logoUrl } as Profile);
     }
   
     async function refreshProfile() {

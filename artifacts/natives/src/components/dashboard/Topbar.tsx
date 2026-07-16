@@ -232,7 +232,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
             <UserAvatar
               id={user?.id ?? ""}
               name={profile?.user_type === "organisation" ? (profile?.org_name || profile?.full_name) : profile?.full_name}
-              avatarUrl={profile?.user_type === "organisation" ? undefined : profile?.avatar_url}
+              avatarUrl={profile?.user_type === "organisation" ? profile?.logo_url : profile?.avatar_url}
               size="sm"
             />
           </div>
