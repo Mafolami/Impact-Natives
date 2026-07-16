@@ -71,13 +71,10 @@ export default function VerifyOrganisation() {
         setSubmitting(false);
         return;
       }
-      const { data } = supabase.storage
-        .from("verification-docs")
-        .getPublicUrl(filePath);
       rows.push({
         profile_id:    user.id,
         name:          f.name,
-        document_url:  data.publicUrl,
+        document_url:  null,
         file_path:     filePath,
         document_type: f.type,
         source_type:   "upload",

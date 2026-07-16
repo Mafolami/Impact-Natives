@@ -789,7 +789,8 @@ type VerificationDoc = {
   id: string
   profile_id: string
   name: string
-  document_url: string
+  document_url: string | null
+  file_path: string | null
   source_type: string
   created_at: string
 }
@@ -801,6 +802,21 @@ function VerificationPanel() {
   const [filter, setFilter]       = useState<'pending' | 'verified' | 'rejected'>('pending')
 
   useEffect(() => { fetchProfiles() }, [filter])
+
+  async function viewDocument(doc: VerificationDoc) {
+    if (doc.source_type !== 'upload' || !doc.file_path) {
+      if (doc.document_url) window.open(doc.document_url, '_blank', 'noopener,noreferrer')
+      return
+    }
+    const { data, error } = await supabase.storage
+      .from('verification-docs')
+      .createSignedUrl(doc.file_path, 60)
+    if (error || !data?.signedUrl) {
+      alert('Could not open document. Please try again.')
+      return
+    }
+    window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
+  }
 
   async function fetchProfiles() {
     setLoading(true)
@@ -852,7 +868,7 @@ setProfiles(enriched);
       const ids = profileList.map((p) => p.id)
       const { data: docData, error: docError } = await supabase
         .from('verification_documents')
-        .select('id, profile_id, name, document_url, source_type, created_at')
+        .select('id, profile_id, name, document_url, file_path, source_type, created_at')
         .in('profile_id', ids)
       if (docError) console.error(docError)
       // Group docs by profile_id
@@ -1038,7 +1054,7 @@ setProfiles(enriched);
                           <span className="font-medium text-white/80 truncate">{doc.name}</span>
                           <span className="text-white/40">{doc.source_type === 'upload' ? 'Uploaded file' : 'Pasted link'}</span>
                         </div>
-                        <a href={doc.document_url} target="_blank" rel="noopener noreferrer" className="ml-4 shrink-0 text-[#6fcf97] hover:underline">View →</a>
+                        <button type="button" onClick={() => viewDocument(doc)} className="ml-4 shrink-0 text-[#6fcf97] hover:underline">View →</button>
                       </div>
                     ))}
                   </div>
