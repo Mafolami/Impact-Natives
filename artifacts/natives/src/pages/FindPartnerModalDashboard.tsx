@@ -286,6 +286,10 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
   const [matches, setMatches] = useState<MatchResult[]>([]);
   const [sentInvites, setSentInvites] = useState<Set<string>>(new Set());
   const [sendingInvite, setSendingInvite] = useState<string | null>(null);
+  const [composingInvite, setComposingInvite] = useState<string | null>(null);
+  const [draftMessage, setDraftMessage] = useState("");
+  const [draftLoading, setDraftLoading] = useState(false);
+  const [draftFailed, setDraftFailed] = useState(false);
   const [orgProfile, setOrgProfile] = useState<any>(null);
   const [form, setForm] = useState<PrefillData>(EMPTY_FORM);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -421,7 +425,58 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
     finally { setSubmitting(false); }
   }
 
-  async function sendInvite(match: MatchResult) {
+  function fallbackInviteMessage(match: MatchResult) {
+    return `Hi ${match.org.organisation_name}, I'm ${orgProfile.organisation_name} and I came across your listing on Impact Natives. ${match.rationale}\n\nWould you be open to a conversation?`;
+  }
+
+  async function openComposer(match: MatchResult) {
+    setComposingInvite(match.org_id);
+    setDraftMessage("");
+    setDraftFailed(false);
+    await generateDraft(match);
+  }
+
+  async function generateDraft(match: MatchResult) {
+    if (!user || !orgProfile) return;
+    setDraftLoading(true);
+    setDraftFailed(false);
+    try {
+      const { data: senderProfile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      const { data, error } = await supabase.functions.invoke("generate-partnership-invite", {
+        body: {
+          sender_org_name: orgProfile.organisation_name,
+          sender_contact_name: senderProfile?.full_name ?? null,
+          sender_description: orgProfile.description ?? null,
+          sender_offers: orgProfile.offers ?? [],
+          receiver_org_name: match.org.organisation_name,
+          receiver_needs: match.org.needs ?? [],
+          receiver_offers: match.org.offers ?? [],
+          match_rationale: match.rationale,
+          key_synergy: match.key_synergy,
+          fit_score: match.fit_score,
+        },
+      });
+
+      if (!error && data?.message) {
+        setDraftMessage(data.message);
+      } else {
+        setDraftFailed(true);
+        setDraftMessage(fallbackInviteMessage(match));
+      }
+    } catch {
+      setDraftFailed(true);
+      setDraftMessage(fallbackInviteMessage(match));
+    } finally {
+      setDraftLoading(false);
+    }
+  }
+
+  async function sendInvite(match: MatchResult, message: string) {
     if (!user || !orgProfile) return;
     setSendingInvite(match.org_id);
     try {
@@ -434,12 +489,20 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
       });
       if (convError) throw convError;
       if (convId) {
-        await supabase.from("messages").insert({ conversation_id: convId, sender_id: user.id, body: `Hi ${match.org.organisation_name}, I'm ${orgProfile.organisation_name} and I came across your listing on Impact Natives. ${match.rationale}\n\nWould you be open to a conversation?` });
+        await supabase.from("messages").insert({ conversation_id: convId, sender_id: user.id, body: message });
       }
-      if (receiverProfile?.user_id) {
-        await supabase.from("notifications").insert({ user_id: receiverProfile.user_id, type: "partnership_invite", title: "New partnership invitation", body: `${orgProfile.organisation_name} wants to explore a partnership with you.`, link: "/dashboard/portfolio?tab=partnerships", metadata: { sender_org_id: orgProfile.id, sender_org_name: orgProfile.organisation_name, fit_score: match.fit_score, key_synergy: match.key_synergy, conversation_id: convId } });
+      if (receiverProfile?.user_id && convId) {
+        await supabase.rpc("send_conversation_notification", {
+          p_conversation_id: convId,
+          p_target_user_id: receiverProfile.user_id,
+          p_type: "partnership_invite",
+          p_title: "New partnership invitation",
+          p_body: `${orgProfile.organisation_name} wants to explore a partnership with you.`,
+          p_link: "/dashboard/portfolio?tab=partnerships",
+        });
       }
       setSentInvites(prev => new Set(prev).add(match.org_id));
+      setComposingInvite(null);
     } catch (e) { console.error("Send invite error:", e); }
     finally { setSendingInvite(null); }
   }
@@ -572,21 +635,59 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
                             <span className="text-xs text-muted-foreground">{match.key_synergy}</span>
                           </div>
                           <p className="text-sm text-muted-foreground leading-relaxed">{match.rationale}</p>
-                          <div className="flex items-center gap-3 pt-3 border-t border-border">
-                            {invited ? (
-                              <span className="flex items-center gap-1.5 text-sm font-semibold text-[#2D6A4F]"><CheckCircle2 className="w-4 h-4" />Invitation sent</span>
-                            ) : (
-                              <button type="button" onClick={() => sendInvite(match)} disabled={sending}
-                                className="h-10 px-6 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-xs font-bold disabled:opacity-40 transition-colors flex items-center gap-2">
-                                {sending ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Sending...</> : "Reach out"}
-                              </button>
-                            )}
-                            {match.org.website && match.org.website !== "https://" && (
-                              <a href={match.org.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors ml-auto">
-                                <ExternalLink className="w-3.5 h-3.5" />Website
-                              </a>
-                            )}
-                          </div>
+
+                          {composingInvite === match.org_id ? (
+                            <div className="space-y-3 pt-3 border-t border-border">
+                              <div className="flex items-center justify-between">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                  {draftLoading ? "Drafting your message..." : draftFailed ? "AI draft unavailable — edit below" : "AI-drafted message"}
+                                </p>
+                                {!draftLoading && (
+                                  <button type="button" onClick={() => generateDraft(match)}
+                                    className="flex items-center gap-1 text-[10px] font-semibold text-[#2D6A4F] hover:underline">
+                                    <Sparkles className="w-3 h-3" />Regenerate
+                                  </button>
+                                )}
+                              </div>
+                              {draftLoading ? (
+                                <div className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2.5 h-24 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[#2D6A4F]" />
+                                  Drafting...
+                                </div>
+                              ) : (
+                                <textarea value={draftMessage} onChange={e => setDraftMessage(e.target.value)}
+                                  rows={5}
+                                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
+                              )}
+                              <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => setComposingInvite(null)}
+                                  className="h-9 px-4 rounded-full border border-border text-xs text-muted-foreground hover:text-foreground transition-colors">
+                                  Cancel
+                                </button>
+                                <button type="button" onClick={() => sendInvite(match, draftMessage)}
+                                  disabled={sending || draftLoading || !draftMessage.trim()}
+                                  className="h-9 px-6 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-xs font-bold disabled:opacity-40 transition-colors flex items-center gap-2 ml-auto">
+                                  {sending ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Sending...</> : "Send"}
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-3 pt-3 border-t border-border">
+                              {invited ? (
+                                <span className="flex items-center gap-1.5 text-sm font-semibold text-[#2D6A4F]"><CheckCircle2 className="w-4 h-4" />Invitation sent</span>
+                              ) : (
+                                <button type="button" onClick={() => openComposer(match)}
+                                  className="h-10 px-6 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-xs font-bold transition-colors flex items-center gap-2">
+                                  Reach out
+                                </button>
+                              )}
+                              {match.org.website && match.org.website !== "https://" && (
+                                <a href={match.org.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors ml-auto">
+                                  <ExternalLink className="w-3.5 h-3.5" />Website
+                                </a>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
