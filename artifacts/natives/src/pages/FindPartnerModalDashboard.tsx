@@ -447,10 +447,27 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
         .eq("id", user.id)
         .maybeSingle();
 
+      const { data: receiverOrgRow } = await supabase
+        .from("organizations")
+        .select("user_id")
+        .eq("id", match.org.id)
+        .maybeSingle();
+
+      let receiverContactName: string | null = null;
+      if (receiverOrgRow?.user_id) {
+        const { data: receiverProfileRow } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", receiverOrgRow.user_id)
+          .maybeSingle();
+        receiverContactName = receiverProfileRow?.full_name ?? null;
+      }
+
       const { data, error } = await supabase.functions.invoke("generate-partnership-invite", {
         body: {
           sender_org_name: orgProfile.organisation_name,
           sender_contact_name: senderProfile?.full_name ?? null,
+          receiver_contact_name: receiverContactName,
           sender_description: orgProfile.description ?? null,
           sender_offers: form.offers ?? [],
           sender_needs: form.needs ?? [],
@@ -636,7 +653,7 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
                             </div>
                             <p className="text-xs text-muted-foreground capitalize">{match.org.organisation_type?.replace(/_/g, " ")}{countries.length > 0 && ` · ${countries.join(", ")}`}</p>
                             {match.org.description && (
-                              <p className="text-xs text-muted-foreground/80 mt-1 line-clamp-1">{match.org.description}</p>
+                              <p className="text-xs text-muted-foreground/80 mt-1 leading-relaxed">{match.org.description}</p>
                             )}
                           </div>
                           <div className="shrink-0 text-right">

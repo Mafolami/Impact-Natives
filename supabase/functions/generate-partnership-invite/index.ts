@@ -21,7 +21,8 @@ Deno.serve(async (req: Request) => {
       partnership_title, partnership_sought, partnership_stage, partnership_duration,
       partnership_budget, partnership_decision_timeline, partnership_working_style,
       partnership_financial_transfer, partnership_team_capacity,
-      receiver_org_name, receiver_description, receiver_needs, receiver_offers, receiver_partnership_sought,
+      receiver_org_name, receiver_contact_name, receiver_description, receiver_needs, receiver_offers,
+      receiver_sector, receiver_sdgs, receiver_partnership_sought,
       match_rationale, key_synergy, fit_score,
     } = await req.json();
 
@@ -43,7 +44,12 @@ Rules:
 - End with a specific, low-pressure question tied to the ask (e.g. asking about their capacity, timeline, or interest), not a generic "would you be open to a conversation?"
 - Do not use the words: leverage, synergy, stakeholders, holistic, impactful, foster.
 - Write in first person, as if ${sender_contact_name || sender_org_name} from ${sender_org_name} is writing it.
-- Sign off with just the first name if a contact name is given, otherwise the org name.
+- Sign off with just the sender's first name if a sender contact name is given, otherwise the sender org name.
+- Greeting: address the message to "${receiver_contact_name || receiver_org_name}" exactly as given. NEVER invent, guess, or substitute a different name for the receiver under any circumstance. If no receiver contact name is provided, greet using the receiver ORG name (e.g. "Hi Klia AI team," not a made-up person's name).
+- The actual partnership is with the RECEIVER ORGANISATION, not with the contact individual personally. Never phrase the ask as if you're partnering with the contact person themselves — always frame the partnership as being with their organisation.
+- Do NOT open with "thanks for your partnership request" or any variant implying the receiver reached out first — the sender is always the one initiating contact. Never fabricate context about who approached whom.
+- Do NOT address the message to the sender's own name under any circumstance. The greeting is always to the receiver, never the sender.
+- NEVER invent a person's name that was not explicitly given to you in the data below. If a name field says "Not provided," do not substitute any name — use the organisation name instead.
 
 Return ONLY the message text. No JSON, no markdown, no quotes around it, no preamble.
 
@@ -65,6 +71,7 @@ Financial arrangement expected: ${partnership_financial_transfer || "Not provide
 Team capacity available: ${partnership_team_capacity || "Not provided"}
 
 Receiver organisation: ${receiver_org_name}
+Receiver contact name: ${receiver_contact_name || "Not provided — use organisation name in greeting, do not invent a name"}
 Receiver description: ${receiver_description || "Not provided"}
 Receiver needs: ${Array.isArray(receiver_needs) ? receiver_needs.join(", ") : "Not provided"}
 Receiver offers: ${Array.isArray(receiver_offers) ? receiver_offers.join(", ") : "Not provided"}

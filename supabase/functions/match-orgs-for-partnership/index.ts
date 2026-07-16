@@ -32,15 +32,20 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Fetch all partnership-listed orgs (excluding the submitter)
-    const { data: candidates, error } = await supabase
+    // Fetch all published orgs with either a real profile or a listed partnership request
+    const { data: rawCandidates, error } = await supabase
       .from("organizations")
-      .select("id, organisation_name, description, sector, country, organisation_type, needs, offers, sdgs, partnership_sought, website, email, verification_status")
-      .eq("partnership_listed", true)
+      .select("id, organisation_name, description, sector, country, organisation_type, needs, offers, sdgs, website, email, verification_status, partnership_listed, partnership_sought, partnership_stage, partnership_duration, partnership_budget, partnership_decision_timeline, partnership_working_style, partnership_financial_transfer, partnership_team_capacity, partnership_success_definition")
       .eq("status", "published")
       .neq("id", submitting_org.id);
-
     if (error) throw error;
+
+    // Exclude orgs with neither a substantive profile nor a listed partnership request
+    const candidates = (rawCandidates ?? []).filter((c: any) => {
+      const hasProfile = !!(c.description || (c.needs?.length) || (c.offers?.length) || (c.sdgs?.length));
+      const hasListedPartnership = c.partnership_listed && !!c.partnership_sought;
+      return hasProfile || hasListedPartnership;
+    });
 
     if (!candidates || candidates.length === 0) {
       await notifyAdmin(submitting_org, []);
@@ -50,15 +55,17 @@ Deno.serve(async (req: Request) => {
     }
 
     const prompt = `You are a partnership matching analyst for Impact Natives, a social impact platform focused on UK-Africa collaborations.
+Your job: rank candidate organisations by REAL, LOGICAL fit with the submitting organisation's specific new partnership request below — not by superficial similarity like shared continent or generic sector adjacency.
 
-Your job: rank candidate organisations by partnership fit with the submitting organisation.
+Each candidate may have (a) a general profile (description, needs, offers, sector, SDGs), (b) their own listed partnership request (what THEY are seeking — their partnership_sought, stage, budget, working style, etc.), or both. Use whichever source is actually populated for that candidate. If a candidate only has a listed partnership request and a sparse/empty profile, base their score and rationale entirely on how their own request correlates with the submitter's request. Do not invent profile details that aren't given.
 
 Scoring criteria (total 100):
-- Complementary needs/offers (not duplicating the same thing): 35 points
-- Sector alignment: 25 points
-- SDG alignment: 20 points
-- Geographic fit (UK-Africa bridge is a bonus): 10 points
-- Stage/scale compatibility: 10 points
+- Logical correlation between what the submitter needs and what this candidate offers/needs/is seeking, based on concrete evidence in their data: 50 points
+- Complementary needs/offers, not duplicated focus: 20 points
+- Sector or SDG relevance to the submitter's specific request (not just "both work in Africa"): 20 points
+- Practical compatibility — budget range, timeline, stage, working style if both have stated these: 10 points
+
+Be honest and specific in the rationale: name the exact detail that creates the fit (e.g. a specific listed need, a specific offer, a specific stated partnership ask) rather than vague language like "aligns with" or "could support." If the correlation is weak, score it low — do not inflate scores for organisations that merely operate in the same country or broad sector.
 
 Return ONLY a valid JSON object. No markdown, no backticks, no explanation. Max 5 matches, min 1. Only include orgs with fit_score >= 45. Order by fit_score descending.
 
@@ -95,7 +102,16 @@ Countries: ${Array.isArray(c.country) ? c.country.join(", ") : c.country || "N/A
 Needs: ${Array.isArray(c.needs) ? c.needs.join(", ") : "N/A"}
 Offers: ${Array.isArray(c.offers) ? c.offers.join(", ") : "N/A"}
 SDGs: ${Array.isArray(c.sdgs) ? c.sdgs.join(", ") : "N/A"}
-Partnership sought: ${c.partnership_sought || "N/A"}`).join("\n")}`;
+${c.partnership_listed && c.partnership_sought ? `This candidate has ALSO listed their own partnership request:
+  What they're seeking: ${c.partnership_sought}
+  Stage: ${c.partnership_stage || "N/A"}
+  Duration: ${c.partnership_duration || "N/A"}
+  Budget: ${c.partnership_budget || "N/A"}
+  Decision timeline: ${c.partnership_decision_timeline || "N/A"}
+  Working style: ${c.partnership_working_style || "N/A"}
+  Financial arrangement: ${c.partnership_financial_transfer || "N/A"}
+  Team capacity: ${c.partnership_team_capacity || "N/A"}
+  Success definition: ${c.partnership_success_definition || "N/A"}` : "This candidate has not listed their own partnership request — base fit only on their general profile above."}`).join("\n")}`;
 
     const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
