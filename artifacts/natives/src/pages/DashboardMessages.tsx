@@ -327,12 +327,13 @@ export default function DashboardMessages() {
 
   async function acceptEOI(eoi: PendingEOI) {
     await supabase.from("conversations").update({ status: "open" }).eq("id", eoi.conversation_id);
-    await supabase.from("notifications").insert({
-      user_id: eoi.expresser_id,
-      type:    "eoi_accepted",
-      title:   "Expression of interest accepted",
-      body:    `Your ${partnershipLabel(eoi.partnership_type)} interest in "${eoi.initiative_title}" was accepted.`,
-      link:    "/dashboard/messages",
+    await supabase.rpc("send_conversation_notification", {
+      p_conversation_id: eoi.conversation_id,
+      p_target_user_id: eoi.expresser_id,
+      p_type: "eoi_accepted",
+      p_title: "Expression of interest accepted",
+      p_body: `Your ${partnershipLabel(eoi.partnership_type)} interest in "${eoi.initiative_title}" was accepted.`,
+      p_link: "/dashboard/messages",
     });
     setPendingEOIs(prev => prev.filter(e => e.eoi_id !== eoi.eoi_id));
     const updatedConvos = await loadAll(false);
@@ -344,12 +345,13 @@ export default function DashboardMessages() {
 
   async function declineEOI(eoi: PendingEOI) {
     await supabase.from("conversations").update({ status: "declined" }).eq("id", eoi.conversation_id);
-    await supabase.from("notifications").insert({
-      user_id: eoi.expresser_id,
-      type:    "eoi_declined",
-      title:   "Expression of interest not accepted",
-      body:    `Your interest in "${eoi.initiative_title}" was not taken forward.`,
-      link:    "/dashboard/messages",
+    await supabase.rpc("send_conversation_notification", {
+      p_conversation_id: eoi.conversation_id,
+      p_target_user_id: eoi.expresser_id,
+      p_type: "eoi_declined",
+      p_title: "Expression of interest not accepted",
+      p_body: `Your interest in "${eoi.initiative_title}" was not taken forward.`,
+      p_link: "/dashboard/messages",
     });
     setPendingEOIs(prev => prev.filter(e => e.eoi_id !== eoi.eoi_id));
   }
@@ -709,12 +711,13 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
     }
 
     // Send confirmation prompt to the other party
-    await supabase.from("notifications").insert({
-      user_id: conversation.other_user_id,
-      type: "partnership_confirmation_requested",
-      title: "Partnership confirmation requested",
-      body: `${conversation.initiative_title} — you've been proposed as ${partnershipType}. Go to Messages to confirm or decline.`,
-      link: `/dashboard/messages?conversation=${conversation.id}`,
+    await supabase.rpc("send_conversation_notification", {
+      p_conversation_id: conversation.id,
+      p_target_user_id: conversation.other_user_id,
+      p_type: "partnership_confirmation_requested",
+      p_title: "Partnership confirmation requested",
+      p_body: `${conversation.initiative_title} — you've been proposed as ${partnershipType}. Go to Messages to confirm or decline.`,
+      p_link: `/dashboard/messages?conversation=${conversation.id}`,
     });
 
     // Message removed — confirmation handled by real-time popup
@@ -732,12 +735,13 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
       .update({ status: "rejected" })
       .eq("id", conversation.id);
 
-    await supabase.from("notifications").insert({
-      user_id: conversation.other_user_id,
-      type: "partnership_rejected",
-      title: "Partnership interest not taken forward",
-      body: `Your partnership interest was not taken forward.`,
-      link: "/dashboard/messages",
+    await supabase.rpc("send_conversation_notification", {
+      p_conversation_id: conversation.id,
+      p_target_user_id: conversation.other_user_id,
+      p_type: "partnership_rejected",
+      p_title: "Partnership interest not taken forward",
+      p_body: `Your partnership interest was not taken forward.`,
+      p_link: "/dashboard/messages",
     });
 
     setDone("rejected");
@@ -1078,12 +1082,13 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
       }).eq("id", conversation.initiative_id);
     }
 
-    await supabase.from("notifications").insert({
-      user_id: conversation.other_user_id,
-      type:    "partner_confirmed",
-      title:   "You've been confirmed as a partner",
-      body:    `You were confirmed as ${partnershipLabel(confirmRole)} Partner on "${iniData?.title ?? "an initiative"}".`,
-      link:    "/dashboard/portfolio?tab=partners",
+    await supabase.rpc("send_conversation_notification", {
+      p_conversation_id: conversation.id,
+      p_target_user_id: conversation.other_user_id,
+      p_type: "partner_confirmed",
+      p_title: "You've been confirmed as a partner",
+      p_body: `You were confirmed as ${partnershipLabel(confirmRole)} Partner on "${iniData?.title ?? "an initiative"}".`,
+      p_link: "/dashboard/portfolio?tab=partners",
     });
 
     await supabase.from("conversations").update({ status: "confirmed" }).eq("id", conversation.id);
@@ -1096,12 +1101,13 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
     if (rejecting) return;
     setRejecting(true);
     await supabase.from("conversations").update({ status: "rejected" }).eq("id", conversation.id);
-    await supabase.from("notifications").insert({
-      user_id: conversation.other_user_id,
-      type:    "conversation_closed",
-      title:   "Conversation closed",
-      body:    `The conversation about "${conversation.initiative_title}" has been closed.`,
-      link:    "/dashboard/messages",
+    await supabase.rpc("send_conversation_notification", {
+      p_conversation_id: conversation.id,
+      p_target_user_id: conversation.other_user_id,
+      p_type: "conversation_closed",
+      p_title: "Conversation closed",
+      p_body: `The conversation about "${conversation.initiative_title}" has been closed.`,
+      p_link: "/dashboard/messages",
     });
     setIsRejected(true);
     setRejecting(false);
@@ -1177,12 +1183,13 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
       .update({ status: "rejected" })
       .eq("id", conversation.id);
 
-    await supabase.from("notifications").insert({
-      user_id: conversation.other_user_id,
-      type: "partnership_confirmed",
-      title: "Partnership confirmed",
-      body: `${conversation.other_user_name} confirmed the partnership as ${pendingConfirmation.partnership_type}.`,
-      link: "/dashboard/portfolio?tab=partnerships&view=confirmed",
+    await supabase.rpc("send_conversation_notification", {
+      p_conversation_id: conversation.id,
+      p_target_user_id: conversation.other_user_id,
+      p_type: "partnership_confirmed",
+      p_title: "Partnership confirmed",
+      p_body: `${conversation.other_user_name} confirmed the partnership as ${pendingConfirmation.partnership_type}.`,
+      p_link: "/dashboard/portfolio?tab=partnerships&view=confirmed",
     });
 
     setPartnershipResolved("confirmed");
@@ -1201,12 +1208,13 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
       .update({ status: "rejected" })
       .eq("id", conversation.id);
 
-    await supabase.from("notifications").insert({
-      user_id: conversation.other_user_id,
-      type: "partnership_declined_by_expresser",
-      title: "Partnership declined",
-      body: `${conversation.other_user_name} declined the partnership.`,
-      link: "/dashboard/messages",
+    await supabase.rpc("send_conversation_notification", {
+      p_conversation_id: conversation.id,
+      p_target_user_id: conversation.other_user_id,
+      p_type: "partnership_declined_by_expresser",
+      p_title: "Partnership declined",
+      p_body: `${conversation.other_user_name} declined the partnership.`,
+      p_link: "/dashboard/messages",
     });
 
     setPartnershipResolved("declined");
@@ -1394,12 +1402,13 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
                 await supabase.from("conversations")
                   .update({ status: "open" })
                   .eq("id", conversation.id);
-                await supabase.from("notifications").insert({
-                  user_id: conversation.other_user_id,
-                  type: "partnership_accepted",
-                  title: "Conversation opened",
-                  body: `${conversation.initiative_title} — your message was accepted. You can now chat.`,
-                  link: `/dashboard/messages?conversation=${conversation.id}`,
+                await supabase.rpc("send_conversation_notification", {
+                  p_conversation_id: conversation.id,
+                  p_target_user_id: conversation.other_user_id,
+                  p_type: "partnership_accepted",
+                  p_title: "Conversation opened",
+                  p_body: `${conversation.initiative_title} — your message was accepted. You can now chat.`,
+                  p_link: `/dashboard/messages?conversation=${conversation.id}`,
                 });
                 setConvStatus("open");
                 onUpdate?.(conversation.id, { status: "open" });
