@@ -60,8 +60,8 @@ Never use placeholder text like "The actual match_reason is the same as before" 
         "Authorization": `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
-        max_tokens: 2000,
+        model: "llama-3.3-70b-versatile",
+        max_tokens: 1000,
         messages: [{ role: "user", content: prompt }],
       }),
       });

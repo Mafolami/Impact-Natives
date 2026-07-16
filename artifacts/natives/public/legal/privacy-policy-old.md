@@ -54,22 +54,7 @@ We do not sell your data to third parties. We do not use your data for advertisi
 
 ---
 
-## 4. How We Use AI
-
-Some features on the platform use artificial intelligence to process text you provide. This includes:
-
-- Parsing documents you upload during onboarding to prefill your profile
-- Generating strategy pillars and initiative descriptions
-- Producing partnership fit analysis and suggested messages
-- Powering the conversational strategy advisor
-
-When you use these features, the text you enter is sent to our AI provider, **Groq**, for processing and returned to you. We only send the specific text needed for the feature to work. We do not send AI providers more of your personal data than is necessary.
-
-Where a feature uses AI, we aim to offer a manual alternative, such as filling in forms by hand instead of uploading a document, so you can choose not to use AI processing.
-
----
-
-## 5. Legal Basis for Processing
+## 4. Legal Basis for Processing
 
 We process your data under the **Nigeria Data Protection Regulation (NDPR) 2019** and its implementing framework.
 
@@ -83,7 +68,7 @@ For users in the European Economic Area, we additionally rely on equivalent base
 
 ---
 
-## 6. Who We Share Your Data With
+## 5. Who We Share Your Data With
 
 We share data with the following service providers, strictly for the purpose of operating the platform:
 
@@ -97,18 +82,7 @@ We do not share your data with any other third parties unless required by law or
 
 ---
 
-## 7. Cookies and Sessions
-
-We use cookies and similar technologies for essential platform functions:
-
-- **Session cookies**: to keep you logged in and maintain your session securely. These are necessary for the platform to work.
-- **Preference storage**: we store some settings, such as your light or dark mode choice, locally in your browser.
-
-We do not use advertising cookies or sell data collected through cookies. If we add analytics in future, we will update this policy and, where required, ask for your consent first.
-
----
-
-## 8. Profile Visibility
+## 6. Profile Visibility
 
 Your profile is visible to other logged-in users of the platform by default. You can control whether your activity appears on the public feed via **Settings → Privacy**.
 
@@ -116,15 +90,15 @@ Verified organisation badges, confirmed partnerships (if you choose to make them
 
 ---
 
-## 9. Data Retention
+## 7. Data Retention
 
 We retain your data for as long as your account is active. If you delete your account, your personal data is permanently deleted from our systems within 30 days, except where we are required to retain it by law.
 
-**Verification documents**: if your verification is approved, we retain the documents for a reasonable period after review for audit purposes. If your verification is rejected or you do not complete it, the documents you submitted are deleted within 30 days.
+Verification documents are retained for a reasonable period after review for audit purposes.
 
 ---
 
-## 10. Your Rights
+## 8. Your Rights
 
 Under the NDPR, you have the right to:
 
@@ -133,7 +107,7 @@ Under the NDPR, you have the right to:
 - **Delete** your account and associated data
 - **Withdraw consent** for newsletter communications at any time
 - **Object** to processing based on legitimate interests
-- **Data portability**: receive a copy of your data in a structured format
+- **Data portability** — receive a copy of your data in a structured format
 
 To exercise any of these rights, contact us at **contact@impactnatives.com**.
 
@@ -141,39 +115,29 @@ For users in the EEA, you also have the right to lodge a complaint with your loc
 
 ---
 
-## 11. Security
+## 9. Security
 
-We implement appropriate technical and organisational measures to protect your data, including:
+We implement appropriate technical and organisational measures to protect your data, including encrypted data transmission (HTTPS), access controls, and row-level security on our database.
 
-- Encrypted data transmission (HTTPS)
-- Access controls and authentication
-- Row-level security on our database, so users can only access data they are permitted to see
-
-No system is completely secure. If you believe your account has been compromised, contact us immediately at **contact@impactnatives.com**.
+No system is completely secure. If you believe your account has been compromised, contact us immediately.
 
 ---
 
-## 12. Data Breach Notification
-
-If a data breach occurs that affects your personal data, we will act quickly to contain it. Where the breach is likely to result in a risk to your rights and freedoms, we will notify the relevant data protection authority and affected users without undue delay, and within 72 hours of becoming aware of it where required under the NDPR and GDPR.
-
----
-
-## 13. Children
+## 10. Children
 
 Impact Natives is not intended for users under the age of 18. We do not knowingly collect data from minors. If you believe a minor has created an account, contact us and we will remove it.
 
 ---
 
-## 14. Changes to This Policy
+## 11. Changes to This Policy
 
-We may update this policy from time to time. We will notify registered users of material changes by email or via an in-app notification. The "last updated" date at the top of this page will always reflect the most recent version. Previous versions are available on request.
+We may update this policy from time to time. We will notify registered users of material changes by email or via an in-app notification. The "last updated" date at the top of this page will always reflect the most recent version.
 
 ---
 
-## 15. Contact
+## 12. Contact
 
 **Impact Natives Ltd**
 
-Email: contact@impactnatives.com
+Email: contact@impactnatives.com,
 Website: impactnatives.com

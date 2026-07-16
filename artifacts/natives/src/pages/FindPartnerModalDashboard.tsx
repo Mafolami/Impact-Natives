@@ -428,13 +428,16 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
       const { error } = await supabase.from("partnership_connections").insert({ sender_org_id: orgProfile.id, receiver_org_id: match.org.id, sender_user_id: user.id, source: "ai_match", ai_rationale: match.rationale, fit_score: match.fit_score, status: "pending" });
       if (error && !error.message.includes("unique")) throw error;
       const { data: receiverProfile } = await supabase.from("organizations").select("user_id").eq("id", match.org.id).single();
-      const { data: convData } = await supabase.from("conversations").insert({ conversation_type: "partnership", status: "open" }).select("id").single();
-      if (convData?.id) {
-        await supabase.from("conversation_participants").insert([{ conversation_id: convData.id, user_id: user.id }, ...(receiverProfile?.user_id ? [{ conversation_id: convData.id, user_id: receiverProfile.user_id }] : [])]);
-        await supabase.from("messages").insert({ conversation_id: convData.id, sender_id: user.id, body: `Hi ${match.org.organisation_name}, I'm ${orgProfile.organisation_name} and I came across your listing on Impact Natives. ${match.rationale}\n\nWould you be open to a conversation?` });
+      const { data: convId, error: convError } = await supabase.rpc("create_ai_match_conversation", {
+        p_sender_user_id: user.id,
+        p_receiver_user_id: receiverProfile?.user_id ?? null,
+      });
+      if (convError) throw convError;
+      if (convId) {
+        await supabase.from("messages").insert({ conversation_id: convId, sender_id: user.id, body: `Hi ${match.org.organisation_name}, I'm ${orgProfile.organisation_name} and I came across your listing on Impact Natives. ${match.rationale}\n\nWould you be open to a conversation?` });
       }
       if (receiverProfile?.user_id) {
-        await supabase.from("notifications").insert({ user_id: receiverProfile.user_id, type: "partnership_invite", title: "New partnership invitation", body: `${orgProfile.organisation_name} wants to explore a partnership with you.`, link: "/dashboard/portfolio?tab=partnerships", metadata: { sender_org_id: orgProfile.id, sender_org_name: orgProfile.organisation_name, fit_score: match.fit_score, key_synergy: match.key_synergy, conversation_id: convData?.id } });
+        await supabase.from("notifications").insert({ user_id: receiverProfile.user_id, type: "partnership_invite", title: "New partnership invitation", body: `${orgProfile.organisation_name} wants to explore a partnership with you.`, link: "/dashboard/portfolio?tab=partnerships", metadata: { sender_org_id: orgProfile.id, sender_org_name: orgProfile.organisation_name, fit_score: match.fit_score, key_synergy: match.key_synergy, conversation_id: convId } });
       }
       setSentInvites(prev => new Set(prev).add(match.org_id));
     } catch (e) { console.error("Send invite error:", e); }
