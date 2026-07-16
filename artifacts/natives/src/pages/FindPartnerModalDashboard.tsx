@@ -452,10 +452,22 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
           sender_org_name: orgProfile.organisation_name,
           sender_contact_name: senderProfile?.full_name ?? null,
           sender_description: orgProfile.description ?? null,
-          sender_offers: orgProfile.offers ?? [],
+          sender_offers: form.offers ?? [],
+          sender_needs: form.needs ?? [],
+          partnership_title: partnershipTitle,
+          partnership_sought: form.partnership_sought,
+          partnership_stage: form.partnership_stage,
+          partnership_duration: form.partnership_duration,
+          partnership_budget: form.partnership_budget,
+          partnership_decision_timeline: form.partnership_decision_timeline,
+          partnership_working_style: form.partnership_working_style,
+          partnership_financial_transfer: form.partnership_financial_transfer,
+          partnership_team_capacity: form.partnership_team_capacity,
           receiver_org_name: match.org.organisation_name,
+          receiver_description: match.org.description ?? null,
           receiver_needs: match.org.needs ?? [],
           receiver_offers: match.org.offers ?? [],
+          receiver_partnership_sought: (match.org as any).partnership_sought ?? null,
           match_rationale: match.rationale,
           key_synergy: match.key_synergy,
           fit_score: match.fit_score,
@@ -623,6 +635,9 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
                               {match.org.verification_status === "verified" && (<span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#eaf5ee] text-[#2D6A4F]"><ShieldCheck className="w-3 h-3" />Verified</span>)}
                             </div>
                             <p className="text-xs text-muted-foreground capitalize">{match.org.organisation_type?.replace(/_/g, " ")}{countries.length > 0 && ` · ${countries.join(", ")}`}</p>
+                            {match.org.description && (
+                              <p className="text-xs text-muted-foreground/80 mt-1 line-clamp-1">{match.org.description}</p>
+                            )}
                           </div>
                           <div className="shrink-0 text-right">
                             <div className="text-3xl font-black text-[#2D6A4F]">{match.fit_score}</div>
