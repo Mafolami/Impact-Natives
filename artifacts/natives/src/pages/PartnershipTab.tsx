@@ -237,16 +237,13 @@ export function PartnershipTab() {
 
     let newConvId: string | undefined;
     if (status === "accepted") {
-      // Reuse existing conversation from expressInterest if available
       if (conn.conversation_id) {
         newConvId = conn.conversation_id;
-        // Add participants — participants may already exist from expressInterest, ignore errors
-        await supabase.from("conversation_participants").insert([
-          { conversation_id: conn.conversation_id, user_id: user!.id },
-          { conversation_id: conn.conversation_id, user_id: conn.sender_user_id },
-        ]);
+        await supabase.rpc("accept_partnership_connection", {
+          p_connection_id: conn.id,
+          p_conversation_id: conn.conversation_id,
+        });
       } else {
-        // Fallback: create new conversation if no existing one
         const { data: conv } = await supabase.from("conversations").insert({
           conversation_type: "partnership",
           status: "open",
@@ -256,10 +253,10 @@ export function PartnershipTab() {
         newConvId = conv?.id;
 
         if (conv?.id) {
-          await supabase.from("conversation_participants").insert([
-            { conversation_id: conv.id, user_id: user!.id },
-            { conversation_id: conv.id, user_id: conn.sender_user_id },
-          ]);
+          await supabase.rpc("accept_partnership_connection", {
+            p_connection_id: conn.id,
+            p_conversation_id: conv.id,
+          });
           if (conn.ai_rationale) {
             await supabase.from("messages").insert({
               conversation_id: conv.id,
@@ -270,22 +267,20 @@ export function PartnershipTab() {
         }
       }
 
-      // Notify sender
-      await supabase.from("notifications").insert({
-        user_id: conn.sender_user_id,
-        type: "partnership_accepted",
-        title: "Partnership interest accepted",
-        body: `${myListing?.organisation_name} accepted your partnership interest. A conversation has been opened in Messages.`,
-        link: "/dashboard/messages",
+      await supabase.rpc("send_partnership_notification", {
+        p_connection_id: conn.id,
+        p_type: "partnership_accepted",
+        p_title: "Partnership interest accepted",
+        p_body: `${myListing?.organisation_name} accepted your partnership interest. A conversation has been opened in Messages.`,
+        p_link: "/dashboard/messages",
       });
     } else {
-      // Notify decline
-      await supabase.from("notifications").insert({
-        user_id: conn.sender_user_id,
-        type: "partnership_declined",
-        title: "Partnership interest not taken forward",
-        body: `${myListing?.organisation_name} did not take your partnership interest forward at this time.`,
-        link: "/dashboard/messages",
+      await supabase.rpc("send_partnership_notification", {
+        p_connection_id: conn.id,
+        p_type: "partnership_declined",
+        p_title: "Partnership interest not taken forward",
+        p_body: `${myListing?.organisation_name} did not take your partnership interest forward at this time.`,
+        p_link: "/dashboard/messages",
       });
     }
 
@@ -308,12 +303,11 @@ export function PartnershipTab() {
       .eq("id", acceptModal.id);
 
     // Notify the sender
-    await supabase.from("notifications").insert({
-      user_id: acceptModal.sender_user_id,
-      type: "partnership_confirmed",
-      title: "Partnership accepted",
-      message: `${myListing?.organisation_name} has accepted the partnership as ${partnershipType}.`,
-      metadata: { connection_id: acceptModal.id },
+    await supabase.rpc("send_partnership_notification", {
+      p_connection_id: acceptModal.id,
+      p_type: "partnership_confirmed",
+      p_title: "Partnership accepted",
+      p_body: `${myListing?.organisation_name} has accepted the partnership as ${partnershipType}.`,
     });
 
     setAcceptModal(null);
@@ -354,17 +348,16 @@ export function PartnershipTab() {
         .in("id", pendingIds);
 
       // Notify all declined
-      const notifications = inbound
-        .filter(c => c.status === "pending")
-        .map(c => ({
-          user_id: c.sender_user_id,
-          type: "partnership_closed",
-          title: "Partnership request closed",
-          message: `${myListing?.organisation_name} has formed a partnership and closed this listing.`,
-          metadata: { connection_id: c.id },
-        }));
-      if (notifications.length > 0) {
-        await supabase.from("notifications").insert(notifications);
+      const pendingToNotify = inbound.filter(c => c.status === "pending");
+      if (pendingToNotify.length > 0) {
+        await Promise.all(pendingToNotify.map(c =>
+          supabase.rpc("send_partnership_notification", {
+            p_connection_id: c.id,
+            p_type: "partnership_closed",
+            p_title: "Partnership request closed",
+            p_body: `${myListing?.organisation_name} has formed a partnership and closed this listing.`,
+          })
+        ));
       }
     }
 
