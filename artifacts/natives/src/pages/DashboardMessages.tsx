@@ -730,11 +730,12 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
   async function rejectPartnership() {
     if (submitting) return;
     setSubmitting(true);
-
     await supabase.from("conversations")
       .update({ status: "rejected" })
       .eq("id", conversation.id);
-
+    await supabase.from("partnership_connections")
+      .update({ status: "declined", updated_at: new Date().toISOString() })
+      .eq("conversation_id", conversation.id);
     await supabase.rpc("send_conversation_notification", {
       p_conversation_id: conversation.id,
       p_target_user_id: conversation.other_user_id,
@@ -743,7 +744,6 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
       p_body: `Your partnership interest was not taken forward.`,
       p_link: "/dashboard/messages",
     });
-
     setDone("rejected");
     setSubmitting(false);
     setRejectOpen(false);
