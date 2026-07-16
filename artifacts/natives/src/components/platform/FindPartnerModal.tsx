@@ -61,10 +61,6 @@ export function FindPartnerModal({ onClose }: { onClose: () => void }) {
   const [submitted, setSubmitted] = useState(false);
   const [verificationDone, setVerificationDone] = useState(false);
   const [emailError, setEmailError] = useState("");
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [docName, setDocName] = useState("");
-  const [docLink, setDocLink] = useState("");
-  const [docLinks, setDocLinks] = useState<string[]>([]);
   const totalSteps = 11;
 
   function update(field: keyof EcoFormState, value: string) {
@@ -92,31 +88,16 @@ export function FindPartnerModal({ onClose }: { onClose: () => void }) {
       organisation_type: form.organisation_type, needs: form.needs, offers: form.offers,
       verification_consent: form.verification_consent,
       verification_status: form.verification_consent === "yes" ? "pending" : "not_requested",
-      verification_documents: docLinks, description: form.description, status: "pending",
+      description: form.description, status: "pending",
     });
     setLoading(false);
     if (error) alert(error.message);
     else setSubmitted(true);
   }
 
-  async function submitVerificationDocs() {
-    if (docLinks.length === 0 && uploadedFiles.length === 0) return;
-    const rows: any[] = [];
-    for (const f of uploadedFiles) {
-      const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const filePath = `${form.email}/${Date.now()}-${safeName}`;
-      const { error: uploadError } = await supabase.storage.from("verification-docs").upload(filePath, f);
-      if (uploadError) return alert(uploadError.message);
-      const { data } = supabase.storage.from("verification-docs").getPublicUrl(filePath);
-      rows.push({ organization_id: null, name: f.name, document_url: data.publicUrl, file_path: filePath, document_type: f.type, source_type: "upload" });
-    }
-    for (const l of docLinks) {
-      const parsed = JSON.parse(l);
-      rows.push({ organization_id: null, name: parsed.name, document_url: parsed.file_url, file_path: null, document_type: "url", source_type: "link" });
-    }
-    if (rows.length > 0) await supabase.from("verification_documents").insert(rows);
-    await supabase.from("organizations").update({ verification_status: "in_review" }).eq("email", form.email);
-    setVerificationDone(true);
+  async function goToSignUp() {
+    await supabase.from("organizations").update({ verification_status: "pending" }).eq("email", form.email);
+    setLocation("/signup");
   }
 
   const steps = [
@@ -137,73 +118,9 @@ export function FindPartnerModal({ onClose }: { onClose: () => void }) {
     <div className="flex flex-col items-center gap-6 text-center px-4 max-w-lg mx-auto py-10 overflow-y-auto w-full">
       <ShieldCheck className="w-12 h-12 text-[#2D6A4F]" />
       <h2 className="text-2xl font-semibold">Your submission has been received.</h2>
-      <p className="text-muted-foreground text-sm max-w-md">Upload documents or paste links to your registration materials.</p>
-      <div className="w-full space-y-6 text-left">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">Upload files</label>
-            <span className="text-xs text-muted-foreground">Max 5 MB total</span>
-          </div>
-          <label className="flex items-center gap-3 cursor-pointer rounded-md border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:border-foreground/40 transition-colors">
-            <span>+ Add file</span>
-            <input type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" className="sr-only" multiple
-              onChange={(e) => {
-                const selected = Array.from(e.target.files || []);
-                const existingSize = uploadedFiles.reduce((sum, f) => sum + f.size, 0);
-                const newSize = selected.reduce((sum, f) => sum + f.size, 0);
-                if (existingSize + newSize > 5 * 1024 * 1024) { alert("Total file size would exceed 5 MB."); return; }
-                setUploadedFiles((prev) => [...prev, ...selected]);
-                e.target.value = "";
-              }} />
-          </label>
-          {uploadedFiles.length > 0 && (
-            <div className="space-y-1.5">
-              {uploadedFiles.map((f, i) => (
-                <div key={i} className="flex items-center justify-between text-xs border border-border rounded-md px-3 py-2 bg-muted/30">
-                  <div className="flex flex-col gap-0.5 min-w-0">
-                    <span className="font-medium text-foreground truncate">{f.name}</span>
-                    <span className="text-muted-foreground">{(f.size / 1024).toFixed(0)} KB</span>
-                  </div>
-                  <button type="button" onClick={() => setUploadedFiles((prev) => prev.filter((_, idx) => idx !== i))} className="text-muted-foreground hover:text-foreground ml-3 shrink-0">✕</button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <div className="flex-1 border-t border-border" />OR<div className="flex-1 border-t border-border" />
-        </div>
-        <div className="space-y-3">
-          <label className="text-sm font-medium">Paste a link</label>
-          <Input placeholder="https://docs.example.com/registration" value={docLink} onChange={(e) => setDocLink(e.target.value)} />
-          <Input placeholder="Document name (e.g. CAC Registration Certificate)" value={docName} onChange={(e) => setDocName(e.target.value)} />
-          <Button type="button" variant="outline" size="sm" onClick={() => {
-            if (!docLink.trim() || !docName.trim()) return;
-            try { new URL(docLink.trim()); } catch { alert("Please enter a valid URL including https://"); return; }
-            setDocLinks((prev) => [...prev, JSON.stringify({ name: docName, source_type: "link", file_url: docLink.trim(), file_type: "url" })]);
-            setDocLink(""); setDocName("");
-          }}>Add link →</Button>
-        </div>
-        {docLinks.length > 0 && (
-          <div className="space-y-2 border-t border-border pt-4">
-            <p className="text-sm font-medium">Added</p>
-            {docLinks.map((l, i) => {
-              const parsed = JSON.parse(l);
-              return (
-                <div key={i} className="flex items-center justify-between text-xs border border-border rounded-md px-3 py-2 bg-muted/30">
-                  <div className="flex flex-col gap-0.5 min-w-0">
-                    <span className="font-medium text-foreground truncate">{parsed.name}</span>
-                    <span className="text-muted-foreground truncate">{parsed.source_type === "upload" ? "Uploaded file" : parsed.file_url}</span>
-                  </div>
-                  <button type="button" onClick={() => setDocLinks((prev) => prev.filter((_, idx) => idx !== i))} className="text-muted-foreground hover:text-foreground ml-3 shrink-0">✕</button>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <p className="text-muted-foreground text-sm max-w-md">To complete verification, sign up for an account and upload your registration documents securely from your dashboard.</p>
       <div className="flex gap-3 flex-wrap justify-center">
-        <Button type="button" onClick={submitVerificationDocs} disabled={docLinks.length === 0 && uploadedFiles.length === 0}>Submit for review</Button>
+        <Button type="button" onClick={goToSignUp}>Continue to sign up</Button>
         <Button type="button" variant="outline" onClick={onClose}>Skip for now</Button>
       </div>
     </div>
