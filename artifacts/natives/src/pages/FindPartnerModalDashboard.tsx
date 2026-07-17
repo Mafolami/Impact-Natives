@@ -284,6 +284,7 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
   const [submitting, setSubmitting] = useState(false);
   const [listPublicly, setListPublicly] = useState(true);
   const [matches, setMatches] = useState<MatchResult[]>([]);
+  const [matchLimit, setMatchLimit] = useState<number | "all">(5);
   const [sentInvites, setSentInvites] = useState<Set<string>>(new Set());
   const [sendingInvite, setSendingInvite] = useState<string | null>(null);
   const [composingInvite, setComposingInvite] = useState<string | null>(null);
@@ -638,8 +639,24 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{matches.length} potential match{matches.length !== 1 ? "es" : ""} found</p>
-                  {matches.map(match => {
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                      Showing {Math.min(matches.length, matchLimit === "all" ? matches.length : matchLimit)} of {matches.length} match{matches.length !== 1 ? "es" : ""}
+                    </p>
+                    <div className="flex items-center gap-1.5">
+                      {([5, 10, 20, "all"] as const).map(opt => (
+                        <button key={opt} type="button" onClick={() => setMatchLimit(opt)}
+                          className={`h-7 px-3 rounded-full text-xs font-semibold border transition-colors ${
+                            matchLimit === opt
+                              ? "bg-[#2D6A4F] text-white border-[#2D6A4F]"
+                              : "border-border text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F]"
+                          }`}>
+                          {opt === "all" ? "All" : `Top ${opt}`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {(matchLimit === "all" ? matches : matches.slice(0, matchLimit)).map(match => {
                     const invited = sentInvites.has(match.org_id);
                     const sending = sendingInvite === match.org_id;
                     const countries = Array.isArray(match.org.country) ? match.org.country : String(match.org.country ?? "").startsWith("{") ? String(match.org.country).slice(1,-1).split(",").map((s:string) => s.replace(/"/g,"").trim()) : [match.org.country];

@@ -67,7 +67,7 @@ Scoring criteria (total 100):
 
 Be honest and specific in the rationale: name the exact detail that creates the fit (e.g. a specific listed need, a specific offer, a specific stated partnership ask) rather than vague language like "aligns with" or "could support." If the correlation is weak, score it low — do not inflate scores for organisations that merely operate in the same country or broad sector.
 
-Return ONLY a valid JSON object. No markdown, no backticks, no explanation. Max 5 matches, min 1. Only include orgs with fit_score >= 45. Order by fit_score descending.
+Return ONLY a valid JSON object. No markdown, no backticks, no explanation, no comments (// or /* */), no duplicate keys, no placeholder values. If you are uncertain about a candidate, simply exclude them from the matches array rather than including a partial or uncertain entry. Every object in the matches array must have exactly these four keys: org_id, fit_score, rationale, key_synergy. Include every candidate with fit_score >= 45, no maximum. Order by fit_score descending.
 
 {
   "matches": [
@@ -140,17 +140,28 @@ ${c.partnership_listed && c.partnership_sought ? `This candidate has ALSO listed
     try {
       const clean = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
       parsed = JSON.parse(clean);
+      console.log("Raw parsed matches:", JSON.stringify(parsed.matches));
     } catch {
       return new Response(JSON.stringify({ error: "Could not parse response.", raw: rawText }), {
         status: 422, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
       });
     }
 
-    // Enrich matches with org details for the UI
-    const matches = (parsed.matches ?? []).map((m: any) => {
-      const org = candidates.find((c: any) => c.id === m.org_id);
-      return { ...m, org };
-    }).filter((m: any) => m.org);
+    // Enrich matches with org details for the UI, deduplicating by org_id
+    // (the model occasionally returns the same org twice, e.g. once for
+    // general profile fit and once for their own listed partnership request)
+    const seenOrgIds = new Set<string>();
+    const matches = (parsed.matches ?? [])
+      .map((m: any) => {
+        const org = candidates.find((c: any) => c.id === m.org_id);
+        return { ...m, org };
+      })
+      .filter((m: any) => {
+        if (!m.org) return false;
+        if (seenOrgIds.has(m.org_id)) return false;
+        seenOrgIds.add(m.org_id);
+        return true;
+      });
 
     // Notify admin (non-fatal)
     await notifyAdmin(submitting_org, matches);
