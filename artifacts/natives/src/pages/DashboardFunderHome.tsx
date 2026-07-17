@@ -239,7 +239,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                       )}
                     </div>
                     {ini.match_reason ? (
-                      <p className="text-xs mt-0.5 line-clamp-1" style={{ color: "#2D6A4F" }}>
+                      <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "#2D6A4F" }}>
                         {ini.match_reason}
                       </p>
                     ) : (

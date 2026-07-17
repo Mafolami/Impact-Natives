@@ -319,7 +319,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
                       )}
                     </div>
                     {ini.match_reason ? (
-                      <p className="text-xs mt-0.5 line-clamp-1 text-[#2D6A4F]">{ini.match_reason}</p>
+                      <p className="text-xs mt-0.5 leading-relaxed text-[#2D6A4F]">{ini.match_reason}</p>
                     ) : (
                       <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{ini.problem}</p>
                     )}
