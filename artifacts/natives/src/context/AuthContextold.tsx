@@ -30,7 +30,6 @@ import {
     is_verified: boolean | null;
     is_admin: boolean | null;
     investment_thesis: string | null;
-    login_count: number | null;
     created_at: string;
     updated_at: string;
   }
@@ -91,19 +90,11 @@ import {
   
       const {
         data: { subscription },
-      } = supabase.auth.onAuthStateChange((event, session) => {
+      } = supabase.auth.onAuthStateChange((_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
           fetchProfile(session.user.id);
-          // Only a real sign-in should count — SIGNED_IN fires once per
-          // actual login action, unlike INITIAL_SESSION/TOKEN_REFRESHED
-          // which fire on every page load or silent token renewal.
-          if (event === "SIGNED_IN") {
-            supabase.rpc("increment_login_count").then(({ error }) => {
-              if (error) console.error("increment_login_count failed:", error);
-            });
-          }
         } else {
           setProfile(null);
         }

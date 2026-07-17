@@ -44,12 +44,11 @@ interface InitiativeRow {
   created_at: string;
 }
 
-
-
 interface ActivitySnapshot {
   openConversations: number;
   pendingEOIs: number;
   openEnquiries: number;
+  unreadMessages: number;
 }
 
 const STATUS_MAP: Record<string, { label: string; dot: string }> = {
@@ -57,11 +56,6 @@ const STATUS_MAP: Record<string, { label: string; dot: string }> = {
   published: { label: "Listed",         dot: "#2D6A4F" },
   rejected:  { label: "Not approved",   dot: "#ef4444" },
 };
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 
 // ---------------------------------------------------------------------------
 // Metric Card
@@ -101,7 +95,8 @@ function MetricCard({ label, value, sub, onClick, accent, showSkeleton }: {
 
 // ---------------------------------------------------------------------------
 // Getting Started Checklist
-// Shown only to new users with zero activity
+// Shown only on a genuine first login — see isDormant below for what
+// replaces this from the second login onward if there's still no activity.
 // ---------------------------------------------------------------------------
 function GettingStarted({
   userType,
@@ -191,6 +186,82 @@ function GettingStarted({
 }
 
 // ---------------------------------------------------------------------------
+// Missed matches — shown to dormant users (2nd+ login, still zero activity)
+// instead of the Getting Started checklist. Reuses the same sector-overlap
+// approach already built for the monthly-activity-digest email, just live
+// and interactive instead of monthly and static.
+// ---------------------------------------------------------------------------
+function MissedMatchesForYou({ userSectors }: { userSectors: string[] }) {
+  const [location, navigate] = useLocation();
+  const [loading, setLoading] = useState(true);
+  const [matches, setMatches] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!userSectors || userSectors.length === 0) { setLoading(false); return; }
+
+    supabase
+      .from("initiative_requests")
+      .select("id,title,problem,sectors,locations,specific_ask")
+      .eq("status", "published")
+      .order("created_at", { ascending: false })
+      .limit(50)
+      .then(({ data }) => {
+        const scored = (data ?? [])
+          .map((ini: any) => {
+            const shared = (ini.sectors ?? []).filter((s: string) => userSectors.includes(s));
+            return { ...ini, overlap: shared.length, sharedSectors: shared };
+          })
+          .filter((ini: any) => ini.overlap > 0)
+          .sort((a: any, b: any) => b.overlap - a.overlap)
+          .slice(0, 3);
+        setMatches(scored);
+        setLoading(false);
+      });
+  }, [userSectors]);
+
+  if (!userSectors || userSectors.length === 0) return null;
+  if (!loading && matches.length === 0) return null;
+
+  return (
+    <section>
+      <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1">
+        A few things in your sectors
+      </h3>
+      <p className="text-xs text-muted-foreground mb-4">
+        Matched to {userSectors.slice(0, 2).join(", ")}{userSectors.length > 2 ? ` and ${userSectors.length - 2} more` : ""}
+      </p>
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2].map(i => (
+            <div key={i} className="h-20 rounded-xl border border-border bg-card animate-pulse" />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {matches.map((ini: any) => (
+            <button key={ini.id} type="button"
+              onClick={() => navigate(`/dashboard/marketplace?initiative=${ini.id}`)}
+              className="w-full text-left rounded-xl border border-border bg-card px-5 py-3.5 hover:border-[#2D6A4F]/30 transition-colors group flex items-center justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground group-hover:text-[#2D6A4F] transition-colors truncate">
+                  {ini.title}
+                </p>
+                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                  {ini.sharedSectors.slice(0, 2).map((s: string) => (
+                    <span key={s} className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">{s}</span>
+                  ))}
+                </div>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-[#2D6A4F] shrink-0 transition-colors" />
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // My Initiatives — mini list shown on Dashboard Home
 // ---------------------------------------------------------------------------
 function MyInitiativesMini({ initiatives }: { initiatives: InitiativeRow[] }) {
@@ -243,12 +314,11 @@ export default function DashboardHome() {
   const [location, navigate] = useLocation();
 
   const [myInitiatives, setMyInitiatives]         = useState<InitiativeRow[]>([]);
-  const [snapshot, setSnapshot] = useState<ActivitySnapshot>({ openConversations: 0, pendingEOIs: 0, openEnquiries: 0 });
+  const [snapshot, setSnapshot] = useState<ActivitySnapshot>({ openConversations: 0, pendingEOIs: 0, openEnquiries: 0, unreadMessages: 0 });
   const [loadingPersonal, setLoadingPersonal]     = useState(true);
   const [showSkeleton, setShowSkeleton]           = useState(false);
-  
+
   const [showCreateModal, setShowCreateModal]     = useState(false);
-  const [marketplaceCount, setMarketplaceCount]   = useState<number>(0);
   const [allMyInits, setAllMyInits]               = useState<{id: string; status: string}[]>([]);
 
   const hour      = new Date().getHours();
@@ -288,10 +358,15 @@ export default function DashboardHome() {
     && snapshot.pendingEOIs === 0
     && snapshot.openEnquiries === 0;
 
+  // Dormant: zero activity, but this isn't their first time here. Getting
+  // Started only makes sense once — after that, a static checklist with
+  // nothing else ever showing isn't a real re-engagement path.
+  const isDormant = isNewUser && (profile?.login_count ?? 0) >= 2;
+
   // ── Personal data fetch ───────────────────────────────────────────────────
   const loadPersonal = useCallback(async () => {
     if (!user?.id) return;
-    const [initRes, allInitRes, convRes, eoiRes, mktRes] = await Promise.all([
+    const [initRes, allInitRes, convRes, eoiRes] = await Promise.all([
       supabase
         .from("initiative_requests")
         .select("id,title,sectors,locations,status,eois,created_at")
@@ -310,10 +385,6 @@ export default function DashboardHome() {
         .from("initiative_requests")
         .select("id")
         .or(`user_id.eq.${user.id},submitter_email.eq.${user.email}`),
-      supabase
-        .from("initiative_requests")
-        .select("id")
-        .eq("status", "published"),
     ]);
 
     if (initRes.data) setMyInitiatives(initRes.data as InitiativeRow[]);
@@ -362,9 +433,50 @@ export default function DashboardHome() {
       pendingEOIs = eoiConvIds.filter((id: string) => statusMap[id] === "pending").length;
     }
 
-    setSnapshot({ openConversations, pendingEOIs, openEnquiries });
+    // Unread messages — mirrors Sidebar.tsx's fetchUnread logic, but only the
+    // two message-specific sub-blocks (question-conversation unread +
+    // open-conversation unread). The sidebar badge also folds in pending-EOI
+    // conversations, which would double-count against the separate Pending
+    // EOIs tile here if copied wholesale.
+    let unreadMessages = 0;
+    const questionConvIdsForUnread = convIds.length > 0
+      ? (await supabase
+          .from("conversations")
+          .select("id")
+          .in("id", convIds)
+          .eq("conversation_type", "question")
+          .eq("status", "open")).data?.map((c: any) => c.id) ?? []
+      : [];
+    if (questionConvIdsForUnread.length > 0) {
+      const { data: unreadQ } = await supabase
+        .from("messages")
+        .select("id")
+        .in("conversation_id", questionConvIdsForUnread)
+        .neq("sender_id", user.id)
+        .is("read_at", null);
+      unreadMessages += unreadQ?.length ?? 0;
+    }
+    if (convIds.length > 0) {
+      const { data: openConvsForUnread } = await supabase
+        .from("conversations")
+        .select("id")
+        .in("id", convIds)
+        .eq("status", "open")
+        .is("funder_closed_at", null);
+      const openConvIdsForUnread = (openConvsForUnread ?? []).map((c: any) => c.id);
+      if (openConvIdsForUnread.length > 0) {
+        const { data: unreadOpen } = await supabase
+          .from("messages")
+          .select("id")
+          .in("conversation_id", openConvIdsForUnread)
+          .neq("sender_id", user.id)
+          .is("read_at", null);
+        unreadMessages += unreadOpen?.length ?? 0;
+      }
+    }
+
+    setSnapshot({ openConversations, pendingEOIs, openEnquiries, unreadMessages });
     setAllMyInits(allInits);
-    setMarketplaceCount(mktRes.data?.length ?? 0);
     setLoadingPersonal(false);
   }, [user?.id]);
 
@@ -416,8 +528,9 @@ export default function DashboardHome() {
           
         </div>
 
-        {/* Metrics strip */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* Metrics strip — 3 tiles; dropped the platform-wide "In Marketplace"
+            count, which had no connection to the user's own activity */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <MetricCard
             label="My Initiatives"
             value={loadingPersonal ? "—" : allMyInits.length}
@@ -438,28 +551,16 @@ export default function DashboardHome() {
           />
           <MetricCard
             label="Messages"
-            value={loadingPersonal ? "—" : snapshot.openConversations + snapshot.openEnquiries}
-            sub={
-              snapshot.openConversations > 0
-                ? `${snapshot.openConversations} open`
-                : "none open"
-            }
+            value={loadingPersonal ? "—" : snapshot.unreadMessages}
+            sub={snapshot.unreadMessages > 0 ? "unread" : "all caught up"}
             onClick={() => navigate("/dashboard/messages")}
-            accent={snapshot.openConversations > 0}
-            showSkeleton={showSkeleton}
-          />
-          <MetricCard
-            label="In Marketplace"
-            value={loadingPersonal ? "—" : marketplaceCount}
-            sub="active initiatives"
-            onClick={() => navigate("/dashboard/marketplace")}
-            accent={false}
+            accent={snapshot.unreadMessages > 0}
             showSkeleton={showSkeleton}
           />
         </div>
 
-        {/* Getting Started — new users only */}
-        {!loadingPersonal && isNewUser && (
+        {/* Getting Started — first login only */}
+        {!loadingPersonal && isNewUser && !isDormant && (
           <GettingStarted
             userType={profile?.user_type ?? undefined}
             isVerified={profile?.is_verified ?? undefined}
@@ -468,12 +569,16 @@ export default function DashboardHome() {
           />
         )}
 
+        {/* Dormant — 2nd+ login, still zero activity: live matches instead
+            of a static checklist with nothing else to show */}
+        {!loadingPersonal && isDormant && (
+          <MissedMatchesForYou userSectors={profile?.sectors ?? []} />
+        )}
+
         {/* My Initiatives — returning users with activity */}
         {!loadingPersonal && !isNewUser && myInitiatives.length > 0 && (
           <MyInitiativesMini initiatives={myInitiatives} />
         )}
-
-        
 
       </div>
 

@@ -138,17 +138,6 @@ async function sendEmail(to: string, subject: string, html: string) {
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
 
-  // Service-role-only: this function loops over every user on the platform and
-  // sends notifications + emails. It must never be reachable with the public
-  // anon key or any regular user session token — only the scheduled cron job,
-  // which authenticates with the service role key, may call this.
-  const authHeader = req.headers.get("Authorization") ?? "";
-  if (authHeader !== `Bearer ${SUPABASE_SERVICE_KEY}`) {
-    return new Response(JSON.stringify({ error: "Forbidden" }), {
-      status: 403, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
-    });
-  }
-
   try {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 

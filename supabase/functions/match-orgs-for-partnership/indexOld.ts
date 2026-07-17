@@ -1,6 +1,7 @@
 // supabase/functions/match-orgs-for-partnership/index.ts
 // Matches a submitting org against all partnership-listed orgs
 // Returns 3-5 ranked matches with rationale + fit score
+// Also sends admin notification email
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -68,6 +69,7 @@ Deno.serve(async (req: Request) => {
     });
 
     if (!candidates || candidates.length === 0) {
+      await notifyAdmin(submitting_org, []);
       return new Response(JSON.stringify({ matches: [] }), {
         status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
       });
@@ -211,6 +213,7 @@ ${c.partnership_listed && c.partnership_sought ? `This candidate has ALSO listed
     try {
       const clean = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
       parsed = JSON.parse(clean);
+      console.log("Raw parsed matches:", JSON.stringify(parsed.matches));
     } catch {
       return new Response(JSON.stringify({ error: "Could not parse response.", raw: rawText }), {
         status: 422, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
@@ -234,6 +237,9 @@ ${c.partnership_listed && c.partnership_sought ? `This candidate has ALSO listed
         return true;
       });
 
+    // Notify admin (non-fatal)
+    await notifyAdmin(submitting_org, matches);
+
     return new Response(JSON.stringify({ matches }), {
       status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
     });
@@ -244,3 +250,40 @@ ${c.partnership_listed && c.partnership_sought ? `This candidate has ALSO listed
     });
   }
 });
+
+async function notifyAdmin(submitting_org: any, matches: any[]) {
+  try {
+    const matchSummary = matches.length > 0
+      ? matches.map((m: any) => `- ${m.org?.organisation_name} (score: ${m.fit_score}) — ${m.key_synergy}`).join("\n")
+      : "No matches found on platform yet. Manual follow-up needed.";
+
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${Deno.env.get("RESEND_API_KEY")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "Impact Natives <noreply@impactnatives.com>",
+        to: ["michafolami@gmail.com"],
+        subject: `New partnership listing: ${submitting_org.organisation_name}`,
+        text: `A new organisation has listed for partnership discovery.
+
+Organisation: ${submitting_org.organisation_name}
+Type: ${submitting_org.organisation_type}
+Sectors: ${Array.isArray(submitting_org.sector) ? submitting_org.sector.join(", ") : submitting_org.sector}
+Countries: ${Array.isArray(submitting_org.country) ? submitting_org.country.join(", ") : submitting_org.country}
+Partnership sought: ${submitting_org.partnership_sought || "Not specified"}
+
+AI matches found:
+${matchSummary}
+
+${matches.length === 0 ? "ACTION NEEDED: No current matches. Consider reaching out manually to facilitate." : "Platform has surfaced matches automatically."}
+
+Review at: https://app.impactnatives.com/dashboard/admin`,
+      }),
+    });
+  } catch (e) {
+    console.error("Admin notify failed:", e);
+  }
+}

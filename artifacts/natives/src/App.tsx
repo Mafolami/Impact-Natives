@@ -54,8 +54,7 @@ const DashboardFeed = lazy(() => import("@/pages/DashboardFeed"));
 const DashboardStrategy = lazy(() => import("@/pages/DashboardStrategy"));
 const DashboardLayout = lazy(() => import("@/layouts/DashboardLayout"));
 // Admin pages — lazy loaded
-const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
-const AdminInitiativeReview = lazy(() => import('@/pages/AdminInitiativeReview'));
+const AdminReview = lazy(() => import("@/pages/AdminReview"));
 
 function AdminGuard({ children }: { children: React.ReactNode }) {
   const { user, profile, loading } = useAuth();
@@ -116,14 +115,7 @@ if (isAdmin) {
     return (
       <>
         <ScrollToTop />
-        <Switch>
-          <Route path="/admin/initiatives">
-            <DashboardLayout adminOnly><AdminInitiativeReview /></DashboardLayout>
-          </Route>
-          <Route path="/admin">
-            <DashboardLayout adminOnly><AdminDashboard /></DashboardLayout>
-          </Route>
-        </Switch>
+        <DashboardLayout adminOnly><AdminReview /></DashboardLayout>
       </>
     );
   }

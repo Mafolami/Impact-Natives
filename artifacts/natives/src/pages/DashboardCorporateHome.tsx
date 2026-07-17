@@ -1,14 +1,22 @@
 // ─── DashboardCorporateHome.tsx ───────────────────────────────────────────────
 // For org_type: corporate, tech_company, creative_agency_studio
 // Oriented around CSR/ESG discovery, adoption pipeline, and partnership tracking
-// Not investment/funding focused — no deal memos, no pass/save trays
 
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
-import { ArrowRight, Sparkles, Leaf, Building2 } from "lucide-react";
+import { ArrowRight, Sparkles, Leaf, Building2, Bookmark, MessageSquare, Users } from "lucide-react";
 
 const ESG_PARTNERSHIP_TYPES = ["operational", "strategic", "lead", "other"];
+
+// Maps a pass reason to the specific mandate field it points at, so the
+// nudge can send the user to fix the actual thing, not just "your profile".
+const PASS_REASON_FIELD_MAP: Record<string, { label: string; hint: string }> = {
+  "Budget mismatch": { label: "CSR budget range", hint: "Your stated budget range may not match what initiatives are asking for." },
+  "Geography mismatch": { label: "geographic focus", hint: "Initiatives outside your stated geography keep coming up as passes." },
+  "Outside mandate": { label: "CSR focus", hint: "A number of passes suggest your CSR focus statement could be sharper." },
+};
+const PASS_INSIGHT_THRESHOLD = 3;
 
 export default function CorporateHome({ profile }: { profile: any }) {
   const [, navigate] = useLocation();
@@ -18,15 +26,20 @@ export default function CorporateHome({ profile }: { profile: any }) {
   const [matchedInitiatives, setMatchedInitiatives] = useState<any[]>([]);
 
   // Metrics
-  const [reviewedCount, setReviewedCount]   = useState(0);
-  const [sentEOIs, setSentEOIs]             = useState(0);
+  const [savedCount, setSavedCount]         = useState(0);
+  const [awaitingResponse, setAwaitingResponse] = useState(0);
   const [activeConvos, setActiveConvos]     = useState(0);
   const [esgAdoptions, setEsgAdoptions]     = useState(0);
-  const [totalCommitted, setTotalCommitted] = useState<string | null>(null);
+  const [passInsight, setPassInsight]       = useState<{ reason: string; count: number; label: string; hint: string } | null>(null);
 
   // Pipeline
   const [outboundEOIs, setOutboundEOIs] = useState<any[]>([]);
   const [orgData, setOrgData]           = useState<any>(null);
+
+  // Partnership matches
+  const [partnershipMatches, setPartnershipMatches] = useState<any[]>([]);
+  const [partnershipEligible, setPartnershipEligible] = useState(false);
+  const [loadingPartnerships, setLoadingPartnerships] = useState(true);
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 
@@ -41,10 +54,10 @@ export default function CorporateHome({ profile }: { profile: any }) {
   }, [profile?.id]);
 
   async function loadAll() {
-    // Org profile (for ESG frameworks, sectors, geography)
+    // Org profile (for ESG frameworks, sectors, geography, and the completeness score)
     const { data: org } = await supabase
       .from("organizations")
-      .select("id, sector, country, esg_frameworks, csr_budget_range, geographic_focus, mandate_sectors, mandate_sdgs")
+      .select("id, sector, country, esg_frameworks, csr_budget_range, csr_focus_statement, inkind_support, partner_type_preference, geographic_focus, mandate_sectors, mandate_sdgs")
       .eq("user_id", profile.id)
       .maybeSingle();
     setOrgData(org);
@@ -57,7 +70,6 @@ export default function CorporateHome({ profile }: { profile: any }) {
       .order("created_at", { ascending: false });
 
     const eois = eoisSent ?? [];
-    setSentEOIs(eois.length);
     setEsgAdoptions(eois.filter((e: any) => e.esg_adoption).length);
 
     // Enrich outbound EOIs with initiative titles
@@ -69,7 +81,6 @@ export default function CorporateHome({ profile }: { profile: any }) {
         .in("id", initIds);
       const initMap = new Map((inits ?? []).map((i: any) => [i.id, i]));
 
-      // Get conversation statuses
       const convoIds = eois.map((e: any) => e.conversation_id).filter(Boolean);
       const { data: convos } = convoIds.length > 0
         ? await supabase.from("conversations").select("id, status").in("id", convoIds)
@@ -83,7 +94,8 @@ export default function CorporateHome({ profile }: { profile: any }) {
       })));
     }
 
-    // Active conversations
+    // Active conversations + awaiting-your-response (last message from the
+    // other party, conversation still open — distinct from a raw unread count)
     const { data: myConvos } = await supabase
       .from("conversation_participants")
       .select("conversation_id")
@@ -95,15 +107,53 @@ export default function CorporateHome({ profile }: { profile: any }) {
         .select("id, funder_closed_at")
         .in("id", convoIds)
         .eq("status", "open");
-      setActiveConvos((openConvs ?? []).filter((c: any) => !c.funder_closed_at).length);
+      const openIds = (openConvs ?? []).filter((c: any) => !c.funder_closed_at).map((c: any) => c.id);
+      setActiveConvos(openIds.length);
+
+      if (openIds.length > 0) {
+        const { data: msgs } = await supabase
+          .from("messages")
+          .select("conversation_id, sender_id, created_at")
+          .in("conversation_id", openIds)
+          .order("created_at", { ascending: false });
+        const lastSenderMap = new Map<string, string>();
+        (msgs ?? []).forEach((m: any) => {
+          if (!lastSenderMap.has(m.conversation_id)) lastSenderMap.set(m.conversation_id, m.sender_id);
+        });
+        const awaiting = openIds.filter((id: string) => {
+          const lastSender = lastSenderMap.get(id);
+          return lastSender && lastSender !== profile.id;
+        }).length;
+        setAwaitingResponse(awaiting);
+      }
     }
 
-    // Reviewed = funder_decisions by this user (reuse same table)
-    const { data: decisions } = await supabase
+    // Saved — combines saved_initiatives and saved_organizations, since both
+    // exist as separate features. Not a decision queue, just a "revisit" count.
+    const [{ data: savedInits }, { data: savedOrgs }] = await Promise.all([
+      supabase.from("saved_initiatives").select("initiative_id").eq("user_id", profile.id),
+      supabase.from("saved_organizations").select("organization_id").eq("user_id", profile.id),
+    ]);
+    setSavedCount((savedInits?.length ?? 0) + (savedOrgs?.length ?? 0));
+
+    // Pass-reason aggregation — only surfaces when a real pattern exists and
+    // maps to something the person can actually go fix.
+    const { data: passDecisions } = await supabase
       .from("funder_decisions")
-      .select("id")
-      .eq("funder_id", profile.id);
-    setReviewedCount(decisions?.length ?? 0);
+      .select("reason")
+      .eq("funder_id", profile.id)
+      .eq("decision", "pass");
+    const reasonCounts: Record<string, number> = {};
+    (passDecisions ?? []).forEach((d: any) => {
+      if (d.reason) reasonCounts[d.reason] = (reasonCounts[d.reason] ?? 0) + 1;
+    });
+    const candidateReasons = Object.entries(reasonCounts)
+      .filter(([reason, count]) => count >= PASS_INSIGHT_THRESHOLD && PASS_REASON_FIELD_MAP[reason])
+      .sort((a, b) => b[1] - a[1]);
+    if (candidateReasons.length > 0) {
+      const [reason, count] = candidateReasons[0];
+      setPassInsight({ reason, count, ...PASS_REASON_FIELD_MAP[reason] });
+    }
 
     // Load ESG-aligned initiatives for AI matching
     const { data: initiatives } = await supabase
@@ -115,65 +165,159 @@ export default function CorporateHome({ profile }: { profile: any }) {
 
     if (!initiatives?.length) {
       setLoadingMatches(false);
-      return;
-    }
-
-    // Prioritise ESG-aligned initiatives
-    const esgFirst = [...initiatives].sort((a: any, b: any) => {
-      if (a.esg_alignment && !b.esg_alignment) return -1;
-      if (!a.esg_alignment && b.esg_alignment) return 1;
-      return 0;
-    });
-
-    // AI matching against corporate ESG mandate
-    setAiMatching(true);
-    const mandate = {
-      org_type: profile.org_type,
-      investment_thesis: org?.esg_frameworks?.length
-        ? `ESG-aligned corporate seeking implementation partners across: ${org.esg_frameworks.join(", ")}`
-        : "Corporate seeking ESG and CSR implementation partners",
-      funding_instruments: ["partnership", "csr_funding"],
-      grant_currency: "NGN",
-      grant_range_min: null,
-      grant_range_max: null,
-      stage_preference: ["pilot", "growth", "scale"],
-      geographic_focus: org?.geographic_focus ?? (org?.country ? [org.country] : ["Nigeria"]),
-      mandate_sectors: org?.mandate_sectors ?? (org?.sector ? [org.sector] : []),
-      mandate_sdgs: org?.mandate_sdgs ?? [],
-      esg_frameworks: org?.esg_frameworks,
-      csr_budget_range: org?.csr_budget_range,
-      partnership_types: ESG_PARTNERSHIP_TYPES,
-    };
-
-    try {
-      const res = await fetch(`${supabaseUrl}/functions/v1/match-initiatives-to-funder`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mandate, initiatives: esgFirst }),
+    } else {
+      // Prioritise ESG-aligned initiatives
+      const esgFirst = [...initiatives].sort((a: any, b: any) => {
+        if (a.esg_alignment && !b.esg_alignment) return -1;
+        if (!a.esg_alignment && b.esg_alignment) return 1;
+        return 0;
       });
-      const result = await res.json();
-      console.log("match-initiatives-to-funder result:", JSON.stringify(result).slice(0, 500));
-      if (result.data?.length) {
-        const scoreMap = Object.fromEntries(
-          result.data.map((r: any) => [r.id, { score: r.score, match_reason: r.match_reason }])
-        );
-        const ranked = esgFirst
-          .filter((ini: any) => scoreMap[ini.id] && scoreMap[ini.id].score >= 35)
-          .map((ini: any) => ({ ...ini, ...scoreMap[ini.id] }))
-          .sort((a: any, b: any) => b.score - a.score);
-        setMatchedInitiatives(ranked);
-      } else {
+
+      setAiMatching(true);
+      const mandate = {
+        org_type: profile.org_type,
+        investment_thesis: org?.esg_frameworks?.length
+          ? `ESG-aligned corporate seeking implementation partners across: ${org.esg_frameworks.join(", ")}`
+          : "Corporate seeking ESG and CSR implementation partners",
+        funding_instruments: ["partnership", "csr_funding"],
+        grant_currency: "NGN",
+        grant_range_min: null,
+        grant_range_max: null,
+        stage_preference: ["pilot", "growth", "scale"],
+        geographic_focus: org?.geographic_focus ?? (org?.country ? [org.country] : ["Nigeria"]),
+        mandate_sectors: org?.mandate_sectors ?? (org?.sector ? [org.sector] : []),
+        mandate_sdgs: org?.mandate_sdgs ?? [],
+        esg_frameworks: org?.esg_frameworks,
+        csr_budget_range: org?.csr_budget_range,
+        partnership_types: ESG_PARTNERSHIP_TYPES,
+      };
+
+      try {
+        const res = await fetch(`${supabaseUrl}/functions/v1/match-initiatives-to-funder`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mandate, initiatives: esgFirst }),
+        });
+        const result = await res.json();
+        if (result.data?.length) {
+          const scoreMap = Object.fromEntries(
+            result.data.map((r: any) => [r.id, { score: r.score, match_reason: r.match_reason }])
+          );
+          const ranked = esgFirst
+            .filter((ini: any) => scoreMap[ini.id] && scoreMap[ini.id].score >= 35)
+            .map((ini: any) => ({ ...ini, ...scoreMap[ini.id] }))
+            .sort((a: any, b: any) => b.score - a.score);
+          setMatchedInitiatives(ranked);
+        } else {
+          setMatchedInitiatives(esgFirst.filter((i: any) => i.esg_alignment));
+        }
+      } catch {
         setMatchedInitiatives(esgFirst.filter((i: any) => i.esg_alignment));
       }
-    } catch {
-      setMatchedInitiatives(esgFirst.filter((i: any) => i.esg_alignment));
+      setAiMatching(false);
+      setLoadingMatches(false);
     }
-
-    setAiMatching(false);
-    setLoadingMatches(false);
   }
 
-  const csrProfileComplete = !!(orgData?.esg_frameworks?.length || orgData?.csr_budget_range || orgData?.mandate_sectors?.length);
+  // Same 7-field formula as corporateCompleteness() in the
+  // refresh-partnership-matches edge function, kept in sync deliberately —
+  // this is also the number that gates the 80% partnership-match threshold.
+  const csrCompletenessFields = [
+    !!orgData?.csr_focus_statement,
+    !!orgData?.csr_budget_range,
+    (orgData?.esg_frameworks?.length ?? 0) > 0,
+    (orgData?.inkind_support?.length ?? 0) > 0,
+    (orgData?.partner_type_preference?.length ?? 0) > 0,
+    (orgData?.geographic_focus?.length ?? 0) > 0,
+    (orgData?.mandate_sectors?.length ?? 0) > 0,
+  ];
+  const csrCompleteness = Math.round(
+    (csrCompletenessFields.filter(Boolean).length / csrCompletenessFields.length) * 100
+  );
+
+  // Partnership matches — read the cache directly (fast), and fire a
+  // background refresh (not awaited) to keep it warm for next visit. Only
+  // runs once the org clears the 80% completeness bar.
+  useEffect(() => {
+    if (!orgData?.id) return;
+
+    if (csrCompleteness < 80) {
+      setPartnershipEligible(false);
+      setLoadingPartnerships(false);
+      return;
+    }
+    setPartnershipEligible(true);
+
+    let cancelled = false;
+
+    (async () => {
+      const { data: cached } = await supabase
+        .from("partnership_match_cache")
+        .select("matched_org_id, fit_score, rationale, key_synergy, computed_at")
+        .eq("org_id", orgData.id)
+        .order("fit_score", { ascending: false })
+        .limit(3);
+
+      if (cached && cached.length > 0) {
+        const orgIds = cached.map((m: any) => m.matched_org_id);
+        const { data: orgs } = await supabase
+          .from("organizations")
+          .select("id, organisation_name, organisation_type, country")
+          .in("id", orgIds);
+        const orgMap = new Map((orgs ?? []).map((o: any) => [o.id, o]));
+        if (!cancelled) {
+          setPartnershipMatches(cached.map((m: any) => ({ ...m, org: orgMap.get(m.matched_org_id) })));
+        }
+      }
+      if (!cancelled) setLoadingPartnerships(false);
+
+      // Background refresh, fire-and-forget — doesn't block render either way.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        fetch(`${supabaseUrl}/functions/v1/refresh-partnership-matches`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}` },
+        }).catch(() => {});
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [orgData?.id, csrCompleteness]);
+
+  const metricTiles = [
+    {
+      label: "Saved",
+      value: savedCount,
+      sub: savedCount > 0 ? "to review" : "nothing saved",
+      onClick: () => navigate("/dashboard/marketplace"),
+      icon: Bookmark,
+      accent: false,
+    },
+    {
+      label: "Awaiting your response",
+      value: awaitingResponse,
+      sub: awaitingResponse > 0 ? "needs a reply" : "all caught up",
+      onClick: () => navigate("/dashboard/messages"),
+      icon: MessageSquare,
+      accent: awaitingResponse > 0,
+    },
+    {
+      label: "Active conversations",
+      value: activeConvos,
+      sub: "open threads",
+      onClick: () => navigate("/dashboard/messages"),
+      icon: Users,
+      accent: false,
+    },
+    {
+      label: "ESG/CSR adoptions",
+      value: esgAdoptions,
+      sub: "confirmed",
+      onClick: () => navigate("/dashboard/portfolio?tab=confirmed"),
+      icon: Leaf,
+      accent: false,
+    },
+  ];
 
   return (
     <div className="space-y-8">
@@ -184,7 +328,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
           <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">{greeting}</p>
           <h2 className="text-2xl font-bold text-foreground tracking-tight">{firstName}.</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {csrProfileComplete
+            {csrCompleteness >= 60
               ? `Your CSR profile is active. Discover ESG-aligned initiatives for ${orgName}.`
               : "Complete your CSR profile to get better matched initiatives."}
           </p>
@@ -196,12 +340,20 @@ export default function CorporateHome({ profile }: { profile: any }) {
       </div>
 
       {/* CSR profile nudge */}
-      {!csrProfileComplete && (
+      {csrCompleteness < 100 && (
         <div className="rounded-xl border border-dashed border-[#2D6A4F]/30 bg-[#2D6A4F]/5 px-5 py-4 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold text-foreground mb-1">Set your CSR mandate</p>
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <p className="text-sm font-semibold text-foreground">CSR profile {csrCompleteness}% complete</p>
+              <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden max-w-[120px]">
+                <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500"
+                  style={{ width: `${csrCompleteness}%` }} />
+              </div>
+            </div>
             <p className="text-xs text-muted-foreground">
-              Add ESG frameworks, sector focus, and geography to surface the most relevant initiatives.
+              {csrCompleteness < 80
+                ? "Add CSR focus, ESG frameworks, and what you can bring to a partnership — 80% unlocks partnership matches too."
+                : "Add CSR focus, ESG frameworks, and what you can bring to a partnership to surface the most relevant initiatives."}
             </p>
           </div>
           <button type="button" onClick={() => navigate("/dashboard/profile")}
@@ -211,137 +363,221 @@ export default function CorporateHome({ profile }: { profile: any }) {
         </div>
       )}
 
-      {/* Metrics strip */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[
-          {
-            label: "Initiatives reviewed",
-            value: reviewedCount,
-            sub: "explored",
-            onClick: () => navigate("/dashboard/marketplace"),
-          },
-          {
-            label: "Expressions sent",
-            value: sentEOIs,
-            sub: "outbound",
-            onClick: () => navigate("/dashboard/messages"),
-          },
-          {
-            label: "Active conversations",
-            value: activeConvos,
-            sub: "open threads",
-            onClick: () => navigate("/dashboard/messages"),
-          },
-          {
-            label: "ESG/CSR adoptions",
-            value: esgAdoptions,
-            sub: "confirmed",
-            onClick: () => navigate("/dashboard/portfolio?tab=confirmed"),
-          },
-        ].map(m => (
-          <button key={m.label} type="button" onClick={m.onClick}
-            className="text-left rounded-xl border border-border bg-card px-4 py-4 hover:border-[#2D6A4F]/40 transition-colors group">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">{m.label}</p>
-            <p className="text-3xl font-bold text-foreground tracking-tight group-hover:text-[#2D6A4F] transition-colors">{m.value}</p>
-            <p className="text-xs text-muted-foreground mt-1">{m.sub}</p>
-          </button>
-        ))}
-      </div>
-
-      {/* AI-matched ESG initiatives */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
+      {/* Pass-pattern insight — only shown when a real pattern exists */}
+      {passInsight && (
+        <div className="rounded-xl border border-[#C45C26]/30 bg-[#C45C26]/5 px-5 py-4 flex items-center justify-between gap-4">
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-              <Leaf className="w-3.5 h-3.5 text-[#2D6A4F]" />
-              ESG initiatives for you
-            </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Matched to your CSR mandate and sector focus
+            <p className="text-sm font-semibold text-foreground mb-1">
+              You've passed on {passInsight.count} initiatives citing "{passInsight.reason}"
             </p>
+            <p className="text-xs text-muted-foreground">{passInsight.hint}</p>
           </div>
-          <button type="button" onClick={() => navigate("/dashboard/marketplace")}
-            className="text-xs text-[#2D6A4F] hover:underline underline-offset-2 transition-colors">
-            View all →
+          <button type="button" onClick={() => navigate("/dashboard/profile")}
+            className="shrink-0 text-xs font-semibold text-[#C45C26] hover:underline underline-offset-2 whitespace-nowrap">
+            Update {passInsight.label} →
           </button>
         </div>
+      )}
 
-        {loadingMatches ? (
-          <div className="space-y-3">
-            {aiMatching && (
-              <div className="flex items-center gap-2 text-xs text-[#2D6A4F] mb-2">
-                <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                Matching ESG initiatives to your profile...
-              </div>
-            )}
-            {[1, 2, 3].map(i => (
-              <div key={i} className="h-24 rounded-xl border border-border bg-card animate-pulse" />
-            ))}
-          </div>
-        ) : matchedInitiatives.length === 0 ? (
-          <div className="rounded-2xl border border-border bg-card p-10 text-center">
-            <Leaf className="w-6 h-6 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-sm font-medium text-foreground mb-1">No ESG initiatives matched yet.</p>
-            <p className="text-xs text-muted-foreground mb-4">
-              Complete your CSR profile or browse all initiatives to find the right fit.
-            </p>
+      {/* Kanban: matches in two columns on desktop, metrics as a rail on the right.
+          Stacks to a single column on mobile, metrics rail moving to the bottom. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_260px] gap-6">
+
+        {/* Column 1: Initiative matches */}
+        <section className="lg:order-1">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                <Leaf className="w-3.5 h-3.5 text-[#2D6A4F]" />
+                Initiative matches
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Top 3, matched to your CSR mandate</p>
+            </div>
             <button type="button" onClick={() => navigate("/dashboard/marketplace")}
-              className="text-xs text-[#2D6A4F] hover:underline underline-offset-2">
-              Browse marketplace →
+              className="text-xs text-[#2D6A4F] hover:underline underline-offset-2 transition-colors shrink-0">
+              View all →
             </button>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {matchedInitiatives.slice(0, 8).map((ini: any) => (
-              <button key={ini.id} type="button"
-                onClick={() => navigate(`/dashboard/marketplace?initiative=${ini.id}`)}
-                className="w-full text-left rounded-xl border border-border bg-card px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <p className="text-sm font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors truncate">
-                        {ini.title}
-                      </p>
-                      {ini.esg_alignment && (
-                        <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                          style={{ background: "#e8f5e9", color: "#2e7d32" }}>
-                          <Leaf className="w-2.5 h-2.5" /> ESG/CSR
-                        </span>
+
+          {loadingMatches ? (
+            <div className="space-y-3">
+              {aiMatching && (
+                <div className="flex items-center gap-2 text-xs text-[#2D6A4F] mb-2">
+                  <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                  Matching ESG initiatives to your profile...
+                </div>
+              )}
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-24 rounded-xl border border-border bg-card animate-pulse" />
+              ))}
+            </div>
+          ) : matchedInitiatives.length === 0 ? (
+            <div className="rounded-2xl border border-border bg-card p-8 text-center">
+              <Leaf className="w-6 h-6 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-sm font-medium text-foreground mb-1">No ESG initiatives matched yet.</p>
+              <p className="text-xs text-muted-foreground mb-4">
+                Complete your CSR profile or browse all initiatives to find the right fit.
+              </p>
+              <button type="button" onClick={() => navigate("/dashboard/marketplace")}
+                className="text-xs text-[#2D6A4F] hover:underline underline-offset-2">
+                Browse marketplace →
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {matchedInitiatives.slice(0, 3).map((ini: any) => (
+                <button key={ini.id} type="button"
+                  onClick={() => navigate(`/dashboard/marketplace?initiative=${ini.id}`)}
+                  className="w-full text-left rounded-xl border border-border bg-card px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <p className="text-sm font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors truncate">
+                          {ini.title}
+                        </p>
+                        {ini.esg_alignment && (
+                          <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                            style={{ background: "#e8f5e9", color: "#2e7d32" }}>
+                            <Leaf className="w-2.5 h-2.5" /> ESG/CSR
+                          </span>
+                        )}
+                        {ini.score && (
+                          <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                            style={{
+                              background: ini.score >= 70 ? "#eaf5ee" : "#f5f5f5",
+                              color: ini.score >= 70 ? "#2D6A4F" : "#6b7280",
+                            }}>
+                            {ini.score}% match
+                          </span>
+                        )}
+                      </div>
+                      {ini.match_reason ? (
+                        <p className="text-xs mt-0.5 leading-relaxed text-[#2D6A4F]">{ini.match_reason}</p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{ini.problem}</p>
                       )}
-                      {ini.score && (
+                      <div className="flex items-center gap-3 mt-2 flex-wrap">
+                        {ini.submitter_org && (
+                          <span className="text-[10px] font-medium text-muted-foreground">{ini.submitter_org}</span>
+                        )}
+                        {ini.sectors?.slice(0, 2).map((s: string) => (
+                          <span key={s} className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">{s}</span>
+                        ))}
+                        {ini.locations?.slice(0, 1).map((l: string) => (
+                          <span key={l} className="text-[10px] text-muted-foreground">{l}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-[#2D6A4F] shrink-0 mt-1 transition-colors" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Column 2: Partnership matches */}
+        <section className="lg:order-2">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-[#2D6A4F]" />
+                Partnership matches
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Top 3 organisations to partner with</p>
+            </div>
+            <button type="button" onClick={() => navigate("/dashboard/natives?tab=organisation")}
+              className="text-xs text-[#2D6A4F] hover:underline underline-offset-2 transition-colors shrink-0">
+              View all →
+            </button>
+          </div>
+
+          {!partnershipEligible ? (
+            <div className="rounded-2xl border border-border bg-card p-8 text-center">
+              <Building2 className="w-6 h-6 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-sm font-medium text-foreground mb-1">Complete your CSR profile to unlock this.</p>
+              <p className="text-xs text-muted-foreground mb-4">
+                Partnership matches need your profile at 80% or above — you're at {csrCompleteness}%.
+              </p>
+              <button type="button" onClick={() => navigate("/dashboard/profile")}
+                className="text-xs text-[#2D6A4F] hover:underline underline-offset-2">
+                Complete profile →
+              </button>
+            </div>
+          ) : loadingPartnerships ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-24 rounded-xl border border-border bg-card animate-pulse" />
+              ))}
+            </div>
+          ) : partnershipMatches.length === 0 ? (
+            <div className="rounded-2xl border border-border bg-card p-8 text-center">
+              <Building2 className="w-6 h-6 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-sm font-medium text-foreground mb-1">No partnership matches yet.</p>
+              <p className="text-xs text-muted-foreground">Check back soon — this refreshes automatically.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {partnershipMatches.map((m: any) => (
+                <button key={m.matched_org_id} type="button"
+                  onClick={() => navigate(`/dashboard/natives?tab=organisation&user=${m.org?.id ?? ""}`)}
+                  className="w-full text-left rounded-xl border border-border bg-card px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <p className="text-sm font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors truncate">
+                          {m.org?.organisation_name ?? "Organisation"}
+                        </p>
                         <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full"
                           style={{
-                            background: ini.score >= 70 ? "#eaf5ee" : "#f5f5f5",
-                            color: ini.score >= 70 ? "#2D6A4F" : "#6b7280",
+                            background: m.fit_score >= 70 ? "#eaf5ee" : "#f5f5f5",
+                            color: m.fit_score >= 70 ? "#2D6A4F" : "#6b7280",
                           }}>
-                          {ini.score}% match
+                          {m.fit_score}% fit
                         </span>
-                      )}
+                      </div>
+                      <p className="text-xs mt-0.5 leading-relaxed text-[#2D6A4F]">{m.rationale}</p>
+                      <div className="flex items-center gap-3 mt-2 flex-wrap">
+                        {m.org?.organisation_type && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted-foreground capitalize">
+                            {m.org.organisation_type.replace(/_/g, " ")}
+                          </span>
+                        )}
+                        {m.org?.country && (
+                          <span className="text-[10px] text-muted-foreground">{m.org.country}</span>
+                        )}
+                        {m.key_synergy && (
+                          <span className="text-[10px] text-muted-foreground">{m.key_synergy}</span>
+                        )}
+                      </div>
                     </div>
-                    {ini.match_reason ? (
-                      <p className="text-xs mt-0.5 leading-relaxed text-[#2D6A4F]">{ini.match_reason}</p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{ini.problem}</p>
-                    )}
-                    <div className="flex items-center gap-3 mt-2 flex-wrap">
-                      {ini.submitter_org && (
-                        <span className="text-[10px] font-medium text-muted-foreground">{ini.submitter_org}</span>
-                      )}
-                      {ini.sectors?.slice(0, 2).map((s: string) => (
-                        <span key={s} className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">{s}</span>
-                      ))}
-                      {ini.locations?.slice(0, 1).map((l: string) => (
-                        <span key={l} className="text-[10px] text-muted-foreground">{l}</span>
-                      ))}
-                    </div>
+                    <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-[#2D6A4F] shrink-0 mt-1 transition-colors" />
                   </div>
-                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-[#2D6A4F] shrink-0 mt-1 transition-colors" />
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Metrics rail — vertical on desktop, moves below the columns on mobile */}
+        <aside className="lg:order-3 order-3 grid grid-cols-2 gap-3 lg:grid-cols-1 lg:gap-3 content-start">
+          {metricTiles.map(m => {
+            const Icon = m.icon;
+            return (
+              <button key={m.label} type="button" onClick={m.onClick}
+                className="text-left rounded-xl border bg-card px-4 py-4 hover:border-[#2D6A4F]/40 transition-colors group"
+                style={{ borderColor: m.accent ? "#C45C26" : undefined }}>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Icon className="w-3 h-3 text-muted-foreground" />
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{m.label}</p>
                 </div>
+                <p className="text-2xl font-bold text-foreground tracking-tight group-hover:text-[#2D6A4F] transition-colors">{m.value}</p>
+                <p className="text-xs text-muted-foreground mt-1">{m.sub}</p>
               </button>
-            ))}
-          </div>
-        )}
-      </section>
+            );
+          })}
+        </aside>
+      </div>
 
       {/* CSR Pipeline */}
       {outboundEOIs.length > 0 && (
