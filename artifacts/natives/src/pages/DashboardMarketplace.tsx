@@ -237,9 +237,10 @@ function FilterPanel({
 }
 
 // ─── Initiative Card ──────────────────────────────────────────────────────────
-function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave }: {
+function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, onUndoPass }: {
   ini: InitiativeRow; expressed: boolean; onClick: () => void;
   saved: boolean; onToggleSave: (id: string, wasSaved: boolean) => void;
+  passed?: boolean; onUndoPass?: (id: string) => void;
 }) {
   return (
     <button type="button" onClick={onClick}
@@ -266,6 +267,17 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave }: {
           )}
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
+          {passed && (
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-500">
+              Passed
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); onUndoPass?.(ini.id); }}
+                className="text-[#2D6A4F] hover:underline underline-offset-2 font-semibold">
+                Undo
+              </button>
+            </span>
+          )}
           <button
             type="button"
             onClick={e => { e.stopPropagation(); onToggleSave(ini.id, saved); }}
@@ -389,11 +401,20 @@ export default function DashboardMarketplace() {
     }
   }
 
+  async function handleUndoPass(id: string) {
+    if (!user?.id) return;
+    await supabase.from("funder_decisions").delete()
+      .eq("funder_id", user.id).eq("initiative_id", id);
+    setPassedIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+  }
+
   const [loading, setLoading] = useState(true);
   const [startupPipeline, setStartupPipeline] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showSaved, setShowSaved] = useState(false);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [showPassed, setShowPassed] = useState(false);
+  const [passedIds, setPassedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!user?.id) return;
@@ -403,6 +424,17 @@ export default function DashboardMarketplace() {
       .eq("user_id", user.id)
       .then(({ data }) => {
         setSavedIds(new Set((data ?? []).map((r: any) => r.initiative_id)));
+      });
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase
+      .from("funder_decisions")
+      .select("initiative_id, decision")
+      .eq("funder_id", user.id)
+      .then(({ data }) => {
+        setPassedIds(new Set((data ?? []).filter((r: any) => r.decision === "pass").map((r: any) => r.initiative_id)));
       });
   }, [user?.id]);
 
@@ -461,6 +493,7 @@ export default function DashboardMarketplace() {
 
   const filtered = initiatives.filter(ini => {
     if (showSaved && !savedIds.has(ini.id)) return false;
+    if (showPassed && !passedIds.has(ini.id)) return false;
     if (startupPipeline) {
       const isStartupType = ["startup", "social_enterprise", "technology_company"].includes(ini.submitter_org_type ?? "");
       const isEarlyStage = ["concept", "pilot"].includes(ini.stage ?? "");
@@ -489,6 +522,13 @@ export default function DashboardMarketplace() {
         onExpressed={(id) => {
           setExpressedIds(prev => new Set([...prev, id]));
           setSelected(prev => prev ? { ...prev, eois: (prev.eois ?? 0) + 1 } : prev);
+        }}
+        onDecisionChange={(id, decision) => {
+          setPassedIds(prev => {
+            const next = new Set(prev);
+            if (decision === "pass") next.add(id); else next.delete(id);
+            return next;
+          });
         }}
       />
     );
@@ -563,6 +603,19 @@ export default function DashboardMarketplace() {
             </span>
           )}
         </button>
+        <button type="button" onClick={() => setShowPassed(v => !v)}
+          className={`h-10 px-4 rounded-lg border text-sm flex items-center gap-2 transition-colors shrink-0 ${
+            showPassed
+              ? "border-gray-400 text-gray-600 bg-gray-100"
+              : "border-border text-muted-foreground hover:border-foreground/30"
+          }`}>
+          Passed
+          {passedIds.size > 0 && (
+            <span className="w-4 h-4 rounded-full bg-gray-400 text-white text-[10px] flex items-center justify-center font-bold">
+              {passedIds.size}
+            </span>
+          )}
+        </button>
       </div>
 
       {showFilters && (
@@ -596,7 +649,7 @@ export default function DashboardMarketplace() {
       {!loading && (
         <p className="text-xs text-muted-foreground">
           {filtered.length} initiative{filtered.length !== 1 ? "s" : ""}
-          {showSaved ? " saved" : activeFilterCount > 0 ? " matching filters" : ""}
+          {showSaved ? " saved" : showPassed ? " passed" : activeFilterCount > 0 ? " matching filters" : ""}
         </p>
       )}
 
@@ -625,6 +678,8 @@ export default function DashboardMarketplace() {
             <InitiativeCard key={ini.id} ini={ini}
               saved={savedIds.has(ini.id)}
               onToggleSave={handleToggleSave}
+              passed={passedIds.has(ini.id)}
+              onUndoPass={handleUndoPass}
               expressed={expressedIds.has(ini.id)}
               onClick={() => setSelected(ini)} />
           ))}
@@ -643,11 +698,12 @@ export default function DashboardMarketplace() {
 // ─── Marketplace Detail — Premium full view ─────────────────────────────────
 // Drop this in to replace the existing MarketplaceDetail function in DashboardMarketplace.tsx
 
-function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
+function MarketplaceDetail({ initiative, onBack, expressed, onExpressed, onDecisionChange }: {
   initiative: InitiativeRow;
   onBack: () => void;
   expressed: boolean;
   onExpressed: (id: string) => void;
+  onDecisionChange?: (id: string, decision: "pass" | "save" | null) => void;
 }) {
   const { user, profile } = useAuth();
   const [eoiOpen, setEoiOpen]                   = useState(false);
@@ -677,6 +733,7 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
   const [passOpen, setPassOpen]                 = useState(false);
   const [passReason, setPassReason]             = useState("");
   const [passed, setPassed]                     = useState(false);
+  const [passConfirmStage, setPassConfirmStage] = useState<"reason" | "confirm-overwrite">("reason");
   const [saved, setSavedMemo]                   = useState(false);
 
   // Full detail fields fetched separately
@@ -709,6 +766,25 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
       .eq("initiative_id", initiative.id).eq("user_id", user.id).maybeSingle()
       .then(({ data }) => { if (data && data.partnership_type !== "question") setAlreadyExpressed(true); });
   }, [user, initiative.id]);
+
+  // Restore any existing pass/save decision for this initiative — previously this
+  // always reset to false on open, so a passed/saved state never persisted across visits.
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from("funder_decisions")
+      .select("decision, reason")
+      .eq("funder_id", user.id)
+      .eq("initiative_id", initiative.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.decision === "pass") {
+          setPassed(true);
+          setPassReason(data.reason ?? "");
+        } else if (data?.decision === "save") {
+          setSavedMemo(true);
+        }
+      });
+  }, [user?.id, initiative.id]);
 
   // Fetch full detail fields
   useEffect(() => {
@@ -853,6 +929,19 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
       decision,
       reason: reason ?? null,
     }, { onConflict: "funder_id,initiative_id" });
+    if (decision === "pass" || decision === "save") {
+      onDecisionChange?.(initiative.id, decision);
+    }
+  }
+
+  async function undoDecision() {
+    if (!user?.id) return;
+    await supabase.from("funder_decisions").delete()
+      .eq("funder_id", user.id).eq("initiative_id", initiative.id);
+    setPassed(false);
+    setPassReason("");
+    setSavedMemo(false);
+    onDecisionChange?.(initiative.id, null);
   }
 
   async function generateCsrBrief() {
@@ -1052,7 +1141,7 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
         )}
       </div>
 
-      {/* Deal Memo Panel */}
+      {/* Deal Memo Panel — analysis only; actions live in the always-visible action bar below */}
       {memoOpen && (
         <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
           {/* Header */}
@@ -1139,99 +1228,6 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
                   <p className="text-xs text-muted-foreground">{dealMemo.recommended_action_reason}</p>
                 </div>
               )}
-
-              {/* Action buttons */}
-              {!passed && !isOwnInitiative ? (
-                <div className="pt-2 border-t border-border space-y-3">
-                  <div className="flex gap-2 flex-wrap">
-                    {/* Ask a question */}
-                  {!questionSubmitted && (
-                    <button type="button"
-                      onClick={() => { setMemoOpen(false); setQuestionOpen(true); }}
-                      className="flex-1 rounded-full h-9 border border-[#2D6A4F]/30 text-sm text-[#2D6A4F] hover:bg-[#2D6A4F]/5 transition-colors flex items-center justify-center gap-1.5">
-                      <MessageSquare className="w-3.5 h-3.5" />
-                      Ask a question
-                    </button>
-                  )}
-
-                  {/* Express Interest */}
-                  {!alreadyExpressed && !submitted && (
-                    <button type="button"
-                      onClick={() => { setMemoOpen(false); setEoiOpen(true); saveFunderDecision("interest"); }}
-                      className="flex-1 rounded-full h-9 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-semibold transition-colors">
-                      Express Interest
-                    </button>
-                  )}
-                    {(alreadyExpressed || submitted) && (
-                      <div className="flex-1 rounded-full h-9 flex items-center justify-center text-sm font-semibold text-[#2D6A4F] bg-[#eaf5ee]">
-                        Interest expressed ✓
-                      </div>
-                    )}
-
-                    {/* Save */}
-                    <button type="button"
-                      onClick={() => { setSavedMemo(true); saveFunderDecision("save"); }}                      className={`rounded-full h-9 px-4 border text-sm font-medium transition-colors ${
-                        saved
-                          ? "border-[#2D6A4F] text-[#2D6A4F] bg-[#eaf5ee]"
-                          : "border-border text-muted-foreground hover:border-[#2D6A4F]/40"
-                      }`}>
-                      {saved ? "Saved ✓" : "Save"}
-                    </button>
-
-                    {/* Pass */}
-                    {!passOpen && (
-                      <button type="button"
-                        onClick={() => setPassOpen(true)}
-                        className="rounded-full h-9 px-4 border border-border text-sm text-muted-foreground hover:border-red-300 hover:text-red-500 transition-colors">
-                        Pass
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Pass reason */}
-                  {passOpen && (
-                    <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reason for passing</p>
-                      <div className="flex flex-wrap gap-2">
-                        {["Too early stage", "Outside mandate", "Budget mismatch", "Geography mismatch", "Team concerns", "Other"].map(reason => (
-                          <button key={reason} type="button"
-                            onClick={() => setPassReason(reason)}
-                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
-                              passReason === reason
-                                ? "bg-[#C45C26] border-[#C45C26] text-white"
-                                : "border-border text-muted-foreground hover:border-foreground/30"
-                            }`}>
-                            {reason}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="flex gap-2">
-                        <button type="button" onClick={() => setPassOpen(false)}
-                          className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                          Cancel
-                        </button>
-                        <button type="button"
-                          disabled={!passReason}
-                          onClick={() => { setPassed(true); setPassOpen(false); saveFunderDecision("pass", passReason); }}
-                          className="ml-auto rounded-full h-8 px-4 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold disabled:opacity-40 transition-colors">
-                          Confirm pass
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (!isOwnInitiative && (
-                <div className="pt-2 border-t border-border flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground">
-                    Passed · <span className="text-foreground">{passReason}</span>
-                  </p>
-                  <button type="button"
-                    onClick={() => { setPassed(false); setPassReason(""); }}
-                    className="text-xs text-[#2D6A4F] hover:underline underline-offset-2">
-                    Undo
-                  </button>
-                </div>
-              ))}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">Failed to generate memo. Try again.</p>
@@ -1320,22 +1316,6 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
                     Recommended: {csrBrief.recommended_action}
                   </p>
                   <p className="text-xs text-muted-foreground">{csrBrief.recommended_action_reason}</p>
-                </div>
-              )}
-
-              {!isOwnInitiative && !alreadyExpressed && !quickSubmitted && (
-                <div className="pt-2 border-t border-border">
-                  <button type="button"
-                    onClick={() => { setCsrOpen(false); setEoiOpen(true); }}
-                    className="w-full rounded-full h-9 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-semibold transition-colors">
-                    Express Interest
-                  </button>
-                </div>
-              )}
-              {(alreadyExpressed || quickSubmitted) && (
-                <div className="pt-2 border-t border-border flex items-center justify-center gap-2 text-sm text-[#2D6A4F]">
-                  <CheckCircle2 className="w-4 h-4" />
-                  Interest expressed
                 </div>
               )}
             </div>
@@ -1687,7 +1667,7 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
         </div>
       )}
 
-      {/* ── Action buttons ── */}
+      {/* ── Action bar — always visible, all account types, persists via funder_decisions ── */}
       {!isOwnInitiative && (
         <div className="space-y-3 pt-2">
 
@@ -1734,19 +1714,117 @@ function MarketplaceDetail({ initiative, onBack, expressed, onExpressed }: {
             </div>
           )}
 
-          
+          {/* Express Interest / Save / Pass — available to every account type, persists across visits */}
+          {!passed ? (
+            <div className="flex gap-2 flex-wrap">
+              <button type="button"
+                onClick={() => {
+                  if (!alreadyExpressed && !quickSubmitted) {
+                    setEoiOpen(true);
+                    generateAiMessage();
+                    saveFunderDecision("interest");
+                  }
+                }}
+                disabled={alreadyExpressed || quickSubmitted}
+                className={`flex-1 min-w-[10rem] rounded-full h-11 text-sm font-semibold transition-colors ${
+                  alreadyExpressed || quickSubmitted
+                    ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
+                    : "bg-[#2D6A4F] hover:bg-[#245c43] text-white"
+                }`}>
+                {alreadyExpressed || quickSubmitted ? "Interest expressed" : "Express interest"}
+              </button>
 
+              <button type="button"
+                onClick={() => { setSavedMemo(true); saveFunderDecision("save"); }}
+                className={`rounded-full h-11 px-5 border text-sm font-medium transition-colors ${
+                  saved
+                    ? "border-[#2D6A4F] text-[#2D6A4F] bg-[#eaf5ee]"
+                    : "border-border text-muted-foreground hover:border-[#2D6A4F]/40"
+                }`}>
+                {saved ? "Saved ✓" : "Save"}
+              </button>
 
-          <button type="button"
-            onClick={() => { if (!alreadyExpressed && !quickSubmitted) { setEoiOpen(true); generateAiMessage(); } }}
-            disabled={alreadyExpressed || quickSubmitted}
-            className={`w-full rounded-full h-11 text-sm font-semibold transition-colors ${
-              alreadyExpressed || quickSubmitted
-                ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
-                : "bg-[#2D6A4F] hover:bg-[#245c43] text-white"
-            }`}>
-            {alreadyExpressed || quickSubmitted ? "Interest expressed" : "Express interest"}
-          </button>
+              {!passOpen && (
+                <button type="button"
+                  onClick={() => { setPassOpen(true); setPassConfirmStage("reason"); }}
+                  className="rounded-full h-11 px-5 border border-border text-sm text-muted-foreground hover:border-red-300 hover:text-red-500 transition-colors">
+                  Pass
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                Passed{passReason ? <> · <span className="text-foreground">{passReason}</span></> : null}
+              </p>
+              <button type="button" onClick={undoDecision}
+                className="text-xs text-[#2D6A4F] hover:underline underline-offset-2">
+                Undo
+              </button>
+            </div>
+          )}
+
+          {/* Pass reason picker */}
+          {passOpen && passConfirmStage === "reason" && (
+            <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reason for passing</p>
+              <div className="flex flex-wrap gap-2">
+                {["Too early stage", "Outside mandate", "Budget mismatch", "Geography mismatch", "Team concerns", "Other"].map(reason => (
+                  <button key={reason} type="button"
+                    onClick={() => setPassReason(reason)}
+                    className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
+                      passReason === reason
+                        ? "bg-[#C45C26] border-[#C45C26] text-white"
+                        : "border-border text-muted-foreground hover:border-foreground/30"
+                    }`}>
+                    {reason}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setPassOpen(false)}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                  Cancel
+                </button>
+                <button type="button"
+                  disabled={!passReason}
+                  onClick={() => {
+                    if (saved) {
+                      setPassConfirmStage("confirm-overwrite");
+                    } else {
+                      setPassed(true); setPassOpen(false); saveFunderDecision("pass", passReason);
+                    }
+                  }}
+                  className="ml-auto rounded-full h-8 px-4 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold disabled:opacity-40 transition-colors">
+                  Confirm pass
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Overwrite-save warning — only shown when this initiative was previously saved */}
+          {passOpen && passConfirmStage === "confirm-overwrite" && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4 space-y-3">
+              <p className="text-xs font-semibold text-red-600">This initiative is currently saved</p>
+              <p className="text-xs text-red-700/80 leading-relaxed">
+                Passing will remove it from your saved list — save and pass can't both apply to the same initiative. You'd need to save it again to undo this.
+              </p>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setPassConfirmStage("reason")}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                  Go back
+                </button>
+                <button type="button"
+                  onClick={() => {
+                    setPassed(true); setSavedMemo(false); setPassOpen(false);
+                    saveFunderDecision("pass", passReason);
+                  }}
+                  className="ml-auto rounded-full h-8 px-4 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold transition-colors">
+                  Yes, remove save and pass
+                </button>
+              </div>
+            </div>
+          )}
 
           {quickSubmitted && (
             <div className="flex items-center gap-2 justify-center text-xs text-[#2D6A4F]">
