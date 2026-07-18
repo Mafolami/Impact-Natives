@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
-import { ArrowRight, Sparkles, Leaf, Building2, Bookmark, MessageSquare, Users } from "lucide-react";
+import { Sparkles, Leaf, Building2, Bookmark, MessageSquare, Users } from "lucide-react";
 
 const ESG_PARTNERSHIP_TYPES = ["operational", "strategic", "lead", "other"];
 
@@ -393,8 +393,8 @@ export default function CorporateHome({ profile }: { profile: any }) {
             </p>
           </div>
           <button type="button" onClick={() => navigate("/dashboard/profile")}
-            className="shrink-0 text-xs font-semibold text-[#2D6A4F] hover:underline underline-offset-2 whitespace-nowrap">
-            Complete profile →
+            className="shrink-0 text-xs font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors whitespace-nowrap">
+            Complete profile
           </button>
         </div>
       )}
@@ -409,8 +409,8 @@ export default function CorporateHome({ profile }: { profile: any }) {
             <p className="text-xs text-muted-foreground">{passInsight.hint}</p>
           </div>
           <button type="button" onClick={() => navigate("/dashboard/profile")}
-            className="shrink-0 text-xs font-semibold text-[#C45C26] hover:underline underline-offset-2 whitespace-nowrap">
-            Update {passInsight.label} →
+            className="shrink-0 text-xs font-semibold text-[#C45C26] border border-[#C45C26]/30 rounded-full px-3 py-1.5 hover:bg-[#C45C26]/10 transition-colors whitespace-nowrap">
+            Update {passInsight.label}
           </button>
         </div>
       )}
@@ -430,8 +430,8 @@ export default function CorporateHome({ profile }: { profile: any }) {
               <p className="text-xs text-muted-foreground mt-0.5">Top 3, matched to your CSR mandate</p>
             </div>
             <button type="button" onClick={() => navigate("/dashboard/marketplace")}
-              className="text-xs text-[#2D6A4F] hover:underline underline-offset-2 transition-colors shrink-0">
-              View all →
+              className="text-xs font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors shrink-0">
+              View all
             </button>
           </div>
 
@@ -455,8 +455,8 @@ export default function CorporateHome({ profile }: { profile: any }) {
                 Complete your CSR profile or browse all initiatives to find the right fit.
               </p>
               <button type="button" onClick={() => navigate("/dashboard/marketplace")}
-                className="text-xs text-[#2D6A4F] hover:underline underline-offset-2">
-                Browse marketplace →
+                className="text-xs font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors">
+                Browse marketplace
               </button>
             </div>
           ) : (
@@ -504,7 +504,6 @@ export default function CorporateHome({ profile }: { profile: any }) {
                         ))}
                       </div>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-[#2D6A4F] shrink-0 mt-1 transition-colors" />
                   </div>
                 </button>
               ))}
@@ -523,8 +522,8 @@ export default function CorporateHome({ profile }: { profile: any }) {
               <p className="text-xs text-muted-foreground mt-0.5">Top 3 organisations to partner with</p>
             </div>
             <button type="button" onClick={() => navigate("/dashboard/natives?tab=organisation")}
-              className="text-xs text-[#2D6A4F] hover:underline underline-offset-2 transition-colors shrink-0">
-              View all →
+              className="text-xs font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors shrink-0">
+              View all
             </button>
           </div>
 
@@ -536,8 +535,8 @@ export default function CorporateHome({ profile }: { profile: any }) {
                 Unlocks once your CSR profile hits 80% — you're at {displayedCompleteness}%.
               </p>
               <button type="button" onClick={() => navigate("/dashboard/profile")}
-                className="text-xs font-semibold text-[#2D6A4F] hover:underline underline-offset-2">
-                Complete profile →
+                className="text-xs font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors">
+                Complete profile
               </button>
             </div>
           ) : loadingPartnerships ? (
@@ -587,7 +586,6 @@ export default function CorporateHome({ profile }: { profile: any }) {
                         )}
                       </div>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-[#2D6A4F] shrink-0 mt-1 transition-colors" />
                   </div>
                 </button>
               ))}
@@ -631,8 +629,8 @@ export default function CorporateHome({ profile }: { profile: any }) {
               </p>
             </div>
             <button type="button" onClick={() => navigate("/dashboard/messages")}
-              className="text-xs text-[#2D6A4F] hover:underline underline-offset-2 transition-colors">
-              View all →
+              className="text-xs font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors">
+              View all
             </button>
           </div>
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
-import { ArrowRight, Sparkles, Bookmark, MessageSquare, Users, Building2 } from "lucide-react";
+import { Sparkles, Bookmark, MessageSquare, Users, Building2 } from "lucide-react";
 
 // Maps a pass reason to the specific mandate field it points at.
 const PASS_REASON_FIELD_MAP: Record<string, { label: string; hint: string }> = {
@@ -308,8 +308,8 @@ export default function FunderHome({ profile }: { profile: any }) {
             </p>
           </div>
           <button type="button" onClick={() => navigate("/dashboard/profile")}
-            className="shrink-0 text-xs font-semibold text-[#2D6A4F] hover:underline underline-offset-2 whitespace-nowrap">
-            Complete mandate →
+            className="shrink-0 text-xs font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors whitespace-nowrap">
+            Complete mandate
           </button>
         </div>
       )}
@@ -324,8 +324,8 @@ export default function FunderHome({ profile }: { profile: any }) {
             <p className="text-xs text-muted-foreground">{passInsight.hint}</p>
           </div>
           <button type="button" onClick={() => navigate("/dashboard/profile")}
-            className="shrink-0 text-xs font-semibold text-[#C45C26] hover:underline underline-offset-2 whitespace-nowrap">
-            Update {passInsight.label} →
+            className="shrink-0 text-xs font-semibold text-[#C45C26] border border-[#C45C26]/30 rounded-full px-3 py-1.5 hover:bg-[#C45C26]/10 transition-colors whitespace-nowrap">
+            Update {passInsight.label}
           </button>
         </div>
       )}
@@ -344,8 +344,8 @@ export default function FunderHome({ profile }: { profile: any }) {
               <p className="text-xs text-muted-foreground mt-0.5">Top 3, AI-matched to your mandate</p>
             </div>
             <button type="button" onClick={() => navigate("/dashboard/marketplace")}
-              className="text-xs text-[#2D6A4F] hover:underline underline-offset-2 transition-colors shrink-0">
-              View all →
+              className="text-xs font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors shrink-0">
+              View all
             </button>
           </div>
 
@@ -418,7 +418,6 @@ export default function FunderHome({ profile }: { profile: any }) {
                         ))}
                       </div>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-[#2D6A4F] shrink-0 mt-1 transition-colors" />
                   </div>
                 </button>
               ))}
@@ -434,7 +433,6 @@ export default function FunderHome({ profile }: { profile: any }) {
                 <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
                 Potential partners
               </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Optional — not the core of what you do here</p>
             </div>
           </div>
 
