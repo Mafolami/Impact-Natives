@@ -244,9 +244,12 @@ export default function CorporateHome({ profile }: { profile: any }) {
     }
   }
 
-  // Same 7-field formula as corporateCompleteness() in the
-  // refresh-partnership-matches edge function, kept in sync deliberately —
-  // this is also the number that gates the 80% partnership-match threshold.
+  // First-paint estimate only. The refresh-partnership-matches edge
+  // function computes this same 7-field formula independently server-side —
+  // rather than trusting two separately-maintained copies to never drift
+  // (the exact bug pattern that caused the org_type mismatch earlier),
+  // completenessOverride gets set from the server's answer once it responds,
+  // and displayedCompleteness prefers that over the local estimate.
   const csrCompletenessFields = [
     !!orgData?.csr_focus_statement,
     !!orgData?.csr_budget_range,
@@ -259,6 +262,8 @@ export default function CorporateHome({ profile }: { profile: any }) {
   const csrCompleteness = Math.round(
     (csrCompletenessFields.filter(Boolean).length / csrCompletenessFields.length) * 100
   );
+  const [completenessOverride, setCompletenessOverride] = useState<number | null>(null);
+  const displayedCompleteness = completenessOverride ?? csrCompleteness;
 
   // Partnership matches — read the cache directly (fast), and fire a
   // background refresh (not awaited) to keep it warm for next visit. Only
@@ -296,12 +301,18 @@ export default function CorporateHome({ profile }: { profile: any }) {
       }
       if (!cancelled) setLoadingPartnerships(false);
 
-      // Background refresh, fire-and-forget — doesn't block render either way.
+      // Background refresh, fire-and-forget for the match data — but still
+      // read completeness back from the response, so the server's answer
+      // (single source of truth) can correct the client-side estimate.
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         fetch(`${supabaseUrl}/functions/v1/refresh-partnership-matches`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}` },
+        }).then(res => res.json()).then(result => {
+          if (!cancelled && typeof result?.completeness === "number") {
+            setCompletenessOverride(result.completeness);
+          }
         }).catch(() => {});
       }
     })();
@@ -353,7 +364,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
           <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">{greeting}</p>
           <h2 className="text-2xl font-bold text-foreground tracking-tight">{firstName}.</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {csrCompleteness >= 60
+            {displayedCompleteness >= 60
               ? `Your CSR profile is active. Discover ESG-aligned initiatives for ${orgName}.`
               : "Complete your CSR profile to get better matched initiatives."}
           </p>
@@ -365,18 +376,18 @@ export default function CorporateHome({ profile }: { profile: any }) {
       </div>
 
       {/* CSR profile nudge */}
-      {csrCompleteness < 100 && (
+      {displayedCompleteness < 100 && (
         <div className="rounded-xl border border-dashed border-[#2D6A4F]/30 bg-[#2D6A4F]/5 px-5 py-4 flex items-center justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <p className="text-sm font-semibold text-foreground">CSR profile {csrCompleteness}% complete</p>
+              <p className="text-sm font-semibold text-foreground">CSR profile {displayedCompleteness}% complete</p>
               <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden max-w-[120px]">
                 <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500"
-                  style={{ width: `${csrCompleteness}%` }} />
+                  style={{ width: `${displayedCompleteness}%` }} />
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              {csrCompleteness < 80
+              {displayedCompleteness < 80
                 ? "Add CSR focus, ESG frameworks, and what you can bring to a partnership — 80% unlocks partnership matches too."
                 : "Add CSR focus, ESG frameworks, and what you can bring to a partnership to surface the most relevant initiatives."}
             </p>
@@ -522,7 +533,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
               <Building2 className="w-8 h-8 text-muted-foreground/20 mb-4" />
               <p className="text-sm font-medium text-foreground mb-1">Partnership matches are locked</p>
               <p className="text-xs text-muted-foreground max-w-[220px] mb-4">
-                Unlocks once your CSR profile hits 80% — you're at {csrCompleteness}%.
+                Unlocks once your CSR profile hits 80% — you're at {displayedCompleteness}%.
               </p>
               <button type="button" onClick={() => navigate("/dashboard/profile")}
                 className="text-xs font-semibold text-[#2D6A4F] hover:underline underline-offset-2">

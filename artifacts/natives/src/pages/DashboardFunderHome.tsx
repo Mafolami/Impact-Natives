@@ -228,6 +228,14 @@ export default function FunderHome({ profile }: { profile: any }) {
         fetch(`${supabaseUrl}/functions/v1/refresh-partnership-matches`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}` },
+        }).then(res => res.json()).then(result => {
+          // The client-side score above is only a first-paint estimate.
+          // The server computes completeness independently — if the two
+          // formulas ever drift apart, this keeps what's on screen honest
+          // rather than trusting a locally duplicated calculation forever.
+          if (!cancelled && typeof result?.completeness === "number" && result.completeness !== mandateScore) {
+            setMandateScore(result.completeness);
+          }
         }).catch(() => {});
       }
     })();
