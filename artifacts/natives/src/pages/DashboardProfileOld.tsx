@@ -80,46 +80,6 @@ function SectorChips({ selected, onChange }: { selected: string[]; onChange: (v:
   );
 }
 
-const FUNDING_INSTRUMENTS = [
-  "Grant", "Concessional loan", "Equity investment",
-  "Recoverable grant", "Prize", "Technical assistance",
-];
-
-const SDG_OPTIONS = [
-  "No Poverty", "Zero Hunger", "Good Health and Well-being", "Quality Education",
-  "Gender Equality", "Clean Water and Sanitation", "Affordable and Clean Energy",
-  "Decent Work and Economic Growth", "Industry Innovation and Infrastructure",
-  "Reduced Inequalities", "Sustainable Cities and Communities",
-  "Responsible Consumption and Production", "Climate Action", "Life Below Water",
-  "Life on Land", "Peace Justice and Strong Institutions", "Partnerships for the Goals",
-];
-
-// Generic chip picker, same look as SectorChips but takes its own options
-// list. Used for the three mandate-completeness fields (funding
-// instruments, mandate sectors, mandate SDGs) that previously had no
-// input control anywhere in this page.
-function ChipPicker({ options, selected, onChange }: { options: string[]; selected: string[]; onChange: (v: string[]) => void }) {
-  function toggle(s: string) {
-    onChange(selected.includes(s) ? selected.filter((x) => x !== s) : [...selected, s]);
-  }
-  return (
-    <div className="flex flex-wrap gap-2 mt-1">
-      {options.map((s) => {
-        const active = selected.includes(s);
-        return (
-          <button key={s} type="button" onClick={() => toggle(s)}
-            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
-              active ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
-                     : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
-            }`}>
-            {s}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 function PaneHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div className="mb-1">
@@ -203,8 +163,6 @@ export default function DashboardProfile() {
   const [grantRangeMax, setGrantRangeMax]             = useState("");
   const [grantCurrency, setGrantCurrency]             = useState("USD");
   const [fundingInstruments, setFundingInstruments]   = useState<string[]>([]);
-  const [mandateSectors, setMandateSectors]           = useState<string[]>([]);
-  const [mandateSdgs, setMandateSdgs]                 = useState<string[]>([]);
   const [geographicFocus, setGeographicFocus]         = useState<string[]>([]);
   const [geographicInput, setGeographicInput]         = useState("");
   const [stagePreference, setStagePreference]         = useState<string[]>([]);
@@ -222,7 +180,7 @@ export default function DashboardProfile() {
   useEffect(() => {
     if (!user) return;
     supabase.from("organizations")
-     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")      .eq("user_id", user.id).maybeSingle()
+     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")      .eq("user_id", user.id).maybeSingle()
       .then(({ data }) => {
         if (!data) return;
         setOrgId(data.id ?? null);
@@ -233,8 +191,6 @@ export default function DashboardProfile() {
         if (data.grant_range_max) setGrantRangeMax(String(data.grant_range_max));
         if (data.grant_currency) setGrantCurrency(data.grant_currency);
         if (data.funding_instruments) setFundingInstruments(data.funding_instruments);
-        if (data.mandate_sectors) setMandateSectors(data.mandate_sectors);
-        if (data.mandate_sdgs) setMandateSdgs(data.mandate_sdgs);
         if (data.geographic_focus) setGeographicFocus(data.geographic_focus);
         if (data.stage_preference) setStagePreference(data.stage_preference);
         if (data.partner_type_preference) setPartnerTypePreference(data.partner_type_preference);
@@ -392,8 +348,6 @@ export default function DashboardProfile() {
           grant_range_max: grantRangeMax ? parseFloat(grantRangeMax) : null,
           grant_currency: grantCurrency || null,
           funding_instruments: fundingInstruments.length > 0 ? fundingInstruments : null,
-          mandate_sectors: mandateSectors.length > 0 ? mandateSectors : null,
-          mandate_sdgs: mandateSdgs.length > 0 ? mandateSdgs : null,
           geographic_focus: geographicFocus.length > 0 ? geographicFocus : null,
           stage_preference: stagePreference.length > 0 ? stagePreference : null,
           partner_type_preference: partnerTypePreference.length > 0 ? partnerTypePreference : null,
@@ -440,14 +394,12 @@ export default function DashboardProfile() {
 
     if (user && profile?.user_type === "organisation") {
       const { data } = await supabase.from("organizations")
-        .select("logo_url,description,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")
+        .select("logo_url,description,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")
         .eq("user_id", user.id).maybeSingle();
       if (data) {
         if (data.previous_funders) setPreviousFunders(data.previous_funders);
         if (data.geographic_focus) setGeographicFocus(data.geographic_focus);
         if (data.funding_instruments) setFundingInstruments(data.funding_instruments);
-        if (data.mandate_sectors) setMandateSectors(data.mandate_sectors);
-        if (data.mandate_sdgs) setMandateSdgs(data.mandate_sdgs);
         if (data.stage_preference) setStagePreference(data.stage_preference);
         if (data.partner_type_preference) setPartnerTypePreference(data.partner_type_preference);
         if (data.esg_frameworks) setEsgFrameworks(data.esg_frameworks);
@@ -951,24 +903,6 @@ export default function DashboardProfile() {
                         <Input value={grantRangeMax} onChange={e => setGrantRangeMax(e.target.value.replace(/[^0-9]/g, ""))} className="h-10 flex-1" placeholder="Max" />
                       </div>
                     </div>
-
-                    <div>
-                      <Label className="text-sm font-medium">Funding instruments</Label>
-                      <ChipPicker options={FUNDING_INSTRUMENTS} selected={fundingInstruments} onChange={setFundingInstruments} />
-                      <p className="text-xs text-muted-foreground mt-1.5">How you deploy capital — grants, equity, loans, and so on.</p>
-                    </div>
-
-                    <div>
-                      <Label className="text-sm font-medium">Sector focus</Label>
-                      <ChipPicker options={SECTOR_OPTIONS} selected={mandateSectors} onChange={setMandateSectors} />
-                      <p className="text-xs text-muted-foreground mt-1.5">Sectors your mandate targets. Used for AI matching, separate from the sectors shown on your public profile.</p>
-                    </div>
-
-                    <div>
-                      <Label className="text-sm font-medium">SDG priorities</Label>
-                      <ChipPicker options={SDG_OPTIONS} selected={mandateSdgs} onChange={setMandateSdgs} />
-                    </div>
-
 
                     <div>
                       <Label className="text-sm font-medium">Stage preference</Label>
