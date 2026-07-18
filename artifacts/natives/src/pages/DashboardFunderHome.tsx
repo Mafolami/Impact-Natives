@@ -317,7 +317,7 @@ export default function FunderHome({ profile }: { profile: any }) {
       <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr_240px] gap-6">
 
         {/* Column 1: Initiative matches — primary */}
-        <section className="lg:order-1">
+        <section className="lg:order-1 rounded-2xl bg-[#2D6A4F]/[0.03] border border-[#2D6A4F]/10 p-4">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
@@ -409,7 +409,7 @@ export default function FunderHome({ profile }: { profile: any }) {
         </section>
 
         {/* Column 2: Partnership matches — secondary, compact */}
-        <section className="lg:order-2">
+        <section className="lg:order-2 rounded-2xl bg-muted/30 border border-border p-4">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
@@ -421,8 +421,10 @@ export default function FunderHome({ profile }: { profile: any }) {
           </div>
 
           {!partnershipEligible ? (
-            <div className="rounded-xl border border-border bg-card p-5 text-center">
-              <p className="text-xs text-muted-foreground">
+            <div className="rounded-xl border border-dashed border-border bg-card p-6 text-center flex flex-col items-center justify-center min-h-[220px]">
+              <Building2 className="w-6 h-6 text-muted-foreground/20 mb-3" />
+              <p className="text-xs font-medium text-foreground mb-1">Locked for now</p>
+              <p className="text-[11px] text-muted-foreground">
                 Unlocks at 80% mandate completion — you're at {mandateScore}%.
               </p>
             </div>
@@ -469,14 +471,16 @@ export default function FunderHome({ profile }: { profile: any }) {
             const Icon = m.icon;
             return (
               <button key={m.label} type="button" onClick={m.onClick}
-                className="text-left rounded-xl border bg-card px-4 py-4 hover:border-[#2D6A4F]/40 transition-colors group"
+                className="w-full text-left rounded-xl border bg-card px-4 py-3 hover:border-[#2D6A4F]/40 transition-colors group flex items-center justify-between gap-3"
                 style={{ borderColor: m.accent ? "#C45C26" : undefined }}>
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Icon className="w-3 h-3 text-muted-foreground" />
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{m.label}</p>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground truncate">{m.label}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{m.sub}</p>
+                  </div>
                 </div>
-                <p className="text-2xl font-bold text-foreground tracking-tight group-hover:text-[#2D6A4F] transition-colors">{m.value}</p>
-                <p className="text-xs text-muted-foreground mt-1">{m.sub}</p>
+                <p className="text-xl font-bold text-foreground tracking-tight group-hover:text-[#2D6A4F] transition-colors shrink-0">{m.value}</p>
               </button>
             );
           })}

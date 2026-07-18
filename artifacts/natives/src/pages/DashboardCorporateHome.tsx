@@ -9,6 +9,25 @@ import { ArrowRight, Sparkles, Leaf, Building2, Bookmark, MessageSquare, Users }
 
 const ESG_PARTNERSHIP_TYPES = ["operational", "strategic", "lead", "other"];
 
+// Some array columns come back as raw Postgres array-literal strings
+// (e.g. {Nigeria,Kenya,"United Kingdom"}) instead of real JS arrays,
+// depending on how the row was written. Parse defensively before display.
+function parsePgArray(val: any): string[] {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  if (typeof val === "string") {
+    if (val.startsWith("{") && val.endsWith("}")) {
+      return val.slice(1, -1).split(",").map(s => s.trim().replace(/^"|"$/g, "")).filter(Boolean);
+    }
+    if (val.startsWith("[")) {
+      try { const parsed = JSON.parse(val); return Array.isArray(parsed) ? parsed : [val]; }
+      catch { return [val]; }
+    }
+    return [val];
+  }
+  return [];
+}
+
 // Maps a pass reason to the specific mandate field it points at, so the
 // nudge can send the user to fix the actual thing, not just "your profile".
 const PASS_REASON_FIELD_MAP: Record<string, { label: string; hint: string }> = {
@@ -384,7 +403,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_260px] gap-6">
 
         {/* Column 1: Initiative matches */}
-        <section className="lg:order-1">
+        <section className="lg:order-1 rounded-2xl bg-[#2D6A4F]/[0.03] border border-[#2D6A4F]/10 p-4">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
@@ -408,11 +427,11 @@ export default function CorporateHome({ profile }: { profile: any }) {
                 </div>
               )}
               {[1, 2, 3].map(i => (
-                <div key={i} className="h-24 rounded-xl border border-border bg-card animate-pulse" />
+                <div key={i} className="h-32 rounded-xl border border-border bg-card animate-pulse" />
               ))}
             </div>
           ) : matchedInitiatives.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-card p-8 text-center">
+            <div className="rounded-xl border border-border bg-card p-8 text-center min-h-[280px] flex flex-col items-center justify-center">
               <Leaf className="w-6 h-6 text-muted-foreground/30 mx-auto mb-3" />
               <p className="text-sm font-medium text-foreground mb-1">No ESG initiatives matched yet.</p>
               <p className="text-xs text-muted-foreground mb-4">
@@ -428,7 +447,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
               {matchedInitiatives.slice(0, 3).map((ini: any) => (
                 <button key={ini.id} type="button"
                   onClick={() => navigate(`/dashboard/marketplace?initiative=${ini.id}`)}
-                  className="w-full text-left rounded-xl border border-border bg-card px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group">
+                  className="w-full text-left rounded-xl border border-border bg-card px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group min-h-[128px] flex flex-col justify-center">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -477,7 +496,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
         </section>
 
         {/* Column 2: Partnership matches */}
-        <section className="lg:order-2">
+        <section className="lg:order-2 rounded-2xl bg-[#C45C26]/[0.03] border border-[#C45C26]/10 p-4">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
@@ -493,14 +512,14 @@ export default function CorporateHome({ profile }: { profile: any }) {
           </div>
 
           {!partnershipEligible ? (
-            <div className="rounded-2xl border border-border bg-card p-8 text-center">
-              <Building2 className="w-6 h-6 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm font-medium text-foreground mb-1">Complete your CSR profile to unlock this.</p>
-              <p className="text-xs text-muted-foreground mb-4">
-                Partnership matches need your profile at 80% or above — you're at {csrCompleteness}%.
+            <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center flex flex-col items-center justify-center min-h-[300px]">
+              <Building2 className="w-8 h-8 text-muted-foreground/20 mb-4" />
+              <p className="text-sm font-medium text-foreground mb-1">Partnership matches are locked</p>
+              <p className="text-xs text-muted-foreground max-w-[220px] mb-4">
+                Unlocks once your CSR profile hits 80% — you're at {csrCompleteness}%.
               </p>
               <button type="button" onClick={() => navigate("/dashboard/profile")}
-                className="text-xs text-[#2D6A4F] hover:underline underline-offset-2">
+                className="text-xs font-semibold text-[#2D6A4F] hover:underline underline-offset-2">
                 Complete profile →
               </button>
             </div>
@@ -521,7 +540,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
               {partnershipMatches.map((m: any) => (
                 <button key={m.matched_org_id} type="button"
                   onClick={() => navigate(`/dashboard/natives?tab=organisation&user=${m.org?.id ?? ""}`)}
-                  className="w-full text-left rounded-xl border border-border bg-card px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group">
+                  className="w-full text-left rounded-xl border border-border bg-card px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group min-h-[128px] flex flex-col justify-center">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -543,8 +562,8 @@ export default function CorporateHome({ profile }: { profile: any }) {
                             {m.org.organisation_type.replace(/_/g, " ")}
                           </span>
                         )}
-                        {m.org?.country && (
-                          <span className="text-[10px] text-muted-foreground">{m.org.country}</span>
+                        {parsePgArray(m.org?.country).length > 0 && (
+                          <span className="text-[10px] text-muted-foreground">{parsePgArray(m.org?.country).join(", ")}</span>
                         )}
                         {m.key_synergy && (
                           <span className="text-[10px] text-muted-foreground">{m.key_synergy}</span>
@@ -565,14 +584,16 @@ export default function CorporateHome({ profile }: { profile: any }) {
             const Icon = m.icon;
             return (
               <button key={m.label} type="button" onClick={m.onClick}
-                className="text-left rounded-xl border bg-card px-4 py-4 hover:border-[#2D6A4F]/40 transition-colors group"
+                className="w-full text-left rounded-xl border bg-card px-4 py-3 hover:border-[#2D6A4F]/40 transition-colors group flex items-center justify-between gap-3"
                 style={{ borderColor: m.accent ? "#C45C26" : undefined }}>
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Icon className="w-3 h-3 text-muted-foreground" />
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{m.label}</p>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground truncate">{m.label}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{m.sub}</p>
+                  </div>
                 </div>
-                <p className="text-2xl font-bold text-foreground tracking-tight group-hover:text-[#2D6A4F] transition-colors">{m.value}</p>
-                <p className="text-xs text-muted-foreground mt-1">{m.sub}</p>
+                <p className="text-xl font-bold text-foreground tracking-tight group-hover:text-[#2D6A4F] transition-colors shrink-0">{m.value}</p>
               </button>
             );
           })}
