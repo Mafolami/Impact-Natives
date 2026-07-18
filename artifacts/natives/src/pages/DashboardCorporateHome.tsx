@@ -192,49 +192,55 @@ export default function CorporateHome({ profile }: { profile: any }) {
         return 0;
       });
 
-      setAiMatching(true);
-      const mandate = {
-        org_type: profile.org_type,
-        investment_thesis: org?.esg_frameworks?.length
-          ? `ESG-aligned corporate seeking implementation partners across: ${org.esg_frameworks.join(", ")}`
-          : "Corporate seeking ESG and CSR implementation partners",
-        funding_instruments: ["partnership", "csr_funding"],
-        grant_currency: "NGN",
-        grant_range_min: null,
-        grant_range_max: null,
-        stage_preference: ["pilot", "growth", "scale"],
-        geographic_focus: org?.geographic_focus ?? (org?.country ? [org.country] : ["Nigeria"]),
-        mandate_sectors: org?.mandate_sectors ?? (org?.sector ? [org.sector] : []),
-        mandate_sdgs: org?.mandate_sdgs ?? [],
-        esg_frameworks: org?.esg_frameworks,
-        csr_budget_range: org?.csr_budget_range,
-        partnership_types: ESG_PARTNERSHIP_TYPES,
+      // Cache-first: read persisted match scores directly so the tile
+      // renders immediately and never goes blank if the background refresh
+      // hits a Groq rate limit. A stale/missing cache is only ever
+      // refreshed by refresh-initiative-matches below, which leaves a good
+      // cache untouched on failure.
+      const applyCache = (rows: { initiative_id: string; score: number; match_reason: string }[]) => {
+        if (!rows?.length) return false;
+        const scoreMap = Object.fromEntries(rows.map(r => [r.initiative_id, r]));
+        const ranked = esgFirst
+          .filter((ini: any) => scoreMap[ini.id])
+          .map((ini: any) => ({ ...ini, score: scoreMap[ini.id].score, match_reason: scoreMap[ini.id].match_reason }))
+          .sort((a: any, b: any) => b.score - a.score);
+        if (ranked.length > 0) {
+          setMatchedInitiatives(ranked);
+          return true;
+        }
+        return false;
       };
 
+      const { data: cachedMatches } = await supabase
+        .from("initiative_match_cache")
+        .select("initiative_id, score, match_reason")
+        .eq("org_id", org?.id)
+        .order("score", { ascending: false });
+
+      const hadCache = applyCache(cachedMatches ?? []);
+      setLoadingMatches(false);
+
+      setAiMatching(true);
       try {
-        const res = await fetch(`${supabaseUrl}/functions/v1/match-initiatives-to-funder`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mandate, initiatives: esgFirst }),
-        });
-        const result = await res.json();
-        if (result.data?.length) {
-          const scoreMap = Object.fromEntries(
-            result.data.map((r: any) => [r.id, { score: r.score, match_reason: r.match_reason }])
-          );
-          const ranked = esgFirst
-            .filter((ini: any) => scoreMap[ini.id] && scoreMap[ini.id].score >= 35)
-            .map((ini: any) => ({ ...ini, ...scoreMap[ini.id] }))
-            .sort((a: any, b: any) => b.score - a.score);
-          setMatchedInitiatives(ranked);
-        } else {
-          setMatchedInitiatives(esgFirst.filter((i: any) => i.esg_alignment));
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const res = await fetch(`${supabaseUrl}/functions/v1/refresh-initiative-matches`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+          });
+          const result = await res.json();
+          if (result.matches?.length) {
+            applyCache(result.matches.map((m: any) => ({
+              initiative_id: m.initiative_id, score: m.score, match_reason: m.match_reason,
+            })));
+          } else if (!hadCache) {
+            setMatchedInitiatives(esgFirst.filter((i: any) => i.esg_alignment));
+          }
         }
       } catch {
-        setMatchedInitiatives(esgFirst.filter((i: any) => i.esg_alignment));
+        if (!hadCache) setMatchedInitiatives(esgFirst.filter((i: any) => i.esg_alignment));
       }
       setAiMatching(false);
-      setLoadingMatches(false);
     }
   }
 

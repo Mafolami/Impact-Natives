@@ -132,47 +132,57 @@ export default function FunderHome({ profile }: { profile: any }) {
         return;
       }
 
-      // AI matching
-      setAiMatching(true);
-      const mandate = {
-        org_type: profile.org_type,
-        investment_thesis: profile.investment_thesis,
-        grant_range_min: orgData?.grant_range_min,
-        grant_range_max: orgData?.grant_range_max,
-        grant_currency: orgData?.grant_currency,
-        funding_instruments: orgData?.funding_instruments,
-        geographic_focus: orgData?.geographic_focus,
-        stage_preference: orgData?.stage_preference,
-        mandate_sectors: orgData?.mandate_sectors,
-        mandate_sdgs: orgData?.mandate_sdgs,
+      // Cache-first: read persisted match scores directly so the tile
+      // renders immediately and never goes blank if the background refresh
+      // hits a Groq rate limit. A stale/missing cache is only ever
+      // refreshed by refresh-initiative-matches below, which leaves a good
+      // cache untouched on failure.
+      const applyCache = (rows: { initiative_id: string; score: number; match_reason: string }[]) => {
+        if (!rows?.length) return false;
+        const scoreMap = Object.fromEntries(rows.map(r => [r.initiative_id, r]));
+        const ranked = initiatives
+          .filter(ini => scoreMap[ini.id])
+          .map(ini => ({ ...ini, score: scoreMap[ini.id].score, match_reason: scoreMap[ini.id].match_reason }))
+          .sort((a: any, b: any) => b.score - a.score);
+        if (ranked.length > 0) {
+          setMatchedInitiatives(ranked);
+          return true;
+        }
+        return false;
       };
 
-      try {
-        const res = await fetch(`${supabaseUrl}/functions/v1/match-initiatives-to-funder`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mandate, initiatives }),
-        });
-        const result = await res.json();
+      const { data: cachedMatches } = await supabase
+        .from("initiative_match_cache")
+        .select("initiative_id, score, match_reason")
+        .eq("org_id", orgData?.id)
+        .order("score", { ascending: false });
 
-        if (result.data?.length) {
-          const scoreMap = Object.fromEntries(
-            result.data.map((r: any) => [r.id, { score: r.score, match_reason: r.match_reason }])
-          );
-          const ranked = initiatives
-            .filter(ini => scoreMap[ini.id] && scoreMap[ini.id].score >= 40)
-            .map(ini => ({ ...ini, ...scoreMap[ini.id] }))
-            .sort((a: any, b: any) => b.score - a.score);
-          setMatchedInitiatives(ranked);
-        } else {
-          setMatchedInitiatives(initiatives);
+      const hadCache = applyCache(cachedMatches ?? []);
+      setLoadingMatches(false);
+
+      setAiMatching(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const res = await fetch(`${supabaseUrl}/functions/v1/refresh-initiative-matches`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+          });
+          const result = await res.json();
+          if (result.matches?.length) {
+            applyCache(result.matches.map((m: any) => ({
+              initiative_id: m.initiative_id, score: m.score, match_reason: m.match_reason,
+            })));
+          } else if (!hadCache) {
+            // Never-scored, and this attempt returned nothing usable —
+            // fall back to the raw unscored list rather than showing empty.
+            setMatchedInitiatives(initiatives);
+          }
         }
       } catch {
-        setMatchedInitiatives(initiatives);
+        if (!hadCache) setMatchedInitiatives(initiatives);
       }
-
       setAiMatching(false);
-      setLoadingMatches(false);
     }
 
     loadAll();

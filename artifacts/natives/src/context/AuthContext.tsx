@@ -100,8 +100,30 @@ import {
           // actual login action, unlike INITIAL_SESSION/TOKEN_REFRESHED
           // which fire on every page load or silent token renewal.
           if (event === "SIGNED_IN") {
-            supabase.rpc("increment_login_count").then(({ error }) => {
-              if (error) console.error("increment_login_count failed:", error);
+            supabase.rpc("increment_login_count").then(({ data: isFirstLoginToday, error }) => {
+              if (error) {
+                console.error("increment_login_count failed:", error);
+                return;
+              }
+              // First login today — warm the match caches in the background.
+              // Both endpoints gate on org type internally, so it's safe to
+              // fire both regardless of what kind of org this is; the
+              // irrelevant one just returns eligible: false quickly.
+              if (isFirstLoginToday && session.access_token) {
+                const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+                const authHeaders = {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${session.access_token}`,
+                };
+                fetch(`${supabaseUrl}/functions/v1/refresh-partnership-matches`, {
+                  method: "POST",
+                  headers: authHeaders,
+                }).catch(() => {});
+                fetch(`${supabaseUrl}/functions/v1/refresh-initiative-matches`, {
+                  method: "POST",
+                  headers: authHeaders,
+                }).catch(() => {});
+              }
             });
           }
         } else {

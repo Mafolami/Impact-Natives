@@ -190,14 +190,35 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
     setOpeningMsg(null);
     setMsgEditing(false);
     if (org && viewerOrg && org.user_id !== viewerOrg.user_id && org.id !== viewerOrg.id) {
-      scoreFit(org, viewerOrg);
+      loadFit(org, viewerOrg);
     }
 
   }, [org?.id, viewerOrg?.id]);
 
-  async function scoreFit(listing: OrgRow, viewer: OrgRow) {
+  // Cache-first: read the persisted fit result directly so it renders
+  // immediately and never disappears due to a live Groq call failing or
+  // being rate-limited. A background call to score-partnership-fit refreshes
+  // the cache if it's stale (>24h old or either profile changed since) —
+  // if that refresh fails, the cached result stays on screen untouched.
+  async function loadFit(listing: OrgRow, viewer: OrgRow) {
     setFitLoading(true);
     try {
+      const { data: cached } = await supabase
+        .from("partnership_fit_cache")
+        .select("fit_score, reasons, gaps, rationale, opening_message")
+        .eq("viewer_org_id", viewer.id)
+        .eq("listing_org_id", listing.id)
+        .maybeSingle();
+
+      if (cached) {
+        setFit(cached as any);
+        setOpeningMsg(cached.opening_message ?? null);
+        setFitLoading(false);
+      }
+
+      // Fire in background — this both refreshes a stale cache and, if
+      // there was no cache at all, computes the first result synchronously
+      // server-side (writing it to the cache) and returns it here.
       const { data, error } = await supabase.functions.invoke("score-partnership-fit", {
         body: { viewer_org: viewer, listing_org: listing },
       });
