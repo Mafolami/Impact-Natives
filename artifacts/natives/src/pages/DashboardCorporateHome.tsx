@@ -197,12 +197,12 @@ export default function CorporateHome({ profile }: { profile: any }) {
       // hits a Groq rate limit. A stale/missing cache is only ever
       // refreshed by refresh-initiative-matches below, which leaves a good
       // cache untouched on failure.
-      const applyCache = (rows: { initiative_id: string; score: number; match_reason: string }[]) => {
+      const applyCache = (rows: { initiative_id: string; score: number; match_reason: string; criteria?: any }[]) => {
         if (!rows?.length) return false;
         const scoreMap = Object.fromEntries(rows.map(r => [r.initiative_id, r]));
         const ranked = esgFirst
           .filter((ini: any) => scoreMap[ini.id])
-          .map((ini: any) => ({ ...ini, score: scoreMap[ini.id].score, match_reason: scoreMap[ini.id].match_reason }))
+          .map((ini: any) => ({ ...ini, score: scoreMap[ini.id].score, match_reason: scoreMap[ini.id].match_reason, criteria: scoreMap[ini.id].criteria }))
           .sort((a: any, b: any) => b.score - a.score);
         if (ranked.length > 0) {
           setMatchedInitiatives(ranked);
@@ -231,7 +231,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
           const result = await res.json();
           if (result.matches?.length) {
             applyCache(result.matches.map((m: any) => ({
-              initiative_id: m.initiative_id, score: m.score, match_reason: m.match_reason,
+              initiative_id: m.initiative_id, score: m.score, match_reason: m.match_reason, criteria: m.criteria,
             })));
           } else if (!hadCache) {
             setMatchedInitiatives(esgFirst.filter((i: any) => i.esg_alignment));
@@ -283,7 +283,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
     (async () => {
       const { data: cached } = await supabase
         .from("partnership_match_cache")
-        .select("matched_org_id, fit_score, rationale, key_synergy, computed_at")
+        .select("matched_org_id, fit_score, rationale, key_synergy, criteria, computed_at")
         .eq("org_id", orgData.id)
         .order("fit_score", { ascending: false })
         .limit(3);
@@ -292,7 +292,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
         const orgIds = cached.map((m: any) => m.matched_org_id);
         const { data: orgs } = await supabase
           .from("organizations")
-          .select("id, organisation_name, organisation_type, country")
+          .select("id, user_id, organisation_name, organisation_type, country")
           .in("id", orgIds);
         const orgMap = new Map((orgs ?? []).map((o: any) => [o.id, o]));
         if (!cancelled) {
@@ -462,50 +462,76 @@ export default function CorporateHome({ profile }: { profile: any }) {
           ) : (
             <div className="space-y-3">
               {matchedInitiatives.slice(0, 3).map((ini: any) => (
-                <button key={ini.id} type="button"
-                  onClick={() => navigate(`/dashboard/marketplace?initiative=${ini.id}`)}
-                  className="w-full text-left rounded-xl border border-border bg-card px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group min-h-[128px] flex flex-col justify-center">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <p className="text-sm font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors truncate">
-                          {ini.title}
-                        </p>
-                        {ini.esg_alignment && (
-                          <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                            style={{ background: "#e8f5e9", color: "#2e7d32" }}>
-                            <Leaf className="w-2.5 h-2.5" /> ESG/CSR
-                          </span>
-                        )}
-                        {ini.score && (
-                          <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full"
-                            style={{
-                              background: ini.score >= 70 ? "#eaf5ee" : "#f5f5f5",
-                              color: ini.score >= 70 ? "#2D6A4F" : "#6b7280",
-                            }}>
-                            {ini.score}% match
-                          </span>
-                        )}
-                      </div>
-                      {ini.match_reason ? (
-                        <p className="text-xs mt-0.5 leading-relaxed text-[#2D6A4F]">{ini.match_reason}</p>
-                      ) : (
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{ini.problem}</p>
+                <div key={ini.id}
+                  className="w-full text-left rounded-xl border border-border bg-card px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group">
+                  <button type="button" onClick={() => navigate(`/dashboard/marketplace?initiative=${ini.id}`)} className="w-full text-left">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <p className="text-sm font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors truncate">
+                        {ini.title}
+                      </p>
+                      {ini.esg_alignment && (
+                        <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                          style={{ background: "#e8f5e9", color: "#2e7d32" }}>
+                          <Leaf className="w-2.5 h-2.5" /> ESG/CSR
+                        </span>
                       )}
-                      <div className="flex items-center gap-3 mt-2 flex-wrap">
-                        {ini.submitter_org && (
-                          <span className="text-[10px] font-medium text-muted-foreground">{ini.submitter_org}</span>
-                        )}
-                        {ini.sectors?.slice(0, 2).map((s: string) => (
-                          <span key={s} className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">{s}</span>
-                        ))}
-                        {ini.locations?.slice(0, 1).map((l: string) => (
-                          <span key={l} className="text-[10px] text-muted-foreground">{l}</span>
-                        ))}
-                      </div>
+                      {ini.score && (
+                        <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                          style={{
+                            background: ini.score >= 70 ? "#eaf5ee" : "#f5f5f5",
+                            color: ini.score >= 70 ? "#2D6A4F" : "#6b7280",
+                          }}>
+                          {ini.score}% match
+                        </span>
+                      )}
                     </div>
+                  </button>
+
+                  {ini.submitter_org && ini.user_id && (
+                    <button type="button" onClick={() => navigate(`/dashboard/natives?tab=organisation&user=${ini.user_id}`)}
+                      className="inline-flex items-center gap-1 text-[11px] text-[#2D6A4F] hover:underline underline-offset-2 mb-2">
+                      <Building2 className="w-3 h-3" />
+                      {ini.submitter_org}
+                    </button>
+                  )}
+
+                  {ini.criteria ? (
+                    <div className="flex flex-col gap-1 mb-2">
+                      {[
+                        ["sector_fit", "Sector"], ["geography_fit", "Geography"],
+                        ["stage_fit", "Stage"], ["esg_fit", "ESG fit"], ["support_type_fit", "Support type"],
+                      ].filter(([key]) => ini.criteria[key]).map(([key, label]) => (
+                        <div key={key} className="flex items-center justify-between">
+                          <span className="text-[11px] text-muted-foreground">{label}</span>
+                          <span className="text-[11px] font-medium" style={{
+                            color: ini.criteria[key] === "match" ? "#2D6A4F" : ini.criteria[key] === "partial" ? "#C45C26" : "#9ca3af",
+                          }}>
+                            {ini.criteria[key] === "match" ? "✓ match" : ini.criteria[key] === "partial" ? "● partial" : "no match"}
+                          </span>
+                        </div>
+                      ))}
+                      {typeof ini.criteria.budget_overlap_pct === "number" && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] text-muted-foreground">Budget overlap</span>
+                          <span className="text-[11px] font-medium text-foreground">{ini.criteria.budget_overlap_pct}%</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : ini.match_reason ? (
+                    <p className="text-xs mb-2 leading-relaxed text-[#2D6A4F]">{ini.match_reason}</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground mb-2 line-clamp-1">{ini.problem}</p>
+                  )}
+
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {ini.sectors?.slice(0, 2).map((s: string) => (
+                      <span key={s} className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">{s}</span>
+                    ))}
+                    {ini.locations?.slice(0, 1).map((l: string) => (
+                      <span key={l} className="text-[10px] text-muted-foreground">{l}</span>
+                    ))}
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           )}
@@ -555,24 +581,40 @@ export default function CorporateHome({ profile }: { profile: any }) {
             <div className="space-y-3">
               {partnershipMatches.map((m: any) => (
                 <button key={m.matched_org_id} type="button"
-                  onClick={() => navigate(`/dashboard/natives?tab=organisation&user=${m.org?.id ?? ""}`)}
-                  className="w-full text-left rounded-xl border border-border bg-card px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group min-h-[128px] flex flex-col justify-center">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <p className="text-sm font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors truncate">
-                          {m.org?.organisation_name ?? "Organisation"}
-                        </p>
-                        <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full"
-                          style={{
-                            background: m.fit_score >= 70 ? "#eaf5ee" : "#f5f5f5",
-                            color: m.fit_score >= 70 ? "#2D6A4F" : "#6b7280",
+                  onClick={() => navigate(`/dashboard/natives?tab=organisation&user=${m.org?.user_id ?? ""}`)}
+                  className="w-full text-left rounded-xl border border-border bg-card px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group">
+                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                    <p className="text-sm font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors truncate">
+                      {m.org?.organisation_name ?? "Organisation"}
+                    </p>
+                    <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      style={{
+                        background: m.fit_score >= 70 ? "#eaf5ee" : "#f5f5f5",
+                        color: m.fit_score >= 70 ? "#2D6A4F" : "#6b7280",
+                      }}>
+                      {m.fit_score}% fit
+                    </span>
+                  </div>
+                  {m.criteria ? (
+                    <div className="flex flex-col gap-1 mb-2">
+                      {[
+                        ["sector_fit", "Sector"], ["geography_fit", "Geography"], ["need_offer_fit", "Need/offer"],
+                        ["working_style_fit", "Working style"], ["stage_readiness_fit", "Stage readiness"],
+                      ].map(([key, label]) => (
+                        <div key={key} className="flex items-center justify-between">
+                          <span className="text-[11px] text-muted-foreground">{label}</span>
+                          <span className="text-[11px] font-medium" style={{
+                            color: m.criteria[key] === "match" ? "#2D6A4F" : m.criteria[key] === "partial" ? "#C45C26" : "#9ca3af",
                           }}>
-                          {m.fit_score}% fit
-                        </span>
-                      </div>
-                      <p className="text-xs mt-0.5 leading-relaxed text-[#2D6A4F]">{m.rationale}</p>
-                      <div className="flex items-center gap-3 mt-2 flex-wrap">
+                            {m.criteria[key] === "match" ? "✓ match" : m.criteria[key] === "partial" ? "● partial" : "no match"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs mb-2 leading-relaxed text-[#2D6A4F]">{m.rationale}</p>
+                  )}
+                  <div className="flex items-center gap-3 flex-wrap">
                         {m.org?.organisation_type && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted-foreground capitalize">
                             {m.org.organisation_type.replace(/_/g, " ")}
@@ -585,8 +627,6 @@ export default function CorporateHome({ profile }: { profile: any }) {
                           <span className="text-[10px] text-muted-foreground">{m.key_synergy}</span>
                         )}
                       </div>
-                    </div>
-                  </div>
                 </button>
               ))}
             </div>
