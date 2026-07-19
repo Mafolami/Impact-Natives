@@ -373,7 +373,8 @@ export default function FunderHome({ profile }: { profile: any }) {
         <section className="lg:order-1 rounded-2xl bg-[#2D6A4F]/[0.03] border border-[#2D6A4F]/10 p-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-black">
+              <h3 className="inline-flex text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full"
+                style={{ background: "#2D6A4F", color: "#ffffff" }}>
                 Initiatives for you
               </h3>
               <p className="text-xs text-black mt-0.5">Top 3, AI-matched to your mandate</p>
@@ -434,8 +435,8 @@ export default function FunderHome({ profile }: { profile: any }) {
                   {ini.criteria ? (
                     <div className="flex flex-col gap-1 mb-2">
                       {[
-                        ["sector_fit", "Sector"], ["geography_fit", "Geography"],
-                        ["stage_fit", "Stage"], ["esg_fit", "ESG fit"], ["support_type_fit", "Support type"],
+                        ["sector_fit", "Sector"], ["geography_fit", "Geography"], ["stage_fit", "Stage"],
+                        ["budget_fit", "Budget"], ["esg_fit", "ESG fit"], ["support_type_fit", "Support type"],
                       ].filter(([key]) => ini.criteria[key]).map(([key, label]) => (
                         <div key={key} className="flex items-center justify-between">
                           <span className="text-xs text-black">{label}</span>
@@ -446,12 +447,6 @@ export default function FunderHome({ profile }: { profile: any }) {
                           </span>
                         </div>
                       ))}
-                      {typeof ini.criteria.budget_overlap_pct === "number" && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-black">Budget overlap</span>
-                          <span className="text-xs font-medium text-foreground">{ini.criteria.budget_overlap_pct}%</span>
-                        </div>
-                      )}
                     </div>
                   ) : ini.match_reason ? (
                     <p className="text-xs mb-2 leading-relaxed" style={{ color: "#2D6A4F" }}>
@@ -496,8 +491,9 @@ export default function FunderHome({ profile }: { profile: any }) {
         <section className="lg:order-2 rounded-2xl bg-muted/30 border border-border p-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-black flex items-center gap-1.5">
-                <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
+              <h3 className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full"
+                style={{ background: "#C45C26", color: "#ffffff" }}>
+                <Building2 className="w-3.5 h-3.5" />
                 Potential partners
               </h3>
             </div>
@@ -595,16 +591,14 @@ export default function FunderHome({ profile }: { profile: any }) {
             const Icon = m.icon;
             return (
               <button key={m.label} type="button" onClick={m.onClick}
-                className="w-full text-left rounded-xl border bg-white px-4 py-3 hover:border-[#2D6A4F]/40 transition-colors group flex items-center justify-between gap-3"
+                className="w-full text-left rounded-xl border bg-white px-4 py-4 hover:border-[#2D6A4F]/40 transition-colors group flex flex-col gap-3 min-h-[110px]"
                 style={{ borderColor: m.accent ? "#C45C26" : undefined }}>
-                <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex items-center gap-2">
                   <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold uppercase tracking-widest text-black truncate">{m.label}</p>
-                    <p className="text-xs text-black truncate">{m.sub}</p>
-                  </div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-black break-words">{m.label}</p>
                 </div>
-                <p className="text-xl font-bold text-foreground tracking-tight group-hover:text-[#2D6A4F] transition-colors shrink-0">{m.value}</p>
+                <p className="text-xs text-black break-words leading-snug">{m.sub}</p>
+                <p className="text-2xl font-bold text-foreground tracking-tight group-hover:text-[#2D6A4F] transition-colors mt-auto">{m.value}</p>
               </button>
             );
           })}
