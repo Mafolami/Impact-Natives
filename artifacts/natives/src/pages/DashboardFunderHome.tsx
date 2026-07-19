@@ -332,16 +332,16 @@ export default function FunderHome({ profile }: { profile: any }) {
 
       {/* Kanban: primary matches column, a lighter secondary partnership column,
           metrics as a rail on the right. Stacks on mobile, rail moving to the bottom. */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr_240px] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_240px] gap-6">
 
         {/* Column 1: Initiative matches — primary */}
         <section className="lg:order-1 rounded-2xl bg-[#2D6A4F]/[0.03] border border-[#2D6A4F]/10 p-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-black">
                 Initiatives for you
               </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Top 3, AI-matched to your mandate</p>
+              <p className="text-xs text-black mt-0.5">Top 3, AI-matched to your mandate</p>
             </div>
             <button type="button" onClick={() => navigate("/dashboard/marketplace")}
               className="text-xs font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors shrink-0">
@@ -358,19 +358,19 @@ export default function FunderHome({ profile }: { profile: any }) {
                 </div>
               )}
               {[1, 2, 3].map(i => (
-                <div key={i} className="h-24 rounded-xl border border-border bg-card animate-pulse" />
+                <div key={i} className="h-24 rounded-xl border border-border bg-white animate-pulse" />
               ))}
             </div>
           ) : matchedInitiatives.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-card p-8 text-center">
+            <div className="rounded-2xl border border-border bg-white p-8 text-center">
               <p className="text-sm font-medium text-foreground mb-1">No initiatives yet.</p>
-              <p className="text-xs text-muted-foreground">Check back as organisations post their work.</p>
+              <p className="text-xs text-black">Check back as organisations post their work.</p>
             </div>
           ) : (
             <div className="space-y-3">
               {matchedInitiatives.slice(0, 3).map((ini: any) => (
                 <div key={ini.id}
-                  className="w-full text-left rounded-xl border border-border bg-card px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group">
+                  className="w-full text-left rounded-xl border border-border bg-white px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group">
                   <button type="button" onClick={() => navigate(`/dashboard/marketplace?initiative=${ini.id}`)} className="w-full text-left">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
@@ -407,17 +407,17 @@ export default function FunderHome({ profile }: { profile: any }) {
                         ["stage_fit", "Stage"], ["esg_fit", "ESG fit"], ["support_type_fit", "Support type"],
                       ].filter(([key]) => ini.criteria[key]).map(([key, label]) => (
                         <div key={key} className="flex items-center justify-between">
-                          <span className="text-[11px] text-muted-foreground">{label}</span>
+                          <span className="text-[11px] text-black">{label}</span>
                           <span className="text-[11px] font-medium" style={{
-                            color: ini.criteria[key] === "match" ? "#2D6A4F" : ini.criteria[key] === "partial" ? "#C45C26" : "#9ca3af",
+                            color: ini.criteria[key] === "match" ? "#2D6A4F" : ini.criteria[key] === "partial" ? "#F59E0B" : "#EF4444",
                           }}>
-                            {ini.criteria[key] === "match" ? "✓ match" : ini.criteria[key] === "partial" ? "● partial" : "no match"}
+                            {ini.criteria[key] === "match" ? "✓ match" : ini.criteria[key] === "partial" ? "● partial" : "✕ no match"}
                           </span>
                         </div>
                       ))}
                       {typeof ini.criteria.budget_overlap_pct === "number" && (
                         <div className="flex items-center justify-between">
-                          <span className="text-[11px] text-muted-foreground">Budget overlap</span>
+                          <span className="text-[11px] text-black">Budget overlap</span>
                           <span className="text-[11px] font-medium text-foreground">{ini.criteria.budget_overlap_pct}%</span>
                         </div>
                       )}
@@ -427,29 +427,29 @@ export default function FunderHome({ profile }: { profile: any }) {
                       {ini.match_reason}
                     </p>
                   ) : (
-                    <p className="text-xs text-muted-foreground mb-2 line-clamp-1">{ini.problem}</p>
+                    <p className="text-xs text-black mb-2 line-clamp-1">{ini.problem}</p>
                   )}
 
                   <div className="flex items-center gap-3 flex-wrap">
                     {ini.stage && (
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-black">
                         {ini.stage}
                       </span>
                     )}
                     {ini.budget_min && ini.budget_max ? (
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-black">
                         {ini.budget_currency} {Number(ini.budget_min).toLocaleString()} – {Number(ini.budget_max).toLocaleString()}
                       </span>
                     ) : ini.budget_min ? (
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-black">
                         {ini.budget_currency} {Number(ini.budget_min).toLocaleString()}+
                       </span>
                     ) : null}
                     {ini.sectors?.slice(0, 2).map((s: string) => (
-                      <span key={s} className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">{s}</span>
+                      <span key={s} className="text-[10px] px-2 py-0.5 rounded-full border border-border text-black">{s}</span>
                     ))}
                     {ini.locations?.slice(0, 1).map((l: string) => (
-                      <span key={l} className="text-[10px] text-muted-foreground">{l}</span>
+                      <span key={l} className="text-[10px] text-black">{l}</span>
                     ))}
                   </div>
                 </div>
@@ -462,7 +462,7 @@ export default function FunderHome({ profile }: { profile: any }) {
         <section className="lg:order-2 rounded-2xl bg-muted/30 border border-border p-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-black flex items-center gap-1.5">
                 <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
                 Potential partners
               </h3>
@@ -470,29 +470,29 @@ export default function FunderHome({ profile }: { profile: any }) {
           </div>
 
           {!partnershipEligible ? (
-            <div className="rounded-xl border border-dashed border-border bg-card p-6 text-center flex flex-col items-center justify-center min-h-[220px]">
+            <div className="rounded-xl border border-dashed border-border bg-white p-6 text-center flex flex-col items-center justify-center min-h-[220px]">
               <Building2 className="w-6 h-6 text-muted-foreground/20 mb-3" />
               <p className="text-xs font-medium text-foreground mb-1">Locked for now</p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-[11px] text-black">
                 Unlocks at 80% mandate completion — you're at {mandateScore}%.
               </p>
             </div>
           ) : loadingPartnerships ? (
             <div className="space-y-2">
               {[1, 2].map(i => (
-                <div key={i} className="h-16 rounded-xl border border-border bg-card animate-pulse" />
+                <div key={i} className="h-16 rounded-xl border border-border bg-white animate-pulse" />
               ))}
             </div>
           ) : partnershipMatches.length === 0 ? (
-            <div className="rounded-xl border border-border bg-card p-5 text-center">
-              <p className="text-xs text-muted-foreground">No partnership matches yet.</p>
+            <div className="rounded-xl border border-border bg-white p-5 text-center">
+              <p className="text-xs text-black">No partnership matches yet.</p>
             </div>
           ) : (
             <div className="space-y-2">
               {partnershipMatches.map((m: any) => (
                 <button key={m.matched_org_id} type="button"
                   onClick={() => navigate(`/dashboard/natives?tab=organisation&user=${m.org?.user_id ?? ""}`)}
-                  className="w-full text-left rounded-xl border border-border bg-card px-4 py-3 hover:border-[#2D6A4F]/30 transition-colors group">
+                  className="w-full text-left rounded-xl border border-border bg-white px-4 py-3 hover:border-[#2D6A4F]/30 transition-colors group">
                   <div className="flex items-center justify-between gap-3 mb-1.5">
                     <p className="text-xs font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors truncate">
                       {m.org?.organisation_name ?? "Organisation"}
@@ -512,14 +512,14 @@ export default function FunderHome({ profile }: { profile: any }) {
                         ["working_style_fit", "Style"], ["stage_readiness_fit", "Stage"],
                       ].map(([key, label]) => (
                         <span key={key} className="text-[10px]" style={{
-                          color: m.criteria[key] === "match" ? "#2D6A4F" : m.criteria[key] === "partial" ? "#C45C26" : "#9ca3af",
+                          color: m.criteria[key] === "match" ? "#2D6A4F" : m.criteria[key] === "partial" ? "#F59E0B" : "#EF4444",
                         }}>
                           {label} {m.criteria[key] === "match" ? "✓" : m.criteria[key] === "partial" ? "●" : "–"}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-[11px] text-muted-foreground truncate">{m.key_synergy ?? m.rationale}</p>
+                    <p className="text-[11px] text-black truncate">{m.key_synergy ?? m.rationale}</p>
                   )}
                 </button>
               ))}
