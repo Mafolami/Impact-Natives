@@ -204,14 +204,14 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
     setFitLoading(true);
     try {
       const { data: cached } = await supabase
-        .from("partnership_fit_cache")
+        .from("partnership_match_cache")
         .select("fit_score, reasons, gaps, rationale, opening_message")
-        .eq("viewer_org_id", viewer.id)
-        .eq("listing_org_id", listing.id)
+        .eq("org_id", viewer.id)
+        .eq("matched_org_id", listing.id)
         .maybeSingle();
 
-      if (cached) {
-        setFit(cached as any);
+      if (cached && cached.fit_score != null) {
+        setFit({ ...cached, reasons: cached.reasons ?? [], gaps: cached.gaps ?? [] } as any);
         setOpeningMsg(cached.opening_message ?? null);
         setFitLoading(false);
       }
