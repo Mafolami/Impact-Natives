@@ -936,14 +936,7 @@ function MarketplaceDetail({
           p_owner_id: initiative.user_id,
         });
         conversationId = newConvoId;
-        if (conversationId) {
-          await supabase.from("conversations").update({
-            status: "open",
-            conversation_type: "question",
-          }).eq("id", conversationId);
-        }
       }
-
       if (conversationId) {
         await supabase.rpc("join_conversation_and_notify", {
           p_conversation_id: conversationId,
@@ -952,6 +945,10 @@ function MarketplaceDetail({
           p_notification_body: `"${question.trim().slice(0, 100)}${question.trim().length > 100 ? "..." : ""}"`,
           p_notification_link: "/dashboard/messages",
         });
+        await supabase.from("conversations").update({
+          status: "open",
+          conversation_type: "question",
+        }).eq("id", conversationId);
         await supabase.from("messages").insert({
           conversation_id: conversationId,
           sender_id: user.id,
