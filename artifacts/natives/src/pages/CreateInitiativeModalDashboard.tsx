@@ -2,9 +2,6 @@ import { useState, useRef, useEffect } from "react"
 import { useEditor, EditorContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Placeholder from "@tiptap/extension-placeholder"
-import { BulletList } from "@tiptap/extension-bullet-list"
-import { OrderedList } from "@tiptap/extension-ordered-list"
-import { ListItem } from "@tiptap/extension-list-item"
 import { supabase } from "@/lib/supabase"
 import { SECTOR_OPTIONS } from "@/lib/sectors";
 import { useAuth } from "@/context/AuthContext"
@@ -313,9 +310,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
   const editor = useEditor({
     extensions: [
       StarterKit,
-      BulletList,
-      OrderedList,
-      ListItem,
       Placeholder.configure({ placeholder: "Write or generate your full initiative description here..." }),
     ],
     onUpdate: ({ editor }) => { setForm(f => ({ ...f, detailContent: editor.getHTML() })) },
