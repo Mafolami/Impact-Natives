@@ -251,7 +251,6 @@ function AIDescriptionGenerator({
         body: JSON.stringify({ form }),
       })
       const data = await res.json()
-      console.log("generate-initiative-description response:", data)
       if (data.description) {
         onGenerated(data.description)
       } else {
