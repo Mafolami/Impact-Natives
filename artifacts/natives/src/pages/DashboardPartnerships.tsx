@@ -800,21 +800,18 @@ export default function DashboardPartnerships() {
           .select();
         console.log("connection update result:", JSON.stringify({ updateErr, updateData, senderOrgId, receiverOrgId: org.id, convId: convData.id }));
 
-        await supabase.from("conversation_participants").insert([
-          { conversation_id: convData.id, user_id: user.id },
-          { conversation_id: convData.id, user_id: org.user_id },
-        ]);
         const customMsg = (e as any).customMessage;
         await supabase.from("messages").insert({
           conversation_id: convData.id, sender_id: user.id,
           body: customMsg || `Hi ${org.organisation_name}, I came across your partnership listing on Impact Natives and I'm interested in exploring a potential collaboration.${org.partnership_sought ? ` I see you're looking for: ${org.partnership_sought}` : ""}\n\nWould you be open to a conversation?`,
         });
-        await supabase.from("notifications").insert({
-          user_id: org.user_id, type: "partnership_interest",
-          title: "New partnership interest",
-          body: `${senderOrg?.organisation_name ?? "An organisation"} expressed interest in partnering with you.`,
-          link: `/dashboard/messages?conversation=${convData.id}`,
-          metadata: { sender_org_id: senderOrgId, receiver_org_id: org.id, conversation_id: convData.id },
+        await supabase.rpc("join_conversation_and_notify", {
+          p_conversation_id: convData.id,
+          p_notification_type: "partnership_interest",
+          p_notification_title: "New partnership interest",
+          p_notification_body: `${senderOrg?.organisation_name ?? "An organisation"} expressed interest in partnering with you.`,
+          p_notification_link: `/dashboard/messages?conversation=${convData.id}`,
+          p_notification_metadata: { sender_org_id: senderOrgId, receiver_org_id: org.id, conversation_id: convData.id },
         });
       }
       setSentInterests(prev => new Set(prev).add(org.id));
