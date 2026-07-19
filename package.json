@@ -2,6 +2,16 @@
   "name": "workspace",
   "version": "0.0.0",
   "license": "MIT",
+  "engines": {
+    "node": "24.x"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "^24.4.0",
+      "onFail": "download"
+    }
+  },
   "scripts": {
     "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
     "dev": "PORT=3000 BASE_PATH=/ pnpm --filter @workspace/natives dev",
@@ -11,26 +21,17 @@
   },
   "private": true,
   "devDependencies": {
+    "@esbuild/darwin-arm64": "0.27.3",
+    "@esbuild/darwin-x64": "0.27.3",
     "@rollup/rollup-darwin-arm64": "^4.61.0",
     "@rollup/rollup-darwin-x64": "^4.61.0",
     "@rollup/rollup-linux-x64-gnu": "^4.62.0",
     "prettier": "^3.8.1",
     "typescript": "~5.9.2"
   },
-  "pnpm": {
-    "supportedArchitectures": {
-      "os": [
-        "darwin",
-        "linux"
-      ],
-      "cpu": [
-        "x64",
-        "arm64"
-      ]
-    }
-  },
   "dependencies": {
     "@tailwindcss/oxide": "^4.3.0",
+    "@tailwindcss/oxide-darwin-x64": "^4.3.0",
     "lightningcss-darwin-x64": "^1.32.0",
     "swiper": "^12.2.0"
   }

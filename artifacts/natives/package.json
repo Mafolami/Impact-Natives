@@ -76,12 +76,13 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",
-    "@tiptap/extension-bullet-list": "^3.27.0",
-    "@tiptap/extension-list-item": "^3.27.0",
-    "@tiptap/extension-ordered-list": "^3.27.0",
-    "@tiptap/extension-placeholder": "^3.26.0",
-    "@tiptap/react": "^3.26.0",
-    "@tiptap/starter-kit": "^3.26.0",
+    "@tiptap/extension-bullet-list": "3.28.0",
+    "@tiptap/extension-list": "3.28.0",
+    "@tiptap/extension-list-item": "3.28.0",
+    "@tiptap/extension-ordered-list": "3.28.0",
+    "@tiptap/extension-placeholder": "3.28.0",
+    "@tiptap/react": "3.28.0",
+    "@tiptap/starter-kit": "3.28.0",
     "react-markdown": "^10.1.0"
   }
 }
