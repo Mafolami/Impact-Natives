@@ -1127,11 +1127,9 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
 
   useEffect(() => {
     if (conversation.conversation_type !== "partnership") return;
-
     // Fetch own org ID for lister-side listener
     supabase.from("organizations").select("id").eq("user_id", currentUserId).maybeSingle()
       .then(({ data }) => { if (data) setMyOrgId(data.id); });
-
     // Check existing pending confirmation for expresser
     supabase.from("partnership_connections")
       .select("id, partnership_type")
@@ -1139,11 +1137,14 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
       .eq("sender_user_id", currentUserId)
       .maybeSingle()
       .then(({ data }) => { if (data) setPendingConfirmation(data); });
-
-    // Check if already resolved
+    // Check if already resolved, sender side (expresser). Receiver side is
+    // checked in a separate effect below, gated on myOrgId actually being
+    // loaded -- doing it here raced the org-id fetch above and sent
+    // PostgREST a filter string containing "receiver_org_id.eq.null",
+    // which fails to cast and 400s on every partnership thread load.
     supabase.from("partnership_connections")
       .select("status")
-      .or(`sender_user_id.eq.${currentUserId},receiver_org_id.eq.${myOrgId}`)
+      .eq("sender_user_id", currentUserId)
       .in("status", ["formed", "declined"])
       .maybeSingle()
       .then(({ data }) => {
@@ -1151,6 +1152,21 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
         if (data?.status === "declined") setPartnershipResolved("declined");
       });
   }, [conversation.id, currentUserId]);
+
+  // Receiver side (lister) resolution check -- only runs once myOrgId is
+  // actually known, so it never sends a null org id to Postgres.
+  useEffect(() => {
+    if (conversation.conversation_type !== "partnership" || !myOrgId) return;
+    supabase.from("partnership_connections")
+      .select("status")
+      .eq("receiver_org_id", myOrgId)
+      .in("status", ["formed", "declined"])
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.status === "formed") setPartnershipResolved("confirmed");
+        if (data?.status === "declined") setPartnershipResolved("declined");
+      });
+  }, [myOrgId, conversation.id]);
 
   // Lister-side real-time listener — fires when expresser confirms or declines
   useEffect(() => {
