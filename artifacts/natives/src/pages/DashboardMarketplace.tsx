@@ -894,7 +894,7 @@ function MarketplaceDetail({
   useEffect(() => {
     if (!isCorporate || !user?.id) return;
     supabase.from("organizations")
-      .select("esg_frameworks,csr_budget_range,geographic_focus,mandate_sectors,mandate_sdgs,partner_type_preference,org_type")
+      .select("esg_frameworks,csr_budget_range,geographic_focus,mandate_sectors,mandate_sdgs,partner_type_preference")
       .eq("user_id", user.id).single()
       .then(({ data }) => { if (data) setCsrMandate({ ...data, org_type: profile?.org_type }); });
   }, [user?.id, isCorporate]);
