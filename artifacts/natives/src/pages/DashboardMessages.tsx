@@ -666,17 +666,21 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
   }, [partnershipResolved]);
 
   useEffect(() => {
-    // Check current connection status on mount
-    supabase.from("partnership_connections")
-      .select("status, partnership_type")
-      .eq("sender_user_id", conversation.other_user_id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.status === "pending_confirmation") setDone("pending_confirmation");
-        if (data?.status === "formed") setDone("accepted");
-        if (data?.status === "declined") setDone("rejected");
-      });
-
+    // Check current connection status on mount. other_user_id defaults to
+    // "" (not null) when the participant lookup in DashboardMessages hasn't
+    // resolved yet -- querying with an empty string sends a malformed UUID
+    // filter to Postgres and 400s (22P02), so skip until it's a real id.
+    if (conversation.other_user_id) {
+      supabase.from("partnership_connections")
+        .select("status, partnership_type")
+        .eq("sender_user_id", conversation.other_user_id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data?.status === "pending_confirmation") setDone("pending_confirmation");
+          if (data?.status === "formed") setDone("accepted");
+          if (data?.status === "declined") setDone("rejected");
+        });
+    }
     // Also check conversation status directly
     supabase.from("conversations")
       .select("status")
@@ -685,7 +689,7 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
       .then(({ data }) => {
         if (data?.status === "rejected") setDone("rejected");
       });
-  }, [conversation.id]);
+  }, [conversation.id, conversation.other_user_id]);
 
   const PARTNERSHIP_TYPES = [
     "Co-funder", "Implementing partner", "Research partner",
