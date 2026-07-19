@@ -676,7 +676,6 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function DashboardPartnerships() {
   const { user } = useAuth();
-  const autoOpenOrgId = new URLSearchParams(window.location.search).get("org");
   const [orgs, setOrgs]                       = useState<OrgRow[]>([]);
   const [loading, setLoading]                 = useState(true);
   const [showModal, setShowModal]             = useState(false);
@@ -719,9 +718,7 @@ export default function DashboardPartnerships() {
 
     if (orgsRes.data) {
       setOrgs(orgsRes.data as OrgRow[]);
-      const deepLinked = autoOpenOrgId ? (orgsRes.data as OrgRow[]).find(o => o.id === autoOpenOrgId) : null;
-      if (deepLinked) setSelectedOrg(deepLinked);
-      else if (orgsRes.data.length > 0) setSelectedOrg(orgsRes.data[0] as OrgRow);
+      if (orgsRes.data.length > 0) setSelectedOrg(orgsRes.data[0] as OrgRow);
     }
     if (savedRes.data) setSavedOrgs(new Set(savedRes.data.map((r: any) => r.organization_id)));
     if (myOrgRes.data) {

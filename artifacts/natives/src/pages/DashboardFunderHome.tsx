@@ -12,6 +12,41 @@ const PASS_REASON_FIELD_MAP: Record<string, { label: string; hint: string }> = {
 };
 const PASS_INSIGHT_THRESHOLD = 3;
 
+function parsePgArray(val: any): string[] {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  if (typeof val === "string") {
+    if (val.startsWith("{") && val.endsWith("}")) {
+      return val.slice(1, -1).split(",").map(s => s.trim().replace(/^"|"$/g, "")).filter(Boolean);
+    }
+    if (val.startsWith("[")) {
+      try { const parsed = JSON.parse(val); return Array.isArray(parsed) ? parsed : [val]; }
+      catch { return [val]; }
+    }
+    return [val];
+  }
+  return [];
+}
+
+// Matches the exact labels used in FindPartnerModalDashboard.tsx's listing
+// form — these are real enum values (e.g. "joining_running", "50k_200k"),
+// not free text, so they need the same lookup the form itself uses rather
+// than generic capitalization.
+const PARTNERSHIP_STAGE_LABELS: Record<string, string> = {
+  concept: "Co-design from scratch",
+  joining_running: "Join something running",
+  pilot: "Pilot phase",
+  scaling: "Scaling existing work",
+};
+const PARTNERSHIP_BUDGET_LABELS: Record<string, string> = {
+  under_10k: "Under $10K",
+  "10k_50k": "$10K–$50K",
+  "50k_200k": "$50K–$200K",
+  over_200k: "Over $200K",
+  in_kind_only: "In-kind only",
+  open: "Open to discussion",
+};
+
 export default function FunderHome({ profile }: { profile: any }) {
   const [, navigate] = useLocation();
   const [matchedInitiatives, setMatchedInitiatives] = useState<any[]>([]);
@@ -373,11 +408,11 @@ export default function FunderHome({ profile }: { profile: any }) {
                   className="w-full text-left rounded-xl border border-border bg-white px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group flex flex-col min-h-[220px]">
                   <button type="button" onClick={() => navigate(`/dashboard/marketplace?initiative=${ini.id}`)} className="w-full text-left">
                     <div className="flex items-start justify-between gap-3 mb-1">
-                      <p className="text-base font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors break-words">
+                      <p className="text-sm font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors break-words">
                         {ini.title}
                       </p>
                       {ini.score && (
-                        <span className="shrink-0 text-[13px] font-bold px-2 py-0.5 rounded-full"
+                        <span className="shrink-0 text-xs font-bold px-2 py-0.5 rounded-full"
                           style={{
                             background: ini.score >= 70 ? "#eaf5ee" : "#f5f5f5",
                             color: ini.score >= 70 ? "#2D6A4F" : "#000000",
@@ -390,7 +425,7 @@ export default function FunderHome({ profile }: { profile: any }) {
 
                   {ini.submitter_org && ini.user_id && (
                     <button type="button" onClick={() => navigate(`/dashboard/natives?tab=organisation&user=${ini.user_id}`)}
-                      className="inline-flex items-center gap-1 text-[14px] text-[#2D6A4F] hover:underline underline-offset-2 mb-2 w-fit">
+                      className="inline-flex items-center gap-1 text-xs text-[#2D6A4F] hover:underline underline-offset-2 mb-2 w-fit">
                       <Building2 className="w-3.5 h-3.5" />
                       {ini.submitter_org}
                     </button>
@@ -403,8 +438,8 @@ export default function FunderHome({ profile }: { profile: any }) {
                         ["stage_fit", "Stage"], ["esg_fit", "ESG fit"], ["support_type_fit", "Support type"],
                       ].filter(([key]) => ini.criteria[key]).map(([key, label]) => (
                         <div key={key} className="flex items-center justify-between">
-                          <span className="text-[14px] text-black">{label}</span>
-                          <span className="text-[14px] font-medium" style={{
+                          <span className="text-xs text-black">{label}</span>
+                          <span className="text-xs font-medium" style={{
                             color: ini.criteria[key] === "match" ? "#2D6A4F" : ini.criteria[key] === "partial" ? "#F59E0B" : "#EF4444",
                           }}>
                             {ini.criteria[key] === "match" ? "✓ match" : ini.criteria[key] === "partial" ? "● partial" : "✕ no match"}
@@ -413,39 +448,39 @@ export default function FunderHome({ profile }: { profile: any }) {
                       ))}
                       {typeof ini.criteria.budget_overlap_pct === "number" && (
                         <div className="flex items-center justify-between">
-                          <span className="text-[14px] text-black">Budget overlap</span>
-                          <span className="text-[14px] font-medium text-foreground">{ini.criteria.budget_overlap_pct}%</span>
+                          <span className="text-xs text-black">Budget overlap</span>
+                          <span className="text-xs font-medium text-foreground">{ini.criteria.budget_overlap_pct}%</span>
                         </div>
                       )}
                     </div>
                   ) : ini.match_reason ? (
-                    <p className="text-sm mb-2 leading-relaxed" style={{ color: "#2D6A4F" }}>
+                    <p className="text-xs mb-2 leading-relaxed" style={{ color: "#2D6A4F" }}>
                       {ini.match_reason}
                     </p>
                   ) : (
-                    <p className="text-sm text-black mb-2 line-clamp-1">{ini.problem}</p>
+                    <p className="text-xs text-black mb-2 line-clamp-1">{ini.problem}</p>
                   )}
 
                   <div className="mt-auto pt-2 flex items-center gap-2 flex-wrap">
                     {ini.stage && (
-                      <span className="text-[13px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                      <span className="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
                         style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
                         {ini.stage}
                       </span>
                     )}
                     {ini.budget_min && ini.budget_max ? (
-                      <span className="text-[13px] font-semibold px-2 py-0.5 rounded-full"
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
                         style={{ background: "#fdf0e9", color: "#C45C26" }}>
                         {ini.budget_currency} {Number(ini.budget_min).toLocaleString()} – {Number(ini.budget_max).toLocaleString()}
                       </span>
                     ) : ini.budget_min ? (
-                      <span className="text-[13px] font-semibold px-2 py-0.5 rounded-full"
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
                         style={{ background: "#fdf0e9", color: "#C45C26" }}>
                         {ini.budget_currency} {Number(ini.budget_min).toLocaleString()}+
                       </span>
                     ) : null}
                     {ini.locations?.slice(0, 1).map((l: string) => (
-                      <span key={l} className="text-[13px] font-semibold px-2 py-0.5 rounded-full"
+                      <span key={l} className="text-xs font-semibold px-2 py-0.5 rounded-full"
                         style={{ background: "#e6f1fb", color: "#185FA5" }}>
                         {l}
                       </span>
@@ -466,13 +501,17 @@ export default function FunderHome({ profile }: { profile: any }) {
                 Potential partners
               </h3>
             </div>
+            <button type="button" onClick={() => navigate("/dashboard/partnerships")}
+              className="text-xs font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors shrink-0">
+              View all
+            </button>
           </div>
 
           {!partnershipEligible ? (
             <div className="rounded-xl border border-dashed border-border bg-white p-6 text-center flex flex-col items-center justify-center min-h-[220px]">
               <Building2 className="w-6 h-6 text-muted-foreground/20 mb-3" />
               <p className="text-xs font-medium text-foreground mb-1">Locked for now</p>
-              <p className="text-[11px] text-black">
+              <p className="text-xs text-black">
                 Unlocks at 80% mandate completion — you're at {mandateScore}%.
               </p>
             </div>
@@ -490,13 +529,13 @@ export default function FunderHome({ profile }: { profile: any }) {
             <div className="space-y-2">
               {partnershipMatches.map((m: any) => (
                 <button key={m.matched_org_id} type="button"
-                  onClick={() => navigate(`/dashboard/natives?tab=organisation&user=${m.org?.user_id ?? ""}`)}
+                  onClick={() => navigate(`/dashboard/partnerships?org=${m.org?.id ?? ""}`)}
                   className="w-full text-left rounded-xl border border-border bg-white px-4 py-3 hover:border-[#2D6A4F]/30 transition-colors group flex flex-col min-h-[220px]">
                   <div className="flex items-start justify-between gap-3 mb-1.5">
-                    <p className="text-base font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors break-words">
+                    <p className="text-sm font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors break-words">
                       {m.org?.organisation_name ?? "Organisation"}
                     </p>
-                    <span className="shrink-0 text-[13px] font-bold px-2 py-0.5 rounded-full"
+                    <span className="shrink-0 text-xs font-bold px-2 py-0.5 rounded-full"
                       style={{
                         background: m.fit_score >= 70 ? "#eaf5ee" : "#f5f5f5",
                         color: m.fit_score >= 70 ? "#2D6A4F" : "#000000",
@@ -511,8 +550,8 @@ export default function FunderHome({ profile }: { profile: any }) {
                         ["working_style_fit", "Style"], ["stage_readiness_fit", "Stage"],
                       ].map(([key, label]) => (
                         <div key={key} className="flex items-center justify-between">
-                          <span className="text-[14px] text-black">{label}</span>
-                          <span className="text-[14px] font-medium" style={{
+                          <span className="text-xs text-black">{label}</span>
+                          <span className="text-xs font-medium" style={{
                             color: m.criteria[key] === "match" ? "#2D6A4F" : m.criteria[key] === "partial" ? "#F59E0B" : "#EF4444",
                           }}>
                             {m.criteria[key] === "match" ? "✓ match" : m.criteria[key] === "partial" ? "● partial" : "✕ no match"}
@@ -526,21 +565,21 @@ export default function FunderHome({ profile }: { profile: any }) {
 
                   <div className="mt-auto pt-2 flex items-center gap-2 flex-wrap">
                     {m.org?.partnership_stage && (
-                      <span className="text-[13px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
                         style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
-                        {m.org.partnership_stage}
+                        {PARTNERSHIP_STAGE_LABELS[m.org.partnership_stage] ?? m.org.partnership_stage}
                       </span>
                     )}
                     {m.org?.partnership_budget && (
-                      <span className="text-[13px] font-semibold px-2 py-0.5 rounded-full"
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
                         style={{ background: "#fdf0e9", color: "#C45C26" }}>
-                        {m.org.partnership_budget}
+                        {PARTNERSHIP_BUDGET_LABELS[m.org.partnership_budget] ?? m.org.partnership_budget}
                       </span>
                     )}
-                    {m.org?.country && (
-                      <span className="text-[13px] font-semibold px-2 py-0.5 rounded-full"
+                    {parsePgArray(m.org?.country).length > 0 && (
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
                         style={{ background: "#e6f1fb", color: "#185FA5" }}>
-                        {Array.isArray(m.org.country) ? m.org.country[0] : m.org.country}
+                        {parsePgArray(m.org?.country)[0]}
                       </span>
                     )}
                   </div>
@@ -561,8 +600,8 @@ export default function FunderHome({ profile }: { profile: any }) {
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-black truncate">{m.label}</p>
-                    <p className="text-[11px] text-black truncate">{m.sub}</p>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-black truncate">{m.label}</p>
+                    <p className="text-xs text-black truncate">{m.sub}</p>
                   </div>
                 </div>
                 <p className="text-xl font-bold text-foreground tracking-tight group-hover:text-[#2D6A4F] transition-colors shrink-0">{m.value}</p>
