@@ -945,17 +945,17 @@ function MarketplaceDetail({
       }
 
       if (conversationId) {
-        await supabase.from("messages").insert({
-          conversation_id: conversationId,
-          sender_id: user.id,
-          body: question.trim(),
-        });
         await supabase.rpc("join_conversation_and_notify", {
           p_conversation_id: conversationId,
           p_notification_type: "question_received",
           p_notification_title: "A funder has a question about your initiative",
           p_notification_body: `"${question.trim().slice(0, 100)}${question.trim().length > 100 ? "..." : ""}"`,
           p_notification_link: "/dashboard/messages",
+        });
+        await supabase.from("messages").insert({
+          conversation_id: conversationId,
+          sender_id: user.id,
+          body: question.trim(),
         });
       }
       setQuestionSubmitted(true);
@@ -1105,16 +1105,16 @@ function MarketplaceDetail({
       const convoId = convoResult as string;
       const { data: ep } = await supabase.from("profiles").select("full_name,org_name,user_type").eq("id", user.id).single();
       const name = ep?.user_type === "organisation" && ep?.org_name ? ep.org_name : ep?.full_name ?? "Someone";
+      await supabase.rpc("join_conversation_and_notify", {
+        p_conversation_id: convoId,
+        p_notification_type: "eoi_received",
+        p_notification_title: "New expression of interest",
+        p_notification_body: `${name} expressed ${combined} interest in "${initiative.title}"`,
+        p_notification_link: "/dashboard/messages",
+      });
       await Promise.all([
         supabase.from("expressions_of_interest").update({ conversation_id: convoId }).eq("id", eoiData.id),
         supabase.from("messages").insert({ conversation_id: convoId, sender_id: user.id, body: `${combined} interest expressed${message ? `: "${message}"` : "."}` }),
-        supabase.rpc("join_conversation_and_notify", {
-          p_conversation_id: convoId,
-          p_notification_type: "eoi_received",
-          p_notification_title: "New expression of interest",
-          p_notification_body: `${name} expressed ${combined} interest in "${initiative.title}"`,
-          p_notification_link: "/dashboard/messages",
-        }),
       ]);
       setSubmitted(true); setAlreadyExpressed(true); onExpressed(initiative.id);
     } finally { setSubmitting(false); }
@@ -1147,16 +1147,16 @@ function MarketplaceDetail({
         const { data: convoResult } = await supabase.rpc("create_conversation", { p_initiative_id: initiative.id, p_owner_id: initiative.user_id ?? null });
         if (convoResult) {
           const convoId = convoResult as string;
+          await supabase.rpc("join_conversation_and_notify", {
+            p_conversation_id: convoId,
+            p_notification_type: "eoi_received",
+            p_notification_title: "New expression of interest",
+            p_notification_body: `${expresserName} expressed interest in "${initiative.title}"`,
+            p_notification_link: "/dashboard/messages",
+          });
           await Promise.all([
             supabase.from("expressions_of_interest").update({ conversation_id: convoId }).eq("id", eoiData.id),
             supabase.from("messages").insert({ conversation_id: convoId, sender_id: user.id, body: aiMessage || `Hi${ownerName ? ` ${ownerName}` : ""}, I'm ${expresserName}${ep?.org_name && ep.user_type === "organisation" ? ` from ${ep.org_name}` : ""}. I came across "${initiative.title}" on Impact Natives and I'm interested in exploring a partnership. Happy to connect and share more about what we do.` }),
-            supabase.rpc("join_conversation_and_notify", {
-              p_conversation_id: convoId,
-              p_notification_type: "eoi_received",
-              p_notification_title: "New expression of interest",
-              p_notification_body: `${expresserName} expressed interest in "${initiative.title}"`,
-              p_notification_link: "/dashboard/messages",
-            }),
           ]);
         }
       }
