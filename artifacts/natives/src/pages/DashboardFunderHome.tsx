@@ -214,7 +214,7 @@ export default function FunderHome({ profile }: { profile: any }) {
         const orgIds = cached.map((m: any) => m.matched_org_id);
         const { data: orgs } = await supabase
           .from("organizations")
-          .select("id, user_id, organisation_name, organisation_type, country")
+          .select("id, user_id, organisation_name, organisation_type, country, partnership_stage, partnership_budget")
           .in("id", orgIds);
         const orgMap = new Map((orgs ?? []).map((o: any) => [o.id, o]));
         if (!cancelled) {
@@ -370,32 +370,28 @@ export default function FunderHome({ profile }: { profile: any }) {
             <div className="space-y-3">
               {matchedInitiatives.slice(0, 3).map((ini: any) => (
                 <div key={ini.id}
-                  className="w-full text-left rounded-xl border border-border bg-white px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group">
+                  className="w-full text-left rounded-xl border border-border bg-white px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group flex flex-col min-h-[220px]">
                   <button type="button" onClick={() => navigate(`/dashboard/marketplace?initiative=${ini.id}`)} className="w-full text-left">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="text-sm font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors truncate">
-                            {ini.title}
-                          </p>
-                          {ini.score && (
-                            <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full"
-                              style={{
-                                background: ini.score >= 70 ? "#eaf5ee" : "#f5f5f5",
-                                color: ini.score >= 70 ? "#2D6A4F" : "#000000",
-                              }}>
-                              {ini.score}% relevant
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                    <div className="flex items-start justify-between gap-3 mb-1">
+                      <p className="text-base font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors break-words">
+                        {ini.title}
+                      </p>
+                      {ini.score && (
+                        <span className="shrink-0 text-[13px] font-bold px-2 py-0.5 rounded-full"
+                          style={{
+                            background: ini.score >= 70 ? "#eaf5ee" : "#f5f5f5",
+                            color: ini.score >= 70 ? "#2D6A4F" : "#000000",
+                          }}>
+                          {ini.score}% relevant
+                        </span>
+                      )}
                     </div>
                   </button>
 
                   {ini.submitter_org && ini.user_id && (
                     <button type="button" onClick={() => navigate(`/dashboard/natives?tab=organisation&user=${ini.user_id}`)}
-                      className="inline-flex items-center gap-1 text-[11px] text-[#2D6A4F] hover:underline underline-offset-2 mb-2">
-                      <Building2 className="w-3 h-3" />
+                      className="inline-flex items-center gap-1 text-[14px] text-[#2D6A4F] hover:underline underline-offset-2 mb-2 w-fit">
+                      <Building2 className="w-3.5 h-3.5" />
                       {ini.submitter_org}
                     </button>
                   )}
@@ -407,8 +403,8 @@ export default function FunderHome({ profile }: { profile: any }) {
                         ["stage_fit", "Stage"], ["esg_fit", "ESG fit"], ["support_type_fit", "Support type"],
                       ].filter(([key]) => ini.criteria[key]).map(([key, label]) => (
                         <div key={key} className="flex items-center justify-between">
-                          <span className="text-[11px] text-black">{label}</span>
-                          <span className="text-[11px] font-medium" style={{
+                          <span className="text-[14px] text-black">{label}</span>
+                          <span className="text-[14px] font-medium" style={{
                             color: ini.criteria[key] === "match" ? "#2D6A4F" : ini.criteria[key] === "partial" ? "#F59E0B" : "#EF4444",
                           }}>
                             {ini.criteria[key] === "match" ? "✓ match" : ini.criteria[key] === "partial" ? "● partial" : "✕ no match"}
@@ -417,39 +413,42 @@ export default function FunderHome({ profile }: { profile: any }) {
                       ))}
                       {typeof ini.criteria.budget_overlap_pct === "number" && (
                         <div className="flex items-center justify-between">
-                          <span className="text-[11px] text-black">Budget overlap</span>
-                          <span className="text-[11px] font-medium text-foreground">{ini.criteria.budget_overlap_pct}%</span>
+                          <span className="text-[14px] text-black">Budget overlap</span>
+                          <span className="text-[14px] font-medium text-foreground">{ini.criteria.budget_overlap_pct}%</span>
                         </div>
                       )}
                     </div>
                   ) : ini.match_reason ? (
-                    <p className="text-xs mb-2 leading-relaxed" style={{ color: "#2D6A4F" }}>
+                    <p className="text-sm mb-2 leading-relaxed" style={{ color: "#2D6A4F" }}>
                       {ini.match_reason}
                     </p>
                   ) : (
-                    <p className="text-xs text-black mb-2 line-clamp-1">{ini.problem}</p>
+                    <p className="text-sm text-black mb-2 line-clamp-1">{ini.problem}</p>
                   )}
 
-                  <div className="flex items-center gap-3 flex-wrap">
+                  <div className="mt-auto pt-2 flex items-center gap-2 flex-wrap">
                     {ini.stage && (
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-black">
+                      <span className="text-[13px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                        style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
                         {ini.stage}
                       </span>
                     )}
                     {ini.budget_min && ini.budget_max ? (
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-black">
+                      <span className="text-[13px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{ background: "#fdf0e9", color: "#C45C26" }}>
                         {ini.budget_currency} {Number(ini.budget_min).toLocaleString()} – {Number(ini.budget_max).toLocaleString()}
                       </span>
                     ) : ini.budget_min ? (
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-black">
+                      <span className="text-[13px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{ background: "#fdf0e9", color: "#C45C26" }}>
                         {ini.budget_currency} {Number(ini.budget_min).toLocaleString()}+
                       </span>
                     ) : null}
-                    {ini.sectors?.slice(0, 2).map((s: string) => (
-                      <span key={s} className="text-[10px] px-2 py-0.5 rounded-full border border-border text-black">{s}</span>
-                    ))}
                     {ini.locations?.slice(0, 1).map((l: string) => (
-                      <span key={l} className="text-[10px] text-black">{l}</span>
+                      <span key={l} className="text-[13px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{ background: "#e6f1fb", color: "#185FA5" }}>
+                        {l}
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -492,12 +491,12 @@ export default function FunderHome({ profile }: { profile: any }) {
               {partnershipMatches.map((m: any) => (
                 <button key={m.matched_org_id} type="button"
                   onClick={() => navigate(`/dashboard/natives?tab=organisation&user=${m.org?.user_id ?? ""}`)}
-                  className="w-full text-left rounded-xl border border-border bg-white px-4 py-3 hover:border-[#2D6A4F]/30 transition-colors group">
-                  <div className="flex items-center justify-between gap-3 mb-1.5">
-                    <p className="text-xs font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors truncate">
+                  className="w-full text-left rounded-xl border border-border bg-white px-4 py-3 hover:border-[#2D6A4F]/30 transition-colors group flex flex-col min-h-[220px]">
+                  <div className="flex items-start justify-between gap-3 mb-1.5">
+                    <p className="text-base font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors break-words">
                       {m.org?.organisation_name ?? "Organisation"}
                     </p>
-                    <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                    <span className="shrink-0 text-[13px] font-bold px-2 py-0.5 rounded-full"
                       style={{
                         background: m.fit_score >= 70 ? "#eaf5ee" : "#f5f5f5",
                         color: m.fit_score >= 70 ? "#2D6A4F" : "#000000",
@@ -506,21 +505,45 @@ export default function FunderHome({ profile }: { profile: any }) {
                     </span>
                   </div>
                   {m.criteria ? (
-                    <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                    <div className="flex flex-col gap-1 mb-2">
                       {[
                         ["sector_fit", "Sector"], ["geography_fit", "Geography"], ["need_offer_fit", "Need/offer"],
                         ["working_style_fit", "Style"], ["stage_readiness_fit", "Stage"],
                       ].map(([key, label]) => (
-                        <span key={key} className="text-[10px]" style={{
-                          color: m.criteria[key] === "match" ? "#2D6A4F" : m.criteria[key] === "partial" ? "#F59E0B" : "#EF4444",
-                        }}>
-                          {label} {m.criteria[key] === "match" ? "✓" : m.criteria[key] === "partial" ? "●" : "–"}
-                        </span>
+                        <div key={key} className="flex items-center justify-between">
+                          <span className="text-[14px] text-black">{label}</span>
+                          <span className="text-[14px] font-medium" style={{
+                            color: m.criteria[key] === "match" ? "#2D6A4F" : m.criteria[key] === "partial" ? "#F59E0B" : "#EF4444",
+                          }}>
+                            {m.criteria[key] === "match" ? "✓ match" : m.criteria[key] === "partial" ? "● partial" : "✕ no match"}
+                          </span>
+                        </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-[11px] text-black truncate">{m.key_synergy ?? m.rationale}</p>
+                    <p className="text-sm text-black mb-2">{m.key_synergy ?? m.rationale}</p>
                   )}
+
+                  <div className="mt-auto pt-2 flex items-center gap-2 flex-wrap">
+                    {m.org?.partnership_stage && (
+                      <span className="text-[13px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                        style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+                        {m.org.partnership_stage}
+                      </span>
+                    )}
+                    {m.org?.partnership_budget && (
+                      <span className="text-[13px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{ background: "#fdf0e9", color: "#C45C26" }}>
+                        {m.org.partnership_budget}
+                      </span>
+                    )}
+                    {m.org?.country && (
+                      <span className="text-[13px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{ background: "#e6f1fb", color: "#185FA5" }}>
+                        {Array.isArray(m.org.country) ? m.org.country[0] : m.org.country}
+                      </span>
+                    )}
+                  </div>
                 </button>
               ))}
             </div>
@@ -533,7 +556,7 @@ export default function FunderHome({ profile }: { profile: any }) {
             const Icon = m.icon;
             return (
               <button key={m.label} type="button" onClick={m.onClick}
-                className="w-full text-left rounded-xl border bg-card px-4 py-3 hover:border-[#2D6A4F]/40 transition-colors group flex items-center justify-between gap-3"
+                className="w-full text-left rounded-xl border bg-white px-4 py-3 hover:border-[#2D6A4F]/40 transition-colors group flex items-center justify-between gap-3"
                 style={{ borderColor: m.accent ? "#C45C26" : undefined }}>
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
