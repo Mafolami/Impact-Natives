@@ -276,9 +276,9 @@ export default function FunderHome({ profile }: { profile: any }) {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">{greeting}</p>
+          <p className="text-xs text-black mb-1 uppercase tracking-widest">{greeting}</p>
           <h2 className="text-2xl font-bold text-foreground tracking-tight">{firstName}.</h2>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-black mt-1">
             {mandateScore < 60
               ? "Complete your mandate to get better matched initiatives."
               : "Your mandate is active."}
@@ -301,7 +301,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                   style={{ width: `${mandateScore}%` }} />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-black">
               {mandateScore < 80
                 ? "Add sector focus, geography, and SDG priorities — 80% unlocks partnership matches too."
                 : "Add sector focus, geography, and SDG priorities to improve initiative matching."}
@@ -321,7 +321,7 @@ export default function FunderHome({ profile }: { profile: any }) {
             <p className="text-sm font-semibold text-foreground mb-1">
               You've passed on {passInsight.count} initiatives citing "{passInsight.reason}"
             </p>
-            <p className="text-xs text-muted-foreground">{passInsight.hint}</p>
+            <p className="text-xs text-black">{passInsight.hint}</p>
           </div>
           <button type="button" onClick={() => navigate("/dashboard/profile")}
             className="shrink-0 text-xs font-semibold text-[#C45C26] border border-[#C45C26]/30 rounded-full px-3 py-1.5 hover:bg-[#C45C26]/10 transition-colors whitespace-nowrap">
@@ -332,7 +332,7 @@ export default function FunderHome({ profile }: { profile: any }) {
 
       {/* Kanban: primary matches column, a lighter secondary partnership column,
           metrics as a rail on the right. Stacks on mobile, rail moving to the bottom. */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_240px] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_240px] gap-6">
 
         {/* Column 1: Initiative matches — primary */}
         <section className="lg:order-1 rounded-2xl bg-[#2D6A4F]/[0.03] border border-[#2D6A4F]/10 p-4">
@@ -382,7 +382,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                             <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full"
                               style={{
                                 background: ini.score >= 70 ? "#eaf5ee" : "#f5f5f5",
-                                color: ini.score >= 70 ? "#2D6A4F" : "#6b7280",
+                                color: ini.score >= 70 ? "#2D6A4F" : "#000000",
                               }}>
                               {ini.score}% relevant
                             </span>
@@ -500,7 +500,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                     <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full"
                       style={{
                         background: m.fit_score >= 70 ? "#eaf5ee" : "#f5f5f5",
-                        color: m.fit_score >= 70 ? "#2D6A4F" : "#6b7280",
+                        color: m.fit_score >= 70 ? "#2D6A4F" : "#000000",
                       }}>
                       {m.fit_score}%
                     </span>
@@ -538,8 +538,8 @@ export default function FunderHome({ profile }: { profile: any }) {
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground truncate">{m.label}</p>
-                    <p className="text-[11px] text-muted-foreground truncate">{m.sub}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-black truncate">{m.label}</p>
+                    <p className="text-[11px] text-black truncate">{m.sub}</p>
                   </div>
                 </div>
                 <p className="text-xl font-bold text-foreground tracking-tight group-hover:text-[#2D6A4F] transition-colors shrink-0">{m.value}</p>

@@ -361,9 +361,9 @@ export default function CorporateHome({ profile }: { profile: any }) {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">{greeting}</p>
+          <p className="text-xs text-black mb-1 uppercase tracking-widest">{greeting}</p>
           <h2 className="text-2xl font-bold text-foreground tracking-tight">{firstName}.</h2>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-black mt-1">
             {displayedCompleteness >= 60
               ? `Your CSR profile is active. Discover ESG-aligned initiatives for ${orgName}.`
               : "Complete your CSR profile to get better matched initiatives."}
@@ -386,7 +386,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
                   style={{ width: `${displayedCompleteness}%` }} />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-black">
               {displayedCompleteness < 80
                 ? "Add CSR focus, ESG frameworks, and what you can bring to a partnership — 80% unlocks partnership matches too."
                 : "Add CSR focus, ESG frameworks, and what you can bring to a partnership to surface the most relevant initiatives."}
@@ -406,7 +406,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
             <p className="text-sm font-semibold text-foreground mb-1">
               You've passed on {passInsight.count} initiatives citing "{passInsight.reason}"
             </p>
-            <p className="text-xs text-muted-foreground">{passInsight.hint}</p>
+            <p className="text-xs text-black">{passInsight.hint}</p>
           </div>
           <button type="button" onClick={() => navigate("/dashboard/profile")}
             className="shrink-0 text-xs font-semibold text-[#C45C26] border border-[#C45C26]/30 rounded-full px-3 py-1.5 hover:bg-[#C45C26]/10 transition-colors whitespace-nowrap">
@@ -417,7 +417,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
 
       {/* Kanban: matches in two columns on desktop, metrics as a rail on the right.
           Stacks to a single column on mobile, metrics rail moving to the bottom. */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_260px] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_260px] gap-6">
 
         {/* Column 1: Initiative matches */}
         <section className="lg:order-1 rounded-2xl bg-[#2D6A4F]/[0.03] border border-[#2D6A4F]/10 p-4">
@@ -479,7 +479,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
                         <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full"
                           style={{
                             background: ini.score >= 70 ? "#eaf5ee" : "#f5f5f5",
-                            color: ini.score >= 70 ? "#2D6A4F" : "#6b7280",
+                            color: ini.score >= 70 ? "#2D6A4F" : "#000000",
                           }}>
                           {ini.score}% match
                         </span>
@@ -590,7 +590,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
                     <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full"
                       style={{
                         background: m.fit_score >= 70 ? "#eaf5ee" : "#f5f5f5",
-                        color: m.fit_score >= 70 ? "#2D6A4F" : "#6b7280",
+                        color: m.fit_score >= 70 ? "#2D6A4F" : "#000000",
                       }}>
                       {m.fit_score}% fit
                     </span>
@@ -644,8 +644,8 @@ export default function CorporateHome({ profile }: { profile: any }) {
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground truncate">{m.label}</p>
-                    <p className="text-[11px] text-muted-foreground truncate">{m.sub}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-black truncate">{m.label}</p>
+                    <p className="text-[11px] text-black truncate">{m.sub}</p>
                   </div>
                 </div>
                 <p className="text-xl font-bold text-foreground tracking-tight group-hover:text-[#2D6A4F] transition-colors shrink-0">{m.value}</p>
@@ -660,11 +660,11 @@ export default function CorporateHome({ profile }: { profile: any }) {
         <section>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-black flex items-center gap-1.5">
                 <Building2 className="w-3.5 h-3.5" />
                 Your CSR pipeline
               </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-black mt-0.5">
                 Initiatives you've expressed interest in
               </p>
             </div>
@@ -701,10 +701,10 @@ export default function CorporateHome({ profile }: { profile: any }) {
                         </span>
                       )}
                       {eoi.initiative?.sectors?.slice(0, 1).map((s: string) => (
-                        <span key={s} className="text-[10px] text-muted-foreground">{s}</span>
+                        <span key={s} className="text-[10px] text-black">{s}</span>
                       ))}
                       {eoi.initiative?.locations?.slice(0, 1).map((l: string) => (
-                        <span key={l} className="text-[10px] text-muted-foreground">{l}</span>
+                        <span key={l} className="text-[10px] text-black">{l}</span>
                       ))}
                     </div>
                   </div>
