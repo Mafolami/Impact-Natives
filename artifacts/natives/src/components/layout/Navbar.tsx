@@ -19,7 +19,14 @@ function useIsDark() {
 }
 import { LogOut, User } from "lucide-react";
 
-const IS_APP_DOMAIN = window.location.hostname === "app.impactnatives.com" || window.location.hostname === "localhost";
+// Vercel preview deployments get a unique *.vercel.app hostname each time —
+// treat those as "the app" too, same as production and localhost, so
+// Log In / Sign Up stay on the preview build instead of bouncing to
+// production the moment they're clicked.
+const IS_APP_DOMAIN =
+  window.location.hostname === "app.impactnatives.com" ||
+  window.location.hostname === "localhost" ||
+  window.location.hostname.endsWith(".vercel.app");
 
 export function Navbar() {
   const [location] = useLocation();
