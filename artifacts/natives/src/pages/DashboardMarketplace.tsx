@@ -825,9 +825,6 @@ function MarketplaceDetail({
   const [submitted, setSubmitted]               = useState(false);
   const [eoiError, setEoiError]                 = useState<string | null>(null);
   const [alreadyExpressed, setAlreadyExpressed] = useState(expressed);
-  const [quickSubmitting, setQuickSubmitting]   = useState(false);
-  const [quickSubmitted, setQuickSubmitted]     = useState(false);
- const [quickEsgIntent, setQuickEsgIntent]     = useState(false);
   const [questionOpen, setQuestionOpen]         = useState(false);
   const [question, setQuestion]                 = useState("");
   const [questionSubmitting, setQuestionSubmitting] = useState(false);
@@ -1739,7 +1736,7 @@ function MarketplaceDetail({
         <div className="space-y-3 pt-2">
 
           {/* Ask a question — funders only */}
-          {isFunder && !alreadyExpressed && !quickSubmitted && !questionSubmitted && (
+          {isFunder && !alreadyExpressed && !questionSubmitted && (
             <div className="space-y-2">
               {!questionOpen ? (
                 <button type="button"
@@ -1782,22 +1779,15 @@ function MarketplaceDetail({
           )}
 
           <button type="button"
-            onClick={() => { if (!alreadyExpressed && !quickSubmitted) { setEoiOpen(true); generateAiMessage(); } }}
-            disabled={alreadyExpressed || quickSubmitted}
+            onClick={() => { if (!alreadyExpressed) { setEoiOpen(true); generateAiMessage(); } }}
+            disabled={alreadyExpressed}
             className={`w-full rounded-full h-11 text-sm font-semibold transition-colors ${
-              alreadyExpressed || quickSubmitted
+              alreadyExpressed
                 ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
                 : "bg-[#2D6A4F] hover:bg-[#245c43] text-white"
             }`}>
-            {alreadyExpressed || quickSubmitted ? "Interest expressed" : "Express interest"}
+            {alreadyExpressed ? "Interest expressed" : "Express interest"}
           </button>
-
-          {quickSubmitted && (
-            <div className="flex items-center gap-2 justify-center text-xs text-[#2D6A4F]">
-              <CheckCircle2 className="w-4 h-4" />
-              Introduction sent. The initiative lead will be in touch.
-            </div>
-          )}
         </div>
       )}
 
