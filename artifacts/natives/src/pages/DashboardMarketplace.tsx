@@ -893,7 +893,7 @@ function MarketplaceDetail({
     supabase.from("organizations")
       .select("esg_frameworks,csr_budget_range,geographic_focus,mandate_sectors,mandate_sdgs,partner_type_preference")
       .eq("user_id", user.id).single()
-      .then(({ data }) => { if (data) setCsrMandate({ ...data, org_type: profile?.org_type }); });
+      .then(({ data }) => { if (data) setCsrMandate({ ...data, org_type: profile?.org_type, org_name: profile?.org_name ?? null }); });
   }, [user?.id, isCorporate]);
 
   const [initiativeOrgDd, setInitiativeOrgDd] = useState<any | null>(null);
