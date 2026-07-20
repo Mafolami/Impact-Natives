@@ -325,7 +325,17 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
       const { data: orgData } = await supabase.from("organizations")
         .select("organisation_name,description,sector,years_of_operation,total_beneficiaries_reached,jobs_created,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations")
         .eq("user_id", user!.id).maybeSingle()
-      if (orgData) setOrgProfile(orgData)
+      if (orgData) {
+        setOrgProfile(orgData)
+        const evidenceParts: string[] = []
+        if (orgData.total_beneficiaries_reached) evidenceParts.push(`${orgData.total_beneficiaries_reached.toLocaleString()} beneficiaries reached to date`)
+        if (orgData.jobs_created) evidenceParts.push(`${orgData.jobs_created.toLocaleString()} jobs created`)
+        if (orgData.grants_received_count) evidenceParts.push(`${orgData.grants_received_count} grants received${orgData.grants_delivered_on_time_pct ? ` (${orgData.grants_delivered_on_time_pct}% delivered on time)` : ""}`)
+        if (orgData.third_party_evaluations) evidenceParts.push("independently evaluated by a third party")
+        if (evidenceParts.length > 0) {
+          setForm(f => f.impactEvidence ? f : { ...f, impactEvidence: evidenceParts.join(". ") + "." })
+        }
+      }
 
       setProfileLoaded(true)
     }
@@ -387,6 +397,10 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
         budgetMax:    d.budget_max   ? String(d.budget_max)   : f.budgetMax,
         stage:        d.stage        ?? f.stage,
         duration:     d.duration     ?? f.duration,
+        targetBeneficiaries: d.target_beneficiaries != null ? String(d.target_beneficiaries) : f.targetBeneficiaries,
+        targetJobs:          d.target_jobs != null          ? String(d.target_jobs)          : f.targetJobs,
+        targetFemalePct:     d.target_female_pct != null    ? String(d.target_female_pct)    : f.targetFemalePct,
+        targetTimelineMonths: d.target_timeline_months != null ? String(d.target_timeline_months) : f.targetTimelineMonths,
       }))
       setMode("ai")
       setAiStep(0)
