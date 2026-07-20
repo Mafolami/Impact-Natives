@@ -233,10 +233,11 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 
 // ─── AI Description Generator ─────────────────────────────────────────────────
 function AIDescriptionGenerator({
-  form, supabaseUrl, onGenerated,
+  form, supabaseUrl, orgProfile, onGenerated,
 }: {
   form: FormState
   supabaseUrl: string
+  orgProfile?: Record<string, any> | null
   onGenerated: (content: string) => void
 }) {
   const [generating, setGenerating] = useState(false)
@@ -248,7 +249,7 @@ function AIDescriptionGenerator({
       const res = await fetch(`${supabaseUrl}/functions/v1/generate-initiative-description`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ form }),
+        body: JSON.stringify({ form, profile: orgProfile ?? undefined }),
       })
       const data = await res.json()
       if (data.description) {
@@ -296,6 +297,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
 
   const [form, setForm]                       = useState<FormState>(INITIAL_STATE)
   const [profileLoaded, setProfileLoaded]     = useState(false)
+  const [orgProfile, setOrgProfile]           = useState<Record<string, any> | null>(null)
   const [submitted, setSubmitted]             = useState(false)
   const [submitting, setSubmitting]           = useState(false)
   const [error, setError]                     = useState<string | null>(null)
@@ -319,6 +321,12 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
     async function loadProfile() {
       const { data } = await supabase.from("profiles").select("full_name, email, org_name").eq("id", user!.id).single()
       if (data) setForm(f => ({ ...f, submitterName: data.full_name || "", submitterEmail: data.email || user!.email || "", submitterOrg: data.org_name || "" }))
+
+      const { data: orgData } = await supabase.from("organizations")
+        .select("organisation_name,description,sector,years_of_operation,total_beneficiaries_reached,jobs_created,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations")
+        .eq("user_id", user!.id).maybeSingle()
+      if (orgData) setOrgProfile(orgData)
+
       setProfileLoaded(true)
     }
     loadProfile()
@@ -818,6 +826,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                 <AIDescriptionGenerator
                   form={form}
                   supabaseUrl={supabaseUrl}
+                  orgProfile={orgProfile}
                   onGenerated={content => {
                     editor?.commands.setContent(`<p>${content.split("\n\n").join("</p><p>")}</p>`)
                     setForm(f => ({ ...f, detailContent: `<p>${content.split("\n\n").join("</p><p>")}</p>` }))
@@ -959,6 +968,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                 assessingBrief={assessingBrief}
                 assessBrief={assessBrief}
                 supabaseUrl={supabaseUrl}
+                orgProfile={orgProfile}
               />
             )}
           </div>
@@ -1043,7 +1053,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
 }
 
 // ─── Manual Steps Component ───────────────────────────────────────────────────
-function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, assessment, assessingBrief, assessBrief, supabaseUrl }: {
+function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, assessment, assessingBrief, assessBrief, supabaseUrl, orgProfile }: {
   step: number
   form: FormState
   set: <K extends keyof FormState>(key: K, value: FormState[K]) => void
@@ -1055,6 +1065,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
   assessingBrief: boolean
   assessBrief: () => void
   supabaseUrl: string
+  orgProfile?: Record<string, any> | null
 }) {
   const STAGE_OPTIONS: { value: InitiativeStage; label: string; sub: string }[] = [
     { value: "concept",  label: "💡 Concept",  sub: "Idea defined, no funding yet" },
@@ -1341,7 +1352,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
       {/* Step 4 */}
       {step === 4 && (
         <div className="space-y-5">
-          <AIDescriptionGenerator form={form} supabaseUrl={supabaseUrl} onGenerated={content => {
+          <AIDescriptionGenerator form={form} supabaseUrl={supabaseUrl} orgProfile={orgProfile} onGenerated={content => {
             editor?.commands.setContent(`<p>${content.split("\n\n").join("</p><p>")}</p>`)
             set("detailContent", `<p>${content.split("\n\n").join("</p><p>")}</p>`)
           }} />
