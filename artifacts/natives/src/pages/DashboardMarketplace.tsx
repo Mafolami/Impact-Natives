@@ -912,7 +912,7 @@ function MarketplaceDetail({
   useEffect(() => {
     if (!isFunder || !user?.id) return;
     supabase.from("organizations")
-      .select("grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,mandate_sectors,mandate_sdgs")
+      .select("grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,mandate_sectors,mandate_sdgs,investment_thesis")
       .eq("user_id", user.id).single()
       .then(({ data }) => { if (data) setFunderMandate(data); });
   }, [user?.id, isFunder]);
