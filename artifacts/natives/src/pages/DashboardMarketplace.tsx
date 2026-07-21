@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { supabase } from "@/lib/supabase";
-import { Loader2, CheckCircle2, X, SlidersHorizontal, Search, Leaf, Zap, MessageSquare, ShieldCheck, Bookmark, ThumbsDown, RotateCcw } from "lucide-react";
+import { Loader2, CheckCircle2, X, SlidersHorizontal, Search, Leaf, Zap, MessageSquare, ShieldCheck, Bookmark, ThumbsDown, RotateCcw, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { FileText, Sparkles } from "lucide-react";
 import { useLocation } from "wouter";
@@ -54,6 +54,32 @@ const PARTNERSHIP_OPTIONS = [
 ];
 
 const PASS_REASONS = ["Too early stage", "Outside mandate", "Budget mismatch", "Geography mismatch", "Team concerns", "Other"];
+
+// RAG status colors for AI-recommended actions across deal memo and CSR brief.
+// Red = Pass, Amber = needs more info/exploration, Green = positive recommendation.
+const RAG_COLORS: Record<string, { border: string; bg: string; text: string }> = {
+  "Pass":                       { border: "#C4262640", bg: "#fdf2f2", text: "#C42626" },
+  "Request More Info":          { border: "#f59e0b40", bg: "#fffbeb", text: "#b45309" },
+  "Explore further":            { border: "#f59e0b40", bg: "#fffbeb", text: "#b45309" },
+  "Express Interest":           { border: "#2D6A4F40", bg: "#eaf5ee", text: "#2D6A4F" },
+  "Adopt as CSR programme":     { border: "#2D6A4F40", bg: "#eaf5ee", text: "#2D6A4F" },
+};
+const DEFAULT_RAG = { border: "#e5e7eb", bg: "#f9fafb", text: "#6b7280" };
+function ragFor(action?: string) {
+  return (action && RAG_COLORS[action]) || DEFAULT_RAG;
+}
+// Score badges use the same three colors as the action itself, banded per
+// function (deal memo: <40/40-70/>70, CSR brief: <50/50-75/>75).
+function ragForScore(score: number, passBelow: number, positiveAbove: number) {
+  if (score < passBelow) return RAG_COLORS["Pass"];
+  if (score <= positiveAbove) return RAG_COLORS["Request More Info"];
+  return RAG_COLORS["Express Interest"];
+}
+function RagIcon({ action, className }: { action?: string; className?: string }) {
+  if (action === "Pass") return <ThumbsDown className={className} />;
+  if (action === "Express Interest" || action === "Adopt as CSR programme") return <ShieldCheck className={className} />;
+  return <AlertTriangle className={className} />;
+}
 
 function useDynamicOptions(initiatives: InitiativeRow[]) {
   const sectors = Array.from(
@@ -874,7 +900,7 @@ function MarketplaceDetail({
   // Fetch full detail fields
   useEffect(() => {
     supabase.from("initiative_requests")
-      .select("target_population,specific_ask,stage,confirmed_assets,had_prior_experience,prior_experience_detail,start_date,duration,sdg_tags,detail_content,resource_link,co_funding_status,ai_quality_score,target_beneficiaries,target_jobs,target_female_pct,target_timeline_months,impact_evidence,budget_min,budget_max,budget_currency")
+      .select("target_population,specific_ask,stage,confirmed_assets,had_prior_experience,prior_experience_detail,start_date,duration,sdg_tags,detail_content,resource_link,co_funding_status,ai_quality_score,target_beneficiaries,target_jobs,target_female_pct,target_timeline_months,impact_evidence")
       .eq("id", initiative.id).single()
       .then(({ data }) => { if (data) setFullDetail(data); });
   }, [initiative.id]);
@@ -1205,11 +1231,11 @@ function MarketplaceDetail({
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#2D6A4F]" />
               <p className="text-sm font-semibold text-foreground">AI Deal Memo</p>
-              {dealMemo?.match_score && (
+              {dealMemo?.match_score != null && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                   style={{
-                    background: dealMemo.match_score >= 70 ? "#eaf5ee" : "#f5f5f5",
-                    color: dealMemo.match_score >= 70 ? "#2D6A4F" : "#6b7280",
+                    background: ragForScore(dealMemo.match_score, 40, 70).bg,
+                    color: ragForScore(dealMemo.match_score, 40, 70).text,
                   }}>
                   {dealMemo.match_score}% match
                 </span>
@@ -1272,16 +1298,20 @@ function MarketplaceDetail({
 
               {/* Recommended action */}
               {dealMemo.recommended_action && (
-                <div className="rounded-xl border px-4 py-3 space-y-1"
+                <div className="rounded-xl border-2 border-l-[6px] px-5 py-4 space-y-1.5 shadow-sm"
                   style={{
-                    borderColor: dealMemo.recommended_action === "Express Interest" ? "#2D6A4F40" : "#C45C2640",
-                    background: dealMemo.recommended_action === "Express Interest" ? "#eaf5ee" : "#fdf5f2",
+                    borderColor: ragFor(dealMemo.recommended_action).border,
+                    borderLeftColor: ragFor(dealMemo.recommended_action).text,
+                    background: ragFor(dealMemo.recommended_action).bg,
                   }}>
-                  <p className="text-xs font-semibold uppercase tracking-wider"
-                    style={{ color: dealMemo.recommended_action === "Express Interest" ? "#2D6A4F" : "#C45C26" }}>
-                    Recommended: {dealMemo.recommended_action}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{dealMemo.recommended_action_reason}</p>
+                  <div className="flex items-center gap-2">
+                    <RagIcon action={dealMemo.recommended_action} className="w-4 h-4 shrink-0" />
+                    <p className="text-sm font-bold uppercase tracking-wide"
+                      style={{ color: ragFor(dealMemo.recommended_action).text }}>
+                      Recommended: {dealMemo.recommended_action}
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground pl-6">{dealMemo.recommended_action_reason}</p>
                 </div>
               )}
             </div>
@@ -1298,11 +1328,11 @@ function MarketplaceDetail({
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#2D6A4F]" />
               <p className="text-sm font-semibold text-foreground">CSR Adoption Brief</p>
-              {csrBrief?.match_score && (
+              {csrBrief?.match_score != null && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                   style={{
-                    background: csrBrief.match_score >= 70 ? "#eaf5ee" : "#f5f5f5",
-                    color: csrBrief.match_score >= 70 ? "#2D6A4F" : "#6b7280",
+                    background: ragForScore(csrBrief.match_score, 50, 75).bg,
+                    color: ragForScore(csrBrief.match_score, 50, 75).text,
                   }}>
                   {csrBrief.match_score}% CSR fit
                 </span>
@@ -1362,16 +1392,20 @@ function MarketplaceDetail({
               )}
 
               {csrBrief.recommended_action && (
-                <div className="rounded-xl border px-4 py-3 space-y-1"
+                <div className="rounded-xl border-2 border-l-[6px] px-5 py-4 space-y-1.5 shadow-sm"
                   style={{
-                    borderColor: csrBrief.recommended_action === "Adopt as CSR programme" ? "#2D6A4F40" : "#C45C2640",
-                    background: csrBrief.recommended_action === "Adopt as CSR programme" ? "#eaf5ee" : "#fdf5f2",
+                    borderColor: ragFor(csrBrief.recommended_action).border,
+                    borderLeftColor: ragFor(csrBrief.recommended_action).text,
+                    background: ragFor(csrBrief.recommended_action).bg,
                   }}>
-                  <p className="text-xs font-semibold uppercase tracking-wider"
-                    style={{ color: csrBrief.recommended_action === "Adopt as CSR programme" ? "#2D6A4F" : "#C45C26" }}>
-                    Recommended: {csrBrief.recommended_action}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{csrBrief.recommended_action_reason}</p>
+                  <div className="flex items-center gap-2">
+                    <RagIcon action={csrBrief.recommended_action} className="w-4 h-4 shrink-0" />
+                    <p className="text-sm font-bold uppercase tracking-wide"
+                      style={{ color: ragFor(csrBrief.recommended_action).text }}>
+                      Recommended: {csrBrief.recommended_action}
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground pl-6">{csrBrief.recommended_action_reason}</p>
                 </div>
               )}
             </div>
