@@ -488,11 +488,28 @@ export default function DashboardProfile() {
     : isImplementer
     ? [ddReadinessFraction, totalBeneficiaries !== "" ? 1 : 0]
     : []; // corporate: every AI-consumed field is already in the base 7 org items below via completeness parity — nothing to add
-  const baseOrgItems = [!!fullName, !!orgDescription, !!country, !!orgName, sectors.length > 0, socialLinks.length > 0 || !!linkedinUrl || !!website, !!logoUrl].map(v => v ? 1 : 0);
+  // linkedinUrl belongs to the contact person for org accounts (set only
+  // on the Contact Details pane, which the Online Presence pane doesn't
+  // even render for isOrg — `{!isOrg && (...)}` excludes it there). It is
+  // not evidence of the ORGANISATION's own online presence, so it must not
+  // count for orgs. Individuals keep it since their presence pane does show
+  // LinkedIn as their own.
+  const orgOnlinePresence = socialLinks.length > 0 || !!website;
+  const individualOnlinePresence = socialLinks.length > 0 || !!linkedinUrl || !!website;
+  const baseOrgItems = [!!fullName, !!orgDescription, !!country, !!orgName, sectors.length > 0, orgOnlinePresence, !!logoUrl].map(v => v ? 1 : 0);
   const profileStrengthValues: number[] = isOrg
     ? [...baseOrgItems, ...orgTypeStrengthItems]
-    : [!!fullName, !!roleTitle, !!bio, !!country, sectors.length > 0, socialLinks.length > 0 || !!linkedinUrl || !!website, !!profile?.avatar_url].map(v => v ? 1 : 0);
-  const strengthScore = Math.round((profileStrengthValues.reduce((a, b) => a + b, 0) / profileStrengthValues.length) * 100);
+    : [!!fullName, !!roleTitle, !!bio, !!country, sectors.length > 0, individualOnlinePresence, !!profile?.avatar_url].map(v => v ? 1 : 0);
+  // Verification is weighted separately at a fixed 5% rather than as one
+  // more equal-weight item — folding it into profileStrengthValues as a
+  // plain 1-of-N entry would make it worth 12-14% depending on org type,
+  // not the small nudge intended. Individuals have no verification concept
+  // (the Verification pane only renders for isOrg), so they keep the
+  // original straight average.
+  const baseStrengthPct = (profileStrengthValues.reduce((a, b) => a + b, 0) / profileStrengthValues.length) * 100;
+  const strengthScore = isOrg
+    ? Math.round(baseStrengthPct * 0.95 + (profile?.is_verified ? 100 : 0) * 0.05)
+    : Math.round(baseStrengthPct);
   const strengthLabel = strengthScore >= 80 ? "Strong" : strengthScore >= 50 ? "Good" : "Needs work";
   const strengthColor = strengthScore >= 80 ? "#2D6A4F" : strengthScore >= 50 ? "#f59e0b" : "#C45C26";
 
@@ -628,40 +645,43 @@ export default function DashboardProfile() {
               {activePane === "basic" && isOrg && (
                 <div className="space-y-5">
                   <PaneHeader title="Contact details"
-                    subtitle="Used as your organisation's contact person. If you've opted to also appear as an individual, this also becomes your personal profile in the Natives directory." />
-
-                  {(profile as any)?.show_individual_profile && (
-                    <div className="rounded-xl border border-dashed border-border p-4 space-y-3">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your personal photo</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Shown on your individual profile in the Natives directory, separate from your organisation logo.
-                        </p>
+                    subtitle="Used as your organisation's contact person. If you turn on 'also appear as an individual,' this also becomes your personal profile in the Natives directory." />
+                  {/* Unconditional now — this section always renders so the
+                      pane has the same shape whether show_individual_profile
+                      is on or off. Lets someone fill in a personal photo
+                      ahead of time and flip the toggle on whenever they're
+                      ready, rather than the section appearing/disappearing
+                      and changing the pane's layout depending on that flag. */}
+                  <div className="rounded-xl border border-dashed border-border p-4 space-y-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your personal photo</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Only shown on your individual profile in the Natives directory if "also appear as an individual" is turned on — separate from your organisation logo either way.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-5">
+                      <div className="w-14 h-14 rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                        {profile?.avatar_url ? (
+                          <img src={profile.avatar_url} alt="Personal photo" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-xl font-bold text-muted-foreground">{(fullName || "?")[0].toUpperCase()}</span>
+                        )}
                       </div>
-                      <div className="flex items-center gap-5">
-                        <div className="w-14 h-14 rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0">
-                          {profile?.avatar_url ? (
-                            <img src={profile.avatar_url} alt="Personal photo" className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-xl font-bold text-muted-foreground">{(fullName || "?")[0].toUpperCase()}</span>
-                          )}
-                        </div>
-                        <div>
-                          <label className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
-                            <Camera className="w-3.5 h-3.5" />
-                            {profile?.avatar_url ? "Replace photo" : "Upload photo"}
-                            <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handlePersonalPhotoUpload} />
-                          </label>
-                          <p className="text-xs text-muted-foreground mt-1.5">PNG, JPG or WebP. Max 2 MB.</p>
-                          {personalPhotoUploading && (
-                            <p className="text-xs text-[#2D6A4F] mt-1 flex items-center gap-1">
-                              <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
-                            </p>
-                          )}
-                        </div>
+                      <div>
+                        <label className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
+                          <Camera className="w-3.5 h-3.5" />
+                          {profile?.avatar_url ? "Replace photo" : "Upload photo"}
+                          <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handlePersonalPhotoUpload} />
+                        </label>
+                        <p className="text-xs text-muted-foreground mt-1.5">PNG, JPG or WebP. Max 2 MB.</p>
+                        {personalPhotoUploading && (
+                          <p className="text-xs text-[#2D6A4F] mt-1 flex items-center gap-1">
+                            <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
+                          </p>
+                        )}
                       </div>
                     </div>
-                  )}
+                  </div>
 
                   <div>
                     <Label className="text-sm font-medium">Full name <span className="text-destructive">*</span></Label>
@@ -997,7 +1017,7 @@ export default function DashboardProfile() {
                     <div>
                       <Label className="text-sm font-medium">Funding instruments</Label>
                       <ChipPicker options={FUNDING_INSTRUMENTS} selected={fundingInstruments} onChange={setFundingInstruments} />
-                      <p className="text-xs text-muted-foreground mt-1.5">How you deploy capital — grants, equity, loans, and so on.</p>
+                      <p className="text-xs text-muted-foreground mt-1.5"></p>
                     </div>
 
                     <div>
@@ -1295,7 +1315,8 @@ export default function DashboardProfile() {
               { label: "Country", done: !!country },
               ...(isOrg ? [{ label: "Organisation name", done: !!orgName }] : []),
               { label: "Sectors", done: sectors.length > 0 },
-              { label: "Online presence", done: socialLinks.length > 0 || !!linkedinUrl || !!website },              ...(isOrg ? [{ label: "Organisation logo", done: !!logoUrl }] : [{ label: "Profile photo", done: !!profile?.avatar_url }]),
+              { label: "Online presence", done: isOrg ? orgOnlinePresence : individualOnlinePresence },
+              ...(isOrg ? [{ label: "Organisation logo", done: !!logoUrl }] : [{ label: "Profile photo", done: !!profile?.avatar_url }]),
               // Corporate gets nothing added here — every field
               // generate-csr-brief actually reads (focus statement, budget
               // range, ESG frameworks, geographic focus, sector focus,
@@ -1312,6 +1333,7 @@ export default function DashboardProfile() {
                 { label: `DD readiness (${Math.round(ddReadinessFraction * 5)}/5)`, done: ddReadinessFraction === 1, partial: ddReadinessFraction > 0 && ddReadinessFraction < 1 },
                 { label: "Beneficiaries reached", done: totalBeneficiaries !== "" },
               ] : []),
+              ...(isOrg ? [{ label: "Verified organisation (5%)", done: !!profile?.is_verified }] : []),
             ].map((item: any) => (
               <div key={item.label} className="flex items-center gap-2">
                 <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${item.done ? "bg-[#2D6A4F]" : item.partial ? "bg-amber-400" : "bg-muted"}`}>
