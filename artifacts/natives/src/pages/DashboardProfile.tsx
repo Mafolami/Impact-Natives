@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Link } from "wouter";
-import { Loader2, CheckCircle2, ShieldCheck, Camera, ArrowRight, Building2 } from "lucide-react";
+import { Loader2, CheckCircle2, ShieldCheck, Camera, ArrowRight, Building2, Trash2 } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { COUNTRIES } from "@/lib/countries";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
@@ -754,7 +754,7 @@ export default function DashboardProfile() {
                   <div className="space-y-4">
                     <PaneHeader title="Organisation logo" />
                     <div className="flex items-center gap-5">
-                      <div className="relative w-16 h-16 shrink-0">
+                      <div className="group relative w-16 h-16 shrink-0">
                         <div className="w-16 h-16 rounded-xl border border-border bg-muted flex items-center justify-center overflow-hidden">
                           {logoUrl ? (
                             <img src={logoUrl} alt="Organisation logo" className="w-full h-full object-contain" />
@@ -764,12 +764,13 @@ export default function DashboardProfile() {
                         </div>
                         {logoUrl && (
                           <button type="button" onClick={handleLogoDelete} disabled={logoUploading}
-                            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-colors disabled:opacity-50"
+                            className="absolute inset-0 rounded-xl bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
                             title="Remove logo">
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                            <Trash2 className="w-5 h-5 text-white" />
                           </button>
                         )}
                       </div>
+                    
                       <div>
                         <label className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
                           <Camera className="w-3.5 h-3.5" />
