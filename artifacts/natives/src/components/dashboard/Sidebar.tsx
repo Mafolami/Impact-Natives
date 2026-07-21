@@ -10,17 +10,49 @@ import {
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { cn } from "@/lib/utils";
 
-const ALL_NAV_ITEMS = [
-  { label: "Home",         href: "/dashboard",                icon: Home,          corporateOnly: false },
-  { label: "Strategy",     href: "/dashboard/strategy",       icon: Sparkles,      corporateOnly: true  },
-  { label: "Portfolio",    href: "/dashboard/portfolio",      icon: Lightbulb,     corporateOnly: false },
-  { label: "Marketplace",  href: "/dashboard/marketplace",    icon: Compass,       corporateOnly: false },
-  { label: "Partnerships", href: "/dashboard/partnerships",   icon: Handshake,     corporateOnly: false },
-  { label: "Labs",         href: "/dashboard/labs",           icon: FlaskConical,  corporateOnly: false },
-  { label: "Natives",      href: "/dashboard/natives",        icon: Globe,         corporateOnly: false },
-  { label: "Messages",     href: "/dashboard/messages",       icon: MessageSquare, corporateOnly: false },
-  { label: "Profile",      href: "/dashboard/profile",        icon: User,          corporateOnly: false },
-  { label: "Settings",     href: "/dashboard/settings",       icon: Settings,      corporateOnly: false },
+type NavItem = { label: string; href: string; icon: any; corporateOnly: boolean };
+
+// Grouped by actual usage pattern, not alphabetically: Home stands alone as
+// the entry point (label: null renders no header text); Discover is
+// browsing what others listed; My Work is things this account builds or
+// manages; Connect is the relationship layer; Account is profile/settings,
+// last.
+const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
+  {
+    label: null,
+    items: [
+      { label: "Home", href: "/dashboard", icon: Home, corporateOnly: false },
+    ],
+  },
+  {
+    label: "Discover",
+    items: [
+      { label: "Marketplace", href: "/dashboard/marketplace", icon: Compass, corporateOnly: false },
+      { label: "Natives", href: "/dashboard/natives", icon: Globe, corporateOnly: false },
+    ],
+  },
+  {
+    label: "My Work",
+    items: [
+      { label: "Strategy", href: "/dashboard/strategy", icon: Sparkles, corporateOnly: true },
+      { label: "Portfolio", href: "/dashboard/portfolio", icon: Lightbulb, corporateOnly: false },
+      { label: "Labs", href: "/dashboard/labs", icon: FlaskConical, corporateOnly: false },
+    ],
+  },
+  {
+    label: "Connect",
+    items: [
+      { label: "Partnerships", href: "/dashboard/partnerships", icon: Handshake, corporateOnly: false },
+      { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, corporateOnly: false },
+    ],
+  },
+  {
+    label: "Account",
+    items: [
+      { label: "Profile", href: "/dashboard/profile", icon: User, corporateOnly: false },
+      { label: "Settings", href: "/dashboard/settings", icon: Settings, corporateOnly: false },
+    ],
+  },
 ];
 
 interface SidebarProps {
@@ -35,7 +67,9 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
   const [unreadMessages, setUnreadMessages] = useState(0);
 
   const isCorporate = ["corporation", "technology_company", "public_sector"].includes(profile?.org_type ?? "");
-  const NAV_ITEMS = ALL_NAV_ITEMS.filter(item => !item.corporateOnly || isCorporate);
+  const visibleSections = NAV_SECTIONS
+    .map(section => ({ ...section, items: section.items.filter(item => !item.corporateOnly || isCorporate) }))
+    .filter(section => section.items.length > 0);
 
   useEffect(() => {
     if (!profile) return;
@@ -166,7 +200,7 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
         )}
         <button
           onClick={toggle}
-          className="ml-auto p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          className="ml-auto p-1 rounded-md text-black hover:bg-muted transition-colors"
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
@@ -174,45 +208,54 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-4 px-2">
-        <ul className="space-y-0.5">
-          {NAV_ITEMS.map(({ label, href, icon: Icon, corporateOnly: _ }) => {
-            const isMessages = href === "/dashboard/messages";
-            const showBadge  = isMessages && unreadMessages > 0;
-            return (
-              <li key={href}>
-                <Link href={href}>
-                  <span
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer w-full",
-                      collapsed && "justify-center px-2",
-                      isActive(href)
-                        ? "bg-[#C45C26]/10 text-[#C45C26]"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    )}
-                    title={collapsed ? label : undefined}
-                  >
-                                        <span className="relative">
-                      <Icon className="w-4 h-4 shrink-0" />
-                      {showBadge && collapsed && (
-                        <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500" />
-                      )}
-                    </span>
-                    {!collapsed && (
-                      <>
-                        <span className="flex-1">{label}</span>
-                        {showBadge && (
-                                                    <span className="text-[10px] font-bold rounded-full min-w-[1rem] h-4 px-1 flex items-center justify-center" style={{ background: "#ef4444", color: "#ffffff" }}>
-                            {unreadMessages > 9 ? "9+" : unreadMessages}
-                          </span>
+        {visibleSections.map((section, sectionIndex) => (
+          <div key={section.label ?? "home"} className={sectionIndex > 0 ? "mt-3 pt-3 border-t border-border" : ""}>
+            {section.label && !collapsed && (
+              <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-black">
+                {section.label}
+              </p>
+            )}
+            <ul className="space-y-0.5">
+              {section.items.map(({ label, href, icon: Icon }) => {
+                const isMessages = href === "/dashboard/messages";
+                const showBadge  = isMessages && unreadMessages > 0;
+                return (
+                  <li key={href}>
+                    <Link href={href}>
+                      <span
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-medium transition-colors cursor-pointer w-full",
+                          collapsed && "justify-center px-2",
+                          isActive(href)
+                            ? "bg-[#C45C26]/10 text-[#C45C26]"
+                            : "text-black hover:bg-muted"
                         )}
-                      </>
-                    )}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+                        title={collapsed ? label : undefined}
+                      >
+                        <span className="relative">
+                          <Icon className="w-4 h-4 shrink-0" />
+                          {showBadge && collapsed && (
+                            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500" />
+                          )}
+                        </span>
+                        {!collapsed && (
+                          <>
+                            <span className="flex-1">{label}</span>
+                            {showBadge && (
+                              <span className="text-[10px] font-bold rounded-full min-w-[1rem] h-4 px-1 flex items-center justify-center" style={{ background: "#ef4444", color: "#ffffff" }}>
+                                {unreadMessages > 9 ? "9+" : unreadMessages}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </nav>
 
       {/* Bottom */}
@@ -231,7 +274,7 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
                   ? (profile?.org_name || "Your Organisation")
                   : (profile?.full_name || "Your Account")}
               </p>
-              <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+              <p className="text-[11px] text-black truncate mt-0.5">
                 {profile?.user_type === "organisation"
                   ? (profile?.org_type
                       ? profile.org_type.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())
@@ -256,27 +299,38 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
         <div className="flex items-center gap-1.5">
           <ShieldCheck className={cn(
             "w-3.5 h-3.5",
-            profile?.is_verified ? "text-[#2D6A4F]" : "text-muted-foreground"
+            profile?.is_verified ? "text-[#2D6A4F]" : "text-black"
           )} />
           <span className={cn(
-            "text-[10px]",
-            profile?.is_verified ? "text-[#2D6A4F] font-medium" : "text-muted-foreground"
+            "text-[11px]",
+            profile?.is_verified ? "text-[#2D6A4F] font-medium" : "text-black"
           )}>
             {profile?.is_verified ? "Verified" : "Unverified"}
           </span>
         </div>
       )}
 
+        {!collapsed && (
+          <a
+            href="https://www.impactnatives.com/legal/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-[11px] text-black hover:underline underline-offset-2 transition-colors"
+          >
+            Privacy Policy
+          </a>
+        )}
+
         <button
           type="button"
           onClick={signOut}
           className={cn(
-            "flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full",
+            "flex items-center gap-2 text-[13px] text-black hover:opacity-70 transition-opacity w-full",
             collapsed && "justify-center"
           )}
           title={collapsed ? "Sign out" : undefined}
         >
-          <LogOut className="w-3.5 h-3.5" />
+          <LogOut className="w-3.5 h-3.5 text-black" />
           {!collapsed && "Sign out"}
         </button>
       </div>

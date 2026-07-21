@@ -215,14 +215,6 @@ function DocumentUploadStep({ track, onExtracted, onSkipToManual }: {
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-
-  const TRACK_LABELS: Record<OrgTrack, string> = {
-    implementer: "pitch deck, concept note, annual report, or organisational profile",
-    funder:      "funding guidelines, call for proposals, or investment thesis",
-    corporate:   "sustainability report, CSR report, or partnership brief",
-    research:    "research profile, capability statement, or institutional brief",
-  };
-
   async function handleFile(file: File) {
     setError(null);
     setFileName(file.name);
@@ -275,9 +267,7 @@ function DocumentUploadStep({ track, onExtracted, onSkipToManual }: {
   return (
     <div className="space-y-5">
       <p className="text-sm text-muted-foreground leading-relaxed">
-        Upload your{" "}
-        <span className="text-foreground font-medium">{TRACK_LABELS[track]}</span>{" "}
-        and we'll extract your details automatically. You'll review everything before continuing.
+        Tell us about your organisation. If you have an existing profile, brief, or one-pager handy, upload it and we'll pre-fill the details — or just answer a few quick questions yourself.
       </p>
 
       <div
@@ -322,13 +312,18 @@ function DocumentUploadStep({ track, onExtracted, onSkipToManual }: {
         )}
       </div>
 
+      <p className="text-xs text-muted-foreground text-center">
+        See how we handle uploaded documents in our{" "}
+        <a href="/legal/privacy" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">
+          Privacy Policy
+        </a>.
+      </p>
       {error && (
         <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
           <X className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
           <p className="text-xs text-red-700 leading-relaxed">{error}</p>
         </div>
       )}
-
       <div className="pt-2 border-t border-border">
         <button type="button" onClick={onSkipToManual}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
