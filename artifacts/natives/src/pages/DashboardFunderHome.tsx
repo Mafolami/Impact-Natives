@@ -403,14 +403,12 @@ export default function FunderHome({ profile }: { profile: any }) {
             </button>
           </div>
 
-          {loadingMatches ? (
+          {(loadingMatches || aiMatching) ? (
             <div className="space-y-3">
-              {aiMatching && (
-                <div className="flex items-center gap-2 text-xs text-[#2D6A4F] mb-2">
-                  <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                  Matching initiatives to your mandate...
-                </div>
-              )}
+              <div className="flex items-center gap-2 text-xs text-[#2D6A4F] mb-2">
+                <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                Finding your best matches\u2014this can take a few seconds...
+              </div>
               {[1, 2, 3].map(i => (
                 <div key={i} className="h-24 rounded-xl border border-border bg-white animate-pulse" />
               ))}
