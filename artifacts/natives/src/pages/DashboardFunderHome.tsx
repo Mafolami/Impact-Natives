@@ -47,12 +47,20 @@ const PARTNERSHIP_BUDGET_LABELS: Record<string, string> = {
   open: "Open to discussion",
 };
 
+function formatMissingList(items: string[]): string {
+  if (items.length === 0) return "";
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+}
+
 export default function FunderHome({ profile }: { profile: any }) {
   const [, navigate] = useLocation();
   const [matchedInitiatives, setMatchedInitiatives] = useState<any[]>([]);
   const [loadingMatches, setLoadingMatches] = useState(true);
   const [aiMatching, setAiMatching] = useState(false);
   const [mandateScore, setMandateScore] = useState(0);
+  const [missingMandateFields, setMissingMandateFields] = useState<string[]>([]);
   const [orgId, setOrgId] = useState<string | null>(null);
   const [conversations, setConversations] = useState(0);
   const [awaitingResponse, setAwaitingResponse] = useState(0);
@@ -84,6 +92,11 @@ export default function FunderHome({ profile }: { profile: any }) {
 
       if (orgData) {
         setOrgId(orgData.id);
+        // Score keeps grant_range_min and grant_range_max as two separate
+        // booleans — must stay identical to the server-side formula in
+        // refresh-partnership-matches so the % never drifts. The labeled
+        // list below is display-only and merges them into one user-facing
+        // "grant range" item, which does not change the score itself.
         const filled = [
           !!orgData.grant_range_min,
           !!orgData.grant_range_max,
@@ -94,6 +107,15 @@ export default function FunderHome({ profile }: { profile: any }) {
           orgData.mandate_sdgs?.length > 0,
         ];
         setMandateScore(Math.round((filled.filter(Boolean).length / filled.length) * 100));
+        const fieldChecks: [string, boolean][] = [
+          ["grant range", !!orgData.grant_range_min && !!orgData.grant_range_max],
+          ["funding instruments", (orgData.funding_instruments?.length ?? 0) > 0],
+          ["geographic focus", (orgData.geographic_focus?.length ?? 0) > 0],
+          ["stage preference", (orgData.stage_preference?.length ?? 0) > 0],
+          ["sector focus", (orgData.mandate_sectors?.length ?? 0) > 0],
+          ["SDG priorities", (orgData.mandate_sdgs?.length ?? 0) > 0],
+        ];
+        setMissingMandateFields(fieldChecks.filter(([, done]) => !done).map(([label]) => label));
       }
 
       // Saved initiatives
@@ -337,9 +359,9 @@ export default function FunderHome({ profile }: { profile: any }) {
               </div>
             </div>
             <p className="text-xs text-black">
-              {mandateScore < 80
-                ? "Add sector focus, geography, and SDG priorities — 80% unlocks partnership matches too."
-                : "Add sector focus, geography, and SDG priorities to improve initiative matching."}
+              {missingMandateFields.length > 0
+                ? `Add ${formatMissingList(missingMandateFields)}${mandateScore < 80 ? " — 80% unlocks partnership matches too." : "."}`
+                : ""}
             </p>
           </div>
           <button type="button" onClick={() => navigate("/dashboard/profile")}

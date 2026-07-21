@@ -488,10 +488,10 @@ export default function DashboardProfile() {
     : isImplementer
     ? [ddReadinessFraction, totalBeneficiaries !== "" ? 1 : 0]
     : []; // corporate: every AI-consumed field is already in the base 7 org items below via completeness parity — nothing to add
-  const baseOrgItems = [!!fullName, !!orgDescription, !!country, !!orgName, sectors.length > 0, !!linkedinUrl || !!website, !!logoUrl].map(v => v ? 1 : 0);
+  const baseOrgItems = [!!fullName, !!orgDescription, !!country, !!orgName, sectors.length > 0, socialLinks.length > 0 || !!linkedinUrl || !!website, !!logoUrl].map(v => v ? 1 : 0);
   const profileStrengthValues: number[] = isOrg
     ? [...baseOrgItems, ...orgTypeStrengthItems]
-    : [!!fullName, !!roleTitle, !!bio, !!country, sectors.length > 0, !!linkedinUrl || !!website, !!profile?.avatar_url].map(v => v ? 1 : 0);
+    : [!!fullName, !!roleTitle, !!bio, !!country, sectors.length > 0, socialLinks.length > 0 || !!linkedinUrl || !!website, !!profile?.avatar_url].map(v => v ? 1 : 0);
   const strengthScore = Math.round((profileStrengthValues.reduce((a, b) => a + b, 0) / profileStrengthValues.length) * 100);
   const strengthLabel = strengthScore >= 80 ? "Strong" : strengthScore >= 50 ? "Good" : "Needs work";
   const strengthColor = strengthScore >= 80 ? "#2D6A4F" : strengthScore >= 50 ? "#f59e0b" : "#C45C26";
@@ -512,11 +512,10 @@ export default function DashboardProfile() {
       </div>
       {(grantRangeInvalid || saveBlocked) && (
         <p className="text-xs text-red-500">
-          Fix the grant/investment range in{" "}
+          Max must be greater than or equal to Min. Fix the grant/investment range in{" "}
           <button type="button" onClick={() => setActivePane("mandate")} className="underline underline-offset-2 font-medium">
             Mandate
           </button>{" "}
-          Max must be greater than or equal to Min.
         </p>
       )}
     </div>
@@ -1296,8 +1295,7 @@ export default function DashboardProfile() {
               { label: "Country", done: !!country },
               ...(isOrg ? [{ label: "Organisation name", done: !!orgName }] : []),
               { label: "Sectors", done: sectors.length > 0 },
-              { label: "Online presence", done: !!linkedinUrl || !!website },
-              ...(isOrg ? [{ label: "Organisation logo", done: !!logoUrl }] : [{ label: "Profile photo", done: !!profile?.avatar_url }]),
+              { label: "Online presence", done: socialLinks.length > 0 || !!linkedinUrl || !!website },              ...(isOrg ? [{ label: "Organisation logo", done: !!logoUrl }] : [{ label: "Profile photo", done: !!profile?.avatar_url }]),
               // Corporate gets nothing added here — every field
               // generate-csr-brief actually reads (focus statement, budget
               // range, ESG frameworks, geographic focus, sector focus,

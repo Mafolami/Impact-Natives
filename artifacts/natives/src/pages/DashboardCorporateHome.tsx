@@ -56,6 +56,13 @@ const PASS_REASON_FIELD_MAP: Record<string, { label: string; hint: string }> = {
 };
 const PASS_INSIGHT_THRESHOLD = 3;
 
+function formatMissingList(items: string[]): string {
+  if (items.length === 0) return "";
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+}
+
 export default function CorporateHome({ profile }: { profile: any }) {
   const [, navigate] = useLocation();
 
@@ -281,6 +288,18 @@ export default function CorporateHome({ profile }: { profile: any }) {
   const csrCompleteness = Math.round(
     (csrCompletenessFields.filter(Boolean).length / csrCompletenessFields.length) * 100
   );
+  // Labels in the exact same order as csrCompletenessFields above — keep
+  // these two arrays aligned by index if either one changes.
+  const CSR_FIELD_LABELS = [
+    "a CSR/ESG focus statement",
+    "your CSR/ESG budget range",
+    "ESG reporting frameworks",
+    "what you can bring to a partnership",
+    "preferred partner types",
+    "geographic focus",
+    "sector focus",
+  ];
+  const missingCsrFields = CSR_FIELD_LABELS.filter((_, i) => !csrCompletenessFields[i]);
   const [completenessOverride, setCompletenessOverride] = useState<number | null>(null);
   const displayedCompleteness = completenessOverride ?? csrCompleteness;
 
@@ -406,9 +425,9 @@ export default function CorporateHome({ profile }: { profile: any }) {
               </div>
             </div>
             <p className="text-xs text-black">
-              {displayedCompleteness < 80
-                ? "Add CSR focus, ESG frameworks, and what you can bring to a partnership — 80% unlocks partnership matches too."
-                : "Add CSR focus, ESG frameworks, and what you can bring to a partnership to surface the most relevant initiatives."}
+              {missingCsrFields.length > 0
+                ? `Add ${formatMissingList(missingCsrFields)}${displayedCompleteness < 80 ? " — 80% unlocks partnership matches too." : "."}`
+                : ""}
             </p>
           </div>
           <button type="button" onClick={() => navigate("/dashboard/profile")}
