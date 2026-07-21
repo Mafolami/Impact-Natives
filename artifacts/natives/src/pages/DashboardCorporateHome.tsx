@@ -276,30 +276,23 @@ export default function CorporateHome({ profile }: { profile: any }) {
   // (the exact bug pattern that caused the org_type mismatch earlier),
   // completenessOverride gets set from the server's answer once it responds,
   // and displayedCompleteness prefers that over the local estimate.
-  const csrCompletenessFields = [
-    !!orgData?.csr_focus_statement,
-    !!orgData?.csr_budget_range,
-    (orgData?.esg_frameworks?.length ?? 0) > 0,
-    (orgData?.inkind_support?.length ?? 0) > 0,
-    (orgData?.partner_type_preference?.length ?? 0) > 0,
-    (orgData?.geographic_focus?.length ?? 0) > 0,
-    (orgData?.mandate_sectors?.length ?? 0) > 0,
+  // Weighted, not equal-share — must stay identical to
+  // corporateCompleteness() in refresh-partnership-matches. Focus statement
+  // carries the most weight (generate-csr-brief's recommendation pivots on
+  // it), geography and sector tied next since both have dedicated
+  // anti-fabrication rules in that prompt, then a taper for supporting
+  // fields with no equivalent guardrail built around them.
+  const csrWeightedFields: [string, boolean, number][] = [
+    ["a CSR/ESG focus statement", !!orgData?.csr_focus_statement, 25],
+    ["geographic focus", (orgData?.geographic_focus?.length ?? 0) > 0, 20],
+    ["sector focus", (orgData?.mandate_sectors?.length ?? 0) > 0, 20],
+    ["ESG reporting frameworks", (orgData?.esg_frameworks?.length ?? 0) > 0, 15],
+    ["your CSR/ESG budget range", !!orgData?.csr_budget_range, 10],
+    ["what you can bring to a partnership", (orgData?.inkind_support?.length ?? 0) > 0, 5],
+    ["preferred partner types", (orgData?.partner_type_preference?.length ?? 0) > 0, 5],
   ];
-  const csrCompleteness = Math.round(
-    (csrCompletenessFields.filter(Boolean).length / csrCompletenessFields.length) * 100
-  );
-  // Labels in the exact same order as csrCompletenessFields above — keep
-  // these two arrays aligned by index if either one changes.
-  const CSR_FIELD_LABELS = [
-    "a CSR/ESG focus statement",
-    "your CSR/ESG budget range",
-    "ESG reporting frameworks",
-    "what you can bring to a partnership",
-    "preferred partner types",
-    "geographic focus",
-    "sector focus",
-  ];
-  const missingCsrFields = CSR_FIELD_LABELS.filter((_, i) => !csrCompletenessFields[i]);
+  const csrCompleteness = Math.round(csrWeightedFields.reduce((sum, [, done, weight]) => sum + (done ? weight : 0), 0));
+  const missingCsrFields = csrWeightedFields.filter(([, done]) => !done).sort((a, b) => b[2] - a[2]).map(([label]) => label);
   const [completenessOverride, setCompletenessOverride] = useState<number | null>(null);
   const displayedCompleteness = completenessOverride ?? csrCompleteness;
 

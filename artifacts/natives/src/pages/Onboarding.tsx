@@ -476,6 +476,7 @@ export default function Onboarding() {
 
   const orgTrack: OrgTrack = orgType ? trackFromOrgType(orgType) : "implementer";
   const isStartup = orgType === "startup";
+  const grantRangeInvalid = !!(grantRangeMin && grantRangeMax && Number(grantRangeMax) < Number(grantRangeMin));
 
   // ── Step definitions ─────────────────────────────────────────────────────
 
@@ -513,10 +514,13 @@ export default function Onboarding() {
   const steps = userType === "individual_creative"
     ? INDIVIDUAL_STEPS
     : manualMode ? ORG_STEPS_MANUAL : ORG_STEPS_UPLOAD;
-
   const currentStep = steps[step];
   const isLast = step === steps.length - 1;
   const totalSteps = steps.length;
+  // Blocks advancing (by either Continue or Skip) only when the range is
+  // actively invalid — not when it's simply empty, since this step stays
+  // fully skippable otherwise.
+  const grantRangeBlocksStep = currentStep?.id === "trackExtra" && orgTrack === "funder" && grantRangeInvalid;
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -604,6 +608,7 @@ export default function Onboarding() {
     if (!currentStep) return true;
     if (currentStep.id === "name"     && !fullName.trim()) errs.fullName    = "Please enter your full name.";
     if (currentStep.id === "location" && !country.trim())  errs.country     = "Please select your country.";
+    if (grantRangeBlocksStep) errs.grantRange = "Max must be greater than or equal to Min.";
     if (currentStep.id === "org") {
       if (!orgName.trim())   errs.orgName   = "Organisation name is required.";
       if (!roleTitle.trim()) errs.roleTitle = "Role or title is required.";
@@ -719,6 +724,12 @@ export default function Onboarding() {
 
   function handleSkip() {
     if (!currentStep?.skippable) return;
+    // Skippable means the fields don't need to be filled in — it doesn't
+    // mean actively-invalid data (Max < Min) can slide through unblocked.
+    if (grantRangeBlocksStep) {
+      setErrors({ grantRange: "Max must be greater than or equal to Min." });
+      return;
+    }
     if (isLast) { finish(false); return; }
     setErrors({});
     setStep(s => s + 1);
@@ -1423,14 +1434,14 @@ export default function Onboarding() {
                   </button>
                 )}
                 {currentStep.skippable && (
-                  <button type="button" onClick={handleSkip}
-                    className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors">
+                  <button type="button" onClick={handleSkip} disabled={grantRangeBlocksStep}
+                    className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-muted-foreground">
                     <SkipForward className="w-3.5 h-3.5" />
                     Skip
                   </button>
                 )}
               </div>
-              <Button onClick={handleNext} disabled={saving}
+              <Button onClick={handleNext} disabled={saving || grantRangeBlocksStep}
                 className="bg-[#2D6A4F] hover:bg-[#245c43] text-white px-6">
                 {saving ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

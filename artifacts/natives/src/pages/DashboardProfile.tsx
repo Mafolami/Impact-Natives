@@ -305,6 +305,23 @@ export default function DashboardProfile() {
     setLogoUploading(false);
   }
 
+  async function handlePersonalPhotoDelete() {
+    if (!user) return;
+    setPersonalPhotoUploading(true);
+    try {
+      const { data: files } = await supabase.storage.from("org-logos").list(user.id);
+      const avatarFiles = (files ?? []).filter(f => f.name.startsWith("avatar."));
+      if (avatarFiles.length > 0) {
+        await supabase.storage.from("org-logos").remove(avatarFiles.map(f => `${user.id}/${f.name}`));
+      }
+    } catch (err) {
+      console.error("Personal photo file cleanup failed (continuing to clear the DB field regardless):", err);
+    }
+    const { error } = await supabase.from("profiles").update({ avatar_url: null }).eq("id", user.id);
+    if (error) { alert(`Couldn't remove photo: ${error.message}`); setPersonalPhotoUploading(false); return; }
+    await refreshProfile();
+    setPersonalPhotoUploading(false);
+  }
   async function handlePersonalPhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !user) return;
@@ -320,6 +337,23 @@ export default function DashboardProfile() {
     setPersonalPhotoUploading(false);
   }
 
+  async function handleAvatarDelete() {
+    if (!user) return;
+    setAvatarUploading(true);
+    try {
+      const { data: files } = await supabase.storage.from("avatars").list(user.id);
+      const avatarFiles = (files ?? []).filter(f => f.name.startsWith("avatar."));
+      if (avatarFiles.length > 0) {
+        await supabase.storage.from("avatars").remove(avatarFiles.map(f => `${user.id}/${f.name}`));
+      }
+    } catch (err) {
+      console.error("Avatar file cleanup failed (continuing to clear the DB field regardless):", err);
+    }
+    const { error } = await supabase.from("profiles").update({ avatar_url: null, updated_at: new Date().toISOString() }).eq("id", user.id);
+    if (error) { alert(`Couldn't remove photo: ${error.message}`); setAvatarUploading(false); return; }
+    await refreshProfile();
+    setAvatarUploading(false);
+  }
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !user) return;
@@ -618,8 +652,15 @@ export default function DashboardProfile() {
                   <div className="space-y-4">
                     <PaneHeader title="Profile photo" />
                     <div className="flex items-center gap-5">
-                      <div className="relative w-14 h-14">
+                      <div className="group relative w-14 h-14">
                         <UserAvatar id={user?.id ?? ""} name={profile?.full_name} avatarUrl={profile?.avatar_url} size="lg" />
+                        {profile?.avatar_url && (
+                          <button type="button" onClick={handleAvatarDelete} disabled={avatarUploading}
+                            className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50 z-10"
+                            title="Remove photo">
+                            <Trash2 className="w-4 h-4 text-white" />
+                          </button>
+                        )}
                         <label className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#2D6A4F] flex items-center justify-center cursor-pointer hover:bg-[#245c43] transition-colors z-10">
                           <Camera className="w-3 h-3 text-white" />
                           <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleAvatarUpload} />
@@ -699,17 +740,24 @@ export default function DashboardProfile() {
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your personal photo</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Only shown on your individual profile in the Natives directory if "also appear as an individual" is turned on — separate from your organisation logo either way.
+                        Only shown on your individual profile in the Natives directory if "also appear as an individual" is turned on.
                       </p>
                     </div>
                     <div className="flex items-center gap-5">
-                      <div className="w-14 h-14 rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0">
-                        {profile?.avatar_url ? (
-                          <img src={profile.avatar_url} alt="Personal photo" className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-xl font-bold text-muted-foreground">{(fullName || "?")[0].toUpperCase()}</span>
-                        )}
-                      </div>
+                    <div className="group relative w-14 h-14 rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                          {profile?.avatar_url ? (
+                            <img src={profile.avatar_url} alt="Personal photo" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-xl font-bold text-muted-foreground">{(fullName || "?")[0].toUpperCase()}</span>
+                          )}
+                          {profile?.avatar_url && (
+                            <button type="button" onClick={handlePersonalPhotoDelete} disabled={personalPhotoUploading}
+                              className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                              title="Remove photo">
+                              <Trash2 className="w-4 h-4 text-white" />
+                            </button>
+                          )}
+                        </div>
                       <div>
                         <label className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
                           <Camera className="w-3.5 h-3.5" />

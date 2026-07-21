@@ -86,36 +86,32 @@ export default function FunderHome({ profile }: { profile: any }) {
       // Mandate completion
       const { data: orgData } = await supabase
         .from("organizations")
-        .select("id,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,mandate_sectors,mandate_sdgs")
+        .select("id,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,mandate_sectors,mandate_sdgs,investment_thesis")
         .eq("user_id", profile.id)
         .single();
-
       if (orgData) {
         setOrgId(orgData.id);
-        // Score keeps grant_range_min and grant_range_max as two separate
-        // booleans — must stay identical to the server-side formula in
-        // refresh-partnership-matches so the % never drifts. The labeled
-        // list below is display-only and merges them into one user-facing
-        // "grant range" item, which does not change the score itself.
-        const filled = [
-          !!orgData.grant_range_min,
-          !!orgData.grant_range_max,
-          orgData.funding_instruments?.length > 0,
-          orgData.geographic_focus?.length > 0,
-          orgData.stage_preference?.length > 0,
-          orgData.mandate_sectors?.length > 0,
-          orgData.mandate_sdgs?.length > 0,
+        // Weighted, not equal-share — must stay identical to
+        // funderCompleteness() in refresh-partnership-matches so the % never
+        // drifts between the client estimate and the server's source of
+        // truth. Sector focus and geography carry the most weight since
+        // match-orgs-for-partnership and generate-deal-memo lean on them
+        // hardest; investment thesis is weighted high enough that its
+        // absence alone can block the 80% partnership-unlock gate even with
+        // every other field filled.
+        const weightedFields: [string, boolean, number][] = [
+          ["sector focus", (orgData.mandate_sectors?.length ?? 0) > 0, 25],
+          ["geographic focus", (orgData.geographic_focus?.length ?? 0) > 0, 20],
+          ["investment thesis", !!orgData.investment_thesis, 15],
+          ["SDG priorities", (orgData.mandate_sdgs?.length ?? 0) > 0, 15],
+          ["stage preference", (orgData.stage_preference?.length ?? 0) > 0, 10],
+          ["funding instruments", (orgData.funding_instruments?.length ?? 0) > 0, 10],
+          ["grant range", !!orgData.grant_range_min && !!orgData.grant_range_max, 5],
         ];
-        setMandateScore(Math.round((filled.filter(Boolean).length / filled.length) * 100));
-        const fieldChecks: [string, boolean][] = [
-          ["grant range", !!orgData.grant_range_min && !!orgData.grant_range_max],
-          ["funding instruments", (orgData.funding_instruments?.length ?? 0) > 0],
-          ["geographic focus", (orgData.geographic_focus?.length ?? 0) > 0],
-          ["stage preference", (orgData.stage_preference?.length ?? 0) > 0],
-          ["sector focus", (orgData.mandate_sectors?.length ?? 0) > 0],
-          ["SDG priorities", (orgData.mandate_sdgs?.length ?? 0) > 0],
-        ];
-        setMissingMandateFields(fieldChecks.filter(([, done]) => !done).map(([label]) => label));
+        setMandateScore(Math.round(weightedFields.reduce((sum, [, done, weight]) => sum + (done ? weight : 0), 0)));
+        setMissingMandateFields(
+          weightedFields.filter(([, done]) => !done).sort((a, b) => b[2] - a[2]).map(([label]) => label)
+        );
       }
 
       // Saved initiatives
