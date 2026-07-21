@@ -227,7 +227,7 @@ export default function FunderHome({ profile }: { profile: any }) {
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
           });
           const result = await res.json();
-          if (result.matches?.length) {
+          if (!result.error && result.matches?.length) {
             applyCache(result.matches.map((m: any) => ({
               initiative_id: m.initiative_id, score: m.score, match_reason: m.match_reason, criteria: m.criteria,
             })));
@@ -422,7 +422,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                 style={{ background: "#2D6A4F", color: "#ffffff" }}>
                 Initiatives for you
               </h3>
-              <p className="text-xs text-black mt-0.5">Top 3, matched to your mandate</p>
+              <p className="text-xs text-black mt-0.5">Top initiatives, matched to your mandate</p>
             </div>
             <button type="button" onClick={() => navigate("/dashboard/marketplace")}
               className="text-xs font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors shrink-0">

@@ -257,7 +257,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
           });
           const result = await res.json();
-          if (result.matches?.length) {
+          if (!result.error && result.matches?.length) {
             applyCache(result.matches.map((m: any) => ({
               initiative_id: m.initiative_id, score: m.score, match_reason: m.match_reason, criteria: m.criteria,
             })));
@@ -415,8 +415,8 @@ export default function CorporateHome({ profile }: { profile: any }) {
           <h2 className="text-2xl font-bold text-foreground tracking-tight">{firstName}.</h2>
           <p className="text-sm text-black mt-1">
             {displayedCompleteness >= 60
-              ? `Your CSR profile is active. Discover ESG-aligned initiatives for ${orgName}.`
-              : "Complete your CSR profile to get better matched initiatives."}
+              ? `Your profile is active. Discover potential initiatives and partnerships for ${orgName}.`
+              : "Complete your profile to get better matched initiatives."}
           </p>
         </div>
         <button type="button" onClick={() => navigate("/dashboard/marketplace")}
