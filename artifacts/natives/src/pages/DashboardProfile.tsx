@@ -141,6 +141,7 @@ export default function DashboardProfile() {
   const { user, profile, refreshProfile } = useAuth();
   const [saving, setSaving]               = useState(false);
   const [saved, setSavedState]            = useState(false);
+  const [saveBlocked, setSaveBlocked]     = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
   const [personalPhotoUploading, setPersonalPhotoUploading] = useState(false);
@@ -202,6 +203,7 @@ export default function DashboardProfile() {
   const [grantRangeMin, setGrantRangeMin]             = useState("");
   const [grantRangeMax, setGrantRangeMax]             = useState("");
   const [grantCurrency, setGrantCurrency]             = useState("USD");
+  const grantRangeInvalid = !!(grantRangeMin && grantRangeMax && Number(grantRangeMax) < Number(grantRangeMin));
   const [fundingInstruments, setFundingInstruments]   = useState<string[]>([]);
   const [mandateSectors, setMandateSectors]           = useState<string[]>([]);
   const [mandateSdgs, setMandateSdgs]                 = useState<string[]>([]);
@@ -349,6 +351,11 @@ export default function DashboardProfile() {
 
   async function handleSave() {
     if (!user) return;
+    if (grantRangeInvalid) {
+      setSaveBlocked(true);
+      return;
+    }
+    setSaveBlocked(false);
     setSaving(true);
     const { error: profileError } = await supabase
       .from("profiles")
@@ -461,28 +468,59 @@ export default function DashboardProfile() {
     setTimeout(() => setSavedState(false), 3000);
   }
 
-  const profileStrength = isOrg
-    ? [!!fullName, !!orgDescription, !!country, !!orgName, sectors.length > 0, !!linkedinUrl || !!website, !!logoUrl]
-    : [!!fullName, !!roleTitle, !!bio, !!country, sectors.length > 0, !!linkedinUrl || !!website, !!profile?.avatar_url];
-  const strengthScore = Math.round((profileStrength.filter(Boolean).length / profileStrength.length) * 100);
+  // Profile strength is a general-purpose indicator, deliberately distinct
+  // from the "mandate/CSR completeness" score shown on FunderHome/
+  // CorporateHome (which is a fixed 7-field formula mirrored server-side in
+  // refresh-partnership-matches and must not change here). This score
+  // instead weighs the specific fields confirmed — by reading
+  // generate-deal-memo, generate-csr-brief, and match-orgs-for-partnership
+  // directly — to actually feed AI decisions: investment thesis (funders),
+  // DD readiness (implementers, scored proportionally since deal-memo's DD
+  // override depends on partial completion, not just "any box checked"),
+  // and beneficiaries reached (implementers, the one track-record field
+  // named in match-orgs-for-partnership's prompt). Other track-record
+  // fields (grants count/value, previous funders, etc.) are collected but
+  // not currently read by any AI function, so they're left out rather than
+  // padding the score with fields that don't inform anything.
+  const ddReadinessFraction = [ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework].filter(Boolean).length / 5;
+  const orgTypeStrengthItems: number[] = isFunder
+    ? [investmentThesis ? 1 : 0]
+    : isImplementer
+    ? [ddReadinessFraction, totalBeneficiaries !== "" ? 1 : 0]
+    : []; // corporate: every AI-consumed field is already in the base 7 org items below via completeness parity — nothing to add
+  const baseOrgItems = [!!fullName, !!orgDescription, !!country, !!orgName, sectors.length > 0, !!linkedinUrl || !!website, !!logoUrl].map(v => v ? 1 : 0);
+  const profileStrengthValues: number[] = isOrg
+    ? [...baseOrgItems, ...orgTypeStrengthItems]
+    : [!!fullName, !!roleTitle, !!bio, !!country, sectors.length > 0, !!linkedinUrl || !!website, !!profile?.avatar_url].map(v => v ? 1 : 0);
+  const strengthScore = Math.round((profileStrengthValues.reduce((a, b) => a + b, 0) / profileStrengthValues.length) * 100);
   const strengthLabel = strengthScore >= 80 ? "Strong" : strengthScore >= 50 ? "Good" : "Needs work";
   const strengthColor = strengthScore >= 80 ? "#2D6A4F" : strengthScore >= 50 ? "#f59e0b" : "#C45C26";
 
   const SaveBar = () => (
-    <div className="flex items-center gap-3 pt-2">
-      <Button onClick={handleSave} disabled={saving}
-        className="bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full px-6">
-        {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-        Save changes
-      </Button>
-      {saved && (
-        <span className="flex items-center gap-1.5 text-sm text-[#2D6A4F]">
-          <CheckCircle2 className="w-4 h-4" /> Saved
-        </span>
+    <div className="space-y-2 pt-2">
+      <div className="flex items-center gap-3">
+        <Button onClick={handleSave} disabled={saving || grantRangeInvalid}
+          className="bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full px-6 disabled:opacity-50 disabled:cursor-not-allowed">
+          {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+          Save changes
+        </Button>
+        {saved && (
+          <span className="flex items-center gap-1.5 text-sm text-[#2D6A4F]">
+            <CheckCircle2 className="w-4 h-4" /> Saved
+          </span>
+        )}
+      </div>
+      {(grantRangeInvalid || saveBlocked) && (
+        <p className="text-xs text-red-500">
+          Fix the grant/investment range in{" "}
+          <button type="button" onClick={() => setActivePane("mandate")} className="underline underline-offset-2 font-medium">
+            Mandate
+          </button>{" "}
+          Max must be greater than or equal to Min.
+        </p>
       )}
     </div>
   );
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-8 items-start w-full relative">
       <div className="space-y-4">
@@ -551,7 +589,7 @@ export default function DashboardProfile() {
                       </p>
                       <a href="/dashboard/upgrade-organisation"
                         className="inline-flex items-center gap-1.5 mt-3 text-sm font-semibold text-[#2D6A4F] hover:underline underline-offset-2">
-                        Register an organisation →
+                        Register an organisation
                       </a>
                     </div>
                   </div>
@@ -949,10 +987,10 @@ export default function DashboardProfile() {
                         <Input value={grantRangeMin} onChange={e => setGrantRangeMin(e.target.value.replace(/[^0-9]/g, ""))} className="h-10 flex-1" placeholder="Min" />
                         <span className="text-muted-foreground shrink-0 text-sm">–</span>
                         <Input value={grantRangeMax} onChange={e => setGrantRangeMax(e.target.value.replace(/[^0-9]/g, ""))}
-                          className={`h-10 flex-1 ${grantRangeMin && grantRangeMax && Number(grantRangeMax) < Number(grantRangeMin) ? "border-red-400 focus-visible:ring-red-300" : ""}`}
+                          className={`h-10 flex-1 ${grantRangeInvalid ? "border-red-400 focus-visible:ring-red-300" : ""}`}
                           placeholder="Max" />
                       </div>
-                      {grantRangeMin && grantRangeMax && Number(grantRangeMax) < Number(grantRangeMin) && (
+                      {grantRangeInvalid && (
                         <p className="text-xs text-red-500 mt-1.5">Max must be greater than or equal to Min.</p>
                       )}
                     </div>
@@ -1260,9 +1298,25 @@ export default function DashboardProfile() {
               { label: "Sectors", done: sectors.length > 0 },
               { label: "Online presence", done: !!linkedinUrl || !!website },
               ...(isOrg ? [{ label: "Organisation logo", done: !!logoUrl }] : [{ label: "Profile photo", done: !!profile?.avatar_url }]),
-            ].map(item => (
+              // Corporate gets nothing added here — every field
+              // generate-csr-brief actually reads (focus statement, budget
+              // range, ESG frameworks, geographic focus, sector focus,
+              // partner type preference) is already covered by the 7 base
+              // org items above via the mandate/CSR completeness parity.
+              // Funder and implementer additions below are limited to the
+              // specific fields confirmed, by reading generate-deal-memo and
+              // match-orgs-for-partnership directly, to actually feed AI
+              // decisions — not a general "more fields = better" pass.
+              ...(isFunder ? [
+                { label: "Investment thesis", done: !!investmentThesis },
+              ] : []),
+              ...(isImplementer ? [
+                { label: `DD readiness (${Math.round(ddReadinessFraction * 5)}/5)`, done: ddReadinessFraction === 1, partial: ddReadinessFraction > 0 && ddReadinessFraction < 1 },
+                { label: "Beneficiaries reached", done: totalBeneficiaries !== "" },
+              ] : []),
+            ].map((item: any) => (
               <div key={item.label} className="flex items-center gap-2">
-                <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${item.done ? "bg-[#2D6A4F]" : "bg-muted"}`}>
+                <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${item.done ? "bg-[#2D6A4F]" : item.partial ? "bg-amber-400" : "bg-muted"}`}>
                   {item.done && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
                 </div>
                 <span className={`text-xs ${item.done ? "text-foreground" : "text-muted-foreground"}`}>{item.label}</span>
@@ -1282,7 +1336,7 @@ export default function DashboardProfile() {
               profile?.verification_requested ? (
                 <p className="text-xs text-muted-foreground opacity-50 cursor-not-allowed">Verification pending review</p>
               ) : (
-                <a href="/verify" className="text-xs text-[#2D6A4F] hover:underline underline-offset-2">Apply for verification →</a>
+                <a href="/verify" className="text-xs text-[#2D6A4F] hover:underline underline-offset-2">Apply for verification</a>
               )
             )}
           </div>
