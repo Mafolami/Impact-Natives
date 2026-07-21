@@ -900,7 +900,7 @@ function MarketplaceDetail({
   // Fetch full detail fields
   useEffect(() => {
     supabase.from("initiative_requests")
-      .select("target_population,specific_ask,stage,confirmed_assets,had_prior_experience,prior_experience_detail,start_date,duration,sdg_tags,detail_content,resource_link,co_funding_status,ai_quality_score,target_beneficiaries,target_jobs,target_female_pct,target_timeline_months,impact_evidence")
+      .select("target_population,specific_ask,stage,confirmed_assets,had_prior_experience,prior_experience_detail,start_date,duration,sdg_tags,detail_content,resource_link,co_funding_status,ai_quality_score,target_beneficiaries,target_jobs,target_female_pct,target_timeline_months,impact_evidence,budget_min,budget_max,budget_currency")
       .eq("id", initiative.id).single()
       .then(({ data }) => { if (data) setFullDetail(data); });
   }, [initiative.id]);
