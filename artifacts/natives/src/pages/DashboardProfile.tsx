@@ -948,8 +948,13 @@ export default function DashboardProfile() {
                         </select>
                         <Input value={grantRangeMin} onChange={e => setGrantRangeMin(e.target.value.replace(/[^0-9]/g, ""))} className="h-10 flex-1" placeholder="Min" />
                         <span className="text-muted-foreground shrink-0 text-sm">–</span>
-                        <Input value={grantRangeMax} onChange={e => setGrantRangeMax(e.target.value.replace(/[^0-9]/g, ""))} className="h-10 flex-1" placeholder="Max" />
+                        <Input value={grantRangeMax} onChange={e => setGrantRangeMax(e.target.value.replace(/[^0-9]/g, ""))}
+                          className={`h-10 flex-1 ${grantRangeMin && grantRangeMax && Number(grantRangeMax) < Number(grantRangeMin) ? "border-red-400 focus-visible:ring-red-300" : ""}`}
+                          placeholder="Max" />
                       </div>
+                      {grantRangeMin && grantRangeMax && Number(grantRangeMax) < Number(grantRangeMin) && (
+                        <p className="text-xs text-red-500 mt-1.5">Max must be greater than or equal to Min.</p>
+                      )}
                     </div>
 
                     <div>

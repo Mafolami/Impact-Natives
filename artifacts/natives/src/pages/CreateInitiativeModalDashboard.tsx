@@ -687,11 +687,16 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     <span className="text-muted-foreground shrink-0 text-sm">–</span>
                     <input type="text" placeholder="Max" value={form.budgetMax}
                       onChange={e => set("budgetMax", e.target.value.replace(/[^0-9.,]/g, ""))}
-                      className="h-10 rounded-lg border border-border bg-background px-3 text-sm w-full focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                      className={cn("h-10 rounded-lg border bg-background px-3 text-sm w-full focus:outline-none focus:ring-2 focus:ring-primary/20",
+                        form.budgetMin && form.budgetMax && Number(form.budgetMax.replace(/,/g, "")) < Number(form.budgetMin.replace(/,/g, ""))
+                          ? "border-red-400 focus:ring-red-300" : "border-border")} />
                   </div>
+                  {form.budgetMin && form.budgetMax && Number(form.budgetMax.replace(/,/g, "")) < Number(form.budgetMin.replace(/,/g, "")) && (
+                    <p className="text-xs text-red-500 mt-1.5">Max must be greater than or equal to Min.</p>
+                  )}
                 </div>
-
                 {/* SDG tags */}
+
                 <div>
                   <FieldLabel optional>SDG alignment</FieldLabel>
                   <div className="flex flex-wrap gap-1.5 mt-1">
@@ -1040,7 +1045,8 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
             ) : mode === "ai" && aiStep < 2 ? (
               <button type="button"
                 onClick={() => setAiStep(s => s + 1)}
-                disabled={!form.title || !form.problem || !form.outcome || form.sectors.length === 0 || form.locations.length === 0 || form.partnerships.length === 0}
+                disabled={!form.title || !form.problem || !form.outcome || form.sectors.length === 0 || form.locations.length === 0 || form.partnerships.length === 0 ||
+                  Boolean(form.budgetMin && form.budgetMax && Number(form.budgetMax.replace(/,/g, "")) < Number(form.budgetMin.replace(/,/g, "")))}
                 className="rounded-full h-10 px-7 bg-primary hover:bg-primary/90 text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
                 Continue →
               </button>
@@ -1209,8 +1215,13 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
               <span className="text-muted-foreground shrink-0 text-sm">–</span>
               <input type="text" placeholder="Max" value={form.budgetMax}
                 onChange={e => set("budgetMax", e.target.value.replace(/[^0-9.,]/g, ""))}
-                className="h-10 rounded-lg border border-border bg-background px-3 text-sm w-full focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                className={cn("h-10 rounded-lg border bg-background px-3 text-sm w-full focus:outline-none focus:ring-2 focus:ring-primary/20",
+                  form.budgetMin && form.budgetMax && Number(form.budgetMax.replace(/,/g, "")) < Number(form.budgetMin.replace(/,/g, ""))
+                    ? "border-red-400 focus:ring-red-300" : "border-border")} />
             </div>
+            {form.budgetMin && form.budgetMax && Number(form.budgetMax.replace(/,/g, "")) < Number(form.budgetMin.replace(/,/g, "")) && (
+              <p className="text-xs text-red-500 mt-1.5">Max must be greater than or equal to Min.</p>
+            )}
           </div>
           <div>
             <FieldLabel optional>SDG alignment</FieldLabel>
@@ -1480,7 +1491,8 @@ function ManualFooterButton({ step, form, urlValid, onNext, onSubmit, submitting
   submitting: boolean
 }) {
   const step0Valid = !!form.title && form.sectors.length > 0 && form.locations.length > 0 && form.targetPopulation.trim().length > 0
-  const step1Valid = form.problem.length >= 20 && wordCount(form.problem) <= 30 && form.outcome.length >= 20 && wordCount(form.outcome) <= 30 && !!form.stage
+  const budgetValid = !(form.budgetMin && form.budgetMax && Number(form.budgetMax.replace(/,/g, "")) < Number(form.budgetMin.replace(/,/g, "")))
+  const step1Valid = form.problem.length >= 20 && wordCount(form.problem) <= 30 && form.outcome.length >= 20 && wordCount(form.outcome) <= 30 && !!form.stage && budgetValid
   const step2Valid = form.partnerships.length > 0 && form.specificAsk.trim().length > 0
   const step3Valid = form.hadPriorExperience !== null
   const step4Valid = !(form.resourceLink && !urlValid(form.resourceLink))
