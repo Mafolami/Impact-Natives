@@ -436,7 +436,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                             background: ini.score >= 70 ? "#eaf5ee" : "#f5f5f5",
                             color: ini.score >= 70 ? "#2D6A4F" : "#000000",
                           }}>
-                          {ini.score}% relevant
+                          {ini.score}% criteria match
                         </span>
                       )}
                     </div>
@@ -454,7 +454,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                     <div className="flex flex-col gap-1 mb-2">
                       {[
                         ["sector_fit", "Sector"], ["geography_fit", "Geography"], ["stage_fit", "Stage"],
-                        ["budget_fit", "Budget"], ["esg_fit", "ESG fit"], ["support_type_fit", "Support type"],
+                        ["budget_fit", "Budget"], ["dd_fit", "DD readiness"], ["esg_fit", "ESG fit"], ["support_type_fit", "Support type"],
                       ].filter(([key]) => ini.criteria[key]).map(([key, label]) => (
                         <div key={key} className="flex items-center justify-between">
                           <span className="text-xs text-black">{label}</span>
