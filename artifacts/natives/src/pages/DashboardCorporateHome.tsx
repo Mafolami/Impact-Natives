@@ -246,35 +246,46 @@ export default function CorporateHome({ profile }: { profile: any }) {
         .order("score", { ascending: false });
 
         const hadCache = applyCache(cachedMatches ?? []);
-        setLoadingMatches(false);
+      setLoadingMatches(false);
+
+      async function performRefresh(): Promise<{ gotMatches: boolean }> {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) return { gotMatches: false };
+          const res = await fetch(`${supabaseUrl}/functions/v1/refresh-initiative-matches`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+          });
+          const result = await res.json();
+          if (result.matches?.length) {
+            applyCache(result.matches.map((m: any) => ({
+              initiative_id: m.initiative_id, score: m.score, match_reason: m.match_reason, criteria: m.criteria,
+            })));
+            return { gotMatches: true };
+          }
+          return { gotMatches: false };
+        } catch {
+          return { gotMatches: false };
+        }
+      }
+
+      if (hadCache) {
+        performRefresh();
+      } else {
         setAiMatching(true);
         setMatchProgress(4);
         const progressInterval = setInterval(() => {
           setMatchProgress(p => (p >= 92 ? p : p + Math.max(0.5, (92 - p) * 0.08)));
         }, 300);
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            const res = await fetch(`${supabaseUrl}/functions/v1/refresh-initiative-matches`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-            });
-            const result = await res.json();
-            if (result.matches?.length) {
-              applyCache(result.matches.map((m: any) => ({
-                initiative_id: m.initiative_id, score: m.score, match_reason: m.match_reason, criteria: m.criteria,
-              })));
-            } else if (!hadCache) {
-              setMatchedInitiatives(esgFirst.filter((i: any) => i.esg_alignment));
-            }
-          }
-        } catch {
-          if (!hadCache) setMatchedInitiatives(esgFirst.filter((i: any) => i.esg_alignment));
+        const { gotMatches } = await performRefresh();
+        if (!gotMatches) {
+          setMatchedInitiatives(esgFirst.filter((i: any) => i.esg_alignment));
         }
         clearInterval(progressInterval);
         setMatchProgress(100);
         await sleep(400);
         setAiMatching(false);
+      }
     }
   }
 
@@ -467,7 +478,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
                 <Leaf className="w-3.5 h-3.5" />
                 Initiative matches
               </h3>
-              <p className="text-xs text-black mt-0.5">Top 3, matched to your CSR mandate</p>
+              <p className="text-xs text-black mt-0.5">Top 3, matched to your mandate</p>
             </div>
             <button type="button" onClick={() => navigate("/dashboard/marketplace")}
               className="text-xs font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors shrink-0">
@@ -481,7 +492,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
                 <div className="flex items-center justify-between text-xs text-[#2D6A4F]">
                   <span className="flex items-center gap-2">
                     <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                    Finding your best ESG matches
+                    Finding your best matches
                   </span>
                   <span className="font-semibold tabular-nums">{Math.round(matchProgress)}%</span>
                 </div>

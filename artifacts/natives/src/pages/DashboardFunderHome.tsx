@@ -212,43 +212,57 @@ export default function FunderHome({ profile }: { profile: any }) {
         .order("score", { ascending: false });
 
         const hadCache = applyCache(cachedMatches ?? []);
-        setLoadingMatches(false);
+      setLoadingMatches(false);
+
+      // Isolated so it can run either awaited-with-loading-UI (nothing to
+      // show yet) or fire-and-forget in the background (something's
+      // already on screen). Never throws — every failure path resolves to
+      // { gotMatches: false } rather than rejecting.
+      async function performRefresh(): Promise<{ gotMatches: boolean }> {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) return { gotMatches: false };
+          const res = await fetch(`${supabaseUrl}/functions/v1/refresh-initiative-matches`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+          });
+          const result = await res.json();
+          if (result.matches?.length) {
+            applyCache(result.matches.map((m: any) => ({
+              initiative_id: m.initiative_id, score: m.score, match_reason: m.match_reason, criteria: m.criteria,
+            })));
+            return { gotMatches: true };
+          }
+          return { gotMatches: false };
+        } catch {
+          return { gotMatches: false };
+        }
+      }
+
+      if (hadCache) {
+        // Stale-while-revalidate: there's already something on screen, so
+        // the refresh (which internally no-ops unless the cache is
+        // genuinely stale) runs quietly in the background. If fresher
+        // results land while the person's still looking, they swap in;
+        // if not, nothing changes. Either way, no loading state, no wait.
+        performRefresh();
+      } else {
+        // Nothing to show yet — this is the one case that still needs a
+        // blocking wait, since there's no fallback content to display.
         setAiMatching(true);
         setMatchProgress(4);
-        // Simulated progress, not literal backend progress \u2014 there's no cheap
-        // way to stream real per-batch completion back from
-        // refresh-initiative-matches without a bigger architecture change
-        // (SSE/chunked response). This decelerates toward 92% and holds there
-        // until the real response arrives, then snaps to 100%, same pattern
-        // used by most "this takes a while" progress bars elsewhere.
         const progressInterval = setInterval(() => {
           setMatchProgress(p => (p >= 92 ? p : p + Math.max(0.5, (92 - p) * 0.08)));
         }, 300);
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            const res = await fetch(`${supabaseUrl}/functions/v1/refresh-initiative-matches`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-            });
-            const result = await res.json();
-            if (result.matches?.length) {
-              applyCache(result.matches.map((m: any) => ({
-                initiative_id: m.initiative_id, score: m.score, match_reason: m.match_reason, criteria: m.criteria,
-              })));
-            } else if (!hadCache) {
-              // Never-scored, and this attempt returned nothing usable —
-              // fall back to the raw unscored list rather than showing empty.
-              setMatchedInitiatives(initiatives);
-            }
-          }
-        } catch {
-          if (!hadCache) setMatchedInitiatives(initiatives);
+        const { gotMatches } = await performRefresh();
+        if (!gotMatches) {
+          setMatchedInitiatives(initiatives);
         }
         clearInterval(progressInterval);
         setMatchProgress(100);
         await sleep(400);
         setAiMatching(false);
+      }
     }
 
     loadAll();
@@ -408,7 +422,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                 style={{ background: "#2D6A4F", color: "#ffffff" }}>
                 Initiatives for you
               </h3>
-              <p className="text-xs text-black mt-0.5">Top 3, AI-matched to your mandate</p>
+              <p className="text-xs text-black mt-0.5">Top 3, matched to your mandate</p>
             </div>
             <button type="button" onClick={() => navigate("/dashboard/marketplace")}
               className="text-xs font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors shrink-0">
