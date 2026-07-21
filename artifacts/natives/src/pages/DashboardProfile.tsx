@@ -337,7 +337,7 @@ export default function DashboardProfile() {
 
   // ── Existing fields ───────────────────────────────────────────────────────
   const [fullName, setFullName]         = useState(profile?.full_name     ?? "");
-  const [country, setCountry]           = useState(profile?.country       ?? "");
+  const fullNameInvalid = !fullName.trim();  const [country, setCountry]           = useState(profile?.country       ?? "");
   const [bio, setBio]                   = useState(profile?.bio           ?? "");
   const [orgDescription, setOrgDescription] = useState("");
   const [orgName, setOrgName]           = useState(profile?.org_name      ?? "");
@@ -373,7 +373,7 @@ export default function DashboardProfile() {
 
   async function handleSave() {
     if (!user) return;
-    if (grantRangeInvalid) {
+    if (grantRangeInvalid || fullNameInvalid) {
       setSaveBlocked(true);
       return;
     }
@@ -556,7 +556,7 @@ export default function DashboardProfile() {
   const SaveBar = () => (
     <div className="space-y-2 pt-2">
       <div className="flex items-center gap-3">
-        <Button onClick={handleSave} disabled={saving || grantRangeInvalid}
+        <Button onClick={handleSave} disabled={saving || grantRangeInvalid || fullNameInvalid}
           className="bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full px-6 disabled:opacity-50 disabled:cursor-not-allowed">
           {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
           Save changes
@@ -567,6 +567,9 @@ export default function DashboardProfile() {
           </span>
         )}
       </div>
+      {fullNameInvalid && (
+        <p className="text-xs text-red-500">Full name is required.</p>
+      )}
       {(grantRangeInvalid || saveBlocked) && (
         <p className="text-xs text-red-500">
           Max must be greater than or equal to Min. Fix the grant/investment range in{" "}
