@@ -267,6 +267,28 @@ export default function DashboardProfile() {
       });
   }, [user]);
 
+  async function handleLogoDelete() {
+    if (!user) return;
+    setLogoUploading(true);
+    try {
+      // Best-effort cleanup of the actual storage object — the exact
+      // extension isn't tracked in state (only the resulting public URL
+      // is), so list the user's folder and remove anything matching
+      // "logo.*" rather than guessing the extension.
+      const { data: files } = await supabase.storage.from("org-logos").list(user.id);
+      const logoFiles = (files ?? []).filter(f => f.name.startsWith("logo."));
+      if (logoFiles.length > 0) {
+        await supabase.storage.from("org-logos").remove(logoFiles.map(f => `${user.id}/${f.name}`));
+      }
+    } catch (err) {
+      console.error("Logo file cleanup failed (continuing to clear the DB field regardless):", err);
+    }
+    const { error } = await supabase.from("organizations").update({ logo_url: null }).eq("user_id", user.id);
+    if (error) { alert(`Couldn't remove logo: ${error.message}`); setLogoUploading(false); return; }
+    setLogoUrl(null);
+    await refreshProfile();
+    setLogoUploading(false);
+  }
   async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !user) return;
@@ -494,22 +516,40 @@ export default function DashboardProfile() {
   // not evidence of the ORGANISATION's own online presence, so it must not
   // count for orgs. Individuals keep it since their presence pane does show
   // LinkedIn as their own.
-  const orgOnlinePresence = socialLinks.length > 0 || !!website;
-  const individualOnlinePresence = socialLinks.length > 0 || !!linkedinUrl || !!website;
-  const baseOrgItems = [!!fullName, !!orgDescription, !!country, !!orgName, sectors.length > 0, orgOnlinePresence, !!logoUrl].map(v => v ? 1 : 0);
-  const profileStrengthValues: number[] = isOrg
+  // Split into two separate scored items instead of one OR-check, so a
+  // single social link no longer swings the whole "online presence" share
+  // at once (that combined item was worth 1/7 ≈ 14% of the base score for
+  // corporate accounts specifically, since they get no extra org-type
+  // items — the exact 81→95 jump reported). Each half is now ~half that.
+  // Online presence is either/or again (website alone or one social link
+  // alone both fully satisfy it — matching how the pane itself treats them
+  // as interchangeable), but now capped at a flat 5% of the total rather
+  // than sharing equal weight with every other item, which is what caused
+  // one social link to swing the score by ~12-14 points.
+  const orgOnlinePresence = !!website || socialLinks.length > 0;
+  const individualOnlinePresence = !!website || socialLinks.length > 0 || !!linkedinUrl;
+  const baseOrgItems = [!!fullName, !!orgDescription, !!country, !!orgName, sectors.length > 0, !!logoUrl].map(v => v ? 1 : 0);
+  const otherItemValues: number[] = isOrg
     ? [...baseOrgItems, ...orgTypeStrengthItems]
-    : [!!fullName, !!roleTitle, !!bio, !!country, sectors.length > 0, individualOnlinePresence, !!profile?.avatar_url].map(v => v ? 1 : 0);
+    : [!!fullName, !!roleTitle, !!bio, !!country, sectors.length > 0, !!profile?.avatar_url].map(v => v ? 1 : 0);
   // Verification is weighted separately at a fixed 5% rather than as one
   // more equal-weight item — folding it into profileStrengthValues as a
   // plain 1-of-N entry would make it worth 12-14% depending on org type,
   // not the small nudge intended. Individuals have no verification concept
   // (the Verification pane only renders for isOrg), so they keep the
   // original straight average.
-  const baseStrengthPct = (profileStrengthValues.reduce((a, b) => a + b, 0) / profileStrengthValues.length) * 100;
-  const strengthScore = isOrg
-    ? Math.round(baseStrengthPct * 0.95 + (profile?.is_verified ? 100 : 0) * 0.05)
-    : Math.round(baseStrengthPct);
+  // Fixed weight budget: online presence 5%, verification 10% (org only),
+  // everything else splits whatever's left. Verification moved 5% -> 10%
+  // per explicit request.
+  const ONLINE_PRESENCE_WEIGHT = 5;
+  const VERIFICATION_WEIGHT = isOrg ? 10 : 0;
+  const otherItemsWeight = 100 - ONLINE_PRESENCE_WEIGHT - VERIFICATION_WEIGHT;
+  const otherItemsPct = (otherItemValues.reduce((a, b) => a + b, 0) / otherItemValues.length) * 100;
+  const strengthScore = Math.round(
+    (otherItemsPct / 100) * otherItemsWeight +
+    ((isOrg ? orgOnlinePresence : individualOnlinePresence) ? ONLINE_PRESENCE_WEIGHT : 0) +
+    (isOrg && profile?.is_verified ? VERIFICATION_WEIGHT : 0)
+  );
   const strengthLabel = strengthScore >= 80 ? "Strong" : strengthScore >= 50 ? "Good" : "Needs work";
   const strengthColor = strengthScore >= 80 ? "#2D6A4F" : strengthScore >= 50 ? "#f59e0b" : "#C45C26";
 
@@ -714,11 +754,20 @@ export default function DashboardProfile() {
                   <div className="space-y-4">
                     <PaneHeader title="Organisation logo" />
                     <div className="flex items-center gap-5">
-                      <div className="w-16 h-16 rounded-xl border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0">
-                        {logoUrl ? (
-                          <img src={logoUrl} alt="Organisation logo" className="w-full h-full object-contain" />
-                        ) : (
-                          <span className="text-2xl font-bold text-muted-foreground">{(orgName || profile?.org_name || "?")[0].toUpperCase()}</span>
+                      <div className="relative w-16 h-16 shrink-0">
+                        <div className="w-16 h-16 rounded-xl border border-border bg-muted flex items-center justify-center overflow-hidden">
+                          {logoUrl ? (
+                            <img src={logoUrl} alt="Organisation logo" className="w-full h-full object-contain" />
+                          ) : (
+                            <span className="text-2xl font-bold text-muted-foreground">{(orgName || profile?.org_name || "?")[0].toUpperCase()}</span>
+                          )}
+                        </div>
+                        {logoUrl && (
+                          <button type="button" onClick={handleLogoDelete} disabled={logoUploading}
+                            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-colors disabled:opacity-50"
+                            title="Remove logo">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                          </button>
                         )}
                       </div>
                       <div>
@@ -1333,7 +1382,7 @@ export default function DashboardProfile() {
                 { label: `DD readiness (${Math.round(ddReadinessFraction * 5)}/5)`, done: ddReadinessFraction === 1, partial: ddReadinessFraction > 0 && ddReadinessFraction < 1 },
                 { label: "Beneficiaries reached", done: totalBeneficiaries !== "" },
               ] : []),
-              ...(isOrg ? [{ label: "Verified organisation (5%)", done: !!profile?.is_verified }] : []),
+              ...(isOrg ? [{ label: "Verified organisation", done: !!profile?.is_verified }] : []),
             ].map((item: any) => (
               <div key={item.label} className="flex items-center gap-2">
                 <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${item.done ? "bg-[#2D6A4F]" : item.partial ? "bg-amber-400" : "bg-muted"}`}>
