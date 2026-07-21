@@ -61,7 +61,7 @@ export default function FunderHome({ profile }: { profile: any }) {
   const [aiMatching, setAiMatching] = useState(false);
   const [mandateScore, setMandateScore] = useState(0);
   const [missingMandateFields, setMissingMandateFields] = useState<string[]>([]);
-  const [orgId, setOrgId] = useState<string | null>(null);
+  const [matchProgress, setMatchProgress] = useState(0);  const [orgId, setOrgId] = useState<string | null>(null);
   const [conversations, setConversations] = useState(0);
   const [awaitingResponse, setAwaitingResponse] = useState(0);
   const [savedCount, setSavedCount] = useState(0);
@@ -78,6 +78,7 @@ export default function FunderHome({ profile }: { profile: any }) {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const firstName = profile?.full_name?.split(" ")[0] ?? "there";
+  function sleep(ms: number) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -210,32 +211,44 @@ export default function FunderHome({ profile }: { profile: any }) {
         .eq("org_id", orgData?.id)
         .order("score", { ascending: false });
 
-      const hadCache = applyCache(cachedMatches ?? []);
-      setLoadingMatches(false);
-
-      setAiMatching(true);
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          const res = await fetch(`${supabaseUrl}/functions/v1/refresh-initiative-matches`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-          });
-          const result = await res.json();
-          if (result.matches?.length) {
-            applyCache(result.matches.map((m: any) => ({
-              initiative_id: m.initiative_id, score: m.score, match_reason: m.match_reason, criteria: m.criteria,
-            })));
-          } else if (!hadCache) {
-            // Never-scored, and this attempt returned nothing usable —
-            // fall back to the raw unscored list rather than showing empty.
-            setMatchedInitiatives(initiatives);
+        const hadCache = applyCache(cachedMatches ?? []);
+        setLoadingMatches(false);
+        setAiMatching(true);
+        setMatchProgress(4);
+        // Simulated progress, not literal backend progress \u2014 there's no cheap
+        // way to stream real per-batch completion back from
+        // refresh-initiative-matches without a bigger architecture change
+        // (SSE/chunked response). This decelerates toward 92% and holds there
+        // until the real response arrives, then snaps to 100%, same pattern
+        // used by most "this takes a while" progress bars elsewhere.
+        const progressInterval = setInterval(() => {
+          setMatchProgress(p => (p >= 92 ? p : p + Math.max(0.5, (92 - p) * 0.08)));
+        }, 300);
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            const res = await fetch(`${supabaseUrl}/functions/v1/refresh-initiative-matches`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+            });
+            const result = await res.json();
+            if (result.matches?.length) {
+              applyCache(result.matches.map((m: any) => ({
+                initiative_id: m.initiative_id, score: m.score, match_reason: m.match_reason, criteria: m.criteria,
+              })));
+            } else if (!hadCache) {
+              // Never-scored, and this attempt returned nothing usable —
+              // fall back to the raw unscored list rather than showing empty.
+              setMatchedInitiatives(initiatives);
+            }
           }
+        } catch {
+          if (!hadCache) setMatchedInitiatives(initiatives);
         }
-      } catch {
-        if (!hadCache) setMatchedInitiatives(initiatives);
-      }
-      setAiMatching(false);
+        clearInterval(progressInterval);
+        setMatchProgress(100);
+        await sleep(400);
+        setAiMatching(false);
     }
 
     loadAll();
@@ -405,9 +418,17 @@ export default function FunderHome({ profile }: { profile: any }) {
 
           {(loadingMatches || aiMatching) ? (
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-xs text-[#2D6A4F] mb-2">
-                <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                Finding your best matches\u2014this can take a few seconds...
+              <div className="space-y-1.5 mb-2">
+                <div className="flex items-center justify-between text-xs text-[#2D6A4F]">
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                    Finding your best matches
+                  </span>
+                  <span className="font-semibold tabular-nums">{Math.round(matchProgress)}%</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-300 ease-out" style={{ width: `${matchProgress}%` }} />
+                </div>
               </div>
               {[1, 2, 3].map(i => (
                 <div key={i} className="h-24 rounded-xl border border-border bg-white animate-pulse" />
