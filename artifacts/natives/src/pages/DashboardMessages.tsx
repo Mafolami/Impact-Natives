@@ -400,30 +400,48 @@ export default function DashboardMessages() {
   const initiativeCount = pendingEOIs.length + initiativeEnquiries.length + initiativeActive.length + pendingOutbound.length;
   const hasAnything = pendingEOIs.length > 0 || conversations.length > 0 || pendingOutbound.length > 0;
 
-  // Flat-divider row, no card border, no color coding — status shown as
-  // plain text rather than a colored pill.
-  function Row({ onClick, avatarLabel, title, subtitle, meta, status, last }: {
-    onClick?: () => void; avatarLabel: string; title: string; subtitle?: string;
-    meta?: string; status?: string; last?: boolean;
+  const STATUS_STYLES: Record<string, { label: string; bg: string; color: string }> = {
+    confirmed: { label: "Confirmed", bg: "#eaf5ee", color: "#2D6A4F" },
+    closed:    { label: "Closed",    bg: "#fef2f2", color: "#ef4444" },
+    active:    { label: "Active",    bg: "#fffbeb", color: "#b45309" },
+    pending:   { label: "Pending",   bg: "#f3f4f6", color: "#6b7280" },
+    accepted:  { label: "Accepted",  bg: "#eaf5ee", color: "#2D6A4F" },
+    declined:  { label: "Declined",  bg: "#fef2f2", color: "#ef4444" },
+  };
+
+  // Flat divider row (no card border). Color lives in the avatar fill and
+  // the status pill, not in any border. Message preview restored — that
+  // was a real feature, not incidental. No timestamp — status only.
+  function Row({ onClick, avatarLabel, avatarColor, title, subtitle, preview, statusKey, last }: {
+    onClick?: () => void; avatarLabel: string; avatarColor: string; title: string;
+    subtitle?: string; preview?: string; statusKey?: string; last?: boolean;
   }) {
     const Tag = onClick ? "button" : "div";
+    const status = statusKey ? STATUS_STYLES[statusKey] : null;
     return (
       <Tag type={onClick ? "button" : undefined} onClick={onClick}
-        className={`w-full text-left flex items-center gap-3 px-4 py-3 min-w-0 ${!last ? "border-b border-border" : ""} ${onClick ? "hover:bg-muted/40 transition-colors" : ""}`}>
-        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0 text-black text-xs font-semibold">
+        className={`w-full text-left flex items-start gap-3 px-4 py-3 min-w-0 ${!last ? "border-b border-border" : ""} ${onClick ? "hover:bg-muted/40 transition-colors" : ""}`}>
+        <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-white text-xs font-semibold" style={{ background: avatarColor }}>
           {avatarLabel}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-baseline justify-between gap-2">
-            <p className="text-sm font-medium text-foreground truncate">{title}</p>
-            {meta && <span className="text-xs text-black shrink-0">{meta}</span>}
-          </div>
+          <p className="text-sm font-medium text-foreground truncate">{title}</p>
           {subtitle && <p className="text-xs text-black mt-0.5 truncate">{subtitle}</p>}
+          {preview && <p className="text-xs text-black mt-1 line-clamp-1">{preview}</p>}
         </div>
-        {status && <span className="text-xs text-black shrink-0">{status}</span>}
+        {status && (
+          <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 mt-0.5"
+            style={{ background: status.bg, color: status.color }}>
+            {status.label}
+          </span>
+        )}
       </Tag>
     );
   }
+
+  const PARTNERSHIP_COLOR = "#C45C26";
+  const INITIATIVE_COLOR = "#2D6A4F";
+  const ENQUIRY_COLOR = "#185FA5";
 
   return (
     <div className="space-y-6 min-w-0 overflow-hidden">
@@ -445,28 +463,31 @@ export default function DashboardMessages() {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Tab switcher — Partnership first, as agreed */}
+          {/* Tab switcher — Partnership first. Active tab takes its own
+              brand color rather than a flat neutral fill. */}
           <div className="flex gap-2">
             <button type="button" onClick={() => setActiveTab("partnership")}
-              className={`flex-1 h-11 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
-                activeTab === "partnership" ? "bg-foreground text-background" : "bg-muted text-black hover:bg-muted/70"
-              }`}>
+              className={`flex-1 h-11 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors text-white ${
+                activeTab === "partnership" ? "" : "!bg-muted !text-black hover:!bg-muted/70"
+              }`}
+              style={activeTab === "partnership" ? { background: PARTNERSHIP_COLOR } : undefined}>
               <Handshake className="w-4 h-4" />
               Partnership conversations
               {partnershipCount > 0 && (
-                <span className={`text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${activeTab === "partnership" ? "bg-background text-foreground" : "bg-black/10 text-black"}`}>
+                <span className={`text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${activeTab === "partnership" ? "bg-white/25 text-white" : "bg-black/10 text-black"}`}>
                   {partnershipCount}
                 </span>
               )}
             </button>
             <button type="button" onClick={() => setActiveTab("initiative")}
-              className={`flex-1 h-11 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
-                activeTab === "initiative" ? "bg-foreground text-background" : "bg-muted text-black hover:bg-muted/70"
-              }`}>
+              className={`flex-1 h-11 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors text-white ${
+                activeTab === "initiative" ? "" : "!bg-muted !text-black hover:!bg-muted/70"
+              }`}
+              style={activeTab === "initiative" ? { background: INITIATIVE_COLOR } : undefined}>
               <Lightbulb className="w-4 h-4" />
               Initiative conversations
               {initiativeCount > 0 && (
-                <span className={`text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${activeTab === "initiative" ? "bg-background text-foreground" : "bg-black/10 text-black"}`}>
+                <span className={`text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${activeTab === "initiative" ? "bg-white/25 text-white" : "bg-black/10 text-black"}`}>
                   {initiativeCount}
                 </span>
               )}
@@ -479,7 +500,7 @@ export default function DashboardMessages() {
               {partnershipVisible.length > 0 && (
                 <section>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xs font-semibold uppercase tracking-widest text-black">Active — {partnershipVisible.length}</h3>
+                    <h3 className="text-xs font-semibold uppercase tracking-widest text-black">Conversations — {partnershipVisible.length}</h3>
                     <Link href="/dashboard/portfolio?tab=partners"
                       className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-black hover:underline underline-offset-2">
                       Confirmed partnerships
@@ -490,16 +511,12 @@ export default function DashboardMessages() {
                     {partnershipVisible.map((convo, i) => (
                       <Row key={convo.id} last={i === partnershipVisible.length - 1}
                         onClick={() => setActiveConvo(convo)}
+                        avatarColor={PARTNERSHIP_COLOR}
                         avatarLabel={((convo.other_user_name ?? "?")[0]).toUpperCase()}
                         title={convo.other_user_name ?? "Unknown"}
                         subtitle={convo.initiative_title}
-                        meta={timeAgo(convo.last_message_at)}
-                        status={
-                          convo.partnerStatus === "confirmed" ? "Confirmed"
-                          : convo.partnerStatus === "closed" ? "Closed"
-                          : convo.partnerStatus === "active" ? "Active"
-                          : "Pending"
-                        } />
+                        preview={convo.last_message}
+                        statusKey={convo.partnerStatus} />
                     ))}
                   </div>
                 </section>
@@ -511,6 +528,7 @@ export default function DashboardMessages() {
                     {partnershipArchived.map((convo, i) => (
                       <Row key={convo.id} last={i === partnershipArchived.length - 1}
                         onClick={() => setActiveConvo(convo)}
+                        avatarColor={PARTNERSHIP_COLOR}
                         avatarLabel={((convo.other_user_name ?? "?")[0]).toUpperCase()}
                         title={convo.other_user_name ?? "Unknown"}
                         subtitle={convo.initiative_title} />
@@ -539,8 +557,8 @@ export default function DashboardMessages() {
                     {pendingEOIs.map(eoi => (
                       <div key={eoi.eoi_id}
                         className="rounded-xl border border-border bg-white px-5 py-4 flex items-start gap-4">
-                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0 mt-0.5 text-black text-xs font-semibold">
-                          <CheckCircle2 className="w-4 h-4" />
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "#eaf5ee" }}>
+                          <CheckCircle2 className="w-4 h-4" style={{ color: INITIATIVE_COLOR }} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2 mb-0.5 flex-wrap">
@@ -599,10 +617,11 @@ export default function DashboardMessages() {
                     {initiativeEnquiries.map((convo, i) => (
                       <Row key={convo.id} last={i === initiativeEnquiries.length - 1}
                         onClick={() => setActiveConvo(convo)}
+                        avatarColor={ENQUIRY_COLOR}
                         avatarLabel="?"
                         title={convo.initiative_title}
                         subtitle={convo.other_user_name}
-                        meta={convo.last_message ? undefined : undefined} />
+                        preview={convo.last_message} />
                     ))}
                   </div>
                 </section>
@@ -610,21 +629,17 @@ export default function DashboardMessages() {
 
               {initiativeActive.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-2">Active — {initiativeActive.length}</h3>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-2">Conversations — {initiativeActive.length}</h3>
                   <div className="rounded-2xl border border-border bg-white overflow-hidden">
                     {initiativeActive.map((convo, i) => (
                       <Row key={convo.id} last={i === initiativeActive.length - 1}
                         onClick={() => setActiveConvo(convo)}
+                        avatarColor={INITIATIVE_COLOR}
                         avatarLabel={((convo.other_user_name ?? "?")[0]).toUpperCase()}
                         title={convo.other_user_name ?? "Unknown"}
                         subtitle={`Re: ${convo.initiative_title}`}
-                        meta={timeAgo(convo.last_message_at)}
-                        status={
-                          convo.partnerStatus === "confirmed" ? "Confirmed"
-                          : convo.partnerStatus === "closed" ? "Closed"
-                          : convo.partnerStatus === "active" ? "Active"
-                          : "Pending"
-                        } />
+                        preview={convo.last_message}
+                        statusKey={convo.partnerStatus} />
                     ))}
                   </div>
                 </section>
@@ -636,15 +651,12 @@ export default function DashboardMessages() {
                   <div className="rounded-2xl border border-border bg-white overflow-hidden">
                     {pendingOutbound.map((eoi, i) => (
                       <Row key={eoi.eoi_id} last={i === pendingOutbound.length - 1}
+                        avatarColor={INITIATIVE_COLOR}
                         avatarLabel="•"
                         title={eoi.initiative_title}
-                        subtitle={eoi.message ? `"${eoi.message}"` : eoi.partnership_type}
-                        meta={timeAgo(eoi.created_at)}
-                        status={
-                          eoi.conversation_status === "open" ? "Accepted"
-                          : eoi.conversation_status === "declined" ? "Declined"
-                          : "Pending"
-                        } />
+                        subtitle={eoi.partnership_type}
+                        preview={eoi.message ? `"${eoi.message}"` : undefined}
+                        statusKey={eoi.conversation_status === "open" ? "accepted" : eoi.conversation_status === "declined" ? "declined" : "pending"} />
                     ))}
                   </div>
                 </section>
@@ -657,6 +669,7 @@ export default function DashboardMessages() {
                     {initiativeArchived.map((convo, i) => (
                       <Row key={convo.id} last={i === initiativeArchived.length - 1}
                         onClick={() => setActiveConvo(convo)}
+                        avatarColor={INITIATIVE_COLOR}
                         avatarLabel={((convo.other_user_name ?? "?")[0]).toUpperCase()}
                         title={convo.other_user_name ?? "Unknown"}
                         subtitle={`Re: ${convo.initiative_title}`} />
