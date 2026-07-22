@@ -418,13 +418,17 @@ export default function DashboardMessages() {
           {/* 1 — Awaiting review */}
           {pendingEOIs.length > 0 && (
             <section>
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-                Awaiting review — {pendingEOIs.length}
-              </h3>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#2D6A4F" }} />
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-black">
+                  Awaiting review — {pendingEOIs.length}
+                </h3>
+              </div>
               <div className="space-y-2">
                 {pendingEOIs.map(eoi => (
                   <div key={eoi.eoi_id}
-                    className="rounded-xl border border-border bg-card px-5 py-4 flex items-start gap-4">
+                    className="rounded-xl border-l-4 border border-border bg-white px-5 py-4 flex items-start gap-4"
+                    style={{ borderLeftColor: "#2D6A4F" }}>
                     <div className="w-8 h-8 rounded-lg bg-[#eaf5ee] flex items-center justify-center shrink-0 mt-0.5">
                       <CheckCircle2 className="w-4 h-4 text-[#2D6A4F]" />
                     </div>
@@ -489,26 +493,33 @@ export default function DashboardMessages() {
             </section>
           )}
 
-          {/* 2 — Active conversations */}
+          {/* 2 — Active conversations, segmented by channel of origin so it's
+              unambiguous at a glance which kind of relationship each thread
+              represents — previously "Conversations" silently mixed
+              EOI-based and partnership-based threads together, distinguishable
+              only by reading the title text itself. */}
           {conversations.filter(c => c.conversation_type === "question" && !c.funder_closed_at).length > 0 && (
             <section>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#185FA5" }} />
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-black">
                   Enquiries
                 </h3>
               </div>
               <div className="space-y-2 min-w-0 overflow-hidden">
                 {conversations.filter(c => c.conversation_type === "question" && !c.funder_closed_at).map(convo => (
                   <button key={convo.id} type="button" onClick={() => setActiveConvo(convo)}
-                  className="w-full min-w-0 text-left rounded-xl border border-[#2D6A4F]/20 bg-card px-5 py-4 flex items-start gap-4 hover:border-[#2D6A4F]/40 transition-colors overflow-hidden">
-                    <div className="w-8 h-8 rounded-full bg-[#2D6A4F]/10 flex items-center justify-center shrink-0 mt-0.5 text-[#2D6A4F] text-xs font-bold">
+                  className="w-full min-w-0 text-left rounded-xl border-l-4 border border-border bg-white px-5 py-4 flex items-start gap-4 hover:shadow-md transition-all duration-200 overflow-hidden"
+                  style={{ borderLeftColor: "#185FA5" }}>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold"
+                      style={{ background: "#e6f1fb", color: "#185FA5" }}>
                       ?
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground truncate">{convo.initiative_title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5 truncate">{convo.other_user_name}</p>
+                      <p className="text-xs text-black mt-0.5 truncate">{convo.other_user_name}</p>
                       {convo.last_message && (
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{convo.last_message}</p>
+                        <p className="text-xs text-black mt-1 line-clamp-1">{convo.last_message}</p>
                       )}
                     </div>
                   </button>
@@ -516,23 +527,19 @@ export default function DashboardMessages() {
               </div>
             </section>
           )}
-
-          {conversations.filter(c => c.conversation_type !== "question" && (isFunder ? !c.funder_closed_at : true)).length > 0 && (
+          {conversations.filter(c => c.conversation_type !== "question" && c.conversation_type !== "partnership" && (isFunder ? !c.funder_closed_at : true)).length > 0 && (
             <section>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  Conversations
+              <div className="flex items-center gap-2 mb-3">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#2D6A4F" }} />
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-black">
+                  Initiative interest
                 </h3>
-                <Link href="/dashboard/portfolio?tab=partners"
-                  className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-[#2D6A4F] hover:underline underline-offset-2">
-                  Confirmed partnerships
-                  <ExternalLink className="w-2.5 h-2.5" />
-                </Link>
               </div>
               <div className="space-y-2 min-w-0 overflow-hidden">
-                {conversations.filter(c => c.conversation_type !== "question" && (isFunder ? !c.funder_closed_at : true)).map(convo => (
+                {conversations.filter(c => c.conversation_type !== "question" && c.conversation_type !== "partnership" && (isFunder ? !c.funder_closed_at : true)).map(convo => (
                   <button key={convo.id} type="button" onClick={() => setActiveConvo(convo)}
-                  className="w-full min-w-0 text-left rounded-xl border border-border bg-card px-5 py-4 flex items-start gap-4 hover:border-[#2D6A4F]/40 transition-colors overflow-hidden">
+                  className="w-full min-w-0 text-left rounded-xl border-l-4 border border-border bg-white px-5 py-4 flex items-start gap-4 hover:shadow-md transition-all duration-200 overflow-hidden"
+                  style={{ borderLeftColor: "#2D6A4F" }}>
                     <div className="w-8 h-8 rounded-full bg-[#2D6A4F] flex items-center justify-center shrink-0 mt-0.5 text-white text-xs font-bold">
                       {((convo.other_user_name ?? "?")[0]).toUpperCase()}
                     </div>
@@ -543,10 +550,10 @@ export default function DashboardMessages() {
                             {convo.other_user_name ?? "Unknown"}
                           </p>
                         </div>
-                        <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(convo.last_message_at)}</span>
+                        <span className="text-[11px] text-black shrink-0">{timeAgo(convo.last_message_at)}</span>
                       </div>
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <p className="text-xs text-muted-foreground truncate">Re: {convo.initiative_title}</p>
+                        <p className="text-xs text-black truncate">Re: {convo.initiative_title}</p>
                         {convo.partnerStatus === "confirmed" && (
                           <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
                             style={{ background: "#eaf5ee", color: "#2D6A4F" }}>Confirmed</span>
@@ -564,11 +571,73 @@ export default function DashboardMessages() {
                             style={{ background: "#f3f4f6", color: "#6b7280" }}>Pending</span>
                         )}
                       </div>
-                      <p className={`text-xs leading-relaxed ${convo.unread ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                      <p className={`text-xs leading-relaxed ${convo.unread ? "text-foreground font-medium" : "text-black"}`}>
                         {convo.last_message}
                       </p>
                     </div>
                     {convo.unread && <div className="w-2 h-2 rounded-full bg-[#2D6A4F] shrink-0 mt-2" />}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+          {conversations.filter(c => c.conversation_type === "partnership" && (isFunder ? !c.funder_closed_at : true)).length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#C45C26" }} />
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black">
+                    Partnership pursuit
+                  </h3>
+                </div>
+                <Link href="/dashboard/portfolio?tab=partners"
+                  className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-[#C45C26] hover:underline underline-offset-2">
+                  Confirmed partnerships
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </Link>
+              </div>
+              <div className="space-y-2 min-w-0 overflow-hidden">
+                {conversations.filter(c => c.conversation_type === "partnership" && (isFunder ? !c.funder_closed_at : true)).map(convo => (
+                  <button key={convo.id} type="button" onClick={() => setActiveConvo(convo)}
+                  className="w-full min-w-0 text-left rounded-xl border-l-4 border border-border bg-white px-5 py-4 flex items-start gap-4 hover:shadow-md transition-all duration-200 overflow-hidden"
+                  style={{ borderLeftColor: "#C45C26" }}>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-white text-xs font-bold"
+                      style={{ background: "#C45C26" }}>
+                      {((convo.other_user_name ?? "?")[0]).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-0.5">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <p className={`text-sm font-medium truncate ${convo.unread ? "text-foreground" : "text-foreground/80"}`}>
+                            {convo.other_user_name ?? "Unknown"}
+                          </p>
+                        </div>
+                        <span className="text-[11px] text-black shrink-0">{timeAgo(convo.last_message_at)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <p className="text-xs text-black truncate">Re: {convo.initiative_title}</p>
+                        {convo.partnerStatus === "confirmed" && (
+                          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                            style={{ background: "#eaf5ee", color: "#2D6A4F" }}>Confirmed</span>
+                        )}
+                        {convo.partnerStatus === "closed" && (
+                          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                            style={{ background: "#fef2f2", color: "#ef4444" }}>Closed</span>
+                        )}
+                        {convo.partnerStatus === "active" && (
+                          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                            style={{ background: "#fffbeb", color: "#f59e0b" }}>Active</span>
+                        )}
+                        {convo.partnerStatus === "pending" && (
+                          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                            style={{ background: "#f3f4f6", color: "#6b7280" }}>Pending</span>
+                        )}
+                      </div>
+                      <p className={`text-xs leading-relaxed ${convo.unread ? "text-foreground font-medium" : "text-black"}`}>
+                        {convo.last_message}
+                      </p>
+                    </div>
+                    {convo.unread && <div className="w-2 h-2 rounded-full bg-[#C45C26] shrink-0 mt-2" />}
                   </button>
                 ))}
               </div>
