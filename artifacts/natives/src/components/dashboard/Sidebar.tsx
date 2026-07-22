@@ -193,9 +193,9 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
   return (
     <aside
     className={cn(
-      "fixed left-0 top-0 h-screen flex flex-col z-40 transition-all duration-200 border-r border-border relative overflow-hidden",
-      "bg-gradient-to-b from-[#F8DDBB] via-[#F3C99A] to-[#EAAF74]",
-      "dark:from-[#1F2A24] dark:via-[#16211C] dark:to-[#0E1713]",
+      "fixed left-0 top-0 h-screen flex flex-col z-40 transition-all duration-200 border-r border-border relative",
+      "bg-gradient-to-b from-[#C1633B] via-[#A84A2C] to-[#7A331C]",
+      "dark:from-[#3A2418] dark:via-[#2A1810] dark:to-[#1A0F0A]",
       collapsed ? "w-16" : "w-56"
     )}
     >
@@ -223,7 +223,18 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-4 px-2">
+      <style>{`
+        .sidebar-nav-scroll::-webkit-scrollbar { width: 5px; }
+        .sidebar-nav-scroll::-webkit-scrollbar-track { background: transparent; }
+        .sidebar-nav-scroll::-webkit-scrollbar-thumb {
+          background: rgba(0,0,0,0.18);
+          border-radius: 999px;
+          border: 1px solid transparent;
+          background-clip: padding-box;
+        }
+        .sidebar-nav-scroll { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.18) transparent; }
+      `}</style>
+      <nav className="sidebar-nav-scroll flex-1 overflow-y-auto py-4 px-2 pr-1">
         {visibleSections.map((section, sectionIndex) => (
           <div key={section.label ?? "home"} className={sectionIndex > 0 ? "mt-3 pt-3 border-t border-border" : ""}>
             {section.label && !collapsed && (
