@@ -123,8 +123,8 @@ function ChipPicker({ options, selected, onChange }: { options: string[]; select
 function PaneHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div className="mb-1">
-      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>
-      {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
+      <p className="text-xs font-semibold uppercase tracking-wider text-black">{title}</p>
+      {subtitle && <p className="text-xs text-black mt-1">{subtitle}</p>}
     </div>
   );
 }
@@ -591,7 +591,8 @@ export default function DashboardProfile() {
     <div className="space-y-2 pt-2">
       <div className="flex items-center gap-3">
         <Button onClick={handleSave} disabled={saving || grantRangeInvalid || fullNameInvalid}
-          className="bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full px-6 disabled:opacity-50 disabled:cursor-not-allowed">
+          className="text-white rounded-full px-6 disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 transition-all"
+          style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
           {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
           Save changes
         </Button>
@@ -618,13 +619,13 @@ export default function DashboardProfile() {
     <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-8 items-start w-full relative">
       <div className="space-y-4">
         <div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-black">
             How you appear to partners and organisations across Natives.
           </p>
         </div>
 
         {/* ── Pane shell ── */}
-        <div className="rounded-2xl border border-border bg-card">
+        <div className="rounded-2xl border border-border bg-white">
           <div className="flex flex-col md:flex-row">
 
             {/* Inner left pane nav */}
@@ -632,11 +633,12 @@ export default function DashboardProfile() {
               <div className="flex md:flex-col overflow-x-auto md:overflow-visible p-2 gap-1 scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
                 {panes.map(p => (
                   <button key={p.key} type="button" onClick={() => setActivePane(p.key)}
-                    className={`text-left px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap md:whitespace-normal transition-colors shrink-0 ${
+                    className={`text-left px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap md:whitespace-normal transition-all shrink-0 ${
                       activePane === p.key
-                        ? "bg-[#2D6A4F] text-white"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    }`}>
+                        ? "text-white shadow-sm"
+                        : "text-black hover:bg-muted"
+                    }`}
+                    style={activePane === p.key ? { background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" } : undefined}>
                     {p.label}
                   </button>
                 ))}
@@ -668,7 +670,7 @@ export default function DashboardProfile() {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-foreground">Upload a photo</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">PNG, JPG or WebP. Max 2 MB.</p>
+                        <p className="text-xs text-black mt-0.5">PNG, JPG or WebP. Max 2 MB.</p>
                         {avatarUploading && (
                           <p className="text-xs text-[#2D6A4F] mt-1 flex items-center gap-1">
                             <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
@@ -684,7 +686,7 @@ export default function DashboardProfile() {
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-foreground">Represent an organisation?</p>
-                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                      <p className="text-xs text-black mt-1 leading-relaxed">
                         Register your organisation without losing your individual profile or activity.
                       </p>
                       <a href="/dashboard/upgrade-organisation"
@@ -738,8 +740,8 @@ export default function DashboardProfile() {
                       and changing the pane's layout depending on that flag. */}
                   <div className="rounded-xl border border-dashed border-border p-4 space-y-3">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your personal photo</p>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-black">Your personal photo</p>
+                      <p className="text-xs text-black mt-1">
                         Only shown on your individual profile in the Natives directory if "also appear as an individual" is turned on.
                       </p>
                     </div>
@@ -764,7 +766,7 @@ export default function DashboardProfile() {
                           {profile?.avatar_url ? "Replace photo" : "Upload photo"}
                           <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handlePersonalPhotoUpload} />
                         </label>
-                        <p className="text-xs text-muted-foreground mt-1.5">PNG, JPG or WebP. Max 2 MB.</p>
+                        <p className="text-xs text-black mt-1.5">PNG, JPG or WebP. Max 2 MB.</p>
                         {personalPhotoUploading && (
                           <p className="text-xs text-[#2D6A4F] mt-1 flex items-center gap-1">
                             <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
@@ -785,7 +787,7 @@ export default function DashboardProfile() {
                   <div>
                     <Label className="text-sm font-medium">Email</Label>
                     <Input value={user?.email ?? ""} className="mt-1 h-10 opacity-60 cursor-not-allowed" readOnly />
-                    <p className="text-xs text-muted-foreground mt-1">Your sign-in email. Cannot be changed here.</p>
+                    <p className="text-xs text-black mt-1">Your sign-in email. Cannot be changed here.</p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Phone <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
@@ -828,7 +830,7 @@ export default function DashboardProfile() {
                           {logoUrl ? "Replace logo" : "Upload logo"}
                           <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="sr-only" onChange={handleLogoUpload} />
                         </label>
-                        <p className="text-xs text-muted-foreground mt-1.5">PNG, JPG, WebP or SVG. Max 2 MB.</p>
+                        <p className="text-xs text-black mt-1.5">PNG, JPG, WebP or SVG. Max 2 MB.</p>
                         {logoUploading && (
                           <p className="text-xs text-[#2D6A4F] mt-1 flex items-center gap-1">
                             <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
@@ -848,17 +850,17 @@ export default function DashboardProfile() {
                     <div>
                       <Label className="text-sm font-medium">Organisation type</Label>
                       <div className="mt-1 h-10 px-3 rounded-lg border border-border bg-muted/30 flex items-center">
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-sm text-black">
                           {ORG_TYPE_OPTIONS.find(o => o.value === (profile?.org_type ?? orgType))?.label ?? "Not set"}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">Organisation type cannot be changed. Contact support if this is incorrect.</p>
+                      <p className="text-xs text-black mt-1">Organisation type cannot be changed. Contact support if this is incorrect.</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Organisation description</Label>
                       <Textarea value={orgDescription} onChange={e => setOrgDescription(e.target.value)} className="mt-1 resize-none" rows={4}
                         placeholder="What does your organisation do, where does it work, and who does it serve?" />
-                      <p className="text-xs text-muted-foreground mt-1.5">Shown on your directory profile and used by AI to match you with relevant partners.</p>
+                      <p className="text-xs text-black mt-1.5">Shown on your directory profile and used by AI to match you with relevant partners.</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium">Country</Label>
@@ -876,7 +878,7 @@ export default function DashboardProfile() {
                   <div>
                     <Label className="text-sm font-medium">Sectors</Label>
                     <SectorChips selected={sectors} onChange={setSectors} />
-                    {sectors.length > 0 && <p className="text-xs text-muted-foreground mt-2">{sectors.length} selected</p>}
+                    {sectors.length > 0 && <p className="text-xs text-black mt-2">{sectors.length} selected</p>}
                   </div>
                   <SaveBar />
                 </div>
@@ -900,7 +902,7 @@ export default function DashboardProfile() {
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Social profiles</Label>
-                    <p className="text-xs text-muted-foreground mt-0.5 mb-2">Add Instagram, X, TikTok, YouTube, Behance — any platform.</p>
+                    <p className="text-xs text-black mt-0.5 mb-2">Add Instagram, X, TikTok, YouTube, Behance — any platform.</p>
                     <div className="flex gap-2">
                       <Input value={socialLabel} onChange={(e) => setSocialLabel(e.target.value)} className="h-10 w-28 shrink-0" placeholder="e.g. Instagram" />
                       <Input value={socialUrl} onChange={(e) => setSocialUrl(e.target.value)} className="h-10 flex-1" placeholder="https://instagram.com/yourhandle" type="url" />
@@ -920,10 +922,10 @@ export default function DashboardProfile() {
                           <div key={i} className="flex items-center justify-between text-xs border border-border rounded-lg px-3 py-2 bg-muted/30">
                             <div className="flex items-center gap-2 min-w-0">
                               <span className="font-medium text-foreground shrink-0">{s.label}</span>
-                              <span className="text-muted-foreground truncate">{s.url}</span>
+                              <span className="text-black truncate">{s.url}</span>
                             </div>
                             <button type="button" onClick={() => setSocialLinks((prev) => prev.filter((_, idx) => idx !== i))}
-                              className="ml-2 text-muted-foreground hover:text-foreground shrink-0">✕</button>
+                              className="ml-2 text-black hover:text-foreground shrink-0">✕</button>
                           </div>
                         ))}
                       </div>
@@ -957,14 +959,14 @@ export default function DashboardProfile() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className={`text-sm font-medium ${item.state ? "text-[#2D6A4F]" : "text-foreground"}`}>{item.label}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">{item.sub}</p>
+                          <p className="text-xs text-black mt-0.5">{item.sub}</p>
                         </div>
                       </button>
                     ))}
                   </div>
                   <div className="pt-2 border-t border-border">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs text-muted-foreground">DD Readiness score</p>
+                      <p className="text-xs text-black">DD Readiness score</p>
                       <p className="text-xs font-bold text-foreground">
                         {Math.round(([ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework].filter(Boolean).length / 5) * 100)}%
                       </p>
@@ -984,7 +986,7 @@ export default function DashboardProfile() {
                   <PaneHeader title="Impact & track record" subtitle="Help funders and corporates quickly understand your reach and credibility. All fields optional." />
 
                   <div>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Cumulative reach</p>
+                    <p className="text-xs font-semibold text-black uppercase tracking-wider mb-3">Cumulative reach</p>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label className="text-sm font-medium">Total beneficiaries reached</Label>
@@ -1010,7 +1012,7 @@ export default function DashboardProfile() {
                   </div>
 
                   <div className="pt-4 border-t border-border">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Track record</p>
+                    <p className="text-xs font-semibold text-black uppercase tracking-wider mb-3">Track record</p>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label className="text-sm font-medium">Grants/contracts received (count)</Label>
@@ -1029,7 +1031,7 @@ export default function DashboardProfile() {
 
                   <div className="pt-4 border-t border-border">
                     <Label className="text-sm font-medium">Previous funders / grant-makers</Label>
-                    <p className="text-xs text-muted-foreground mt-0.5 mb-2">Names only — e.g. USAID, Ford Foundation, FCDO</p>
+                    <p className="text-xs text-black mt-0.5 mb-2">Names only — e.g. USAID, Ford Foundation, FCDO</p>
                     <div className="flex gap-2">
                       <Input value={funderInput} onChange={e => setFunderInput(e.target.value)}
                         onKeyDown={e => {
@@ -1054,7 +1056,7 @@ export default function DashboardProfile() {
                     {previousFunders.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {previousFunders.map(f => (
-                          <span key={f} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-muted-foreground">
+                          <span key={f} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-black">
                             {f}
                             <button type="button" onClick={() => setPreviousFunders(p => p.filter(x => x !== f))} className="hover:opacity-70 ml-0.5">×</button>
                           </span>
@@ -1075,7 +1077,7 @@ export default function DashboardProfile() {
                       </div>
                       <div>
                         <p className={`text-sm font-medium ${thirdPartyEvaluations ? "text-[#2D6A4F]" : "text-foreground"}`}>Third-party evaluations available</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">Independent audits, impact assessments, or evaluations conducted by external parties</p>
+                        <p className="text-xs text-black mt-0.5">Independent audits, impact assessments, or evaluations conducted by external parties</p>
                       </div>
                     </button>
                   </div>
@@ -1091,7 +1093,7 @@ export default function DashboardProfile() {
                     <Label className="text-sm font-medium">Describe your investment focus</Label>
                     <Textarea value={investmentThesis} onChange={e => setInvestmentThesis(e.target.value)} className="mt-1 resize-none" rows={4}
                       placeholder="e.g. We back early-stage climate adaptation initiatives in Sub-Saharan Africa, with a focus on smallholder agriculture and water security. We deploy grants of $50K–$500K and prioritise organisations with community-validated models..." />
-                    <p className="text-xs text-muted-foreground mt-1.5">Shown on your directory profile. Helps implementers, startups, and ecosystem actors understand your focus before reaching out. Also used by the AI to improve initiative matching.</p>
+                    <p className="text-xs text-black mt-1.5">Shown on your directory profile. Helps implementers, startups, and ecosystem actors understand your focus before reaching out. Also used by the AI to improve initiative matching.</p>
                   </div>
 
                   <div className="pt-4 border-t border-border space-y-5">
@@ -1105,7 +1107,7 @@ export default function DashboardProfile() {
                           {["USD", "GBP", "EUR", "NGN", "KES", "GHS", "ZAR"].map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                         <Input value={grantRangeMin} onChange={e => setGrantRangeMin(e.target.value.replace(/[^0-9]/g, ""))} className="h-10 flex-1" placeholder="Min" />
-                        <span className="text-muted-foreground shrink-0 text-sm">–</span>
+                        <span className="text-black shrink-0 text-sm">–</span>
                         <Input value={grantRangeMax} onChange={e => setGrantRangeMax(e.target.value.replace(/[^0-9]/g, ""))}
                           className={`h-10 flex-1 ${grantRangeInvalid ? "border-red-400 focus-visible:ring-red-300" : ""}`}
                           placeholder="Max" />
@@ -1124,7 +1126,7 @@ export default function DashboardProfile() {
                     <div>
                       <Label className="text-sm font-medium">Sector focus</Label>
                       <ChipPicker options={SECTOR_OPTIONS} selected={mandateSectors} onChange={setMandateSectors} />
-                      <p className="text-xs text-muted-foreground mt-1.5">Sectors your mandate targets. Used for AI matching, separate from the sectors shown on your public profile.</p>
+                      <p className="text-xs text-black mt-1.5">Sectors your mandate targets. Used for AI matching, separate from the sectors shown on your public profile.</p>
                     </div>
 
                     <div>
@@ -1139,7 +1141,7 @@ export default function DashboardProfile() {
                         {["Concept / Early stage", "Pilot / Proof of concept", "Growth / Scaling", "Mature / Established", "Core / Unrestricted"].map(s => (
                           <button key={s} type="button"
                             onClick={() => setStagePreference(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])}
-                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${stagePreference.includes(s) ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-muted-foreground hover:border-foreground/30"}`}>
+                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${stagePreference.includes(s) ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-black hover:border-foreground/30"}`}>
                             {s}
                           </button>
                         ))}
@@ -1172,20 +1174,20 @@ export default function DashboardProfile() {
                       {geographicFocus.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mt-2">
                           {geographicFocus.map(g => (
-                            <span key={g} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-muted-foreground">
-                              {g}
-                              <button type="button" onClick={() => setGeographicFocus(p => p.filter(x => x !== g))} className="hover:opacity-70 ml-0.5">×</button>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                            <span key={g} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-black">
+                            {g}
+                            <button type="button" onClick={() => setGeographicFocus(p => p.filter(x => x !== g))} className="hover:opacity-70 ml-0.5">×</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <SaveBar />
                 </div>
-              )}
-
-              {/* ── CSR & ESG PANE (corporates/tech/public sector) ── */}
+                <SaveBar />
+              </div>
+            )}
+            
+            {/* ── CSR & ESG PANE (corporates/tech/public sector) ── */}
               {activePane === "csr" && isCorporate && (
                 <div className="space-y-5">
                   <PaneHeader title="CSR & ESG positioning" subtitle="Shown on your directory profile. Helps implementers understand your focus and what you bring to a partnership." />
@@ -1194,7 +1196,7 @@ export default function DashboardProfile() {
                     <Label className="text-sm font-medium">CSR/ESG focus statement</Label>
                     <Textarea value={csrFocusStatement} onChange={e => setCsrFocusStatement(e.target.value)} className="mt-1 resize-none" rows={4}
                       placeholder="e.g. We prioritise climate resilience and digital inclusion programmes across West Africa, aligned with our operational footprint. We seek implementing partners with strong community reach and measurable outcomes." />
-                    <p className="text-xs text-muted-foreground mt-1.5">Used by AI to match your profile with relevant initiatives and implementers.</p>
+                    <p className="text-xs text-black mt-1.5">Used by AI to match your profile with relevant initiatives and implementers.</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -1219,7 +1221,7 @@ export default function DashboardProfile() {
 
                   <div>
                     <Label className="text-sm font-medium">What we bring to partnerships</Label>
-                    <p className="text-xs text-muted-foreground mt-0.5 mb-2">Select all that apply.</p>
+                    <p className="text-xs text-black mt-0.5 mb-2">Select all that apply.</p>
                     <div className="flex flex-wrap gap-2">
                       {["Cash funding", "In-kind technology", "Employee volunteering", "Pro-bono expertise", "Marketing & visibility", "Supply chain access", "Co-branding opportunity", "Logistics support"].map(s => (
                         <button key={s} type="button"
@@ -1247,13 +1249,12 @@ export default function DashboardProfile() {
                           {item.state && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
                         </div>
                         <div>
-                          <p className={`text-sm font-medium ${item.state ? "text-[#2D6A4F]" : "text-foreground"}`}>{item.label}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">{item.sub}</p>
+                        <p className={`text-sm font-medium ${item.state ? "text-[#2D6A4F]" : "text-foreground"}`}>{item.label}</p>
+                          <p className="text-xs text-black mt-0.5">{item.sub}</p>
                         </div>
                       </button>
                     ))}
                   </div>
-
                   <div>
                     <Label className="text-sm font-medium">Preferred partner types</Label>
                     <div className="flex flex-wrap gap-2 mt-2">
@@ -1311,7 +1312,7 @@ export default function DashboardProfile() {
                           {["Cloud computing credits", "AI/ML API access", "Software licences", "Pro-bono engineering hours", "Data analytics tools", "Cybersecurity support"].map(t => (
                             <button key={t} type="button"
                               onClick={() => setTechSupport(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])}
-                              className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${techSupport.includes(t) ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-muted-foreground hover:border-foreground/30"}`}>
+                              className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${techSupport.includes(t) ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-black hover:border-foreground/30"}`}>
                               {t}
                             </button>
                           ))}
@@ -1329,7 +1330,7 @@ export default function DashboardProfile() {
                           </div>
                           <div>
                             <p className={`text-sm font-medium ${sandboxReady ? "text-[#2D6A4F]" : "text-foreground"}`}>Open to sandbox/beta testing partnerships</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">We can act as a testing ground for technologies designed for social good</p>
+                            <p className="text-xs text-black mt-0.5">We can act as a testing ground for technologies designed for social good</p>
                           </div>
                         </button>
                         {sandboxReady && (
@@ -1359,7 +1360,7 @@ export default function DashboardProfile() {
                   </div>
 
                   {profile?.is_verified ? (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-black">
                       Your organisation is verified. No further action is required for now. A badge appears on your profile, listings, and activity across the platform.
                     </p>
                   ) : profile?.verification_requested ? (
@@ -1367,19 +1368,20 @@ export default function DashboardProfile() {
                       <ShieldCheck className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                       <div>
                         <p className="text-sm font-medium text-foreground">Verification pending</p>
-                        <p className="text-sm text-muted-foreground mt-0.5">Your documents are under review.</p>
+                        <p className="text-sm text-black mt-0.5">Your documents are under review.</p>
                       </div>
                     </div>
                   ) : (
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-sm font-medium text-foreground">Not verified</p>
-                        <p className="text-sm text-muted-foreground mt-0.5">
+                        <p className="text-sm text-black mt-0.5">
                           Verified organisations get a badge on all activity, priority placement in the partner directory, and a credibility multiplier on Impact Points.
                         </p>
                       </div>
                       <Link href="/verify">
-                        <Button variant="outline" className="shrink-0 rounded-full px-5 text-sm border-[#2D6A4F] text-[#2D6A4F] hover:bg-[#2D6A4F]/5">
+                        <Button className="shrink-0 rounded-full px-5 text-sm text-white hover:brightness-110 transition-all border-0"
+                          style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
                           Get verified
                         </Button>
                       </Link>
@@ -1396,8 +1398,8 @@ export default function DashboardProfile() {
       {/* Right column — persistent across all panes */}
       <div className="space-y-4" style={{ top: "9.5rem" }}>
 
-        <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Profile strength</p>
+        <div className="rounded-2xl border border-border bg-white p-5 space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-black">Profile strength</p>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-2xl font-bold text-foreground">{strengthScore}%</span>
@@ -1440,15 +1442,15 @@ export default function DashboardProfile() {
                 <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${item.done ? "bg-[#2D6A4F]" : item.partial ? "bg-amber-400" : "bg-muted"}`}>
                   {item.done && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
                 </div>
-                <span className={`text-xs ${item.done ? "text-foreground" : "text-muted-foreground"}`}>{item.label}</span>
+                <span className={`text-xs ${item.done ? "text-foreground" : "text-black"}`}>{item.label}</span>
               </div>
             ))}
           </div>
         </div>
 
         {isOrg && (
-          <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Visibility</p>
+          <div className="rounded-2xl border border-border bg-white p-5 space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-black">Visibility</p>
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full shrink-0 ${profile?.is_verified ? "bg-[#2D6A4F]" : "bg-muted-foreground/40"}`} />
               <span className="text-xs text-foreground">{profile?.is_verified ? "Verified organisation" : "Not yet verified"}</span>
@@ -1463,26 +1465,26 @@ export default function DashboardProfile() {
           </div>
         )}
 
-        <div className="rounded-2xl border border-border bg-card p-5 space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Quick links</p>
-          <a href="/dashboard/natives" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+        <div className="rounded-2xl border border-border bg-white p-5 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-black mb-3">Quick links</p>
+          <a href="/dashboard/natives" className="flex items-center gap-2 text-xs text-black hover:text-foreground transition-colors py-1">
             <ArrowRight className="w-3 h-3 text-[#2D6A4F]" /> View your directory listing
           </a>
-          <a href="/dashboard/settings" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+          <a href="/dashboard/settings" className="flex items-center gap-2 text-xs text-black hover:text-foreground transition-colors py-1">
             <ArrowRight className="w-3 h-3 text-[#2D6A4F]" /> Account settings
           </a>
           {!isOrg && (
             <>
-              <a href="/dashboard/marketplace" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+              <a href="/dashboard/marketplace" className="flex items-center gap-2 text-xs text-black hover:text-foreground transition-colors py-1">
                 <ArrowRight className="w-3 h-3 text-[#2D6A4F]" /> Browse the marketplace
               </a>
-              <a href="/dashboard/natives?tab=organisation" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+              <a href="/dashboard/natives?tab=organisation" className="flex items-center gap-2 text-xs text-black hover:text-foreground transition-colors py-1">
                 <ArrowRight className="w-3 h-3 text-[#2D6A4F]" /> Browse organisations
               </a>
             </>
           )}
           {isOrg && (
-            <a href="/verification-standard" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+            <a href="/verification-standard" className="flex items-center gap-2 text-xs text-black hover:text-foreground transition-colors py-1">
               <ArrowRight className="w-3 h-3 text-[#2D6A4F]" /> Verification standards
             </a>
           )}

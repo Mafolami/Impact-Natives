@@ -93,7 +93,7 @@ function ddScore(org: OrgRow): number {
 // ─── Eyebrow label ────────────────────────────────────────────────────────────
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#374151] mb-3">
+    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-black mb-3">
       {children}
     </p>
   );
@@ -103,7 +103,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 function BentoCell({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
     <div className="rounded-xl p-3.5" style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-      <p className="text-[9px] font-black uppercase tracking-widest text-[#374151] mb-1">{label}</p>
+      <p className="text-[9px] font-black uppercase tracking-widest text-black mb-1">{label}</p>
       <p className={`text-sm font-bold leading-snug ${accent ? "text-[#2D6A4F]" : "text-[#111827]"}`}>{value}</p>
     </div>
   );
@@ -144,13 +144,13 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave }: {
       </div>
 
       {/* Location */}
-      <p className="text-[11px] text-[#374151] capitalize mb-3">
+      <p className="text-[11px] text-black capitalize mb-3">
         {countries.length > 0 ? countries.join(", ") : orgTypeLabel(org.organisation_type)}
       </p>
 
       {/* Partnership title -- full, no clamp */}
       {org.partnership_title && (
-        <p className="text-xs font-semibold text-[#374151] leading-snug">
+        <p className="text-xs font-semibold text-black leading-snug">
           {org.partnership_title}
         </p>
       )}
@@ -241,7 +241,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
         </div>
         <div>
           <p className="text-sm font-bold text-[#111827] mb-1">Select a listing</p>
-          <p className="text-xs text-[#374151] max-w-xs leading-relaxed">Click any organisation from the list to view their full partnership profile.</p>
+          <p className="text-xs text-black max-w-xs leading-relaxed">Click any organisation from the list to view their full partnership profile.</p>
         </div>
       </div>
     );
@@ -303,7 +303,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
               </span>
             )}
           </div>
-          <p className="text-sm text-[#374151] capitalize">
+          <p className="text-sm text-black capitalize">
               {orgTypeLabel(org.organisation_type)}
               {countries.length > 0 && ` · ${countries.join(", ")}`}
             </p>
@@ -324,7 +324,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
           <div className="flex flex-wrap gap-1.5">
             {sectors.map(s => (
               <span key={s} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg"
-                style={{ background: "#F3F4F6", color: "#374151", border: "1px solid #E5E7EB" }}>
+                style={{ background: "#F3F4F6", color: "#000000", border: "1px solid #E5E7EB" }}>
                 {s}
               </span>
             ))}
@@ -338,7 +338,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
         {/* About -- directly under header */}
         {org.description && (
           <div className="px-8 py-5" style={{ borderBottom: "1px solid #F3F4F6" }}>
-            <p className="text-sm text-[#374151] leading-relaxed">{org.description}</p>
+            <p className="text-[15px] text-black leading-relaxed">{org.description}</p>
           </div>
         )}
 
@@ -348,13 +348,13 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
             {org.partnership_sought && (
               <div>
                 <Eyebrow>Seeking</Eyebrow>
-                <p className="text-sm text-[#374151] leading-relaxed">{org.partnership_sought}</p>
+                <p className="text-[15px] text-black leading-relaxed">{org.partnership_sought}</p>
               </div>
             )}
             {org.partnership_success_definition && (
               <div className="rounded-xl px-5 py-4" style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderLeft: "3px solid #2D6A4F" }}>
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#6B7280] mb-2">Success in 12 months</p>
-                <p className="text-sm text-[#374151] leading-relaxed italic">"{org.partnership_success_definition}"</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-black mb-2">Success in 12 months</p>
+                <p className="text-sm text-black leading-relaxed italic">"{org.partnership_success_definition}"</p>
               </div>
             )}
 
@@ -387,12 +387,12 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
             </div>
 
             {fitLoading && (
-              <p className="text-xs text-[#374151]">Analysing compatibility with your organisation profile...</p>
+              <p className="text-xs text-black">Analysing compatibility with your organisation profile...</p>
             )}
 
             {fit && !fitLoading && (
               <div className="space-y-4">
-                <p className="text-sm text-[#374151] leading-relaxed">{fit.rationale}</p>
+                <p className="text-[15px] text-black leading-relaxed">{fit.rationale}</p>
 
                 {fit.reasons.length > 0 && (
                   <div className="flex flex-col gap-2">
@@ -401,7 +401,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
                         <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "#ECFDF5" }}>
                           <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#065F46" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
                         </div>
-                        <span className="text-xs text-[#374151] leading-relaxed">{r}</span>
+                        <span className="text-xs text-black leading-relaxed">{r}</span>
                       </div>
                     ))}
                   </div>
@@ -461,7 +461,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
               ].filter(Boolean).map((row: any) => (
                 <div key={row.label} className="flex items-start justify-between gap-6 py-2.5"
                   style={{ borderBottom: "1px solid #F3F4F6" }}>
-                  <span className="text-xs text-[#374151] shrink-0">{row.label}</span>
+                  <span className="text-xs text-black shrink-0">{row.label}</span>
                   <span className="text-xs font-semibold text-[#111827] text-right capitalize">{row.value}</span>
                 </div>
               ))}
@@ -477,7 +477,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
                 <Eyebrow>Looking for in a partner</Eyebrow>
                 <div className="flex flex-wrap gap-2">
                   {org.needs.map(n => (
-                    <span key={n} className="text-sm font-semibold px-4 py-2 rounded-lg text-[#374151]"
+                    <span key={n} className="text-sm font-semibold px-4 py-2 rounded-lg text-black"
                       style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>{n}</span>
                   ))}
                 </div>
@@ -508,7 +508,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
             <div className="h-full rounded-full transition-all" style={{ width: `${(score / 5) * 100}%`, background: score > 2 ? "#2D6A4F" : "#C45C26" }} />
           </div>
           {score === 0 ? (
-            <p className="text-xs text-[#374151]">No documents confirmed ready yet.</p>
+            <p className="text-xs text-black">No documents confirmed ready yet.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {ddDocs.filter(({ key }) => org[key as keyof OrgRow] as boolean).map(({ label }) => (
@@ -545,22 +545,22 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
               {org.partnership_theory_of_change && (
                 <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col"
                   style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#6B7280]">Approach to change</p>
-                  <p className="text-sm text-[#374151] leading-relaxed flex-1">{org.partnership_theory_of_change}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-black">Approach to change</p>
+                  <p className="text-sm text-black leading-relaxed flex-1">{org.partnership_theory_of_change}</p>
                 </div>
               )}
               {org.partnership_prior_attempts && (
                 <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col"
                   style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#6B7280]">Previous attempts</p>
-                  <p className="text-sm text-[#374151] leading-relaxed flex-1">{org.partnership_prior_attempts}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-black">Previous attempts</p>
+                  <p className="text-sm text-black leading-relaxed flex-1">{org.partnership_prior_attempts}</p>
                 </div>
               )}
               {org.partnership_constraints && (
                 <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col"
                   style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#6B7280]">Constraints</p>
-                  <p className="text-sm text-[#374151] leading-relaxed flex-1">{org.partnership_constraints}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-black">Constraints</p>
+                  <p className="text-sm text-black leading-relaxed flex-1">{org.partnership_constraints}</p>
                 </div>
               )}
             </div>
@@ -582,7 +582,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
                   {org.partnership_prior_experience ? "Has completed a partnership before" : "No prior completed partnerships"}
                 </p>
                 {org.partnership_prior_experience && org.partnership_prior_experience_detail && (
-                  <p className="text-sm text-[#374151] leading-relaxed mt-1">{org.partnership_prior_experience_detail}</p>
+                  <p className="text-sm text-black leading-relaxed mt-1">{org.partnership_prior_experience_detail}</p>
                 )}
               </div>
             </div>
@@ -627,27 +627,27 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
                 {openingMsg && !msgEditing && (
                   <div className="rounded-xl p-4 space-y-2" style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
                     <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-[#6B7280]">AI-drafted opening message</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-black">AI-drafted opening message</p>
                       <button type="button" onClick={() => setMsgEditing(true)}
-                        className="text-[10px] font-semibold text-[#374151] hover:text-[#111827] underline underline-offset-2">
+                        className="text-[10px] font-semibold text-black hover:text-[#111827] underline underline-offset-2">
                         Edit
                       </button>
                     </div>
-                    <p className="text-xs text-[#374151] leading-relaxed">{openingMsg}</p>
+                    <p className="text-xs text-black leading-relaxed">{openingMsg}</p>
                   </div>
                 )}
                 {msgEditing && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-[#6B7280]">Edit opening message</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-black">Edit opening message</p>
                       <button type="button" onClick={() => setMsgEditing(false)}
-                        className="text-[10px] font-semibold text-[#374151] hover:text-[#111827] underline underline-offset-2">
+                        className="text-[10px] font-semibold text-black hover:text-[#111827] underline underline-offset-2">
                         Done
                       </button>
                     </div>
                     <textarea rows={4} value={openingMsg ?? ""}
                       onChange={e => setOpeningMsg(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl text-xs text-[#374151] resize-none focus:outline-none"
+                      className="w-full px-3 py-2.5 rounded-xl text-xs text-black resize-none focus:outline-none"
                       style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }} />
                   </div>
                 )}
@@ -660,8 +660,8 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
                     onExpressInterest(e);
                   }}
                   disabled={sending}
-                  className="w-full h-11 rounded-full text-white text-sm font-bold disabled:opacity-40 transition-all hover:opacity-90 active:scale-[0.98]"
-                  style={{ background: "#111827" }}>
+                  className="w-full h-11 rounded-full text-white text-sm font-bold disabled:opacity-40 transition-all hover:brightness-110 active:scale-[0.98]"
+                  style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
                   {sending ? "Sending..." : fitLoading ? "Express interest" : `Express interest${fit ? ` · ${fit.fit_score}% fit` : ""}`}
                 </button>
               </>
@@ -830,9 +830,8 @@ export default function DashboardPartnerships() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#374151]" />
             <input type="text" placeholder="Search listings..." value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full h-9 pl-9 pr-3 rounded-lg text-xs text-[#111827] placeholder:text-[#374151] focus:outline-none transition-colors"
-              style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }} />
-          </div>
+              className="w-full h-9 pl-9 pr-3 rounded-lg text-xs text-[#111827] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#452A1D]/25 transition-colors"
+              style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }} />          </div>
           <div ref={filterBarRef} className="flex items-center gap-1.5 relative">
             {([
               {
@@ -890,8 +889,8 @@ export default function DashboardPartnerships() {
                   onClick={() => setOpenDropdown(prev => prev === f.key ? null : f.key)}
                   className="h-8 px-3 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-colors"
                   style={f.count > 0 || openDropdown === f.key
-                    ? { background: "#111827", color: "#FFFFFF", border: "1px solid #111827" }
-                    : { background: "#FFFFFF", color: "#374151", border: "1px solid #E5E7EB" }}>
+                    ? { background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)", color: "#FFFFFF", border: "1px solid transparent" }
+                    : { background: "#FFFFFF", color: "#000000", border: "1px solid #E5E7EB" }}>
                   {f.label}
                   {f.count > 0 && (
                     <span className="w-4 h-4 rounded-full bg-white text-[#111827] text-[9px] font-black flex items-center justify-center">
@@ -932,7 +931,7 @@ export default function DashboardPartnerships() {
                             <button key={o.value} type="button"
                               onClick={() => f.toggle(o.value)}
                               className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-xs text-left transition-colors ${
-                                on ? "bg-[#eaf5ee] text-[#2D6A4F] font-semibold" : "text-[#374151] hover:bg-[#F3F4F6]"
+                                on ? "bg-[#eaf5ee] text-[#2D6A4F] font-semibold" : "text-black hover:bg-[#F3F4F6]"
                               }`}>
                               <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
                                 on ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-[#D1D5DB]"
@@ -966,8 +965,8 @@ export default function DashboardPartnerships() {
           <div className="flex-1" />
           {user && (
             <button type="button" onClick={() => setShowModal(true)}
-              className="h-9 px-4 rounded-full text-white text-xs font-bold transition-all hover:opacity-90"
-              style={{ background: "#2D6A4F" }}>
+              className="h-9 px-4 rounded-full text-white text-xs font-bold transition-all hover:brightness-110 active:scale-[0.98]"
+              style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
               + Get Matched
             </button>
           )}
@@ -985,7 +984,7 @@ export default function DashboardPartnerships() {
             <Handshake className="w-7 h-7 text-[#D1D5DB]" />
             <div>
               <p className="text-sm font-bold text-[#111827] mb-1">{orgs.length === 0 ? "No listings yet" : "No results"}</p>
-              <p className="text-xs text-[#374151]">{orgs.length === 0 ? "Be the first to list your organisation." : "Try a different search or filter."}</p>
+              <p className="text-xs text-black">{orgs.length === 0 ? "Be the first to list your organisation." : "Try a different search or filter."}</p>
             </div>
           </div>
         ) : (
