@@ -400,195 +400,250 @@ export default function DashboardMessages() {
       </div>
 
       {!hasAnything ? (
-        <div className="rounded-2xl border border-border bg-card p-12 text-center">
+        <div className="rounded-2xl border border-border bg-white p-12 text-center">
           <Clock className="w-8 h-8 text-muted-foreground/40 mx-auto mb-4" />
           <p className="text-foreground font-medium mb-2">No messages yet.</p>
-          <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
+          <p className="text-sm text-black mb-6 max-w-sm mx-auto">
             When you or others express interest in initiatives, conversations will appear here.
           </p>
           <Link href="/dashboard/marketplace">
-            <Button className="bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full px-5">
+            <Button className="text-white rounded-full px-5 hover:brightness-110 transition-all"
+              style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
               Browse Marketplace
             </Button>
           </Link>
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-10">
+          {/* ── INITIATIVE CONVERSATIONS ──────────────────────────────────
+              Every thread with conversation_type "eoi" or "question" — both
+              always carry an initiative_id in the actual data, confirmed
+              directly against the database rather than assumed. */}
+          {(pendingEOIs.length > 0
+            || conversations.filter(c => c.conversation_type !== "partnership" && (isFunder ? !c.funder_closed_at : true)).length > 0
+            || pendingOutbound.length > 0) && (
+            <section className="space-y-5">
+              <div className="flex items-center gap-2 pb-3 border-b-2" style={{ borderColor: "#2D6A4F30" }}>
+                <span className="w-2 h-2 rounded-full" style={{ background: "#2D6A4F" }} />
+                <h2 className="text-sm font-bold uppercase tracking-widest text-black">Initiative Conversations</h2>
+              </div>
 
-          {/* 1 — Awaiting review */}
-          {pendingEOIs.length > 0 && (
-            <section>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#2D6A4F" }} />
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-black">
-                  Awaiting review — {pendingEOIs.length}
-                </h3>
-              </div>
-              <div className="space-y-2">
-                {pendingEOIs.map(eoi => (
-                  <div key={eoi.eoi_id}
-                    className="rounded-xl border-l-4 border border-border bg-white px-5 py-4 flex items-start gap-4"
-                    style={{ borderLeftColor: "#2D6A4F" }}>
-                    <div className="w-8 h-8 rounded-lg bg-[#eaf5ee] flex items-center justify-center shrink-0 mt-0.5">
-                      <CheckCircle2 className="w-4 h-4 text-[#2D6A4F]" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-0.5 flex-wrap">
-                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                          <p className="text-sm font-medium text-foreground">
-                            {eoi.expresser_name} expressed interest
-                          </p>
-                          {eoi.expresser_verified && (
-                            <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
-                              style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
-                              <ShieldCheck className="w-3 h-3" />
-                              Verified
-                            </span>
-                          )}
-                          {eoi.expresser_id && (
-                            <Link href={`/dashboard/natives?user=${eoi.expresser_id}&tab=organisations`}
-                              className="text-[10px] text-muted-foreground hover:text-[#2D6A4F] transition-colors shrink-0 underline underline-offset-2">
-                              View profile
-                            </Link>
-                          )}
-                        </div>
-                        <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(eoi.created_at)}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mb-1">
-                        <span className="text-foreground/70">{eoi.initiative_title}</span>
-                      </p>
-                      <div className="flex items-center gap-1.5 flex-wrap mt-1">
-                        {eoi.partnership_type && (
-                          <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                            style={{ background: "#f5ede8", color: "#C45C26" }}>
-                            {eoi.partnership_type}
-                          </span>
-                        )}
-                        {eoi.esg_adoption && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                            style={{ background: "#e8f5e9", color: "#2e7d32" }}>
-                            ESG/CSR Adoption
-                          </span>
-                        )}
-                      </div>
-                      {eoi.message && (
-                        <p className="text-xs text-muted-foreground mt-2 leading-relaxed break-words">
-                          "{eoi.message}"
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-2 shrink-0">
-                      <button type="button" onClick={() => acceptEOI(eoi)}
-                        className="px-3 py-1.5 rounded-full text-xs bg-[#2D6A4F] hover:bg-[#245c43] text-white transition-colors font-medium">
-                        Accept
-                      </button>
-                      <button type="button" onClick={() => declineEOI(eoi)}
-                        className="px-3 py-1.5 rounded-full text-xs border border-red-400/40 text-red-500 hover:bg-red-50 transition-colors">
-                        Decline
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* 2 — Active conversations, segmented by channel of origin so it's
-              unambiguous at a glance which kind of relationship each thread
-              represents — previously "Conversations" silently mixed
-              EOI-based and partnership-based threads together, distinguishable
-              only by reading the title text itself. */}
-          {conversations.filter(c => c.conversation_type === "question" && !c.funder_closed_at).length > 0 && (
-            <section>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#185FA5" }} />
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-black">
-                  Enquiries
-                </h3>
-              </div>
-              <div className="space-y-2 min-w-0 overflow-hidden">
-                {conversations.filter(c => c.conversation_type === "question" && !c.funder_closed_at).map(convo => (
-                  <button key={convo.id} type="button" onClick={() => setActiveConvo(convo)}
-                  className="w-full min-w-0 text-left rounded-xl border-l-4 border border-border bg-white px-5 py-4 flex items-start gap-4 hover:shadow-md transition-all duration-200 overflow-hidden"
-                  style={{ borderLeftColor: "#185FA5" }}>
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold"
-                      style={{ background: "#e6f1fb", color: "#185FA5" }}>
-                      ?
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground truncate">{convo.initiative_title}</p>
-                      <p className="text-xs text-black mt-0.5 truncate">{convo.other_user_name}</p>
-                      {convo.last_message && (
-                        <p className="text-xs text-black mt-1 line-clamp-1">{convo.last_message}</p>
-                      )}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
-          {conversations.filter(c => c.conversation_type !== "question" && c.conversation_type !== "partnership" && (isFunder ? !c.funder_closed_at : true)).length > 0 && (
-            <section>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#2D6A4F" }} />
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-black">
-                  Initiative interest
-                </h3>
-              </div>
-              <div className="space-y-2 min-w-0 overflow-hidden">
-                {conversations.filter(c => c.conversation_type !== "question" && c.conversation_type !== "partnership" && (isFunder ? !c.funder_closed_at : true)).map(convo => (
-                  <button key={convo.id} type="button" onClick={() => setActiveConvo(convo)}
-                  className="w-full min-w-0 text-left rounded-xl border-l-4 border border-border bg-white px-5 py-4 flex items-start gap-4 hover:shadow-md transition-all duration-200 overflow-hidden"
-                  style={{ borderLeftColor: "#2D6A4F" }}>
-                    <div className="w-8 h-8 rounded-full bg-[#2D6A4F] flex items-center justify-center shrink-0 mt-0.5 text-white text-xs font-bold">
-                      {((convo.other_user_name ?? "?")[0]).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-0.5">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <p className={`text-sm font-medium truncate ${convo.unread ? "text-foreground" : "text-foreground/80"}`}>
-                            {convo.other_user_name ?? "Unknown"}
-                          </p>
-                        </div>
-                        <span className="text-[11px] text-black shrink-0">{timeAgo(convo.last_message_at)}</span>
-                      </div>
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <p className="text-xs text-black truncate">Re: {convo.initiative_title}</p>
-                        {convo.partnerStatus === "confirmed" && (
-                          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                            style={{ background: "#eaf5ee", color: "#2D6A4F" }}>Confirmed</span>
-                        )}
-                        {convo.partnerStatus === "closed" && (
-                          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                            style={{ background: "#fef2f2", color: "#ef4444" }}>Closed</span>
-                        )}
-                        {convo.partnerStatus === "active" && (
-                          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                            style={{ background: "#fffbeb", color: "#f59e0b" }}>Active</span>
-                        )}
-                        {convo.partnerStatus === "pending" && (
-                          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                            style={{ background: "#f3f4f6", color: "#6b7280" }}>Pending</span>
-                        )}
-                      </div>
-                      <p className={`text-xs leading-relaxed ${convo.unread ? "text-foreground font-medium" : "text-black"}`}>
-                        {convo.last_message}
-                      </p>
-                    </div>
-                    {convo.unread && <div className="w-2 h-2 rounded-full bg-[#2D6A4F] shrink-0 mt-2" />}
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
-          {conversations.filter(c => c.conversation_type === "partnership" && (isFunder ? !c.funder_closed_at : true)).length > 0 && (
-            <section>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#C45C26" }} />
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black">
-                    Partnership pursuit
+              {/* Awaiting review */}
+              {pendingEOIs.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-3">
+                    Awaiting review — {pendingEOIs.length}
                   </h3>
+                  <div className="space-y-2">
+                    {pendingEOIs.map(eoi => (
+                      <div key={eoi.eoi_id}
+                        className="rounded-xl border-l-4 border border-border bg-white px-5 py-4 flex items-start gap-4"
+                        style={{ borderLeftColor: "#2D6A4F" }}>
+                        <div className="w-8 h-8 rounded-lg bg-[#eaf5ee] flex items-center justify-center shrink-0 mt-0.5">
+                          <CheckCircle2 className="w-4 h-4 text-[#2D6A4F]" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2 mb-0.5 flex-wrap">
+                            <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                              <p className="text-sm font-medium text-foreground">
+                                {eoi.expresser_name} expressed interest
+                              </p>
+                              {eoi.expresser_verified && (
+                                <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
+                                  style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+                                  <ShieldCheck className="w-3 h-3" />
+                                  Verified
+                                </span>
+                              )}
+                              {eoi.expresser_id && (
+                                <Link href={`/dashboard/natives?user=${eoi.expresser_id}&tab=organisations`}
+                                  className="text-[10px] text-black hover:text-[#2D6A4F] transition-colors shrink-0 underline underline-offset-2">
+                                  View profile
+                                </Link>
+                              )}
+                            </div>
+                            <span className="text-[11px] text-black shrink-0">{timeAgo(eoi.created_at)}</span>
+                          </div>
+                          <p className="text-xs text-black mb-1">
+                            <span className="text-foreground/70">{eoi.initiative_title}</span>
+                          </p>
+                          <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                            {eoi.partnership_type && (
+                              <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                                style={{ background: "#f5ede8", color: "#C45C26" }}>
+                                {eoi.partnership_type}
+                              </span>
+                            )}
+                            {eoi.esg_adoption && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                                style={{ background: "#e8f5e9", color: "#2e7d32" }}>
+                                ESG/CSR Adoption
+                              </span>
+                            )}
+                          </div>
+                          {eoi.message && (
+                            <p className="text-xs text-black mt-2 leading-relaxed break-words">
+                              "{eoi.message}"
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-2 shrink-0">
+                          <button type="button" onClick={() => acceptEOI(eoi)}
+                            className="px-3 py-1.5 rounded-full text-xs bg-[#2D6A4F] hover:bg-[#245c43] text-white transition-colors font-medium">
+                            Accept
+                          </button>
+                          <button type="button" onClick={() => declineEOI(eoi)}
+                            className="px-3 py-1.5 rounded-full text-xs border border-red-400/40 text-red-500 hover:bg-red-50 transition-colors">
+                            Decline
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Enquiries */}
+              {conversations.filter(c => c.conversation_type === "question" && !c.funder_closed_at).length > 0 && (
+                <div>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-3">
+                    Enquiries
+                  </h3>
+                  <div className="space-y-2 min-w-0 overflow-hidden">
+                    {conversations.filter(c => c.conversation_type === "question" && !c.funder_closed_at).map(convo => (
+                      <button key={convo.id} type="button" onClick={() => setActiveConvo(convo)}
+                      className="w-full min-w-0 text-left rounded-xl border-l-4 border border-border bg-white px-5 py-4 flex items-start gap-4 hover:shadow-md transition-all duration-200 overflow-hidden"
+                      style={{ borderLeftColor: "#185FA5" }}>
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold"
+                          style={{ background: "#e6f1fb", color: "#185FA5" }}>
+                          ?
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground truncate">{convo.initiative_title}</p>
+                          <p className="text-xs text-black mt-0.5 truncate">{convo.other_user_name}</p>
+                          {convo.last_message && (
+                            <p className="text-xs text-black mt-1 line-clamp-1">{convo.last_message}</p>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Active */}
+              {conversations.filter(c => c.conversation_type !== "question" && c.conversation_type !== "partnership" && (isFunder ? !c.funder_closed_at : true)).length > 0 && (
+                <div>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-3">
+                    Active
+                  </h3>
+                  <div className="space-y-2 min-w-0 overflow-hidden">
+                    {conversations.filter(c => c.conversation_type !== "question" && c.conversation_type !== "partnership" && (isFunder ? !c.funder_closed_at : true)).map(convo => (
+                      <button key={convo.id} type="button" onClick={() => setActiveConvo(convo)}
+                      className="w-full min-w-0 text-left rounded-xl border-l-4 border border-border bg-white px-5 py-4 flex items-start gap-4 hover:shadow-md transition-all duration-200 overflow-hidden"
+                      style={{ borderLeftColor: "#2D6A4F" }}>
+                        <div className="w-8 h-8 rounded-full bg-[#2D6A4F] flex items-center justify-center shrink-0 mt-0.5 text-white text-xs font-bold">
+                          {((convo.other_user_name ?? "?")[0]).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2 mb-0.5">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <p className={`text-sm font-medium truncate ${convo.unread ? "text-foreground" : "text-foreground/80"}`}>
+                                {convo.other_user_name ?? "Unknown"}
+                              </p>
+                            </div>
+                            <span className="text-[11px] text-black shrink-0">{timeAgo(convo.last_message_at)}</span>
+                          </div>
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <p className="text-xs text-black truncate">Re: {convo.initiative_title}</p>
+                            {convo.partnerStatus === "confirmed" && (
+                              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                                style={{ background: "#eaf5ee", color: "#2D6A4F" }}>Confirmed</span>
+                            )}
+                            {convo.partnerStatus === "closed" && (
+                              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                                style={{ background: "#fef2f2", color: "#ef4444" }}>Closed</span>
+                            )}
+                            {convo.partnerStatus === "active" && (
+                              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                                style={{ background: "#fffbeb", color: "#f59e0b" }}>Active</span>
+                            )}
+                            {convo.partnerStatus === "pending" && (
+                              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                                style={{ background: "#f3f4f6", color: "#6b7280" }}>Pending</span>
+                            )}
+                          </div>
+                          <p className={`text-xs leading-relaxed ${convo.unread ? "text-foreground font-medium" : "text-black"}`}>
+                            {convo.last_message}
+                          </p>
+                        </div>
+                        {convo.unread && <div className="w-2 h-2 rounded-full bg-[#2D6A4F] shrink-0 mt-2" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sent */}
+              {pendingOutbound.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-3">Sent</h3>
+                  <div className="space-y-2">
+                    {pendingOutbound.map(eoi => {
+                      const status = eoi.conversation_status;
+                      const statusConfig = status === "open"
+                        ? { label: "Accepted", bg: "#eaf5ee", color: "#2D6A4F" }
+                        : status === "declined"
+                        ? { label: "Declined", bg: "#fef2f2", color: "#ef4444" }
+                        : { label: "Pending",  bg: "#fffbeb", color: "#f59e0b" };
+                      return (
+                        <div key={eoi.eoi_id}
+                          className="rounded-xl border-l-4 border border-border bg-white px-5 py-4 flex items-start gap-4"
+                          style={{ borderLeftColor: "#2D6A4F" }}>
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+                            style={{ background: statusConfig.bg }}>
+                            <UserCheck className="w-4 h-4" style={{ color: statusConfig.color }} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 mb-0.5">
+                              <p className="text-sm font-medium text-foreground truncate">{eoi.initiative_title}</p>
+                              <span className="text-[11px] text-black shrink-0">{timeAgo(eoi.created_at)}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 mt-1">
+                              <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                                style={{ background: "#f5ede8", color: "#C45C26" }}>
+                                {eoi.partnership_type}
+                              </span>
+                              <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                                style={{ background: statusConfig.bg, color: statusConfig.color }}>
+                                {statusConfig.label}
+                              </span>
+                            </div>
+                            {eoi.message && (
+                              <p className="text-xs text-black mt-2 leading-relaxed break-words line-clamp-2">
+                                "{eoi.message}"
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* ── PARTNERSHIP CONVERSATIONS ──────────────────────────────────
+              conversation_type = "partnership" only — confirmed in the
+              actual data that these never carry an initiative_id, so this
+              split has zero overlap with the bucket above. */}
+          {conversations.filter(c => c.conversation_type === "partnership").length > 0 && (
+            <section className="space-y-5">
+              <div className="flex items-center justify-between pb-3 border-b-2" style={{ borderColor: "#C45C2630" }}>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full" style={{ background: "#C45C26" }} />
+                  <h2 className="text-sm font-bold uppercase tracking-widest text-black">Partnership Conversations</h2>
                 </div>
                 <Link href="/dashboard/portfolio?tab=partners"
                   className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-[#C45C26] hover:underline underline-offset-2">
@@ -596,119 +651,99 @@ export default function DashboardMessages() {
                   <ExternalLink className="w-2.5 h-2.5" />
                 </Link>
               </div>
-              <div className="space-y-2 min-w-0 overflow-hidden">
-                {conversations.filter(c => c.conversation_type === "partnership" && (isFunder ? !c.funder_closed_at : true)).map(convo => (
-                  <button key={convo.id} type="button" onClick={() => setActiveConvo(convo)}
-                  className="w-full min-w-0 text-left rounded-xl border-l-4 border border-border bg-white px-5 py-4 flex items-start gap-4 hover:shadow-md transition-all duration-200 overflow-hidden"
-                  style={{ borderLeftColor: "#C45C26" }}>
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-white text-xs font-bold"
-                      style={{ background: "#C45C26" }}>
-                      {((convo.other_user_name ?? "?")[0]).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-0.5">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <p className={`text-sm font-medium truncate ${convo.unread ? "text-foreground" : "text-foreground/80"}`}>
-                            {convo.other_user_name ?? "Unknown"}
+
+              {conversations.filter(c => c.conversation_type === "partnership" && (isFunder ? !c.funder_closed_at : true)).length > 0 && (
+                <div>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-3">Active</h3>
+                  <div className="space-y-2 min-w-0 overflow-hidden">
+                    {conversations.filter(c => c.conversation_type === "partnership" && (isFunder ? !c.funder_closed_at : true)).map(convo => (
+                      <button key={convo.id} type="button" onClick={() => setActiveConvo(convo)}
+                      className="w-full min-w-0 text-left rounded-xl border-l-4 border border-border bg-white px-5 py-4 flex items-start gap-4 hover:shadow-md transition-all duration-200 overflow-hidden"
+                      style={{ borderLeftColor: "#C45C26" }}>
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-white text-xs font-bold"
+                          style={{ background: "#C45C26" }}>
+                          {((convo.other_user_name ?? "?")[0]).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2 mb-0.5">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <p className={`text-sm font-medium truncate ${convo.unread ? "text-foreground" : "text-foreground/80"}`}>
+                                {convo.other_user_name ?? "Unknown"}
+                              </p>
+                            </div>
+                            <span className="text-[11px] text-black shrink-0">{timeAgo(convo.last_message_at)}</span>
+                          </div>
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <p className="text-xs text-black truncate">{convo.initiative_title}</p>
+                            {convo.partnerStatus === "confirmed" && (
+                              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                                style={{ background: "#eaf5ee", color: "#2D6A4F" }}>Confirmed</span>
+                            )}
+                            {convo.partnerStatus === "closed" && (
+                              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                                style={{ background: "#fef2f2", color: "#ef4444" }}>Closed</span>
+                            )}
+                            {convo.partnerStatus === "active" && (
+                              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                                style={{ background: "#fffbeb", color: "#f59e0b" }}>Active</span>
+                            )}
+                            {convo.partnerStatus === "pending" && (
+                              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                                style={{ background: "#f3f4f6", color: "#6b7280" }}>Pending</span>
+                            )}
+                          </div>
+                          <p className={`text-xs leading-relaxed ${convo.unread ? "text-foreground font-medium" : "text-black"}`}>
+                            {convo.last_message}
                           </p>
                         </div>
-                        <span className="text-[11px] text-black shrink-0">{timeAgo(convo.last_message_at)}</span>
-                      </div>
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <p className="text-xs text-black truncate">Re: {convo.initiative_title}</p>
-                        {convo.partnerStatus === "confirmed" && (
-                          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                            style={{ background: "#eaf5ee", color: "#2D6A4F" }}>Confirmed</span>
-                        )}
-                        {convo.partnerStatus === "closed" && (
-                          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                            style={{ background: "#fef2f2", color: "#ef4444" }}>Closed</span>
-                        )}
-                        {convo.partnerStatus === "active" && (
-                          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                            style={{ background: "#fffbeb", color: "#f59e0b" }}>Active</span>
-                        )}
-                        {convo.partnerStatus === "pending" && (
-                          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                            style={{ background: "#f3f4f6", color: "#6b7280" }}>Pending</span>
-                        )}
-                      </div>
-                      <p className={`text-xs leading-relaxed ${convo.unread ? "text-foreground font-medium" : "text-black"}`}>
-                        {convo.last_message}
-                      </p>
-                    </div>
-                    {convo.unread && <div className="w-2 h-2 rounded-full bg-[#C45C26] shrink-0 mt-2" />}
-                  </button>
-                ))}
-              </div>
+                        {convo.unread && <div className="w-2 h-2 rounded-full bg-[#C45C26] shrink-0 mt-2" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {isFunder && conversations.filter(c => c.conversation_type === "partnership" && !!c.funder_closed_at).length > 0 && (
+                <div>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-3">Archived</h3>
+                  <div className="space-y-2 min-w-0 overflow-hidden opacity-60">
+                    {conversations.filter(c => c.conversation_type === "partnership" && !!c.funder_closed_at).map(convo => (
+                      <button key={convo.id} type="button" onClick={() => setActiveConvo(convo)}
+                        className="w-full min-w-0 text-left rounded-xl border border-border bg-white px-5 py-3 flex items-center gap-3 hover:shadow-sm transition-all overflow-hidden">
+                        <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0 text-black text-xs font-bold">
+                          {((convo.other_user_name ?? "?")[0]).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-black truncate">{convo.other_user_name ?? "Unknown"}</p>
+                          <p className="text-xs text-black/70 truncate">{convo.initiative_title}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </section>
           )}
 
-          {/* Archived conversations — funder closed */}
-          {isFunder && conversations.filter(c => !!c.funder_closed_at).length > 0 && (
+          {/* Archived — non-partnership, funder closed */}
+          {isFunder && conversations.filter(c => c.conversation_type !== "partnership" && !!c.funder_closed_at).length > 0 && (
             <section>
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-3">
                 Archived
               </h3>
               <div className="space-y-2 min-w-0 overflow-hidden opacity-60">
-                {conversations.filter(c => !!c.funder_closed_at).map(convo => (                  <button key={convo.id} type="button" onClick={() => setActiveConvo(convo)}
-                    className="w-full min-w-0 text-left rounded-xl border border-border bg-card px-5 py-3 flex items-center gap-3 hover:border-[#2D6A4F]/40 transition-colors overflow-hidden">
-                    <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0 text-muted-foreground text-xs font-bold">
+                {conversations.filter(c => c.conversation_type !== "partnership" && !!c.funder_closed_at).map(convo => (
+                  <button key={convo.id} type="button" onClick={() => setActiveConvo(convo)}
+                    className="w-full min-w-0 text-left rounded-xl border border-border bg-white px-5 py-3 flex items-center gap-3 hover:shadow-sm transition-all overflow-hidden">
+                    <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0 text-black text-xs font-bold">
                       {((convo.other_user_name ?? "?")[0]).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-muted-foreground truncate">{convo.other_user_name ?? "Unknown"}</p>
-                      <p className="text-xs text-muted-foreground/70 truncate">Re: {convo.initiative_title}</p>
+                      <p className="text-sm text-black truncate">{convo.other_user_name ?? "Unknown"}</p>
+                      <p className="text-xs text-black/70 truncate">Re: {convo.initiative_title}</p>
                     </div>
                   </button>
                 ))}
-              </div>
-            </section>
-          )}
-
-          {/* 3 — Sent */}
-          {pendingOutbound.length > 0 && (
-            <section>
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">Sent</h3>
-              <div className="space-y-2">
-                {pendingOutbound.map(eoi => {
-                  const status = eoi.conversation_status;
-                  const statusConfig = status === "open"
-                    ? { label: "Accepted", bg: "#eaf5ee", color: "#2D6A4F" }
-                    : status === "declined"
-                    ? { label: "Declined", bg: "#fef2f2", color: "#ef4444" }
-                    : { label: "Pending",  bg: "#fffbeb", color: "#f59e0b" };
-                  return (
-                    <div key={eoi.eoi_id}
-                      className="rounded-xl border border-border bg-card px-5 py-4 flex items-start gap-4">
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
-                        style={{ background: statusConfig.bg }}>
-                        <UserCheck className="w-4 h-4" style={{ color: statusConfig.color }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2 mb-0.5">
-                          <p className="text-sm font-medium text-foreground truncate">{eoi.initiative_title}</p>
-                          <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(eoi.created_at)}</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5 mt-1">
-                          <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                            style={{ background: "#f5ede8", color: "#C45C26" }}>
-                            {eoi.partnership_type}
-                          </span>
-                          <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                            style={{ background: statusConfig.bg, color: statusConfig.color }}>
-                            {statusConfig.label}
-                          </span>
-                        </div>
-                        {eoi.message && (
-                          <p className="text-xs text-muted-foreground mt-2 leading-relaxed break-words line-clamp-2">
-                            "{eoi.message}"
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
             </section>
           )}
