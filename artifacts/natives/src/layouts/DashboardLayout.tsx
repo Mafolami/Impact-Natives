@@ -62,7 +62,7 @@ export default function DashboardLayout({ children, adminOnly }: { children: Rea
       <Sidebar onCollapse={setCollapsed} />
       <div className={cn(
         "flex flex-col flex-1 min-w-0 overflow-x-hidden transition-all duration-200",
-        collapsed ? "ml-16" : "ml-56"
+        collapsed ? "ml-16" : "ml-64"
       )}>
         <Topbar sidebarCollapsed={collapsed} />
         <main className="flex-1 pt-14">
