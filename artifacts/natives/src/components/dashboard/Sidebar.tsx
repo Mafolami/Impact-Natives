@@ -17,7 +17,7 @@ type NavItem = { label: string; href: string; icon: any; corporateOnly: boolean 
 // browsing what others listed; My Work is things this account builds or
 // manages; Connect is the relationship layer; Account is profile/settings,
 // last.
-const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
+const NAV_SECTIONS: { label: string | null; accent?: string; items: NavItem[] }[] = [
   {
     label: null,
     items: [
@@ -26,6 +26,7 @@ const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
   },
   {
     label: "Discover",
+    accent: "#185FA5",
     items: [
       { label: "Marketplace", href: "/dashboard/marketplace", icon: Compass, corporateOnly: false },
       { label: "Natives", href: "/dashboard/natives", icon: Globe, corporateOnly: false },
@@ -33,6 +34,7 @@ const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
   },
   {
     label: "My Work",
+    accent: "#C45C26",
     items: [
       { label: "Strategy", href: "/dashboard/strategy", icon: Sparkles, corporateOnly: true },
       { label: "Portfolio", href: "/dashboard/portfolio", icon: Lightbulb, corporateOnly: false },
@@ -41,6 +43,7 @@ const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
   },
   {
     label: "Connect",
+    accent: "#2D6A4F",
     items: [
       { label: "Partnerships", href: "/dashboard/partnerships", icon: Handshake, corporateOnly: false },
       { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, corporateOnly: false },
@@ -48,6 +51,7 @@ const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
   },
   {
     label: "Account",
+    accent: "#6B4C8A",
     items: [
       { label: "Profile", href: "/dashboard/profile", icon: User, corporateOnly: false },
       { label: "Settings", href: "/dashboard/settings", icon: Settings, corporateOnly: false },
@@ -189,10 +193,22 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
   return (
     <aside
     className={cn(
-      "fixed left-0 top-0 h-screen flex flex-col z-40 transition-all duration-200 border-r bg-[#FBF1E7] border-border",
+      "fixed left-0 top-0 h-screen flex flex-col z-40 transition-all duration-200 border-r border-border relative overflow-hidden",
+      "bg-gradient-to-b from-[#F8DDBB] via-[#F3C99A] to-[#EAAF74]",
+      "dark:from-[#1F2A24] dark:via-[#16211C] dark:to-[#0E1713]",
       collapsed ? "w-16" : "w-56"
     )}
     >
+      {/* Grain texture overlay — sits behind all real content since it's
+          the first child painted in this stacking context. Colour-neutral
+          SVG noise with mix-blend so it reads correctly over both the
+          light and dark gradients without any theme-detection logic. */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[1.00] mix-blend-overlay"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+        }}
+      />
       {/* Brand + toggle */}
       <div className="px-3 py-5 shrink-0 flex items-center justify-between">
         {!collapsed && (
@@ -211,7 +227,11 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
         {visibleSections.map((section, sectionIndex) => (
           <div key={section.label ?? "home"} className={sectionIndex > 0 ? "mt-3 pt-3 border-t border-border" : ""}>
             {section.label && !collapsed && (
-              <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-black">
+              <p
+                className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5"
+                style={{ color: section.accent }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: section.accent }} />
                 {section.label}
               </p>
             )}
