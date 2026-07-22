@@ -124,54 +124,41 @@ if (isAdmin) {
     return (
       <>
         <ScrollToTop />
-        <Switch>
-          <Route path="/dashboard/partnerships">
-            <DashboardLayout><DashboardPartnerships /></DashboardLayout>
-          </Route>
-          <Route path="/dashboard/portfolio/:id">
-            <DashboardLayout><DashboardPortfolio /></DashboardLayout>
-          </Route>
-          <Route path="/dashboard/portfolio">
-            <DashboardLayout><DashboardPortfolio /></DashboardLayout>
-          </Route>
-          <Route path="/dashboard/labs">
-            <DashboardLayout><DashboardLabs /></DashboardLayout>
-          </Route>
-          <Route path="/dashboard/marketplace/:id">
-            <DashboardLayout><DashboardMarketplace /></DashboardLayout>
-          </Route>
-          <Route path="/dashboard/marketplace">
-            <DashboardLayout><DashboardMarketplace /></DashboardLayout>
-          </Route>
-          <Route path="/dashboard/strategy">
-            <DashboardLayout><DashboardStrategy /></DashboardLayout>
-          </Route>
-          <Route path="/dashboard/natives">
-            <DashboardLayout><DashboardNatives /></DashboardLayout>
-          </Route>
-          <Route path="/dashboard/feed">
-            <DashboardLayout><DashboardFeed /></DashboardLayout>
-          </Route>
-          <Route path="/dashboard/messages">
-            <DashboardLayout><DashboardMessages /></DashboardLayout>
-          </Route>
-          <Route path="/dashboard/profile">
-            <DashboardLayout><DashboardProfile /></DashboardLayout>
-          </Route>
-          <Route path="/dashboard/upgrade-organisation">
-            <DashboardLayout><UpgradeToOrganisation /></DashboardLayout>
-          </Route>
-          <Route path="/dashboard/settings">
-            <DashboardLayout><DashboardSettings /></DashboardLayout>
-          </Route>
-          <Route path="/dashboard">
-            <DashboardLayout><DashboardHome /></DashboardLayout>
-          </Route>
-        </Switch>
+        {/* DashboardLayout (and the Sidebar inside it) now mounts ONCE for
+            the whole /dashboard section instead of once per Route. Before,
+            each Route wrapped its own separate DashboardLayout instance, so
+            Switch swapping branches destroyed and rebuilt the entire layout
+            \u2014 sidebar included \u2014 on every single navigation. The nested
+            Suspense below keeps a not-yet-loaded page chunk's loading state
+            confined to the content area, so it no longer bubbles up to the
+            app-level Suspense and blanks the sidebar too. */}
+        <DashboardLayout>
+          <Suspense fallback={
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
+            </div>
+          }>
+            <Switch>
+              <Route path="/dashboard/partnerships"><DashboardPartnerships /></Route>
+              <Route path="/dashboard/portfolio/:id"><DashboardPortfolio /></Route>
+              <Route path="/dashboard/portfolio"><DashboardPortfolio /></Route>
+              <Route path="/dashboard/labs"><DashboardLabs /></Route>
+              <Route path="/dashboard/marketplace/:id"><DashboardMarketplace /></Route>
+              <Route path="/dashboard/marketplace"><DashboardMarketplace /></Route>
+              <Route path="/dashboard/strategy"><DashboardStrategy /></Route>
+              <Route path="/dashboard/natives"><DashboardNatives /></Route>
+              <Route path="/dashboard/feed"><DashboardFeed /></Route>
+              <Route path="/dashboard/messages"><DashboardMessages /></Route>
+              <Route path="/dashboard/profile"><DashboardProfile /></Route>
+              <Route path="/dashboard/upgrade-organisation"><UpgradeToOrganisation /></Route>
+              <Route path="/dashboard/settings"><DashboardSettings /></Route>
+              <Route path="/dashboard"><DashboardHome /></Route>
+            </Switch>
+          </Suspense>
+        </DashboardLayout>
       </>
     );
   }
-
     const isAuthPage = [
     "/signin", "/signup", "/register", "/login",
     "/forgot-password", "/reset-password",

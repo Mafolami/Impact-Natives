@@ -49,26 +49,34 @@ export default function DashboardLayout({ children, adminOnly }: { children: Rea
     return undefined;
   }, [user, profile, loading, navigate, adminOnly]);
 
-  if (loading || !user || (user && !profile)) {
+  if (loading || !user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
       </div>
     );
   }
-
+  // Sidebar stays mounted once a user exists — a profile refetch or a
+  // transient falsy profile no longer blanks the whole shell, only the
+  // content area shows a spinner while it catches up.
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar onCollapse={setCollapsed} />
       <div className={cn(
         "flex flex-col flex-1 min-w-0 overflow-x-hidden transition-all duration-200",
-        collapsed ? "ml-16" : "ml-64"
+        collapsed ? "ml-16" : "ml-72"
       )}>
         <Topbar sidebarCollapsed={collapsed} />
         <main className="flex-1 pt-14">
-          <div className="px-12 py-10">
-            {children}
-          </div>
+          {!profile ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
+            </div>
+          ) : (
+            <div className="px-12 py-10">
+              {children}
+            </div>
+          )}
         </main>
       </div>
     </div>

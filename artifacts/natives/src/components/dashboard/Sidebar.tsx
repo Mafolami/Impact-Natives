@@ -204,13 +204,15 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
           SVG noise with mix-blend so it reads correctly over both the
           light and dark gradients without any theme-detection logic. */}
       <div
-        className="absolute inset-0 pointer-events-none opacity-[1.00] mix-blend-overlay"
+        className="absolute inset-0 pointer-events-none opacity-[0.12] mix-blend-overlay"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
         }}
       />
-      {/* Brand + toggle */}
-      <div className="px-3 py-5 shrink-0 flex items-center justify-between">
+      {/* Brand + toggle — solid, same treatment as the footer, so the logo
+          sits on a flat dark ground instead of competing with the
+          gradient/texture behind the nav items. */}
+      <div className="px-3 py-5 shrink-0 flex items-center justify-between bg-[#180E08] border-b border-black/20">
         {!collapsed && (
           <img src="/logo.png" alt="Impact Natives" className="h-10 w-auto" />
         )}
