@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2, Send, ArrowLeft, Clock, CheckCircle2, UserCheck, ExternalLink, ShieldCheck } from "lucide-react";
+import { Loader2, Send, ArrowLeft, Clock, CheckCircle2, UserCheck, ExternalLink, ShieldCheck, Handshake, Lightbulb, HelpCircle } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 
@@ -98,7 +98,7 @@ export default function DashboardMessages() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading]             = useState(true);
   const [activeConvo, setActiveConvo]     = useState<Conversation | null>(null);
-
+  const [activeTab, setActiveTab]         = useState<"partnership" | "initiative">("partnership");
   useEffect(() => {
     if (!user) return;
     loadAll();
@@ -391,14 +391,45 @@ export default function DashboardMessages() {
     );
   }
 
+  const partnershipVisible = conversations.filter(c => c.conversation_type === "partnership" && (isFunder ? !c.funder_closed_at : true));
+  const partnershipArchived = conversations.filter(c => c.conversation_type === "partnership" && !!c.funder_closed_at);
+  const initiativeActive = conversations.filter(c => c.conversation_type !== "question" && c.conversation_type !== "partnership" && (isFunder ? !c.funder_closed_at : true));
+  const initiativeEnquiries = conversations.filter(c => c.conversation_type === "question" && !c.funder_closed_at);
+  const initiativeArchived = conversations.filter(c => c.conversation_type !== "partnership" && !!c.funder_closed_at);
+  const partnershipCount = partnershipVisible.length;
+  const initiativeCount = pendingEOIs.length + initiativeEnquiries.length + initiativeActive.length + pendingOutbound.length;
   const hasAnything = pendingEOIs.length > 0 || conversations.length > 0 || pendingOutbound.length > 0;
 
-  return (
-    <div className="space-y-8 min-w-0 overflow-hidden">
-    <div>
-        <p className="text-sm text-muted-foreground mt-1">Expressions of interest and active conversations.</p>
-      </div>
+  // Flat-divider row, no card border, no color coding — status shown as
+  // plain text rather than a colored pill.
+  function Row({ onClick, avatarLabel, title, subtitle, meta, status, last }: {
+    onClick?: () => void; avatarLabel: string; title: string; subtitle?: string;
+    meta?: string; status?: string; last?: boolean;
+  }) {
+    const Tag = onClick ? "button" : "div";
+    return (
+      <Tag type={onClick ? "button" : undefined} onClick={onClick}
+        className={`w-full text-left flex items-center gap-3 px-4 py-3 min-w-0 ${!last ? "border-b border-border" : ""} ${onClick ? "hover:bg-muted/40 transition-colors" : ""}`}>
+        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0 text-black text-xs font-semibold">
+          {avatarLabel}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-sm font-medium text-foreground truncate">{title}</p>
+            {meta && <span className="text-xs text-black shrink-0">{meta}</span>}
+          </div>
+          {subtitle && <p className="text-xs text-black mt-0.5 truncate">{subtitle}</p>}
+        </div>
+        {status && <span className="text-xs text-black shrink-0">{status}</span>}
+      </Tag>
+    );
+  }
 
+  return (
+    <div className="space-y-6 min-w-0 overflow-hidden">
+      <div>
+        <p className="text-sm text-black mt-1">Expressions of interest and active conversations.</p>
+      </div>
       {!hasAnything ? (
         <div className="rounded-2xl border border-border bg-white p-12 text-center">
           <Clock className="w-8 h-8 text-muted-foreground/40 mx-auto mb-4" />
@@ -407,40 +438,109 @@ export default function DashboardMessages() {
             When you or others express interest in initiatives, conversations will appear here.
           </p>
           <Link href="/dashboard/marketplace">
-            <Button className="text-white rounded-full px-5 hover:brightness-110 transition-all"
-              style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
+            <Button className="bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full px-5">
               Browse Marketplace
             </Button>
           </Link>
         </div>
       ) : (
-        <div className="space-y-10">
-          {/* ── INITIATIVE CONVERSATIONS ──────────────────────────────────
-              Every thread with conversation_type "eoi" or "question" — both
-              always carry an initiative_id in the actual data, confirmed
-              directly against the database rather than assumed. */}
-          {(pendingEOIs.length > 0
-            || conversations.filter(c => c.conversation_type !== "partnership" && (isFunder ? !c.funder_closed_at : true)).length > 0
-            || pendingOutbound.length > 0) && (
-            <section className="space-y-5">
-              <div className="flex items-center gap-2 pb-3 border-b-2" style={{ borderColor: "#2D6A4F30" }}>
-                <span className="w-2 h-2 rounded-full" style={{ background: "#2D6A4F" }} />
-                <h2 className="text-sm font-bold uppercase tracking-widest text-black">Initiative Conversations</h2>
-              </div>
+        <div className="space-y-6">
+          {/* Tab switcher — Partnership first, as agreed */}
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setActiveTab("partnership")}
+              className={`flex-1 h-11 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
+                activeTab === "partnership" ? "bg-foreground text-background" : "bg-muted text-black hover:bg-muted/70"
+              }`}>
+              <Handshake className="w-4 h-4" />
+              Partnership conversations
+              {partnershipCount > 0 && (
+                <span className={`text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${activeTab === "partnership" ? "bg-background text-foreground" : "bg-black/10 text-black"}`}>
+                  {partnershipCount}
+                </span>
+              )}
+            </button>
+            <button type="button" onClick={() => setActiveTab("initiative")}
+              className={`flex-1 h-11 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors ${
+                activeTab === "initiative" ? "bg-foreground text-background" : "bg-muted text-black hover:bg-muted/70"
+              }`}>
+              <Lightbulb className="w-4 h-4" />
+              Initiative conversations
+              {initiativeCount > 0 && (
+                <span className={`text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${activeTab === "initiative" ? "bg-background text-foreground" : "bg-black/10 text-black"}`}>
+                  {initiativeCount}
+                </span>
+              )}
+            </button>
+          </div>
 
-              {/* Awaiting review */}
+          {/* ── PARTNERSHIP TAB ── */}
+          {activeTab === "partnership" && (
+            <div className="space-y-6">
+              {partnershipVisible.length > 0 && (
+                <section>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-xs font-semibold uppercase tracking-widest text-black">Active — {partnershipVisible.length}</h3>
+                    <Link href="/dashboard/portfolio?tab=partners"
+                      className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-black hover:underline underline-offset-2">
+                      Confirmed partnerships
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </Link>
+                  </div>
+                  <div className="rounded-2xl border border-border bg-white overflow-hidden">
+                    {partnershipVisible.map((convo, i) => (
+                      <Row key={convo.id} last={i === partnershipVisible.length - 1}
+                        onClick={() => setActiveConvo(convo)}
+                        avatarLabel={((convo.other_user_name ?? "?")[0]).toUpperCase()}
+                        title={convo.other_user_name ?? "Unknown"}
+                        subtitle={convo.initiative_title}
+                        meta={timeAgo(convo.last_message_at)}
+                        status={
+                          convo.partnerStatus === "confirmed" ? "Confirmed"
+                          : convo.partnerStatus === "closed" ? "Closed"
+                          : convo.partnerStatus === "active" ? "Active"
+                          : "Pending"
+                        } />
+                    ))}
+                  </div>
+                </section>
+              )}
+              {partnershipArchived.length > 0 && (
+                <section>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-2">Archived — {partnershipArchived.length}</h3>
+                  <div className="rounded-2xl border border-border bg-white overflow-hidden opacity-60">
+                    {partnershipArchived.map((convo, i) => (
+                      <Row key={convo.id} last={i === partnershipArchived.length - 1}
+                        onClick={() => setActiveConvo(convo)}
+                        avatarLabel={((convo.other_user_name ?? "?")[0]).toUpperCase()}
+                        title={convo.other_user_name ?? "Unknown"}
+                        subtitle={convo.initiative_title} />
+                    ))}
+                  </div>
+                </section>
+              )}
+              {partnershipVisible.length === 0 && partnershipArchived.length === 0 && (
+                <div className="rounded-2xl border border-border bg-white p-10 text-center">
+                  <Handshake className="w-6 h-6 text-muted-foreground/40 mx-auto mb-3" />
+                  <p className="text-sm text-black">No partnership conversations yet.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── INITIATIVE TAB ── */}
+          {activeTab === "initiative" && (
+            <div className="space-y-6">
               {pendingEOIs.length > 0 && (
-                <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-3">
+                <section>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-2">
                     Awaiting review — {pendingEOIs.length}
                   </h3>
                   <div className="space-y-2">
                     {pendingEOIs.map(eoi => (
                       <div key={eoi.eoi_id}
-                        className="rounded-xl border-l-4 border border-border bg-white px-5 py-4 flex items-start gap-4"
-                        style={{ borderLeftColor: "#2D6A4F" }}>
-                        <div className="w-8 h-8 rounded-lg bg-[#eaf5ee] flex items-center justify-center shrink-0 mt-0.5">
-                          <CheckCircle2 className="w-4 h-4 text-[#2D6A4F]" />
+                        className="rounded-xl border border-border bg-white px-5 py-4 flex items-start gap-4">
+                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0 mt-0.5 text-black text-xs font-semibold">
+                          <CheckCircle2 className="w-4 h-4" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2 mb-0.5 flex-wrap">
@@ -449,15 +549,14 @@ export default function DashboardMessages() {
                                 {eoi.expresser_name} expressed interest
                               </p>
                               {eoi.expresser_verified && (
-                                <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
-                                  style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+                                <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium text-black">
                                   <ShieldCheck className="w-3 h-3" />
                                   Verified
                                 </span>
                               )}
                               {eoi.expresser_id && (
                                 <Link href={`/dashboard/natives?user=${eoi.expresser_id}&tab=organisations`}
-                                  className="text-[10px] text-black hover:text-[#2D6A4F] transition-colors shrink-0 underline underline-offset-2">
+                                  className="text-[10px] text-black hover:text-foreground transition-colors shrink-0 underline underline-offset-2">
                                   View profile
                                 </Link>
                               )}
@@ -467,19 +566,9 @@ export default function DashboardMessages() {
                           <p className="text-xs text-black mb-1">
                             <span className="text-foreground/70">{eoi.initiative_title}</span>
                           </p>
-                          <div className="flex items-center gap-1.5 flex-wrap mt-1">
-                            {eoi.partnership_type && (
-                              <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                                style={{ background: "#f5ede8", color: "#C45C26" }}>
-                                {eoi.partnership_type}
-                              </span>
-                            )}
-                            {eoi.esg_adoption && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                                style={{ background: "#e8f5e9", color: "#2e7d32" }}>
-                                ESG/CSR Adoption
-                              </span>
-                            )}
+                          <div className="flex items-center gap-1.5 flex-wrap mt-1 text-xs text-black">
+                            {eoi.partnership_type && <span>{eoi.partnership_type}</span>}
+                            {eoi.esg_adoption && <span>· ESG/CSR adoption</span>}
                           </div>
                           {eoi.message && (
                             <p className="text-xs text-black mt-2 leading-relaxed break-words">
@@ -500,252 +589,89 @@ export default function DashboardMessages() {
                       </div>
                     ))}
                   </div>
-                </div>
+                </section>
               )}
 
-              {/* Enquiries */}
-              {conversations.filter(c => c.conversation_type === "question" && !c.funder_closed_at).length > 0 && (
-                <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-3">
-                    Enquiries
-                  </h3>
-                  <div className="space-y-2 min-w-0 overflow-hidden">
-                    {conversations.filter(c => c.conversation_type === "question" && !c.funder_closed_at).map(convo => (
-                      <button key={convo.id} type="button" onClick={() => setActiveConvo(convo)}
-                      className="w-full min-w-0 text-left rounded-xl border-l-4 border border-border bg-white px-5 py-4 flex items-start gap-4 hover:shadow-md transition-all duration-200 overflow-hidden"
-                      style={{ borderLeftColor: "#185FA5" }}>
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold"
-                          style={{ background: "#e6f1fb", color: "#185FA5" }}>
-                          ?
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-foreground truncate">{convo.initiative_title}</p>
-                          <p className="text-xs text-black mt-0.5 truncate">{convo.other_user_name}</p>
-                          {convo.last_message && (
-                            <p className="text-xs text-black mt-1 line-clamp-1">{convo.last_message}</p>
-                          )}
-                        </div>
-                      </button>
+              {initiativeEnquiries.length > 0 && (
+                <section>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-2">Enquiries — {initiativeEnquiries.length}</h3>
+                  <div className="rounded-2xl border border-border bg-white overflow-hidden">
+                    {initiativeEnquiries.map((convo, i) => (
+                      <Row key={convo.id} last={i === initiativeEnquiries.length - 1}
+                        onClick={() => setActiveConvo(convo)}
+                        avatarLabel="?"
+                        title={convo.initiative_title}
+                        subtitle={convo.other_user_name}
+                        meta={convo.last_message ? undefined : undefined} />
                     ))}
                   </div>
-                </div>
+                </section>
               )}
 
-              {/* Active */}
-              {conversations.filter(c => c.conversation_type !== "question" && c.conversation_type !== "partnership" && (isFunder ? !c.funder_closed_at : true)).length > 0 && (
-                <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-3">
-                    Active
-                  </h3>
-                  <div className="space-y-2 min-w-0 overflow-hidden">
-                    {conversations.filter(c => c.conversation_type !== "question" && c.conversation_type !== "partnership" && (isFunder ? !c.funder_closed_at : true)).map(convo => (
-                      <button key={convo.id} type="button" onClick={() => setActiveConvo(convo)}
-                      className="w-full min-w-0 text-left rounded-xl border-l-4 border border-border bg-white px-5 py-4 flex items-start gap-4 hover:shadow-md transition-all duration-200 overflow-hidden"
-                      style={{ borderLeftColor: "#2D6A4F" }}>
-                        <div className="w-8 h-8 rounded-full bg-[#2D6A4F] flex items-center justify-center shrink-0 mt-0.5 text-white text-xs font-bold">
-                          {((convo.other_user_name ?? "?")[0]).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-0.5">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <p className={`text-sm font-medium truncate ${convo.unread ? "text-foreground" : "text-foreground/80"}`}>
-                                {convo.other_user_name ?? "Unknown"}
-                              </p>
-                            </div>
-                            <span className="text-[11px] text-black shrink-0">{timeAgo(convo.last_message_at)}</span>
-                          </div>
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <p className="text-xs text-black truncate">Re: {convo.initiative_title}</p>
-                            {convo.partnerStatus === "confirmed" && (
-                              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                                style={{ background: "#eaf5ee", color: "#2D6A4F" }}>Confirmed</span>
-                            )}
-                            {convo.partnerStatus === "closed" && (
-                              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                                style={{ background: "#fef2f2", color: "#ef4444" }}>Closed</span>
-                            )}
-                            {convo.partnerStatus === "active" && (
-                              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                                style={{ background: "#fffbeb", color: "#f59e0b" }}>Active</span>
-                            )}
-                            {convo.partnerStatus === "pending" && (
-                              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                                style={{ background: "#f3f4f6", color: "#6b7280" }}>Pending</span>
-                            )}
-                          </div>
-                          <p className={`text-xs leading-relaxed ${convo.unread ? "text-foreground font-medium" : "text-black"}`}>
-                            {convo.last_message}
-                          </p>
-                        </div>
-                        {convo.unread && <div className="w-2 h-2 rounded-full bg-[#2D6A4F] shrink-0 mt-2" />}
-                      </button>
+              {initiativeActive.length > 0 && (
+                <section>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-2">Active — {initiativeActive.length}</h3>
+                  <div className="rounded-2xl border border-border bg-white overflow-hidden">
+                    {initiativeActive.map((convo, i) => (
+                      <Row key={convo.id} last={i === initiativeActive.length - 1}
+                        onClick={() => setActiveConvo(convo)}
+                        avatarLabel={((convo.other_user_name ?? "?")[0]).toUpperCase()}
+                        title={convo.other_user_name ?? "Unknown"}
+                        subtitle={`Re: ${convo.initiative_title}`}
+                        meta={timeAgo(convo.last_message_at)}
+                        status={
+                          convo.partnerStatus === "confirmed" ? "Confirmed"
+                          : convo.partnerStatus === "closed" ? "Closed"
+                          : convo.partnerStatus === "active" ? "Active"
+                          : "Pending"
+                        } />
                     ))}
                   </div>
-                </div>
+                </section>
               )}
 
-              {/* Sent */}
               {pendingOutbound.length > 0 && (
-                <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-3">Sent</h3>
-                  <div className="space-y-2">
-                    {pendingOutbound.map(eoi => {
-                      const status = eoi.conversation_status;
-                      const statusConfig = status === "open"
-                        ? { label: "Accepted", bg: "#eaf5ee", color: "#2D6A4F" }
-                        : status === "declined"
-                        ? { label: "Declined", bg: "#fef2f2", color: "#ef4444" }
-                        : { label: "Pending",  bg: "#fffbeb", color: "#f59e0b" };
-                      return (
-                        <div key={eoi.eoi_id}
-                          className="rounded-xl border-l-4 border border-border bg-white px-5 py-4 flex items-start gap-4"
-                          style={{ borderLeftColor: "#2D6A4F" }}>
-                          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
-                            style={{ background: statusConfig.bg }}>
-                            <UserCheck className="w-4 h-4" style={{ color: statusConfig.color }} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2 mb-0.5">
-                              <p className="text-sm font-medium text-foreground truncate">{eoi.initiative_title}</p>
-                              <span className="text-[11px] text-black shrink-0">{timeAgo(eoi.created_at)}</span>
-                            </div>
-                            <div className="flex flex-wrap gap-1.5 mt-1">
-                              <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                                style={{ background: "#f5ede8", color: "#C45C26" }}>
-                                {eoi.partnership_type}
-                              </span>
-                              <span className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                                style={{ background: statusConfig.bg, color: statusConfig.color }}>
-                                {statusConfig.label}
-                              </span>
-                            </div>
-                            {eoi.message && (
-                              <p className="text-xs text-black mt-2 leading-relaxed break-words line-clamp-2">
-                                "{eoi.message}"
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </section>
-          )}
-
-          {/* ── PARTNERSHIP CONVERSATIONS ──────────────────────────────────
-              conversation_type = "partnership" only — confirmed in the
-              actual data that these never carry an initiative_id, so this
-              split has zero overlap with the bucket above. */}
-          {conversations.filter(c => c.conversation_type === "partnership").length > 0 && (
-            <section className="space-y-5">
-              <div className="flex items-center justify-between pb-3 border-b-2" style={{ borderColor: "#C45C2630" }}>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full" style={{ background: "#C45C26" }} />
-                  <h2 className="text-sm font-bold uppercase tracking-widest text-black">Partnership Conversations</h2>
-                </div>
-                <Link href="/dashboard/portfolio?tab=partners"
-                  className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-[#C45C26] hover:underline underline-offset-2">
-                  Confirmed partnerships
-                  <ExternalLink className="w-2.5 h-2.5" />
-                </Link>
-              </div>
-
-              {conversations.filter(c => c.conversation_type === "partnership" && (isFunder ? !c.funder_closed_at : true)).length > 0 && (
-                <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-3">Active</h3>
-                  <div className="space-y-2 min-w-0 overflow-hidden">
-                    {conversations.filter(c => c.conversation_type === "partnership" && (isFunder ? !c.funder_closed_at : true)).map(convo => (
-                      <button key={convo.id} type="button" onClick={() => setActiveConvo(convo)}
-                      className="w-full min-w-0 text-left rounded-xl border-l-4 border border-border bg-white px-5 py-4 flex items-start gap-4 hover:shadow-md transition-all duration-200 overflow-hidden"
-                      style={{ borderLeftColor: "#C45C26" }}>
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-white text-xs font-bold"
-                          style={{ background: "#C45C26" }}>
-                          {((convo.other_user_name ?? "?")[0]).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-0.5">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <p className={`text-sm font-medium truncate ${convo.unread ? "text-foreground" : "text-foreground/80"}`}>
-                                {convo.other_user_name ?? "Unknown"}
-                              </p>
-                            </div>
-                            <span className="text-[11px] text-black shrink-0">{timeAgo(convo.last_message_at)}</span>
-                          </div>
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <p className="text-xs text-black truncate">{convo.initiative_title}</p>
-                            {convo.partnerStatus === "confirmed" && (
-                              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                                style={{ background: "#eaf5ee", color: "#2D6A4F" }}>Confirmed</span>
-                            )}
-                            {convo.partnerStatus === "closed" && (
-                              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                                style={{ background: "#fef2f2", color: "#ef4444" }}>Closed</span>
-                            )}
-                            {convo.partnerStatus === "active" && (
-                              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                                style={{ background: "#fffbeb", color: "#f59e0b" }}>Active</span>
-                            )}
-                            {convo.partnerStatus === "pending" && (
-                              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                                style={{ background: "#f3f4f6", color: "#6b7280" }}>Pending</span>
-                            )}
-                          </div>
-                          <p className={`text-xs leading-relaxed ${convo.unread ? "text-foreground font-medium" : "text-black"}`}>
-                            {convo.last_message}
-                          </p>
-                        </div>
-                        {convo.unread && <div className="w-2 h-2 rounded-full bg-[#C45C26] shrink-0 mt-2" />}
-                      </button>
+                <section>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-2">Sent — {pendingOutbound.length}</h3>
+                  <div className="rounded-2xl border border-border bg-white overflow-hidden">
+                    {pendingOutbound.map((eoi, i) => (
+                      <Row key={eoi.eoi_id} last={i === pendingOutbound.length - 1}
+                        avatarLabel="•"
+                        title={eoi.initiative_title}
+                        subtitle={eoi.message ? `"${eoi.message}"` : eoi.partnership_type}
+                        meta={timeAgo(eoi.created_at)}
+                        status={
+                          eoi.conversation_status === "open" ? "Accepted"
+                          : eoi.conversation_status === "declined" ? "Declined"
+                          : "Pending"
+                        } />
                     ))}
                   </div>
-                </div>
+                </section>
               )}
 
-              {isFunder && conversations.filter(c => c.conversation_type === "partnership" && !!c.funder_closed_at).length > 0 && (
-                <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-3">Archived</h3>
-                  <div className="space-y-2 min-w-0 overflow-hidden opacity-60">
-                    {conversations.filter(c => c.conversation_type === "partnership" && !!c.funder_closed_at).map(convo => (
-                      <button key={convo.id} type="button" onClick={() => setActiveConvo(convo)}
-                        className="w-full min-w-0 text-left rounded-xl border border-border bg-white px-5 py-3 flex items-center gap-3 hover:shadow-sm transition-all overflow-hidden">
-                        <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0 text-black text-xs font-bold">
-                          {((convo.other_user_name ?? "?")[0]).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-black truncate">{convo.other_user_name ?? "Unknown"}</p>
-                          <p className="text-xs text-black/70 truncate">{convo.initiative_title}</p>
-                        </div>
-                      </button>
+              {isFunder && initiativeArchived.length > 0 && (
+                <section>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-2">Archived — {initiativeArchived.length}</h3>
+                  <div className="rounded-2xl border border-border bg-white overflow-hidden opacity-60">
+                    {initiativeArchived.map((convo, i) => (
+                      <Row key={convo.id} last={i === initiativeArchived.length - 1}
+                        onClick={() => setActiveConvo(convo)}
+                        avatarLabel={((convo.other_user_name ?? "?")[0]).toUpperCase()}
+                        title={convo.other_user_name ?? "Unknown"}
+                        subtitle={`Re: ${convo.initiative_title}`} />
                     ))}
                   </div>
+                </section>
+              )}
+
+              {pendingEOIs.length === 0 && initiativeEnquiries.length === 0 && initiativeActive.length === 0 && pendingOutbound.length === 0 && (
+                <div className="rounded-2xl border border-border bg-white p-10 text-center">
+                  <Lightbulb className="w-6 h-6 text-muted-foreground/40 mx-auto mb-3" />
+                  <p className="text-sm text-black">No initiative conversations yet.</p>
                 </div>
               )}
-            </section>
-          )}
-
-          {/* Archived — non-partnership, funder closed */}
-          {isFunder && conversations.filter(c => c.conversation_type !== "partnership" && !!c.funder_closed_at).length > 0 && (
-            <section>
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-3">
-                Archived
-              </h3>
-              <div className="space-y-2 min-w-0 overflow-hidden opacity-60">
-                {conversations.filter(c => c.conversation_type !== "partnership" && !!c.funder_closed_at).map(convo => (
-                  <button key={convo.id} type="button" onClick={() => setActiveConvo(convo)}
-                    className="w-full min-w-0 text-left rounded-xl border border-border bg-white px-5 py-3 flex items-center gap-3 hover:shadow-sm transition-all overflow-hidden">
-                    <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0 text-black text-xs font-bold">
-                      {((convo.other_user_name ?? "?")[0]).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-black truncate">{convo.other_user_name ?? "Unknown"}</p>
-                      <p className="text-xs text-black/70 truncate">Re: {convo.initiative_title}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </section>
+            </div>
           )}
         </div>
       )}
