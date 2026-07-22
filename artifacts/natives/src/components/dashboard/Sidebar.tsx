@@ -193,7 +193,7 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
   return (
     <aside
     className={cn(
-      "fixed left-0 top-0 h-screen flex flex-col z-40 transition-all duration-200 border-r border-border relative",
+      "fixed left-0 top-0 h-screen flex flex-col z-40 transition-all duration-200 border-r border-border",
       "bg-gradient-to-b from-[#C1633B] via-[#A84A2C] to-[#7A331C]",
       "dark:from-[#3A2418] dark:via-[#2A1810] dark:to-[#1A0F0A]",
       collapsed ? "w-16" : "w-56"
@@ -216,7 +216,7 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
         )}
         <button
           onClick={toggle}
-          className="ml-auto p-1 rounded-md text-black hover:bg-muted transition-colors"
+          className="ml-auto p-1 rounded-md text-[#FDF6EE] hover:bg-white/10 transition-colors"
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
@@ -258,8 +258,8 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
                           "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors cursor-pointer w-full",
                           collapsed && "justify-center px-2",
                           isActive(href)
-                            ? "bg-[#C45C26]/10 text-[#C45C26]"
-                            : "text-black hover:bg-muted"
+                            ? "bg-[#FDF6EE] text-[#7A331C]"
+                            : "text-[#FDF6EE] hover:bg-white/10"
                         )}
                         title={collapsed ? label : undefined}
                       >
@@ -289,9 +289,11 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
         ))}
       </nav>
 
-      {/* Bottom */}
-      <div className="border-t border-border px-3 py-4 shrink-0 space-y-3">
-                {!collapsed && (
+      {/* Bottom — deliberately a solid, darker tone distinct from the nav's
+          gradient, so it reads as its own footer zone rather than a
+          continuation of the scrollable nav area above it. */}
+      <div className="border-t border-black/20 px-3 py-4 shrink-0 space-y-3 bg-[#4A2314]">                
+      {!collapsed && (
           <div className="flex items-center gap-2">
             <UserAvatar
               id={profile?.id ?? ""}
@@ -300,12 +302,12 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
               size="sm"
             />
                 <div className="min-w-0">
-              <p className="text-[10px] font-semibold text-foreground truncate">
+              <p className="text-[10px] font-semibold text-[#FDF6EE] truncate">                
                 {profile?.user_type === "organisation"
                   ? (profile?.org_name || "Your Organisation")
                   : (profile?.full_name || "Your Account")}
               </p>
-              <p className="text-[11px] text-black truncate mt-0.5">
+              <p className="text-[11px] text-[#FDF6EE]/70 truncate mt-0.5">
                 {profile?.user_type === "organisation"
                   ? (profile?.org_type
                       ? profile.org_type.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())
@@ -330,11 +332,11 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
         <div className="flex items-center gap-1.5">
           <ShieldCheck className={cn(
             "w-3.5 h-3.5",
-            profile?.is_verified ? "text-[#2D6A4F]" : "text-black"
+            profile?.is_verified ? "text-[#6FCF9E]" : "text-[#FDF6EE]/70"
           )} />
           <span className={cn(
             "text-[11px]",
-            profile?.is_verified ? "text-[#2D6A4F] font-medium" : "text-black"
+            profile?.is_verified ? "text-[#6FCF9E] font-medium" : "text-[#FDF6EE]/70"
           )}>
             {profile?.is_verified ? "Verified" : "Unverified"}
           </span>
@@ -346,7 +348,7 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
             href="https://www.impactnatives.com/legal/privacy"
             target="_blank"
             rel="noopener noreferrer"
-            className="block text-[11px] text-black hover:underline underline-offset-2 transition-colors"
+            className="block text-[11px] text-[#FDF6EE]/70 hover:text-[#FDF6EE] transition-colors"
           >
             Privacy Policy
           </a>
@@ -356,12 +358,12 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
           type="button"
           onClick={signOut}
           className={cn(
-            "flex items-center gap-2 text-[11px] text-black hover:opacity-70 transition-opacity w-full",
+            "flex items-center gap-2 text-[11px] text-[#FDF6EE] hover:opacity-70 transition-opacity w-full",
             collapsed && "justify-center"
           )}
           title={collapsed ? "Sign out" : undefined}
         >
-          <LogOut className="w-3.5 h-3.5 text-black" />
+          <LogOut className="w-3.5 h-3.5 text-[#FDF6EE]" />
           {!collapsed && "Sign out"}
         </button>
       </div>
