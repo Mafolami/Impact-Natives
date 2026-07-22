@@ -1181,12 +1181,12 @@ function MarketplaceDetail({
 
       {/* Deal Memo Panel — pure analysis; Save/Pass live in the hero header, Express Interest below */}
       {memoOpen && (
-        <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
+        <div className="rounded-2xl border border-border bg-white p-6 space-y-5">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#2D6A4F]" />
-              <p className="text-sm font-semibold text-foreground">AI Deal Memo</p>
+              <p className="text-base font-semibold text-foreground">AI Deal Memo</p>
               {dealMemo?.match_score != null && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                   style={{
@@ -1232,18 +1232,18 @@ function MarketplaceDetail({
                 { label: "Mandate alignment", value: dealMemo.mandate_alignment },
               ].map(section => (
                 <div key={section.label} className="space-y-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{section.label}</p>
-                  <p className="text-sm text-foreground leading-relaxed">{section.value}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-black">{section.label}</p>
+                  <p className="text-[15px] text-foreground leading-relaxed">{section.value}</p>
                 </div>
               ))}
 
               {/* Risk flags */}
               {dealMemo.risk_flags?.length > 0 && (
                 <div className="space-y-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Risk flags</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-black">Risk flags</p>
                   <ul className="space-y-1">
                     {dealMemo.risk_flags.map((flag: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-foreground">
+                      <li key={i} className="flex items-start gap-2 text-[15px] text-foreground">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#C45C26] shrink-0 mt-1.5" />
                         {flag}
                       </li>
@@ -1279,11 +1279,11 @@ function MarketplaceDetail({
 
       {/* CSR Brief Panel */}
       {csrOpen && (
-        <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
+        <div className="rounded-2xl border border-border bg-white p-6 space-y-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#2D6A4F]" />
-              <p className="text-sm font-semibold text-foreground">CSR Adoption Brief</p>
+              <p className="text-base font-semibold text-foreground">CSR Adoption Brief</p>
               {csrBrief?.match_score != null && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                   style={{
@@ -1318,7 +1318,7 @@ function MarketplaceDetail({
             <div className="space-y-4">
               <p className="text-sm font-medium text-foreground leading-relaxed">{csrBrief.headline}</p>
 
-              {[
+             {[
                 { label: "SDG alignment",               value: csrBrief.sdg_alignment },
                 { label: "Local content",               value: csrBrief.local_content },
                 { label: "Brand fit",                   value: csrBrief.brand_fit },
@@ -1328,17 +1328,17 @@ function MarketplaceDetail({
                 { label: "Implementer readiness",       value: csrBrief.implementer_readiness },
               ].map(section => (
                 <div key={section.label} className="space-y-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{section.label}</p>
-                  <p className="text-sm text-foreground leading-relaxed">{section.value}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-black">{section.label}</p>
+                  <p className="text-[15px] text-foreground leading-relaxed">{section.value}</p>
                 </div>
               ))}
 
               {csrBrief.risk_flags?.length > 0 && (
                 <div className="space-y-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Risk flags</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-black">Risk flags</p>
                   <ul className="space-y-1">
                     {csrBrief.risk_flags.map((flag: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-foreground">
+                      <li key={i} className="flex items-start gap-2 text-[15px] text-foreground">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#C45C26] shrink-0 mt-1.5" />
                         {flag}
                       </li>
@@ -1460,15 +1460,15 @@ function MarketplaceDetail({
       {(initiative.problem || initiative.outcome) && (
         <div className="grid gap-3 sm:grid-cols-2">
           {initiative.problem && (
-            <div className="rounded-xl border border-border bg-card px-5 py-4">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Problem</p>
-              <p className="text-sm text-foreground leading-relaxed">{initiative.problem}</p>
+            <div className="rounded-xl border border-border bg-white px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-black mb-2">Problem</p>
+              <p className="text-[15px] text-foreground leading-relaxed">{initiative.problem}</p>
             </div>
           )}
           {initiative.outcome && (
-            <div className="rounded-xl border border-border bg-card px-5 py-4">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Expected Outcome</p>
-              <p className="text-sm text-foreground leading-relaxed">{initiative.outcome}</p>
+            <div className="rounded-xl border border-border bg-white px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-black mb-2">Expected Outcome</p>
+              <p className="text-[15px] text-foreground leading-relaxed">{initiative.outcome}</p>
             </div>
           )}
         </div>
@@ -1476,38 +1476,38 @@ function MarketplaceDetail({
 
       {/* ── Target population ── */}
       {fullDetail?.target_population && (
-        <div className="rounded-xl border border-border bg-card px-5 py-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Who this serves</p>
-          <p className="text-sm text-foreground leading-relaxed">{fullDetail.target_population}</p>
+        <div className="rounded-xl border border-border bg-white px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-black mb-2">Who this serves</p>
+          <p className="text-[15px] text-foreground leading-relaxed">{fullDetail.target_population}</p>
         </div>
       )}
 
       {/* ── Target impact metrics ── */}
       {(fullDetail?.target_beneficiaries || fullDetail?.target_jobs || fullDetail?.target_female_pct || fullDetail?.target_timeline_months) && (
-        <div className="rounded-xl border border-border bg-card px-5 py-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Target impact metrics</p>
+        <div className="rounded-xl border border-border bg-white px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-black mb-3">Target impact metrics</p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {fullDetail.target_beneficiaries && (
               <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Beneficiaries</p>
+                <p className="text-xs text-black uppercase tracking-wide mb-0.5">Beneficiaries</p>
                 <p className="text-sm font-semibold text-foreground">{fullDetail.target_beneficiaries.toLocaleString()}</p>
               </div>
             )}
             {fullDetail.target_jobs && (
               <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Jobs</p>
+                <p className="text-xs text-black uppercase tracking-wide mb-0.5">Jobs</p>
                 <p className="text-sm font-semibold text-foreground">{fullDetail.target_jobs.toLocaleString()}</p>
               </div>
             )}
             {fullDetail.target_female_pct && (
               <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Female %</p>
+                <p className="text-xs text-black uppercase tracking-wide mb-0.5">Female %</p>
                 <p className="text-sm font-semibold text-foreground">{fullDetail.target_female_pct}%</p>
               </div>
             )}
             {fullDetail.target_timeline_months && (
               <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Timeline</p>
+                <p className="text-xs text-black uppercase tracking-wide mb-0.5">Timeline</p>
                 <p className="text-sm font-semibold text-foreground">{fullDetail.target_timeline_months} months</p>
               </div>
             )}
@@ -1517,9 +1517,9 @@ function MarketplaceDetail({
 
       {/* ── Impact evidence ── */}
       {fullDetail?.impact_evidence && (
-        <div className="rounded-xl border border-border bg-card px-5 py-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Impact evidence</p>
-          <p className="text-sm text-foreground leading-relaxed">{fullDetail.impact_evidence}</p>
+        <div className="rounded-xl border border-border bg-white px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-black mb-2">Impact evidence</p>
+          <p className="text-[15px] text-foreground leading-relaxed">{fullDetail.impact_evidence}</p>
         </div>
       )}
 
@@ -1533,8 +1533,8 @@ function MarketplaceDetail({
 
       {/* ── Partnerships sought ── */}
       {initiative.partnerships && initiative.partnerships.length > 0 && (
-        <div className="rounded-xl border border-border bg-card px-5 py-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Partnerships sought</p>
+        <div className="rounded-xl border border-border bg-white px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-black mb-3">Partnerships sought</p>
           <div className="flex flex-wrap gap-2">
             {initiative.partnerships.map(p => (
               <span key={p} className="px-3 py-1 rounded-full text-xs font-medium border border-border text-foreground capitalize">
@@ -1549,17 +1549,17 @@ function MarketplaceDetail({
       {(fullDetail?.stage || fullDetail?.confirmed_assets?.length) && (
         <div className="grid gap-3 sm:grid-cols-2">
           {fullDetail?.stage && (
-            <div className="rounded-xl border border-border bg-card px-5 py-4">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Current stage</p>
-              <p className="text-sm text-foreground">{STAGE_LABELS[fullDetail.stage] ?? fullDetail.stage}</p>
+            <div className="rounded-xl border border-border bg-white px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-black mb-2">Current stage</p>
+              <p className="text-[15px] text-foreground">{STAGE_LABELS[fullDetail.stage] ?? fullDetail.stage}</p>
             </div>
           )}
           {fullDetail?.confirmed_assets && fullDetail.confirmed_assets.length > 0 && !fullDetail.confirmed_assets.includes("none") && (
-            <div className="rounded-xl border border-border bg-card px-5 py-4">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Already confirmed</p>
+            <div className="rounded-xl border border-border bg-white px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-black mb-2">Already confirmed</p>
               <div className="flex flex-wrap gap-1.5">
                 {fullDetail.confirmed_assets.filter(a => a !== "none").map(a => (
-                  <span key={a} className="text-xs px-2.5 py-0.5 rounded-full border border-border text-muted-foreground capitalize">
+                  <span key={a} className="text-xs px-2.5 py-0.5 rounded-full border border-border text-black capitalize">
                     {a.replace(/_/g, " ")}
                   </span>
                 ))}
@@ -1573,15 +1573,15 @@ function MarketplaceDetail({
       {(fullDetail?.start_date || fullDetail?.duration) && (
         <div className="grid gap-3 sm:grid-cols-2">
           {fullDetail.start_date && (
-            <div className="rounded-xl border border-border bg-card px-5 py-4">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Estimated start</p>
-              <p className="text-sm text-foreground">{fullDetail.start_date}</p>
+            <div className="rounded-xl border border-border bg-white px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-black mb-1">Estimated start</p>
+              <p className="text-[15px] text-foreground">{fullDetail.start_date}</p>
             </div>
           )}
           {fullDetail.duration && (
-            <div className="rounded-xl border border-border bg-card px-5 py-4">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Duration</p>
-              <p className="text-sm text-foreground">{fullDetail.duration}</p>
+            <div className="rounded-xl border border-border bg-white px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-black mb-1">Duration</p>
+              <p className="text-[15px] text-foreground">{fullDetail.duration}</p>
             </div>
           )}
         </div>
@@ -1589,29 +1589,28 @@ function MarketplaceDetail({
 
       {/* ── Co-funding status ── */}
       {fullDetail?.co_funding_status && (
-        <div className="rounded-xl border border-border bg-card px-5 py-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Funding status</p>
-          <p className="text-sm text-foreground">{CO_FUNDING_LABELS[fullDetail.co_funding_status] ?? fullDetail.co_funding_status}</p>
+        <div className="rounded-xl border border-border bg-white px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-black mb-1">Funding status</p>
+          <p className="text-[15px] text-foreground">{CO_FUNDING_LABELS[fullDetail.co_funding_status] ?? fullDetail.co_funding_status}</p>
         </div>
       )}
 
       {/* ── Prior experience ── */}
       {fullDetail?.had_prior_experience !== null && fullDetail?.had_prior_experience !== undefined && (
-        <div className="rounded-xl border border-border bg-card px-5 py-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Track record</p>
-          <p className="text-sm text-foreground mb-2">
+        <div className="rounded-xl border border-border bg-white px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-black mb-2">Track record</p>
+          <p className="text-[15px] text-foreground mb-2">
             {fullDetail.had_prior_experience ? "The team has led similar initiatives before." : "This is a first initiative of this type for the team."}
           </p>
           {fullDetail.prior_experience_detail && (
-            <p className="text-sm text-muted-foreground leading-relaxed italic">"{fullDetail.prior_experience_detail}"</p>
+            <p className="text-[15px] text-black leading-relaxed italic">"{fullDetail.prior_experience_detail}"</p>
           )}
-        </div>
-      )}
+        </div>      )}
 
       {/* ── SDG alignment ── */}
       {fullDetail?.sdg_tags && fullDetail.sdg_tags.length > 0 && (
-        <div className="rounded-xl border border-border bg-card px-5 py-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">SDG Alignment</p>
+        <div className="rounded-xl border border-border bg-white px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-black mb-3">SDG Alignment</p>
           <div className="flex flex-wrap gap-1.5">
             {fullDetail.sdg_tags.map(s => (
               <span key={s} className="text-xs px-2.5 py-0.5 rounded-full font-medium"
@@ -1623,9 +1622,9 @@ function MarketplaceDetail({
 
       {/* ── Full description ── */}
       {fullDetail?.detail_content && fullDetail.detail_content !== "<p></p>" && (
-        <div className="rounded-xl border border-border bg-card px-5 py-4">
+        <div className="rounded-xl border border-border bg-white px-5 py-4">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="text-xs font-semibold uppercase tracking-wider text-black">
               Full initiative description
             </p>
             <button
@@ -1699,8 +1698,8 @@ function MarketplaceDetail({
 
       {/* ── Resource link ── */}
       {fullDetail?.resource_link && (
-        <div className="rounded-xl border border-border bg-card px-5 py-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Resource</p>
+        <div className="rounded-xl border border-border bg-white px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-black mb-2">Resource</p>
           <a href={fullDetail.resource_link} target="_blank" rel="noopener noreferrer"
             className="text-sm text-primary hover:underline break-all">
             {fullDetail.resource_link.replace(/^https?:\/\//, "")}
@@ -1747,8 +1746,8 @@ function MarketplaceDetail({
                   Ask a question before committing
                 </button>
               ) : (
-                <div className="rounded-xl border border-border bg-card p-4 space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your question</p>
+                <div className="rounded-xl border border-border bg-white p-4 space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-black">Your question</p>
                   <textarea
                     value={question}
                     onChange={e => setQuestion(e.target.value)}
@@ -1782,10 +1781,10 @@ function MarketplaceDetail({
           <button type="button"
             onClick={() => { if (!alreadyExpressed) { setEoiOpen(true); generateAiMessage(); } }}
             disabled={alreadyExpressed}
-            className={`w-full rounded-full h-11 text-sm font-semibold transition-colors ${
+            className={`w-full rounded-full h-11 text-sm font-semibold transition-all ${
               alreadyExpressed
                 ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
-                : "bg-[#2D6A4F] hover:bg-[#245c43] text-white"
+                : "bg-gradient-to-br from-[#3D2618] via-[#33301F] to-[#1B3328] hover:brightness-110 text-white"
             }`}>
             {alreadyExpressed ? "Interest expressed" : "Express interest"}
           </button>
