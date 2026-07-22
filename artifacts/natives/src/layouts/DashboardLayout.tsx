@@ -73,7 +73,7 @@ export default function DashboardLayout({ children, adminOnly }: { children: Rea
               <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
             </div>
           ) : (
-            <div className="px-12 py-10">
+            <div className="px-6 py-10">
               {children}
             </div>
           )}

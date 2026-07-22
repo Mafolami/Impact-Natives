@@ -37,7 +37,7 @@ export default function LegalPage() {
               <span className={`px-4 py-1.5 rounded-full text-sm border transition-colors cursor-pointer ${
                 slug === key
                   ? "bg-[#2D6A4F] text-white border-[#2D6A4F]"
-                  : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+                  : "border-border text-black hover:border-foreground/30"
               }`}>
                 {title}
               </span>
@@ -49,7 +49,7 @@ export default function LegalPage() {
         {!doc ? (
           <div className="text-center py-20">
             <h1 className="text-2xl font-bold text-foreground mb-4">Legal</h1>
-            <p className="text-muted-foreground mb-8">Choose a document to view.</p>
+            <p className="text-sm text-black mb-8">Choose a document to view.</p>          
             <div className="flex flex-col gap-3 max-w-xs mx-auto">
               {Object.entries(DOCS).map(([key, { title }]) => (
                 <Link key={key} href={`/legal/${key}`}>
@@ -70,11 +70,11 @@ export default function LegalPage() {
             prose-h1:text-3xl prose-h1:mb-2
             prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-3
             prose-h3:text-base prose-h3:mt-6
-            prose-p:text-muted-foreground prose-p:leading-relaxed
-            prose-li:text-muted-foreground
+            prose-p:text-black prose-p:leading-relaxed
+            prose-li:text-black
             prose-a:text-[#2D6A4F] prose-a:no-underline hover:prose-a:underline
             prose-strong:text-foreground
-            prose-table:text-sm prose-th:text-foreground prose-td:text-muted-foreground
+            prose-table:text-sm prose-th:text-foreground prose-td:text-black
             prose-hr:border-border">
             <ReactMarkdown>{content ?? ""}</ReactMarkdown>
           </article>

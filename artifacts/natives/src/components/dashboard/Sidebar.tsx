@@ -196,7 +196,7 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
       "fixed left-0 top-0 h-screen flex flex-col z-40 transition-all duration-200 border-r border-border",
       "bg-gradient-to-b from-[#6B4432] via-[#452A1D] to-[#2A1A11]",
       "dark:from-[#2E1D14] dark:via-[#1F140D] dark:to-[#120B07]",
-      collapsed ? "w-16" : "w-64"
+      collapsed ? "w-16" : "w-72"
     )}
     >
       {/* Grain texture overlay — sits behind all real content since it's
@@ -226,19 +226,17 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
 
       {/* Nav */}
       <style>{`
-        .sidebar-nav-scroll::-webkit-scrollbar { width: 5px; }
+        .sidebar-nav-scroll::-webkit-scrollbar { width: 3px; }
         .sidebar-nav-scroll::-webkit-scrollbar-track { background: transparent; }
         .sidebar-nav-scroll::-webkit-scrollbar-thumb {
-          background: rgba(0,0,0,0.18);
+          background: rgba(242,230,216,0.25);
           border-radius: 999px;
-          border: 1px solid transparent;
-          background-clip: padding-box;
         }
-        .sidebar-nav-scroll { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.18) transparent; }
+        .sidebar-nav-scroll { scrollbar-width: thin; scrollbar-color: rgba(242,230,216,0.25) transparent; }
       `}</style>
       <nav className="sidebar-nav-scroll flex-1 overflow-y-auto py-4 px-2 pr-1">
         {visibleSections.map((section, sectionIndex) => (
-          <div key={section.label ?? "home"} className={sectionIndex > 0 ? "mt-3 pt-3 border-t border-border" : ""}>
+          <div key={section.label ?? "home"} className={sectionIndex > 0 ? "mt-5" : ""}>
             {section.label && !collapsed && (
               <p
                 className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5"

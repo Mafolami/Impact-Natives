@@ -235,7 +235,7 @@ function FilterPanel({
     return (
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-xs font-bold uppercase tracking-wider text-[#374151]">{label}</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-black">{label}</p>
           {selected.length > 0 && (
             <button type="button" onClick={() => set([])}
               className="text-[10px] text-[#2D6A4F] hover:underline">
@@ -267,14 +267,14 @@ function FilterPanel({
         </div>
         <div className="max-h-36 overflow-y-auto space-y-0.5 pr-1">
           {filteredLocationOptions.length === 0 && options === locationOptions && (
-            <p className="text-xs text-[#6B7280] py-1">No results</p>
+            <p className="text-xs text-black py-1">No results</p>
           )}
           {(options === sectorOptions ? filteredSectorOptions : filteredLocationOptions).map(o => {
             const on = selected.includes(o);
             return (
               <button key={o} type="button" onClick={() => toggle(selected, o, set)}
                 className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-xs text-left transition-colors ${
-                  on ? "bg-[#eaf5ee] text-[#2D6A4F] font-semibold" : "text-[#374151] hover:bg-[#F3F4F6]"
+                  on ? "bg-[#eaf5ee] text-[#2D6A4F] font-semibold" : "text-black hover:bg-[#F3F4F6]"
                 }`}>
                 <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
                   on ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-[#D1D5DB]"
@@ -316,14 +316,14 @@ function FilterPanel({
       <div className="h-px bg-[#F3F4F6]" />
 
       <div>
-        <p className="text-xs font-bold uppercase tracking-wider text-[#374151] mb-2.5">Budget range</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-black mb-2.5">Budget range</p>
         <div className="flex flex-wrap gap-1.5">
           {BUDGET_OPTIONS.map(b => (
             <button key={b.value} type="button" onClick={() => toggle(budgets, b.value, setBudgets)}
               className={`h-7 px-3 rounded-full text-xs font-medium border transition-colors ${
                 budgets.includes(b.value)
                   ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
-                  : "border-[#E5E7EB] text-[#374151] hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F]"
+                  : "border-[#E5E7EB] text-black hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F]"
               }`}>
               {b.label}
             </button>
@@ -334,14 +334,14 @@ function FilterPanel({
       <div className="h-px bg-[#F3F4F6]" />
 
       <div>
-        <p className="text-xs font-bold uppercase tracking-wider text-[#374151] mb-2.5">Partnership sought</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-black mb-2.5">Partnership sought</p>
         <div className="flex flex-wrap gap-1.5">
           {PARTNERSHIP_OPTIONS.map(p => (
             <button key={p.value} type="button" onClick={() => toggle(partnerships, p.value, setPartnerships)}
               className={`h-7 px-3 rounded-full text-xs font-medium border transition-colors ${
                 partnerships.includes(p.value)
                   ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
-                  : "border-[#E5E7EB] text-[#374151] hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F]"
+                  : "border-[#E5E7EB] text-black hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F]"
               }`}>
               {p.label}
             </button>
@@ -362,9 +362,9 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
 }) {
   return (
     <button type="button" onClick={onClick}
-      className="w-full text-left rounded-2xl border border-border bg-card hover:border-[#2D6A4F]/40 hover:shadow-sm transition-all group p-5 flex flex-col gap-3">
+      className="w-full text-left rounded-2xl border border-border bg-card hover:border-[#2D6A4F]/40 hover:shadow-md transition-all duration-200 group p-6 flex flex-col gap-4">
       {/* Top row */}
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-4">
         <div className="flex flex-wrap gap-1.5">
           {ini.sectors?.slice(0, 2).map(s => (
             <span key={s} className="text-[11px] font-medium px-2.5 py-0.5 rounded-full"
@@ -424,19 +424,20 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
                 : `/dashboard/natives?tab=individual&user=${ini.user_id}`
             }
             onClick={e => e.stopPropagation()}
-            className="text-xs text-muted-foreground mt-0.5 hover:text-[#2D6A4F] hover:underline underline-offset-2 transition-colors inline-block">            
+            className="text-xs text-black mt-0.5 hover:text-[#2D6A4F] hover:underline underline-offset-2 transition-colors inline-block">            
             {ini.submitter_user_type === "organisation" ? ini.submitter_org : ini.submitter_name}
           </a>
         )}
       </div>
 
       {ini.problem && (
-        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{ini.problem}</p>
+        <p className="text-xs text-black leading-relaxed line-clamp-2">{ini.problem}</p>
       )}
 
-      {/* Footer */}
-      <div className="flex items-center justify-between mt-auto pt-1 border-t border-border">
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+      {/* Footer — pt-3 instead of pt-1 so it reads as its own zone rather
+          than crowding straight into the description above it */}
+      <div className="flex items-center justify-between mt-auto pt-3 border-t border-border">
+        <div className="flex items-center gap-3 text-xs text-black">
           {ini.locations?.[0] && (
             <span className="flex items-center gap-1">
               <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -448,7 +449,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
           )}
           {ini.budget && <span>{ini.budget}</span>}
         </div>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-xs text-black font-medium">
           {ini.eois} EOI{ini.eois !== 1 ? "s" : ""}
         </span>
       </div>
@@ -456,12 +457,12 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
       {ini.partnerships && ini.partnerships.length > 0 && (
         <div className="flex flex-wrap gap-1.5 pt-1">
           {ini.partnerships.slice(0, 3).map(p => (
-            <span key={p} className="text-[11px] px-2 py-0.5 rounded-full border border-border text-muted-foreground capitalize">
+            <span key={p} className="text-[11px] px-2 py-0.5 rounded-full border border-border text-black capitalize">
               {PARTNERSHIP_OPTIONS.find(o => o.value === p)?.label ?? p}
             </span>
           ))}
           {(ini.partnerships?.length ?? 0) > 3 && (
-            <span className="text-[11px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">
+            <span className="text-[11px] px-2 py-0.5 rounded-full border border-border text-black">
               +{(ini.partnerships?.length ?? 0) - 3} more
             </span>
           )}
@@ -662,7 +663,7 @@ export default function DashboardMarketplace() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">Published initiatives open for partnership and collaboration.</p>
+        <p className="text-sm text-black">Published initiatives open for partnership and collaboration.</p>
         <button type="button" onClick={() => setShowCreateModal(true)}
           className="rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors shrink-0">
           + Create Initiative
@@ -704,7 +705,7 @@ export default function DashboardMarketplace() {
           className={`h-10 px-4 rounded-lg border text-sm flex items-center gap-2 transition-colors shrink-0 ${
             showFilters || activeFilterCount > 0
               ? "border-[#2D6A4F] text-[#2D6A4F] bg-[#eaf5ee]"
-              : "border-border text-muted-foreground hover:border-foreground/30"
+              : "border-border text-black hover:border-foreground/30"
           }`}>
           <SlidersHorizontal className="w-4 h-4" />
           Filters
@@ -718,7 +719,7 @@ export default function DashboardMarketplace() {
           className={`h-10 px-4 rounded-lg border text-sm flex items-center gap-2 transition-colors shrink-0 ${
             showSaved
               ? "border-[#2D6A4F] text-[#2D6A4F] bg-[#eaf5ee]"
-              : "border-border text-muted-foreground hover:border-foreground/30"
+              : "border-border text-black hover:border-foreground/30"
           }`}>
           <Bookmark className="w-4 h-4" fill={showSaved ? "#2D6A4F" : "none"} />
           Saved
@@ -732,7 +733,7 @@ export default function DashboardMarketplace() {
           className={`h-10 px-4 rounded-lg border text-sm flex items-center gap-2 transition-colors shrink-0 ${
             showPassed
               ? "border-gray-400 text-gray-600 bg-gray-100"
-              : "border-border text-muted-foreground hover:border-foreground/30"
+              : "border-border text-black hover:border-foreground/30"
           }`}>
           Passed
           {passedIds.size > 0 && (
@@ -765,14 +766,14 @@ export default function DashboardMarketplace() {
               {chip}
             </span>
           ))}
-          <button type="button" onClick={clearFilters} className="text-xs text-muted-foreground hover:text-foreground underline">
+          <button type="button" onClick={clearFilters} className="text-xs text-black hover:text-foreground underline">
             Clear all
           </button>
         </div>
       )}
 
       {!loading && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-black">
           {filtered.length} initiative{filtered.length !== 1 ? "s" : ""}
           {showSaved ? " saved" : showPassed ? " passed" : activeFilterCount > 0 ? " matching filters" : ""}
         </p>
@@ -787,7 +788,7 @@ export default function DashboardMarketplace() {
           <p className="text-foreground font-medium mb-2">
             {initiatives.length === 0 ? "No initiatives published yet." : "No results for those filters."}
           </p>
-          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+          <p className="text-sm text-black max-w-sm mx-auto">
             {initiatives.length === 0 ? "Check back soon." : "Try adjusting your filters or search term."}
           </p>
           {activeFilterCount > 0 && (
@@ -1143,52 +1144,7 @@ function MarketplaceDetail({
     } finally { setSubmitting(false); }
   }
 
-  // ── One-click interest ─────────────────────────────────────────────────────
-  async function submitQuickInterest() {
-    if (!user || alreadyExpressed || quickSubmitting) return;
-    setQuickSubmitting(true);
-    try {
-      const { data: ep } = await supabase.from("profiles").select("full_name,org_name,user_type,sectors").eq("id", user.id).single();
-      const { data: orgRow } = await supabase.from("organizations").select("description,offers").eq("user_id", user.id).maybeSingle();
-      const { data: ownerProfile } = await supabase.from("profiles").select("full_name,org_name,user_type").eq("id", initiative.user_id).maybeSingle();
-      const expresserName = ep?.user_type === "organisation" && ep?.org_name ? ep.org_name : ep?.full_name ?? "Someone";
-      const ownerName = ownerProfile?.user_type === "organisation" && ownerProfile?.org_name ? ownerProfile.org_name : ownerProfile?.full_name ?? null;      let aiMessage = "";
-      try {
-        const aiRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-funder-intro`, {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ expresser_name: expresserName, expresser_org: ep?.org_name ?? null, expresser_description: orgRow?.description ?? null, expresser_sectors: ep?.sectors ?? [], expresser_offers: orgRow?.offers ?? [], initiative_title: initiative.title, initiative_problem: initiative.problem ?? null, initiative_outcome: initiative.outcome ?? null, initiative_sectors: initiative.sectors ?? [], esg_intent: quickEsgIntent }),
-        });
-        const aiData = await aiRes.json();
-        if (aiData.message) aiMessage = aiData.message;
-      } catch { /* silent */ }
-      const { data: eoiData, error: eoiErr } = await supabase.from("expressions_of_interest")
-        .insert({ initiative_id: initiative.id, user_id: user.id, partnership_type: "interest", message: aiMessage || null, esg_adoption: quickEsgIntent })
-        .select("id").single();
-      if (eoiErr && eoiErr.code !== "23505") { setQuickSubmitting(false); return; }
-      if (!eoiErr && eoiData) {
-        await supabase.rpc("increment_eoi_count", { p_initiative_id: initiative.id });
-        const { data: convoResult } = await supabase.rpc("create_conversation", { p_initiative_id: initiative.id, p_owner_id: initiative.user_id ?? null });
-        if (convoResult) {
-          const convoId = convoResult as string;
-          await supabase.rpc("join_conversation_and_notify", {
-            p_conversation_id: convoId,
-            p_notification_type: "eoi_received",
-            p_notification_title: "New expression of interest",
-            p_notification_body: `${expresserName} expressed interest in "${initiative.title}"`,
-            p_notification_link: "/dashboard/messages",
-          });
-          await Promise.all([
-            supabase.from("expressions_of_interest").update({ conversation_id: convoId }).eq("id", eoiData.id),
-            supabase.from("messages").insert({ conversation_id: convoId, sender_id: user.id, body: aiMessage || `Hi${ownerName ? ` ${ownerName}` : ""}, I'm ${expresserName}${ep?.org_name && ep.user_type === "organisation" ? ` from ${ep.org_name}` : ""}. I came across "${initiative.title}" on Impact Natives and I'm interested in exploring a partnership. Happy to connect and share more about what we do.` }),
-          ]);
-        }
-      }
-      setQuickSubmitted(true); setAlreadyExpressed(true); onExpressed(initiative.id);
-    } finally { setQuickSubmitting(false); }
-  }
-
-  const canSubmit = partnershipTypes.length > 0 || esgAdoption;
-  const qualityCfg = fullDetail?.ai_quality_score ? QUALITY_CONFIG[fullDetail.ai_quality_score] : null;
+  const canSubmit = partnershipTypes.length > 0 || esgAdoption;  const qualityCfg = fullDetail?.ai_quality_score ? QUALITY_CONFIG[fullDetail.ai_quality_score] : null;
 
   return (
     <div className="space-y-8">
