@@ -362,7 +362,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
 }) {
   return (
     <button type="button" onClick={onClick}
-      className="w-full text-left rounded-2xl border border-border bg-card hover:border-[#2D6A4F]/40 hover:shadow-md transition-all duration-200 group p-6 flex flex-col gap-4">
+      className="w-full text-left rounded-2xl border border-border bg-white hover:border-[#452A1D]/50 hover:shadow-md transition-all duration-200 group p-6 flex flex-col gap-4">
       {/* Top row */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-wrap gap-1.5">
@@ -431,7 +431,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
       </div>
 
       {ini.problem && (
-        <p className="text-xs text-black leading-relaxed line-clamp-2">{ini.problem}</p>
+        <p className="text-[13px] text-black leading-relaxed line-clamp-2">{ini.problem}</p>
       )}
 
       {/* Footer — pt-3 instead of pt-1 so it reads as its own zone rather
@@ -1373,8 +1373,13 @@ function MarketplaceDetail({
 
       {/* ── Hero block ── */}
 
-      <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
-        {/* Sector tags + ESG + verified, with Save/Pass icons on the right */}
+      {/* Hero — diagonal espresso-to-forest-green gradient, distinct from
+          every other card on the page. Every text element inside had to
+          shift from dark-on-light to light-on-dark along with it; the meta
+          grid's inner tiles deliberately stay light (bg-background,
+          unchanged) so they read as bright "windows" set into the dark
+          gradient rather than blending into it. */}
+      <div className="rounded-2xl p-6 space-y-4 bg-gradient-to-br from-[#3D2618] via-[#33301F] to-[#1B3328]">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-wrap gap-1.5">
             {initiative.sectors?.map(s => (
@@ -1400,19 +1405,21 @@ function MarketplaceDetail({
             )}
           </div>
           {!isOwnInitiative && (
-            <DecisionIcons
-              saved={saved} passed={passed} passReason={passReason}
-              onToggleSave={onToggleSave}
-              onConfirmPass={onConfirmPass}
-              onUndoPass={onUndoPass}
-              size="md"
-            />
+            <div className="bg-white/95 rounded-full p-1 shadow-sm shrink-0">
+              <DecisionIcons
+                saved={saved} passed={passed} passReason={passReason}
+                onToggleSave={onToggleSave}
+                onConfirmPass={onConfirmPass}
+                onUndoPass={onUndoPass}
+                size="md"
+              />
+            </div>
           )}
         </div>
 
         <div>
-          <h2 className="text-2xl font-bold text-foreground tracking-tight leading-snug">{initiative.title}</h2>
-          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
+          <h2 className="text-2xl font-bold text-white tracking-tight leading-snug">{initiative.title}</h2>
+          <div className="flex items-center gap-3 mt-2 text-xs text-white/70 flex-wrap">
             {(initiative.submitter_org || initiative.submitter_name) && (
               <a
                 href={
@@ -1421,7 +1428,7 @@ function MarketplaceDetail({
                     : `/dashboard/natives?tab=individual&user=${initiative.user_id}`
                 }
                 onClick={e => e.stopPropagation()}
-                className="font-medium text-foreground/70 hover:text-[#2D6A4F] hover:underline underline-offset-2 transition-colors">
+                className="font-medium text-white/90 hover:text-[#8FD9B0] hover:underline underline-offset-2 transition-colors">
                 {initiative.submitter_user_type === "organisation"
                   ? initiative.submitter_org
                   : initiative.submitter_name}
@@ -1432,7 +1439,8 @@ function MarketplaceDetail({
           </div>
         </div>
 
-        {/* Meta grid */}
+        {/* Meta grid — deliberately unchanged: light bg-background tiles
+            read as bright accents against the dark gradient behind them */}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
             { label: "Location", value: initiative.locations?.join(", ") || "—" },

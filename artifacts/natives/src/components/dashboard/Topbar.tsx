@@ -122,7 +122,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
     <header
       className={cn(
         "fixed top-0 right-0 h-18 bg-background border-b border-border flex items-center justify-between px-6 py-3 z-30 transition-all duration-200",
-        sidebarCollapsed ? "left-16" : "left-56"
+        sidebarCollapsed ? "left-16" : "left-72"
       )}
     >
       <div className="flex items-center gap-2">
