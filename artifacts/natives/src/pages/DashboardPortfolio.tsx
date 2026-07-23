@@ -486,9 +486,11 @@ function InterestsExpressedTab({ userId }: { userId: string }) {
     <div className="space-y-3">
       {eois.map(eoi => {
         const status = eoi.conversation_status;
-        const statusConfig = status === "open"
+        const statusConfig = status === "confirmed"
+          ? { label: "Partner confirmed", bg: "#eaf5ee", color: "#2D6A4F" }
+          : status === "open"
           ? { label: "In conversation", bg: "#eaf5ee", color: "#2D6A4F" }
-          : status === "declined"
+          : (status === "declined" || status === "rejected")
           ? { label: "Declined", bg: "#fef2f2", color: "#ef4444" }
           : { label: "Pending",  bg: "#fffbeb", color: "#f59e0b" };
         return (
