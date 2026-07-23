@@ -121,7 +121,14 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
 
   function handleNotificationClick(n: Notification) {
     markRead(n.id);
-    if (n.link) navigate(n.link);
+    if (n.link) {
+      navigate(n.link);
+      // Wouter doesn't remount the target component for a same-route
+      // navigation (only the query string changed), so a component
+      // already mounted on /dashboard/messages has no way to notice the
+      // URL changed on its own. This event gives it an explicit signal.
+      window.dispatchEvent(new Event("open-conversation"));
+    }
     setPanelOpen(false);
   }
 

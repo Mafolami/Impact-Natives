@@ -111,18 +111,64 @@ export default function DashboardMessages() {
     loadAll();
   }, [user]);
 
+  // Extra re-trigger for same-route notification clicks (see Topbar.tsx) --
+  // without this, a component already sitting on this page never notices
+  // the URL's ?conversation= changed, since Wouter doesn't remount it.
+  const [deepLinkTrigger, setDeepLinkTrigger] = useState(0);
   useEffect(() => {
-    if (!conversations.length) return;
+    function handler() { setDeepLinkTrigger(t => t + 1); }
+    window.addEventListener("open-conversation", handler);
+    return () => window.removeEventListener("open-conversation", handler);
+  }, []);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const convId = params.get("conversation");
-    if (convId) {
-      const match = conversations.find(c => c.id === convId);
-      if (match) {
-        setActiveConvo(match);
-        setActiveTab(match.conversation_type === "partnership" ? "partnership" : "initiative");
-      }
+    if (!convId) return;
+    const match = conversations.find(c => c.id === convId);
+    if (match) {
+      setActiveConvo(match);
+      setActiveTab(match.conversation_type === "partnership" ? "partnership" : "initiative");
+      return;
     }
-  }, [conversations.length]);
+    // Not in the currently loaded list -- likely a conversation created
+    // just now, while already sitting on this page (list won't include it
+    // until the next full refresh). Fetch it directly instead of waiting.
+    if (!user) return;
+    supabase.from("conversations")
+      .select("id, initiative_id, status, initiative_owner_id, conversation_type, funder_closed_at")
+      .eq("id", convId).maybeSingle()
+      .then(async ({ data: convo }) => {
+        if (!convo) return;
+        const { data: participants } = await supabase
+          .rpc("get_conversation_participants", { p_conversation_ids: [convo.id] });
+        const otherId = (participants ?? []).find((p: any) => p.user_id !== user.id)?.user_id ?? "";
+        const { data: otherProfile } = otherId
+          ? await supabase.from("profiles").select("full_name").eq("id", otherId).maybeSingle()
+          : { data: null };
+        const { data: initData } = convo.initiative_id
+          ? await supabase.from("initiative_requests").select("title").eq("id", convo.initiative_id).maybeSingle()
+          : { data: null };
+        const built: Conversation = {
+          id: convo.id,
+          initiative_id: convo.initiative_id,
+          initiative_title: initData?.title ?? "Conversation",
+          initiative_owner_id: convo.initiative_owner_id ?? null,
+          other_user_id: otherId,
+          other_user_name: otherProfile?.full_name ?? "Unknown",
+          last_message: "",
+          last_message_at: "",
+          unread: false,
+          status: convo.status ?? "open",
+          partnerStatus: (convo.status === "rejected" || convo.status === "closed") ? "closed"
+            : convo.status === "pending_acceptance" ? "pending" : "active",
+          conversation_type: convo.conversation_type ?? "eoi",
+          funder_closed_at: convo.funder_closed_at ?? null,
+        };
+        setActiveConvo(built);
+        setActiveTab(built.conversation_type === "partnership" ? "partnership" : "initiative");
+      });
+  }, [conversations.length, deepLinkTrigger, user]);
 
   async function loadPendingEOIs(): Promise<void> {
     if (!user) return;
