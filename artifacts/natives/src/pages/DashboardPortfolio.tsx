@@ -703,6 +703,7 @@ export default function DashboardInitiatives() {
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     if (p.get("tab") === "partners") { setTopTab("initiatives"); setInitSubTab("confirmed"); }
+    if (p.get("tab") === "expressed") { setTopTab("initiatives"); setInitSubTab("expressed"); }
     if (p.get("tab") === "partnerships") setTopTab("partnerships");
   }, []);
 

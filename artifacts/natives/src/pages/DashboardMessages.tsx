@@ -124,7 +124,14 @@ export default function DashboardMessages() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const convId = params.get("conversation");
-    if (!convId) return;
+    const tabParam = params.get("tab");
+    if (!convId) {
+      // Some notifications (a new EOI on your initiative) should land on a
+      // tab so the person can decide what to do next, not jump straight
+      // into an open conversation before they've accepted or declined it.
+      if (tabParam === "partnership" || tabParam === "initiative") setActiveTab(tabParam);
+      return;
+    }
     const match = conversations.find(c => c.id === convId);
     if (match) {
       setActiveConvo(match);
@@ -405,7 +412,7 @@ export default function DashboardMessages() {
       p_type: "eoi_declined",
       p_title: "Expression of interest not accepted",
       p_body: `Your interest in "${eoi.initiative_title}" was not taken forward.`,
-      p_link: "/dashboard/messages",
+      p_link: "/dashboard/portfolio?tab=expressed",
     });
     setPendingEOIs(prev => prev.filter(e => e.eoi_id !== eoi.eoi_id));
   }

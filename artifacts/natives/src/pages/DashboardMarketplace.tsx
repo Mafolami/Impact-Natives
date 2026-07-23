@@ -1181,11 +1181,11 @@ function MarketplaceDetail({
         p_notification_type: "eoi_received",
         p_notification_title: "New expression of interest",
         p_notification_body: `${name} expressed ${phrasedType} interest in "${initiative.title}"`,
-        p_notification_link: `/dashboard/messages?conversation=${convoId}`,
+        p_notification_link: "/dashboard/messages?tab=initiative",
       });
       await Promise.all([
         supabase.from("expressions_of_interest").update({ conversation_id: convoId }).eq("id", eoiData.id),
-        supabase.from("messages").insert({ conversation_id: convoId, sender_id: user.id, body: `${phrasedType} interest expressed${message ? `: ${message}` : "."}` }),
+        supabase.from("messages").insert({ conversation_id: convoId, sender_id: user.id, body: message?.trim() ? message : "I've expressed interest in this initiative." }),
       ]);
       setSubmitted(true); setAlreadyExpressed(true); onExpressed(initiative.id);
     } finally { setSubmitting(false); }
