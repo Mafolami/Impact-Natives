@@ -114,13 +114,18 @@ function rolePartnerPhrase(value: string): string {
 // Joins multiple selected types into a natural phrase: "Technical partner",
 // "Technical partner and Funding partner", or with ESG/CSR folded in too.
 function combinedPartnerPhrase(types: string[], esgAdoption: boolean): string {
-  const phrases = types.map(rolePartnerPhrase);
-  let joined = phrases.length === 0 ? ""
-    : phrases.length === 1 ? phrases[0]
-    : phrases.length === 2 ? `${phrases[0]} and ${phrases[1]}`
-    : `${phrases.slice(0, -1).join(", ")}, and ${phrases[phrases.length - 1]}`;
-  if (esgAdoption) joined = joined ? `${joined} and ESG/CSR adoption` : "ESG/CSR adoption";
-  return joined;
+  const labels = types.map(eoiTypeLabel);
+  let phrase = "";
+  if (labels.length === 1) {
+    phrase = rolePartnerPhrase(types[0]);
+  } else if (labels.length > 1) {
+    const rolesJoined = labels.length === 2
+      ? `${labels[0]} and ${labels[1]}`
+      : `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
+    phrase = `${rolesJoined} partner`;
+  }
+  if (esgAdoption) phrase = phrase ? `${phrase} and ESG/CSR adoption` : "ESG/CSR adoption";
+  return phrase;
 }
 
 function budgetMatches(budget: string | null | undefined, filter: string): boolean {
@@ -1176,7 +1181,7 @@ function MarketplaceDetail({
         p_notification_type: "eoi_received",
         p_notification_title: "New expression of interest",
         p_notification_body: `${name} expressed ${phrasedType} interest in "${initiative.title}"`,
-        p_notification_link: "/dashboard/messages",
+        p_notification_link: `/dashboard/messages?conversation=${convoId}`,
       });
       await Promise.all([
         supabase.from("expressions_of_interest").update({ conversation_id: convoId }).eq("id", eoiData.id),

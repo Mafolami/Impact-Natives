@@ -124,42 +124,33 @@ export default function DashboardMessages() {
     }
   }, [conversations.length]);
 
-  async function loadAll(showLoader = true): Promise<Conversation[]> {
-    if (!user) return [];
-    if (showLoader) setLoading(true);
-
+  async function loadPendingEOIs(): Promise<void> {
+    if (!user) return;
     const { data: myInitiatives } = await supabase
       .from("initiative_requests")
       .select("id, title")
       .eq("user_id", user.id);
-
     const myInitiativeIds = (myInitiatives ?? []).map((i: any) => i.id);
     const initiativeTitleMap = new Map((myInitiatives ?? []).map((i: any) => [i.id, i.title]));
-
     let pendingList: PendingEOI[] = [];
-
     if (myInitiativeIds.length > 0) {
       const { data: eoiData } = await supabase
         .from("expressions_of_interest")
         .select("id, initiative_id, user_id, partnership_type, message, created_at, conversation_id, esg_adoption")
         .in("initiative_id", myInitiativeIds)
         .neq("user_id", user.id);
-
       if (eoiData && eoiData.length > 0) {
         const convoIds = eoiData.map((e: any) => e.conversation_id).filter(Boolean);
         const { data: convoData } = await supabase
           .from("conversations").select("id, status").in("id", convoIds);
         const convoStatusMap = new Map((convoData ?? []).map((c: any) => [c.id, c.status]));
-
         const pendingEois = eoiData.filter((e: any) =>
           e.conversation_id && convoStatusMap.get(e.conversation_id) === "pending"
         );
-
         const expresserIds = [...new Set(pendingEois.map((e: any) => e.user_id))];
         const { data: profiles } = await supabase
           .from("profiles").select("id, full_name, org_name, user_type, is_verified").in("id", expresserIds);
         const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
-
         pendingList = pendingEois.map((e: any) => {
           const p = profileMap.get(e.user_id);
           const expresserName = p?.user_type === "organisation" && p?.org_name ? p.org_name : p?.full_name ?? "Someone";
@@ -179,9 +170,11 @@ export default function DashboardMessages() {
         });
       }
     }
-
     setPendingEOIs(pendingList);
+  }
 
+  async function loadOutboundEOIs(): Promise<void> {
+    if (!user) return;
     const { data: sentEois } = await supabase
       .from("expressions_of_interest")
       .select("id, initiative_id, partnership_type, message, created_at, conversation_id")
@@ -216,125 +209,120 @@ export default function DashboardMessages() {
     } else {
       setOutboundEOIs([]);
     }
+  }
 
+  async function loadConversationsList(): Promise<Conversation[]> {
+    if (!user) return [];
     const { data: myConvos } = await supabase
       .from("conversation_participants")
       .select("conversation_id")
       .eq("user_id", user.id);
-
     const myConvoIds = (myConvos ?? []).map((c: any) => c.conversation_id);
-
-    if (myConvoIds.length > 0) {
-      const { data: convoData } = await supabase
-        .from("conversations")
-        .select("id, initiative_id, status, initiative_owner_id, conversation_type, funder_closed_at")
-        .in("id", myConvoIds)
-        .in("status", ["open", "rejected", "pending_acceptance"])
-        .or("initiative_id.not.is.null,conversation_type.eq.partnership");
-
-      if (convoData && convoData.length > 0) {
-        console.log("convoData initiative_owner_ids:", convoData.map((c: any) => ({ id: c.id, type: c.conversation_type, owner: c.initiative_owner_id })));
-        const initIds = [...new Set(convoData.map((c: any) => c.initiative_id).filter(Boolean))];
-        const { data: inits } = initIds.length > 0 ? await supabase
-          .from("initiative_requests").select("id, title").in("id", initIds) : { data: [] };
-        const initTitleMap = new Map((inits ?? []).map((i: any) => [i.id, i.title]));
-        // Partnership conversations have no initiative — title falls back to other user's name
-
-        const { data: allParticipants } = await supabase
-          .rpc("get_conversation_participants", { p_conversation_ids: convoData.map((c: any) => c.id) });
-
-        const otherUserIds = [...new Set(
-          (allParticipants ?? []).filter((p: any) => p.user_id !== user.id).map((p: any) => p.user_id)
-        )];
-
-        const { data: otherProfiles } = await supabase
-          .from("profiles").select("id, full_name").in("id", otherUserIds);
-        const otherProfileMap = new Map((otherProfiles ?? []).map((p: any) => [p.id, p.full_name]));
-
-        const { data: lastMessages } = await supabase
-          .from("messages")
-          .select("conversation_id, body, created_at, read_at, sender_id")
-          .in("conversation_id", convoData.map((c: any) => c.id))
-          .order("created_at", { ascending: false });
-
-        const lastMsgMap = new Map<string, any>();
-        (lastMessages ?? []).forEach((m: any) => {
-          if (!lastMsgMap.has(m.conversation_id)) lastMsgMap.set(m.conversation_id, m);
-        });
-
-        const participantMap = new Map<string, string>();
-        (allParticipants ?? []).forEach((p: any) => {
-          if (p.user_id !== user.id) participantMap.set(p.conversation_id, p.user_id);
-        });
-
-        // Fetch partnership titles for partnership conversations
-        const partnershipOwnerIds = convoData
-          .filter((c: any) => c.conversation_type === "partnership" && c.initiative_owner_id)
-          .map((c: any) => c.initiative_owner_id);
-
-        const partnershipTitleMap = new Map<string, string>();
-        if (partnershipOwnerIds.length > 0) {
-          const { data: partnerOrgs } = await supabase
-            .from("organizations")
-            .select("user_id, partnership_title")
-            .in("user_id", [...new Set(partnershipOwnerIds)]);
-          (partnerOrgs ?? []).forEach((o: any) => {
-            if (o.partnership_title) partnershipTitleMap.set(o.user_id, o.partnership_title);
-          });
-        }
-
-        const convos = convoData.map((c: any) => {
-          const otherId = participantMap.get(c.id) ?? "";
-          const lastMsg = lastMsgMap.get(c.id);
-          return {
-            id:                  c.id,
-            initiative_id:       c.initiative_id,
-            initiative_title:    initTitleMap.get(c.initiative_id) ?? (c.conversation_type === "partnership" ? (partnershipTitleMap.get(c.initiative_owner_id) ?? "Partnership conversation") : "Initiative"),            initiative_owner_id: c.initiative_owner_id ?? null,
-            other_user_id:       otherId,
-            other_user_name:     otherProfileMap.get(otherId) ?? "Unknown",
-            last_message:        lastMsg?.body ?? "",
-            last_message_at:     lastMsg?.created_at ?? c.created_at ?? "",
-            unread:              lastMsg && lastMsg.sender_id !== user.id && !lastMsg.read_at,
-            status:              c.status ?? "pending_acceptance",
-            conversation_type:   c.conversation_type ?? "eoi",
-            funder_closed_at:    c.funder_closed_at ?? null,
-          };
-        });
-
-        const baseConvos: Conversation[] = convos.map(c => ({
-          ...c,
-          partnerStatus: (c.status === "rejected" || c.status === "closed") ? "closed" : c.status === "pending_acceptance" ? "pending" : "active",
-        } as Conversation));
-
-        baseConvos.sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
-        setConversations(baseConvos);
-
-        // Fire confirmed partners check async — doesn't block return
-        const uniqueInitIds = [...new Set(baseConvos.map(c => c.initiative_id).filter(Boolean))];
-        if (uniqueInitIds.length > 0) {
-          supabase.from("initiative_requests").select("id, confirmed_partners").in("id", uniqueInitIds)
-            .then(({ data: confirmedData }) => {
-              const confirmedMap = new Map((confirmedData ?? []).map((i: any) => [i.id, i.confirmed_partners ?? []]));
-              setConversations(prev => prev.map(c => {
-                const partners = confirmedMap.get(c.initiative_id) ?? [];
-                const isConfirmed = partners.some((p: any) => p.user_id === c.other_user_id || p.user_id === user!.id);
-                return isConfirmed ? { ...c, partnerStatus: "confirmed" } : c;
-              }));
-            });
-        }
-
-        setLoading(false);
-        return baseConvos;
-      } else {
-        setConversations([]);
-        setLoading(false);
-        return [];
-      }
-    } else {
+    if (myConvoIds.length === 0) {
       setConversations([]);
-      setLoading(false);
       return [];
     }
+    const { data: convoData } = await supabase
+      .from("conversations")
+      .select("id, initiative_id, status, initiative_owner_id, conversation_type, funder_closed_at")
+      .in("id", myConvoIds)
+      .in("status", ["open", "rejected", "pending_acceptance"])
+      .or("initiative_id.not.is.null,conversation_type.eq.partnership");
+    if (!convoData || convoData.length === 0) {
+      setConversations([]);
+      return [];
+    }
+    const initIds = [...new Set(convoData.map((c: any) => c.initiative_id).filter(Boolean))];
+    const { data: inits } = initIds.length > 0 ? await supabase
+      .from("initiative_requests").select("id, title").in("id", initIds) : { data: [] };
+    const initTitleMap = new Map((inits ?? []).map((i: any) => [i.id, i.title]));
+    const { data: allParticipants } = await supabase
+      .rpc("get_conversation_participants", { p_conversation_ids: convoData.map((c: any) => c.id) });
+    const otherUserIds = [...new Set(
+      (allParticipants ?? []).filter((p: any) => p.user_id !== user.id).map((p: any) => p.user_id)
+    )];
+    const { data: otherProfiles } = await supabase
+      .from("profiles").select("id, full_name").in("id", otherUserIds);
+    const otherProfileMap = new Map((otherProfiles ?? []).map((p: any) => [p.id, p.full_name]));
+    const { data: lastMessages } = await supabase
+      .from("messages")
+      .select("conversation_id, body, created_at, read_at, sender_id")
+      .in("conversation_id", convoData.map((c: any) => c.id))
+      .order("created_at", { ascending: false });
+    const lastMsgMap = new Map<string, any>();
+    (lastMessages ?? []).forEach((m: any) => {
+      if (!lastMsgMap.has(m.conversation_id)) lastMsgMap.set(m.conversation_id, m);
+    });
+    const participantMap = new Map<string, string>();
+    (allParticipants ?? []).forEach((p: any) => {
+      if (p.user_id !== user.id) participantMap.set(p.conversation_id, p.user_id);
+    });
+    const partnershipOwnerIds = convoData
+      .filter((c: any) => c.conversation_type === "partnership" && c.initiative_owner_id)
+      .map((c: any) => c.initiative_owner_id);
+    const partnershipTitleMap = new Map<string, string>();
+    if (partnershipOwnerIds.length > 0) {
+      const { data: partnerOrgs } = await supabase
+        .from("organizations")
+        .select("user_id, partnership_title")
+        .in("user_id", [...new Set(partnershipOwnerIds)]);
+      (partnerOrgs ?? []).forEach((o: any) => {
+        if (o.partnership_title) partnershipTitleMap.set(o.user_id, o.partnership_title);
+      });
+    }
+    const convos = convoData.map((c: any) => {
+      const otherId = participantMap.get(c.id) ?? "";
+      const lastMsg = lastMsgMap.get(c.id);
+      return {
+        id:                  c.id,
+        initiative_id:       c.initiative_id,
+        initiative_title:    initTitleMap.get(c.initiative_id) ?? (c.conversation_type === "partnership" ? (partnershipTitleMap.get(c.initiative_owner_id) ?? "Partnership conversation") : "Initiative"),
+        initiative_owner_id: c.initiative_owner_id ?? null,
+        other_user_id:       otherId,
+        other_user_name:     otherProfileMap.get(otherId) ?? "Unknown",
+        last_message:        lastMsg?.body ?? "",
+        last_message_at:     lastMsg?.created_at ?? c.created_at ?? "",
+        unread:              lastMsg && lastMsg.sender_id !== user.id && !lastMsg.read_at,
+        status:              c.status ?? "pending_acceptance",
+        conversation_type:   c.conversation_type ?? "eoi",
+        funder_closed_at:    c.funder_closed_at ?? null,
+      };
+    });
+    const baseConvos: Conversation[] = convos.map(c => ({
+      ...c,
+      partnerStatus: (c.status === "rejected" || c.status === "closed") ? "closed" : c.status === "pending_acceptance" ? "pending" : "active",
+    } as Conversation));
+    baseConvos.sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
+    setConversations(baseConvos);
+    const uniqueInitIds = [...new Set(baseConvos.map(c => c.initiative_id).filter(Boolean))];
+    if (uniqueInitIds.length > 0) {
+      supabase.from("initiative_requests").select("id, confirmed_partners").in("id", uniqueInitIds)
+        .then(({ data: confirmedData }) => {
+          const confirmedMap = new Map((confirmedData ?? []).map((i: any) => [i.id, i.confirmed_partners ?? []]));
+          setConversations(prev => prev.map(c => {
+            const partners = confirmedMap.get(c.initiative_id) ?? [];
+            const isConfirmed = partners.some((p: any) => p.user_id === c.other_user_id || p.user_id === user!.id);
+            return isConfirmed ? { ...c, partnerStatus: "confirmed" } : c;
+          }));
+        });
+    }
+    return baseConvos;
+  }
+
+  // The three loads above are fully independent of each other -- running
+  // them sequentially meant the conversation list (the one thing a
+  // deep-linked notification actually needs) sat waiting behind two
+  // unrelated EOI queries before it could even start. Concurrent now.
+  async function loadAll(showLoader = true): Promise<Conversation[]> {
+    if (!user) return [];
+    if (showLoader) setLoading(true);
+    const [, , conversationsResult] = await Promise.all([
+      loadPendingEOIs(),
+      loadOutboundEOIs(),
+      loadConversationsList(),
+    ]);
+    setLoading(false);
+    return conversationsResult;
   }
 
   // Opens the conversation. This is not a partnership decision, just
