@@ -9,7 +9,7 @@ export const SECTOR_OPTIONS = [
   "Gender & Inclusion",
   "Governance & Civic Tech",
   "Livelihoods & Economic Empowerment",
-  "Technology & Innovation",
+  "Digital Development",
   "Arts, Culture & Creative Industries",
   "Humanitarian & Emergency Response",
   "Youth & Community Development",

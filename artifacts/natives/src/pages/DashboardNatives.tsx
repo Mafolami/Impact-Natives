@@ -5,6 +5,7 @@ import { Loader2, Search, Users, Sparkles, RefreshCw } from "lucide-react";
 import { UserAvatar, avatarColor, initials } from "@/components/ui/UserAvatar";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { COUNTRIES } from "@/lib/countries";
+import { SECTOR_OPTIONS } from "@/lib/sectors";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -179,13 +180,7 @@ export default function DashboardNatives() {
         <select value={sectorFilter} onChange={e => setSectorFilter(e.target.value)}
           className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-black focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
           <option value="">Sector</option>
-          {[
-            "Health","Education","Agriculture & Food Systems","Climate & Environment",
-            "Energy & Clean Tech","Water Sanitation & Hygiene","Financial Inclusion",
-            "Gender & Inclusion","Governance & Civic Tech","Livelihoods & Economic Empowerment",
-            "Technology & Innovation","Arts Culture & Creative Industries",
-            "Humanitarian & Emergency Response","Youth & Community Development",
-          ].map(s => <option key={s} value={s}>{s}</option>)}
+          {SECTOR_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
 
         <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)}
