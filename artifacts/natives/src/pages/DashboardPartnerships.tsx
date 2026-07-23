@@ -47,7 +47,19 @@ function normalizeArr(val: string | string[] | null | undefined): string[] {
   try { const p = JSON.parse(val); return Array.isArray(p) ? p : [val]; }
   catch { return [val]; }
 }
-
+const SDG_NAMES = [
+  "No Poverty", "Zero Hunger", "Good Health and Well-being", "Quality Education",
+  "Gender Equality", "Clean Water and Sanitation", "Affordable and Clean Energy",
+  "Decent Work and Economic Growth", "Industry Innovation and Infrastructure",
+  "Reduced Inequalities", "Sustainable Cities and Communities",
+  "Responsible Consumption and Production", "Climate Action", "Life Below Water",
+  "Life on Land", "Peace Justice and Strong Institutions", "Partnerships for the Goals",
+];
+function sdgLabel(value: string | number): string {
+  const n = typeof value === "number" ? value : parseInt(value, 10);
+  if (!Number.isNaN(n) && n >= 1 && n <= SDG_NAMES.length) return SDG_NAMES[n - 1];
+  return String(value);
+}
 const STAGE_LABELS: Record<string, string> = {
   concept: "Co-designing", joining_running: "Joining active work",
   pilot: "Pilot phase", scaling: "Scaling",
@@ -530,7 +542,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
               {org.sdgs.map(sdg => (
                 <span key={sdg} className="text-xs font-bold px-3 py-1.5 rounded-lg"
                   style={{ background: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0" }}>
-                  SDG {sdg}
+                  {sdgLabel(sdg)}
                 </span>
               ))}
             </div>

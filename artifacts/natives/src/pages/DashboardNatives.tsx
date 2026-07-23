@@ -93,7 +93,27 @@ function normalizeArr(val: string | string[] | null | undefined): string[] {
   try { const p = JSON.parse(val); return Array.isArray(p) ? p : [val]; }
   catch { return [val]; }
 }
-
+const SDG_NAMES = [
+  "No Poverty", "Zero Hunger", "Good Health and Well-being", "Quality Education",
+  "Gender Equality", "Clean Water and Sanitation", "Affordable and Clean Energy",
+  "Decent Work and Economic Growth", "Industry Innovation and Infrastructure",
+  "Reduced Inequalities", "Sustainable Cities and Communities",
+  "Responsible Consumption and Production", "Climate Action", "Life Below Water",
+  "Life on Land", "Peace Justice and Strong Institutions", "Partnerships for the Goals",
+];
+function sdgLabel(value: string | number): string {
+  const n = typeof value === "number" ? value : parseInt(value, 10);
+  if (!Number.isNaN(n) && n >= 1 && n <= SDG_NAMES.length) return SDG_NAMES[n - 1];
+  return String(value);
+}
+const PARTNER_ROLE_LABELS: Record<string, string> = {
+  funding: "Funding", technical: "Technical", operational: "Operational",
+  leadership: "Leadership", strategic: "Strategic", lead: "Project Lead", other: "Other",
+};
+function partnerRolePhrase(value: string): string {
+  const label = PARTNER_ROLE_LABELS[value] ?? value;
+  return label === "Project Lead" ? label : `${label} partner`;
+}
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function DashboardNatives() {
@@ -620,7 +640,9 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
       });
     }
 
-    // Reputation: confirmed partnerships, owner side and partner side
+    // Reputation: confirmed partnerships, owner side and partner side.
+    // Only status "confirmed" counts. A pending or declined proposal is
+    // not a real partnership and must never show as one here.
     supabase.from("initiative_requests")
       .select("id,title,user_id,confirmed_partners")
       .not("confirmed_partners", "eq", "[]")
@@ -628,14 +650,12 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
         if (!data) return;
         const results: any[] = [];
         data.forEach((ini: any) => {
-          const partners = ini.confirmed_partners ?? [];
+          const partners = ((ini.confirmed_partners ?? []) as any[]).filter((p: any) => (p.status ?? "confirmed") === "confirmed");
           if (ini.user_id === org.user_id) {
-            // org owns this initiative — every confirmed partner counts
             partners.forEach((p: any) => {
               results.push({ initiative_title: ini.title, partner_name: p.name, role: p.role, as: "owner" });
             });
           } else {
-            // org may appear as a partner on someone else's initiative
             const asPartner = partners.find((p: any) => p.user_id === org.user_id);
             if (asPartner) {
               results.push({ initiative_title: ini.title, partner_name: null, role: asPartner.role, as: "partner" });
@@ -788,8 +808,8 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
             {reputationPartners.slice(0, 5).map((p, i) => (
               <p key={i} className="text-xs text-foreground">
                 {p.as === "owner"
-                  ? `Partnered with ${p.partner_name} on "${p.initiative_title}"`
-                  : `Confirmed as ${p.role} partner on "${p.initiative_title}"`}
+                  ? `Partnered with ${p.partner_name} as ${partnerRolePhrase(p.role)} on "${p.initiative_title}"`
+                  : `Confirmed as ${partnerRolePhrase(p.role)} on "${p.initiative_title}"`}
               </p>
             ))}
           </div>
@@ -1078,9 +1098,9 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
           <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#2D6A4F] mb-2.5">SDG Alignment</p>
           <div className="flex flex-wrap gap-1.5">
             {org.sdgs.map(s => (
-              <span key={s} className="text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center"
+              <span key={s} className="text-xs font-semibold px-2.5 py-1 rounded-full"
                 style={{ background: "#2D6A4F", color: "white" }}>
-                {s}
+                {sdgLabel(s)}
               </span>
             ))}
           </div>

@@ -87,6 +87,12 @@ const PARTNERSHIP_OPTIONS = [
 function partnershipLabel(value: string) {
   return PARTNERSHIP_OPTIONS.find(o => o.value === value)?.label ?? value;
 }
+function rolePartnerPhrase(value: string): string {
+  const label = partnershipLabel(value);
+  if (/partner$/i.test(label)) return label;
+  if (label === "Project Lead") return label;
+  return `${label} partner`;
+}
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
@@ -763,7 +769,7 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
       p_target_user_id: conversation.other_user_id,
       p_type: "partnership_confirmation_requested",
       p_title: "Partnership confirmation requested",
-      p_body: `${conversation.initiative_title} — you've been proposed as ${partnershipType}. Go to Messages to confirm or decline.`,
+      p_body: `${conversation.initiative_title}: you've been proposed as ${partnershipType}. Go to Messages to confirm or decline.`,
       p_link: `/dashboard/messages?conversation=${conversation.id}`,
     });
 
@@ -809,7 +815,7 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
     return (
       <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0"
         style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
-        ✓ Partnership confirmed
+        ✓ Partnership intent confirmed
       </span>
     );
   }
@@ -916,6 +922,9 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
   const [confirming, setConfirming]     = useState(false);
   const [publicOnFeed, setPublicOnFeed] = useState(false);
   const [confirmedRole, setConfirmedRole] = useState<string | null>(null);
+  const [proposedRole, setProposedRole]   = useState<string | null>(null);
+  const [declinedRole, setDeclinedRole]   = useState<string | null>(null);
+  const [respondingToProposal, setRespondingToProposal] = useState(false);
   const [rejecting, setRejecting]       = useState(false);
   const [otherUserType, setOtherUserType] = useState<string | null>(null);
   const [isRejected, setIsRejected]     = useState(conversation.status === "rejected");
@@ -1033,7 +1042,10 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
     if (data?.confirmed_partners) {
       const partners = data.confirmed_partners as any[];
       const match = partners.find(p => p.user_id === conversation.other_user_id || p.user_id === currentUserId);
-      if (match) setConfirmedRole(match.role);
+      const status = match?.status ?? (match ? "confirmed" : null);
+      if (status === "confirmed") setConfirmedRole(match.role);
+      if (status === "pending")   setProposedRole(match.role);
+      if (status === "declined")  setDeclinedRole(match.role);
     }
   }
 
@@ -1095,53 +1107,107 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
     setSending(false);
   }
 
-  async function confirmPartner() {
-    if (!confirmRole || confirming) return;
+  // Proposes a role. The other party must actively confirm or decline
+  // below before this counts anywhere as a real partnership (Portfolio,
+  // Natives reputation, initiative detail). Mirrors the org-to-org
+  // partnership flow, which already works this way.
+  async function proposePartner() {
+    if (!confirmRole || confirming || !conversation.initiative_id) return;
     setConfirming(true);
-
+    const { data: myProfile } = await supabase
+      .from("profiles").select("user_type, org_name, full_name").eq("id", currentUserId).single();
+    const myDisplayName = myProfile?.user_type === "organisation" && myProfile?.org_name
+      ? myProfile.org_name : myProfile?.full_name ?? "Someone";
     const { data: otherProfile } = await supabase
       .from("profiles").select("user_type, org_name, full_name").eq("id", conversation.other_user_id).single();
-    const displayName = otherProfile?.user_type === "organisation" && otherProfile?.org_name
+    const otherDisplayName = otherProfile?.user_type === "organisation" && otherProfile?.org_name
       ? otherProfile.org_name : otherProfile?.full_name ?? conversation.other_user_name;
-
-    if (!conversation.initiative_id) return;
     const { data: iniData } = await supabase
       .from("initiative_requests").select("confirmed_partners, title").eq("id", conversation.initiative_id).single();
     const existing = (iniData?.confirmed_partners as any[]) ?? [];
-    const alreadyConfirmed = existing.find(p => p.user_id === conversation.other_user_id);
-
-    if (!alreadyConfirmed) {
-      await supabase.from("initiative_requests").update({
-        confirmed_partners: [...existing, {
-          user_id:        conversation.other_user_id,
-          name:           displayName,
-          role:           confirmRole,
-          profile_link:   `/dashboard/natives?user=${conversation.other_user_id}`,
-          confirmed_at:   new Date().toISOString(),
-          public_on_feed: publicOnFeed,
-        }],
-      }).eq("id", conversation.initiative_id);
-    } else {
-      await supabase.from("initiative_requests").update({
-        confirmed_partners: existing.map(p =>
-          p.user_id === conversation.other_user_id ? { ...p, role: confirmRole, public_on_feed: publicOnFeed } : p
-        ),
-      }).eq("id", conversation.initiative_id);
-    }
-
+    const proposalEntry = {
+      user_id:        conversation.other_user_id,
+      name:           otherDisplayName,
+      role:           confirmRole,
+      profile_link:   `/dashboard/natives?user=${conversation.other_user_id}`,
+      proposed_at:    new Date().toISOString(),
+      confirmed_at:   null,
+      public_on_feed: publicOnFeed,
+      status:         "pending",
+    };
+    const alreadyThere = existing.find(p => p.user_id === conversation.other_user_id);
+    const updatedList = alreadyThere
+      ? existing.map(p => p.user_id === conversation.other_user_id ? proposalEntry : p)
+      : [...existing, proposalEntry];
+    await supabase.from("initiative_requests")
+      .update({ confirmed_partners: updatedList }).eq("id", conversation.initiative_id);
+    const initiativeTitle = iniData?.title ?? "your initiative";
+    await supabase.rpc("send_conversation_notification", {
+      p_conversation_id: conversation.id,
+      p_target_user_id: conversation.other_user_id,
+      p_type: "partner_proposed",
+      p_title: "You've been proposed as a partner",
+      p_body: `${myDisplayName} proposed you as ${rolePartnerPhrase(confirmRole)} on "${initiativeTitle}". Go to Messages to confirm or decline.`,
+      p_link: `/dashboard/messages?conversation=${conversation.id}`,
+    });
+    setProposedRole(confirmRole);
+    setConfirmOpen(false);
+    setConfirming(false);
+  }
+  // Only this step writes a real confirmed partnership: both sides have
+  // now actively agreed.
+  async function confirmProposedPartner() {
+    if (!conversation.initiative_id || respondingToProposal) return;
+    setRespondingToProposal(true);
+    const { data: iniData } = await supabase
+      .from("initiative_requests").select("confirmed_partners, title").eq("id", conversation.initiative_id).single();
+    const existing = (iniData?.confirmed_partners as any[]) ?? [];
+    const now = new Date().toISOString();
+    const updated = existing.map(p =>
+      p.user_id === currentUserId ? { ...p, status: "confirmed", confirmed_at: now } : p
+    );
+    const myEntry = updated.find(p => p.user_id === currentUserId);
+    await supabase.from("initiative_requests")
+      .update({ confirmed_partners: updated }).eq("id", conversation.initiative_id);
+    await supabase.from("conversations").update({ status: "confirmed" }).eq("id", conversation.id);
+    const initiativeTitle = iniData?.title ?? "your initiative";
     await supabase.rpc("send_conversation_notification", {
       p_conversation_id: conversation.id,
       p_target_user_id: conversation.other_user_id,
       p_type: "partner_confirmed",
-      p_title: "You've been confirmed as a partner",
-      p_body: `You were confirmed as ${partnershipLabel(confirmRole)} Partner on "${iniData?.title ?? "an initiative"}".`,
+      p_title: "Partnership confirmed",
+      p_body: `${conversation.other_user_name} confirmed the partnership as ${rolePartnerPhrase(myEntry?.role ?? "")} on "${initiativeTitle}".`,
       p_link: "/dashboard/portfolio?tab=partners",
     });
-
-    await supabase.from("conversations").update({ status: "confirmed" }).eq("id", conversation.id);
-    setConfirmedRole(confirmRole);
-    setConfirmOpen(false);
-    setConfirming(false);
+    setConfirmedRole(myEntry?.role ?? confirmRole);
+    setProposedRole(null);
+    setRespondingToProposal(false);
+  }
+  async function declineProposedPartner() {
+    if (!conversation.initiative_id || respondingToProposal) return;
+    setRespondingToProposal(true);
+    const { data: iniData } = await supabase
+      .from("initiative_requests").select("confirmed_partners, title").eq("id", conversation.initiative_id).single();
+    const existing = (iniData?.confirmed_partners as any[]) ?? [];
+    const updated = existing.map(p =>
+      p.user_id === currentUserId ? { ...p, status: "declined" } : p
+    );
+    await supabase.from("initiative_requests")
+      .update({ confirmed_partners: updated }).eq("id", conversation.initiative_id);
+    await supabase.from("conversations").update({ status: "rejected" }).eq("id", conversation.id);
+    setIsRejected(true);
+    const initiativeTitle = iniData?.title ?? "your initiative";
+    await supabase.rpc("send_conversation_notification", {
+      p_conversation_id: conversation.id,
+      p_target_user_id: conversation.other_user_id,
+      p_type: "partner_declined",
+      p_title: "Partnership proposal declined",
+      p_body: `${conversation.other_user_name} declined the partner proposal on "${initiativeTitle}".`,
+      p_link: "/dashboard/messages",
+    });
+    setDeclinedRole("declined");
+    setProposedRole(null);
+    setRespondingToProposal(false);
   }
 
   async function rejectConversation() {
@@ -1250,8 +1316,8 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
       p_conversation_id: conversation.id,
       p_target_user_id: conversation.other_user_id,
       p_type: "partnership_confirmed",
-      p_title: "Partnership confirmed",
-      p_body: `${conversation.other_user_name} confirmed the partnership as ${pendingConfirmation.partnership_type}.`,
+      p_title: "Partnership intent confirmed",
+      p_body: `${conversation.other_user_name} confirmed the partnership intent as ${pendingConfirmation.partnership_type}.`,
       p_link: "/dashboard/portfolio?tab=partnerships&view=confirmed",
     });
 
@@ -1307,7 +1373,17 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
             {confirmedRole ? (
               <span className="text-xs px-3 py-1.5 rounded-full font-medium"
                 style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
-                ✓ Confirmed as {partnershipLabel(confirmedRole)}
+                ✓ Confirmed as {rolePartnerPhrase(confirmedRole)}
+              </span>
+            ) : proposedRole ? (
+              <span className="text-xs px-3 py-1.5 rounded-full font-medium"
+                style={{ background: "#fffbeb", color: "#b45309" }}>
+                Awaiting their confirmation
+              </span>
+            ) : declinedRole ? (
+              <span className="text-xs px-3 py-1.5 rounded-full font-medium"
+                style={{ background: "#fef2f2", color: "#ef4444" }}>
+                Proposal declined
               </span>
             ) : isRejected ? (
               <span className="text-xs px-3 py-1.5 rounded-full font-medium"
@@ -1319,7 +1395,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
                 <button type="button" onClick={() => setConfirmOpen(true)}
                   className="text-xs px-3 py-1.5 rounded-full border border-[#2D6A4F] text-[#2D6A4F] hover:bg-[#eaf5ee] transition-colors font-medium flex items-center gap-1.5">
                   <UserCheck className="w-3.5 h-3.5" />
-                  Confirm partner
+                  Propose partner
                 </button>
                 <button type="button" onClick={rejectConversation} disabled={rejecting}
                   className="text-xs px-3 py-1.5 rounded-full border border-red-400/40 text-red-500 hover:bg-red-50 transition-colors font-medium disabled:opacity-40">
@@ -1330,6 +1406,17 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
           </div>
         )}
 
+        {!isOwner && !isFunder && conversation.conversation_type !== "question" && conversation.conversation_type !== "partnership" && (confirmedRole || proposedRole || declinedRole) && (
+          <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0" style={
+            confirmedRole ? { background: "#eaf5ee", color: "#2D6A4F" }
+            : proposedRole ? { background: "#fffbeb", color: "#b45309" }
+            : { background: "#fef2f2", color: "#ef4444" }
+          }>
+            {confirmedRole ? `✓ Confirmed as ${rolePartnerPhrase(confirmedRole)}`
+              : proposedRole ? "Respond to their proposal below"
+              : "You declined this proposal"}
+          </span>
+        )}
         {!isOwner && isFunder && (
           isRejected ? (
             <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0"
@@ -1339,7 +1426,12 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
           ) : confirmedRole ? (
             <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0"
               style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
-              ✓ You're confirmed as {partnershipLabel(confirmedRole)}
+              ✓ You're confirmed as {rolePartnerPhrase(confirmedRole)}
+            </span>
+          ) : proposedRole ? (
+            <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0"
+              style={{ background: "#fffbeb", color: "#b45309" }}>
+              Respond to their proposal below
             </span>
           ) : funderClosed ? (
             <button type="button" onClick={reopenConversation}
@@ -1360,9 +1452,9 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-background rounded-2xl border border-border w-full max-w-sm shadow-xl p-6 space-y-4">
             <h3 className="text-base font-semibold text-foreground">
-              Confirm {conversation.other_user_name} as partner
+              Propose {conversation.other_user_name} as partner
             </h3>
-            <p className="text-sm text-muted-foreground">Select the role they'll play in this initiative.</p>
+            <p className="text-sm text-muted-foreground">Select the role they'll play in this initiative. They'll be asked to confirm before it counts as a partnership.</p>
             <div className="flex flex-wrap gap-2">
               {initiativePartnerships.map(p => (
                 <button key={p} type="button" onClick={() => setConfirmRole(p)}
@@ -1387,9 +1479,9 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
                 className="flex-1 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Cancel
               </button>
-              <button type="button" onClick={confirmPartner} disabled={!confirmRole || confirming}
+              <button type="button" onClick={proposePartner} disabled={!confirmRole || confirming}
                 className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium disabled:opacity-40 transition-colors">
-                {confirming ? "Confirming..." : "Confirm"}
+                {confirming ? "Sending..." : "Send proposal"}
               </button>
             </div>
           </div>
@@ -1427,7 +1519,26 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
         <div ref={bottomRef} />
       </div>
 
-     {/* Partnership confirmation prompt for expresser */}
+     {/* Partner proposal prompt for the responder on initiative-based conversations */}
+      {conversation.conversation_type !== "partnership" && !isOwner && proposedRole && (
+        <div className="mx-0 mb-3 rounded-xl border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-4 py-3 space-y-2">
+          <p className="text-sm font-medium text-foreground">
+            Partner proposal: <span className="text-[#2D6A4F]">{rolePartnerPhrase(proposedRole)}</span> on "{conversation.initiative_title}"
+          </p>
+          <p className="text-xs text-muted-foreground">Do you confirm this partnership?</p>
+          <div className="flex gap-2">
+            <button type="button" onClick={confirmProposedPartner} disabled={respondingToProposal}
+              className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-xs font-medium disabled:opacity-40 transition-colors">
+              {respondingToProposal ? "..." : "Confirm partnership"}
+            </button>
+            <button type="button" onClick={declineProposedPartner} disabled={respondingToProposal}
+              className="flex-1 h-9 rounded-full border border-red-400/40 text-red-500 hover:bg-red-50 text-xs font-medium disabled:opacity-40 transition-colors">
+              Decline
+            </button>
+          </div>
+        </div>
+      )}
+      {/* Partnership confirmation prompt for expresser */}
       {conversation.conversation_type === "partnership" && pendingConfirmation && !partnershipResolved && !isOwner && (
         <div className="mx-0 mb-3 rounded-xl border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-4 py-3 space-y-2">
           <p className="text-sm font-medium text-foreground">
@@ -1449,7 +1560,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
 
       {partnershipResolved && (
         <div className="mb-3 text-center text-xs text-muted-foreground">
-          {partnershipResolved === "confirmed" ? "Partnership confirmed. This conversation is now closed." : "Partnership declined."}
+          {partnershipResolved === "confirmed" ? "Partnership intent confirmed by both sides. This is a first step, not a finished deal. Conversation closed." : "Partnership declined."}
         </div>
       )}
 

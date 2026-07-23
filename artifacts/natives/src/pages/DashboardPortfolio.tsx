@@ -21,6 +21,7 @@ interface ConfirmedPartner {
   role: string;
   profile_link: string;
   confirmed_at: string;
+  status?: "pending" | "confirmed" | "declined";
 }
 
 interface InitiativeRow {
@@ -86,7 +87,7 @@ const STATUS_MAP: Record<string, { label: string; dot: string; bg: string }> = {
   pending:   { label: "Pending review",     dot: "#f59e0b", bg: "#fffbeb" },
   published: { label: "Listed",             dot: "#2D6A4F", bg: "#eaf5ee" },
   rejected:  { label: "Not approved",       dot: "#ef4444", bg: "#fef2f2" },
-  closed:    { label: "Partnership formed", dot: "#6b7280", bg: "#f3f4f6" },
+  closed:    { label: "Partner found", dot: "#6b7280", bg: "#f3f4f6" },
   draft:     { label: "AI draft — needs review", dot: "#C45C26", bg: "#fdf5f2" },
 };
 
@@ -133,7 +134,7 @@ function CloseInitiativeButton({ initiative, onClosed }: { initiative: Initiativ
     return (
       <button type="button" onClick={() => setConfirming(true)}
         className="w-full rounded-xl border border-border bg-white px-5 py-3 text-sm text-black hover:text-foreground hover:border-foreground/30 transition-colors text-left">
-        Partnership formed? <span className="text-foreground font-medium">Close this initiative →</span>
+        Found a partner? <span className="text-foreground font-medium">Close this initiative →</span>
       </button>
     );
   }
@@ -142,7 +143,7 @@ function CloseInitiativeButton({ initiative, onClosed }: { initiative: Initiativ
     <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 px-5 py-4 space-y-3">
       <p className="text-sm text-amber-800 dark:text-amber-300 font-medium">Close this initiative?</p>
       <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
-        It will stay visible in the marketplace with a "Partnership formed" badge. This cannot be undone.
+        It will stay visible in the marketplace with a "Partner found" badge. This cannot be undone.
       </p>
       <div className="flex gap-2">
         <button type="button" onClick={() => setConfirming(false)}
@@ -376,11 +377,11 @@ function InitiativeDetail({ initiative, onBack }: { initiative: InitiativeRow; o
         </div>
       )}
 
-      {initiative.confirmed_partners && initiative.confirmed_partners.length > 0 && (
+      {initiative.confirmed_partners && initiative.confirmed_partners.filter(p => (p.status ?? "confirmed") === "confirmed").length > 0 && (
         <div className="rounded-xl border border-[#2D6A4F]/30 bg-[#eaf5ee] px-5 py-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-[#2D6A4F] mb-3">Confirmed Partners</p>
           <div className="flex flex-col gap-2">
-            {initiative.confirmed_partners.map(p => (
+            {initiative.confirmed_partners.filter(p => (p.status ?? "confirmed") === "confirmed").map(p => (
               <div key={p.user_id} className="flex items-center justify-between gap-3">
                 <a href={p.profile_link} className="text-sm font-medium text-foreground hover:text-[#2D6A4F] transition-colors">{p.name}</a>
                 <span className="text-xs px-2.5 py-0.5 rounded-full capitalize" style={{ background: "#d1fae5", color: "#065f46" }}>{p.role}</span>
@@ -534,16 +535,18 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
 
     if (!allInits) { setLoading(false); return; }
 
-    const myInitsWithPartners = allInits.filter(
-      (init: any) => init.user_id === userId && Array.isArray(init.confirmed_partners) && init.confirmed_partners.length > 0
-    );
-
-    if (myInitsWithPartners.length > 0) {
-      const allPartnerUserIds = [...new Set(myInitsWithPartners.flatMap((i: any) => (i.confirmed_partners as any[]).map((p: any) => p.user_id)))];
+    const myInitsWithConfirmed = allInits
+      .filter((init: any) => init.user_id === userId && Array.isArray(init.confirmed_partners))
+      .map((init: any) => ({
+        ...init,
+        confirmed_partners: (init.confirmed_partners as any[]).filter((p: any) => (p.status ?? "confirmed") === "confirmed"),
+      }))
+      .filter((init: any) => init.confirmed_partners.length > 0);
+    if (myInitsWithConfirmed.length > 0) {
+      const allPartnerUserIds = [...new Set(myInitsWithConfirmed.flatMap((i: any) => (i.confirmed_partners as any[]).map((p: any) => p.user_id)))];
       const { data: partnerProfiles } = await supabase.from("profiles").select("id, full_name, email, phone, linkedin_url").in("id", allPartnerUserIds);
       const profileMap = new Map((partnerProfiles ?? []).map((p: any) => [p.id, p]));
-
-      setCreatorConfirmed(myInitsWithPartners.map((init: any) => ({
+      setCreatorConfirmed(myInitsWithConfirmed.map((init: any) => ({
         initiative_id:    init.id,
         initiative_title: init.title,
         partners: (init.confirmed_partners as any[]).map((p: any) => {
@@ -557,17 +560,15 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
 
     const relevant = allInits.filter((init: any) => {
       if (init.user_id === userId) return false;
-      return ((init.confirmed_partners as any[]) ?? []).some((p: any) => p.user_id === userId);
+      return ((init.confirmed_partners as any[]) ?? []).some((p: any) => p.user_id === userId && (p.status ?? "confirmed") === "confirmed");
     });
-
     if (relevant.length > 0) {
       const ownerIds = [...new Set(relevant.map((i: any) => i.user_id).filter(Boolean))];
       const { data: ownerProfiles } = await supabase.from("profiles").select("id, full_name").in("id", ownerIds);
       const ownerMap = new Map((ownerProfiles ?? []).map((p: any) => [p.id, p]));
-
       setExpresserConfirmed(relevant.map((init: any) => {
         const partners = (init.confirmed_partners as any[]) ?? [];
-        const myEntry  = partners.find((p: any) => p.user_id === userId);
+        const myEntry  = partners.find((p: any) => p.user_id === userId && (p.status ?? "confirmed") === "confirmed");
         const owner    = ownerMap.get(init.user_id);
         return { initiative_id: init.id, initiative_title: init.title, creator_user_id: init.user_id, creator_name: owner?.full_name ?? "Unknown", role: myEntry?.role ?? "", confirmed_at: myEntry?.confirmed_at ?? "" };
       }));
