@@ -350,14 +350,20 @@ export default function DashboardMessages() {
     const uniqueInitIds = [...new Set(baseConvos.map(c => c.initiative_id).filter(Boolean))];
     if (uniqueInitIds.length > 0) {
       supabase.from("initiative_requests").select("id, confirmed_partners").in("id", uniqueInitIds)
-        .then(({ data: confirmedData }) => {
-          const confirmedMap = new Map((confirmedData ?? []).map((i: any) => [i.id, i.confirmed_partners ?? []]));
-          setConversations(prev => prev.map(c => {
-            const partners = confirmedMap.get(c.initiative_id) ?? [];
-            const isConfirmed = partners.some((p: any) => p.user_id === c.other_user_id || p.user_id === user!.id);
-            return isConfirmed ? { ...c, partnerStatus: "confirmed" } : c;
-          }));
-        });
+          .then(({ data: confirmedData }) => {
+            const confirmedMap = new Map((confirmedData ?? []).map((i: any) => [i.id, i.confirmed_partners ?? []]));
+            setConversations(prev => prev.map(c => {
+              const partners = confirmedMap.get(c.initiative_id) ?? [];
+              // A row existing in confirmed_partners is no longer enough --
+              // since the propose/confirm/decline flow, an entry is written
+              // the moment a proposal is sent, with status "pending". Only
+              // a real "confirmed" status means an actual confirmed partner.
+              const isConfirmed = partners.some((p: any) =>
+                (p.user_id === c.other_user_id || p.user_id === user!.id) && (p.status ?? "confirmed") === "confirmed"
+              );
+              return isConfirmed ? { ...c, partnerStatus: "confirmed" } : c;
+            }));
+          });
     }
     return baseConvos;
   }
