@@ -32,6 +32,7 @@ interface OutboundEOI {
   created_at: string;
   conversation_status: string | null;
   initiative_owner_id: string | null;
+  initiative_owner_name: string;
 }
 
 interface Conversation {
@@ -116,7 +117,10 @@ export default function DashboardMessages() {
     const convId = params.get("conversation");
     if (convId) {
       const match = conversations.find(c => c.id === convId);
-      if (match) setActiveConvo(match);
+      if (match) {
+        setActiveConvo(match);
+        setActiveTab(match.conversation_type === "partnership" ? "partnership" : "initiative");
+      }
     }
   }, [conversations.length]);
 
@@ -183,29 +187,31 @@ export default function DashboardMessages() {
       .select("id, initiative_id, partnership_type, message, created_at, conversation_id")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
-
     if (sentEois && sentEois.length > 0) {
       const sentConvoIds = sentEois.map((e: any) => e.conversation_id).filter(Boolean);
       const { data: sentConvoData } = await supabase
         .from("conversations").select("id, status").in("id", sentConvoIds);
       const sentConvoStatusMap = new Map((sentConvoData ?? []).map((c: any) => [c.id, c.status]));
-
       const initIds = [...new Set(sentEois.map((e: any) => e.initiative_id))];
       const { data: initData } = await supabase
         .from("initiative_requests").select("id, title, user_id").in("id", initIds);
       const initTitleMap = new Map((initData ?? []).map((i: any) => [i.id, i.title]));
       const initOwnerMap = new Map((initData ?? []).map((i: any) => [i.id, i.user_id]));
-
+      const ownerIds = [...new Set((initData ?? []).map((i: any) => i.user_id).filter(Boolean))];
+      const { data: ownerOrgs } = ownerIds.length > 0 ? await supabase
+        .from("organizations").select("user_id, organisation_name").in("user_id", ownerIds) : { data: [] };
+      const ownerNameMap = new Map((ownerOrgs ?? []).map((o: any) => [o.user_id, o.organisation_name]));
       setOutboundEOIs(sentEois.map((e: any) => ({
-        eoi_id:              e.id,
-        conversation_id:     e.conversation_id,
-        initiative_id:       e.initiative_id,
-        initiative_title:    initTitleMap.get(e.initiative_id) ?? "Initiative",
-        partnership_type:    e.partnership_type,
-        message:             e.message,
-        created_at:          e.created_at,
-        conversation_status: e.conversation_id ? (sentConvoStatusMap.get(e.conversation_id) ?? null) : null,
-        initiative_owner_id: initOwnerMap.get(e.initiative_id) ?? null,
+        eoi_id:                e.id,
+        conversation_id:       e.conversation_id,
+        initiative_id:         e.initiative_id,
+        initiative_title:      initTitleMap.get(e.initiative_id) ?? "Initiative",
+        partnership_type:      e.partnership_type,
+        message:               e.message,
+        created_at:            e.created_at,
+        conversation_status:   e.conversation_id ? (sentConvoStatusMap.get(e.conversation_id) ?? null) : null,
+        initiative_owner_id:   initOwnerMap.get(e.initiative_id) ?? null,
+        initiative_owner_name: ownerNameMap.get(initOwnerMap.get(e.initiative_id)) ?? "Recipient",
       })));
     } else {
       setOutboundEOIs([]);
@@ -331,22 +337,30 @@ export default function DashboardMessages() {
     }
   }
 
+  // Opens the conversation. This is not a partnership decision, just
+  // moving from "someone wants to talk" to "we're talking" -- no
+  // notification fires here. The real, meaningful notifications happen
+  // later, at Propose Partner and at Confirm/Decline.
   async function acceptEOI(eoi: PendingEOI) {
     await supabase.from("conversations").update({ status: "open" }).eq("id", eoi.conversation_id);
-    await supabase.rpc("send_conversation_notification", {
-      p_conversation_id: eoi.conversation_id,
-      p_target_user_id: eoi.expresser_id,
-      p_type: "eoi_accepted",
-      p_title: "Expression of interest accepted",
-      p_body: `Your ${partnershipLabel(eoi.partnership_type)} interest in "${eoi.initiative_title}" was accepted.`,
-      p_link: "/dashboard/messages",
-    });
     setPendingEOIs(prev => prev.filter(e => e.eoi_id !== eoi.eoi_id));
-    const updatedConvos = await loadAll(false);
-    console.log("updatedConvos:", updatedConvos.length, "looking for:", eoi.conversation_id);
-    const match = updatedConvos.find(c => c.id === eoi.conversation_id);
-    console.log("match found:", match);
-    if (match) setActiveConvo(match);
+    setActiveTab("initiative");
+    setActiveConvo({
+      id:                  eoi.conversation_id,
+      initiative_id:       eoi.initiative_id,
+      initiative_title:    eoi.initiative_title,
+      initiative_owner_id: user!.id,
+      other_user_id:       eoi.expresser_id,
+      other_user_name:     eoi.expresser_name,
+      last_message:        eoi.message ?? "",
+      last_message_at:     eoi.created_at,
+      unread:              false,
+      status:              "open",
+      partnerStatus:       "active",
+      conversation_type:   "eoi",
+      funder_closed_at:    null,
+    });
+    loadAll(false);
   }
 
   async function declineEOI(eoi: PendingEOI) {
@@ -421,7 +435,7 @@ export default function DashboardMessages() {
   // was a real feature, not incidental. No timestamp — status only.
   function Row({ onClick, avatarLabel, avatarColor, title, subtitle, preview, statusKey, last }: {
     onClick?: () => void; avatarLabel: string; avatarColor: string; title: string;
-    subtitle?: string; preview?: string; statusKey?: string; last?: boolean;
+    subtitle?: React.ReactNode; preview?: string; statusKey?: string; last?: boolean;
   }) {
     const Tag = onClick ? "button" : "div";
     const status = statusKey ? STATUS_STYLES[statusKey] : null;
@@ -571,7 +585,7 @@ export default function DashboardMessages() {
                           <div className="flex items-center justify-between gap-2 mb-0.5 flex-wrap">
                             <div className="flex items-center gap-2 min-w-0 flex-wrap">
                               <p className="text-sm font-medium text-foreground">
-                                {eoi.expresser_name} expressed interest
+                                {eoi.expresser_name} expressed {eoi.partnership_type ? rolePartnerPhrase(eoi.partnership_type) : ""} interest
                               </p>
                               {eoi.expresser_verified && (
                                 <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium text-black">
@@ -591,20 +605,21 @@ export default function DashboardMessages() {
                           <p className="text-xs text-black mb-1">
                             <span className="text-foreground/70">{eoi.initiative_title}</span>
                           </p>
-                          <div className="flex items-center gap-1.5 flex-wrap mt-1 text-xs text-black">
-                            {eoi.partnership_type && <span>{eoi.partnership_type}</span>}
-                            {eoi.esg_adoption && <span>· ESG/CSR adoption</span>}
-                          </div>
+                          {eoi.esg_adoption && (
+                            <div className="flex items-center gap-1.5 flex-wrap mt-1 text-xs text-black">
+                              <span>ESG/CSR adoption</span>
+                            </div>
+                          )}
                           {eoi.message && (
                             <p className="text-xs text-black mt-2 leading-relaxed break-words">
-                              "{eoi.message}"
+                              {eoi.message}
                             </p>
                           )}
                         </div>
                         <div className="flex flex-col gap-2 shrink-0">
                           <button type="button" onClick={() => acceptEOI(eoi)}
                             className="px-3 py-1.5 rounded-full text-xs bg-[#2D6A4F] hover:bg-[#245c43] text-white transition-colors font-medium">
-                            Accept
+                            Open conversation
                           </button>
                           <button type="button" onClick={() => declineEOI(eoi)}
                             className="px-3 py-1.5 rounded-full text-xs border border-red-400/40 text-red-500 hover:bg-red-50 transition-colors">
@@ -654,15 +669,20 @@ export default function DashboardMessages() {
 
               {pendingOutbound.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-2">Sent — {pendingOutbound.length}</h3>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-2">Sent ({pendingOutbound.length})</h3>
                   <div className="rounded-2xl border border-border bg-white overflow-hidden">
                     {pendingOutbound.map((eoi, i) => (
                       <Row key={eoi.eoi_id} last={i === pendingOutbound.length - 1}
                         avatarColor={INITIATIVE_COLOR}
-                        avatarLabel="•"
+                        avatarLabel={((eoi.initiative_owner_name ?? "?")[0]).toUpperCase()}
                         title={eoi.initiative_title}
-                        subtitle={eoi.partnership_type}
-                        preview={eoi.message ? `"${eoi.message}"` : undefined}
+                        subtitle={eoi.partnership_type ? (
+                          <span className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                            style={{ background: "#f5ede8", color: "#C45C26" }}>
+                            {rolePartnerPhrase(eoi.partnership_type)}
+                          </span>
+                        ) : undefined}
+                        preview={eoi.message ?? undefined}
                         statusKey={eoi.conversation_status === "open" ? "accepted" : eoi.conversation_status === "declined" ? "declined" : "pending"} />
                     ))}
                   </div>

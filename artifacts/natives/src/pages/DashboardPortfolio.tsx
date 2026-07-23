@@ -104,6 +104,12 @@ const PARTNERSHIP_OPTIONS = [
 function partnershipLabel(value: string) {
   return PARTNERSHIP_OPTIONS.find(o => o.value === value)?.label ?? value;
 }
+function rolePartnerPhrase(value: string): string {
+  const label = partnershipLabel(value);
+  if (/partner$/i.test(label)) return label;
+  if (label === "Project Lead") return label;
+  return `${label} partner`;
+}
 
 function timeAgo(dateStr: string): string {
   const diff  = Date.now() - new Date(dateStr).getTime();
@@ -481,11 +487,10 @@ function InterestsExpressedTab({ userId }: { userId: string }) {
       {eois.map(eoi => {
         const status = eoi.conversation_status;
         const statusConfig = status === "open"
-          ? { label: "Accepted", bg: "#eaf5ee", color: "#2D6A4F" }
+          ? { label: "In conversation", bg: "#eaf5ee", color: "#2D6A4F" }
           : status === "declined"
           ? { label: "Declined", bg: "#fef2f2", color: "#ef4444" }
           : { label: "Pending",  bg: "#fffbeb", color: "#f59e0b" };
-
         return (
           <div key={eoi.eoi_id} className="rounded-xl border border-border bg-white px-5 py-4 space-y-2">
             <div className="flex items-start justify-between gap-3">
@@ -500,16 +505,13 @@ function InterestsExpressedTab({ userId }: { userId: string }) {
             <div className="flex flex-wrap gap-1.5">
               <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
                 style={{ background: "#f5ede8", color: "#C45C26" }}>
-                {partnershipLabel(eoi.partnership_type)}
+                {rolePartnerPhrase(eoi.partnership_type)}
               </span>
               <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
                 style={{ background: statusConfig.bg, color: statusConfig.color }}>
                 {statusConfig.label}
               </span>
             </div>
-            {eoi.message && (
-              <p className="text-[13px] text-black leading-relaxed line-clamp-2">"{eoi.message}"</p>
-            )}
           </div>
         );
       })}

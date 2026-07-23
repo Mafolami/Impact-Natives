@@ -102,6 +102,26 @@ const EOI_PARTNERSHIP_TYPES = [
   { value: "strategic",   label: "Strategic"     },
   { value: "lead",        label: "Project Lead"  },
 ];
+function eoiTypeLabel(value: string): string {
+  return EOI_PARTNERSHIP_TYPES.find(o => o.value === value)?.label ?? value;
+}
+function rolePartnerPhrase(value: string): string {
+  const label = eoiTypeLabel(value);
+  if (/partner$/i.test(label)) return label;
+  if (label === "Project Lead") return label;
+  return `${label} partner`;
+}
+// Joins multiple selected types into a natural phrase: "Technical partner",
+// "Technical partner and Funding partner", or with ESG/CSR folded in too.
+function combinedPartnerPhrase(types: string[], esgAdoption: boolean): string {
+  const phrases = types.map(rolePartnerPhrase);
+  let joined = phrases.length === 0 ? ""
+    : phrases.length === 1 ? phrases[0]
+    : phrases.length === 2 ? `${phrases[0]} and ${phrases[1]}`
+    : `${phrases.slice(0, -1).join(", ")}, and ${phrases[phrases.length - 1]}`;
+  if (esgAdoption) joined = joined ? `${joined} and ESG/CSR adoption` : "ESG/CSR adoption";
+  return joined;
+}
 
 function budgetMatches(budget: string | null | undefined, filter: string): boolean {
   if (!budget) return false;
@@ -997,17 +1017,23 @@ function MarketplaceDetail({
     try {
       const { data: ep } = await supabase.from("profiles").select("full_name,org_name,user_type,sectors").eq("id", user!.id).single();
       const { data: orgRow } = await supabase.from("organizations").select("description,offers").eq("user_id", user!.id).maybeSingle();
-      const expresserName = ep?.user_type === "organisation" && ep?.org_name ? ep.org_name : ep?.full_name ?? "Us";
+      // The contact person's own name and the org's name are two different
+      // things. Collapsing them into one value (org accounts previously
+      // passed the org name as BOTH expresser_name and expresser_org) is
+      // what produced "I am Splux, working with Splux". Pass the real
+      // person's name only if one is actually on file; leave it null
+      // otherwise rather than substituting the org name for it.
+      const expresserPersonName = ep?.full_name ?? null;
+      const expresserOrgName = ep?.org_name ?? null;
       const { data: ownerProfile } = await supabase
         .from("profiles").select("full_name,org_name,user_type")
         .eq("id", initiative.user_id).maybeSingle();
       const ownerName = ownerProfile?.user_type === "organisation"
         ? (ownerProfile?.org_name ?? ownerProfile?.full_name)
         : ownerProfile?.full_name;
-
       const { data, error } = await supabase.functions.invoke("generate-funder-intro", {
         body: {
-          expresser_name: expresserName, expresser_org: ep?.org_name ?? null,
+          expresser_name: expresserPersonName, expresser_org: expresserOrgName,
           expresser_description: orgRow?.description ?? null,
           expresser_sectors: ep?.sectors ?? [], expresser_offers: orgRow?.offers ?? [],
           initiative_title: initiative.title, initiative_problem: initiative.problem ?? null,
@@ -1129,16 +1155,17 @@ function MarketplaceDetail({
       const convoId = convoResult as string;
       const { data: ep } = await supabase.from("profiles").select("full_name,org_name,user_type").eq("id", user.id).single();
       const name = ep?.user_type === "organisation" && ep?.org_name ? ep.org_name : ep?.full_name ?? "Someone";
+      const phrasedType = combinedPartnerPhrase(partnershipTypes, esgAdoption);
       await supabase.rpc("join_conversation_and_notify", {
         p_conversation_id: convoId,
         p_notification_type: "eoi_received",
         p_notification_title: "New expression of interest",
-        p_notification_body: `${name} expressed ${combined} interest in "${initiative.title}"`,
+        p_notification_body: `${name} expressed ${phrasedType} interest in "${initiative.title}"`,
         p_notification_link: "/dashboard/messages",
       });
       await Promise.all([
         supabase.from("expressions_of_interest").update({ conversation_id: convoId }).eq("id", eoiData.id),
-        supabase.from("messages").insert({ conversation_id: convoId, sender_id: user.id, body: `${combined} interest expressed${message ? `: "${message}"` : "."}` }),
+        supabase.from("messages").insert({ conversation_id: convoId, sender_id: user.id, body: `${phrasedType} interest expressed${message ? `: ${message}` : "."}` }),
       ]);
       setSubmitted(true); setAlreadyExpressed(true); onExpressed(initiative.id);
     } finally { setSubmitting(false); }
