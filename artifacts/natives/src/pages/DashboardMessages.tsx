@@ -387,6 +387,7 @@ export default function DashboardMessages() {
             if (changes.status) {
               updated.partnerStatus = (updated.status === "rejected" || updated.status === "closed") ? "closed"
                 : updated.status === "pending_acceptance" ? "pending"
+                : updated.status === "confirmed" ? "confirmed"
                 : "active";
             }
             return updated;
@@ -937,7 +938,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
 
   // Listen for funder_closed_at changes in real-time
   useEffect(() => {
-    const channel = supabase
+    let channel = supabase
       .channel(`convo-status-${conversation.id}`)
       .on("postgres_changes", {
         event: "UPDATE",
@@ -948,6 +949,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
         const updated = payload.new as any;
         setFunderClosed(!!updated.funder_closed_at);
         if (updated.status === "rejected") setIsRejected(true);
+        if (updated.status === "confirmed") setConvStatus("confirmed");
         if (updated.status === "open") {
           setConvStatus("open");
           onUpdate?.(conversation.id, { status: "open" });
@@ -967,8 +969,27 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
           setPendingConfirmation(null);
           setPartnershipResolved(updated.status === "formed" ? "confirmed" : "declined");
         }
-      })
-      .subscribe();
+      });
+    // Only meaningful for initiative-based conversations. A null
+    // initiative_id would build an invalid filter string, so this is
+    // skipped for org-to-org partnership conversations.
+    if (conversation.initiative_id) {
+      channel = channel.on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "initiative_requests",
+        filter: `id=eq.${conversation.initiative_id}`,
+      }, payload => {
+        const updated = payload.new as any;
+        const partners = (updated.confirmed_partners as any[]) ?? [];
+        const match = partners.find(p => p.user_id === conversation.other_user_id || p.user_id === currentUserId);
+        const status = match?.status ?? (match ? "confirmed" : null);
+        if (status === "confirmed") { setConfirmedRole(match.role); setProposedRole(null); setDeclinedRole(null); }
+        if (status === "declined")  { setDeclinedRole(match.role); setProposedRole(null); }
+        if (status === "pending")   { setProposedRole(match.role); }
+      });
+    }
+    channel.subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [conversation.id]);
 
@@ -1159,16 +1180,22 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
   async function confirmProposedPartner() {
     if (!conversation.initiative_id || respondingToProposal) return;
     setRespondingToProposal(true);
+    // Direct table update won't work: update_initiatives RLS only allows
+    // the initiative owner to write this row, and the confirming party is
+    // the proposed partner, not the owner. This RPC runs as SECURITY
+    // DEFINER and only ever touches the caller's own entry.
+    const { data: updatedPartners, error } = await supabase.rpc("respond_to_partner_proposal", {
+      p_initiative_id: conversation.initiative_id,
+      p_status: "confirmed",
+    });
+    if (error) {
+      console.error("Confirm partner proposal failed:", error.message);
+      setRespondingToProposal(false);
+      return;
+    }
+    const myEntry = (updatedPartners as any[] ?? []).find(p => p.user_id === currentUserId);
     const { data: iniData } = await supabase
-      .from("initiative_requests").select("confirmed_partners, title").eq("id", conversation.initiative_id).single();
-    const existing = (iniData?.confirmed_partners as any[]) ?? [];
-    const now = new Date().toISOString();
-    const updated = existing.map(p =>
-      p.user_id === currentUserId ? { ...p, status: "confirmed", confirmed_at: now } : p
-    );
-    const myEntry = updated.find(p => p.user_id === currentUserId);
-    await supabase.from("initiative_requests")
-      .update({ confirmed_partners: updated }).eq("id", conversation.initiative_id);
+      .from("initiative_requests").select("title").eq("id", conversation.initiative_id).single();
     await supabase.from("conversations").update({ status: "confirmed" }).eq("id", conversation.id);
     const initiativeTitle = iniData?.title ?? "your initiative";
     await supabase.rpc("send_conversation_notification", {
@@ -1176,24 +1203,29 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
       p_target_user_id: conversation.other_user_id,
       p_type: "partner_confirmed",
       p_title: "Partnership confirmed",
-      p_body: `${conversation.other_user_name} confirmed the partnership as ${rolePartnerPhrase(myEntry?.role ?? "")} on "${initiativeTitle}".`,
+      p_body: `${conversation.other_user_name} confirmed the partnership as ${rolePartnerPhrase(myEntry?.role ?? confirmRole)} on "${initiativeTitle}".`,
       p_link: "/dashboard/portfolio?tab=partners",
     });
     setConfirmedRole(myEntry?.role ?? confirmRole);
     setProposedRole(null);
+    setConvStatus("confirmed");
+    onUpdate?.(conversation.id, { status: "confirmed" });
     setRespondingToProposal(false);
   }
   async function declineProposedPartner() {
     if (!conversation.initiative_id || respondingToProposal) return;
     setRespondingToProposal(true);
+    const { error } = await supabase.rpc("respond_to_partner_proposal", {
+      p_initiative_id: conversation.initiative_id,
+      p_status: "declined",
+    });
+    if (error) {
+      console.error("Decline partner proposal failed:", error.message);
+      setRespondingToProposal(false);
+      return;
+    }
     const { data: iniData } = await supabase
-      .from("initiative_requests").select("confirmed_partners, title").eq("id", conversation.initiative_id).single();
-    const existing = (iniData?.confirmed_partners as any[]) ?? [];
-    const updated = existing.map(p =>
-      p.user_id === currentUserId ? { ...p, status: "declined" } : p
-    );
-    await supabase.from("initiative_requests")
-      .update({ confirmed_partners: updated }).eq("id", conversation.initiative_id);
+      .from("initiative_requests").select("title").eq("id", conversation.initiative_id).single();
     await supabase.from("conversations").update({ status: "rejected" }).eq("id", conversation.id);
     setIsRejected(true);
     const initiativeTitle = iniData?.title ?? "your initiative";
@@ -1207,6 +1239,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
     });
     setDeclinedRole("declined");
     setProposedRole(null);
+    onUpdate?.(conversation.id, { status: "rejected" });
     setRespondingToProposal(false);
   }
 
@@ -1303,15 +1336,15 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
   async function confirmPartnershipFromOtherSide() {
     if (!pendingConfirmation || confirmingPartnership) return;
     setConfirmingPartnership(true);
-
     await supabase.from("partnership_connections")
       .update({ status: "formed", updated_at: new Date().toISOString() })
       .eq("id", pendingConfirmation.id);
-
+    // Distinct status from "rejected": a successful confirm and an
+    // outright decline are different outcomes and must not share one
+    // status value, or the Messages list can't tell them apart either.
     await supabase.from("conversations")
-      .update({ status: "rejected" })
+      .update({ status: "confirmed" })
       .eq("id", conversation.id);
-
     await supabase.rpc("send_conversation_notification", {
       p_conversation_id: conversation.id,
       p_target_user_id: conversation.other_user_id,
@@ -1320,8 +1353,8 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
       p_body: `${conversation.other_user_name} confirmed the partnership intent as ${pendingConfirmation.partnership_type}.`,
       p_link: "/dashboard/portfolio?tab=partnerships&view=confirmed",
     });
-
     setPartnershipResolved("confirmed");
+    onUpdate?.(conversation.id, { status: "confirmed" });
     setConfirmingPartnership(false);
   }
 
@@ -1347,6 +1380,8 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
     });
 
     setPartnershipResolved("declined");
+    setIsRejected(true);
+    onUpdate?.(conversation.id, { status: "rejected" });
     setConfirmingPartnership(false);
   }
 
@@ -1356,12 +1391,12 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
       <div className="flex items-center justify-between pb-4 border-b border-border mb-4 gap-3 flex-wrap">
         <div className="flex items-center gap-3 min-w-0">
           <button type="button" onClick={onBack}
-            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0">
+            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-black hover:text-foreground shrink-0">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-foreground truncate">{conversation.other_user_name}</p>
-            <p className="text-xs text-muted-foreground truncate">Re: {conversation.initiative_title}</p>
+            <p className="text-xs text-black truncate">Re: {conversation.initiative_title}</p>
           </div>
         </div>
 
@@ -1440,7 +1475,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
             </button>
           ) : (
             <button type="button" onClick={closeConversation}
-              className="text-xs px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:border-red-300 hover:text-red-500 transition-colors shrink-0">
+              className="text-xs px-3 py-1.5 rounded-full border border-border text-black hover:border-red-300 hover:text-red-500 transition-colors shrink-0">
               Close
             </button>
           )
@@ -1454,7 +1489,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
             <h3 className="text-base font-semibold text-foreground">
               Propose {conversation.other_user_name} as partner
             </h3>
-            <p className="text-sm text-muted-foreground">Select the role they'll play in this initiative. They'll be asked to confirm before it counts as a partnership.</p>
+            <p className="text-sm text-black">Select the role they'll play in this initiative. They'll be asked to confirm before it counts as a partnership.</p>
             <div className="flex flex-wrap gap-2">
               {initiativePartnerships.map(p => (
                 <button key={p} type="button" onClick={() => setConfirmRole(p)}
@@ -1470,13 +1505,13 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
             <label className="flex items-start gap-2.5 cursor-pointer">
               <input type="checkbox" checked={publicOnFeed} onChange={e => setPublicOnFeed(e.target.checked)}
                 className="mt-0.5 accent-[#2D6A4F]" />
-              <span className="text-xs text-muted-foreground leading-relaxed">
+              <span className="text-xs text-black leading-relaxed">
                 Show this partnership on the activity feed
               </span>
             </label>
             <div className="flex gap-2 pt-2">
               <button type="button" onClick={() => { setConfirmOpen(false); setConfirmRole(""); setPublicOnFeed(false); }}
-                className="flex-1 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
+                className="flex-1 h-9 rounded-full border border-border text-sm text-black hover:text-foreground transition-colors">
                 Cancel
               </button>
               <button type="button" onClick={proposePartner} disabled={!confirmRole || confirming}
@@ -1495,7 +1530,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
             <Loader2 className="w-4 h-4 text-[#2D6A4F] animate-spin" />
           </div>
         ) : messages.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-10">No messages yet. Say hello.</p>
+          <p className="text-sm text-black text-center py-10">No messages yet. Say hello.</p>
         ) : (
           messages.map(msg => {
             const isMe = msg.sender_id === currentUserId;
@@ -1508,7 +1543,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
                   }`}
                     style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
                   <p className="leading-relaxed whitespace-pre-wrap">{msg.body}</p>
-                  <p className={`text-[10px] mt-1 ${isMe ? "text-white/60" : "text-muted-foreground"}`}>
+                  <p className={`text-[10px] mt-1 ${isMe ? "text-white/60" : "text-black"}`}>
                     {timeAgo(msg.created_at)}
                   </p>
                 </div>
@@ -1525,7 +1560,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
           <p className="text-sm font-medium text-foreground">
             Partner proposal: <span className="text-[#2D6A4F]">{rolePartnerPhrase(proposedRole)}</span> on "{conversation.initiative_title}"
           </p>
-          <p className="text-xs text-muted-foreground">Do you confirm this partnership?</p>
+          <p className="text-xs text-black">Do you confirm this partnership?</p>
           <div className="flex gap-2">
             <button type="button" onClick={confirmProposedPartner} disabled={respondingToProposal}
               className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-xs font-medium disabled:opacity-40 transition-colors">
@@ -1544,7 +1579,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
           <p className="text-sm font-medium text-foreground">
             Partnership proposed: <span className="text-[#2D6A4F]">{pendingConfirmation.partnership_type}</span>
           </p>
-          <p className="text-xs text-muted-foreground">Do you confirm this partnership?</p>
+          <p className="text-xs text-black">Do you confirm this partnership?</p>
           <div className="flex gap-2">
             <button type="button" onClick={confirmPartnershipFromOtherSide} disabled={confirmingPartnership}
               className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-xs font-medium disabled:opacity-40 transition-colors">
@@ -1558,16 +1593,26 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
         </div>
       )}
 
-      {partnershipResolved && (
-        <div className="mb-3 text-center text-xs text-muted-foreground">
-          {partnershipResolved === "confirmed" ? "Partnership intent confirmed by both sides. This is a first step, not a finished deal. Conversation closed." : "Partnership declined."}
-        </div>
-      )}
-
       {/* Input */}
-      {convStatus === "pending_acceptance" && isOwner ? (
+      {conversation.conversation_type !== "partnership" && (confirmedRole || declinedRole) ? (
+        <div className="pt-4 border-t border-border">
+          <p className="text-xs text-black text-center py-2">
+            {confirmedRole
+              ? "Partnership confirmed. This is a first step, not a finished deal. Conversation closed."
+              : "Partnership proposal declined. Conversation closed."}
+          </p>
+        </div>
+      ) : conversation.conversation_type === "partnership" && partnershipResolved ? (
+        <div className="pt-4 border-t border-border">
+          <p className="text-xs text-black text-center py-2">
+            {partnershipResolved === "confirmed"
+              ? "Partnership intent confirmed by both sides. This is a first step, not a finished deal. Conversation closed."
+              : "Partnership declined. Conversation closed."}
+          </p>
+        </div>
+      ) : convStatus === "pending_acceptance" && isOwner ? (
         <div className="pt-4 border-t border-border space-y-2">
-          <p className="text-xs text-muted-foreground text-center">
+          <p className="text-xs text-black text-center">
             {conversation.other_user_name} wants to connect. Open the conversation to start chatting, or decline.
           </p>
           <div className="flex gap-2">
@@ -1581,7 +1626,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
                   p_target_user_id: conversation.other_user_id,
                   p_type: "partnership_accepted",
                   p_title: "Conversation opened",
-                  p_body: `${conversation.initiative_title} — your message was accepted. You can now chat.`,
+                  p_body: `${conversation.initiative_title}: your message was accepted. You can now chat.`,
                   p_link: `/dashboard/messages?conversation=${conversation.id}`,
                 });
                 setConvStatus("open");
@@ -1606,13 +1651,13 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
 
       ) : convStatus === "pending_acceptance" && !isOwner ? (
         <div className="pt-4 border-t border-border">
-          <p className="text-xs text-muted-foreground text-center py-2">
+          <p className="text-xs text-black text-center py-2">
             Waiting for {conversation.other_user_name} to open this conversation.
           </p>
         </div>
       ) : isRejected ? (
         <div className="pt-4 border-t border-border space-y-2">
-          <p className="text-xs text-muted-foreground text-center py-2">This conversation has been closed.</p>
+          <p className="text-xs text-black text-center py-2">This conversation has been closed.</p>
           {isOwner && conversation.conversation_type === "partnership" && (
             <button type="button" onClick={reopenConversation}
               className="w-full h-9 rounded-full border border-[#2D6A4F]/30 text-[#2D6A4F] text-xs font-semibold hover:bg-[#2D6A4F]/5 transition-colors">
@@ -1622,7 +1667,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
         </div>
       ) : funderClosed ? (
         <div className="pt-4 border-t border-border flex items-center justify-between gap-3">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-black">
             {isFunder ? "This conversation is archived. Reopen to send messages." : "The funder has paused this conversation."}
           </p>
           {isFunder && (

@@ -146,7 +146,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
           <button
             type="button"
             onClick={() => setPanelOpen((v) => !v)}
-            className="relative p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+            className="relative p-2 rounded-lg hover:bg-muted transition-colors text-black hover:text-foreground"
           >
             <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
@@ -169,7 +169,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
                     <button
                       type="button"
                       onClick={markAllRead}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                      className="text-xs text-black hover:text-foreground transition-colors flex items-center gap-1"
                     >
                       <Check className="w-3 h-3" />
                       Mark all read
@@ -178,7 +178,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
                   <button
                     type="button"
                     onClick={() => setPanelOpen(false)}
-                    className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground"
+                    className="p-1 rounded hover:bg-muted transition-colors text-black"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -189,7 +189,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
               <div className="overflow-y-auto flex-1">
                 {notifications.length === 0 ? (
                   <div className="px-4 py-8 text-center">
-                    <p className="text-sm text-muted-foreground">No notifications yet.</p>
+                    <p className="text-sm text-black">No notifications yet.</p>
                   </div>
                 ) : (
                   notifications.map((n) => (
@@ -205,7 +205,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
                       <div className="flex items-start justify-between gap-2">
                         <p className={cn(
                           "text-xs leading-relaxed",
-                          n.read ? "text-muted-foreground" : "text-foreground font-medium"
+                          n.read ? "text-black" : "text-foreground font-medium"
                         )}>
                           {n.title}
                         </p>
@@ -214,7 +214,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
                         )}
                       </div>
                       {n.body && (
-                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">
+                        <p className="text-[11px] text-black mt-0.5 leading-relaxed">
                           {n.body}
                         </p>
                       )}
