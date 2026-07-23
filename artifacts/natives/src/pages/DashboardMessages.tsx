@@ -276,11 +276,11 @@ export default function DashboardMessages() {
       return [];
     }
     const { data: convoData } = await supabase
-      .from("conversations")
-      .select("id, initiative_id, status, initiative_owner_id, conversation_type, funder_closed_at")
-      .in("id", myConvoIds)
-      .in("status", ["open", "rejected", "pending_acceptance"])
-      .or("initiative_id.not.is.null,conversation_type.eq.partnership");
+    .from("conversations")
+    .select("id, initiative_id, status, initiative_owner_id, conversation_type, funder_closed_at")
+    .in("id", myConvoIds)
+    .in("status", ["open", "rejected", "pending_acceptance", "confirmed"])
+    .or("initiative_id.not.is.null,conversation_type.eq.partnership");
     if (!convoData || convoData.length === 0) {
       setConversations([]);
       return [];
@@ -730,7 +730,12 @@ export default function DashboardMessages() {
                           </span>
                         ) : undefined}
                         preview={eoi.message ?? undefined}
-                        statusKey={eoi.conversation_status === "open" ? "accepted" : eoi.conversation_status === "declined" ? "declined" : "pending"} />
+                        statusKey={
+                          eoi.conversation_status === "confirmed" ? "confirmed"
+                          : eoi.conversation_status === "open" ? "accepted"
+                          : (eoi.conversation_status === "declined" || eoi.conversation_status === "rejected") ? "declined"
+                          : "pending"
+                        } />
                     ))}
                   </div>
                 </section>
