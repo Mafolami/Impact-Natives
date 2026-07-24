@@ -241,7 +241,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
 
       const { data: cachedMatches } = await supabase
         .from("initiative_match_cache")
-        .select("initiative_id, score, match_reason")
+        .select("initiative_id, score, match_reason, criteria")
         .eq("org_id", org?.id)
         .order("score", { ascending: false });
 

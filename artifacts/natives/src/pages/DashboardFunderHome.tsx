@@ -207,7 +207,7 @@ export default function FunderHome({ profile }: { profile: any }) {
 
       const { data: cachedMatches } = await supabase
         .from("initiative_match_cache")
-        .select("initiative_id, score, match_reason")
+        .select("initiative_id, score, match_reason, criteria")
         .eq("org_id", orgData?.id)
         .order("score", { ascending: false });
 
