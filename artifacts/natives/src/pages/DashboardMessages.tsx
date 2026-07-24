@@ -514,7 +514,7 @@ export default function DashboardMessages() {
   return (
     <div className="space-y-6 min-w-0 overflow-hidden">
       <div>
-        <p className="text-sm text-black mt-1">Expressions of interest and active conversations.</p>
+        <p className="text-sm text-muted-foreground mt-1">Expressions of interest and active conversations.</p>
       </div>
       {!hasAnything ? (
         <div className="rounded-2xl border border-border bg-white p-12 text-center">
@@ -536,26 +536,26 @@ export default function DashboardMessages() {
           <div className="flex gap-2">
             <button type="button" onClick={() => setActiveTab("partnership")}
               className={`flex-1 h-11 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors text-white ${
-                activeTab === "partnership" ? "" : "!bg-muted !text-black hover:!bg-muted/70"
+                activeTab === "partnership" ? "" : "!bg-muted !text-foreground hover:!bg-muted/70"
               }`}
               style={activeTab === "partnership" ? { background: PARTNERSHIP_COLOR } : undefined}>
               <Handshake className="w-4 h-4" />
               Partnership conversations
               {partnershipCount > 0 && (
-                <span className={`text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${activeTab === "partnership" ? "bg-white/25 text-white" : "bg-black/10 text-black"}`}>
+                <span className={`text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${activeTab === "partnership" ? "bg-white/25 text-white" : "bg-foreground/10 text-foreground"}`}>
                   {partnershipCount}
                 </span>
               )}
             </button>
             <button type="button" onClick={() => setActiveTab("initiative")}
               className={`flex-1 h-11 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors text-white ${
-                activeTab === "initiative" ? "" : "!bg-muted !text-black hover:!bg-muted/70"
+                activeTab === "initiative" ? "" : "!bg-muted !text-foreground hover:!bg-muted/70"
               }`}
               style={activeTab === "initiative" ? { background: INITIATIVE_COLOR } : undefined}>
               <Lightbulb className="w-4 h-4" />
               Initiative conversations
               {initiativeCount > 0 && (
-                <span className={`text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${activeTab === "initiative" ? "bg-white/25 text-white" : "bg-black/10 text-black"}`}>
+                <span className={`text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${activeTab === "initiative" ? "bg-white/25 text-white" : "bg-foreground/10 text-foreground"}`}>
                   {initiativeCount}
                 </span>
               )}
@@ -570,7 +570,7 @@ export default function DashboardMessages() {
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-xs font-semibold uppercase tracking-widest text-black">Conversations — {partnershipVisible.length}</h3>
                     <Link href="/dashboard/portfolio?tab=partners"
-                      className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-black hover:underline underline-offset-2">
+                      className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:underline underline-offset-2">
                       Confirmed partnerships
                       <ExternalLink className="w-2.5 h-2.5" />
                     </Link>
@@ -1463,12 +1463,12 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
       <div className="flex items-center justify-between pb-4 border-b border-border mb-4 gap-3 flex-wrap">
         <div className="flex items-center gap-3 min-w-0">
           <button type="button" onClick={onBack}
-            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-black hover:text-foreground shrink-0">
+            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-foreground truncate">{conversation.other_user_name}</p>
-            <p className="text-xs text-black truncate">Re: {conversation.initiative_title}</p>
+            <p className="text-xs text-muted-foreground truncate">Re: {conversation.initiative_title}</p>
           </div>
         </div>
 
@@ -1547,7 +1547,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
             </button>
           ) : (
             <button type="button" onClick={closeConversation}
-              className="text-xs px-3 py-1.5 rounded-full border border-border text-black hover:border-red-300 hover:text-red-500 transition-colors shrink-0">
+              className="text-xs px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:border-red-300 hover:text-red-500 transition-colors shrink-0">
               Close
             </button>
           )
@@ -1561,7 +1561,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
             <h3 className="text-base font-semibold text-foreground">
               Propose {conversation.other_user_name} as partner
             </h3>
-            <p className="text-sm text-black">Select the role they'll play in this initiative. They'll be asked to confirm before it counts as a partnership.</p>
+            <p className="text-sm text-muted-foreground">Select the role they'll play in this initiative. They'll be asked to confirm before it counts as a partnership.</p>
             <div className="flex flex-wrap gap-2">
               {initiativePartnerships.map(p => (
                 <button key={p} type="button" onClick={() => setConfirmRole(p)}
@@ -1577,13 +1577,13 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
             <label className="flex items-start gap-2.5 cursor-pointer">
               <input type="checkbox" checked={publicOnFeed} onChange={e => setPublicOnFeed(e.target.checked)}
                 className="mt-0.5 accent-[#2D6A4F]" />
-              <span className="text-xs text-black leading-relaxed">
+              <span className="text-xs text-muted-foreground leading-relaxed">
                 Show this partnership on the activity feed
               </span>
             </label>
             <div className="flex gap-2 pt-2">
               <button type="button" onClick={() => { setConfirmOpen(false); setConfirmRole(""); setPublicOnFeed(false); }}
-                className="flex-1 h-9 rounded-full border border-border text-sm text-black hover:text-foreground transition-colors">
+                className="flex-1 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Cancel
               </button>
               <button type="button" onClick={proposePartner} disabled={!confirmRole || confirming}
@@ -1602,7 +1602,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
             <Loader2 className="w-4 h-4 text-[#2D6A4F] animate-spin" />
           </div>
         ) : messages.length === 0 ? (
-          <p className="text-sm text-black text-center py-10">No messages yet. Say hello.</p>
+          <p className="text-sm text-muted-foreground text-center py-10">No messages yet. Say hello.</p>
         ) : (
           messages.map(msg => {
             const isMe = msg.sender_id === currentUserId;
@@ -1615,7 +1615,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
                   }`}
                     style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
                   <p className="leading-relaxed whitespace-pre-wrap">{msg.body}</p>
-                  <p className={`text-[10px] mt-1 ${isMe ? "text-white/60" : "text-black"}`}>
+                  <p className={`text-[10px] mt-1 ${isMe ? "text-white/60" : "text-muted-foreground"}`}>
                     {timeAgo(msg.created_at)}
                   </p>
                 </div>
@@ -1630,9 +1630,9 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
       {conversation.conversation_type !== "partnership" && !isOwner && proposedRole && (
         <div className="mx-0 mb-3 rounded-xl border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-4 py-3 space-y-2">
           <p className="text-sm font-medium text-foreground">
-            Partner proposal: <span className="text-[#2D6A4F]">{rolePartnerPhrase(proposedRole)}</span> on "{conversation.initiative_title}"
+          Partner proposal: <span className="text-[#2D6A4F]">{rolePartnerPhrase(proposedRole)}</span> on "{conversation.initiative_title}"
           </p>
-          <p className="text-xs text-black">Do you confirm this partnership?</p>
+          <p className="text-xs text-muted-foreground">Do you confirm this partnership?</p>
           <div className="flex gap-2">
             <button type="button" onClick={confirmProposedPartner} disabled={respondingToProposal}
               className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-xs font-medium disabled:opacity-40 transition-colors">
@@ -1651,7 +1651,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
           <p className="text-sm font-medium text-foreground">
             Partnership proposed: <span className="text-[#2D6A4F]">{pendingConfirmation.partnership_type}</span>
           </p>
-          <p className="text-xs text-black">Do you confirm this partnership?</p>
+          <p className="text-xs text-muted-foreground">Do you confirm this partnership?</p>
           <div className="flex gap-2">
             <button type="button" onClick={confirmPartnershipFromOtherSide} disabled={confirmingPartnership}
               className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-xs font-medium disabled:opacity-40 transition-colors">
@@ -1668,7 +1668,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
       {/* Input */}
       {conversation.conversation_type !== "partnership" && (confirmedRole || declinedRole) ? (
         <div className="pt-4 border-t border-border">
-          <p className="text-xs text-black text-center py-2">
+          <p className="text-xs text-muted-foreground text-center py-2">
             {confirmedRole
               ? "Partnership confirmed. This is a first step, not a finished deal. Conversation closed."
               : "Partnership proposal declined. Conversation closed."}
@@ -1676,7 +1676,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
         </div>
       ) : conversation.conversation_type === "partnership" && partnershipResolved ? (
         <div className="pt-4 border-t border-border">
-          <p className="text-xs text-black text-center py-2">
+          <p className="text-xs text-muted-foreground text-center py-2">
             {partnershipResolved === "confirmed"
               ? "Partnership intent confirmed by both sides. This is a first step, not a finished deal. Conversation closed."
               : "Partnership declined. Conversation closed."}
@@ -1684,9 +1684,9 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
         </div>
       ) : convStatus === "pending_acceptance" && isOwner ? (
         <div className="pt-4 border-t border-border space-y-2">
-          <p className="text-xs text-black text-center">
-            {conversation.other_user_name} wants to connect. Open the conversation to start chatting, or decline.
-          </p>
+          <p className="text-xs text-muted-foreground text-center">
+         {conversation.other_user_name} wants to connect. Open the conversation to start chatting, or decline.
+       </p>
           <div className="flex gap-2">
             <button type="button"
               onClick={async () => {
@@ -1723,13 +1723,13 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
 
       ) : convStatus === "pending_acceptance" && !isOwner ? (
         <div className="pt-4 border-t border-border">
-          <p className="text-xs text-black text-center py-2">
-            Waiting for {conversation.other_user_name} to open this conversation.
-          </p>
+          <p className="text-xs text-muted-foreground text-center py-2">
+         Waiting for {conversation.other_user_name} to open this conversation.
+       </p>
         </div>
       ) : isRejected ? (
         <div className="pt-4 border-t border-border space-y-2">
-          <p className="text-xs text-black text-center py-2">This conversation has been closed.</p>
+          <p className="text-xs text-muted-foreground text-center py-2">This conversation has been closed.</p>
           {isOwner && conversation.conversation_type === "partnership" && (
             <button type="button" onClick={reopenConversation}
               className="w-full h-9 rounded-full border border-[#2D6A4F]/30 text-[#2D6A4F] text-xs font-semibold hover:bg-[#2D6A4F]/5 transition-colors">
@@ -1739,9 +1739,9 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
         </div>
       ) : funderClosed ? (
         <div className="pt-4 border-t border-border flex items-center justify-between gap-3">
-          <p className="text-xs text-black">
-            {isFunder ? "This conversation is archived. Reopen to send messages." : "The funder has paused this conversation."}
-          </p>
+          <p className="text-xs text-muted-foreground">
+         {isFunder ? "This conversation is archived. Reopen to send messages." : "The funder has paused this conversation."}
+       </p>
           {isFunder && (
             <button type="button" onClick={reopenConversation}
               className="shrink-0 text-xs font-semibold text-[#2D6A4F] hover:underline underline-offset-2 whitespace-nowrap">
