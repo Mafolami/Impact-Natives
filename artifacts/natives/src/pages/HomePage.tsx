@@ -28,7 +28,7 @@ function useIsDark() {
 const FAQS = [
   {
     q: 'What is Natives?',
-    a: "Natives is a coordination platform for Africa's impact ecosystem. It connects verified organisations, funders, and implementers so they can find each other, work together, and move resources more effectively.",
+    a: "Natives is coordination infrastructure for Africa's impact ecosystem. It connects verified organisations, funders, and implementers so they can find each other, verify readiness, and move resources more effectively.",
   },
   {
     q: 'Who can join Natives?',
@@ -118,16 +118,16 @@ const ROLES = [
 ]
 
 const STATS = [
-  { value: '92%', label: 'Reputation drives partnerships', sub: 'Top reason corporates partner with NGOs', bridge: 'On Natives, your credibility is verified, visible, and travels with you.', src: 'Cause & Effect 2025', color: '#2db87a' },
-  { value: '88%', label: 'Funding is the top motivator', sub: 'Top motivator for nonprofits to partner', bridge: 'Post your initiative on the marketplace. The right people find you.', src: 'Cause & Effect 2025', color: '#2d7ad4' },
-  { value: '97%', label: 'Partnerships deepen understanding', sub: 'Partnerships improve societal issue knowledge', bridge: 'Every collaboration on Natives leaves a record the next team can build on.', src: 'Cause & Effect 2025', color: '#a84dd4' },
-  { value: '91%', label: 'Mission alignment is non-negotiable', sub: 'Top factor in partner selection', bridge: 'Know if a partner shares your mission before you send the first message.', src: 'For Momentum 2025', color: '#c45c26' },
+  { value: '92%', label: 'Reputation drives partnerships', sub: 'Top reason corporates partner with NGOs', bridge: 'On Natives, your credibility is verified, visible, and travels with you.', src: 'C&E Barometer 2025', color: '#2db87a' },
+  { value: '88%', label: 'Funding is the top motivator', sub: 'Top motivator for nonprofits to partner', bridge: 'Post your initiative on the marketplace. The right people find you.', src: 'C&E Barometer 2025', color: '#2d7ad4' },
+  { value: '30%', label: 'Failed ties trace to mismatched due diligence', sub: 'Share of partnerships that fail on weak vetting', bridge: 'Readiness scoring catches the mismatch before the money moves.', src: 'C&E Barometer 2025', color: '#a84dd4' },
+  { value: '50%', label: 'Corporates now use AI in partnerships', sub: 'Up from 11% the year before', bridge: 'Natives is built AI-native for exactly this shift.', src: 'C&E Barometer 2025', color: '#c45c26' },
 ]
 
 const FEATURES = [
   {
     num: '01', title: 'Find the right partners', sub: 'You know what you need. We help you find who.',
-    desc: 'Browse and filter verified organisations by sector, country, and focus area. Send an expression of interest directly. No cold outreach, no guessing, no multi-month email chains.',
+    desc: 'Every organisation is scored against your actual mandate, not just your sector. Geography, focus, stage, budget, and the kind of support on offer all factor into a criteria match, so your shortlist is ranked by real fit before you send a single message.',
     image: '/find-partners.webp',
     Illustration: IllustrationPartner,
     tint: 'rgba(45,184,122,0.05)', borderTint: 'rgba(45,184,122,0.12)',
@@ -136,28 +136,28 @@ const FEATURES = [
     flip: false,
   },
   {
-    num: '02', title: 'Post and discover initiatives', sub: 'Put your work in front of the right people.',
-    desc: 'Create an initiative on the marketplace and let funders, implementers, and partners find you. Or browse what others are building and express interest in seconds.',
-    image: '/create-initiative.webp',
-    Illustration: IllustrationMarketplace,
+    num: '02', title: "Know they're ready to deliver", sub: 'A strong programme with weak governance stalls after the money moves.',
+    desc: 'Every implementing organisation is assessed for due-diligence readiness alongside sector fit. Readiness is built into the match score and caps it when it falls short, so a high fit score never hides an organisation that is not actually ready to receive funding.',
+    image: '/build-trust.webp',
+    Illustration: IllustrationVerification,
     tint: 'rgba(45,122,212,0.05)', borderTint: 'rgba(45,122,212,0.12)',
     tintLight: 'rgba(45,122,212,0.07)', borderTintLight: 'rgba(45,122,212,0.25)',
     illustrationColor: '#2d7ad4',
     flip: true,
   },
   {
-    num: '03', title: 'Build verified trust', sub: "Know who you're working with before you commit.",
-    desc: 'Verified organisation badges are earned through document review. Every profile is structured so you can assess fit before the first conversation, removing ambiguity at the top of the funnel.',
-    image: '/build-trust.webp',
-    Illustration: IllustrationVerification,
+    num: '03', title: 'See the honest picture first', sub: 'Read the risks before the first conversation, not after.',
+    desc: 'Generate a deal memo or CSR brief on any match. It does not repeat the organisation\'s pitch back to you. It flags claims that are not supported and names the risk areas a manual review would take weeks to surface.',
+    image: '/create-initiative.webp',
+    Illustration: IllustrationMarketplace,
     tint: 'rgba(196,92,38,0.05)', borderTint: 'rgba(196,92,38,0.12)',
     tintLight: 'rgba(196,92,38,0.07)', borderTintLight: 'rgba(196,92,38,0.25)',
     illustrationColor: '#c45c26',
     flip: false,
   },
   {
-    num: '04', title: 'Commission an Innovation Lab', sub: "There's a challenge you want solved. We'll convene the room.",
-    desc: "Natives Labs bring together the right mix of organisations, expertise, and resources around a specific systemic challenge. You define the problem. We structure the process and manage delivery.",
+    num: '04', title: 'Build your strategy, then find delivery', sub: 'Turn an ESG or CSI commitment into a fundable plan.',
+    desc: 'Build your impact strategy from scratch or upload an existing one and convert it into structured pillars, then push your chosen initiatives to the marketplace where verified implementers can find them.',
     image: '/commission-lab.webp',
     Illustration: IllustrationLab,
     tint: 'rgba(168,77,212,0.05)', borderTint: 'rgba(168,77,212,0.12)',
@@ -713,7 +713,7 @@ export default function HomePage() {
             </span>
           </h1>
           <p style={{ fontSize: 'clamp(1rem, 2vw, 1.25rem)', lineHeight: 1.72, color: T.textDim, maxWidth: '600px', marginBottom: '2.5rem' }}>
-            Impact Natives is the platform where NGOs, funders, corporates, and ecosystem builders find each other, verify trust, and form partnerships that work, without the email chains and multi-month delays.
+            Impact Natives is the infrastructure where NGOs, funders, corporates, and ecosystem builders find each other, verify readiness, and form partnerships that work, without the email chains and multi-month delays.
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.875rem', justifyContent: 'center' }}>
           <a href={window.location.hostname === "impactnatives.com" ? "https://app.impactnatives.com/signup" : "/platform/partnership-os"}>
@@ -847,7 +847,7 @@ export default function HomePage() {
               {/* Years */}
               <div style={{ padding: '1.5rem 1.75rem', borderRadius: '0.875rem', background: T.surfaceMd, border: `1px solid ${T.border}` }}>
                 <div style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 'clamp(2rem, 4vw, 2.75rem)', fontWeight: 800, letterSpacing: '-0.04em', color: T.text, lineHeight: 1, marginBottom: '0.5rem' }}>
-                  10+
+                  9+
                 </div>
                 <div style={{ fontSize: '0.875rem', color: T.textDimmer, lineHeight: 1.5 }}>
                   Years building and working in Africa's impact sector
