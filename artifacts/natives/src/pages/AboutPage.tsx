@@ -77,7 +77,7 @@ export default function AboutPage() {
         {
           num: "04",
           title: "Credibility is hard to signal",
-          body: "A small NGO in the East with a strong track record looks identical to one with none. Without infrastructure to verify and surface credibility, trust takes years to build — and partnerships that should happen, don't.",
+          body: "A small NGO with a strong track record looks identical to one with none. Without infrastructure to verify and surface credibility, trust takes years to build, and partnerships that should happen, don't.",
         },
       ].map((item, i, arr) => (
         <div key={i} style={{
@@ -182,7 +182,7 @@ export default function AboutPage() {
 {/* 4. What You Get — chameleon full bleed */}
 <div className="w-full border-y border-white/10" style={{ backgroundImage: 'linear-gradient(135deg, #3d1a08, #0d3040, #3d2a1a, #2d2000, #0a2030, #3d1a08)', backgroundSize: '300% 300%', animation: 'fp-chameleon 18s ease infinite' }}>
   <div className="max-w-screen-2xl mx-auto content-padding hp-hero py-16 md:py-24">
-    <p className="text-xs font-semibold uppercase tracking-widest text-center mb-3" style={{ color: 'rgba(255,255,255,0.5)' }}>Membership</p>
+    <p className="text-xs font-semibold uppercase tracking-widest text-center mb-3" style={{ color: 'rgba(255,255,255,0.5)' }}>Access</p>
     <h2 className="text-2xl md:text-3xl font-bold mb-3 text-center text-white">What You Get</h2>
     <div className="grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
       <div className="rounded-2xl p-6 md:p-8 flex flex-col" style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.2)' }}>
@@ -225,13 +225,13 @@ export default function AboutPage() {
         </div>
         <ul className="space-y-3 flex-1">
           {[
+            "Get AI-matched to partners scored against your mandate, sector, and readiness to deliver",
+            "Generate deal memos and CSR briefs that flag risk before the first conversation",
             "Build a verified profile that puts you in front of funders and partners actively looking",
             "Post initiatives to the marketplace and receive expressions of interest directly",
-            "Express interest in initiatives and connect with the organisations behind them",
             "Message matched partners and manage conversations in one place",
             "Access the full verified partner directory.",
             "Commission a lab and track your progress.",
-            "Get AI-matched to partners that fit your profile, sector, and stated goals",
           ].map((item) => (
             <li key={item} className="flex items-start gap-3 text-sm text-white">
               <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "rgba(196,92,38,0.8)" }} /> {item}
@@ -265,7 +265,7 @@ export default function AboutPage() {
           <CardTitle className="text-base">Verified Entity</CardTitle>
         </CardHeader>
         <CardContent className="text-center text-sm text-muted-foreground">
-          <p>Legal registration, beneficial ownership, and compliance checks completed.</p>
+          <p>Legal registration and organisational documents reviewed and assessed by the Natives team.</p>
         </CardContent>
       </Card>
       <Card className="border-border shadow-sm">
@@ -287,7 +287,7 @@ export default function AboutPage() {
           <CardTitle className="text-base">Data Integrity</CardTitle>
         </CardHeader>
         <CardContent className="text-center text-sm text-muted-foreground">
-          <p>Impact data is structured, self-reported, and supported by third-party evaluation links where available.</p>
+          <p>Impact data is structured and self-declared, with supporting documents assessed by the Natives team. Unverified claims are surfaced, not smoothed over.</p>
         </CardContent>
       </Card>
     </div>
