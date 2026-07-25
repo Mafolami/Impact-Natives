@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { useState } from "react";
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { FindPartnerSection } from "@/components/platform/FindPartnerSection";
 import { ImpactMarketplace } from "@/components/platform/ImpactMarketplace";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +25,7 @@ import { mockFounders } from "@/data/founders";
 
 export default function PlatformPage() {
   const params = useParams();
+  const [, navigate] = useLocation();
   const tab = params.tab || "overview";
 
   const [selectedSdgs, setSelectedSdgs] = useState<string[]>([]);
@@ -66,10 +67,19 @@ export default function PlatformPage() {
     );
   }
 
+  // Only the three navbar destinations are live. Redirect any other tab
+  // (overview, funding-infrastructure, direct-URL guesses) to home.
+  const liveTab: string = tab;
+  if (liveTab !== "impact-marketplace" && liveTab !== "partnership-os") {
+    navigate("/");
+    return null;
+  }
+
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-0">
 
-      {tab === "overview" && (
+      {/* Overview grid — retired. Only the three navbar pages are live; redirect above sends any other tab home. Kept for future use. */}
+      {false && (
         <div className="grid md:grid-cols-2 gap-6">
           <Card className="hover:border-primary/50 transition-colors cursor-pointer group">
             <CardHeader>
@@ -126,7 +136,8 @@ export default function PlatformPage() {
 
       {/* partnership-os handled above */}
 
-      {tab === "funding-infrastructure" && (
+      {/* Funding Infrastructure — retired empty shell. Kept for future use. */}
+      {false && (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
           {/* Hero */}

@@ -47,8 +47,8 @@ function normalizeArr(val: string | string[] | null | undefined): string[] {
 const VALUE_PROPS = [
   {
     icon: <ShieldCheck className="w-5 h-5" />,
-    headline: "Verified partners only",
-    body: "Every organisation passes through a structured trust review — legal standing, track record, sector credibility. Verified organisations are clearly identified and prioritised in matching.",
+    headline: "Verification you can see",
+    body: "Organisations that pass a structured trust review, covering legal standing, track record, and sector credibility, are clearly marked as verified and prioritised in matching, so you know who you are dealing with at a glance.",
     accent: "#2D6A4F",
   },
   {
