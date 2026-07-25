@@ -58,6 +58,8 @@ export default function FunderHome({ profile }: { profile: any }) {
   const [, navigate] = useLocation();
   const [matchedInitiatives, setMatchedInitiatives] = useState<any[]>([]);
   const [loadingMatches, setLoadingMatches] = useState(true);
+  const [initiativeMinScore, setInitiativeMinScore] = useState(40);
+  const [matchingUnavailable, setMatchingUnavailable] = useState(false);
   const [aiMatching, setAiMatching] = useState(false);
   const [mandateScore, setMandateScore] = useState(0);
   const [missingMandateFields, setMissingMandateFields] = useState<string[]>([]);
@@ -200,6 +202,7 @@ export default function FunderHome({ profile }: { profile: any }) {
           .sort((a: any, b: any) => b.score - a.score);
         if (ranked.length > 0) {
           setMatchedInitiatives(ranked);
+          setMatchingUnavailable(false);
           return true;
         }
         return false;
@@ -218,27 +221,28 @@ export default function FunderHome({ profile }: { profile: any }) {
       // show yet) or fire-and-forget in the background (something's
       // already on screen). Never throws — every failure path resolves to
       // { gotMatches: false } rather than rejecting.
-      async function performRefresh(): Promise<{ gotMatches: boolean }> {
+      async function performRefresh(): Promise<{ succeeded: boolean }> {
         try {
           const { data: { session } } = await supabase.auth.getSession();
-          if (!session) return { gotMatches: false };
+          if (!session) return { succeeded: false };
           const res = await fetch(`${supabaseUrl}/functions/v1/refresh-initiative-matches`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
           });
           const result = await res.json();
-          if (!result.error && result.matches?.length) {
+          if (result.error) return { succeeded: false };
+          if (typeof result.min_score === "number") setInitiativeMinScore(result.min_score);
+          setMatchingUnavailable(false);
+          if (result.matches?.length) {
             applyCache(result.matches.map((m: any) => ({
               initiative_id: m.initiative_id, score: m.score, match_reason: m.match_reason, criteria: m.criteria,
             })));
-            return { gotMatches: true };
           }
-          return { gotMatches: false };
+          return { succeeded: true };
         } catch {
-          return { gotMatches: false };
+          return { succeeded: false };
         }
       }
-
       if (hadCache) {
         // Stale-while-revalidate: there's already something on screen, so
         // the refresh (which internally no-ops unless the cache is
@@ -254,9 +258,9 @@ export default function FunderHome({ profile }: { profile: any }) {
         const progressInterval = setInterval(() => {
           setMatchProgress(p => (p >= 92 ? p : p + Math.max(0.5, (92 - p) * 0.08)));
         }, 300);
-        const { gotMatches } = await performRefresh();
-        if (!gotMatches) {
-          setMatchedInitiatives(initiatives);
+        const { succeeded } = await performRefresh();
+        if (!succeeded) {
+          setMatchingUnavailable(true);
         }
         clearInterval(progressInterval);
         setMatchProgress(100);
@@ -448,14 +452,28 @@ export default function FunderHome({ profile }: { profile: any }) {
                 <div key={i} className="h-24 rounded-xl border border-border bg-white animate-pulse" />
               ))}
             </div>
+          ) : matchingUnavailable && matchedInitiatives.length === 0 ? (
+            <div className="rounded-2xl border border-border bg-white p-8 text-center">
+              <p className="text-sm font-medium text-foreground mb-1">Still finding your matches.</p>
+              <p className="text-xs text-black">Matching is refreshing right now. Check back shortly.</p>
+            </div>
           ) : matchedInitiatives.length === 0 ? (
             <div className="rounded-2xl border border-border bg-white p-8 text-center">
               <p className="text-sm font-medium text-foreground mb-1">No initiatives yet.</p>
               <p className="text-xs text-black">Check back as organisations post their work.</p>
             </div>
-          ) : (
+          ) : (() => {
+            const strongMatches = matchedInitiatives.filter((i: any) => (i.score ?? 0) >= initiativeMinScore);
+            const otherMatches = matchedInitiatives.filter((i: any) => (i.score ?? 0) < initiativeMinScore);
+            const showList = strongMatches.length > 0 ? strongMatches : otherMatches;
+            return (
             <div className="space-y-3">
-              {matchedInitiatives.slice(0, 3).map((ini: any) => (
+              {strongMatches.length === 0 && otherMatches.length > 0 && (
+                <p className="text-xs text-black mb-1">
+                  No strong matches right now. A few others worth a look:
+                </p>
+              )}
+              {showList.slice(0, 3).map((ini: any) => (
                 <div key={ini.id}
                   className="w-full text-left rounded-xl border border-border bg-white px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group flex flex-col min-h-[220px]">
                   <button type="button" onClick={() => navigate(`/dashboard/marketplace?initiative=${ini.id}`)} className="w-full text-left">
@@ -463,7 +481,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                       <p className="text-sm font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors break-words">
                         {ini.title}
                       </p>
-                      {ini.score && (
+                      {typeof ini.score === "number" && (
                         <span className="shrink-0 text-xs font-bold px-2 py-0.5 rounded-full"
                           style={{
                             background: ini.score >= 70 ? "#eaf5ee" : "#f5f5f5",
@@ -535,7 +553,8 @@ export default function FunderHome({ profile }: { profile: any }) {
                 </div>
               ))}
             </div>
-          )}
+            );
+          })()}
         </section>
 
         {/* Column 2: Partnership matches — secondary, compact */}

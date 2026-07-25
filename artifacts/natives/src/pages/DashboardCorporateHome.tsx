@@ -68,7 +68,15 @@ export default function CorporateHome({ profile }: { profile: any }) {
 
   const [loadingMatches, setLoadingMatches] = useState(true);
   const [aiMatching, setAiMatching]         = useState(false);
-  const [matchedInitiatives, setMatchedInitiatives] = useState<any[]>([]);
+ const [matchedInitiatives, setMatchedInitiatives] = useState<any[]>([]);
+  // Server-authoritative threshold for a "strong" match -- defaults to the
+  // known corporate value, overridden the moment a live refresh response
+  // includes min_score, so it's never hand-kept-in-sync with the backend.
+  const [initiativeMinScore, setInitiativeMinScore] = useState(35);
+  // True only when matching genuinely produced nothing at all (API error) --
+  // distinct from "matching succeeded and found zero strong matches," which
+  // still has real, weaker data worth showing.
+  const [matchingUnavailable, setMatchingUnavailable] = useState(false);
 
   // Metrics
   const [savedCount, setSavedCount]         = useState(0);
@@ -234,6 +242,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
           .sort((a: any, b: any) => b.score - a.score);
         if (ranked.length > 0) {
           setMatchedInitiatives(ranked);
+          setMatchingUnavailable(false);
           return true;
         }
         return false;
@@ -248,24 +257,30 @@ export default function CorporateHome({ profile }: { profile: any }) {
         const hadCache = applyCache(cachedMatches ?? []);
       setLoadingMatches(false);
 
-      async function performRefresh(): Promise<{ gotMatches: boolean }> {
+      // "succeeded" means the call itself worked, whether or not it found
+      // anything -- unlike the old gotMatches, which conflated "the API
+      // failed" with "the API worked and found nothing" and drove the same
+      // silent raw-initiative fallback for both.
+      async function performRefresh(): Promise<{ succeeded: boolean }> {
         try {
           const { data: { session } } = await supabase.auth.getSession();
-          if (!session) return { gotMatches: false };
+          if (!session) return { succeeded: false };
           const res = await fetch(`${supabaseUrl}/functions/v1/refresh-initiative-matches`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
           });
           const result = await res.json();
-          if (!result.error && result.matches?.length) {
+          if (result.error) return { succeeded: false };
+          if (typeof result.min_score === "number") setInitiativeMinScore(result.min_score);
+          setMatchingUnavailable(false);
+          if (result.matches?.length) {
             applyCache(result.matches.map((m: any) => ({
               initiative_id: m.initiative_id, score: m.score, match_reason: m.match_reason, criteria: m.criteria,
             })));
-            return { gotMatches: true };
           }
-          return { gotMatches: false };
+          return { succeeded: true };
         } catch {
-          return { gotMatches: false };
+          return { succeeded: false };
         }
       }
 
@@ -277,9 +292,11 @@ export default function CorporateHome({ profile }: { profile: any }) {
         const progressInterval = setInterval(() => {
           setMatchProgress(p => (p >= 92 ? p : p + Math.max(0.5, (92 - p) * 0.08)));
         }, 300);
-        const { gotMatches } = await performRefresh();
-        if (!gotMatches) {
-          setMatchedInitiatives(esgFirst.filter((i: any) => i.esg_alignment));
+        const { succeeded } = await performRefresh();
+        if (!succeeded) {
+          // No real scored data exists -- say so plainly instead of
+          // showing unscored initiatives dressed up as matches.
+          setMatchingUnavailable(true);
         }
         clearInterval(progressInterval);
         setMatchProgress(100);
@@ -504,6 +521,14 @@ export default function CorporateHome({ profile }: { profile: any }) {
                 <div key={i} className="h-32 rounded-xl border border-border bg-white animate-pulse" />
               ))}
             </div>
+          ) : matchingUnavailable && matchedInitiatives.length === 0 ? (
+            <div className="rounded-xl border border-border bg-white p-8 text-center min-h-[280px] flex flex-col items-center justify-center">
+              <Leaf className="w-6 h-6 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-sm font-medium text-foreground mb-1">Still finding your matches.</p>
+              <p className="text-xs text-black mb-4">
+                Matching is refreshing right now. Check back shortly.
+              </p>
+            </div>
           ) : matchedInitiatives.length === 0 ? (
             <div className="rounded-xl border border-border bg-white p-8 text-center min-h-[280px] flex flex-col items-center justify-center">
               <Leaf className="w-6 h-6 text-muted-foreground/30 mx-auto mb-3" />
@@ -516,9 +541,18 @@ export default function CorporateHome({ profile }: { profile: any }) {
                 Browse marketplace
               </button>
             </div>
-          ) : (
+          ) : (() => {
+            const strongMatches = matchedInitiatives.filter((i: any) => (i.score ?? 0) >= initiativeMinScore);
+            const otherMatches = matchedInitiatives.filter((i: any) => (i.score ?? 0) < initiativeMinScore);
+            const showList = strongMatches.length > 0 ? strongMatches : otherMatches;
+            return (
             <div className="space-y-3">
-              {matchedInitiatives.slice(0, 3).map((ini: any) => (
+              {strongMatches.length === 0 && otherMatches.length > 0 && (
+                <p className="text-xs text-black mb-1">
+                  No strong matches right now. A few others worth a look:
+                </p>
+              )}
+              {showList.slice(0, 3).map((ini: any) => (
                 <div key={ini.id}
                   className="w-full text-left rounded-xl border border-border bg-white px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group flex flex-col min-h-[220px]">
                   <button type="button" onClick={() => navigate(`/dashboard/marketplace?initiative=${ini.id}`)} className="w-full text-left">
@@ -533,7 +567,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
                             <Leaf className="w-3 h-3" /> ESG/CSR
                           </span>
                         )}
-                        {ini.score && (
+                        {typeof ini.score === "number" && (
                           <span className="text-xs font-bold px-2 py-0.5 rounded-full"
                             style={{
                               background: ini.score >= 70 ? "#eaf5ee" : "#f5f5f5",
@@ -598,11 +632,12 @@ export default function CorporateHome({ profile }: { profile: any }) {
                   </div>
                 </div>
               ))}
-            </div>
-          )}
-        </section>
+              </div>
+              );
+            })()}
+          </section>
 
-        {/* Column 2: Partnership matches */}
+          {/* Column 2: Partnership matches */}
         <section className="lg:order-2 rounded-2xl bg-[#C45C26]/[0.03] border border-[#C45C26]/10 p-4">
           <div className="flex items-center justify-between mb-4">
             <div>
