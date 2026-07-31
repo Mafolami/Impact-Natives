@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -15,11 +15,13 @@ type ContactForm = {
 };
 
 export default function ContactPage() {
+  const search = useSearch();
+  const prefillReason = new URLSearchParams(search).get("reason") ?? "";
   const [form, setForm] = useState<ContactForm>({
     first_name: "",
     last_name: "",
     email: "",
-    reason: "",
+    reason: prefillReason,
     message: "",
   });
   const [loading, setLoading] = useState(false);
@@ -276,6 +278,7 @@ export default function ContactPage() {
               <SelectValue placeholder="Select a reason" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="demo">Product demo</SelectItem>
               <SelectItem value="partnership">Partnership</SelectItem>
               <SelectItem value="inquiry">General inquiry</SelectItem>
               <SelectItem value="press">Press & media</SelectItem>

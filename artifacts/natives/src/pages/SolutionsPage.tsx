@@ -18,6 +18,8 @@ const AUDIENCE: Record<AudienceKey, {
   sub: string;
   cta: string;
   ctaHref: string;
+  secondaryCta?: string;
+  secondaryCtaHref?: string;
   accent: string;
   problem: string;
   features: { icon: React.ComponentType<any>; title: string; body: string; }[];
@@ -63,8 +65,10 @@ const AUDIENCE: Record<AudienceKey, {
     eyebrow: "For Corporations",
     headline: "Turn ESG and CSR commitments into verified delivery.",
     sub: "Your sustainability mandates are real. Finding credible, verified implementation partners to deliver on them shouldn't take months.",
-    cta: "Create your profile",
-    ctaHref: "/signup",
+     cta: "Request Demo",
+    ctaHref: "/contact?reason=demo",
+    secondaryCta: "Create your profile",
+    secondaryCtaHref: "/signup",
     accent: "#7b6dd4",
     problem: "Corporate sustainability and social investment teams are expected to demonstrate measurable, on-the-ground impact — but finding the right NGOs, social enterprises, and implementers to work with is still manual and fragmented. Due diligence is expensive. Discovery is relationship-dependent. Natives fixes both.",
     features: [
@@ -99,8 +103,10 @@ const AUDIENCE: Record<AudienceKey, {
     eyebrow: "For Funders & Donors",
     headline: "Find credible pipeline. Deploy capital with confidence.",
     sub: "Verified organisations, active initiatives, and a structured way to move from discovery to confirmed partnership — without months of manual due diligence.",
-    cta: "Join as a funder",
-    ctaHref: "/signup",
+    cta: "Request Demo",
+    ctaHref: "/contact?reason=demo",
+    secondaryCta: "Join as a funder",
+    secondaryCtaHref: "/signup",
     accent: "#2d9dd4",
     problem: "Philanthropies, impact investors, and bilateral funders face the same problem: capital is available, but identifying credible, verified organisations to deploy it through takes disproportionate time and effort. Natives gives you structured access to a verified ecosystem — so you spend less time on discovery and more time on decisions.",
     features: [
@@ -444,7 +450,7 @@ export default function SolutionsPage() {
                 <ArrowRight style={{ width: '0.875rem', height: '0.875rem' }} />
               </button>
             </Link>
-            <Link href="/partner">
+            <Link href={audience.secondaryCtaHref ?? "/contact"}>
   <button style={{
                 display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
                 height: '2.75rem', padding: '0 1.5rem', borderRadius: '9999px',
@@ -452,7 +458,7 @@ export default function SolutionsPage() {
                 fontSize: '0.9375rem', fontWeight: 500,
                 border: '1px solid hsl(var(--border))', cursor: 'pointer',
               }}>
-                Talk to us
+                {audience.secondaryCta ?? "Talk to us"}
               </button>
             </Link>
           </div>

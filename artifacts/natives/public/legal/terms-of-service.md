@@ -1,7 +1,7 @@
 # Terms of Service
 
 **Impact Natives Ltd**
-Last updated: June 2025
+Last updated: July 2026
 
 ---
 
