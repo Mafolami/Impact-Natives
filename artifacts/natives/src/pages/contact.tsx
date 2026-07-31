@@ -10,6 +10,8 @@ type ContactForm = {
   first_name: string;
   last_name: string;
   email: string;
+  organisation_name: string;
+  job_title: string;
   reason: string;
   message: string;
 };
@@ -21,6 +23,8 @@ export default function ContactPage() {
     first_name: "",
     last_name: "",
     email: "",
+    organisation_name: "",
+    job_title: "",
     reason: prefillReason,
     message: "",
   });
@@ -48,6 +52,8 @@ export default function ContactPage() {
       first_name: form.first_name,
       last_name: form.last_name,
       email: form.email,
+      organisation_name: form.organisation_name,
+      job_title: form.job_title,
       reason: form.reason,
       message: form.message,
     });
@@ -269,6 +275,25 @@ export default function ContactPage() {
             required
           />
           {emailError && <p className="text-red-500 text-xs">{emailError}</p>}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium">Organisation</label>
+            <Input
+              placeholder="AfDB"
+              value={form.organisation_name}
+              onChange={(e) => update("organisation_name", e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium">Job title</label>
+            <Input
+              placeholder="Programme Officer"
+              value={form.job_title}
+              onChange={(e) => update("job_title", e.target.value)}
+            />
+          </div>
         </div>
 
         <div className="flex flex-col gap-1.5">
