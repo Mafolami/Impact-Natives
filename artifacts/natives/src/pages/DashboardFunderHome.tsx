@@ -360,9 +360,9 @@ export default function FunderHome({ profile }: { profile: any }) {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <p className="text-xs text-black mb-1 uppercase tracking-widest">{greeting}</p>
+          <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">{greeting}</p>
           <h2 className="text-2xl font-bold text-foreground tracking-tight">{firstName}.</h2>
-          <p className="text-sm text-black mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             {mandateScore < 60
               ? "Complete your mandate to get better matched initiatives."
               : "Your mandate is active."}
@@ -385,7 +385,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                   style={{ width: `${mandateScore}%` }} />
               </div>
             </div>
-            <p className="text-xs text-black">
+            <p className="text-xs text-muted-foreground">
               {missingMandateFields.length > 0
                 ? `Add ${formatMissingList(missingMandateFields)}${mandateScore < 80 ? " — 80% unlocks partnership matches too." : "."}`
                 : ""}
@@ -405,7 +405,7 @@ export default function FunderHome({ profile }: { profile: any }) {
             <p className="text-sm font-semibold text-foreground mb-1">
               You've passed on {passInsight.count} initiatives citing "{passInsight.reason}"
             </p>
-            <p className="text-xs text-black">{passInsight.hint}</p>
+            <p className="text-xs text-muted-foreground">{passInsight.hint}</p>
           </div>
           <button type="button" onClick={() => navigate("/dashboard/profile")}
             className="shrink-0 text-xs font-semibold text-[#C45C26] border border-[#C45C26]/30 rounded-full px-3 py-1.5 hover:bg-[#C45C26]/10 transition-colors whitespace-nowrap">
@@ -426,7 +426,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                 style={{ background: "#2D6A4F", color: "#ffffff" }}>
                 Initiatives for you
               </h3>
-              <p className="text-xs text-black mt-0.5">Top initiatives, matched to your mandate</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Top initiatives, matched to your mandate</p>
             </div>
             <button type="button" onClick={() => navigate("/dashboard/marketplace")}
               className="text-xs font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors shrink-0">
@@ -455,12 +455,12 @@ export default function FunderHome({ profile }: { profile: any }) {
           ) : matchingUnavailable && matchedInitiatives.length === 0 ? (
             <div className="rounded-2xl border border-border bg-white p-8 text-center">
               <p className="text-sm font-medium text-foreground mb-1">Still finding your matches.</p>
-              <p className="text-xs text-black">Matching is refreshing right now. Check back shortly.</p>
+              <p className="text-xs text-muted-foreground">Matching is refreshing right now. Check back shortly.</p>
             </div>
           ) : matchedInitiatives.length === 0 ? (
             <div className="rounded-2xl border border-border bg-white p-8 text-center">
               <p className="text-sm font-medium text-foreground mb-1">No initiatives yet.</p>
-              <p className="text-xs text-black">Check back as organisations post their work.</p>
+              <p className="text-xs text-muted-foreground">Check back as organisations post their work.</p>
             </div>
           ) : (() => {
             const strongMatches = matchedInitiatives.filter((i: any) => (i.score ?? 0) >= initiativeMinScore);
@@ -469,7 +469,7 @@ export default function FunderHome({ profile }: { profile: any }) {
             return (
             <div className="space-y-3">
               {strongMatches.length === 0 && otherMatches.length > 0 && (
-                <p className="text-xs text-black mb-1">
+                <p className="text-xs text-muted-foreground mb-1">
                   No strong matches right now. A few others worth a look:
                 </p>
               )}
@@ -508,7 +508,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                         ["budget_fit", "Budget"], ["dd_fit", "DD readiness"], ["esg_fit", "ESG fit"], ["support_type_fit", "Support type"],
                       ].filter(([key]) => ini.criteria[key]).map(([key, label]) => (
                         <div key={key} className="flex items-center justify-between">
-                          <span className="text-xs text-black">{label}</span>
+                          <span className="text-xs text-muted-foreground">{label}</span>
                           <span className="text-xs font-medium" style={{
                             color: ini.criteria[key] === "match" ? "#2D6A4F" : ini.criteria[key] === "partial" ? "#F59E0B" : "#EF4444",
                           }}>
@@ -522,7 +522,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                       {ini.match_reason}
                     </p>
                   ) : (
-                    <p className="text-xs text-black mb-2 line-clamp-1">{ini.problem}</p>
+                    <p className="text-xs text-muted-foreground mb-2 line-clamp-1">{ini.problem}</p>
                   )}
 
                   <div className="mt-auto pt-2 flex items-center gap-2 flex-wrap">
@@ -577,7 +577,7 @@ export default function FunderHome({ profile }: { profile: any }) {
             <div className="rounded-xl border border-dashed border-border bg-white p-6 text-center flex flex-col items-center justify-center min-h-[220px]">
               <Building2 className="w-6 h-6 text-muted-foreground/20 mb-3" />
               <p className="text-xs font-medium text-foreground mb-1">Locked for now</p>
-              <p className="text-xs text-black">
+              <p className="text-xs text-muted-foreground">
                 Unlocks at 80% mandate completion — you're at {mandateScore}%.
               </p>
             </div>
@@ -589,7 +589,7 @@ export default function FunderHome({ profile }: { profile: any }) {
             </div>
           ) : partnershipMatches.length === 0 ? (
             <div className="rounded-xl border border-border bg-white p-5 text-center">
-              <p className="text-xs text-black">No partnership matches yet.</p>
+              <p className="text-xs text-muted-foreground">No partnership matches yet.</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -616,7 +616,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                         ["working_style_fit", "Style"], ["stage_readiness_fit", "Stage"],
                       ].map(([key, label]) => (
                         <div key={key} className="flex items-center justify-between">
-                          <span className="text-xs text-black">{label}</span>
+                          <span className="text-xs text-muted-foreground">{label}</span>
                           <span className="text-xs font-medium" style={{
                             color: m.criteria[key] === "match" ? "#2D6A4F" : m.criteria[key] === "partial" ? "#F59E0B" : "#EF4444",
                           }}>
@@ -626,7 +626,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-black mb-2">{m.key_synergy ?? m.rationale}</p>
+                    <p className="text-sm text-muted-foreground mb-2">{m.key_synergy ?? m.rationale}</p>
                   )}
 
                   <div className="mt-auto pt-2 flex items-center gap-2 flex-wrap">
@@ -665,9 +665,9 @@ export default function FunderHome({ profile }: { profile: any }) {
                 style={{ borderColor: m.accent ? "#C45C26" : undefined }}>
                 <div className="flex items-center gap-2">
                   <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  <p className="text-xs font-bold uppercase tracking-widest text-black break-words">{m.label}</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground break-words">{m.label}</p>
                 </div>
-                <p className="text-xs text-black break-words leading-snug">{m.sub}</p>
+                <p className="text-xs text-muted-foreground break-words leading-snug">{m.sub}</p>
                 <p className="text-2xl font-bold text-foreground tracking-tight group-hover:text-[#2D6A4F] transition-colors mt-auto">{m.value}</p>
               </button>
             );

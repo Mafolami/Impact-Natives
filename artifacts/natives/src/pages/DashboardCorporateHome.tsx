@@ -428,9 +428,9 @@ export default function CorporateHome({ profile }: { profile: any }) {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <p className="text-xs text-black mb-1 uppercase tracking-widest">{greeting}</p>
+          <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">{greeting}</p>
           <h2 className="text-2xl font-bold text-foreground tracking-tight">{firstName}.</h2>
-          <p className="text-sm text-black mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             {displayedCompleteness >= 60
               ? `Your profile is active. Discover potential initiatives and partnerships for ${orgName}.`
               : "Complete your profile to get better matched initiatives."}
@@ -453,7 +453,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
                   style={{ width: `${displayedCompleteness}%` }} />
               </div>
             </div>
-            <p className="text-xs text-black">
+            <p className="text-xs text-muted-foreground">
               {missingCsrFields.length > 0
                 ? `Add ${formatMissingList(missingCsrFields)}${displayedCompleteness < 80 ? " — 80% unlocks partnership matches too." : "."}`
                 : ""}
@@ -473,7 +473,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
             <p className="text-sm font-semibold text-foreground mb-1">
               You've passed on {passInsight.count} initiatives citing "{passInsight.reason}"
             </p>
-            <p className="text-xs text-black">{passInsight.hint}</p>
+            <p className="text-xs text-muted-foreground">{passInsight.hint}</p>
           </div>
           <button type="button" onClick={() => navigate("/dashboard/profile")}
             className="shrink-0 text-xs font-semibold text-[#C45C26] border border-[#C45C26]/30 rounded-full px-3 py-1.5 hover:bg-[#C45C26]/10 transition-colors whitespace-nowrap">
@@ -495,7 +495,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
                 <Leaf className="w-3.5 h-3.5" />
                 Initiative matches
               </h3>
-              <p className="text-xs text-black mt-0.5">Top 3, matched to your mandate</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Top 3, matched to your mandate</p>
             </div>
             <button type="button" onClick={() => navigate("/dashboard/marketplace")}
               className="text-xs font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors shrink-0">
@@ -525,7 +525,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
             <div className="rounded-xl border border-border bg-white p-8 text-center min-h-[280px] flex flex-col items-center justify-center">
               <Leaf className="w-6 h-6 text-muted-foreground/30 mx-auto mb-3" />
               <p className="text-sm font-medium text-foreground mb-1">Still finding your matches.</p>
-              <p className="text-xs text-black mb-4">
+              <p className="text-xs text-muted-foreground mb-4">
                 Matching is refreshing right now. Check back shortly.
               </p>
             </div>
@@ -533,7 +533,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
             <div className="rounded-xl border border-border bg-white p-8 text-center min-h-[280px] flex flex-col items-center justify-center">
               <Leaf className="w-6 h-6 text-muted-foreground/30 mx-auto mb-3" />
               <p className="text-sm font-medium text-foreground mb-1">No ESG initiatives matched yet.</p>
-              <p className="text-xs text-black mb-4">
+              <p className="text-xs text-muted-foreground mb-4">
                 Complete your CSR profile or browse all initiatives to find the right fit.
               </p>
               <button type="button" onClick={() => navigate("/dashboard/marketplace")}
@@ -548,7 +548,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
             return (
             <div className="space-y-3">
               {strongMatches.length === 0 && otherMatches.length > 0 && (
-                <p className="text-xs text-black mb-1">
+                <p className="text-xs text-muted-foreground mb-1">
                   No strong matches right now. A few others worth a look:
                 </p>
               )}
@@ -595,7 +595,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
                         ["budget_fit", "Budget"], ["dd_fit", "DD readiness"], ["esg_fit", "ESG fit"], ["support_type_fit", "Support type"],
                       ].filter(([key]) => ini.criteria[key]).map(([key, label]) => (
                         <div key={key} className="flex items-center justify-between">
-                          <span className="text-xs text-black">{label}</span>
+                          <span className="text-xs text-muted-foreground">{label}</span>
                           <span className="text-xs font-medium" style={{
                             color: ini.criteria[key] === "match" ? "#2D6A4F" : ini.criteria[key] === "partial" ? "#F59E0B" : "#EF4444",
                           }}>
@@ -607,7 +607,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
                   ) : ini.match_reason ? (
                     <p className="text-xs mb-2 leading-relaxed text-[#2D6A4F]">{ini.match_reason}</p>
                   ) : (
-                    <p className="text-xs text-black mb-2 line-clamp-1">{ini.problem}</p>
+                    <p className="text-xs text-muted-foreground mb-2 line-clamp-1">{ini.problem}</p>
                   )}
 
                   <div className="mt-auto pt-2 flex items-center gap-2 flex-wrap">
@@ -646,7 +646,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
                 <Building2 className="w-3.5 h-3.5" />
                 Partnership matches
               </h3>
-              <p className="text-xs text-black mt-0.5">Top 3 organisations to partner with</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Top 3 organisations to partner with</p>
             </div>
             <button type="button" onClick={() => navigate("/dashboard/partnerships")}
               className="text-xs font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors shrink-0">
@@ -658,7 +658,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
             <div className="rounded-2xl border border-dashed border-border bg-white p-8 text-center flex flex-col items-center justify-center min-h-[300px]">
               <Building2 className="w-8 h-8 text-muted-foreground/20 mb-4" />
               <p className="text-sm font-medium text-foreground mb-1">Partnership matches are locked</p>
-              <p className="text-xs text-black max-w-[220px] mb-4">
+              <p className="text-xs text-muted-foreground max-w-[220px] mb-4">
                 Unlocks once your CSR profile hits 80% — you're at {displayedCompleteness}%.
               </p>
               <button type="button" onClick={() => navigate("/dashboard/profile")}
@@ -676,7 +676,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
             <div className="rounded-2xl border border-border bg-white p-8 text-center">
               <Building2 className="w-6 h-6 text-muted-foreground/30 mx-auto mb-3" />
               <p className="text-sm font-medium text-foreground mb-1">No partnership matches yet.</p>
-              <p className="text-xs text-black">Check back soon — this refreshes automatically.</p>
+              <p className="text-xs text-muted-foreground">Check back soon — this refreshes automatically.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -703,7 +703,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
                         ["working_style_fit", "Working style"], ["stage_readiness_fit", "Stage readiness"],
                       ].map(([key, label]) => (
                         <div key={key} className="flex items-center justify-between">
-                          <span className="text-xs text-black">{label}</span>
+                          <span className="text-xs text-muted-foreground">{label}</span>
                           <span className="text-xs font-medium" style={{
                             color: m.criteria[key] === "match" ? "#2D6A4F" : m.criteria[key] === "partial" ? "#F59E0B" : "#EF4444",
                           }}>
@@ -751,9 +751,9 @@ export default function CorporateHome({ profile }: { profile: any }) {
                 style={{ borderColor: m.accent ? "#C45C26" : undefined }}>
                 <div className="flex items-center gap-2">
                   <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  <p className="text-xs font-bold uppercase tracking-widest text-black break-words">{m.label}</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground break-words">{m.label}</p>
                 </div>
-                <p className="text-xs text-black break-words leading-snug">{m.sub}</p>
+                <p className="text-xs text-muted-foreground break-words leading-snug">{m.sub}</p>
                 <p className="text-2xl font-bold text-foreground tracking-tight group-hover:text-[#2D6A4F] transition-colors mt-auto">{m.value}</p>
               </button>
             );
@@ -766,11 +766,11 @@ export default function CorporateHome({ profile }: { profile: any }) {
         <section>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-black flex items-center gap-1.5">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                 <Building2 className="w-3.5 h-3.5" />
                 Your CSR pipeline
               </h3>
-              <p className="text-xs text-black mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Initiatives you've expressed interest in
               </p>
             </div>
@@ -807,10 +807,10 @@ export default function CorporateHome({ profile }: { profile: any }) {
                         </span>
                       )}
                       {eoi.initiative?.sectors?.slice(0, 1).map((s: string) => (
-                        <span key={s} className="text-xs text-black">{s}</span>
+                        <span key={s} className="text-xs text-muted-foreground">{s}</span>
                       ))}
                       {eoi.initiative?.locations?.slice(0, 1).map((l: string) => (
-                        <span key={l} className="text-xs text-black">{l}</span>
+                        <span key={l} className="text-xs text-muted-foreground">{l}</span>
                       ))}
                     </div>
                   </div>
