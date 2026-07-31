@@ -281,7 +281,7 @@ export default function ContactPage() {
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium">Organisation</label>
             <Input
-              placeholder="Your organissation name"
+              placeholder="Your organisation name"
               value={form.organisation_name}
               onChange={(e) => update("organisation_name", e.target.value)}
             />
@@ -289,7 +289,7 @@ export default function ContactPage() {
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium">Job title</label>
             <Input
-              placeholder="Programme Officer"
+              placeholder="Your job title"
               value={form.job_title}
               onChange={(e) => update("job_title", e.target.value)}
             />
