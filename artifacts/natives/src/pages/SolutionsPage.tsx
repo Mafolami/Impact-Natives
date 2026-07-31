@@ -20,6 +20,7 @@ const AUDIENCE: Record<AudienceKey, {
   ctaHref: string;
   secondaryCta?: string;
   secondaryCtaHref?: string;
+  hidePaths?: boolean;
   accent: string;
   problem: string;
   features: { icon: React.ComponentType<any>; title: string; body: string; }[];
@@ -69,6 +70,7 @@ const AUDIENCE: Record<AudienceKey, {
     ctaHref: "/contact?reason=demo",
     secondaryCta: "Create your profile",
     secondaryCtaHref: "/signup",
+    hidePaths: true,
     accent: "#7b6dd4",
     problem: "Corporate sustainability and social investment teams are expected to demonstrate measurable, on-the-ground impact — but finding the right NGOs, social enterprises, and implementers to work with is still manual and fragmented. Due diligence is expensive. Discovery is relationship-dependent. Natives fixes both.",
     features: [
@@ -107,6 +109,7 @@ const AUDIENCE: Record<AudienceKey, {
     ctaHref: "/contact?reason=demo",
     secondaryCta: "Join as a funder",
     secondaryCtaHref: "/signup",
+    hidePaths: true,
     accent: "#2d9dd4",
     problem: "Philanthropies, impact investors, and bilateral funders face the same problem: capital is available, but identifying credible, verified organisations to deploy it through takes disproportionate time and effort. Natives gives you structured access to a verified ecosystem — so you spend less time on discovery and more time on decisions.",
     features: [
@@ -291,6 +294,32 @@ export default function SolutionsPage() {
             {audience.sub}
           </p>
 
+          {/* Hero CTAs */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.875rem', marginBottom: '2rem' }}>
+            <Link href={audience.ctaHref}>
+              <button style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                height: '2.75rem', padding: '0 1.5rem', borderRadius: '9999px',
+                background: audience.accent, color: '#fff',
+                fontSize: '0.9375rem', fontWeight: 600, border: 'none', cursor: 'pointer',
+              }}>
+                {audience.cta}
+                <ArrowRight style={{ width: '0.875rem', height: '0.875rem' }} />
+              </button>
+            </Link>
+            <Link href={audience.secondaryCtaHref ?? "/contact"}>
+              <button style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                height: '2.75rem', padding: '0 1.5rem', borderRadius: '9999px',
+                background: 'transparent', color: '#f7f3ed',
+                fontSize: '0.9375rem', fontWeight: 500,
+                border: '1px solid rgba(255,255,255,0.25)', cursor: 'pointer',
+              }}>
+                {audience.secondaryCta ?? "Talk to us"}
+              </button>
+            </Link>
+          </div>
+
           {/* Tab bar */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
             {TABS.map(({ id, label }) => {
@@ -355,6 +384,32 @@ export default function SolutionsPage() {
             borderRadius: '1.25rem',
             overflow: 'hidden',
           }}>
+            <div style={{
+              background: `${audience.accent}12`,
+              padding: '2rem',
+              display: 'flex', flexDirection: 'column', justifyContent: 'center',
+              gap: '1rem',
+            }}>
+              <h3 style={{
+                fontFamily: "'Bricolage Grotesque', sans-serif",
+                fontSize: '1.125rem', fontWeight: 700, letterSpacing: '-0.01em',
+                color: 'hsl(var(--foreground))',
+              }}>
+                Ready to see it in action?
+              </h3>
+              <Link href={audience.ctaHref}>
+                <button style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                  height: '2.5rem', padding: '0 1.25rem', borderRadius: '9999px',
+                  background: audience.accent, color: '#fff',
+                  fontSize: '0.875rem', fontWeight: 600, border: 'none', cursor: 'pointer',
+                  width: 'fit-content',
+                }}>
+                  {audience.cta}
+                  <ArrowRight style={{ width: '0.8125rem', height: '0.8125rem' }} />
+                </button>
+              </Link>
+            </div>
             {audience.features.map((feat, i) => {
               const FeatIcon = feat.icon;
               return (
@@ -403,6 +458,7 @@ export default function SolutionsPage() {
           }}>
             Pick the path that fits your intent.
           </h2>
+          {!audience.hidePaths && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: '560px', marginBottom: '3rem' }}>
             {audience.paths.map((path, i) => (
               <Link key={i} href={path.href}>
@@ -437,6 +493,7 @@ export default function SolutionsPage() {
               </Link>
             ))}
           </div>
+          )}
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.875rem' }}>
             <Link href={audience.ctaHref}>
