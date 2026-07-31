@@ -248,7 +248,7 @@ export default function ContactPage() {
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium">First name</label>
             <Input
-              placeholder="Ada"
+              placeholder="Enter first name"
               value={form.first_name}
               onChange={(e) => update("first_name", e.target.value)}
               required
@@ -257,7 +257,7 @@ export default function ContactPage() {
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium">Last name</label>
             <Input
-              placeholder="Okafor"
+              placeholder="Enter last name"
               value={form.last_name}
               onChange={(e) => update("last_name", e.target.value)}
               required
@@ -281,7 +281,7 @@ export default function ContactPage() {
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium">Organisation</label>
             <Input
-              placeholder="AfDB"
+              placeholder="Your organissation name"
               value={form.organisation_name}
               onChange={(e) => update("organisation_name", e.target.value)}
             />
