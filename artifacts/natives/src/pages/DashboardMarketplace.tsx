@@ -260,7 +260,7 @@ function FilterPanel({
     return (
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-xs font-bold uppercase tracking-wider text-black">{label}</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
           {selected.length > 0 && (
             <button type="button" onClick={() => set([])}
               className="text-[10px] text-[#2D6A4F] hover:underline">
@@ -287,19 +287,18 @@ function FilterPanel({
         <div className="relative mb-2">
           <input type="text" value={search} onChange={e => setSearch(e.target.value)}
             placeholder={`Search ${label.toLowerCase()}...`}
-            className="w-full h-8 pl-3 pr-3 rounded-lg text-xs text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]/30"
-            style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }} />
+            className="w-full h-8 pl-3 pr-3 rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]/30 bg-muted border border-border" />
         </div>
         <div className="max-h-36 overflow-y-auto space-y-0.5 pr-1">
           {filteredLocationOptions.length === 0 && options === locationOptions && (
-            <p className="text-xs text-black py-1">No results</p>
+            <p className="text-xs text-muted-foreground py-1">No results</p>
           )}
           {(options === sectorOptions ? filteredSectorOptions : filteredLocationOptions).map(o => {
             const on = selected.includes(o);
             return (
               <button key={o} type="button" onClick={() => toggle(selected, o, set)}
                 className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-xs text-left transition-colors ${
-                  on ? "bg-[#eaf5ee] text-[#2D6A4F] font-semibold" : "text-black hover:bg-[#F3F4F6]"
+                  on ? "bg-[#eaf5ee] text-[#2D6A4F] font-semibold" : "text-foreground hover:bg-muted"
                 }`}>
                 <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
                   on ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-[#D1D5DB]"
@@ -318,7 +317,7 @@ function FilterPanel({
   return (
     <div className="rounded-xl border border-border bg-card p-5 space-y-5">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-bold text-[#111827]">Filters</p>
+        <p className="text-sm font-bold text-foreground">Filters</p>
         {activeCount > 0 && (
           <button type="button" onClick={onClear} className="text-xs font-semibold text-[#2D6A4F] hover:underline">
             Clear all ({activeCount})
@@ -331,24 +330,24 @@ function FilterPanel({
         options={sectorOptions} selected={sectors} set={setSectors}
       />
 
-      <div className="h-px bg-[#F3F4F6]" />
+      <div className="h-px bg-border" />
 
       <DropdownFilter
         label="Location" search={locationSearch} setSearch={setLocationSearch}
         options={locationOptions} selected={locations} set={setLocations}
       />
 
-      <div className="h-px bg-[#F3F4F6]" />
+      <div className="h-px bg-border" />
 
       <div>
-        <p className="text-xs font-bold uppercase tracking-wider text-black mb-2.5">Budget range</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2.5">Budget range</p>
         <div className="flex flex-wrap gap-1.5">
           {BUDGET_OPTIONS.map(b => (
             <button key={b.value} type="button" onClick={() => toggle(budgets, b.value, setBudgets)}
               className={`h-7 px-3 rounded-full text-xs font-medium border transition-colors ${
                 budgets.includes(b.value)
                   ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
-                  : "border-[#E5E7EB] text-black hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F]"
+                  : "border-border text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F]"
               }`}>
               {b.label}
             </button>
@@ -356,17 +355,17 @@ function FilterPanel({
         </div>
       </div>
 
-      <div className="h-px bg-[#F3F4F6]" />
+      <div className="h-px bg-border" />
 
       <div>
-        <p className="text-xs font-bold uppercase tracking-wider text-black mb-2.5">Partnership sought</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2.5">Partnership sought</p>
         <div className="flex flex-wrap gap-1.5">
           {PARTNERSHIP_OPTIONS.map(p => (
             <button key={p.value} type="button" onClick={() => toggle(partnerships, p.value, setPartnerships)}
               className={`h-7 px-3 rounded-full text-xs font-medium border transition-colors ${
                 partnerships.includes(p.value)
                   ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
-                  : "border-[#E5E7EB] text-black hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F]"
+                  : "border-border text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F]"
               }`}>
               {p.label}
             </button>
@@ -387,7 +386,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
 }) {
   return (
     <button type="button" onClick={onClick}
-      className="w-full text-left rounded-2xl border border-border bg-white hover:border-[#452A1D]/50 hover:shadow-md transition-all duration-200 group p-6 flex flex-col gap-4">
+      className="w-full text-left rounded-2xl border border-border bg-card hover:border-[#452A1D]/50 hover:shadow-md transition-all duration-200 group p-6 flex flex-col gap-4">
       {/* Top row */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-wrap gap-1.5">
@@ -449,20 +448,20 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
                 : `/dashboard/natives?tab=individual&user=${ini.user_id}`
             }
             onClick={e => e.stopPropagation()}
-            className="text-xs text-black mt-0.5 hover:text-[#2D6A4F] hover:underline underline-offset-2 transition-colors inline-block">            
+            className="text-xs text-muted-foreground mt-0.5 hover:text-[#2D6A4F] hover:underline underline-offset-2 transition-colors inline-block">            
             {ini.submitter_user_type === "organisation" ? ini.submitter_org : ini.submitter_name}
           </a>
         )}
       </div>
 
       {ini.problem && (
-        <p className="text-[13px] text-black leading-relaxed line-clamp-2">{ini.problem}</p>
+        <p className="text-[13px] text-foreground leading-relaxed line-clamp-2">{ini.problem}</p>
       )}
 
       {/* Footer — pt-3 instead of pt-1 so it reads as its own zone rather
           than crowding straight into the description above it */}
       <div className="flex items-center justify-between mt-auto pt-3 border-t border-border">
-        <div className="flex items-center gap-3 text-xs text-black">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
           {ini.locations?.[0] && (
             <span className="flex items-center gap-1">
               <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -474,7 +473,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
           )}
           {ini.budget && <span>{ini.budget}</span>}
         </div>
-        <span className="text-xs text-black font-medium">
+        <span className="text-xs text-muted-foreground font-medium">
           {ini.eois} EOI{ini.eois !== 1 ? "s" : ""}
         </span>
       </div>
@@ -482,12 +481,12 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
       {ini.partnerships && ini.partnerships.length > 0 && (
         <div className="flex flex-wrap gap-1.5 pt-1">
           {ini.partnerships.slice(0, 3).map(p => (
-            <span key={p} className="text-[11px] px-2 py-0.5 rounded-full border border-border text-black capitalize">
+            <span key={p} className="text-[11px] px-2 py-0.5 rounded-full border border-border text-muted-foreground capitalize">
               {PARTNERSHIP_OPTIONS.find(o => o.value === p)?.label ?? p}
             </span>
           ))}
           {(ini.partnerships?.length ?? 0) > 3 && (
-            <span className="text-[11px] px-2 py-0.5 rounded-full border border-border text-black">
+            <span className="text-[11px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">
               +{(ini.partnerships?.length ?? 0) - 3} more
             </span>
           )}
@@ -688,7 +687,7 @@ export default function DashboardMarketplace() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-black">Published initiatives open for partnership and collaboration.</p>
+        <p className="text-sm text-muted-foreground">Published initiatives open for partnership and collaboration.</p>
         <button type="button" onClick={() => setShowCreateModal(true)}
           className="rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors shrink-0">
           + Create Initiative
@@ -730,7 +729,7 @@ export default function DashboardMarketplace() {
           className={`h-10 px-4 rounded-lg border text-sm flex items-center gap-2 transition-colors shrink-0 ${
             showFilters || activeFilterCount > 0
               ? "border-[#2D6A4F] text-[#2D6A4F] bg-[#eaf5ee]"
-              : "border-border text-black hover:border-foreground/30"
+              : "border-border text-muted-foreground hover:border-foreground/30"
           }`}>
           <SlidersHorizontal className="w-4 h-4" />
           Filters
@@ -744,7 +743,7 @@ export default function DashboardMarketplace() {
           className={`h-10 px-4 rounded-lg border text-sm flex items-center gap-2 transition-colors shrink-0 ${
             showSaved
               ? "border-[#2D6A4F] text-[#2D6A4F] bg-[#eaf5ee]"
-              : "border-border text-black hover:border-foreground/30"
+              : "border-border text-muted-foreground hover:border-foreground/30"
           }`}>
           <Bookmark className="w-4 h-4" fill={showSaved ? "#2D6A4F" : "none"} />
           Saved
@@ -758,7 +757,7 @@ export default function DashboardMarketplace() {
           className={`h-10 px-4 rounded-lg border text-sm flex items-center gap-2 transition-colors shrink-0 ${
             showPassed
               ? "border-gray-400 text-gray-600 bg-gray-100"
-              : "border-border text-black hover:border-foreground/30"
+              : "border-border text-muted-foreground hover:border-foreground/30"
           }`}>
           Passed
           {passedIds.size > 0 && (
@@ -791,14 +790,14 @@ export default function DashboardMarketplace() {
               {chip}
             </span>
           ))}
-          <button type="button" onClick={clearFilters} className="text-xs text-black hover:text-foreground underline">
+          <button type="button" onClick={clearFilters} className="text-xs text-muted-foreground hover:text-foreground underline">
             Clear all
           </button>
         </div>
       )}
 
       {!loading && (
-        <p className="text-xs text-black">
+        <p className="text-xs text-muted-foreground">
           {filtered.length} initiative{filtered.length !== 1 ? "s" : ""}
           {showSaved ? " saved" : showPassed ? " passed" : activeFilterCount > 0 ? " matching filters" : ""}
         </p>
@@ -813,7 +812,7 @@ export default function DashboardMarketplace() {
           <p className="text-foreground font-medium mb-2">
             {initiatives.length === 0 ? "No initiatives published yet." : "No results for those filters."}
           </p>
-          <p className="text-sm text-black max-w-sm mx-auto">
+          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
             {initiatives.length === 0 ? "Check back soon." : "Try adjusting your filters or search term."}
           </p>
           {activeFilterCount > 0 && (
@@ -1231,7 +1230,7 @@ function MarketplaceDetail({
 
       {/* Deal Memo Panel — pure analysis; Save/Pass live in the hero header, Express Interest below */}
       {memoOpen && (
-        <div className="rounded-2xl border border-border bg-white p-6 space-y-5">
+        <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -1282,7 +1281,7 @@ function MarketplaceDetail({
                 { label: "Mandate alignment", value: dealMemo.mandate_alignment },
               ].map(section => (
                 <div key={section.label} className="space-y-1">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-black">{section.label}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{section.label}</p>
                   <p className="text-[15px] text-foreground leading-relaxed">{section.value}</p>
                 </div>
               ))}
@@ -1290,7 +1289,7 @@ function MarketplaceDetail({
               {/* Risk flags */}
               {dealMemo.risk_flags?.length > 0 && (
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-black">Risk flags</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Risk flags</p>
                   <ul className="space-y-1">
                     {dealMemo.risk_flags.map((flag: string, i: number) => (
                       <li key={i} className="flex items-start gap-2 text-[15px] text-foreground">
@@ -1329,7 +1328,7 @@ function MarketplaceDetail({
 
       {/* CSR Brief Panel */}
       {csrOpen && (
-        <div className="rounded-2xl border border-border bg-white p-6 space-y-5">
+        <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#2D6A4F]" />
@@ -1378,14 +1377,14 @@ function MarketplaceDetail({
                 { label: "Implementer readiness",       value: csrBrief.implementer_readiness },
               ].map(section => (
                 <div key={section.label} className="space-y-1">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-black">{section.label}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{section.label}</p>
                   <p className="text-[15px] text-foreground leading-relaxed">{section.value}</p>
                 </div>
               ))}
 
               {csrBrief.risk_flags?.length > 0 && (
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-black">Risk flags</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Risk flags</p>
                   <ul className="space-y-1">
                     {csrBrief.risk_flags.map((flag: string, i: number) => (
                       <li key={i} className="flex items-start gap-2 text-[15px] text-foreground">
@@ -1510,14 +1509,14 @@ function MarketplaceDetail({
       {(initiative.problem || initiative.outcome) && (
         <div className="grid gap-3 sm:grid-cols-2">
           {initiative.problem && (
-            <div className="rounded-xl border border-border bg-white px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black mb-2">Problem</p>
+            <div className="rounded-xl border border-border bg-card px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Problem</p>
               <p className="text-[15px] text-foreground leading-relaxed">{initiative.problem}</p>
             </div>
           )}
           {initiative.outcome && (
-            <div className="rounded-xl border border-border bg-white px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black mb-2">Expected Outcome</p>
+            <div className="rounded-xl border border-border bg-card px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Expected Outcome</p>
               <p className="text-[15px] text-foreground leading-relaxed">{initiative.outcome}</p>
             </div>
           )}
@@ -1526,38 +1525,38 @@ function MarketplaceDetail({
 
       {/* ── Target population ── */}
       {fullDetail?.target_population && (
-        <div className="rounded-xl border border-border bg-white px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-black mb-2">Who this serves</p>
+        <div className="rounded-xl border border-border bg-card px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Who this serves</p>
           <p className="text-[15px] text-foreground leading-relaxed">{fullDetail.target_population}</p>
         </div>
       )}
 
       {/* ── Target impact metrics ── */}
       {(fullDetail?.target_beneficiaries || fullDetail?.target_jobs || fullDetail?.target_female_pct || fullDetail?.target_timeline_months) && (
-        <div className="rounded-xl border border-border bg-white px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-black mb-3">Target impact metrics</p>
+        <div className="rounded-xl border border-border bg-card px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Target impact metrics</p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {fullDetail.target_beneficiaries && (
               <div>
-                <p className="text-xs text-black uppercase tracking-wide mb-0.5">Beneficiaries</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Beneficiaries</p>
                 <p className="text-sm font-semibold text-foreground">{fullDetail.target_beneficiaries.toLocaleString()}</p>
               </div>
             )}
             {fullDetail.target_jobs && (
               <div>
-                <p className="text-xs text-black uppercase tracking-wide mb-0.5">Jobs</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Jobs</p>
                 <p className="text-sm font-semibold text-foreground">{fullDetail.target_jobs.toLocaleString()}</p>
               </div>
             )}
             {fullDetail.target_female_pct && (
               <div>
-                <p className="text-xs text-black uppercase tracking-wide mb-0.5">Female %</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Female %</p>
                 <p className="text-sm font-semibold text-foreground">{fullDetail.target_female_pct}%</p>
               </div>
             )}
             {fullDetail.target_timeline_months && (
               <div>
-                <p className="text-xs text-black uppercase tracking-wide mb-0.5">Timeline</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Timeline</p>
                 <p className="text-sm font-semibold text-foreground">{fullDetail.target_timeline_months} months</p>
               </div>
             )}
@@ -1567,8 +1566,8 @@ function MarketplaceDetail({
 
       {/* ── Impact evidence ── */}
       {fullDetail?.impact_evidence && (
-        <div className="rounded-xl border border-border bg-white px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-black mb-2">Impact evidence</p>
+        <div className="rounded-xl border border-border bg-card px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Impact evidence</p>
           <p className="text-[15px] text-foreground leading-relaxed">{fullDetail.impact_evidence}</p>
         </div>
       )}
@@ -1583,8 +1582,8 @@ function MarketplaceDetail({
 
       {/* ── Partnerships sought ── */}
       {initiative.partnerships && initiative.partnerships.length > 0 && (
-        <div className="rounded-xl border border-border bg-white px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-black mb-3">Partnerships sought</p>
+        <div className="rounded-xl border border-border bg-card px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Partnerships sought</p>
           <div className="flex flex-wrap gap-2">
             {initiative.partnerships.map(p => (
               <span key={p} className="px-3 py-1 rounded-full text-xs font-medium border border-border text-foreground capitalize">
@@ -1599,17 +1598,17 @@ function MarketplaceDetail({
       {(fullDetail?.stage || fullDetail?.confirmed_assets?.length) && (
         <div className="grid gap-3 sm:grid-cols-2">
           {fullDetail?.stage && (
-            <div className="rounded-xl border border-border bg-white px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black mb-2">Current stage</p>
+            <div className="rounded-xl border border-border bg-card px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Current stage</p>
               <p className="text-[15px] text-foreground">{STAGE_LABELS[fullDetail.stage] ?? fullDetail.stage}</p>
             </div>
           )}
           {fullDetail?.confirmed_assets && fullDetail.confirmed_assets.length > 0 && !fullDetail.confirmed_assets.includes("none") && (
-            <div className="rounded-xl border border-border bg-white px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black mb-2">Already confirmed</p>
+            <div className="rounded-xl border border-border bg-card px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Already confirmed</p>
               <div className="flex flex-wrap gap-1.5">
                 {fullDetail.confirmed_assets.filter(a => a !== "none").map(a => (
-                  <span key={a} className="text-xs px-2.5 py-0.5 rounded-full border border-border text-black capitalize">
+                  <span key={a} className="text-xs px-2.5 py-0.5 rounded-full border border-border text-muted-foreground capitalize">
                     {a.replace(/_/g, " ")}
                   </span>
                 ))}
@@ -1623,14 +1622,14 @@ function MarketplaceDetail({
       {(fullDetail?.start_date || fullDetail?.duration) && (
         <div className="grid gap-3 sm:grid-cols-2">
           {fullDetail.start_date && (
-            <div className="rounded-xl border border-border bg-white px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black mb-1">Estimated start</p>
+            <div className="rounded-xl border border-border bg-card px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Estimated start</p>
               <p className="text-[15px] text-foreground">{fullDetail.start_date}</p>
             </div>
           )}
           {fullDetail.duration && (
-            <div className="rounded-xl border border-border bg-white px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black mb-1">Duration</p>
+            <div className="rounded-xl border border-border bg-card px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Duration</p>
               <p className="text-[15px] text-foreground">{fullDetail.duration}</p>
             </div>
           )}
@@ -1639,28 +1638,28 @@ function MarketplaceDetail({
 
       {/* ── Co-funding status ── */}
       {fullDetail?.co_funding_status && (
-        <div className="rounded-xl border border-border bg-white px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-black mb-1">Funding status</p>
+        <div className="rounded-xl border border-border bg-card px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Funding status</p>
           <p className="text-[15px] text-foreground">{CO_FUNDING_LABELS[fullDetail.co_funding_status] ?? fullDetail.co_funding_status}</p>
         </div>
       )}
 
       {/* ── Prior experience ── */}
       {fullDetail?.had_prior_experience !== null && fullDetail?.had_prior_experience !== undefined && (
-        <div className="rounded-xl border border-border bg-white px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-black mb-2">Track record</p>
+        <div className="rounded-xl border border-border bg-card px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Track record</p>
           <p className="text-[15px] text-foreground mb-2">
             {fullDetail.had_prior_experience ? "The team has led similar initiatives before." : "This is a first initiative of this type for the team."}
           </p>
           {fullDetail.prior_experience_detail && (
-            <p className="text-[15px] text-black leading-relaxed italic">"{fullDetail.prior_experience_detail}"</p>
+            <p className="text-[15px] text-foreground leading-relaxed italic">"{fullDetail.prior_experience_detail}"</p>
           )}
         </div>      )}
 
       {/* ── SDG alignment ── */}
       {fullDetail?.sdg_tags && fullDetail.sdg_tags.length > 0 && (
-        <div className="rounded-xl border border-border bg-white px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-black mb-3">SDG Alignment</p>
+        <div className="rounded-xl border border-border bg-card px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">SDG Alignment</p>
           <div className="flex flex-wrap gap-1.5">
             {fullDetail.sdg_tags.map(s => (
               <span key={s} className="text-xs px-2.5 py-0.5 rounded-full font-medium"
@@ -1672,9 +1671,9 @@ function MarketplaceDetail({
 
       {/* ── Full description ── */}
       {fullDetail?.detail_content && fullDetail.detail_content !== "<p></p>" && (
-        <div className="rounded-xl border border-border bg-white px-5 py-4">
+        <div className="rounded-xl border border-border bg-card px-5 py-4">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-black">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Full initiative description
             </p>
             <button
@@ -1748,8 +1747,8 @@ function MarketplaceDetail({
 
       {/* ── Resource link ── */}
       {fullDetail?.resource_link && (
-        <div className="rounded-xl border border-border bg-white px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-black mb-2">Resource</p>
+        <div className="rounded-xl border border-border bg-card px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Resource</p>
           <a href={fullDetail.resource_link} target="_blank" rel="noopener noreferrer"
             className="text-sm text-primary hover:underline break-all">
             {fullDetail.resource_link.replace(/^https?:\/\//, "")}
@@ -1796,8 +1795,8 @@ function MarketplaceDetail({
                   Ask a question before committing
                 </button>
               ) : (
-                <div className="rounded-xl border border-border bg-white p-4 space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-black">Your question</p>
+                <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your question</p>
                   <textarea
                     value={question}
                     onChange={e => setQuestion(e.target.value)}

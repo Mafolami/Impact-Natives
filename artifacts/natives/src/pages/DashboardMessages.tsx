@@ -1,4 +1,4 @@
-  // ─── DashboardMessages.tsx ────────────────────────────────────────────────────
+// ─── DashboardMessages.tsx ────────────────────────────────────────────────────
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
@@ -494,8 +494,8 @@ export default function DashboardMessages() {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-foreground truncate">{title}</p>
-          {subtitle && <p className="text-xs text-black mt-0.5 truncate">{subtitle}</p>}
-          {preview && <p className="text-xs text-black mt-1 line-clamp-1">{preview}</p>}
+          {subtitle && <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
+          {preview && <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{preview}</p>}
         </div>
         {status && (
           <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 mt-0.5"
@@ -517,10 +517,10 @@ export default function DashboardMessages() {
         <p className="text-sm text-muted-foreground mt-1">Expressions of interest and active conversations.</p>
       </div>
       {!hasAnything ? (
-        <div className="rounded-2xl border border-border bg-white p-12 text-center">
+        <div className="rounded-2xl border border-border bg-card p-12 text-center">
           <Clock className="w-8 h-8 text-muted-foreground/40 mx-auto mb-4" />
           <p className="text-foreground font-medium mb-2">No messages yet.</p>
-          <p className="text-sm text-black mb-6 max-w-sm mx-auto">
+          <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
             When you or others express interest in initiatives, conversations will appear here.
           </p>
           <Link href="/dashboard/marketplace">
@@ -568,14 +568,14 @@ export default function DashboardMessages() {
               {partnershipVisible.length > 0 && (
                 <section>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xs font-semibold uppercase tracking-widest text-black">Conversations — {partnershipVisible.length}</h3>
+                    <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Conversations — {partnershipVisible.length}</h3>
                     <Link href="/dashboard/portfolio?tab=partners"
                       className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:underline underline-offset-2">
                       Confirmed partnerships
                       <ExternalLink className="w-2.5 h-2.5" />
                     </Link>
                   </div>
-                  <div className="rounded-2xl border border-border bg-white overflow-hidden">
+                  <div className="rounded-2xl border border-border bg-card overflow-hidden">
                     {partnershipVisible.map((convo, i) => (
                       <Row key={convo.id} last={i === partnershipVisible.length - 1}
                         onClick={() => setActiveConvo(convo)}
@@ -591,8 +591,8 @@ export default function DashboardMessages() {
               )}
               {partnershipArchived.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-2">Archived — {partnershipArchived.length}</h3>
-                  <div className="rounded-2xl border border-border bg-white overflow-hidden opacity-60">
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Archived — {partnershipArchived.length}</h3>
+                  <div className="rounded-2xl border border-border bg-card overflow-hidden opacity-60">
                     {partnershipArchived.map((convo, i) => (
                       <Row key={convo.id} last={i === partnershipArchived.length - 1}
                         onClick={() => setActiveConvo(convo)}
@@ -605,9 +605,9 @@ export default function DashboardMessages() {
                 </section>
               )}
               {partnershipVisible.length === 0 && partnershipArchived.length === 0 && (
-                <div className="rounded-2xl border border-border bg-white p-10 text-center">
+                <div className="rounded-2xl border border-border bg-card p-10 text-center">
                   <Handshake className="w-6 h-6 text-muted-foreground/40 mx-auto mb-3" />
-                  <p className="text-sm text-black">No partnership conversations yet.</p>
+                  <p className="text-sm text-muted-foreground">No partnership conversations yet.</p>
                 </div>
               )}
             </div>
@@ -618,13 +618,13 @@ export default function DashboardMessages() {
             <div className="space-y-6">
               {pendingEOIs.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
                     Awaiting review — {pendingEOIs.length}
                   </h3>
                   <div className="space-y-2">
                     {pendingEOIs.map(eoi => (
                       <div key={eoi.eoi_id}
-                        className="rounded-xl border border-border bg-white px-5 py-4 flex items-start gap-4">
+                        className="rounded-xl border border-border bg-card px-5 py-4 flex items-start gap-4">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "#eaf5ee" }}>
                           <CheckCircle2 className="w-4 h-4" style={{ color: INITIATIVE_COLOR }} />
                         </div>
@@ -635,30 +635,30 @@ export default function DashboardMessages() {
                                 {eoi.expresser_name} expressed {eoi.partnership_type ? rolePartnerPhrase(eoi.partnership_type) : ""} interest
                               </p>
                               {eoi.expresser_verified && (
-                                <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium text-black">
+                                <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
                                   <ShieldCheck className="w-3 h-3" />
                                   Verified
                                 </span>
                               )}
                               {eoi.expresser_id && (
                                 <Link href={`/dashboard/natives?user=${eoi.expresser_id}&tab=organisations`}
-                                  className="text-[10px] text-black hover:text-foreground transition-colors shrink-0 underline underline-offset-2">
+                                  className="text-[10px] text-muted-foreground hover:text-foreground transition-colors shrink-0 underline underline-offset-2">
                                   View profile
                                 </Link>
                               )}
                             </div>
-                            <span className="text-[11px] text-black shrink-0">{timeAgo(eoi.created_at)}</span>
+                            <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(eoi.created_at)}</span>
                           </div>
-                          <p className="text-xs text-black mb-1">
+                          <p className="text-xs text-muted-foreground mb-1">
                             <span className="text-foreground/70">{eoi.initiative_title}</span>
                           </p>
                           {eoi.esg_adoption && (
-                            <div className="flex items-center gap-1.5 flex-wrap mt-1 text-xs text-black">
+                            <div className="flex items-center gap-1.5 flex-wrap mt-1 text-xs text-muted-foreground">
                               <span>ESG/CSR adoption</span>
                             </div>
                           )}
                           {eoi.message && (
-                            <p className="text-xs text-black mt-2 leading-relaxed break-words">
+                            <p className="text-xs text-foreground mt-2 leading-relaxed break-words">
                               {eoi.message}
                             </p>
                           )}
@@ -681,8 +681,8 @@ export default function DashboardMessages() {
 
               {initiativeEnquiries.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-2">Enquiries — {initiativeEnquiries.length}</h3>
-                  <div className="rounded-2xl border border-border bg-white overflow-hidden">
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Enquiries — {initiativeEnquiries.length}</h3>
+                  <div className="rounded-2xl border border-border bg-card overflow-hidden">
                     {initiativeEnquiries.map((convo, i) => (
                       <Row key={convo.id} last={i === initiativeEnquiries.length - 1}
                         onClick={() => setActiveConvo(convo)}
@@ -698,8 +698,8 @@ export default function DashboardMessages() {
 
               {initiativeActive.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-2">Conversations — {initiativeActive.length}</h3>
-                  <div className="rounded-2xl border border-border bg-white overflow-hidden">
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Conversations — {initiativeActive.length}</h3>
+                  <div className="rounded-2xl border border-border bg-card overflow-hidden">
                     {initiativeActive.map((convo, i) => (
                       <Row key={convo.id} last={i === initiativeActive.length - 1}
                         onClick={() => setActiveConvo(convo)}
@@ -716,8 +716,8 @@ export default function DashboardMessages() {
 
               {pendingOutbound.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-2">Sent ({pendingOutbound.length})</h3>
-                  <div className="rounded-2xl border border-border bg-white overflow-hidden">
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Sent ({pendingOutbound.length})</h3>
+                  <div className="rounded-2xl border border-border bg-card overflow-hidden">
                     {pendingOutbound.map((eoi, i) => (
                       <Row key={eoi.eoi_id} last={i === pendingOutbound.length - 1}
                         avatarColor={INITIATIVE_COLOR}
@@ -743,8 +743,8 @@ export default function DashboardMessages() {
 
               {isFunder && initiativeArchived.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black mb-2">Archived — {initiativeArchived.length}</h3>
-                  <div className="rounded-2xl border border-border bg-white overflow-hidden opacity-60">
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Archived — {initiativeArchived.length}</h3>
+                  <div className="rounded-2xl border border-border bg-card overflow-hidden opacity-60">
                     {initiativeArchived.map((convo, i) => (
                       <Row key={convo.id} last={i === initiativeArchived.length - 1}
                         onClick={() => setActiveConvo(convo)}
@@ -758,9 +758,9 @@ export default function DashboardMessages() {
               )}
 
               {pendingEOIs.length === 0 && initiativeEnquiries.length === 0 && initiativeActive.length === 0 && pendingOutbound.length === 0 && (
-                <div className="rounded-2xl border border-border bg-white p-10 text-center">
+                <div className="rounded-2xl border border-border bg-card p-10 text-center">
                   <Lightbulb className="w-6 h-6 text-muted-foreground/40 mx-auto mb-3" />
-                  <p className="text-sm text-black">No initiative conversations yet.</p>
+                  <p className="text-sm text-muted-foreground">No initiative conversations yet.</p>
                 </div>
               )}
             </div>
