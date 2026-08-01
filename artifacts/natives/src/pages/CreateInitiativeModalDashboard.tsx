@@ -17,6 +17,7 @@ interface FormState {
   title: string
   sectors: string[]
   locations: string[]
+  openToRemotePartnerships: boolean
   targetPopulation: string
   budgetMin: string
   budgetMax: string
@@ -47,7 +48,7 @@ interface FormState {
 }
 
 const INITIAL_STATE: FormState = {
-  title: "", sectors: [], locations: [], targetPopulation: "",
+  title: "", sectors: [], locations: [], openToRemotePartnerships: false, targetPopulation: "",
   budgetMin: "", budgetMax: "", currency: "USD",
   detailContent: "", resourceLink: "", impactEvidence: "", problem: "", outcome: "",
   tags: [], partnerships: [], sdgTags: [], specificAsk: "",
@@ -437,7 +438,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
     try {
       const { error: dbError } = await supabase.from("initiative_requests").insert({
         title: form.title, sectors: form.sectors, locations: form.locations,
-        target_population: form.targetPopulation || null,
+        open_to_remote_partnerships: form.openToRemotePartnerships,        target_population: form.targetPopulation || null,
         budget: form.budgetMin || form.budgetMax ? `${form.currency} ${form.budgetMin}–${form.budgetMax}` : null,
         budget_min: form.budgetMin ? parseFloat(form.budgetMin.replace(/,/g, "")) : null,
         budget_max: form.budgetMax ? parseFloat(form.budgetMax.replace(/,/g, "")) : null,
@@ -635,6 +636,24 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     onAdd={v => set("locations", [...form.locations, v])}
                     onRemove={v => set("locations", form.locations.filter(x => x !== v))}
                     placeholder="Type a location and press Enter..." />
+                </div>
+
+                {/* Open to remote partnerships */}
+                <div>
+                  <button type="button" onClick={() => set("openToRemotePartnerships", !form.openToRemotePartnerships)}
+                    className={cn("w-full text-left px-4 py-3 rounded-xl border text-sm transition-colors flex items-start gap-3",
+                      form.openToRemotePartnerships ? "border-primary bg-[#fdf5f2]" : "border-border hover:border-foreground/20")}>
+                    <span className={cn("w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors",
+                      form.openToRemotePartnerships ? "bg-primary border-primary" : "border-border")}>
+                      {form.openToRemotePartnerships && (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                      )}
+                    </span>
+                    <span>
+                      <span className="font-medium text-foreground block">Open to remote or virtual partnerships</span>
+                      <span className="text-xs text-muted-foreground">Funders and partners outside these locations can still be a strong match</span>
+                    </span>
+                  </button>
                 </div>
 
                 {/* Partnerships */}
@@ -942,8 +961,8 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                   <ReviewRow label="Title"             value={form.title} />
                   <ReviewRow label="Sectors"           value={form.sectors.join(", ")} />
                   <ReviewRow label="Locations"         value={form.locations.join(", ")} />
-                  {form.targetPopulation && <ReviewRow label="Serves"     value={form.targetPopulation} />}
-                  {form.stage           && <ReviewRow label="Stage"       value={form.stage} />}
+                  <ReviewRow label="Remote partnerships" value={form.openToRemotePartnerships ? "Open to remote/virtual" : "Location-specific only"} />
+                  {form.targetPopulation && <ReviewRow label="Serves"     value={form.targetPopulation} />}                  {form.stage           && <ReviewRow label="Stage"       value={form.stage} />}
                   <ReviewRow label="Budget"            value={form.budgetMin || form.budgetMax ? `${form.currency} ${form.budgetMin} – ${form.budgetMax}` : "—"} />
                   <ReviewRow label="Problem"           value={form.problem} />
                   <ReviewRow label="Outcome"           value={form.outcome} />
@@ -1138,8 +1157,23 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
               placeholder="Type a location and press Enter..." />
           </div>
           <div>
-            <FieldLabel required>Who does this initiative directly serve?</FieldLabel>
-            <textarea value={form.targetPopulation} onChange={e => set("targetPopulation", e.target.value)} rows={2}
+            <button type="button" onClick={() => set("openToRemotePartnerships", !form.openToRemotePartnerships)}
+              className={cn("w-full text-left px-4 py-3 rounded-xl border text-sm transition-colors flex items-start gap-3",
+                form.openToRemotePartnerships ? "border-primary bg-[#fdf5f2]" : "border-border hover:border-foreground/20")}>
+              <span className={cn("w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors",
+                form.openToRemotePartnerships ? "bg-primary border-primary" : "border-border")}>
+                {form.openToRemotePartnerships && (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                )}
+              </span>
+              <span>
+                <span className="font-medium text-foreground block">Open to remote or virtual partnerships</span>
+                <span className="text-xs text-muted-foreground">Funders and partners outside these locations can still be a strong match</span>
+              </span>
+            </button>
+          </div>
+          <div>
+            <FieldLabel required>Who does this initiative directly serve?</FieldLabel>            <textarea value={form.targetPopulation} onChange={e => set("targetPopulation", e.target.value)} rows={2}
               placeholder="e.g. Women smallholder farmers in Kano State, aged 25–50"
               className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
             <div className="flex justify-end mt-1">
@@ -1448,8 +1482,8 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
             <ReviewRow label="Title"             value={form.title} />
             <ReviewRow label="Sectors"           value={form.sectors.join(", ")} />
             <ReviewRow label="Locations"         value={form.locations.join(", ")} />
-            {form.targetPopulation && <ReviewRow label="Serves"        value={form.targetPopulation} />}
-            {form.stage            && <ReviewRow label="Stage"         value={form.stage} />}
+            <ReviewRow label="Remote partnerships" value={form.openToRemotePartnerships ? "Open to remote/virtual" : "Location-specific only"} />
+            {form.targetPopulation && <ReviewRow label="Serves"        value={form.targetPopulation} />}            {form.stage            && <ReviewRow label="Stage"         value={form.stage} />}
             <ReviewRow label="Budget"            value={form.budgetMin || form.budgetMax ? `${form.currency} ${form.budgetMin} – ${form.budgetMax}` : "—"} />
             <ReviewRow label="Problem"           value={form.problem} />
             <ReviewRow label="Outcome"           value={form.outcome} />

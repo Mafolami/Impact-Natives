@@ -239,7 +239,7 @@ export default function ContactPage() {
       <div>
         <h1 className="text-4xl font-bold tracking-tight mb-2">Contact us</h1>
         <p className="text-muted-foreground">
-          Have a question or want to work together? We'll get back to you within 3 business days.
+          Have a question or want to work together? Talk to us.
         </p>
       </div>
 

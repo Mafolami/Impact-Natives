@@ -15,6 +15,7 @@ interface FormState {
   title: string;
   sectors: string[];
   locations: string[];
+  openToRemotePartnerships: boolean;
   budgetMin: string;
   budgetMax: string;
   currency: string;
@@ -34,6 +35,7 @@ const INITIAL_STATE: FormState = {
   title: "",
   sectors: [],
   locations: [],
+  openToRemotePartnerships: false,
   budgetMin: "",
   budgetMax: "",
   currency: "USD",
@@ -435,6 +437,7 @@ export default function CreateInitiativeModal({
           title:           form.title,
           sectors:         form.sectors,
           locations:       form.locations,
+          open_to_remote_partnerships: form.openToRemotePartnerships,
           budget:          form.budgetMin || form.budgetMax
             ? `${form.currency} ${form.budgetMin}–${form.budgetMax}`
             : null,
@@ -543,6 +546,22 @@ export default function CreateInitiativeModal({
                     placeholder="Type a location and press Enter..."
                   />
                   <HintText>e.g. Lagos, West Africa, East Africa, Sub-Saharan Africa</HintText>
+                </div>
+                <div>
+                  <button type="button" onClick={() => set("openToRemotePartnerships", !form.openToRemotePartnerships)}
+                    className={cn("w-full text-left px-4 py-3 rounded-xl border text-sm transition-colors flex items-start gap-3",
+                      form.openToRemotePartnerships ? "border-primary bg-[#fdf5f2]" : "border-border hover:border-foreground/20")}>
+                    <span className={cn("w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors",
+                      form.openToRemotePartnerships ? "bg-primary border-primary" : "border-border")}>
+                      {form.openToRemotePartnerships && (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                      )}
+                    </span>
+                    <span>
+                      <span className="font-medium text-foreground block">Open to remote or virtual partnerships</span>
+                      <span className="text-xs text-muted-foreground">Funders and partners outside these locations can still be a strong match</span>
+                    </span>
+                  </button>
                 </div>
               </div>
             )}
@@ -739,6 +758,7 @@ export default function CreateInitiativeModal({
                   <ReviewRow label="Title"    value={form.title} />
                   <ReviewRow label="Sectors"  value={form.sectors.join(", ")} />
                   <ReviewRow label="Locations" value={form.locations.join(", ")} />
+                  <ReviewRow label="Remote partnerships" value={form.openToRemotePartnerships ? "Open to remote/virtual" : "Location-specific only"} />
                   <ReviewRow
                     label="Budget"
                     value={form.budgetMin || form.budgetMax

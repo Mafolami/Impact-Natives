@@ -9,6 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import { ArrowLeft, ArrowRight, Download, Loader2, Users, UserCheck } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import CreateInitiativeModalDashboard from "./CreateInitiativeModalDashboard";
+import EditInitiativeModalDashboard from "./EditInitiativeModalDashboard";
 import { useRoute } from "wouter";
 import { PartnershipTab } from "./PartnershipTab";
 import { normalizeArr } from "@/lib/normalizeArr";
@@ -278,10 +279,10 @@ function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeR
 
 // ─── Initiative Detail ────────────────────────────────────────────────────────
 
-function InitiativeDetail({ initiative, onBack }: { initiative: InitiativeRow; onBack: () => void }) {
+function InitiativeDetail({ initiative, onBack, onEdited }: { initiative: InitiativeRow; onBack: () => void; onEdited: () => void }) {
   const s = STATUS_MAP[initiative.status] ?? { label: initiative.status, dot: "#6b7280", bg: "#f9fafb" };
   const [passData, setPassData] = useState<{ count: number; reasons: Record<string, number> } | null>(null);
-
+  const [showEdit, setShowEdit] = useState(false);
   useEffect(() => {
     supabase.from("funder_decisions").select("decision, reason")
       .eq("initiative_id", initiative.id).eq("decision", "pass")
@@ -397,9 +398,23 @@ function InitiativeDetail({ initiative, onBack }: { initiative: InitiativeRow; o
         </div>
       )}
 
+      {initiative.status !== "closed" && (
+        <button type="button" onClick={() => setShowEdit(true)}
+          className="w-full rounded-xl border border-border bg-white px-5 py-3 text-sm text-black hover:text-foreground hover:border-foreground/30 transition-colors text-left">
+          Need to update something? <span className="text-foreground font-medium">Edit this initiative →</span>
+        </button>
+      )}
+
       {initiative.status === "published" && (
         <CloseInitiativeButton initiative={initiative} onClosed={onBack} />
       )}
+
+      <EditInitiativeModalDashboard
+        isOpen={showEdit}
+        initiativeId={initiative.id}
+        onClose={() => setShowEdit(false)}
+        onSaved={() => { setShowEdit(false); onEdited(); }}
+      />
 
       {initiative.status === "draft" && initiative.source === "ai_generated" && (
         <PublishRFPButton initiative={initiative} onPublished={onBack} />
@@ -730,7 +745,7 @@ export default function DashboardInitiatives() {
   }, [routeId, initiatives]);
 
   if (selected) {
-    return <InitiativeDetail initiative={selected} onBack={() => setSelected(null)} />;
+    return <InitiativeDetail initiative={selected} onBack={() => setSelected(null)} onEdited={() => { load(); setSelected(null); }} />;
   }
 
   const initSubTabs = [
