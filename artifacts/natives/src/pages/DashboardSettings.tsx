@@ -339,9 +339,9 @@ export default function DashboardSettings() {
                   </div>
                   <button type="button"
                     onClick={() => setNotifPrefs((p) => ({ ...p, [key]: !p[key] }))}
-                    className={`relative shrink-0 w-10 h-6 rounded-full transition-colors mt-0.5 ${notifPrefs[key] ? "bg-[#2D6A4F]" : "bg-muted"}`}>
-                    <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                      notifPrefs[key] ? "translate-x-5" : "translate-x-1"
+                    className={`relative shrink-0 w-10 h-6 rounded-full transition-colors mt-0.5 p-0 border-0 overflow-hidden box-border ${notifPrefs[key] ? "bg-[#2D6A4F]" : "bg-muted"}`}>
+                    <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                      notifPrefs[key] ? "translate-x-4" : "translate-x-0"
                     }`} />
                   </button>
                 </div>
