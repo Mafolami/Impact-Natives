@@ -484,8 +484,8 @@ export default function FunderHome({ profile }: { profile: any }) {
                       {typeof ini.score === "number" && (
                         <span className="shrink-0 text-xs font-bold px-2 py-0.5 rounded-full"
                           style={{
-                            background: ini.score >= 70 ? "rgba(45,106,79,0.12)" : "rgba(107,114,128,0.12)",
-                            color: ini.score >= 70 ? "#2D6A4F" : "hsl(var(--muted-foreground))",
+                            background: ini.score >= 70 ? "rgba(45,106,79,0.12)" : ini.score >= 40 ? "rgba(180,83,9,0.12)" : "rgba(239,68,68,0.12)",
+                            color: ini.score >= 70 ? "#2D6A4F" : ini.score >= 40 ? "#b45309" : "#ef4444",
                           }}>
                           {ini.score}% criteria match
                         </span>
@@ -603,8 +603,8 @@ export default function FunderHome({ profile }: { profile: any }) {
                     </p>
                     <span className="shrink-0 text-xs font-bold px-2 py-0.5 rounded-full"
                       style={{
-                        background: m.fit_score >= 70 ? "rgba(45,106,79,0.12)" : "rgba(107,114,128,0.12)",
-                        color: m.fit_score >= 70 ? "#2D6A4F" : "hsl(var(--muted-foreground))",
+                        background: m.fit_score >= 70 ? "rgba(45,106,79,0.12)" : m.fit_score >= 40 ? "rgba(180,83,9,0.12)" : "rgba(239,68,68,0.12)",
+                        color: m.fit_score >= 70 ? "#2D6A4F" : m.fit_score >= 40 ? "#b45309" : "#ef4444",
                       }}>
                       {m.fit_score}%
                     </span>
