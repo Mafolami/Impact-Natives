@@ -28,7 +28,7 @@ const NOTIFICATION_LABELS: { key: keyof NotificationPrefs; label: string; sub: s
 ];
 
 export default function DashboardSettings() {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, refreshProfile } = useAuth();
   const [tab, setTab] = useState<SettingsTab>("account");
 
   // ── Password ──────────────────────────────────────────────────────────────
@@ -70,6 +70,7 @@ export default function DashboardSettings() {
       feed_visibility: feedVisibility,
       show_individual_profile: showIndividualProfile,
     }).eq("id", user.id);
+    await refreshProfile();
     setPrivacySaving(false);
     setPrivacySaved(true);
     setTimeout(() => setPrivacySaved(false), 3000);
@@ -97,6 +98,11 @@ export default function DashboardSettings() {
     await supabase.from("profiles").update({
       notification_preferences: notifPrefs,
     }).eq("id", user.id);
+    // Without this, the cached profile in AuthContext still holds the old
+    // preferences -- the write succeeds but the app's own state doesn't
+    // know it, so the next time this component mounts it re-syncs from
+    // the stale cache and the toggles appear to have silently reverted.
+    await refreshProfile();
     setNotifSaving(false);
     setNotifSaved(true);
     setTimeout(() => setNotifSaved(false), 3000);
