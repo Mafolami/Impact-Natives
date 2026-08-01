@@ -332,14 +332,14 @@ export default function DashboardSettings() {
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">In-app notifications</p>
             <div className="space-y-4">
               {NOTIFICATION_LABELS.map(({ key, label, sub }) => (
-                <div key={key} className="flex items-center justify-between gap-4">
+                <div key={key} className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-sm font-medium text-foreground">{label}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>
                   </div>
                   <button type="button"
                     onClick={() => setNotifPrefs((p) => ({ ...p, [key]: !p[key] }))}
-                    className={`relative shrink-0 w-10 h-6 rounded-full transition-colors ${notifPrefs[key] ? "bg-[#2D6A4F]" : "bg-muted"}`}>
+                    className={`relative shrink-0 w-10 h-6 rounded-full transition-colors mt-0.5 ${notifPrefs[key] ? "bg-[#2D6A4F]" : "bg-muted"}`}>
                     <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${
                       notifPrefs[key] ? "translate-x-5" : "translate-x-1"
                     }`} />
