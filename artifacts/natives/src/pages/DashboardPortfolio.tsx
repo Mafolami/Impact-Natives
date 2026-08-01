@@ -6,8 +6,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { ArrowLeft, ArrowRight, Download, Loader2, Users, UserCheck } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { ArrowLeft, ArrowRight, Download, Loader2, Users, UserCheck, Pencil, CheckCircle2, Check, X } from "lucide-react";import { Link, useLocation } from "wouter";
 import CreateInitiativeModalDashboard from "./CreateInitiativeModalDashboard";
 import EditInitiativeModalDashboard from "./EditInitiativeModalDashboard";
 import { useRoute } from "wouter";
@@ -279,11 +278,9 @@ function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeR
 
 // ─── Initiative Detail ────────────────────────────────────────────────────────
 
-function InitiativeDetail({ initiative, onBack, onEdited }: { initiative: InitiativeRow; onBack: () => void; onEdited: () => void }) {
+function InitiativeDetail({ initiative, onBack, onRequestEdit }: { initiative: InitiativeRow; onBack: () => void; onRequestEdit: (id: string) => void }) {
   const s = STATUS_MAP[initiative.status] ?? { label: initiative.status, dot: "#6b7280", bg: "#f9fafb" };
-  const [passData, setPassData] = useState<{ count: number; reasons: Record<string, number> } | null>(null);
-  const [showEdit, setShowEdit] = useState(false);
-  useEffect(() => {
+  const [passData, setPassData] = useState<{ count: number; reasons: Record<string, number> } | null>(null);  useEffect(() => {
     supabase.from("funder_decisions").select("decision, reason")
       .eq("initiative_id", initiative.id).eq("decision", "pass")
       .then(({ data }) => {
@@ -398,8 +395,8 @@ function InitiativeDetail({ initiative, onBack, onEdited }: { initiative: Initia
         </div>
       )}
 
-      {initiative.status !== "closed" && (
-        <button type="button" onClick={() => setShowEdit(true)}
+{initiative.status !== "closed" && (
+        <button type="button" onClick={() => onRequestEdit(initiative.id)}
           className="w-full rounded-xl border border-border bg-white px-5 py-3 text-sm text-black hover:text-foreground hover:border-foreground/30 transition-colors text-left">
           Need to update something? <span className="text-foreground font-medium">Edit this initiative →</span>
         </button>
@@ -408,13 +405,6 @@ function InitiativeDetail({ initiative, onBack, onEdited }: { initiative: Initia
       {initiative.status === "published" && (
         <CloseInitiativeButton initiative={initiative} onClosed={onBack} />
       )}
-
-      <EditInitiativeModalDashboard
-        isOpen={showEdit}
-        initiativeId={initiative.id}
-        onClose={() => setShowEdit(false)}
-        onSaved={() => { setShowEdit(false); onEdited(); }}
-      />
 
       {initiative.status === "draft" && initiative.source === "ai_generated" && (
         <PublishRFPButton initiative={initiative} onPublished={onBack} />
@@ -716,6 +706,18 @@ export default function DashboardInitiatives() {
   const [, params] = useRoute("/dashboard/initiatives/:id");
   const routeId = params?.id;
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [closingId, setClosingId] = useState<string | null>(null);
+  const [closeSavingId, setCloseSavingId] = useState<string | null>(null);
+
+  async function closeFromCard(id: string) {
+    setCloseSavingId(id);
+    await supabase.from("initiative_requests").update({ status: "closed" }).eq("id", id);
+    setCloseSavingId(null);
+    setClosingId(null);
+    load();
+  }
+
   // Handle deep links
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
@@ -745,7 +747,7 @@ export default function DashboardInitiatives() {
   }, [routeId, initiatives]);
 
   if (selected) {
-    return <InitiativeDetail initiative={selected} onBack={() => setSelected(null)} onEdited={() => { load(); setSelected(null); }} />;
+    return <InitiativeDetail initiative={selected} onBack={() => setSelected(null)} onRequestEdit={id => setEditingId(id)} />;
   }
 
   const initSubTabs = [
@@ -825,34 +827,71 @@ export default function DashboardInitiatives() {
                   <div className="space-y-3">
                     {initiatives.map(ini => {
                       const s = STATUS_MAP[ini.status] ?? { label: ini.status, dot: "#6b7280", bg: "#f9fafb" };
+                      const isConfirmingClose = closingId === ini.id;
                       return (
-                        <button key={ini.id} type="button" onClick={() => setSelected(ini)}
-                          className="w-full text-left rounded-2xl border border-border bg-white px-6 py-5 hover:border-[#2D6A4F]/40 hover:shadow-md transition-all duration-200 group">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1 min-w-0 space-y-2">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-0.5 rounded-full"
-                                  style={{ background: s.bg, color: s.dot }}>
-                                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.dot }} />
-                                  {s.label}
-                                </span>
-                                <span className="text-xs text-black">
-                                  {ini.eois} EOI{ini.eois !== 1 ? "s" : ""}
-                                </span>
+                        <div key={ini.id}
+                          className="w-full rounded-2xl border border-border bg-white px-6 py-5 hover:border-[#2D6A4F]/40 hover:shadow-md transition-all duration-200 group">
+                          <button type="button" onClick={() => setSelected(ini)} className="w-full text-left">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0 space-y-2">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-0.5 rounded-full"
+                                    style={{ background: s.bg, color: s.dot }}>
+                                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.dot }} />
+                                    {s.label}
+                                  </span>
+                                  <span className="text-xs text-black">
+                                    {ini.eois} EOI{ini.eois !== 1 ? "s" : ""}
+                                  </span>
+                                </div>
+                                <p className="font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors leading-snug">
+                                  {ini.title}
+                                </p>
+                                <p className="text-[13px] text-black">
+                                  {normalizeArr(ini.sectors).slice(0, 2).join(", ")}
+                                  {normalizeArr(ini.locations).length > 0 && (
+                                    <> · {normalizeArr(ini.locations).slice(0, 2).join(", ")}</>
+                                  )}
+                                </p>
                               </div>
-                              <p className="font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors leading-snug">
-                                {ini.title}
-                              </p>
-                              <p className="text-[13px] text-black">
-                                {normalizeArr(ini.sectors).slice(0, 2).join(", ")}
-                                {normalizeArr(ini.locations).length > 0 && (
-                                  <> · {normalizeArr(ini.locations).slice(0, 2).join(", ")}</>
+                              <div className="flex items-center gap-1 shrink-0 mt-1" onClick={e => e.stopPropagation()}>
+                                {isConfirmingClose ? (
+                                  <>
+                                    <button type="button" title="Confirm: close this initiative"
+                                      disabled={closeSavingId === ini.id}
+                                      onClick={() => closeFromCard(ini.id)}
+                                      className="p-1.5 rounded-full hover:bg-[#eaf5ee] text-[#2D6A4F] transition-colors disabled:opacity-40">
+                                      {closeSavingId === ini.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                                    </button>
+                                    <button type="button" title="Cancel"
+                                      onClick={() => setClosingId(null)}
+                                      className="p-1.5 rounded-full hover:bg-muted text-muted-foreground transition-colors">
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    {ini.status !== "closed" && (
+                                      <button type="button" title="Edit initiative"
+                                        onClick={() => setEditingId(ini.id)}
+                                        className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                                        <Pencil className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                    {ini.status === "published" && (
+                                      <button type="button" title="Close initiative — found a partner"
+                                        onClick={() => setClosingId(ini.id)}
+                                        className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                                        <CheckCircle2 className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                    <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-[#2D6A4F] transition-colors ml-1" />
+                                  </>
                                 )}
-                              </p>
+                              </div>
                             </div>
-                            <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-[#2D6A4F] transition-colors shrink-0 mt-1" />
-                          </div>
-                        </button>
+                          </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -882,6 +921,12 @@ export default function DashboardInitiatives() {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onSuccess={() => { load(); }}
+      />
+      <EditInitiativeModalDashboard
+        isOpen={!!editingId}
+        initiativeId={editingId}
+        onClose={() => setEditingId(null)}
+        onSaved={() => { setEditingId(null); load(); }}
       />
     </>
   );
