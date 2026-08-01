@@ -58,11 +58,11 @@ const PASS_REASONS = ["Too early stage", "Outside mandate", "Budget mismatch", "
 // RAG status colors for AI-recommended actions across deal memo and CSR brief.
 // Red = Pass, Amber = needs more info/exploration, Green = positive recommendation.
 const RAG_COLORS: Record<string, { border: string; bg: string; text: string }> = {
-  "Pass":                       { border: "#C4262640", bg: "#fdf2f2", text: "#C42626" },
-  "Request More Info":          { border: "#f59e0b40", bg: "#fffbeb", text: "#b45309" },
-  "Explore further":            { border: "#f59e0b40", bg: "#fffbeb", text: "#b45309" },
-  "Express Interest":           { border: "#2D6A4F40", bg: "#eaf5ee", text: "#2D6A4F" },
-  "Adopt as CSR programme":     { border: "#2D6A4F40", bg: "#eaf5ee", text: "#2D6A4F" },
+  "Pass":                       { border: "#C4262640", bg: "rgba(196,38,38,0.08)", text: "#C42626" },
+  "Request More Info":          { border: "#f59e0b40", bg: "rgba(180,83,9,0.12)", text: "#b45309" },
+  "Explore further":            { border: "#f59e0b40", bg: "rgba(180,83,9,0.12)", text: "#b45309" },
+  "Express Interest":           { border: "#2D6A4F40", bg: "rgba(45,106,79,0.12)", text: "#2D6A4F" },
+  "Adopt as CSR programme":     { border: "#2D6A4F40", bg: "rgba(45,106,79,0.12)", text: "#2D6A4F" },
 };
 const DEFAULT_RAG = { border: "#e5e7eb", bg: "#f9fafb", text: "#6b7280" };
 function ragFor(action?: string) {
@@ -170,7 +170,7 @@ function DecisionIcons({
         title={saved ? "Remove from saved" : "Save"}
         className={`${dim} rounded-full flex items-center justify-center border transition-colors ${
           saved
-            ? "border-[#2D6A4F]/30 bg-[#eaf5ee] text-[#2D6A4F]"
+            ? "border-[#2D6A4F]/30 bg-[rgba(45,106,79,0.12)] text-[#2D6A4F]"
             : "border-border text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] hover:bg-[#2D6A4F]/5"
         }`}>
         <Bookmark className={iconDim} fill={saved ? "currentColor" : "none"} />
@@ -181,7 +181,7 @@ function DecisionIcons({
           type="button"
           onClick={onUndoPass}
           title={passReason ? `Passed · ${passReason} — click to undo` : "Passed — click to undo"}
-          className={`${dim} rounded-full flex items-center justify-center border border-gray-200 bg-gray-100 text-gray-500 hover:text-[#2D6A4F] hover:border-[#2D6A4F]/30 hover:bg-[#eaf5ee] transition-colors`}>
+          className={`${dim} rounded-full flex items-center justify-center border border-gray-200 bg-gray-100 text-gray-500 hover:text-[#2D6A4F] hover:border-[#2D6A4F]/30 hover:bg-[rgba(45,106,79,0.12)] transition-colors`}>
           <RotateCcw className={iconDim} />
         </button>
       ) : (
@@ -298,7 +298,7 @@ function FilterPanel({
             return (
               <button key={o} type="button" onClick={() => toggle(selected, o, set)}
                 className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-xs text-left transition-colors ${
-                  on ? "bg-[#eaf5ee] text-[#2D6A4F] font-semibold" : "text-foreground hover:bg-muted"
+                  on ? "bg-[rgba(45,106,79,0.12)] text-[#2D6A4F] font-semibold" : "text-foreground hover:bg-muted"
                 }`}>
                 <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
                   on ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-[#D1D5DB]"
@@ -392,7 +392,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
         <div className="flex flex-wrap gap-1.5">
           {ini.sectors?.slice(0, 2).map(s => (
             <span key={s} className="text-[11px] font-medium px-2.5 py-0.5 rounded-full"
-              style={{ background: "#f5ede8", color: "#C45C26" }}>
+              style={{ background: "rgba(196,92,38,0.12)", color: "#C45C26" }}>
               {s}
             </span>
           ))}
@@ -403,7 +403,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
           )}
           {ini.esg_alignment && (
             <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full"
-              style={{ background: "#e8f5e9", color: "#2e7d32" }}>
+              style={{ background: "rgba(46,125,50,0.12)", color: "#2e7d32" }}>
               <Leaf className="w-2.5 h-2.5" />ESG/CSR
             </span>
           )}
@@ -418,7 +418,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
           />
           {ini.submitter_is_verified && (
             <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full"
-              style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+              style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
               <VerifiedBadge />
             </span>
           )}
@@ -428,7 +428,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
             </span>
           )}
           {expressed && ini.status !== "closed" && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#2D6A4F] bg-[#eaf5ee] px-2.5 py-0.5 rounded-full">
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#2D6A4F] bg-[rgba(45,106,79,0.12)] px-2.5 py-0.5 rounded-full">
               <CheckCircle2 className="w-3 h-3" />Expressed
             </span>
           )}
@@ -728,7 +728,7 @@ export default function DashboardMarketplace() {
         <button type="button" onClick={() => setShowFilters(v => !v)}
           className={`h-10 px-4 rounded-lg border text-sm flex items-center gap-2 transition-colors shrink-0 ${
             showFilters || activeFilterCount > 0
-              ? "border-[#2D6A4F] text-[#2D6A4F] bg-[#eaf5ee]"
+              ? "border-[#2D6A4F] text-[#2D6A4F] bg-[rgba(45,106,79,0.12)]"
               : "border-border text-muted-foreground hover:border-foreground/30"
           }`}>
           <SlidersHorizontal className="w-4 h-4" />
@@ -742,7 +742,7 @@ export default function DashboardMarketplace() {
         <button type="button" onClick={() => setShowSaved(v => !v)}
           className={`h-10 px-4 rounded-lg border text-sm flex items-center gap-2 transition-colors shrink-0 ${
             showSaved
-              ? "border-[#2D6A4F] text-[#2D6A4F] bg-[#eaf5ee]"
+              ? "border-[#2D6A4F] text-[#2D6A4F] bg-[rgba(45,106,79,0.12)]"
               : "border-border text-muted-foreground hover:border-foreground/30"
           }`}>
           <Bookmark className="w-4 h-4" fill={showSaved ? "#2D6A4F" : "none"} />
@@ -786,7 +786,7 @@ export default function DashboardMarketplace() {
             ...budgets.map(b => BUDGET_OPTIONS.find(o => o.value === b)?.label ?? b),
             ...partnerships.map(p => PARTNERSHIP_OPTIONS.find(o => o.value === p)?.label ?? p),
           ].map(chip => (
-            <span key={chip} className="inline-flex items-center gap-1 h-7 px-3 rounded-full text-xs bg-[#eaf5ee] text-[#2D6A4F] border border-[#2D6A4F]/20">
+            <span key={chip} className="inline-flex items-center gap-1 h-7 px-3 rounded-full text-xs bg-[rgba(45,106,79,0.12)] text-[#2D6A4F] border border-[#2D6A4F]/20">
               {chip}
             </span>
           ))}
@@ -1156,9 +1156,9 @@ function MarketplaceDetail({
   };
 
   const QUALITY_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-    strong: { label: "Strong brief",    color: "#2D6A4F", bg: "#eaf5ee" },
-    good:   { label: "Good brief",      color: "#f59e0b", bg: "#fffbeb" },
-    basic:  { label: "Developing brief", color: "#C45C26", bg: "#fdf5f2" },
+    strong: { label: "Strong brief",    color: "#2D6A4F", bg: "rgba(45,106,79,0.12)" },
+    good:   { label: "Good brief",      color: "#f59e0b", bg: "rgba(180,83,9,0.12)" },
+    basic:  { label: "Developing brief", color: "#C45C26", bg: "rgba(196,92,38,0.08)" },
   };
 
   // ── Transaction-safe EOI submit ────────────────────────────────────────────
@@ -1433,17 +1433,17 @@ function MarketplaceDetail({
           <div className="flex flex-wrap gap-1.5">
             {initiative.sectors?.map(s => (
               <span key={s} className="text-xs font-medium px-2.5 py-0.5 rounded-full"
-                style={{ background: "#f5ede8", color: "#C45C26" }}>{s}</span>
+                style={{ background: "rgba(196,92,38,0.12)", color: "#C45C26" }}>{s}</span>
             ))}
             {initiative.esg_alignment && (
               <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full"
-                style={{ background: "#e8f5e9", color: "#2e7d32" }}>
+                style={{ background: "rgba(46,125,50,0.12)", color: "#2e7d32" }}>
                 <Leaf className="w-3 h-3" />ESG/CSR Friendly
               </span>
             )}
             {initiative.submitter_is_verified && (
               <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full"
-                style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+                style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
                 <VerifiedBadge />              </span>
             )}
             {qualityCfg && (
@@ -1663,7 +1663,7 @@ function MarketplaceDetail({
           <div className="flex flex-wrap gap-1.5">
             {fullDetail.sdg_tags.map(s => (
               <span key={s} className="text-xs px-2.5 py-0.5 rounded-full font-medium"
-                style={{ background: "#eaf5ee", color: "#2D6A4F" }}>{s}</span>
+                style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>{s}</span>
             ))}
           </div>
         </div>
@@ -1759,7 +1759,7 @@ function MarketplaceDetail({
       {/* ── ESG callout ── */}
       {initiative.esg_alignment && (
         <div className="rounded-xl border px-5 py-4 flex items-start gap-3"
-          style={{ borderColor: "#a5d6a7", background: "#f1f8f2" }}>
+          style={{ borderColor: "#a5d6a7", background: "rgba(46,125,50,0.08)" }}>
           <Leaf className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "#2e7d32" }} />
           <div>
             <p className="text-sm font-medium" style={{ color: "#1b5e20" }}>Open to corporate ESG/CSR adoption</p>
@@ -1775,7 +1775,7 @@ function MarketplaceDetail({
         <div className="flex flex-wrap gap-2">
           {initiative.tags.map(t => (
             <span key={t} className="px-3 py-1 rounded-full text-xs font-medium"
-              style={{ background: "#f5ede8", color: "#C45C26" }}>{t}</span>
+              style={{ background: "rgba(196,92,38,0.12)", color: "#C45C26" }}>{t}</span>
           ))}
         </div>
       )}
@@ -1894,7 +1894,7 @@ function MarketplaceDetail({
                   <div>
                     <p className="text-sm font-medium text-foreground mb-2">ESG/CSR adoption</p>
                     <button type="button" onClick={() => setEsgAdoption(v => !v)}
-                      className={`w-full flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${esgAdoption ? "border-[#2e7d32] bg-[#f1f8f2]" : "border-border hover:border-[#2e7d32]/40"}`}>
+                      className={`w-full flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${esgAdoption ? "border-[#2e7d32] bg-[rgba(46,125,50,0.08)]" : "border-border hover:border-[#2e7d32]/40"}`}>
                       <div className={`w-4 h-4 mt-0.5 rounded border flex items-center justify-center shrink-0 transition-colors ${esgAdoption ? "bg-[#2e7d32] border-[#2e7d32]" : "border-border"}`}>
                         {esgAdoption && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>}
                       </div>

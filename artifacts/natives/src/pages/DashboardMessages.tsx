@@ -469,12 +469,12 @@ export default function DashboardMessages() {
   const hasAnything = pendingEOIs.length > 0 || conversations.length > 0 || pendingOutbound.length > 0;
 
   const STATUS_STYLES: Record<string, { label: string; bg: string; color: string }> = {
-    confirmed: { label: "Confirmed", bg: "#eaf5ee", color: "#2D6A4F" },
-    closed:    { label: "Closed",    bg: "#fef2f2", color: "#ef4444" },
-    active:    { label: "Active",    bg: "#fffbeb", color: "#b45309" },
-    pending:   { label: "Pending",   bg: "#f3f4f6", color: "#6b7280" },
-    accepted:  { label: "Accepted",  bg: "#eaf5ee", color: "#2D6A4F" },
-    declined:  { label: "Declined",  bg: "#fef2f2", color: "#ef4444" },
+    confirmed: { label: "Confirmed", bg: "rgba(45,106,79,0.12)", color: "#2D6A4F" },
+    closed:    { label: "Closed",    bg: "rgba(239,68,68,0.12)", color: "#ef4444" },
+    active:    { label: "Active",    bg: "rgba(180,83,9,0.12)", color: "#b45309" },
+    pending:   { label: "Pending",   bg: "rgba(107,114,128,0.12)", color: "#6b7280" },
+    accepted:  { label: "Accepted",  bg: "rgba(45,106,79,0.12)", color: "#2D6A4F" },
+    declined:  { label: "Declined",  bg: "rgba(239,68,68,0.12)", color: "#ef4444" },
   };
 
   // Flat divider row (no card border). Color lives in the avatar fill and
@@ -625,7 +625,7 @@ export default function DashboardMessages() {
                     {pendingEOIs.map(eoi => (
                       <div key={eoi.eoi_id}
                         className="rounded-xl border border-border bg-card px-5 py-4 flex items-start gap-4">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "#eaf5ee" }}>
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "rgba(45,106,79,0.12)" }}>
                           <CheckCircle2 className="w-4 h-4" style={{ color: INITIATIVE_COLOR }} />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -725,7 +725,7 @@ export default function DashboardMessages() {
                         title={eoi.initiative_title}
                         subtitle={eoi.partnership_type ? (
                           <span className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                            style={{ background: "#f5ede8", color: "#C45C26" }}>
+                            style={{ background: "rgba(196,92,38,0.12)", color: "#C45C26" }}>
                             {rolePartnerPhrase(eoi.partnership_type)}
                           </span>
                         ) : undefined}
@@ -878,7 +878,7 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
   if (done === "pending_confirmation") {
     return (
       <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0"
-        style={{ background: "#fffbeb", color: "#b45309" }}>
+        style={{ background: "rgba(180,83,9,0.12)", color: "#b45309" }}>
         Awaiting their confirmation
       </span>
     );
@@ -887,7 +887,7 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
   if (done === "accepted") {
     return (
       <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0"
-        style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+        style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
         ✓ Partnership intent confirmed
       </span>
     );
@@ -896,7 +896,7 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
   if (done === "rejected") {
     return (
       <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0"
-        style={{ background: "#fef2f2", color: "#ef4444" }}>
+        style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}>
         Partnership declined
       </span>
     );
@@ -906,7 +906,7 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
     <>
       <div className="flex items-center gap-2 shrink-0">
         <button type="button" onClick={() => setOpen(true)}
-          className="text-xs px-3 py-1.5 rounded-full border border-[#2D6A4F] text-[#2D6A4F] hover:bg-[#eaf5ee] transition-colors font-medium flex items-center gap-1.5">
+          className="text-xs px-3 py-1.5 rounded-full border border-[#2D6A4F] text-[#2D6A4F] hover:bg-[rgba(45,106,79,0.12)] transition-colors font-medium flex items-center gap-1.5">
           <UserCheck className="w-3.5 h-3.5" />
           Accept Partnership
         </button>
@@ -1479,28 +1479,28 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
             {confirmedRole ? (
               <span className="text-xs px-3 py-1.5 rounded-full font-medium"
-                style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+                style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
                 ✓ Confirmed as {rolePartnerPhrase(confirmedRole)}
               </span>
             ) : proposedRole ? (
               <span className="text-xs px-3 py-1.5 rounded-full font-medium"
-                style={{ background: "#fffbeb", color: "#b45309" }}>
+                style={{ background: "rgba(180,83,9,0.12)", color: "#b45309" }}>
                 Awaiting their confirmation
               </span>
             ) : declinedRole ? (
               <span className="text-xs px-3 py-1.5 rounded-full font-medium"
-                style={{ background: "#fef2f2", color: "#ef4444" }}>
+                style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}>
                 Proposal declined
               </span>
             ) : isRejected ? (
               <span className="text-xs px-3 py-1.5 rounded-full font-medium"
-                style={{ background: "#fef2f2", color: "#ef4444" }}>
+                style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}>
                 Conversation closed
               </span>
             ) : (
               <>
                 <button type="button" onClick={() => setConfirmOpen(true)}
-                  className="text-xs px-3 py-1.5 rounded-full border border-[#2D6A4F] text-[#2D6A4F] hover:bg-[#eaf5ee] transition-colors font-medium flex items-center gap-1.5">
+                  className="text-xs px-3 py-1.5 rounded-full border border-[#2D6A4F] text-[#2D6A4F] hover:bg-[rgba(45,106,79,0.12)] transition-colors font-medium flex items-center gap-1.5">
                   <UserCheck className="w-3.5 h-3.5" />
                   Propose partner
                 </button>
@@ -1515,9 +1515,9 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
 
         {!isOwner && !isFunder && conversation.conversation_type !== "question" && conversation.conversation_type !== "partnership" && (confirmedRole || proposedRole || declinedRole) && (
           <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0" style={
-            confirmedRole ? { background: "#eaf5ee", color: "#2D6A4F" }
-            : proposedRole ? { background: "#fffbeb", color: "#b45309" }
-            : { background: "#fef2f2", color: "#ef4444" }
+            confirmedRole ? { background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }
+            : proposedRole ? { background: "rgba(180,83,9,0.12)", color: "#b45309" }
+            : { background: "rgba(239,68,68,0.12)", color: "#ef4444" }
           }>
             {confirmedRole ? `✓ Confirmed as ${rolePartnerPhrase(confirmedRole)}`
               : proposedRole ? "Respond to their proposal below"
@@ -1527,17 +1527,17 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
         {!isOwner && isFunder && (
           isRejected ? (
             <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0"
-              style={{ background: "#fef2f2", color: "#ef4444" }}>
+              style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}>
               This conversation was closed
             </span>
           ) : confirmedRole ? (
             <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0"
-              style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+              style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
               ✓ You're confirmed as {rolePartnerPhrase(confirmedRole)}
             </span>
           ) : proposedRole ? (
             <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0"
-              style={{ background: "#fffbeb", color: "#b45309" }}>
+              style={{ background: "rgba(180,83,9,0.12)", color: "#b45309" }}>
               Respond to their proposal below
             </span>
           ) : funderClosed ? (
