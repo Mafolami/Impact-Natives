@@ -18,7 +18,7 @@ export function VerifiedBadge({ withTooltip }: { withTooltip?: boolean }) {
     <div className="relative inline-flex" onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
       <span
         className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full cursor-default"
-        style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+        style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
         <ShieldCheck className="w-3 h-3" />
         Verified
       </span>

@@ -69,11 +69,11 @@ const PARTNERSHIP_TYPES = [
 ];
 
 const STATUS_STYLES: Record<string, { label: string; bg: string; color: string }> = {
-  pending:              { label: "Pending",               bg: "#fffbeb", color: "#b45309" },
-  accepted:             { label: "Accepted",              bg: "#eaf5ee", color: "#2D6A4F" },
-  declined:             { label: "Declined",              bg: "#fef2f2", color: "#ef4444" },
-  formed:               { label: "Partnership formed",    bg: "#f0f9ff", color: "#0369a1" },
-  pending_confirmation: { label: "Awaiting confirmation", bg: "#fdf5f2", color: "#C45C26" },
+  pending:              { label: "Pending",               bg: "rgba(180,83,9,0.12)", color: "#b45309" },
+  accepted:             { label: "Accepted",              bg: "rgba(45,106,79,0.12)", color: "#2D6A4F" },
+  declined:             { label: "Declined",              bg: "rgba(239,68,68,0.12)", color: "#ef4444" },
+  formed:               { label: "Partnership formed",    bg: "rgba(3,105,161,0.12)", color: "#0369a1" },
+  pending_confirmation: { label: "Awaiting confirmation", bg: "rgba(196,92,38,0.08)", color: "#C45C26" },
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -428,14 +428,14 @@ export function PartnershipTab() {
                 <div>
                   <p className="font-semibold text-foreground">{myListing?.organisation_name}</p>
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block"
-                    style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+                    style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
                     Listed publicly
                   </span>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {myListing?.partnership_formed ? (
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                      style={{ background: "#f0f9ff", color: "#0369a1" }}>
+                      style={{ background: "rgba(3,105,161,0.12)", color: "#0369a1" }}>
                       Partnership formed
                     </span>
                   ) : (
@@ -710,7 +710,7 @@ export function PartnershipTab() {
                               </td>
                               <td className="px-5 py-3">
                                 <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                                  style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+                                  style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
                                   {conn.partnership_type}
                                 </span>
                               </td>

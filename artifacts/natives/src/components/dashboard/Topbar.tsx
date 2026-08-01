@@ -213,7 +213,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
                       onClick={() => handleNotificationClick(n)}
                       className={cn(
                         "w-full text-left px-4 py-3 border-b border-border/50 hover:bg-muted/50 transition-colors",
-                        !n.read && "bg-[#eaf5ee]/50"
+                        !n.read && "bg-[rgba(45,106,79,0.08)]"
                       )}
                     >
                       <div className="flex items-start justify-between gap-2">
