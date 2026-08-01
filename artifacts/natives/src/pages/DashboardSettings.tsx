@@ -281,7 +281,7 @@ export default function DashboardSettings() {
                   onClick={() => setFeedVisibility(opt.value as "public" | "none")}
                   className={`w-full text-left px-4 py-3.5 rounded-xl border transition-colors ${
                     feedVisibility === opt.value
-                      ? "border-[#2D6A4F] bg-[#f0f9f4]"
+                      ? "border-[#2D6A4F] bg-[#2D6A4F]/10"
                       : "border-border hover:border-foreground/20"
                   }`}>
                   <p className="text-sm font-medium text-foreground">{opt.label}</p>
@@ -298,7 +298,7 @@ export default function DashboardSettings() {
                 onClick={() => setShowIndividualProfile(v => !v)}
                 className={`w-full flex items-start gap-3 text-left px-4 py-3.5 rounded-xl border transition-colors ${
                   showIndividualProfile
-                    ? "border-[#2D6A4F] bg-[#f0f9f4]"
+                    ? "border-[#2D6A4F] bg-[#2D6A4F]/10"
                     : "border-border hover:border-foreground/20"
                 }`}>
                 <div className={`w-4 h-4 mt-0.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
@@ -365,7 +365,7 @@ export default function DashboardSettings() {
         <div className="space-y-4">
 
           {/* Deactivate */}
-                    <div className="rounded-xl border border-amber-500 bg-white dark:bg-background px-5 py-4 space-y-3">
+                    <div className="rounded-xl border border-amber-500 bg-amber-50 dark:bg-amber-950/20 px-5 py-4 space-y-3">
             <div>
               <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Deactivate account</p>
               <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 leading-relaxed">

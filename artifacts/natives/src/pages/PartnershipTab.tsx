@@ -405,7 +405,7 @@ export function PartnershipTab() {
           <button key={key} type="button" onClick={() => setActiveView(key)}
             className={`h-8 px-4 rounded-lg text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 ${
               activeView === key
-                ? "bg-white text-foreground shadow-sm"
+                ? "bg-card text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}>
             {label}
