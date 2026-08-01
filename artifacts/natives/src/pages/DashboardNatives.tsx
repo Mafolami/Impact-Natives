@@ -149,7 +149,7 @@ export default function DashboardNatives() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm text-black mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           Browse individuals and organisations in the ecosystem.
         </p>
       </div>
@@ -160,7 +160,7 @@ export default function DashboardNatives() {
             className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
               tab === t
                 ? "text-white shadow-sm bg-gradient-to-br from-[#3D2618] via-[#33301F] to-[#1B3328]"
-                : "text-black hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground"
             }`}>
             {t === "individual" ? "Individuals" : "Organisations"}
           </button>
@@ -178,20 +178,20 @@ export default function DashboardNatives() {
         </div>
 
         <select value={sectorFilter} onChange={e => setSectorFilter(e.target.value)}
-          className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-black focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
+          className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
           <option value="">Sector</option>
           {SECTOR_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
 
         <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)}
-          className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-black focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
+          className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
           <option value="">Country</option>
           {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
 
         {tab === "organisation" && (
           <select value={orgTypeFilter} onChange={e => setOrgTypeFilter(e.target.value)}
-            className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-black focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
+            className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
             <option value="">Type</option>
             <option value="ngo_non_profit">NGO / Non-Profit</option>
             <option value="social_enterprise">Social Enterprise</option>
@@ -211,7 +211,7 @@ export default function DashboardNatives() {
             className={`h-9 px-3 rounded-lg border text-sm font-medium transition-colors flex items-center gap-1.5 ${
               verifiedOnly
                 ? "border-[#2D6A4F] bg-[#2D6A4F] text-white"
-                : "border-border text-black hover:text-foreground"
+                : "border-border text-muted-foreground hover:text-foreground"
             }`}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -223,7 +223,7 @@ export default function DashboardNatives() {
         {(sectorFilter || countryFilter || orgTypeFilter || verifiedOnly) && (
           <button type="button"
             onClick={() => { setSectorFilter(""); setCountryFilter(""); setOrgTypeFilter(""); setVerifiedOnly(false); }}
-            className="h-9 px-3 rounded-lg border border-border text-sm text-black hover:text-foreground transition-colors">
+            className="h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
             ✕ Clear
           </button>
         )}
@@ -304,12 +304,12 @@ function ProfileCard({ profile, onClick }: { profile: ProfileRow; onClick: () =>
   return (
     <div
       onClick={onClick}
-      className="rounded-xl border border-border bg-white px-5 py-4 flex flex-col gap-3 cursor-pointer hover:border-[#452A1D]/50 hover:shadow-md transition-all duration-200">
+      className="rounded-xl border border-border bg-card px-5 py-4 flex flex-col gap-3 cursor-pointer hover:border-[#452A1D]/50 hover:shadow-md transition-all duration-200">
       <div className="flex items-start gap-3">
         <UserAvatar id={profile.id} name={profile.full_name} avatarUrl={profile.avatar_url} size="md" />
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-foreground truncate">{profile.full_name}</p>
-          {profile.role_title && <p className="text-xs text-black truncate">{profile.role_title}</p>}
+          {profile.role_title && <p className="text-xs text-muted-foreground truncate">{profile.role_title}</p>}
           {profile.user_type === "organisation" && profile.org_name && (
             <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1"
               style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
@@ -317,12 +317,12 @@ function ProfileCard({ profile, onClick }: { profile: ProfileRow; onClick: () =>
             </span>
           )}        </div>
       </div>
-      {profile.country && <p className="text-xs text-black">{profile.country}</p>}
-      {profile.bio && <p className="text-[13px] text-black leading-relaxed line-clamp-2">{profile.bio}</p>}
+      {profile.country && <p className="text-xs text-muted-foreground">{profile.country}</p>}
+      {profile.bio && <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-2">{profile.bio}</p>}
       {sectors.length > 0 && (
         <div className="flex gap-1.5 flex-wrap">
           {sectors.slice(0, 3).map(s => (
-            <span key={s} className="text-xs px-2.5 py-0.5 rounded-full border border-border text-black">{s}</span>
+            <span key={s} className="text-xs px-2.5 py-0.5 rounded-full border border-border text-muted-foreground">{s}</span>
           ))}
         </div>
       )}
@@ -333,9 +333,9 @@ function ProfileCard({ profile, onClick }: { profile: ProfileRow; onClick: () =>
 function ProfileDetail({ profile, onBack }: { profile: ProfileRow; onBack: () => void }) {
   const sectors = profile.sectors ?? [];
   return (
-    <div className="rounded-2xl border border-border bg-white p-6 space-y-5 max-w-2xl">
+    <div className="rounded-2xl border border-border bg-card p-6 space-y-5 max-w-2xl">
       <button type="button" onClick={onBack}
-        className="flex items-center gap-1.5 text-sm text-black hover:text-foreground transition-colors">
+        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
           <path d="M19 12H5M12 5l-7 7 7 7" />
         </svg>
@@ -345,28 +345,28 @@ function ProfileDetail({ profile, onBack }: { profile: ProfileRow; onBack: () =>
         <UserAvatar id={profile.id} name={profile.full_name} avatarUrl={profile.avatar_url} size="lg" />
         <div className="min-w-0">
           <h3 className="text-xl font-bold text-foreground">{profile.full_name}</h3>
-          {profile.role_title && <p className="text-sm text-black">{profile.role_title}</p>}
+          {profile.role_title && <p className="text-sm text-muted-foreground">{profile.role_title}</p>}
           {profile.user_type === "organisation" && profile.org_name && (
             <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full mt-1.5"
               style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
               {profile.org_name}
             </span>
-          )}          {profile.country   && <p className="text-xs text-black mt-1">{profile.country}</p>}
+          )}          {profile.country   && <p className="text-xs text-muted-foreground mt-1">{profile.country}</p>}
         </div>
       </div>
       {sectors.length > 0 && (
         <div className="flex gap-1.5 flex-wrap">
           {sectors.map(s => (
-            <span key={s} className="text-xs px-2.5 py-1 rounded-full border border-border text-black">{s}</span>
+            <span key={s} className="text-xs px-2.5 py-1 rounded-full border border-border text-muted-foreground">{s}</span>
           ))}
         </div>
       )}
-      {profile.bio && <p className="text-[15px] text-black leading-relaxed">{profile.bio}</p>}
+      {profile.bio && <p className="text-[15px] text-muted-foreground leading-relaxed">{profile.bio}</p>}
       <div className="pt-3 border-t border-border space-y-2">
         <p className="text-sm font-medium text-foreground mb-2">Contact</p>
         {profile.linkedin_url && (
           <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs text-black hover:text-[#452A1D] transition-colors">
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-[#452A1D] transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5">
               <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
               <rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
@@ -388,7 +388,7 @@ function ProfileDetail({ profile, onBack }: { profile: ProfileRow; onBack: () =>
           <div className="pt-1 space-y-1.5">
             {profile.social_links.map((s, i) => (
               <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs text-black hover:text-[#452A1D] transition-colors">
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-[#452A1D] transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5 shrink-0">
                   <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
                   <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
@@ -500,7 +500,7 @@ function NativesOrgCard({ org, onClick }: { org: OrgRow; onClick: () => void }) 
   return (
     <div
       onClick={onClick}
-      className={`rounded-xl border bg-white px-5 py-4 flex flex-col gap-3 cursor-pointer transition-all duration-200 ${
+      className={`rounded-xl border bg-card px-5 py-4 flex flex-col gap-3 cursor-pointer transition-all duration-200 ${
         isVerified
           ? "border-l-4 border-l-[#2D6A4F] border-t-border border-r-border border-b-border hover:shadow-md hover:border-l-[6px]"
           : "border-border hover:border-[#452A1D]/50 hover:shadow-md"
@@ -520,16 +520,16 @@ function NativesOrgCard({ org, onClick }: { org: OrgRow; onClick: () => void }) 
             {isVerified && <VerifiedBadge />}
           </div>
           {org.organisation_type && (
-            <p className="text-xs text-black mt-0.5 capitalize">
+            <p className="text-xs text-muted-foreground mt-0.5 capitalize">
               {org.organisation_type.replace(/_/g, " ")}
             </p>
           )}
         </div>
       </div>
       {org.description && (
-        <p className="text-[13px] text-black leading-relaxed line-clamp-2">{org.description}</p>
+        <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-2">{org.description}</p>
       )}
-      <div className="flex flex-col gap-1 text-xs text-black">
+      <div className="flex flex-col gap-1 text-xs text-muted-foreground">
         {sectors.length > 0   && <p><span className="font-medium text-foreground">Sector: </span>{sectors.slice(0, 2).join(", ")}{sectors.length > 2 ? ` +${sectors.length - 2}` : ""}</p>}
         {countries.length > 0 && <p><span className="font-medium text-foreground">Location: </span>{countries.join(", ")}</p>}
         {org.website && org.website !== "https://" && (
@@ -665,7 +665,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
     <div className="space-y-4">
       {/* Back */}
       <button type="button" onClick={onBack}
-        className="flex items-center gap-1.5 text-sm text-black hover:text-foreground transition-colors">
+        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
           <path d="M19 12H5M12 5l-7 7 7 7" />
         </svg>
@@ -673,7 +673,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
       </button>
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 items-start">
       {/* Left col -- identity */}
-      <div className="lg:col-span-3 rounded-2xl border border-border bg-white p-6 space-y-6">
+      <div className="lg:col-span-3 rounded-2xl border border-border bg-card p-6 space-y-6">
 
       {/* Header */}
       <div className="flex items-start gap-4">
@@ -691,12 +691,12 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
             {isVerified && <VerifiedBadge withTooltip />}
           </div>
           {org.organisation_type && (
-            <p className="text-sm text-black mt-0.5 capitalize">
+            <p className="text-sm text-muted-foreground mt-0.5 capitalize">
               {org.organisation_type.replace(/_/g, " ")}
             </p>
           )}
           {org.year_founded && (
-            <p className="text-xs text-black mt-0.5">Est. {org.year_founded}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Est. {org.year_founded}</p>
           )}
           {org.website && org.website !== "https://" && (
             <a href={org.website} target="_blank" rel="noopener noreferrer"
@@ -728,7 +728,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
           {loadingAi ? (
             <div className="flex items-center gap-2">
               <Loader2 className="w-3.5 h-3.5 text-[#2D6A4F] animate-spin shrink-0" />
-              <p className="text-xs text-black">Generating partnership summary...</p>
+              <p className="text-xs text-muted-foreground">Generating partnership summary...</p>
             </div>
           ) : (
             <p className="text-[15px] text-foreground leading-relaxed">{aiSummary}</p>
@@ -738,7 +738,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
       {/* Description */}
       {org.description && (
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-black mb-2">About</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">About</p>
           <p className="text-[15px] text-foreground leading-relaxed">{org.description}</p>
         </div>
       )}
@@ -751,7 +751,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
           <div className="rounded-xl px-4 py-3 space-y-2"
             style={{ background: "linear-gradient(135deg, rgba(45,106,79,0.05) 0%, transparent 100%)", border: "1px solid rgba(45,106,79,0.14)" }}>
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black">DD Readiness</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">DD Readiness</p>
               <span className="text-xs font-bold px-2 py-0.5 rounded-full"
                 style={{
                   background: ddScore >= 80 ? "#eaf5ee" : ddScore >= 50 ? "#fffbeb" : "#f5f5f5",
@@ -794,7 +794,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
         <div className="rounded-xl px-4 py-3 space-y-2"
           style={{ background: "linear-gradient(135deg, rgba(196,92,38,0.05) 0%, transparent 100%)", border: "1px solid rgba(196,92,38,0.14)" }}>
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wider text-black">Confirmed partnerships</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Confirmed partnerships</p>
             <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
               {reputationPartners.length}
             </span>
@@ -815,11 +815,11 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
       {(org.total_beneficiaries_reached || org.jobs_created || org.grants_received_count || org.years_of_operation) && (
         <div className="rounded-xl px-4 py-4 space-y-3"
           style={{ background: "linear-gradient(135deg, rgba(45,106,79,0.05) 0%, transparent 100%)", border: "1px solid rgba(45,106,79,0.14)" }}>
-          <p className="text-xs font-semibold uppercase tracking-wider text-black">Impact & track record</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Impact & track record</p>
           <div className="grid grid-cols-2 gap-3">
             {org.total_beneficiaries_reached && (
               <div>
-                <p className="text-[10px] text-black uppercase tracking-wide mb-0.5">Beneficiaries reached</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Beneficiaries reached</p>
                 <p className="text-sm font-semibold text-foreground">{org.total_beneficiaries_reached.toLocaleString()}</p>
               </div>
             )}
@@ -868,10 +868,10 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
           </div>
           {org.previous_funders && org.previous_funders.length > 0 && (
             <div className="pt-2 border-t border-border">
-              <p className="text-[10px] text-black uppercase tracking-wide mb-1.5">Previous funders</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1.5">Previous funders</p>
               <div className="flex flex-wrap gap-1.5">
                 {org.previous_funders.map(f => (
-                  <span key={f} className="text-xs px-2.5 py-0.5 rounded-full border border-border text-black">{f}</span>
+                  <span key={f} className="text-xs px-2.5 py-0.5 rounded-full border border-border text-muted-foreground">{f}</span>
                 ))}
               </div>
             </div>
@@ -1139,7 +1139,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
       {/* Contact */}
       {org.contact_name && (
         <div className="pt-3 border-t border-border">
-          <p className="text-xs text-black uppercase tracking-wide mb-2">Contact</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Contact</p>
           <p className="text-sm text-foreground">{org.contact_name}</p>
         </div>
       )}
@@ -1155,7 +1155,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
             <p className="text-[10px] font-black uppercase tracking-widest text-[#2D6A4F]">Partnership listing</p>
             <p className="text-sm font-bold text-foreground leading-snug">{orgPartnership.title}</p>
             {orgPartnership.sought && (
-              <p className="text-[13px] text-black leading-relaxed line-clamp-3">{orgPartnership.sought}</p>
+              <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-3">{orgPartnership.sought}</p>
             )}
             <div className="flex flex-wrap gap-1.5 pt-1">
               {orgPartnership.stage && (
@@ -1181,19 +1181,19 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
         {orgInitiatives.length > 0 && (
           <div className="rounded-2xl p-5 space-y-3"
             style={{ background: "linear-gradient(135deg, rgba(196,92,38,0.05) 0%, transparent 100%)", border: "1px solid rgba(196,92,38,0.14)" }}>
-            <p className="text-[10px] font-black uppercase tracking-widest text-black">Active initiatives</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Active initiatives</p>
             <div className="space-y-3">
               {orgInitiatives.map(ini => (
                 <div key={ini.id} className="pb-3 border-b border-border last:border-0 last:pb-0 space-y-1.5">
                   <p className="text-xs font-semibold text-foreground leading-snug">{ini.title}</p>
                   <div className="flex items-center gap-2 flex-wrap">
                     {ini.locations?.[0] && (
-                      <span className="text-[10px] text-black">{ini.locations.slice(0,2).join(", ")}</span>
+                      <span className="text-[10px] text-muted-foreground">{ini.locations.slice(0,2).join(", ")}</span>
                     )}
                     {ini.budget && (
-                      <span className="text-[10px] text-black">{ini.budget}</span>
+                      <span className="text-[10px] text-muted-foreground">{ini.budget}</span>
                     )}
-                    <span className="text-[10px] text-black ml-auto">{ini.eois} EOI{ini.eois !== 1 ? "s" : ""}</span>
+                    <span className="text-[10px] text-muted-foreground ml-auto">{ini.eois} EOI{ini.eois !== 1 ? "s" : ""}</span>
                   </div>
                   {ini.sectors?.length > 0 && (
                     <div className="flex flex-wrap gap-1">
@@ -1210,7 +1210,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
 
         {orgInitiatives.length === 0 && !orgPartnership?.title && (
           <div className="rounded-2xl border border-dashed border-border p-5 text-center">
-            <p className="text-xs text-black">No active initiatives or partnership listing yet.</p>
+            <p className="text-xs text-muted-foreground">No active initiatives or partnership listing yet.</p>
           </div>
         )}
         {(() => {
@@ -1244,7 +1244,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                       {pillar.pillar_name}
                     </p>
                     {specificAsk && (
-                      <p className="text-[10px] text-black leading-relaxed">
+                      <p className="text-[10px] text-muted-foreground leading-relaxed">
                         {specificAsk}
                       </p>
                     )}                    
@@ -1285,10 +1285,10 @@ function EmptyState({ icon, title, subtitle }: {
   icon: React.ReactNode; title: string; subtitle: string;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-white p-12 text-center">
+    <div className="rounded-2xl border border-border bg-card p-12 text-center">
       <div className="flex justify-center mb-4">{icon}</div>
       <p className="text-foreground font-medium mb-2">{title}</p>
-      <p className="text-sm text-black max-w-sm mx-auto">{subtitle}</p>
+      <p className="text-sm text-muted-foreground max-w-sm mx-auto">{subtitle}</p>
     </div>
   );
 }
