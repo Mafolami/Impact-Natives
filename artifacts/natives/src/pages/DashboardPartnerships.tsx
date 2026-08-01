@@ -340,7 +340,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
         {/* About -- directly under header */}
         {org.description && (
           <div className="px-8 py-5 border-b border-border">
-            <p className="text-[15px] text-muted-foreground leading-relaxed">{org.description}</p>
+            <p className="text-[15px] text-foreground leading-relaxed">{org.description}</p>
           </div>
         )}
 
@@ -350,16 +350,15 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
             {org.partnership_sought && (
               <div>
                 <Eyebrow>Seeking</Eyebrow>
-                <p className="text-[15px] text-muted-foreground leading-relaxed">{org.partnership_sought}</p>
+                <p className="text-[15px] text-foreground leading-relaxed">{org.partnership_sought}</p>
               </div>
             )}
             {org.partnership_success_definition && (
               <div className="rounded-xl px-5 py-4 bg-muted border border-border border-l-[3px] border-l-[#2D6A4F]">
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Success in 12 months</p>
-                <p className="text-sm text-muted-foreground leading-relaxed italic">"{org.partnership_success_definition}"</p>
+                <p className="text-sm text-foreground leading-relaxed italic">"{org.partnership_success_definition}"</p>
               </div>
-            )}
-          </div>
+            )}          </div>
         )}
 
         {/* AI fit analysis -- own distinct section */}
@@ -393,7 +392,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
 
             {fit && !fitLoading && (
               <div className="space-y-4">
-                <p className="text-[15px] text-muted-foreground leading-relaxed">{fit.rationale}</p>
+                <p className="text-[15px] text-foreground leading-relaxed">{fit.rationale}</p>
 
                 {fit.reasons.length > 0 && (
                   <div className="flex flex-col gap-2">
@@ -402,7 +401,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
                         <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "rgba(6,95,70,0.12)" }}>
                           <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#065F46" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
                         </div>
-                        <span className="text-xs text-muted-foreground leading-relaxed">{r}</span>
+                        <span className="text-xs text-foreground leading-relaxed">{r}</span>
                       </div>
                     ))}
                   </div>
@@ -541,19 +540,19 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
               {org.partnership_theory_of_change && (
                 <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
                   <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Approach to change</p>
-                  <p className="text-sm text-muted-foreground leading-relaxed flex-1">{org.partnership_theory_of_change}</p>
+                  <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_theory_of_change}</p>
                 </div>
               )}
               {org.partnership_prior_attempts && (
                 <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
                   <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Previous attempts</p>
-                  <p className="text-sm text-muted-foreground leading-relaxed flex-1">{org.partnership_prior_attempts}</p>
+                  <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_prior_attempts}</p>
                 </div>
               )}
               {org.partnership_constraints && (
                 <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
                   <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Constraints</p>
-                  <p className="text-sm text-muted-foreground leading-relaxed flex-1">{org.partnership_constraints}</p>
+                  <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_constraints}</p>
                 </div>
               )}
             </div>
@@ -575,7 +574,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
                   {org.partnership_prior_experience ? "Has completed a partnership before" : "No prior completed partnerships"}
                 </p>
                 {org.partnership_prior_experience && org.partnership_prior_experience_detail && (
-                  <p className="text-sm text-muted-foreground leading-relaxed mt-1">{org.partnership_prior_experience_detail}</p>
+                  <p className="text-sm text-foreground leading-relaxed mt-1">{org.partnership_prior_experience_detail}</p>
                 )}
               </div>
             </div>
@@ -626,8 +625,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
                         Edit
                       </button>
                     </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{openingMsg}</p>
-                  </div>
+                    <p className="text-xs text-foreground leading-relaxed">{openingMsg}</p>                  </div>
                 )}
                 {msgEditing && (
                   <div className="space-y-2">
