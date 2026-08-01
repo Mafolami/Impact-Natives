@@ -681,7 +681,7 @@ export default function DashboardProfile() {
                   </div>
 
                   <div className="rounded-xl border border-dashed border-[#2D6A4F]/40 bg-[#2D6A4F]/5 p-5 flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-[#eaf5ee] flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-[rgba(45,106,79,0.12)] flex items-center justify-center shrink-0">
                       <Building2 className="w-5 h-5 text-[#2D6A4F]" />
                     </div>
                     <div className="flex-1">
@@ -950,7 +950,7 @@ export default function DashboardProfile() {
                     ].map(item => (
                       <button key={item.label} type="button" onClick={() => item.set(!item.state)}
                         className={`w-full text-left px-4 py-3 rounded-xl border transition-colors flex items-start gap-3 ${
-                          item.state ? "border-[#2D6A4F] bg-[#eaf5ee]" : "border-border hover:border-foreground/20"
+                          item.state ? "border-[#2D6A4F] bg-[rgba(45,106,79,0.12)]" : "border-border hover:border-foreground/20"
                         }`}>
                         <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
                           item.state ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-border"
@@ -1068,7 +1068,7 @@ export default function DashboardProfile() {
                   <div className="pt-4 border-t border-border">
                     <button type="button" onClick={() => setThirdPartyEvaluations(v => !v)}
                       className={`w-full text-left px-4 py-3 rounded-xl border transition-colors flex items-start gap-3 ${
-                        thirdPartyEvaluations ? "border-[#2D6A4F] bg-[#eaf5ee]" : "border-border hover:border-foreground/20"
+                        thirdPartyEvaluations ? "border-[#2D6A4F] bg-[rgba(45,106,79,0.12)]" : "border-border hover:border-foreground/20"
                       }`}>
                       <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
                         thirdPartyEvaluations ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-border"
@@ -1241,7 +1241,7 @@ export default function DashboardProfile() {
                     ].map(item => (
                       <button key={item.label} type="button" onClick={() => item.set(!item.state)}
                         className={`w-full text-left px-4 py-3 rounded-xl border transition-colors flex items-start gap-3 ${
-                          item.state ? "border-[#2D6A4F] bg-[#eaf5ee]" : "border-border hover:border-foreground/20"
+                          item.state ? "border-[#2D6A4F] bg-[rgba(45,106,79,0.12)]" : "border-border hover:border-foreground/20"
                         }`}>
                         <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
                           item.state ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-border"
@@ -1321,7 +1321,7 @@ export default function DashboardProfile() {
                       <div>
                         <button type="button" onClick={() => setSandboxReady(v => !v)}
                           className={`w-full text-left px-4 py-3 rounded-xl border transition-colors flex items-start gap-3 ${
-                            sandboxReady ? "border-[#2D6A4F] bg-[#eaf5ee]" : "border-border hover:border-foreground/20"
+                            sandboxReady ? "border-[#2D6A4F] bg-[rgba(45,106,79,0.12)]" : "border-border hover:border-foreground/20"
                           }`}>
                           <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
                             sandboxReady ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-border"

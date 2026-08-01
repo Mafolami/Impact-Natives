@@ -106,9 +106,9 @@ interface BriefAssessment {
 }
 
 const SCORE_CONFIG = {
-  strong: { label: "Strong brief",    color: "#2D6A4F", bg: "#eaf5ee", icon: CheckCircle2 },
-  good:   { label: "Good brief",      color: "#f59e0b", bg: "#fffbeb", icon: Info },
-  basic:  { label: "Developing brief", color: "#C45C26", bg: "#fdf5f2", icon: AlertCircle },
+  strong: { label: "Strong brief",    color: "#2D6A4F", bg: "rgba(45,106,79,0.12)", icon: CheckCircle2 },
+  good:   { label: "Good brief",      color: "#f59e0b", bg: "rgba(180,83,9,0.12)", icon: Info },
+  basic:  { label: "Developing brief", color: "#C45C26", bg: "rgba(196,92,38,0.08)", icon: AlertCircle },
 }
 
 function wordCount(text: string): number {
@@ -147,7 +147,7 @@ function TagInput({ tags, onAdd, onRemove, placeholder }: {
       onClick={e => (e.currentTarget.querySelector("input") as HTMLInputElement)?.focus()}>
       {tags.map(t => (
         <span key={t} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
-          style={{ background: "#f5ede8", color: "#C45C26" }}>
+          style={{ background: "rgba(196,92,38,0.12)", color: "#C45C26" }}>
           {t}
           <button type="button" onClick={() => onRemove(t)} className="leading-none hover:opacity-70 ml-0.5">×</button>
         </span>
@@ -184,7 +184,7 @@ function SectorSelector({ selected, onChange }: { selected: string[]; onChange: 
         {selected.length === 0 && <span className="text-sm text-muted-foreground/50">Select sectors...</span>}
         {selected.map(s => (
           <span key={s} className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
-            style={{ background: "#f5ede8", color: "#C45C26" }}>
+            style={{ background: "rgba(196,92,38,0.12)", color: "#C45C26" }}>
             {s}
             <button type="button" onClick={e => { e.stopPropagation(); toggle(s) }} className="leading-none hover:opacity-70 ml-0.5">×</button>
           </span>
@@ -642,7 +642,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                 <div>
                   <button type="button" onClick={() => set("openToRemotePartnerships", !form.openToRemotePartnerships)}
                     className={cn("w-full text-left px-4 py-3 rounded-xl border text-sm transition-colors flex items-start gap-3",
-                      form.openToRemotePartnerships ? "border-primary bg-[#fdf5f2]" : "border-border hover:border-foreground/20")}>
+                      form.openToRemotePartnerships ? "border-primary bg-[rgba(196,92,38,0.08)]" : "border-border hover:border-foreground/20")}>
                     <span className={cn("w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors",
                       form.openToRemotePartnerships ? "bg-primary border-primary" : "border-border")}>
                       {form.openToRemotePartnerships && (
@@ -684,7 +684,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     {STAGE_OPTIONS.map(opt => (
                       <button key={opt.value} type="button" onClick={() => set("stage", opt.value)}
                         className={cn("text-left px-3 py-2.5 rounded-xl border text-xs transition-colors",
-                          form.stage === opt.value ? "border-primary bg-[#fdf5f2]" : "border-border hover:border-foreground/20")}>
+                          form.stage === opt.value ? "border-primary bg-[rgba(196,92,38,0.08)]" : "border-border hover:border-foreground/20")}>
                         <p className="font-semibold">{opt.label}</p>
                         <p className="text-muted-foreground mt-0.5">{opt.sub}</p>
                       </button>
@@ -737,7 +737,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     ].map(opt => (
                       <button key={String(opt.value)} type="button" onClick={() => set("esg", opt.value)}
                         className={cn("text-left px-3 py-2.5 rounded-xl border text-xs font-medium transition-colors",
-                          form.esg === opt.value ? "border-primary bg-[#fdf5f2] text-primary" : "border-border hover:border-foreground/20 text-foreground")}>
+                          form.esg === opt.value ? "border-primary bg-[rgba(196,92,38,0.08)] text-primary" : "border-border hover:border-foreground/20 text-foreground")}>
                         {opt.label}
                       </button>
                     ))}
@@ -751,7 +751,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     {[{ value: true, label: "Yes" }, { value: false, label: "No" }].map(opt => (
                       <button key={String(opt.value)} type="button" onClick={() => set("hadPriorExperience", opt.value)}
                         className={cn("px-3 py-2.5 rounded-xl border text-xs font-semibold transition-colors",
-                          form.hadPriorExperience === opt.value ? "border-primary bg-[#fdf5f2] text-primary" : "border-border hover:border-foreground/20 text-foreground")}>
+                          form.hadPriorExperience === opt.value ? "border-primary bg-[rgba(196,92,38,0.08)] text-primary" : "border-border hover:border-foreground/20 text-foreground")}>
                         {opt.label}
                       </button>
                     ))}
@@ -778,7 +778,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                       <button key={opt.value} type="button"
                         onClick={() => set("confirmedAssets", toggle(form.confirmedAssets, opt.value))}
                         className={`w-full text-left px-4 py-2.5 rounded-lg border text-sm transition-colors flex items-center gap-3 ${
-                          form.confirmedAssets.includes(opt.value) ? "border-primary bg-[#fdf5f2] text-primary" : "border-border hover:border-foreground/20 text-foreground"
+                          form.confirmedAssets.includes(opt.value) ? "border-primary bg-[rgba(196,92,38,0.08)] text-primary" : "border-border hover:border-foreground/20 text-foreground"
                         }`}>
                         <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
                           form.confirmedAssets.includes(opt.value) ? "bg-primary border-primary" : "border-border"
@@ -1015,7 +1015,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
         {/* Success */}
         {submitted && (
           <div className="flex-1 flex flex-col items-center justify-center text-center px-8 py-12">
-            <div className="w-14 h-14 rounded-full flex items-center justify-center mb-5" style={{ background: "#eaf5ee" }}>
+            <div className="w-14 h-14 rounded-full flex items-center justify-center mb-5" style={{ background: "rgba(45,106,79,0.12)" }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
@@ -1159,7 +1159,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
           <div>
             <button type="button" onClick={() => set("openToRemotePartnerships", !form.openToRemotePartnerships)}
               className={cn("w-full text-left px-4 py-3 rounded-xl border text-sm transition-colors flex items-start gap-3",
-                form.openToRemotePartnerships ? "border-primary bg-[#fdf5f2]" : "border-border hover:border-foreground/20")}>
+                form.openToRemotePartnerships ? "border-primary bg-[rgba(196,92,38,0.08)]" : "border-border hover:border-foreground/20")}>
               <span className={cn("w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors",
                 form.openToRemotePartnerships ? "bg-primary border-primary" : "border-border")}>
                 {form.openToRemotePartnerships && (
@@ -1212,7 +1212,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
               {STAGE_OPTIONS.map(opt => (
                 <button key={opt.value} type="button" onClick={() => set("stage", opt.value)}
                   className={cn("w-full text-left px-4 py-3 rounded-xl border transition-colors",
-                    form.stage === opt.value ? "border-primary bg-[#fdf5f2]" : "border-border hover:border-foreground/20")}>
+                    form.stage === opt.value ? "border-primary bg-[rgba(196,92,38,0.08)]" : "border-border hover:border-foreground/20")}>
                   <p className="text-sm font-semibold">{opt.label}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{opt.sub}</p>
                 </button>
@@ -1226,7 +1226,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
                 <button key={opt.value} type="button"
                   onClick={() => set("confirmedAssets", toggle(form.confirmedAssets, opt.value))}
                   className={cn("w-full text-left px-4 py-2.5 rounded-lg border text-sm transition-colors flex items-center gap-3",
-                    form.confirmedAssets.includes(opt.value) ? "border-primary bg-[#fdf5f2] text-primary" : "border-border hover:border-foreground/20 text-foreground")}>
+                    form.confirmedAssets.includes(opt.value) ? "border-primary bg-[rgba(196,92,38,0.08)] text-primary" : "border-border hover:border-foreground/20 text-foreground")}>
                   <span className={cn("w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
                     form.confirmedAssets.includes(opt.value) ? "bg-primary border-primary" : "border-border")}>
                     {form.confirmedAssets.includes(opt.value) && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
@@ -1324,7 +1324,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
               ].map(opt => (
                 <button key={String(opt.value)} type="button" onClick={() => set("esg", opt.value)}
                   className={cn("w-full text-left px-5 py-4 rounded-xl border transition-colors",
-                    form.esg === opt.value ? "border-primary bg-[#fdf5f2]" : "border-border hover:border-foreground/20")}>
+                    form.esg === opt.value ? "border-primary bg-[rgba(196,92,38,0.08)]" : "border-border hover:border-foreground/20")}>
                   <p className="text-sm font-semibold">{opt.label}</p>
                   {opt.sub && <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{opt.sub}</p>}
                 </button>
@@ -1343,7 +1343,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
               {[{ value: true, label: "Yes" }, { value: false, label: "No" }].map(opt => (
                 <button key={String(opt.value)} type="button" onClick={() => set("hadPriorExperience", opt.value)}
                   className={cn("w-full text-left px-5 py-3.5 rounded-xl border text-sm font-semibold transition-colors",
-                    form.hadPriorExperience === opt.value ? "border-primary bg-[#fdf5f2] text-primary" : "border-border hover:border-foreground/20 text-foreground")}>
+                    form.hadPriorExperience === opt.value ? "border-primary bg-[rgba(196,92,38,0.08)] text-primary" : "border-border hover:border-foreground/20 text-foreground")}>
                   {opt.label}
                 </button>
               ))}
