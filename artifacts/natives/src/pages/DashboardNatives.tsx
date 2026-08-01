@@ -318,7 +318,7 @@ function ProfileCard({ profile, onClick }: { profile: ProfileRow; onClick: () =>
           )}        </div>
       </div>
       {profile.country && <p className="text-xs text-muted-foreground">{profile.country}</p>}
-      {profile.bio && <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-2">{profile.bio}</p>}
+      {profile.bio && <p className="text-[13px] text-foreground leading-relaxed line-clamp-2">{profile.bio}</p>}      
       {sectors.length > 0 && (
         <div className="flex gap-1.5 flex-wrap">
           {sectors.slice(0, 3).map(s => (
@@ -361,8 +361,7 @@ function ProfileDetail({ profile, onBack }: { profile: ProfileRow; onBack: () =>
           ))}
         </div>
       )}
-      {profile.bio && <p className="text-[15px] text-muted-foreground leading-relaxed">{profile.bio}</p>}
-      <div className="pt-3 border-t border-border space-y-2">
+      {profile.bio && <p className="text-[15px] text-foreground leading-relaxed">{profile.bio}</p>}      <div className="pt-3 border-t border-border space-y-2">
         <p className="text-sm font-medium text-foreground mb-2">Contact</p>
         {profile.linkedin_url && (
           <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer"
@@ -527,9 +526,9 @@ function NativesOrgCard({ org, onClick }: { org: OrgRow; onClick: () => void }) 
         </div>
       </div>
       {org.description && (
-        <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-2">{org.description}</p>
+        <p className="text-[13px] text-foreground leading-relaxed line-clamp-2">{org.description}</p>
       )}
-      <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+      <div className="flex flex-col gap-1 text-xs text-muted-foreground">        
         {sectors.length > 0   && <p><span className="font-medium text-foreground">Sector: </span>{sectors.slice(0, 2).join(", ")}{sectors.length > 2 ? ` +${sectors.length - 2}` : ""}</p>}
         {countries.length > 0 && <p><span className="font-medium text-foreground">Location: </span>{countries.join(", ")}</p>}
         {org.website && org.website !== "https://" && (
@@ -1155,7 +1154,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
             <p className="text-[10px] font-black uppercase tracking-widest text-[#2D6A4F]">Partnership listing</p>
             <p className="text-sm font-bold text-foreground leading-snug">{orgPartnership.title}</p>
             {orgPartnership.sought && (
-              <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-3">{orgPartnership.sought}</p>
+              <p className="text-[13px] text-foreground leading-relaxed line-clamp-3">{orgPartnership.sought}</p>
             )}
             <div className="flex flex-wrap gap-1.5 pt-1">
               {orgPartnership.stage && (
@@ -1244,7 +1243,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                       {pillar.pillar_name}
                     </p>
                     {specificAsk && (
-                      <p className="text-[10px] text-muted-foreground leading-relaxed">
+                      <p className="text-[10px] text-foreground leading-relaxed">
                         {specificAsk}
                       </p>
                     )}                    

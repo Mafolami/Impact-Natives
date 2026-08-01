@@ -518,11 +518,11 @@ export default function CorporateHome({ profile }: { profile: any }) {
                 </div>
               </div>
               {[1, 2, 3].map(i => (
-                <div key={i} className="h-32 rounded-xl border border-border bg-white animate-pulse" />
+                <div key={i} className="h-32 rounded-xl border border-border bg-card animate-pulse" />
               ))}
             </div>
           ) : matchingUnavailable && matchedInitiatives.length === 0 ? (
-            <div className="rounded-xl border border-border bg-white p-8 text-center min-h-[280px] flex flex-col items-center justify-center">
+            <div className="rounded-xl border border-border bg-card p-8 text-center min-h-[280px] flex flex-col items-center justify-center">
               <Leaf className="w-6 h-6 text-muted-foreground/30 mx-auto mb-3" />
               <p className="text-sm font-medium text-foreground mb-1">Still finding your matches.</p>
               <p className="text-xs text-muted-foreground mb-4">
@@ -530,7 +530,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
               </p>
             </div>
           ) : matchedInitiatives.length === 0 ? (
-            <div className="rounded-xl border border-border bg-white p-8 text-center min-h-[280px] flex flex-col items-center justify-center">
+            <div className="rounded-xl border border-border bg-card p-8 text-center min-h-[280px] flex flex-col items-center justify-center">
               <Leaf className="w-6 h-6 text-muted-foreground/30 mx-auto mb-3" />
               <p className="text-sm font-medium text-foreground mb-1">No ESG initiatives matched yet.</p>
               <p className="text-xs text-muted-foreground mb-4">
@@ -554,7 +554,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
               )}
               {showList.slice(0, 3).map((ini: any) => (
                 <div key={ini.id}
-                  className="w-full text-left rounded-xl border border-border bg-white px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group flex flex-col min-h-[220px]">
+                  className="w-full text-left rounded-xl border border-border bg-card px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group flex flex-col min-h-[220px]">
                   <button type="button" onClick={() => navigate(`/dashboard/marketplace?initiative=${ini.id}`)} className="w-full text-left">
                     <div className="flex items-start justify-between gap-3 mb-1 flex-wrap">
                       <p className="text-sm font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors break-words">
@@ -607,7 +607,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
                   ) : ini.match_reason ? (
                     <p className="text-xs mb-2 leading-relaxed text-[#2D6A4F]">{ini.match_reason}</p>
                   ) : (
-                    <p className="text-xs text-muted-foreground mb-2 line-clamp-1">{ini.problem}</p>
+                    <p className="text-xs text-foreground mb-2 line-clamp-1">{ini.problem}</p>
                   )}
 
                   <div className="mt-auto pt-2 flex items-center gap-2 flex-wrap">
@@ -655,7 +655,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
           </div>
 
           {!partnershipEligible ? (
-            <div className="rounded-2xl border border-dashed border-border bg-white p-8 text-center flex flex-col items-center justify-center min-h-[300px]">
+            <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center flex flex-col items-center justify-center min-h-[300px]">
               <Building2 className="w-8 h-8 text-muted-foreground/20 mb-4" />
               <p className="text-sm font-medium text-foreground mb-1">Partnership matches are locked</p>
               <p className="text-xs text-muted-foreground max-w-[220px] mb-4">
@@ -669,11 +669,11 @@ export default function CorporateHome({ profile }: { profile: any }) {
           ) : loadingPartnerships ? (
             <div className="space-y-3">
               {[1, 2, 3].map(i => (
-                <div key={i} className="h-24 rounded-xl border border-border bg-white animate-pulse" />
+                <div key={i} className="h-24 rounded-xl border border-border bg-card animate-pulse" />
               ))}
             </div>
           ) : partnershipMatches.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-white p-8 text-center">
+            <div className="rounded-2xl border border-border bg-card p-8 text-center">
               <Building2 className="w-6 h-6 text-muted-foreground/30 mx-auto mb-3" />
               <p className="text-sm font-medium text-foreground mb-1">No partnership matches yet.</p>
               <p className="text-xs text-muted-foreground">Check back soon — this refreshes automatically.</p>
@@ -683,7 +683,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
               {partnershipMatches.map((m: any) => (
                 <button key={m.matched_org_id} type="button"
                   onClick={() => navigate(`/dashboard/partnerships?org=${m.org?.id ?? ""}`)}
-                  className="w-full text-left rounded-xl border border-border bg-white px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group flex flex-col min-h-[220px]">
+                  className="w-full text-left rounded-xl border border-border bg-card px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group flex flex-col min-h-[220px]">
                   <div className="flex items-start justify-between gap-3 mb-1.5 flex-wrap">
                     <p className="text-sm font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors break-words">
                       {m.org?.organisation_name ?? "Organisation"}
@@ -747,7 +747,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
             const Icon = m.icon;
             return (
               <button key={m.label} type="button" onClick={m.onClick}
-                className="w-full text-left rounded-xl border bg-white px-4 py-4 hover:border-[#2D6A4F]/40 transition-colors group flex flex-col gap-3 min-h-[110px]"
+                className="w-full text-left rounded-xl border bg-card px-4 py-4 hover:border-[#2D6A4F]/40 transition-colors group flex flex-col gap-3 min-h-[110px]"
                 style={{ borderColor: m.accent ? "#C45C26" : undefined }}>
                 <div className="flex items-center gap-2">
                   <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
@@ -794,7 +794,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
               return (
                 <button key={eoi.id} type="button"
                   onClick={() => navigate(`/dashboard/marketplace?initiative=${eoi.initiative_id}`)}
-                  className="w-full text-left rounded-xl border border-border bg-white px-5 py-3 hover:border-[#2D6A4F]/30 transition-colors group flex items-center gap-4">
+                  className="w-full text-left rounded-xl border border-border bg-card px-5 py-3 hover:border-[#2D6A4F]/30 transition-colors group flex items-center gap-4">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground group-hover:text-[#2D6A4F] transition-colors truncate">
                       {eoi.initiative?.title ?? "Initiative"}
