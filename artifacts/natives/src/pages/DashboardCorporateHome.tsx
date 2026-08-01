@@ -563,15 +563,15 @@ export default function CorporateHome({ profile }: { profile: any }) {
                       <div className="flex items-center gap-2 shrink-0">
                         {ini.esg_alignment && (
                           <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full"
-                            style={{ background: "#e8f5e9", color: "#2e7d32" }}>
+                            style={{ background: "rgba(46,125,50,0.12)", color: "#2e7d32" }}>
                             <Leaf className="w-3 h-3" /> ESG/CSR
                           </span>
                         )}
                         {typeof ini.score === "number" && (
                           <span className="text-xs font-bold px-2 py-0.5 rounded-full"
                             style={{
-                              background: ini.score >= 70 ? "#eaf5ee" : "#f5f5f5",
-                              color: ini.score >= 70 ? "#2D6A4F" : "#000000",
+                              background: ini.score >= 70 ? "rgba(45,106,79,0.12)" : "rgba(107,114,128,0.12)",
+                              color: ini.score >= 70 ? "#2D6A4F" : "hsl(var(--muted-foreground))",
                             }}>
                             {ini.score}% criteria match
                           </span>
@@ -613,19 +613,19 @@ export default function CorporateHome({ profile }: { profile: any }) {
                   <div className="mt-auto pt-2 flex items-center gap-2 flex-wrap">
                     {ini.stage && (
                       <span className="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                        style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+                        style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
                         {ini.stage}
                       </span>
                     )}
                     {ini.budget && (
                       <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                        style={{ background: "#fdf0e9", color: "#C45C26" }}>
+                        style={{ background: "rgba(196,92,38,0.1)", color: "#C45C26" }}>
                         {ini.budget}
                       </span>
                     )}
                     {ini.locations?.slice(0, 1).map((l: string) => (
                       <span key={l} className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                        style={{ background: "#e6f1fb", color: "#185FA5" }}>
+                        style={{ background: "rgba(24,95,165,0.12)", color: "#185FA5" }}>
                         {l}
                       </span>
                     ))}
@@ -690,8 +690,8 @@ export default function CorporateHome({ profile }: { profile: any }) {
                     </p>
                     <span className="shrink-0 text-xs font-bold px-2 py-0.5 rounded-full"
                       style={{
-                        background: m.fit_score >= 70 ? "#eaf5ee" : "#f5f5f5",
-                        color: m.fit_score >= 70 ? "#2D6A4F" : "#000000",
+                        background: m.fit_score >= 70 ? "rgba(45,106,79,0.12)" : "rgba(107,114,128,0.12)",
+                        color: m.fit_score >= 70 ? "#2D6A4F" : "hsl(var(--muted-foreground))",
                       }}>
                       {m.fit_score}% fit
                     </span>
@@ -718,19 +718,19 @@ export default function CorporateHome({ profile }: { profile: any }) {
                   <div className="mt-auto pt-2 flex items-center gap-2 flex-wrap">
                     {m.org?.partnership_stage && (
                       <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                        style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+                        style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
                         {PARTNERSHIP_STAGE_LABELS[m.org.partnership_stage] ?? m.org.partnership_stage}
                       </span>
                     )}
                     {m.org?.partnership_budget && (
                       <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                        style={{ background: "#fdf0e9", color: "#C45C26" }}>
+                        style={{ background: "rgba(196,92,38,0.1)", color: "#C45C26" }}>
                         {PARTNERSHIP_BUDGET_LABELS[m.org.partnership_budget] ?? m.org.partnership_budget}
                       </span>
                     )}
                     {parsePgArray(m.org?.country).length > 0 && (
                       <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                        style={{ background: "#e6f1fb", color: "#185FA5" }}>
+                        style={{ background: "rgba(24,95,165,0.12)", color: "#185FA5" }}>
                         {parsePgArray(m.org?.country)[0]}
                       </span>
                     )}
@@ -784,12 +784,12 @@ export default function CorporateHome({ profile }: { profile: any }) {
             {outboundEOIs.map((eoi: any) => {
               const status = eoi.conversation_status;
               const statusConfig = status === "open"
-                ? { label: "Active",   bg: "#eaf5ee", color: "#2D6A4F" }
+                ? { label: "Active",   bg: "rgba(45,106,79,0.12)", color: "#2D6A4F" }
                 : status === "declined"
-                ? { label: "Declined", bg: "#fef2f2", color: "#ef4444" }
+                ? { label: "Declined", bg: "rgba(239,68,68,0.12)", color: "#ef4444" }
                 : status === "confirmed"
-                ? { label: "Confirmed", bg: "#f0f9ff", color: "#0369a1" }
-                : { label: "Pending",  bg: "#fffbeb", color: "#b45309" };
+                ? { label: "Confirmed", bg: "rgba(3,105,161,0.12)", color: "#0369a1" }
+                : { label: "Pending",  bg: "rgba(180,83,9,0.12)", color: "#b45309" };
 
               return (
                 <button key={eoi.id} type="button"
@@ -802,7 +802,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                       {eoi.esg_adoption && (
                         <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full"
-                          style={{ background: "#e8f5e9", color: "#2e7d32" }}>
+                          style={{ background: "rgba(46,125,50,0.12)", color: "#2e7d32" }}>
                           <Leaf className="w-2.5 h-2.5" /> ESG adoption
                         </span>
                       )}

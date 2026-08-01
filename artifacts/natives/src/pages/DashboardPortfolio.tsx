@@ -84,11 +84,11 @@ interface ExpresserConfirmedRow {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const STATUS_MAP: Record<string, { label: string; dot: string; bg: string }> = {
-  pending:   { label: "Pending review",     dot: "#f59e0b", bg: "#fffbeb" },
-  published: { label: "Listed",             dot: "#2D6A4F", bg: "#eaf5ee" },
-  rejected:  { label: "Not approved",       dot: "#ef4444", bg: "#fef2f2" },
-  closed:    { label: "Partner found", dot: "#6b7280", bg: "#f3f4f6" },
-  draft:     { label: "AI draft — needs review", dot: "#C45C26", bg: "#fdf5f2" },
+  pending:   { label: "Pending review",     dot: "#f59e0b", bg: "rgba(180,83,9,0.12)" },
+  published: { label: "Listed",             dot: "#2D6A4F", bg: "rgba(45,106,79,0.12)" },
+  rejected:  { label: "Not approved",       dot: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+  closed:    { label: "Partner found", dot: "#6b7280", bg: "rgba(107,114,128,0.12)" },
+  draft:     { label: "AI draft — needs review", dot: "#C45C26", bg: "rgba(196,92,38,0.08)" },
 };
 
 const PARTNERSHIP_OPTIONS = [
@@ -197,14 +197,14 @@ function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeR
   if (!editing) {
     return (
       <button type="button" onClick={() => setEditing(true)}
-        className="w-full rounded-xl border border-[#C45C26]/40 bg-[#fdf5f2] px-5 py-3 text-sm text-left hover:border-[#C45C26]/70 transition-colors">
+        className="w-full rounded-xl border border-[#C45C26]/40 bg-[rgba(196,92,38,0.08)] px-5 py-3 text-sm text-left hover:border-[#C45C26]/70 transition-colors">
         <span className="text-foreground font-medium">Review and publish this AI-generated RFP →</span>
       </button>
     );
   }
 
   return (
-    <div className="rounded-xl border border-[#C45C26]/40 bg-[#fdf5f2] px-5 py-4 space-y-4">
+    <div className="rounded-xl border border-[#C45C26]/40 bg-[rgba(196,92,38,0.08)] px-5 py-4 space-y-4">
       <p className="text-sm font-medium text-foreground">Review before publishing</p>
 
       <div>
@@ -279,7 +279,7 @@ function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeR
 // ─── Initiative Detail ────────────────────────────────────────────────────────
 
 function InitiativeDetail({ initiative, onBack, onRequestEdit }: { initiative: InitiativeRow; onBack: () => void; onRequestEdit: (id: string) => void }) {
-  const s = STATUS_MAP[initiative.status] ?? { label: initiative.status, dot: "#6b7280", bg: "#f9fafb" };
+  const s = STATUS_MAP[initiative.status] ?? { label: initiative.status, dot: "#6b7280", bg: "rgba(107,114,128,0.08)" };
   const [passData, setPassData] = useState<{ count: number; reasons: Record<string, number> } | null>(null);  useEffect(() => {
     supabase.from("funder_decisions").select("decision, reason")
       .eq("initiative_id", initiative.id).eq("decision", "pass")
@@ -368,7 +368,7 @@ function InitiativeDetail({ initiative, onBack, onRequestEdit }: { initiative: I
         <div className="flex flex-wrap gap-2">
           {initiative.tags.map(t => (
             <span key={t} className="px-3 py-1 rounded-full text-xs font-medium"
-              style={{ background: "#f5ede8", color: "#C45C26" }}>{t}</span>
+              style={{ background: "rgba(196,92,38,0.12)", color: "#C45C26" }}>{t}</span>
           ))}
         </div>
       )}
@@ -382,13 +382,13 @@ function InitiativeDetail({ initiative, onBack, onRequestEdit }: { initiative: I
       )}
 
       {initiative.confirmed_partners && initiative.confirmed_partners.filter(p => (p.status ?? "confirmed") === "confirmed").length > 0 && (
-        <div className="rounded-xl border border-[#2D6A4F]/30 bg-[#eaf5ee] px-5 py-4">
+        <div className="rounded-xl border border-[#2D6A4F]/30 bg-[rgba(45,106,79,0.12)] px-5 py-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-[#2D6A4F] mb-3">Confirmed Partners</p>
           <div className="flex flex-col gap-2">
             {initiative.confirmed_partners.filter(p => (p.status ?? "confirmed") === "confirmed").map(p => (
               <div key={p.user_id} className="flex items-center justify-between gap-3">
                 <a href={p.profile_link} className="text-sm font-medium text-foreground hover:text-[#2D6A4F] transition-colors">{p.name}</a>
-                <span className="text-xs px-2.5 py-0.5 rounded-full capitalize" style={{ background: "#d1fae5", color: "#065f46" }}>{p.role}</span>
+                <span className="text-xs px-2.5 py-0.5 rounded-full capitalize" style={{ background: "rgba(6,95,70,0.12)", color: "#065f46" }}>{p.role}</span>
               </div>
             ))}
           </div>
@@ -492,12 +492,12 @@ function InterestsExpressedTab({ userId }: { userId: string }) {
       {eois.map(eoi => {
         const status = eoi.conversation_status;
         const statusConfig = status === "confirmed"
-          ? { label: "Partner confirmed", bg: "#eaf5ee", color: "#2D6A4F" }
+          ? { label: "Partner confirmed", bg: "rgba(45,106,79,0.12)", color: "#2D6A4F" }
           : status === "open"
-          ? { label: "In conversation", bg: "#eaf5ee", color: "#2D6A4F" }
+          ? { label: "In conversation", bg: "rgba(45,106,79,0.12)", color: "#2D6A4F" }
           : (status === "declined" || status === "rejected")
-          ? { label: "Declined", bg: "#fef2f2", color: "#ef4444" }
-          : { label: "Pending",  bg: "#fffbeb", color: "#f59e0b" };
+          ? { label: "Declined", bg: "rgba(239,68,68,0.12)", color: "#ef4444" }
+          : { label: "Pending",  bg: "rgba(180,83,9,0.12)", color: "#f59e0b" };
         return (
           <div key={eoi.eoi_id} className="rounded-xl border border-border bg-card px-5 py-4 space-y-2">
             <div className="flex items-start justify-between gap-3">
@@ -511,7 +511,7 @@ function InterestsExpressedTab({ userId }: { userId: string }) {
             </div>
             <div className="flex flex-wrap gap-1.5">
               <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                style={{ background: "#f5ede8", color: "#C45C26" }}>
+                style={{ background: "rgba(196,92,38,0.12)", color: "#C45C26" }}>
                 {rolePartnerPhrase(eoi.partnership_type)}
               </span>
               <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
@@ -636,7 +636,7 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
                     </td>
                     <td className="px-5 py-3 text-xs text-muted-foreground">{card.initiative_title}</td>
                     <td className="px-5 py-3">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{background:"#eaf5ee",color:"#2D6A4F"}}>{partnershipLabel(p.role)}</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{background:"rgba(45,106,79,0.12)",color:"#2D6A4F"}}>{partnershipLabel(p.role)}</span>
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex flex-wrap gap-3">
@@ -676,7 +676,7 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
                       <Link href={`/dashboard/marketplace?initiative=${row.initiative_id}`} className="text-sm text-muted-foreground hover:text-[#2D6A4F] transition-colors hover:underline underline-offset-2">{row.initiative_title}</Link>
                     </td>
                     <td className="px-5 py-3">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{background:"#eaf5ee",color:"#2D6A4F"}}>{partnershipLabel(row.role)}</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{background:"rgba(45,106,79,0.12)",color:"#2D6A4F"}}>{partnershipLabel(row.role)}</span>
                     </td>
                   </tr>
                 ))}
@@ -826,7 +826,7 @@ export default function DashboardInitiatives() {
                 ) : (
                   <div className="space-y-3">
                     {initiatives.map(ini => {
-                      const s = STATUS_MAP[ini.status] ?? { label: ini.status, dot: "#6b7280", bg: "#f9fafb" };
+                      const s = STATUS_MAP[ini.status] ?? { label: ini.status, dot: "#6b7280", bg: "rgba(107,114,128,0.08)" };
                       const isConfirmingClose = closingId === ini.id;
                       return (
                         <div key={ini.id}
@@ -860,7 +860,7 @@ export default function DashboardInitiatives() {
                                     <button type="button" title="Confirm: close this initiative"
                                       disabled={closeSavingId === ini.id}
                                       onClick={() => closeFromCard(ini.id)}
-                                      className="p-1.5 rounded-full hover:bg-[#eaf5ee] text-[#2D6A4F] transition-colors disabled:opacity-40">
+                                      className="p-1.5 rounded-full hover:bg-[rgba(45,106,79,0.12)] text-[#2D6A4F] transition-colors disabled:opacity-40">
                                       {closeSavingId === ini.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                                     </button>
                                     <button type="button" title="Cancel"
