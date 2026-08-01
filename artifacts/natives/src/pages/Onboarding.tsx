@@ -991,7 +991,7 @@ export default function Onboarding() {
                   <div className="flex flex-wrap gap-1.5">
                     {needs.map(n => (
                       <span key={n} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
-                        style={{ background: "#f5ede8", color: "#C45C26" }}>
+                        style={{ background: "rgba(196,92,38,0.12)", color: "#C45C26" }}>
                         {n}
                         <button type="button" onClick={() => setNeeds(p => p.filter(x => x !== n))}
                           className="hover:opacity-70 ml-0.5">×</button>
@@ -1032,7 +1032,7 @@ export default function Onboarding() {
                   <div className="flex flex-wrap gap-1.5">
                     {offers.map(o => (
                       <span key={o} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
-                        style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+                        style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
                         {o}
                         <button type="button" onClick={() => setOffers(p => p.filter(x => x !== o))}
                           className="hover:opacity-70 ml-0.5">×</button>

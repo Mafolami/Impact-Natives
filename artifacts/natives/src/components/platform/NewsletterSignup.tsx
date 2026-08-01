@@ -92,7 +92,7 @@ export function NewsletterSignup({ variant = "section" }: { variant?: "section" 
           Partnership signals, ecosystem updates, and platform news delivered straight to your inbox.
         </p>
         {state === "success" ? (
-          <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#eaf5ee] text-[#2D6A4F] text-sm font-medium">
+          <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[rgba(45,106,79,0.12)] text-[#2D6A4F] text-sm font-medium">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <polyline points="20 6 9 17 4 12" />
             </svg>
