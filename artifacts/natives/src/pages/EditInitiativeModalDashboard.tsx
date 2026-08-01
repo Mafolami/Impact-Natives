@@ -5,8 +5,10 @@ import StarterKit from "@tiptap/starter-kit"
 import Placeholder from "@tiptap/extension-placeholder"
 import { supabase } from "@/lib/supabase"
 import { SECTOR_OPTIONS } from "@/lib/sectors"
-import { X, Loader2 } from "lucide-react"
+import { X, Loader2, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/context/AuthContext"
+import { AIDescriptionGenerator } from "./CreateInitiativeModalDashboard"
 
 type PartnershipType = "funding" | "technical" | "operational" | "leadership" | "strategic" | "lead"
 type InitiativeStage = "concept" | "planning" | "active" | "scaling"
@@ -232,6 +234,7 @@ export default function EditInitiativeModalDashboard({ isOpen, initiativeId, onC
   onClose: () => void
   onSaved?: () => void
 }) {
+  const { user } = useAuth()
   const [loading, setLoading]     = useState(true)
   const [form, setForm]           = useState<EditFormState | null>(null)
   const [original, setOriginal]   = useState<EditFormState | null>(null)
@@ -239,6 +242,8 @@ export default function EditInitiativeModalDashboard({ isOpen, initiativeId, onC
   const [error, setError]         = useState<string | null>(null)
   const [saved, setSaved]         = useState(false)
   const [notifiedCount, setNotifiedCount] = useState(0)
+  const [orgProfile, setOrgProfile] = useState<Record<string, any> | null>(null)
+  const [descriptionRegenerated, setDescriptionRegenerated] = useState(false)
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
 
@@ -248,10 +253,20 @@ export default function EditInitiativeModalDashboard({ isOpen, initiativeId, onC
   })
 
   useEffect(() => {
+    if (!isOpen || !user) return
+    supabase.from("organizations")
+      .select("organisation_name,description,sector,years_of_operation,total_beneficiaries_reached,jobs_created,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setOrgProfile(data ?? null))
+  }, [isOpen, user])
+
+  useEffect(() => {
     if (!isOpen || !initiativeId) return
     setLoading(true)
     setSaved(false)
     setError(null)
+    setDescriptionRegenerated(false)
     supabase.from("initiative_requests")
       .select("title,sectors,locations,open_to_remote_partnerships,target_population,budget_min,budget_max,budget_currency,detail_content,resource_link,impact_evidence,problem,outcome,tags,partnerships,sdg_tags,specific_ask,start_date,duration,esg_alignment,stage,confirmed_assets,had_prior_experience,prior_experience_detail,target_beneficiaries,target_jobs,target_female_pct,target_timeline_months")
       .eq("id", initiativeId)
@@ -633,8 +648,27 @@ export default function EditInitiativeModalDashboard({ isOpen, initiativeId, onC
 
               <div>
                 <FieldLabel optional>Full initiative description</FieldLabel>
-                <div className="flex gap-1 border border-border rounded-t-lg px-2 py-1.5 bg-muted/40 flex-wrap">
-                  {[
+                <AIDescriptionGenerator
+                  form={form}
+                  supabaseUrl={supabaseUrl}
+                  orgProfile={orgProfile}
+                  onGenerated={content => {
+                    const html = `<p>${content.split("\n\n").join("</p><p>")}</p>`
+                    editor?.commands.setContent(html)
+                    set("detailContent", html)
+                    setDescriptionRegenerated(true)
+                  }}
+                />
+                {descriptionRegenerated && (
+                  <div className="flex items-center gap-2 rounded-lg border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-3 py-2 mt-2">
+                    <Sparkles className="w-3.5 h-3.5 text-[#2D6A4F] shrink-0" />
+                    <p className="text-xs text-[#2D6A4F]">AI-generated — edit freely before saving.</p>
+                  </div>
+                )}
+                {form.detailContent && form.detailContent !== "<p></p>" && !descriptionRegenerated && (
+                  <p className="text-xs text-muted-foreground mt-2">This initiative already has a description — generating will replace it.</p>
+                )}
+                <div className="flex gap-1 border border-border rounded-t-lg px-2 py-1.5 bg-muted/40 flex-wrap mt-2">                  {[
                     { label: "B", action: () => editor?.chain().focus().toggleBold().run(), active: editor?.isActive("bold"), style: "font-bold" },
                     { label: "I", action: () => editor?.chain().focus().toggleItalic().run(), active: editor?.isActive("italic"), style: "italic" },
                     { label: "H2", action: () => editor?.chain().focus().toggleHeading({ level: 2 }).run(), active: editor?.isActive("heading", { level: 2 }), style: "" },

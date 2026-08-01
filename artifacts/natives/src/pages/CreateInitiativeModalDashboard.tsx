@@ -233,10 +233,10 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 }
 
 // ─── AI Description Generator ─────────────────────────────────────────────────
-function AIDescriptionGenerator({
+export function AIDescriptionGenerator({
   form, supabaseUrl, orgProfile, onGenerated,
 }: {
-  form: FormState
+  form: Record<string, any>
   supabaseUrl: string
   orgProfile?: Record<string, any> | null
   onGenerated: (content: string) => void
