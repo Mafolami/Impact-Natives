@@ -38,7 +38,6 @@ interface OrgRow {
 function normalizeArr(val: string | string[] | null | undefined): string[] {
   if (!val) return [];
   if (Array.isArray(val)) return val;
-  // Handle Postgres array literal: {Nigeria,Kenya,"United Kingdom"}
   if (typeof val === "string" && val.startsWith("{") && val.endsWith("}")) {
     const inner = val.slice(1, -1);
     const matches = inner.match(/("(?:[^"\\]|\\.)*"|[^,]+)/g) ?? [];
@@ -105,7 +104,7 @@ function ddScore(org: OrgRow): number {
 // ─── Eyebrow label ────────────────────────────────────────────────────────────
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-black mb-3">
+    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground mb-3">
       {children}
     </p>
   );
@@ -114,9 +113,9 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 // ─── Bento cell ──────────────────────────────────────────────────────────────
 function BentoCell({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="rounded-xl p-3.5" style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-      <p className="text-[9px] font-black uppercase tracking-widest text-black mb-1">{label}</p>
-      <p className={`text-sm font-bold leading-snug ${accent ? "text-[#2D6A4F]" : "text-[#111827]"}`}>{value}</p>
+    <div className="rounded-xl p-3.5 bg-muted border border-border">
+      <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">{label}</p>
+      <p className={`text-sm font-bold leading-snug ${accent ? "text-[#2D6A4F]" : "text-foreground"}`}>{value}</p>
     </div>
   );
 }
@@ -134,14 +133,14 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave }: {
     <div onClick={onClick}
       className={`relative cursor-pointer px-5 py-4 border-b transition-all group ${
         selected
-          ? "bg-[#F0F9F4] border-l-[3px] border-l-[#2D6A4F] border-b-[#E5E7EB]"
-          : "hover:bg-[#FAFAFA] border-l-[3px] border-l-transparent border-b-[#F3F4F6]"
+          ? "bg-[#2D6A4F]/[0.08] border-l-[3px] border-l-[#2D6A4F] border-b-border"
+          : "hover:bg-muted/50 border-l-[3px] border-l-transparent border-b-border/60"
       }`}>
 
       {/* Org name + save */}
       <div className="flex items-center justify-between gap-2 mb-0.5">
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className={`text-sm font-bold truncate ${selected ? "text-[#2D6A4F]" : "text-[#111827]"}`}>
+          <span className={`text-sm font-bold truncate ${selected ? "text-[#2D6A4F]" : "text-foreground"}`}>
             {org.organisation_name}
           </span>
           {isVerified && <ShieldCheck className="w-3 h-3 shrink-0 text-[#2D6A4F]" />}
@@ -149,26 +148,26 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave }: {
         <button type="button" onClick={e => { e.stopPropagation(); onToggleSave(e); }}
           className="shrink-0 p-1 rounded transition-opacity opacity-0 group-hover:opacity-100">
           <svg viewBox="0 0 24 24" className="w-3.5 h-3.5"
-            fill={isSaved ? "#2D6A4F" : "none"} stroke={isSaved ? "#2D6A4F" : "#9CA3AF"} strokeWidth={2}>
+            fill={isSaved ? "#2D6A4F" : "none"} stroke={isSaved ? "#2D6A4F" : "currentColor"} strokeWidth={2}>
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
           </svg>
         </button>
       </div>
 
       {/* Location */}
-      <p className="text-[11px] text-black capitalize mb-3">
+      <p className="text-[11px] text-muted-foreground capitalize mb-3">
         {countries.length > 0 ? countries.join(", ") : orgTypeLabel(org.organisation_type)}
       </p>
 
       {/* Partnership title -- full, no clamp */}
       {org.partnership_title && (
-        <p className="text-xs font-semibold text-black leading-snug">
+        <p className="text-xs font-semibold text-foreground leading-snug">
           {org.partnership_title}
         </p>
       )}
       {org.partnership_formed && (
         <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full mt-1.5"
-          style={{ background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE" }}>
+          style={{ background: "rgba(29,78,216,0.12)", color: "#1D4ED8", border: "1px solid rgba(29,78,216,0.3)" }}>
           <CheckCircle2 className="w-2.5 h-2.5" />Partnership formed
         </span>
       )}
@@ -207,11 +206,6 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
 
   }, [org?.id, viewerOrg?.id]);
 
-  // Cache-first: read the persisted fit result directly so it renders
-  // immediately and never disappears due to a live Groq call failing or
-  // being rate-limited. A background call to score-partnership-fit refreshes
-  // the cache if it's stale (>24h old or either profile changed since) —
-  // if that refresh fails, the cached result stays on screen untouched.
   async function loadFit(listing: OrgRow, viewer: OrgRow) {
     setFitLoading(true);
     try {
@@ -228,9 +222,6 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
         setFitLoading(false);
       }
 
-      // Fire in background — this both refreshes a stale cache and, if
-      // there was no cache at all, computes the first result synchronously
-      // server-side (writing it to the cache) and returns it here.
       const { data, error } = await supabase.functions.invoke("score-partnership-fit", {
         body: { viewer_org: viewer, listing_org: listing },
       });
@@ -246,14 +237,13 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
   }
   if (!org) {
     return (
-      <div className="hidden lg:flex flex-col items-center justify-center h-full gap-4 text-center px-10"
-        style={{ background: "#FAFAFA" }}>
-        <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "#F3F4F6", border: "1px solid #E5E7EB" }}>
-          <Handshake className="w-6 h-6 text-[#374151]" />
+      <div className="hidden lg:flex flex-col items-center justify-center h-full gap-4 text-center px-10 bg-muted/30">
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-muted border border-border">
+          <Handshake className="w-6 h-6 text-foreground" />
         </div>
         <div>
-          <p className="text-sm font-bold text-[#111827] mb-1">Select a listing</p>
-          <p className="text-xs text-black max-w-xs leading-relaxed">Click any organisation from the list to view their full partnership profile.</p>
+          <p className="text-sm font-bold text-foreground mb-1">Select a listing</p>
+          <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">Click any organisation from the list to view their full partnership profile.</p>
         </div>
       </div>
     );
@@ -274,13 +264,15 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
   ];
 
   return (
-    <div ref={ref} className="flex flex-col h-full overflow-y-auto" style={{ background: "#FFFFFF" }}>
+    <div ref={ref} className="flex flex-col h-full overflow-y-auto bg-background">
 
       {/* ── Identity block ── */}
-      <div className="shrink-0 px-8 pt-7 pb-6" style={{ background: "linear-gradient(to bottom, #F0F9F4, #ffffff)", borderBottom: "2px solid #E5E7EB" }}>        {/* Mobile close */}
+      <div className="shrink-0 px-8 pt-7 pb-6 border-b-2 border-border"
+        style={{ background: "linear-gradient(to bottom, rgba(45,106,79,0.06), transparent)" }}>
+        {/* Mobile close */}
         <div className="lg:hidden flex justify-end mb-4">
           <button type="button" onClick={onClose}
-            className="p-1.5 rounded-lg text-[#374151] hover:bg-[#F3F4F6] transition-colors">
+            className="p-1.5 rounded-lg text-foreground hover:bg-muted transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -289,40 +281,39 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <a href={`/dashboard/natives?user=${org.user_id}`}
-                className="text-2xl font-black text-[#111827] hover:text-[#2D6A4F] transition-colors leading-tight tracking-tight">
+                className="text-2xl font-black text-foreground hover:text-[#2D6A4F] transition-colors leading-tight tracking-tight">
                 {org.organisation_name}
               </a>
               {isVerified && (
               <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
-                style={{ background: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0" }}>
+                style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
                 <ShieldCheck className="w-3 h-3" />Verified
               </span>
             )}
             {fitLoading && (
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0"
-                style={{ background: "#F3F4F6", color: "#6B7280", border: "1px solid #E5E7EB" }}>
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-muted text-muted-foreground border border-border">
                 <Loader2 className="w-3 h-3 animate-spin" />Scoring fit...
               </span>
             )}
             {fit && !fitLoading && (
               <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0"
                 style={{
-                  background: fit.fit_score >= 70 ? "#ECFDF5" : fit.fit_score >= 50 ? "#FFF7ED" : "#FEF2F2",
+                  background: fit.fit_score >= 70 ? "rgba(6,95,70,0.12)" : fit.fit_score >= 50 ? "rgba(146,64,14,0.12)" : "rgba(153,27,27,0.12)",
                   color: fit.fit_score >= 70 ? "#065F46" : fit.fit_score >= 50 ? "#92400E" : "#991B1B",
-                  border: `1px solid ${fit.fit_score >= 70 ? "#A7F3D0" : fit.fit_score >= 50 ? "#FDE68A" : "#FECACA"}`,
+                  border: `1px solid ${fit.fit_score >= 70 ? "rgba(6,95,70,0.3)" : fit.fit_score >= 50 ? "rgba(146,64,14,0.3)" : "rgba(153,27,27,0.3)"}`,
                 }}>
                 {fit.fit_score}% fit
               </span>
             )}
           </div>
-          <p className="text-sm text-black capitalize">
+          <p className="text-sm text-muted-foreground capitalize">
               {orgTypeLabel(org.organisation_type)}
               {countries.length > 0 && ` · ${countries.join(", ")}`}
             </p>
           </div>
           <button type="button" onClick={onToggleSave}
-            className="shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-full transition-all"
-            style={{ border: "1px solid #E5E7EB", color: isSaved ? "#065F46" : "#6B7280", background: isSaved ? "#ECFDF5" : "transparent" }}>
+            className="shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-full transition-all border border-border"
+            style={{ color: isSaved ? "#065F46" : undefined, background: isSaved ? "rgba(6,95,70,0.1)" : "transparent" }}>
             <svg viewBox="0 0 24 24" className="w-3.5 h-3.5"
               fill={isSaved ? "#065F46" : "none"} stroke="currentColor" strokeWidth={2}>
               <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
@@ -335,8 +326,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
         {sectors.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {sectors.map(s => (
-              <span key={s} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg"
-                style={{ background: "#F3F4F6", color: "#000000", border: "1px solid #E5E7EB" }}>
+              <span key={s} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-muted text-foreground border border-border">
                 {s}
               </span>
             ))}
@@ -345,12 +335,12 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
       </div>
 
       {/* ── Scrollable content ── */}
-      <div className="flex-1 divide-y" style={{ borderColor: "#F3F4F6" }}>
+      <div className="flex-1 divide-y divide-border">
 
         {/* About -- directly under header */}
         {org.description && (
-          <div className="px-8 py-5" style={{ borderBottom: "1px solid #F3F4F6" }}>
-            <p className="text-[15px] text-black leading-relaxed">{org.description}</p>
+          <div className="px-8 py-5 border-b border-border">
+            <p className="text-[15px] text-muted-foreground leading-relaxed">{org.description}</p>
           </div>
         )}
 
@@ -360,32 +350,31 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
             {org.partnership_sought && (
               <div>
                 <Eyebrow>Seeking</Eyebrow>
-                <p className="text-[15px] text-black leading-relaxed">{org.partnership_sought}</p>
+                <p className="text-[15px] text-muted-foreground leading-relaxed">{org.partnership_sought}</p>
               </div>
             )}
             {org.partnership_success_definition && (
-              <div className="rounded-xl px-5 py-4" style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderLeft: "3px solid #2D6A4F" }}>
-                <p className="text-[10px] font-black uppercase tracking-widest text-black mb-2">Success in 12 months</p>
-                <p className="text-sm text-black leading-relaxed italic">"{org.partnership_success_definition}"</p>
+              <div className="rounded-xl px-5 py-4 bg-muted border border-border border-l-[3px] border-l-[#2D6A4F]">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Success in 12 months</p>
+                <p className="text-sm text-muted-foreground leading-relaxed italic">"{org.partnership_success_definition}"</p>
               </div>
             )}
-
-            
           </div>
         )}
 
         {/* AI fit analysis -- own distinct section */}
         {(fit || fitLoading) && org.user_id !== viewerOrg?.user_id && (
-          <div className="px-8 py-6" style={{ background: "linear-gradient(135deg, #0d2b1a08 0%, #1a4a2e05 100%)", borderBottom: "1px solid #E5E7EB", borderTop: "1px solid #E5E7EB" }}>
+          <div className="px-8 py-6 border-t border-b border-border"
+            style={{ background: "linear-gradient(135deg, rgba(13,43,26,0.04) 0%, rgba(26,74,46,0.02) 100%)" }}>
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: "#2D6A4F" }}>
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 bg-[#2D6A4F]">
                 <Sparkles className="w-3.5 h-3.5 text-white" />
               </div>
               <p className="text-xs font-black uppercase tracking-widest text-[#2D6A4F]">Your fit analysis</p>
               {fitLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#2D6A4F] ml-auto" />}
               {fit && !fitLoading && (
                 <div className="ml-auto flex items-center gap-2">
-                  <div className="h-1.5 w-24 rounded-full overflow-hidden" style={{ background: "#E5E7EB" }}>
+                  <div className="h-1.5 w-24 rounded-full overflow-hidden bg-muted">
                     <div className="h-full rounded-full transition-all" style={{
                       width: `${fit.fit_score}%`,
                       background: fit.fit_score >= 70 ? "#2D6A4F" : fit.fit_score >= 50 ? "#F59E0B" : "#EF4444"
@@ -399,21 +388,21 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
             </div>
 
             {fitLoading && (
-              <p className="text-xs text-black">Analysing compatibility with your organisation profile...</p>
+              <p className="text-xs text-muted-foreground">Analysing compatibility with your organisation profile...</p>
             )}
 
             {fit && !fitLoading && (
               <div className="space-y-4">
-                <p className="text-[15px] text-black leading-relaxed">{fit.rationale}</p>
+                <p className="text-[15px] text-muted-foreground leading-relaxed">{fit.rationale}</p>
 
                 {fit.reasons.length > 0 && (
                   <div className="flex flex-col gap-2">
                     {fit.reasons.map((r, i) => (
                       <div key={i} className="flex items-start gap-2.5">
-                        <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "#ECFDF5" }}>
+                        <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "rgba(6,95,70,0.12)" }}>
                           <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#065F46" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
                         </div>
-                        <span className="text-xs text-black leading-relaxed">{r}</span>
+                        <span className="text-xs text-muted-foreground leading-relaxed">{r}</span>
                       </div>
                     ))}
                   </div>
@@ -421,7 +410,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
 
                 {fit.gaps.length > 0 && (
                   <div className="rounded-xl px-4 py-3.5 space-y-2"
-                    style={{ background: "#FFFBEB", border: "1px solid #FDE68A" }}>
+                    style={{ background: "rgba(146,64,14,0.08)", border: "1px solid rgba(146,64,14,0.3)" }}>
                     <p className="text-[10px] font-black uppercase tracking-widest text-[#92400E]">Gaps to address before reaching out</p>
                     <div className="flex flex-col gap-1.5">
                       {fit.gaps.map((g, i) => (
@@ -456,8 +445,6 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
           </div>
         )}
 
-        
-
         {/* Working style */}
         {(org.partnership_working_style || org.partnership_financial_transfer || (org.partnership_legal_type && org.partnership_legal_type.length > 0) || (org.partnership_reporting && org.partnership_reporting.length > 0) || org.partnership_ip_ownership) && (
           <div className="px-8 py-6">
@@ -471,10 +458,9 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
                 org.partnership_ip_ownership      && { label: "IP ownership",        value: org.partnership_ip_ownership.replace(/_/g, " ") },
                 org.partnership_physically_present !== null && org.partnership_physically_present !== undefined && { label: "Physical presence", value: org.partnership_physically_present ? "On the ground" : "Remote" },
               ].filter(Boolean).map((row: any) => (
-                <div key={row.label} className="flex items-start justify-between gap-6 py-2.5"
-                  style={{ borderBottom: "1px solid #F3F4F6" }}>
-                  <span className="text-xs text-black shrink-0">{row.label}</span>
-                  <span className="text-xs font-semibold text-[#111827] text-right capitalize">{row.value}</span>
+                <div key={row.label} className="flex items-start justify-between gap-6 py-2.5 border-b border-border">
+                  <span className="text-xs text-muted-foreground shrink-0">{row.label}</span>
+                  <span className="text-xs font-semibold text-foreground text-right capitalize">{row.value}</span>
                 </div>
               ))}
             </div>
@@ -489,8 +475,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
                 <Eyebrow>Looking for in a partner</Eyebrow>
                 <div className="flex flex-wrap gap-2">
                   {org.needs.map(n => (
-                    <span key={n} className="text-sm font-semibold px-4 py-2 rounded-lg text-black"
-                      style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>{n}</span>
+                    <span key={n} className="text-sm font-semibold px-4 py-2 rounded-lg text-foreground bg-muted border border-border">{n}</span>
                   ))}
                 </div>
               </div>
@@ -501,7 +486,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
                 <div className="flex flex-wrap gap-2">
                   {org.offers.map(o => (
                     <span key={o} className="text-sm font-bold px-4 py-2 rounded-lg"
-                      style={{ background: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0" }}>{o}</span>
+                      style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>{o}</span>
                   ))}
                 </div>
               </div>
@@ -515,17 +500,16 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
             <Eyebrow>Due diligence readiness</Eyebrow>
             <span className="text-xs font-bold mb-3" style={{ color: score > 2 ? "#065F46" : "#92400E" }}>{score} of 5 docs ready</span>
           </div>
-          {/* Progress bar */}
-          <div className="h-1.5 rounded-full mb-4 overflow-hidden" style={{ background: "#F3F4F6" }}>
+          <div className="h-1.5 rounded-full mb-4 overflow-hidden bg-muted">
             <div className="h-full rounded-full transition-all" style={{ width: `${(score / 5) * 100}%`, background: score > 2 ? "#2D6A4F" : "#C45C26" }} />
           </div>
           {score === 0 ? (
-            <p className="text-xs text-black">No documents confirmed ready yet.</p>
+            <p className="text-xs text-muted-foreground">No documents confirmed ready yet.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {ddDocs.filter(({ key }) => org[key as keyof OrgRow] as boolean).map(({ label }) => (
                 <span key={label} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg"
-                  style={{ background: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0" }}>
+                  style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
                   {label}
                 </span>
@@ -541,7 +525,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
             <div className="flex flex-wrap gap-1.5">
               {org.sdgs.map(sdg => (
                 <span key={sdg} className="text-xs font-bold px-3 py-1.5 rounded-lg"
-                  style={{ background: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0" }}>
+                  style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
                   {sdgLabel(sdg)}
                 </span>
               ))}
@@ -555,24 +539,21 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
             <Eyebrow>Context</Eyebrow>
             <div className="grid grid-cols-3 gap-3">
               {org.partnership_theory_of_change && (
-                <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col"
-                  style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-black">Approach to change</p>
-                  <p className="text-sm text-black leading-relaxed flex-1">{org.partnership_theory_of_change}</p>
+                <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Approach to change</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed flex-1">{org.partnership_theory_of_change}</p>
                 </div>
               )}
               {org.partnership_prior_attempts && (
-                <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col"
-                  style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-black">Previous attempts</p>
-                  <p className="text-sm text-black leading-relaxed flex-1">{org.partnership_prior_attempts}</p>
+                <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Previous attempts</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed flex-1">{org.partnership_prior_attempts}</p>
                 </div>
               )}
               {org.partnership_constraints && (
-                <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col"
-                  style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-black">Constraints</p>
-                  <p className="text-sm text-black leading-relaxed flex-1">{org.partnership_constraints}</p>
+                <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Constraints</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed flex-1">{org.partnership_constraints}</p>
                 </div>
               )}
             </div>
@@ -584,17 +565,17 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
           <div className="px-8 py-6">
             <Eyebrow>Track record</Eyebrow>
             <div className="flex items-start gap-3">
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${org.partnership_prior_experience ? "bg-[#2D6A4F]" : "bg-[#F3F4F6]"}`}>
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${org.partnership_prior_experience ? "bg-[#2D6A4F]" : "bg-muted"}`}>
                 {org.partnership_prior_experience
                   ? <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-                  : <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12"/></svg>}
+                  : <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-muted-foreground"><path d="M18 6L6 18M6 6l12 12"/></svg>}
               </div>
               <div>
-                <p className="text-sm font-semibold text-[#111827]">
+                <p className="text-sm font-semibold text-foreground">
                   {org.partnership_prior_experience ? "Has completed a partnership before" : "No prior completed partnerships"}
                 </p>
                 {org.partnership_prior_experience && org.partnership_prior_experience_detail && (
-                  <p className="text-sm text-black leading-relaxed mt-1">{org.partnership_prior_experience_detail}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed mt-1">{org.partnership_prior_experience_detail}</p>
                 )}
               </div>
             </div>
@@ -618,9 +599,9 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
             <span className="text-xs font-semibold text-[#2D6A4F]">Your listing</span>
           </div>
         ) : org.partnership_formed ? (
-          <div className="px-8 py-6 sticky bottom-0 bg-white" style={{ borderTop: "1px solid #F3F4F6" }}>
+          <div className="px-8 py-6 sticky bottom-0 bg-background border-t border-border">
             <div className="flex items-center gap-2.5 px-4 py-3.5 rounded-xl"
-              style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}>
+              style={{ background: "rgba(29,78,216,0.1)", border: "1px solid rgba(29,78,216,0.3)" }}>
               <CheckCircle2 className="w-4 h-4 shrink-0 text-[#1D4ED8]" />
               <p className="text-xs font-semibold text-[#1D4ED8]">
                 This organisation has formed a partnership and closed this listing.
@@ -628,7 +609,7 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
             </div>
           </div>
         ) : isOrg && (          
-          <div className="px-8 py-6 sticky bottom-0 bg-white space-y-3" style={{ borderTop: "1px solid #F3F4F6" }}>
+          <div className="px-8 py-6 sticky bottom-0 bg-background space-y-3 border-t border-border">
             {alreadySent ? (
               <div className="flex items-center gap-2 text-sm font-semibold text-[#065F46]">
                 <CheckCircle2 className="w-4 h-4" />Interest expressed — they've been notified
@@ -637,36 +618,34 @@ function DetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, 
               <>
                 {/* AI opening message draft */}
                 {openingMsg && !msgEditing && (
-                  <div className="rounded-xl p-4 space-y-2" style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}>
+                  <div className="rounded-xl p-4 space-y-2 bg-muted border border-border">
                     <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-black">AI-drafted opening message</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">AI-drafted opening message</p>
                       <button type="button" onClick={() => setMsgEditing(true)}
-                        className="text-[10px] font-semibold text-black hover:text-[#111827] underline underline-offset-2">
+                        className="text-[10px] font-semibold text-muted-foreground hover:text-foreground underline underline-offset-2">
                         Edit
                       </button>
                     </div>
-                    <p className="text-xs text-black leading-relaxed">{openingMsg}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{openingMsg}</p>
                   </div>
                 )}
                 {msgEditing && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-black">Edit opening message</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Edit opening message</p>
                       <button type="button" onClick={() => setMsgEditing(false)}
-                        className="text-[10px] font-semibold text-black hover:text-[#111827] underline underline-offset-2">
+                        className="text-[10px] font-semibold text-muted-foreground hover:text-foreground underline underline-offset-2">
                         Done
                       </button>
                     </div>
                     <textarea rows={4} value={openingMsg ?? ""}
                       onChange={e => setOpeningMsg(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl text-xs text-black resize-none focus:outline-none"
-                      style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }} />
+                      className="w-full px-3 py-2.5 rounded-xl text-xs text-foreground resize-none focus:outline-none bg-muted border border-border" />
                   </div>
                 )}
                 <button type="button"
                   onClick={e => {
                     if (openingMsg) {
-                      // Pass edited message to parent
                       (e as any).customMessage = openingMsg;
                     }
                     onExpressInterest(e);
@@ -837,13 +816,12 @@ export default function DashboardPartnerships() {
     <>
       <div className="flex flex-col -mx-4 sm:-mx-6" style={{ height: "100vh", maxHeight: "100vh", overflow: "hidden" }}>
         {/* Top bar */}
-        <div className="shrink-0 px-5 py-3 flex items-center gap-2" style={{ background: "#FFFFFF", borderBottom: "1px solid #F3F4F6" }}>
+        <div className="shrink-0 px-5 py-3 flex items-center gap-2 bg-background border-b border-border">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#374151]" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <input type="text" placeholder="Search listings..." value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full h-9 pl-9 pr-3 rounded-lg text-xs text-[#111827] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#452A1D]/25 transition-colors"
-              style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }} />          </div>
+              className="w-full h-9 pl-9 pr-3 rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#452A1D]/25 transition-colors bg-muted border border-border" />          </div>
           <div ref={filterBarRef} className="flex items-center gap-1.5 relative">
             {([
               {
@@ -899,10 +877,14 @@ export default function DashboardPartnerships() {
               <div key={f.key} className="relative">
                 <button type="button"
                   onClick={() => setOpenDropdown(prev => prev === f.key ? null : f.key)}
-                  className="h-8 px-3 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-colors"
+                  className={`h-8 px-3 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-colors ${
+                    f.count > 0 || openDropdown === f.key
+                      ? "text-white border border-transparent"
+                      : "bg-background text-foreground border border-border"
+                  }`}
                   style={f.count > 0 || openDropdown === f.key
-                    ? { background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)", color: "#FFFFFF", border: "1px solid transparent" }
-                    : { background: "#FFFFFF", color: "#000000", border: "1px solid #E5E7EB" }}>
+                    ? { background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }
+                    : undefined}>
                   {f.label}
                   {f.count > 0 && (
                     <span className="w-4 h-4 rounded-full bg-white text-[#111827] text-[9px] font-black flex items-center justify-center">
@@ -914,7 +896,7 @@ export default function DashboardPartnerships() {
                   </svg>
                 </button>
                 {openDropdown === f.key && (
-                  <div className="absolute top-full left-0 mt-1 z-50 rounded-xl shadow-lg border border-[#E5E7EB] bg-white min-w-[180px] p-2"
+                  <div className="absolute top-full left-0 mt-1 z-50 rounded-xl shadow-lg border border-border bg-card min-w-[180px] p-2"
                     style={{ maxHeight: "280px", overflowY: "auto" }}>
                     {f.key === "toggles" ? (
                       <div className="space-y-1">
@@ -922,15 +904,15 @@ export default function DashboardPartnerships() {
                           { label: "Saved only",        checked: favoritesOnly, set: setFavoritesOnly },
                           { label: "DD docs available", checked: ddReadyOnly,   set: setDdReadyOnly   },
                         ].map(t => (
-                          <label key={t.label} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-[#F3F4F6] transition-colors">
+                          <label key={t.label} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-muted transition-colors">
                             <input type="checkbox" checked={t.checked} onChange={e => t.set(e.target.checked)}
                               className="w-3.5 h-3.5 rounded accent-[#2D6A4F]" />
-                            <span className="text-xs text-[#374151] font-medium">{t.label}</span>
+                            <span className="text-xs text-foreground font-medium">{t.label}</span>
                           </label>
                         ))}
                         {(favoritesOnly || ddReadyOnly) && (
                           <button type="button" onClick={f.clear}
-                            className="w-full text-left px-2 py-1 text-[10px] text-[#9CA3AF] hover:text-[#374151] transition-colors">
+                            className="w-full text-left px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors">
                             Clear
                           </button>
                         )}
@@ -943,10 +925,10 @@ export default function DashboardPartnerships() {
                             <button key={o.value} type="button"
                               onClick={() => f.toggle(o.value)}
                               className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-xs text-left transition-colors ${
-                                on ? "bg-[#eaf5ee] text-[#2D6A4F] font-semibold" : "text-black hover:bg-[#F3F4F6]"
+                                on ? "bg-[#2D6A4F]/10 text-[#2D6A4F] font-semibold" : "text-foreground hover:bg-muted"
                               }`}>
                               <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
-                                on ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-[#D1D5DB]"
+                                on ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-border"
                               }`}>
                                 {on && <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>}
                               </div>
@@ -956,7 +938,7 @@ export default function DashboardPartnerships() {
                         })}
                         {f.count > 0 && (
                           <button type="button" onClick={f.clear}
-                            className="w-full text-left px-2 py-1 mt-1 text-[10px] text-[#9CA3AF] hover:text-[#374151] transition-colors border-t border-[#F3F4F6]">
+                            className="w-full text-left px-2 py-1 mt-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors border-t border-border">
                             Clear ({f.count})
                           </button>
                         )}
@@ -969,7 +951,7 @@ export default function DashboardPartnerships() {
             {activeFilterCount > 0 && (
               <button type="button"
                 onClick={() => { setSectorFilters(new Set()); setOrgTypeFilters(new Set()); setStageFilters(new Set()); setFavoritesOnly(false); setDdReadyOnly(false); }}
-                className="text-[11px] text-[#9CA3AF] hover:text-[#374151] transition-colors px-1">
+                className="text-[11px] text-muted-foreground hover:text-foreground transition-colors px-1">
                 Clear all
               </button>
             )}
@@ -984,8 +966,6 @@ export default function DashboardPartnerships() {
           )}
         </div>
 
-        
-
         {/* Split layout */}
         {loading ? (
           <div className="flex items-center justify-center flex-1">
@@ -993,16 +973,16 @@ export default function DashboardPartnerships() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center px-6">
-            <Handshake className="w-7 h-7 text-[#D1D5DB]" />
+            <Handshake className="w-7 h-7 text-muted-foreground/50" />
             <div>
-              <p className="text-sm font-bold text-[#111827] mb-1">{orgs.length === 0 ? "No listings yet" : "No results"}</p>
-              <p className="text-xs text-black">{orgs.length === 0 ? "Be the first to list your organisation." : "Try a different search or filter."}</p>
+              <p className="text-sm font-bold text-foreground mb-1">{orgs.length === 0 ? "No listings yet" : "No results"}</p>
+              <p className="text-xs text-muted-foreground">{orgs.length === 0 ? "Be the first to list your organisation." : "Try a different search or filter."}</p>
             </div>
           </div>
         ) : (
           <div className="flex min-h-0 overflow-hidden" style={{ flex: 1 }}>            {/* Left list */}
-            <div className={`w-full lg:w-72 xl:w-80 shrink-0 overflow-y-auto ${mobileDetailOpen ? "hidden lg:block" : "block"}`}
-              style={{ borderRight: "2px solid #E5E7EB", background: "#F4F4F5" }}>              {filtered.map(org => (
+            <div className={`w-full lg:w-72 xl:w-80 shrink-0 overflow-y-auto border-r-2 border-border bg-muted/40 ${mobileDetailOpen ? "hidden lg:block" : "block"}`}>
+              {filtered.map(org => (
                 <ListCard key={org.id} org={org}
                   selected={selectedOrg?.id === org.id}
                   onClick={() => { setSelectedOrg(org); setMobileDetailOpen(true); }}
