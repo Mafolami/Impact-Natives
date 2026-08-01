@@ -138,7 +138,7 @@ function TagInput({ tags, onAdd, onRemove, placeholder }: {
       onClick={e => (e.currentTarget.querySelector("input") as HTMLInputElement)?.focus()}>
       {tags.map(t => (
         <span key={t} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
-          style={{ background: "#f5ede8", color: "#C45C26" }}>
+          style={{ background: "rgba(196,92,38,0.12)", color: "#C45C26" }}>
           {t}
           <button type="button" onClick={() => onRemove(t)} className="leading-none hover:opacity-70 ml-0.5">×</button>
         </span>
@@ -175,7 +175,7 @@ function SectorSelector({ selected, onChange }: { selected: string[]; onChange: 
         {selected.length === 0 && <span className="text-sm text-muted-foreground/50">Select sectors...</span>}
         {selected.map(s => (
           <span key={s} className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
-            style={{ background: "#f5ede8", color: "#C45C26" }}>
+            style={{ background: "rgba(196,92,38,0.12)", color: "#C45C26" }}>
             {s}
             <button type="button" onClick={e => { e.stopPropagation(); toggle(s) }} className="leading-none hover:opacity-70 ml-0.5">×</button>
           </span>
@@ -434,7 +434,7 @@ export default function EditInitiativeModalDashboard({ isOpen, initiativeId, onC
             <div className="flex items-center justify-center py-16"><Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" /></div>
           ) : saved ? (
             <div className="flex flex-col items-center justify-center text-center py-12 gap-3">
-              <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: "#eaf5ee" }}>
+              <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: "rgba(45,106,79,0.12)" }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
               </div>
               <h3 className="text-lg font-semibold">Changes saved</h3>

@@ -67,12 +67,12 @@ const EMPTY_FORM: PrefillData = {
 
 // ─── Step config ──────────────────────────────────────────────────────────────
 const STEPS = [
-  { label: "Describe",    color: "#2D6A4F", light: "#eaf5ee" },
-  { label: "Partnership", color: "#C45C26", light: "#fdf5f2" },
-  { label: "Where & When", color: "#2D6A4F", light: "#eaf5ee" },
-  { label: "Focus",       color: "#C45C26", light: "#fdf5f2" },
-  { label: "Readiness",   color: "#2D6A4F", light: "#eaf5ee" },
-  { label: "Confirm",     color: "#C45C26", light: "#fdf5f2" },
+  { label: "Describe",    color: "#2D6A4F", light: "rgba(45,106,79,0.12)" },
+  { label: "Partnership", color: "#C45C26", light: "rgba(196,92,38,0.08)" },
+  { label: "Where & When", color: "#2D6A4F", light: "rgba(45,106,79,0.12)" },
+  { label: "Focus",       color: "#C45C26", light: "rgba(196,92,38,0.08)" },
+  { label: "Readiness",   color: "#2D6A4F", light: "rgba(45,106,79,0.12)" },
+  { label: "Confirm",     color: "#C45C26", light: "rgba(196,92,38,0.08)" },
 ];
 
 // ─── Primitives ───────────────────────────────────────────────────────────────
@@ -258,7 +258,7 @@ function ExpandChips({ label, options, selected, onToggle, color }: { label: str
 // Check card -- for DD docs and confirmations
 function CheckCard({ checked, onChange, label, sub }: { checked: boolean; onChange: (v: boolean) => void; label: string; sub?: string; }) {
   return (
-    <label className={`flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${checked ? "border-[#2D6A4F] bg-[#eaf5ee]" : "border-border hover:border-[#2D6A4F]/30 hover:bg-muted/30"}`}>
+    <label className={`flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${checked ? "border-[#2D6A4F] bg-[rgba(45,106,79,0.12)]" : "border-border hover:border-[#2D6A4F]/30 hover:bg-muted/30"}`}>
       <div className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${checked ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-border"}`}>
         {checked && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>}
       </div>
@@ -624,7 +624,7 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
         {appState === "results" && (
           <div className="flex-1 overflow-y-auto px-10 py-8">
             <div className="max-w-2xl mx-auto space-y-6">
-              <div className="flex items-center gap-4 p-5 rounded-2xl border-2 border-[#2D6A4F]/20 bg-[#eaf5ee]">
+              <div className="flex items-center gap-4 p-5 rounded-2xl border-2 border-[#2D6A4F]/20 bg-[rgba(45,106,79,0.12)]">
                 <div className="w-10 h-10 rounded-xl bg-[#2D6A4F] flex items-center justify-center shrink-0"><CheckCircle2 className="w-5 h-5 text-white" /></div>
                 <div>
                   <h2 className="text-base font-bold text-foreground">{listPublicly ? "You're listed" : "Matches found"}</h2>
@@ -666,7 +666,7 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
                           <div>
                             <div className="flex items-center gap-2 mb-1">
                               <p className="font-bold text-foreground">{match.org.organisation_name}</p>
-                              {match.org.verification_status === "verified" && (<span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#eaf5ee] text-[#2D6A4F]"><ShieldCheck className="w-3 h-3" />Verified</span>)}
+                              {match.org.verification_status === "verified" && (<span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[rgba(45,106,79,0.12)] text-[#2D6A4F]"><ShieldCheck className="w-3 h-3" />Verified</span>)}
                             </div>
                             <p className="text-xs text-muted-foreground capitalize">{match.org.organisation_type?.replace(/_/g, " ")}{countries.length > 0 && ` · ${countries.join(", ")}`}</p>
                             {match.org.description && (
@@ -679,7 +679,7 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
                           </div>
                         </div>
                         <div className="px-6 py-5 space-y-4">
-                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#fdf5f2]">
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[rgba(196,92,38,0.08)]">
                             <span className="text-[10px] font-black uppercase tracking-widest text-[#C45C26]">Synergy</span>
                             <span className="text-xs text-muted-foreground">{match.key_synergy}</span>
                           </div>
@@ -805,7 +805,7 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
                         </div>
                       </button>
                     ) : (
-                      <div className="flex items-center gap-4 p-4 rounded-xl border-2 border-[#2D6A4F] bg-[#eaf5ee]">
+                      <div className="flex items-center gap-4 p-4 rounded-xl border-2 border-[#2D6A4F] bg-[rgba(45,106,79,0.12)]">
                         <div className="w-10 h-10 rounded-lg bg-[#2D6A4F] flex items-center justify-center shrink-0">
                           <FileText className="w-5 h-5 text-white" />
                         </div>
@@ -835,7 +835,7 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
                 )}
 
                 {prefilled && (
-                  <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[#eaf5ee] border border-[#2D6A4F]/20">
+                  <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[rgba(45,106,79,0.12)] border border-[#2D6A4F]/20">
                     <CheckCircle2 className="w-4 h-4 text-[#2D6A4F] shrink-0" />
                     <p className="text-xs font-medium text-[#2D6A4F]">Brief already structured — click Continue to review the next step.</p>
                   </div>
