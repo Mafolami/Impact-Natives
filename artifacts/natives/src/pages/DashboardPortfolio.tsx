@@ -139,7 +139,7 @@ function CloseInitiativeButton({ initiative, onClosed }: { initiative: Initiativ
   if (!confirming) {
     return (
       <button type="button" onClick={() => setConfirming(true)}
-        className="w-full rounded-xl border border-border bg-white px-5 py-3 text-sm text-black hover:text-foreground hover:border-foreground/30 transition-colors text-left">
+        className="w-full rounded-xl border border-border bg-card px-5 py-3 text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors text-left">
         Found a partner? <span className="text-foreground font-medium">Close this initiative →</span>
       </button>
     );
@@ -153,7 +153,7 @@ function CloseInitiativeButton({ initiative, onClosed }: { initiative: Initiativ
       </p>
       <div className="flex gap-2">
         <button type="button" onClick={() => setConfirming(false)}
-          className="flex-1 h-9 rounded-full border border-border text-sm text-black hover:text-foreground transition-colors">
+          className="flex-1 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
           Cancel
         </button>
         <button type="button" onClick={closeInitiative} disabled={closing}
@@ -208,7 +208,7 @@ function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeR
       <p className="text-sm font-medium text-foreground">Review before publishing</p>
 
       <div>
-        <label className="text-xs font-semibold uppercase tracking-wider text-black mb-2 block">
+        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">
           Problem statement
         </label>
         <textarea
@@ -220,7 +220,7 @@ function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeR
       </div>
 
       <div>
-        <label className="text-xs font-semibold uppercase tracking-wider text-black mb-2 block">
+        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">
           Expected outcome
         </label>
         <textarea
@@ -232,7 +232,7 @@ function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeR
       </div>
 
       <div>
-        <label className="text-xs font-semibold uppercase tracking-wider text-black mb-2 block">
+        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">
           Specific ask
         </label>
         <textarea
@@ -245,7 +245,7 @@ function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeR
       </div>
 
       <div>
-        <label className="text-xs font-semibold uppercase tracking-wider text-black mb-2 block">
+        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">
           Partnership types needed
         </label>
         <div className="flex flex-wrap gap-2">
@@ -254,7 +254,7 @@ function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeR
               className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
                 partnerships.includes(opt.value)
                   ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
-                  : "border-border text-black hover:border-foreground/30"
+                  : "border-border text-muted-foreground hover:border-foreground/30"
               }`}>
               {opt.label}
             </button>
@@ -264,7 +264,7 @@ function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeR
 
       <div className="flex gap-2">
         <button type="button" onClick={() => setEditing(false)}
-          className="flex-1 h-9 rounded-full border border-border text-sm text-black hover:text-foreground transition-colors">
+          className="flex-1 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
           Cancel
         </button>
         <button type="button" onClick={publish} disabled={publishing || !problem.trim() || !outcome.trim() || partnerships.length === 0}
@@ -308,7 +308,7 @@ function InitiativeDetail({ initiative, onBack, onRequestEdit }: { initiative: I
               <span className="w-1.5 h-1.5 rounded-full" style={{ background: s.dot }} />
               {s.label}
             </span>
-            <span className="text-xs text-black flex items-center gap-1">
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
               <Users className="w-3 h-3" />
               {initiative.eois} expression{initiative.eois !== 1 ? "s" : ""} of interest
             </span>
@@ -322,8 +322,8 @@ function InitiativeDetail({ initiative, onBack, onRequestEdit }: { initiative: I
           { label: "Locations", value: initiative.locations?.join(", ") || "—" },
           { label: "Budget",    value: initiative.budget                || "—" },
         ].map(({ label, value }) => (
-          <div key={label} className="rounded-xl border border-border bg-white px-4 py-3">
-            <p className="text-xs text-black mb-0.5">{label}</p>
+          <div key={label} className="rounded-xl border border-border bg-card px-4 py-3">
+            <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
             <p className="text-sm font-medium text-foreground">{value}</p>
           </div>
         ))}
@@ -350,14 +350,14 @@ function InitiativeDetail({ initiative, onBack, onRequestEdit }: { initiative: I
       {(initiative.problem || initiative.outcome) && (
         <div className="grid gap-3 sm:grid-cols-2">
           {initiative.problem && (
-            <div className="rounded-xl border border-border bg-white px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black mb-2">Problem</p>
+            <div className="rounded-xl border border-border bg-card px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Problem</p>
               <p className="text-[15px] text-foreground leading-relaxed">{initiative.problem}</p>
             </div>
           )}
           {initiative.outcome && (
-            <div className="rounded-xl border border-border bg-white px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black mb-2">Outcome</p>
+            <div className="rounded-xl border border-border bg-card px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Outcome</p>
               <p className="text-[15px] text-foreground leading-relaxed">{initiative.outcome}</p>
             </div>
           )}
@@ -374,8 +374,8 @@ function InitiativeDetail({ initiative, onBack, onRequestEdit }: { initiative: I
       )}
 
       {initiative.detail_content && initiative.detail_content !== "<p></p>" && (
-        <div className="rounded-xl border border-border bg-white px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-black mb-3">Full description</p>
+        <div className="rounded-xl border border-border bg-card px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Full description</p>
           <div className="prose prose-sm max-w-none text-foreground"
             dangerouslySetInnerHTML={{ __html: initiative.detail_content }} />
         </div>
@@ -397,7 +397,7 @@ function InitiativeDetail({ initiative, onBack, onRequestEdit }: { initiative: I
 
 {initiative.status !== "closed" && (
         <button type="button" onClick={() => onRequestEdit(initiative.id)}
-          className="w-full rounded-xl border border-border bg-white px-5 py-3 text-sm text-black hover:text-foreground hover:border-foreground/30 transition-colors text-left">
+          className="w-full rounded-xl border border-border bg-card px-5 py-3 text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors text-left">
           Need to update something? <span className="text-foreground font-medium">Edit this initiative →</span>
         </button>
       )}
@@ -478,10 +478,10 @@ function InterestsExpressedTab({ userId }: { userId: string }) {
   );
 
   if (eois.length === 0) return (
-    <div className="rounded-2xl border border-border bg-white p-12 text-center">
+    <div className="rounded-2xl border border-border bg-card p-12 text-center">
       <UserCheck className="w-8 h-8 text-muted-foreground/40 mx-auto mb-4" />
       <p className="text-foreground font-medium mb-2">No interests expressed yet.</p>
-      <p className="text-sm text-black max-w-sm mx-auto">
+      <p className="text-sm text-muted-foreground max-w-sm mx-auto">
         When you express interest in initiatives on the Marketplace, they appear here.
       </p>
     </div>
@@ -499,7 +499,7 @@ function InterestsExpressedTab({ userId }: { userId: string }) {
           ? { label: "Declined", bg: "#fef2f2", color: "#ef4444" }
           : { label: "Pending",  bg: "#fffbeb", color: "#f59e0b" };
         return (
-          <div key={eoi.eoi_id} className="rounded-xl border border-border bg-white px-5 py-4 space-y-2">
+          <div key={eoi.eoi_id} className="rounded-xl border border-border bg-card px-5 py-4 space-y-2">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <Link href={`/dashboard/marketplace?initiative=${eoi.initiative_id}`}
@@ -507,7 +507,7 @@ function InterestsExpressedTab({ userId }: { userId: string }) {
                   {eoi.initiative_title}
                 </Link>
               </div>
-              <span className="text-xs text-black shrink-0">{timeAgo(eoi.created_at)}</span>
+              <span className="text-xs text-muted-foreground shrink-0">{timeAgo(eoi.created_at)}</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
               <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
@@ -595,10 +595,10 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
   );
 
   if (creatorConfirmed.length === 0 && expresserConfirmed.length === 0) return (
-    <div className="rounded-2xl border border-border bg-white p-12 text-center">
+    <div className="rounded-2xl border border-border bg-card p-12 text-center">
       <Users className="w-8 h-8 text-muted-foreground/40 mx-auto mb-4" />
       <p className="text-foreground font-medium mb-2">No confirmed partnerships yet.</p>
-      <p className="text-sm text-black max-w-sm mx-auto">
+      <p className="text-sm text-muted-foreground max-w-sm mx-auto">
         Partnerships appear here once an initiative creator confirms a partner from a conversation.
       </p>
     </div>
@@ -608,15 +608,15 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
     <div className="space-y-6">
       {creatorConfirmed.length > 0 && (
         <div className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-widest text-black">Partners on your initiatives</p>
-          <div className="rounded-xl border border-border bg-white overflow-hidden">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Partners on your initiatives</p>
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
             <div className="px-5 py-3 border-b border-border flex items-center justify-between gap-3">
               <p className="text-sm font-semibold text-foreground">Confirmed partners</p>
               <button type="button" onClick={() => {
                 const rows = [["Initiative","Name","Role","Email","Phone","LinkedIn","Confirmed"],...creatorConfirmed.flatMap(card => card.partners.map(p => [card.initiative_title,p.name,partnershipLabel(p.role),p.email,p.phone??"",p.linkedin??"",new Date(p.confirmed_at).toLocaleDateString("en-GB")]))];
                 const csv = rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
                 const blob = new Blob([csv],{type:"text/csv"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="confirmed_partners.csv";a.click();URL.revokeObjectURL(url);
-              }} className="shrink-0 flex items-center gap-1.5 text-xs text-black hover:text-foreground border border-border rounded-full px-3 py-1.5 transition-colors">
+              }} className="shrink-0 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-full px-3 py-1.5 transition-colors">
                 <Download className="w-3 h-3" /> Export
               </button>
             </div>
@@ -624,7 +624,7 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
               <thead>
                 <tr className="border-b border-border bg-muted/30">
                   {["Name","Initiative","Role","Contact","Confirmed"].map(h => (
-                    <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-black">{h}</th>
+                    <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -634,18 +634,18 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
                     <td className="px-5 py-3">
                       <Link href={`/dashboard/natives?user=${p.user_id}`} className="text-sm font-medium text-foreground hover:text-[#2D6A4F] transition-colors hover:underline underline-offset-2">{p.name}</Link>
                     </td>
-                    <td className="px-5 py-3 text-xs text-black">{card.initiative_title}</td>
+                    <td className="px-5 py-3 text-xs text-muted-foreground">{card.initiative_title}</td>
                     <td className="px-5 py-3">
                       <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{background:"#eaf5ee",color:"#2D6A4F"}}>{partnershipLabel(p.role)}</span>
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex flex-wrap gap-3">
                         {p.email && <a href={`mailto:${p.email}`} className="text-xs text-[#2D6A4F] hover:underline underline-offset-2">{p.email}</a>}
-                        {p.phone && <a href={`tel:${p.phone}`} className="text-xs text-black hover:text-foreground transition-colors">{p.phone}</a>}
-                        {p.linkedin && <a href={p.linkedin} target="_blank" rel="noopener noreferrer" className="text-xs text-black hover:text-foreground transition-colors">LinkedIn ↗</a>}
+                        {p.phone && <a href={`tel:${p.phone}`} className="text-xs text-muted-foreground hover:text-foreground transition-colors">{p.phone}</a>}
+                        {p.linkedin && <a href={p.linkedin} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">LinkedIn ↗</a>}
                       </div>
                     </td>
-                    <td className="px-5 py-3 text-xs text-black whitespace-nowrap">{timeAgo(p.confirmed_at)}</td>
+                    <td className="px-5 py-3 text-xs text-muted-foreground whitespace-nowrap">{timeAgo(p.confirmed_at)}</td>
                   </tr>
                 )))}
               </tbody>
@@ -656,13 +656,13 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
 
       {expresserConfirmed.length > 0 && (
         <div className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-widest text-black">Initiatives you've been confirmed on</p>
-          <div className="rounded-xl border border-border bg-white overflow-hidden">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Initiatives you've been confirmed on</p>
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
                   {["Creator","Initiative","Your role"].map(h => (
-                    <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-black">{h}</th>
+                    <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -673,7 +673,7 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
                       <Link href={`/dashboard/natives?user=${row.creator_user_id}`} className="text-sm font-medium text-foreground hover:text-[#2D6A4F] transition-colors hover:underline underline-offset-2">{row.creator_name}</Link>
                     </td>
                     <td className="px-5 py-3">
-                      <Link href={`/dashboard/marketplace?initiative=${row.initiative_id}`} className="text-sm text-black hover:text-[#2D6A4F] transition-colors hover:underline underline-offset-2">{row.initiative_title}</Link>
+                      <Link href={`/dashboard/marketplace?initiative=${row.initiative_id}`} className="text-sm text-muted-foreground hover:text-[#2D6A4F] transition-colors hover:underline underline-offset-2">{row.initiative_title}</Link>
                     </td>
                     <td className="px-5 py-3">
                       <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{background:"#eaf5ee",color:"#2D6A4F"}}>{partnershipLabel(row.role)}</span>
@@ -763,7 +763,7 @@ export default function DashboardInitiatives() {
         <div className="flex items-center justify-between gap-4 pb-2">
           <div>
             <h2 className="text-2xl font-bold text-foreground tracking-tight">Portfolio</h2>
-            <p className="text-sm text-black mt-1">Your initiatives and org-to-org partnerships.</p>
+            <p className="text-sm text-muted-foreground mt-1">Your initiatives and org-to-org partnerships.</p>
           </div>
           {topTab === "initiatives" && initSubTab === "created" && (
             <button type="button" onClick={() => setShowModal(true)}
@@ -781,8 +781,8 @@ export default function DashboardInitiatives() {
             <button key={key} type="button" onClick={() => setTopTab(key)}
               className={`h-9 px-6 rounded-lg text-sm font-semibold transition-all ${
                 topTab === key
-                  ? "bg-white text-foreground shadow-sm"
-                  : "text-black hover:text-foreground"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               }`}>
               {label}
             </button>
@@ -797,8 +797,8 @@ export default function DashboardInitiatives() {
                 <button key={value} type="button" onClick={() => setInitSubTab(value)}
                   className={`h-8 px-4 rounded-lg text-xs font-semibold transition-all ${
                     initSubTab === value
-                      ? "bg-white text-foreground shadow-sm"
-                      : "text-black hover:text-foreground"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}>
                     {label}
                 </button>
@@ -813,9 +813,9 @@ export default function DashboardInitiatives() {
                     <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
                   </div>
                 ) : initiatives.length === 0 ? (
-                  <div className="rounded-2xl border border-border bg-white p-12 text-center">
+                  <div className="rounded-2xl border border-border bg-card p-12 text-center">
                     <p className="text-foreground font-medium mb-2">No initiatives yet.</p>
-                    <p className="text-sm text-black mb-6 max-w-sm mx-auto">
+                    <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
                       Create an initiative and let funders, partners, and implementers discover it.
                     </p>
                     <button type="button" onClick={() => setShowModal(true)}
@@ -830,7 +830,7 @@ export default function DashboardInitiatives() {
                       const isConfirmingClose = closingId === ini.id;
                       return (
                         <div key={ini.id}
-                          className="w-full rounded-2xl border border-border bg-white px-6 py-5 hover:border-[#2D6A4F]/40 hover:shadow-md transition-all duration-200 group">
+                          className="w-full rounded-2xl border border-border bg-card px-6 py-5 hover:border-[#2D6A4F]/40 hover:shadow-md transition-all duration-200 group">
                           <button type="button" onClick={() => setSelected(ini)} className="w-full text-left">
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1 min-w-0 space-y-2">
@@ -840,14 +840,14 @@ export default function DashboardInitiatives() {
                                     <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.dot }} />
                                     {s.label}
                                   </span>
-                                  <span className="text-xs text-black">
+                                  <span className="text-xs text-muted-foreground">
                                     {ini.eois} EOI{ini.eois !== 1 ? "s" : ""}
                                   </span>
                                 </div>
                                 <p className="font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors leading-snug">
                                   {ini.title}
                                 </p>
-                                <p className="text-[13px] text-black">
+                                <p className="text-[13px] text-muted-foreground">
                                   {normalizeArr(ini.sectors).slice(0, 2).join(", ")}
                                   {normalizeArr(ini.locations).length > 0 && (
                                     <> · {normalizeArr(ini.locations).slice(0, 2).join(", ")}</>
