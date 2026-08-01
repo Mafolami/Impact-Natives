@@ -160,7 +160,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
           <button
             type="button"
             onClick={() => setPanelOpen((v) => !v)}
-            className="relative p-2 rounded-lg hover:bg-muted transition-colors text-black dark:text-white hover:text-foreground"
+            className="relative p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
           >
             <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
@@ -183,7 +183,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
                     <button
                       type="button"
                       onClick={markAllRead}
-                      className="text-xs text-black dark:text-white hover:text-foreground transition-colors flex items-center gap-1"
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
                     >
                       <Check className="w-3 h-3" />
                       Mark all read
@@ -192,7 +192,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
                   <button
                     type="button"
                     onClick={() => setPanelOpen(false)}
-                    className="p-1 rounded hover:bg-muted transition-colors text-black dark:text-white"
+                    className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -203,7 +203,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
               <div className="overflow-y-auto flex-1">
                 {notifications.length === 0 ? (
                   <div className="px-4 py-8 text-center">
-                    <p className="text-sm text-black dark:text-white">No notifications yet.</p>
+                    <p className="text-sm text-muted-foreground">No notifications yet.</p>
                   </div>
                 ) : (
                   notifications.map((n) => (
@@ -219,7 +219,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
                       <div className="flex items-start justify-between gap-2">
                         <p className={cn(
                           "text-xs leading-relaxed font-medium",
-                          n.read ? "text-black dark:text-white" : "text-foreground"
+                          n.read ? "text-muted-foreground" : "text-foreground"
                         )}>
                           {n.title}
                         </p>
@@ -228,7 +228,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
                         )}
                       </div>
                       {n.body && (
-                        <p className="text-[11px] text-black dark:text-white mt-0.5 leading-relaxed">
+                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
                           {SUMMARY_ONLY_TYPES.includes(n.type) ? firstSentence(n.body) : n.body}
                         </p>
                       )}
