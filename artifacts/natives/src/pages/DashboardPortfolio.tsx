@@ -6,11 +6,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { ArrowLeft, ArrowRight, Download, Loader2, Users, UserCheck, Pencil, CheckCircle2, Check, X } from "lucide-react";import { Link, useLocation } from "wouter";
+import { ArrowLeft, ArrowRight, Download, Loader2, Users, UserCheck, Pencil, CheckCircle2, Check, X, LayoutList, Table2 } from "lucide-react";import { Link, useLocation } from "wouter";
 import CreateInitiativeModalDashboard from "./CreateInitiativeModalDashboard";
 import EditInitiativeModalDashboard from "./EditInitiativeModalDashboard";
 import { useRoute } from "wouter";
 import { PartnershipTab } from "./PartnershipTab";
+import { PortfolioTable } from "./PortfolioTable";
 import { normalizeArr } from "@/lib/normalizeArr";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -702,6 +703,10 @@ export default function DashboardInitiatives() {
   const [topTab, setTopTab] = useState<"initiatives" | "partnerships">("initiatives");
   // Initiative sub-tabs
   const [initSubTab, setInitSubTab] = useState<"created" | "expressed" | "confirmed">("created");
+  // Tabs vs unified spreadsheet-table view. Uses "mode" as the query param
+  // name specifically to avoid colliding with PartnershipTab's own "view"
+  // param (?view=requested/inbound/outbound/confirmed).
+  const [viewMode, setViewMode] = useState<"tabs" | "table">("tabs");
 
   const [, params] = useRoute("/dashboard/portfolio/:id");
   const routeId = params?.id;
@@ -724,6 +729,7 @@ export default function DashboardInitiatives() {
     if (p.get("tab") === "partners") { setTopTab("initiatives"); setInitSubTab("confirmed"); }
     if (p.get("tab") === "expressed") { setTopTab("initiatives"); setInitSubTab("expressed"); }
     if (p.get("tab") === "partnerships") setTopTab("partnerships");
+    if (p.get("mode") === "table") setViewMode("table");
   }, []);
 
   async function load() {
@@ -765,13 +771,41 @@ export default function DashboardInitiatives() {
             <h2 className="text-2xl font-bold text-foreground tracking-tight">Portfolio</h2>
             <p className="text-sm text-muted-foreground mt-1">Your initiatives and org-to-org partnerships.</p>
           </div>
-          {topTab === "initiatives" && initSubTab === "created" && (
-            <button type="button" onClick={() => setShowModal(true)}
-              className="shrink-0 rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
-              + New Initiative
-            </button>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Tabs / Table view toggle */}
+            <div className="flex gap-1 p-1 rounded-xl bg-muted">
+              <button type="button" onClick={() => setViewMode("tabs")} title="Tabs view"
+                className={`h-9 px-3 rounded-lg text-sm font-semibold transition-all flex items-center gap-1.5 ${
+                  viewMode === "tabs"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}>
+                <LayoutList className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Tabs</span>
+              </button>
+              <button type="button" onClick={() => setViewMode("table")} title="Table view"
+                className={`h-9 px-3 rounded-lg text-sm font-semibold transition-all flex items-center gap-1.5 ${
+                  viewMode === "table"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}>
+                <Table2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Table</span>
+              </button>
+            </div>
+            {viewMode === "tabs" && topTab === "initiatives" && initSubTab === "created" && (
+              <button type="button" onClick={() => setShowModal(true)}
+                className="shrink-0 rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
+                + New Initiative
+              </button>
+            )}
+          </div>
         </div>
+
+        {viewMode === "table" ? (
+          <PortfolioTable />
+        ) : (
+          <>
         {/* Top-level tabs — segmented control */}
         <div className="flex gap-1 p-1 rounded-xl bg-muted w-fit">
           {[
@@ -914,6 +948,8 @@ export default function DashboardInitiatives() {
         {/* ── Partnerships tab ── */}
         {topTab === "partnerships" && (
           <PartnershipTab />
+        )}
+          </>
         )}
       </div>
 
