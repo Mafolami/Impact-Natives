@@ -400,14 +400,12 @@ export default function FunderHome({ profile }: { profile: any }) {
             <button key={m.label} type="button" onClick={m.onClick}
               className="text-left rounded-xl border bg-card px-4 py-3 hover:border-[#2D6A4F]/40 transition-colors group"
               style={{ borderColor: m.accent ? "#C45C26" : undefined }}>
-              <div className="flex items-center gap-1.5 mb-1">
-                <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground truncate">{m.label}</p>
+              <div className="flex items-start gap-1.5 mb-1.5">
+                <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground leading-snug">{m.label}</p>
               </div>
-              <div className="flex items-baseline gap-1.5">
-                <p className="text-xl font-bold text-foreground tracking-tight group-hover:text-[#2D6A4F] transition-colors">{m.value}</p>
-                <p className="text-xs text-muted-foreground truncate">{m.sub}</p>
-              </div>
+              <p className="text-xl font-bold text-foreground tracking-tight group-hover:text-[#2D6A4F] transition-colors">{m.value}</p>
+              <p className="text-xs text-muted-foreground leading-snug mt-0.5">{m.sub}</p>
             </button>
           );
         })}
