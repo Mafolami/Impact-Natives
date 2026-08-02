@@ -15,8 +15,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { Loader2, ArrowUpDown, Search } from "lucide-react";
-import { fetchPortfolioRows, PortfolioRow, PortfolioRowType, PortfolioDirection, PortfolioOutcome, upsertPartnershipOutcome } from "@/lib/portfolioData";
+import { Loader2, ArrowUpDown, Search, Banknote } from "lucide-react";
+import { fetchPortfolioRows, PortfolioRow, PortfolioRowType, PortfolioDirection, PortfolioOutcome, PortfolioTimelineStage, upsertPartnershipOutcome } from "@/lib/portfolioData";
 import {
   updateConnectionStatus, markPartnershipFormed, unlistPartnership, relistPartnership,
 } from "@/lib/partnershipActions";
@@ -103,6 +103,56 @@ function isOutcomeEligible(row: PortfolioRow): boolean {
   );
 }
 
+const CURRENCIES = ["USD", "GBP", "EUR", "NGN", "KES", "GHS", "ZAR"];
+
+function formatDuration(fromISO: string, toISO: string): string {
+  const ms = new Date(toISO).getTime() - new Date(fromISO).getTime();
+  const days = Math.floor(ms / 86400000);
+  if (days >= 1) return `${days}d`;
+  const hours = Math.floor(ms / 3600000);
+  if (hours >= 1) return `${hours}h`;
+  const mins = Math.floor(ms / 60000);
+  return `${Math.max(mins, 0)}m`;
+}
+
+function TimelineModal({ row, onClose }: { row: PortfolioRow; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-card rounded-2xl border border-border w-full max-w-sm p-6 space-y-4" onClick={e => e.stopPropagation()}>
+        <div>
+          <h3 className="text-lg font-bold text-foreground">Timeline</h3>
+          <p className="text-sm text-muted-foreground mt-0.5">{row.title} — {row.organisation}</p>
+        </div>
+        <div>
+          {row.timeline.map((stage, i) => {
+            const prev = row.timeline[i - 1];
+            const isLast = i === row.timeline.length - 1;
+            return (
+              <div key={stage.label} className="flex items-start gap-3 relative pb-5 last:pb-0">
+                {!isLast && <div className="absolute left-[6px] top-4 bottom-0 w-px bg-border" />}
+                <div className="w-3.5 h-3.5 rounded-full bg-[#2D6A4F] shrink-0 mt-1 relative z-10 border-2 border-card" />
+                <div className="flex-1 min-w-0 -mt-0.5">
+                  <p className="text-sm font-medium text-foreground">{stage.label}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {new Date(stage.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                    {prev && (
+                      <span className="text-muted-foreground/70"> · {formatDuration(prev.date, stage.date)} after {prev.label.toLowerCase()}</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <button type="button" onClick={onClose}
+          className="w-full h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
   row: PortfolioRow; currentUserId: string; onClose: () => void; onSaved: () => void;
 }) {
@@ -113,14 +163,31 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
   const [fundingCurrency, setFundingCurrency] = useState(existing?.funding_currency ?? "USD");
   const [startedAt, setStartedAt] = useState(existing?.started_at ?? "");
   const [completedAt, setCompletedAt] = useState(existing?.completed_at ?? "");
+  const [stalledAt, setStalledAt] = useState(existing?.stalled_at ?? "");
+  const [fellThroughAt, setFellThroughAt] = useState(existing?.fell_through_at ?? "");
+  const [everStarted, setEverStarted] = useState<boolean | null>(() => {
+    if (!existing) return null;
+    if (existing.status === "stalled" || existing.status === "fell_through") {
+      return existing.started_at ? true : false;
+    }
+    return true;
+  });
   const [summary, setSummary] = useState(existing?.outcome_summary ?? "");
   const [saving, setSaving] = useState(false);
 
   const isInitiative = row.type === "Initiative";
-  const completedAtVisible = status === "completed";
+
+  const isStalledOrFell = status === "stalled" || status === "fell_through";
 
   async function save() {
     setSaving(true);
+    const effectiveStartedAt = isStalledOrFell
+      ? (everStarted ? (startedAt || null) : null)
+      : (status === "in_progress" || status === "completed") ? (startedAt || null) : null;
+    const effectiveCompletedAt = status === "completed" ? (completedAt || null) : null;
+    const effectiveStalledAt = status === "stalled" ? (stalledAt || null) : null;
+    const effectiveFellThroughAt = status === "fell_through" ? (fellThroughAt || null) : null;
+
     if (row.raw.kind === "initiative_eoi") {
       await upsertPartnershipOutcome({
         existingId: existing?.id ?? null,
@@ -131,8 +198,10 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
         fundingDisbursed: isInitiative ? fundingDisbursed : null,
         fundingAmount: isInitiative && fundingDisbursed && fundingAmount ? Number(fundingAmount) : null,
         fundingCurrency: isInitiative && fundingDisbursed ? fundingCurrency : null,
-        startedAt: startedAt || null,
-        completedAt: completedAt || null,
+        startedAt: effectiveStartedAt,
+        completedAt: effectiveCompletedAt,
+        stalledAt: effectiveStalledAt,
+        fellThroughAt: effectiveFellThroughAt,
         outcomeSummary: summary || null,
         reportedByUserId: currentUserId,
       });
@@ -145,8 +214,10 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
         fundingDisbursed: null,
         fundingAmount: null,
         fundingCurrency: null,
-        startedAt: startedAt || null,
-        completedAt: completedAt || null,
+        startedAt: effectiveStartedAt,
+        completedAt: effectiveCompletedAt,
+        stalledAt: effectiveStalledAt,
+        fellThroughAt: effectiveFellThroughAt,
         outcomeSummary: summary || null,
         reportedByUserId: currentUserId,
       });
@@ -184,19 +255,78 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
           </select>
         </div>
 
-        {/* Dates only appear once relevant to the chosen status -- no
-            empty pickers cluttering the form before they mean anything. */}
-        {status !== "not_started" && (
-          <div className={completedAtVisible ? "grid grid-cols-2 gap-2" : ""}>
+        {/* Dates are shaped entirely by which status is selected -- no
+            generic Started/Completed pair shown regardless of relevance. */}
+        {status === "in_progress" && (
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Started</label>
+            <input type="date" value={startedAt} onChange={e => setStartedAt(e.target.value)}
+              className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
+          </div>
+        )}
+
+        {status === "completed" && (
+          <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Started</label>
               <input type="date" value={startedAt} onChange={e => setStartedAt(e.target.value)}
                 className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
             </div>
-            {completedAtVisible && (
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Completed</label>
+              <input type="date" value={completedAt} onChange={e => setCompletedAt(e.target.value)}
+                className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
+            </div>
+          </div>
+        )}
+
+        {isStalledOrFell && (
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">
+                Did this ever start?
+              </label>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setEverStarted(true)}
+                  className={`flex-1 h-9 rounded-lg border text-sm font-medium transition-colors ${
+                    everStarted === true ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-muted-foreground hover:border-[#2D6A4F]"
+                  }`}>
+                  Yes
+                </button>
+                <button type="button" onClick={() => setEverStarted(false)}
+                  className={`flex-1 h-9 rounded-lg border text-sm font-medium transition-colors ${
+                    everStarted === false ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-muted-foreground hover:border-[#2D6A4F]"
+                  }`}>
+                  No
+                </button>
+              </div>
+            </div>
+
+            {everStarted === true && (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Started</label>
+                  <input type="date" value={startedAt} onChange={e => setStartedAt(e.target.value)}
+                    className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">
+                    {status === "stalled" ? "Stalled" : "Fell through"}
+                  </label>
+                  <input type="date" value={status === "stalled" ? stalledAt : fellThroughAt}
+                    onChange={e => status === "stalled" ? setStalledAt(e.target.value) : setFellThroughAt(e.target.value)}
+                    className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
+                </div>
+              </div>
+            )}
+
+            {everStarted === false && (
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Completed</label>
-                <input type="date" value={completedAt} onChange={e => setCompletedAt(e.target.value)}
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">
+                  {status === "stalled" ? "Stalled" : "Fell through"}
+                </label>
+                <input type="date" value={status === "stalled" ? stalledAt : fellThroughAt}
+                  onChange={e => status === "stalled" ? setStalledAt(e.target.value) : setFellThroughAt(e.target.value)}
                   className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
               </div>
             )}
@@ -220,9 +350,10 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
                 <input type="number" value={fundingAmount} onChange={e => setFundingAmount(e.target.value)}
                   placeholder="Amount"
                   className="flex-1 h-9 px-3 rounded-lg border border-[#2D6A4F]/25 bg-card text-sm text-foreground" />
-                <input value={fundingCurrency} onChange={e => setFundingCurrency(e.target.value)}
-                  placeholder="Currency" maxLength={3}
-                  className="w-20 h-9 px-3 rounded-lg border border-[#2D6A4F]/25 bg-card text-sm text-foreground" />
+                <select value={fundingCurrency} onChange={e => setFundingCurrency(e.target.value)}
+                  className="w-24 h-9 px-2 rounded-lg border border-[#2D6A4F]/25 bg-card text-sm text-foreground">
+                  {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
               </div>
             )}
           </div>
@@ -263,6 +394,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [editingListing, setEditingListing] = useState(false);
   const [outcomeEditingRow, setOutcomeEditingRow] = useState<PortfolioRow | null>(null);
+  const [timelineRow, setTimelineRow] = useState<PortfolioRow | null>(null);
 
   async function load(showLoader = true) {
     if (!user) return;
@@ -317,7 +449,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
     const { conversationId } = await updateConnectionStatus(conn, "accepted", {
       userId: user.id, myOrgName: myOrg?.organisation_name ?? "",
     });
-    await load();
+    await load(false);
     setActioningId(null);
     if (conversationId) navigate(`/dashboard/messages?conversation=${conversationId}`);
   }
@@ -333,7 +465,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
     await updateConnectionStatus(conn, "declined", {
       userId: user.id, myOrgName: myOrg?.organisation_name ?? "",
     });
-    await load();
+    await load(false);
     setActioningId(null);
   }
 
@@ -341,7 +473,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
     if (row.raw.kind !== "partnership_listing") return;
     setActioningId(row.id);
     await unlistPartnership(row.raw.orgId);
-    await load();
+    await load(false);
     setActioningId(null);
   }
 
@@ -349,7 +481,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
     if (row.raw.kind !== "partnership_listing") return;
     setActioningId(row.id);
     await relistPartnership(row.raw.orgId);
-    await load();
+    await load(false);
     setActioningId(null);
   }
 
@@ -363,7 +495,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
     await markPartnershipFormed(
       row.raw.orgId, inbound ?? [], myOrg?.organisation_name ?? "", myOrg?.partnership_title ?? null
     );
-    await load();
+    await load(false);
     setActioningId(null);
   }
 
@@ -482,13 +614,28 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1 items-start">
-                      <StatusPill status={row.status} />
+                      <div className="flex items-center gap-1.5">
+                        {row.outcome?.funding_disbursed && (
+                          <span className="relative inline-flex group/fund">
+                            <Banknote className="w-3.5 h-3.5 text-[#2D6A4F]" />
+                            <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 hidden group-hover/fund:block whitespace-nowrap text-[11px] font-medium bg-foreground text-background px-2.5 py-1 rounded-md z-20">
+                              {row.outcome.funding_currency} {row.outcome.funding_amount?.toLocaleString() ?? "—"} disbursed
+                            </span>
+                          </span>
+                        )}
+                        <StatusPill status={row.status} />
+                      </div>
                       {isOutcomeEligible(row) && (
                         <OutcomePill status={row.outcome?.status ?? "not_started"} />
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{timeAgo(row.date)}</td>
+                  <td className="px-4 py-3 text-xs whitespace-nowrap">
+                    <button type="button" onClick={() => setTimelineRow(row)}
+                      className="text-muted-foreground hover:text-[#2D6A4F] underline decoration-dotted underline-offset-2 transition-colors">
+                      {timeAgo(row.date)}
+                    </button>
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1.5 items-start">
                     {row.raw.kind === "partnership_connection" && row.status === "Pending" && row.direction === "Inbound" && (
@@ -560,6 +707,10 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
           onClose={() => setOutcomeEditingRow(null)}
           onSaved={() => { setOutcomeEditingRow(null); load(false); }}
         />
+      )}
+
+      {timelineRow && (
+        <TimelineModal row={timelineRow} onClose={() => setTimelineRow(null)} />
       )}
     </div>
   );

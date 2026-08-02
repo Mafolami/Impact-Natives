@@ -34,6 +34,8 @@ export interface PortfolioOutcome {
   funding_currency: string | null;
   started_at: string | null;
   completed_at: string | null;
+  stalled_at: string | null;
+  fell_through_at: string | null;
   outcome_summary: string | null;
 }
 
@@ -152,6 +154,8 @@ export async function upsertPartnershipOutcome(params: {
   fundingCurrency: string | null;
   startedAt: string | null;
   completedAt: string | null;
+  stalledAt: string | null;
+  fellThroughAt: string | null;
   outcomeSummary: string | null;
   reportedByUserId: string;
 }): Promise<void> {
@@ -166,6 +170,8 @@ export async function upsertPartnershipOutcome(params: {
     funding_currency: params.fundingCurrency,
     started_at: params.startedAt,
     completed_at: params.completedAt,
+    stalled_at: params.stalledAt,
+    fell_through_at: params.fellThroughAt,
     outcome_summary: params.outcomeSummary,
     reported_by_user_id: params.reportedByUserId,
   };
@@ -442,13 +448,13 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
     const [{ data: initOutcomes }, { data: connOutcomes }] = await Promise.all([
       initIds.length
         ? supabase.from("partnership_outcomes")
-            .select("id, initiative_id, partner_user_id, status, funding_disbursed, funding_amount, funding_currency, started_at, completed_at, outcome_summary")
+            .select("id, initiative_id, partner_user_id, status, funding_disbursed, funding_amount, funding_currency, started_at, completed_at, stalled_at, fell_through_at, outcome_summary")
             .eq("relationship_type", "initiative_partner")
             .in("initiative_id", initIds)
         : Promise.resolve({ data: [] }),
       connIds.length
         ? supabase.from("partnership_outcomes")
-            .select("id, connection_id, status, funding_disbursed, funding_amount, funding_currency, started_at, completed_at, outcome_summary")
+            .select("id, connection_id, status, funding_disbursed, funding_amount, funding_currency, started_at, completed_at, stalled_at, fell_through_at, outcome_summary")
             .eq("relationship_type", "org_partnership")
             .in("connection_id", connIds)
         : Promise.resolve({ data: [] }),
