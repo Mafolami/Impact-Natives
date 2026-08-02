@@ -473,6 +473,27 @@ export default function CorporateHome({ profile }: { profile: any }) {
         </button>
       </div>
 
+      {/* Metrics strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {metricTiles.map(m => {
+          const Icon = m.icon;
+          return (
+            <button key={m.label} type="button" onClick={m.onClick}
+              className="text-left rounded-xl border bg-card px-4 py-3 hover:border-[#2D6A4F]/40 transition-colors group"
+              style={{ borderColor: m.accent ? "#C45C26" : undefined }}>
+              <div className="flex items-center gap-1.5 mb-1">
+                <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground truncate">{m.label}</p>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <p className="text-xl font-bold text-foreground tracking-tight group-hover:text-[#2D6A4F] transition-colors">{m.value}</p>
+                <p className="text-xs text-muted-foreground truncate">{m.sub}</p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
       {/* CSR profile nudge */}
       {displayedCompleteness < 100 && (
         <div className="rounded-xl border border-dashed border-[#2D6A4F]/30 bg-[#2D6A4F]/5 px-5 py-4 flex items-center justify-between gap-4">
@@ -513,9 +534,9 @@ export default function CorporateHome({ profile }: { profile: any }) {
         </div>
       )}
 
-      {/* Kanban: matches in two columns on desktop, metrics as a rail on the right.
-          Stacks to a single column on mobile, metrics rail moving to the bottom. */}
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_260px] gap-6">
+      {/* Kanban: matches in two columns. Metrics live in the strip above
+          now. Stacks to a single column on mobile. */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Column 1: Initiative matches */}
         <section className="lg:order-1 rounded-2xl bg-[#2D6A4F]/[0.03] border border-[#2D6A4F]/10 p-4">
@@ -771,25 +792,6 @@ export default function CorporateHome({ profile }: { profile: any }) {
             </div>
           )}
         </section>
-
-        {/* Metrics rail — vertical on desktop, moves below the columns on mobile */}
-        <aside className="lg:order-3 order-3 grid grid-cols-2 gap-3 lg:grid-cols-1 lg:gap-3 content-start">
-          {metricTiles.map(m => {
-            const Icon = m.icon;
-            return (
-              <button key={m.label} type="button" onClick={m.onClick}
-                className="w-full text-left rounded-xl border bg-card px-4 py-4 hover:border-[#2D6A4F]/40 transition-colors group flex flex-col gap-3 min-h-[110px]"
-                style={{ borderColor: m.accent ? "#C45C26" : undefined }}>
-                <div className="flex items-center gap-2">
-                  <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground break-words">{m.label}</p>
-                </div>
-                <p className="text-xs text-muted-foreground break-words leading-snug">{m.sub}</p>
-                <p className="text-2xl font-bold text-foreground tracking-tight group-hover:text-[#2D6A4F] transition-colors mt-auto">{m.value}</p>
-              </button>
-            );
-          })}
-        </aside>
       </div>
 
       {/* CSR Pipeline */}
