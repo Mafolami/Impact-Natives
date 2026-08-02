@@ -589,7 +589,10 @@ function DDEvidenceViewModal({ item, evidence, canSeeSensitive, onClose }: {
               );
             }
             const raw = evidence[q.key];
-            const display = raw === true ? "Yes" : raw === false ? "No" : (raw === "Other" || raw === "Custom") ? (evidence[`${q.key}_custom`] || raw) : raw;
+            const display = raw === true ? "Yes" : raw === false ? "No"
+              : (raw === "Other" || raw === "Custom") ? (evidence[`${q.key}_custom`] || raw)
+              : q.type === "date" && raw ? new Date(raw).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+              : raw;
             if (!display) return null;
             return (
               <div key={q.key}>

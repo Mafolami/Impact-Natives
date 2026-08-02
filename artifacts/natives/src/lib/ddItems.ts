@@ -8,6 +8,7 @@ import { COUNTRIES } from "@/lib/countries";
 
 export type DDQuestion =
   | { key: string; label: string; type: "text"; required?: boolean }
+  | { key: string; label: string; type: "date"; required?: boolean }
   | { key: string; label: string; type: "select"; options: string[]; required?: boolean }
   | { key: string; label: string; type: "yesno"; required?: boolean; followUpIfYes?: { key: string; label: string } };
 
@@ -31,7 +32,7 @@ export const DD_ITEMS: DDItemDef[] = [
       sub: "A current financial model or projections document",
       questions: [
         { key: "preparedBy", label: "Prepared by", type: "select", options: ["Internal team", "External consultant", "Board-reviewed", "Other"] },
-        { key: "lastUpdated", label: "Last updated (date)", type: "text" },
+        { key: "lastUpdated", label: "Last updated (date)", type: "date" },
         { key: "notes", label: "Anything else worth noting?", type: "text", required: false },
       ],
     },
@@ -41,7 +42,7 @@ export const DD_ITEMS: DDItemDef[] = [
       sub: "Most recent audited financial statements",
       questions: [
         { key: "auditor", label: "Auditor / audit firm", type: "text" },
-        { key: "dateAudited", label: "Date of audit", type: "text" },
+        { key: "dateAudited", label: "Date of audit", type: "date" },
         { key: "auditOpinion", label: "Audit opinion", type: "select", options: ["Clean", "Qualified", "Not sure"] },
       ],
     },
@@ -71,7 +72,7 @@ export const DD_ITEMS: DDItemDef[] = [
       sub: "Theory of change, IRIS+ alignment, or outcome tracking methodology",
       questions: [
         { key: "framework", label: "Framework used", type: "select", options: ["IRIS+", "SDG Indicators", "LogFrame", "Custom"] },
-        { key: "dateAdopted", label: "Date adopted", type: "text" },
+        { key: "dateAdopted", label: "Date adopted", type: "date" },
         { key: "notes", label: "Anything else worth noting?", type: "text", required: false },
       ],
     },
@@ -81,7 +82,7 @@ export const DD_ITEMS: DDItemDef[] = [
       sub: "Child protection / protection from sexual exploitation and abuse policy",
       questions: [
         { key: "ownership", label: "Ownership", type: "select", options: ["Dedicated Safeguarding Officer", "Shared responsibility (HR/Ops)", "Board-level oversight", "Other"] },
-        { key: "dateAdopted", label: "Date adopted", type: "text" },
+        { key: "dateAdopted", label: "Date adopted", type: "date" },
         { key: "notes", label: "Anything else worth noting?", type: "text", required: false },
       ],
     },

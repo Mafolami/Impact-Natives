@@ -187,6 +187,10 @@ function DDEvidenceModal({ item, initialAnswers, onClose, onSave }: {
               <input value={answers[q.key] ?? ""} onChange={e => setAnswer(q.key, e.target.value)}
                 className={`w-full h-9 px-3 rounded-lg border bg-background text-sm text-foreground ${flagClass}`} />
             )}
+            {q.type === "date" && (
+              <input type="date" value={answers[q.key] ?? ""} onChange={e => setAnswer(q.key, e.target.value)}
+                className={`w-full h-9 px-3 rounded-lg border bg-background text-sm text-foreground ${flagClass}`} />
+            )}
             {q.type === "select" && (
               <>
                 <select value={answers[q.key] ?? ""} onChange={e => setAnswer(q.key, e.target.value)}
