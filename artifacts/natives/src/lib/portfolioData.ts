@@ -125,6 +125,14 @@ function resolvePartnershipTitle(
   return "Partnership inquiry";
 }
 
+const OUTCOME_STAGE_LABELS: Record<string, string> = {
+  not_started: "Not started",
+  in_progress: "In progress",
+  completed: "Completed",
+  stalled: "Stalled",
+  fell_through: "Fell through",
+};
+
 function buildConnectionTimeline(conn: {
   created_at: string;
   accepted_at?: string | null;
@@ -448,13 +456,13 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
     const [{ data: initOutcomes }, { data: connOutcomes }] = await Promise.all([
       initIds.length
         ? supabase.from("partnership_outcomes")
-            .select("id, initiative_id, partner_user_id, status, funding_disbursed, funding_amount, funding_currency, started_at, completed_at, stalled_at, fell_through_at, outcome_summary")
+            .select("id, initiative_id, partner_user_id, status, funding_disbursed, funding_amount, funding_currency, started_at, completed_at, stalled_at, fell_through_at, outcome_summary, updated_at")
             .eq("relationship_type", "initiative_partner")
             .in("initiative_id", initIds)
         : Promise.resolve({ data: [] }),
       connIds.length
         ? supabase.from("partnership_outcomes")
-            .select("id, connection_id, status, funding_disbursed, funding_amount, funding_currency, started_at, completed_at, stalled_at, fell_through_at, outcome_summary")
+            .select("id, connection_id, status, funding_disbursed, funding_amount, funding_currency, started_at, completed_at, stalled_at, fell_through_at, outcome_summary, updated_at")
             .eq("relationship_type", "org_partnership")
             .in("connection_id", connIds)
         : Promise.resolve({ data: [] }),
@@ -467,10 +475,20 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
 
     for (const row of initiativeOutcomeKeys) {
       const key = `${row.raw.initiativeId}:${row.raw.partnerUserId}`;
-      row.outcome = initOutcomeMap.get(key) ?? null;
+      const outcome = initOutcomeMap.get(key) ?? null;
+      row.outcome = outcome;
+      if (outcome?.updated_at) {
+        if (new Date(outcome.updated_at) > new Date(row.date)) row.date = outcome.updated_at;
+        row.timeline = [...row.timeline, { label: `Outcome: ${OUTCOME_STAGE_LABELS[outcome.status] ?? outcome.status}`, date: outcome.updated_at }];
+      }
     }
     for (const row of connectionOutcomeRows) {
-      row.outcome = connOutcomeMap.get(row.raw.connectionId) ?? null;
+      const outcome = connOutcomeMap.get(row.raw.connectionId) ?? null;
+      row.outcome = outcome;
+      if (outcome?.updated_at) {
+        if (new Date(outcome.updated_at) > new Date(row.date)) row.date = outcome.updated_at;
+        row.timeline = [...row.timeline, { label: `Outcome: ${OUTCOME_STAGE_LABELS[outcome.status] ?? outcome.status}`, date: outcome.updated_at }];
+      }
     }
   }
 

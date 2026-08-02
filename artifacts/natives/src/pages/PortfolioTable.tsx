@@ -86,12 +86,12 @@ function DirectionPill({ direction }: { direction: PortfolioDirection }) {
   );
 }
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const days = Math.floor(diff / 86400000);
-  if (days < 1) return "Today";
-  if (days < 30) return `${days}d ago`;
-  return new Date(dateStr).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  const day = d.getDate();
+  const month = d.toLocaleDateString("en-GB", { month: "short" });
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
 }
 
 // Outcome tracking only applies once a relationship has actually formed --
@@ -615,6 +615,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1 items-start">
                       <div className="flex items-center gap-1.5">
+                        <StatusPill status={row.status} />
                         {row.outcome?.funding_disbursed && (
                           <span className="relative inline-flex group/fund">
                             <Banknote className="w-3.5 h-3.5 text-[#2D6A4F]" />
@@ -623,7 +624,6 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
                             </span>
                           </span>
                         )}
-                        <StatusPill status={row.status} />
                       </div>
                       {isOutcomeEligible(row) && (
                         <OutcomePill status={row.outcome?.status ?? "not_started"} />
@@ -633,7 +633,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
                   <td className="px-4 py-3 text-xs whitespace-nowrap">
                     <button type="button" onClick={() => setTimelineRow(row)}
                       className="text-muted-foreground hover:text-[#2D6A4F] underline decoration-dotted underline-offset-2 transition-colors">
-                      {timeAgo(row.date)}
+                      {formatDate(row.date)}
                     </button>
                   </td>
                   <td className="px-4 py-3">
