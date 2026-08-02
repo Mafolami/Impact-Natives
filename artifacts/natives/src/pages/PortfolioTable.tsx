@@ -242,9 +242,9 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
   const [editingListing, setEditingListing] = useState(false);
   const [outcomeEditingRow, setOutcomeEditingRow] = useState<PortfolioRow | null>(null);
 
-  async function load() {
+  async function load(showLoader = true) {
     if (!user) return;
-    setLoading(true);
+    if (showLoader) setLoading(true);
     const data = await fetchPortfolioRows(user.id);
     setRows(data);
     setLoading(false);
@@ -528,7 +528,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
 
       <FindPartnerModalDashboard
         isOpen={editingListing}
-        onClose={() => { setEditingListing(false); load(); }}
+        onClose={() => { setEditingListing(false); load(false); }}
       />
 
       {outcomeEditingRow && user && (
@@ -536,7 +536,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
           row={outcomeEditingRow}
           currentUserId={user.id}
           onClose={() => setOutcomeEditingRow(null)}
-          onSaved={() => { setOutcomeEditingRow(null); load(); }}
+          onSaved={() => { setOutcomeEditingRow(null); load(false); }}
         />
       )}
     </div>
