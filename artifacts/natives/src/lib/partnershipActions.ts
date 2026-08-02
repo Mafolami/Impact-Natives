@@ -49,8 +49,12 @@ export async function updateConnectionStatus(
   status: "accepted" | "declined",
   deps: ConnectionActionDeps
 ): Promise<{ conversationId?: string }> {
+  const stageStamp = status === "accepted"
+    ? { accepted_at: new Date().toISOString() }
+    : { declined_at: new Date().toISOString() };
+
   await supabase.from("partnership_connections")
-    .update({ status, updated_at: new Date().toISOString() })
+    .update({ status, updated_at: new Date().toISOString(), ...stageStamp })
     .eq("id", conn.id);
 
   if (status === "accepted") {
@@ -121,6 +125,7 @@ export async function acceptPartnershipWithType(
       status: "accepted",
       partnership_type: partnershipType,
       updated_at: new Date().toISOString(),
+      accepted_at: new Date().toISOString(),
     })
     .eq("id", connectionId);
 
@@ -163,7 +168,7 @@ export async function markPartnershipFormed(
   const pendingIds = inboundConnections.filter(c => c.status === "pending").map(c => c.id);
   if (pendingIds.length > 0) {
     await supabase.from("partnership_connections")
-      .update({ status: "declined", updated_at: new Date().toISOString() })
+      .update({ status: "declined", updated_at: new Date().toISOString(), declined_at: new Date().toISOString() })
       .in("id", pendingIds);
 
     await Promise.all(pendingIds.map(id =>

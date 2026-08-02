@@ -37,6 +37,11 @@ export interface PortfolioOutcome {
   outcome_summary: string | null;
 }
 
+export interface PortfolioTimelineStage {
+  label: string;
+  date: string;
+}
+
 export interface PortfolioRow {
   id: string;
   title: string;
@@ -52,6 +57,7 @@ export interface PortfolioRow {
   status: string;
   date: string;
   outcome: PortfolioOutcome | null;
+  timeline: PortfolioTimelineStage[];
   raw:
     | { kind: "initiative_mine"; initiativeId: string }
     | { kind: "initiative_eoi"; initiativeId: string; eoiId: string; conversationId: string | null; partnerUserId: string }
@@ -115,6 +121,19 @@ function resolvePartnershipTitle(
   const needs = normalizeArr(counterpartOrg?.needs);
   if (needs.length > 0) return needs.join(", ");
   return "Partnership inquiry";
+}
+
+function buildConnectionTimeline(conn: {
+  created_at: string;
+  accepted_at?: string | null;
+  formed_at?: string | null;
+  declined_at?: string | null;
+}): PortfolioTimelineStage[] {
+  const stages: PortfolioTimelineStage[] = [{ label: "Created", date: conn.created_at }];
+  if (conn.accepted_at) stages.push({ label: "Accepted", date: conn.accepted_at });
+  if (conn.formed_at) stages.push({ label: "Formed", date: conn.formed_at });
+  if (conn.declined_at) stages.push({ label: "Declined", date: conn.declined_at });
+  return stages;
 }
 
 // ── Main fetch ──────────────────────────────────────────────────────────
@@ -193,6 +212,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
       status: INITIATIVE_STATUS_MAP[ini.status] ?? ini.status,
       date: ini.created_at,
       outcome: null,
+      timeline: [{ label: "Created", date: ini.created_at }],
       raw: { kind: "initiative_mine", initiativeId: ini.id },
     });
   }
@@ -219,7 +239,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
 
     const convIds = myEois.map(e => e.conversation_id).filter((v): v is string => Boolean(v));
     const { data: convs } = convIds.length
-      ? await supabase.from("conversations").select("id, status, updated_at").in("id", convIds)
+      ? await supabase.from("conversations").select("id, status, updated_at, opened_at, confirmed_at").in("id", convIds)
       : { data: [] };
     const convMap = new Map((convs ?? []).map(c => [c.id, c]));
 
@@ -243,6 +263,11 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
         status,
         date: conv?.updated_at ?? eoi.created_at,
         outcome: null,
+        timeline: [
+          { label: "Interest expressed", date: eoi.created_at },
+          ...(conv?.opened_at ? [{ label: "In conversation", date: conv.opened_at }] : []),
+          ...(conv?.confirmed_at ? [{ label: "Confirmed", date: conv.confirmed_at }] : []),
+        ],
         raw: { kind: "initiative_eoi", initiativeId: eoi.initiative_id, eoiId: eoi.id, conversationId: eoi.conversation_id, partnerUserId: userId },
       });
     }
@@ -274,7 +299,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
 
       const convIds2 = inboundEois.map(e => e.conversation_id).filter((v): v is string => Boolean(v));
       const { data: convs2 } = convIds2.length
-        ? await supabase.from("conversations").select("id, status, updated_at").in("id", convIds2)
+        ? await supabase.from("conversations").select("id, status, updated_at, opened_at, confirmed_at").in("id", convIds2)
         : { data: [] };
       const convMap2 = new Map((convs2 ?? []).map(c => [c.id, c]));
 
@@ -299,6 +324,11 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
           status,
           date: conv?.updated_at ?? eoi.created_at,
           outcome: null,
+          timeline: [
+            { label: "Interest expressed", date: eoi.created_at },
+            ...(conv?.opened_at ? [{ label: "In conversation", date: conv.opened_at }] : []),
+            ...(conv?.confirmed_at ? [{ label: "Confirmed", date: conv.confirmed_at }] : []),
+          ],
           raw: { kind: "initiative_eoi", initiativeId: eoi.initiative_id, eoiId: eoi.id, conversationId: eoi.conversation_id, partnerUserId: eoi.user_id },
         });
       }
@@ -309,10 +339,10 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
   if (myOrg?.id) {
     const [{ data: sent }, { data: received }] = await Promise.all([
       supabase.from("partnership_connections")
-        .select("id, receiver_org_id, status, partnership_type, partnership_title, created_at, updated_at")
+        .select("id, receiver_org_id, status, partnership_type, partnership_title, created_at, updated_at, accepted_at, formed_at, declined_at")
         .eq("sender_org_id", myOrg.id),
       supabase.from("partnership_connections")
-        .select("id, sender_org_id, status, partnership_type, partnership_title, created_at, updated_at")
+        .select("id, sender_org_id, status, partnership_type, partnership_title, created_at, updated_at, accepted_at, formed_at, declined_at")
         .eq("receiver_org_id", myOrg.id),
     ]);
 
@@ -345,6 +375,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
         status,
         date: conn.updated_at,
         outcome: null,
+        timeline: buildConnectionTimeline(conn),
         raw: { kind: "partnership_connection", connectionId: conn.id, orgId: counterpart?.id ?? null },
       });
     }
@@ -367,6 +398,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
         status,
         date: conn.updated_at,
         outcome: null,
+        timeline: buildConnectionTimeline(conn),
         raw: { kind: "partnership_connection", connectionId: conn.id, orgId: counterpart?.id ?? null },
       });
     }
@@ -389,6 +421,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
         status: myOrg.partnership_formed ? "Partnership formed" : myOrg.partnership_listed ? "Listed" : "Unlisted",
         date: myOrg.updated_at,
         outcome: null,
+        timeline: [{ label: "Listed", date: myOrg.updated_at }],
         raw: { kind: "partnership_listing", orgId: myOrg.id },
       });
     }

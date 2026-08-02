@@ -389,7 +389,7 @@ export default function DashboardMessages() {
   // notification fires here. The real, meaningful notifications happen
   // later, at Propose Partner and at Confirm/Decline.
   async function acceptEOI(eoi: PendingEOI) {
-    await supabase.from("conversations").update({ status: "open" }).eq("id", eoi.conversation_id);
+    await supabase.from("conversations").update({ status: "open", opened_at: new Date().toISOString() }).eq("id", eoi.conversation_id);
     setPendingEOIs(prev => prev.filter(e => e.eoi_id !== eoi.eoi_id));
     setActiveTab("initiative");
     setActiveConvo({
@@ -860,7 +860,7 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
       .update({ status: "rejected" })
       .eq("id", conversation.id);
     await supabase.from("partnership_connections")
-      .update({ status: "declined", updated_at: new Date().toISOString() })
+      .update({ status: "declined", updated_at: new Date().toISOString(), declined_at: new Date().toISOString() })
       .eq("conversation_id", conversation.id);
     await supabase.rpc("send_conversation_notification", {
       p_conversation_id: conversation.id,
@@ -1268,7 +1268,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
     const myEntry = (updatedPartners as any[] ?? []).find(p => p.user_id === currentUserId);
     const { data: iniData } = await supabase
       .from("initiative_requests").select("title").eq("id", conversation.initiative_id).single();
-    await supabase.from("conversations").update({ status: "confirmed" }).eq("id", conversation.id);
+    await supabase.from("conversations").update({ status: "confirmed", confirmed_at: new Date().toISOString() }).eq("id", conversation.id);
     const initiativeTitle = iniData?.title ?? "your initiative";
     await supabase.rpc("send_conversation_notification", {
       p_conversation_id: conversation.id,
@@ -1409,13 +1409,13 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
     if (!pendingConfirmation || confirmingPartnership) return;
     setConfirmingPartnership(true);
     await supabase.from("partnership_connections")
-      .update({ status: "formed", updated_at: new Date().toISOString() })
+      .update({ status: "formed", updated_at: new Date().toISOString(), formed_at: new Date().toISOString() })
       .eq("id", pendingConfirmation.id);
     // Distinct status from "rejected": a successful confirm and an
     // outright decline are different outcomes and must not share one
     // status value, or the Messages list can't tell them apart either.
     await supabase.from("conversations")
-      .update({ status: "confirmed" })
+      .update({ status: "confirmed", confirmed_at: new Date().toISOString() })
       .eq("id", conversation.id);
     await supabase.rpc("send_conversation_notification", {
       p_conversation_id: conversation.id,
@@ -1435,7 +1435,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
     setConfirmingPartnership(true);
 
     await supabase.from("partnership_connections")
-      .update({ status: "declined" })
+      .update({ status: "declined", declined_at: new Date().toISOString() })
       .eq("id", pendingConfirmation.id);
 
     await supabase.from("conversations")
@@ -1691,7 +1691,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
             <button type="button"
               onClick={async () => {
                 await supabase.from("conversations")
-                  .update({ status: "open" })
+                  .update({ status: "open", opened_at: new Date().toISOString() })
                   .eq("id", conversation.id);
                 await supabase.rpc("send_conversation_notification", {
                   p_conversation_id: conversation.id,
