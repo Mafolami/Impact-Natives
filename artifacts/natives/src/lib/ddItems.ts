@@ -7,9 +7,9 @@
 import { COUNTRIES } from "@/lib/countries";
 
 export type DDQuestion =
-  | { key: string; label: string; type: "text" }
-  | { key: string; label: string; type: "select"; options: string[] }
-  | { key: string; label: string; type: "yesno"; followUpIfYes?: { key: string; label: string } };
+  | { key: string; label: string; type: "text"; required?: boolean }
+  | { key: string; label: string; type: "select"; options: string[]; required?: boolean }
+  | { key: string; label: string; type: "yesno"; required?: boolean; followUpIfYes?: { key: string; label: string } };
 
 export interface DDItemDef {
   key: string;
@@ -32,7 +32,7 @@ export const DD_ITEMS: DDItemDef[] = [
       questions: [
         { key: "preparedBy", label: "Prepared by", type: "select", options: ["Internal team", "External consultant", "Board-reviewed", "Other"] },
         { key: "lastUpdated", label: "Last updated (date)", type: "text" },
-        { key: "notes", label: "Anything else worth noting?", type: "text" },
+        { key: "notes", label: "Anything else worth noting?", type: "text", required: false },
       ],
     },
     {
@@ -52,7 +52,7 @@ export const DD_ITEMS: DDItemDef[] = [
       questions: [
         { key: "boardSize", label: "Board size", type: "select", options: ["1–3", "4–6", "7–10", "10+", "Other"] },
         { key: "meetingCadence", label: "Meeting cadence", type: "select", options: ["Monthly", "Quarterly", "Semi-annually", "Annually", "Ad hoc", "Other"] },
-        { key: "notes", label: "Anything else worth noting?", type: "text" },
+        { key: "notes", label: "Anything else worth noting?", type: "text", required: false },
       ],
     },
     {
@@ -62,7 +62,7 @@ export const DD_ITEMS: DDItemDef[] = [
       questions: [
         { key: "framework", label: "Framework used", type: "select", options: ["GRI", "SASB", "UN Global Compact", "B Corp", "TCFD", "SDG Reporting", "Custom"] },
         { key: "conductedBy", label: "Conducted by", type: "select", options: ["Internal team", "External consultant", "Board", "Other"] },
-        { key: "notes", label: "Anything else worth noting?", type: "text" },
+        { key: "notes", label: "Anything else worth noting?", type: "text", required: false },
       ],
     },
     {
@@ -72,7 +72,7 @@ export const DD_ITEMS: DDItemDef[] = [
       questions: [
         { key: "framework", label: "Framework used", type: "select", options: ["IRIS+", "SDG Indicators", "LogFrame", "Custom"] },
         { key: "dateAdopted", label: "Date adopted", type: "text" },
-        { key: "notes", label: "Anything else worth noting?", type: "text" },
+        { key: "notes", label: "Anything else worth noting?", type: "text", required: false },
       ],
     },
     {
@@ -82,7 +82,7 @@ export const DD_ITEMS: DDItemDef[] = [
       questions: [
         { key: "ownership", label: "Ownership", type: "select", options: ["Dedicated Safeguarding Officer", "Shared responsibility (HR/Ops)", "Board-level oversight", "Other"] },
         { key: "dateAdopted", label: "Date adopted", type: "text" },
-        { key: "notes", label: "Anything else worth noting?", type: "text" },
+        { key: "notes", label: "Anything else worth noting?", type: "text", required: false },
       ],
     },
     {

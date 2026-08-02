@@ -142,9 +142,30 @@ function DDEvidenceModal({ item, initialAnswers, onClose, onSave }: {
   item: DDItemDef; initialAnswers: Record<string, any>; onClose: () => void; onSave: (answers: Record<string, any>) => void;
 }) {
   const [answers, setAnswers] = useState<Record<string, any>>(initialAnswers ?? {});
+  const [attemptedInvalidSave, setAttemptedInvalidSave] = useState(false);
 
   function setAnswer(key: string, value: any) {
     setAnswers(prev => ({ ...prev, [key]: value }));
+  }
+
+  function isQuestionMissing(q: typeof item.questions[number]): boolean {
+    if (q.required === false) return false;
+    const val = answers[q.key];
+    if (q.type === "yesno") {
+      if (val !== true && val !== false) return true;
+      if (q.followUpIfYes && val === true && !answers[q.followUpIfYes.key]) return true;
+      return false;
+    }
+    if (!val) return true;
+    if (q.type === "select" && (val === "Other" || val === "Custom") && !answers[`${q.key}_custom`]) return true;
+    return false;
+  }
+
+  const canSave = !item.questions.some(isQuestionMissing);
+
+  function handleSave() {
+    if (!canSave) { setAttemptedInvalidSave(true); return; }
+    onSave(answers);
   }
 
   return (
@@ -154,24 +175,31 @@ function DDEvidenceModal({ item, initialAnswers, onClose, onSave }: {
           <h3 className="text-lg font-bold text-foreground">{item.label}</h3>
           <p className="text-sm text-muted-foreground mt-0.5">{item.sub}</p>
         </div>
-        {item.questions.map(q => (
+        {item.questions.map(q => {
+          const missing = attemptedInvalidSave && isQuestionMissing(q);
+          const flagClass = missing ? "border-red-400" : "border-border";
+          return (
           <div key={q.key}>
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">{q.label}</label>
+            <label className={`text-xs font-semibold uppercase tracking-wider mb-1.5 block ${missing ? "text-red-500" : "text-muted-foreground"}`}>
+              {q.label}{q.required !== false && <span className="text-red-500"> *</span>}
+            </label>
             {q.type === "text" && (
               <input value={answers[q.key] ?? ""} onChange={e => setAnswer(q.key, e.target.value)}
-                className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
+                className={`w-full h-9 px-3 rounded-lg border bg-background text-sm text-foreground ${flagClass}`} />
             )}
             {q.type === "select" && (
               <>
                 <select value={answers[q.key] ?? ""} onChange={e => setAnswer(q.key, e.target.value)}
-                  className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground">
+                  className={`w-full h-9 px-3 rounded-lg border bg-background text-sm text-foreground ${flagClass}`}>
                   <option value="">Select...</option>
                   {q.options.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
                 {(answers[q.key] === "Other" || answers[q.key] === "Custom") && (
                   <input value={answers[`${q.key}_custom`] ?? ""} onChange={e => setAnswer(`${q.key}_custom`, e.target.value)}
                     placeholder="Please specify"
-                    className="w-full h-9 px-3 mt-2 rounded-lg border border-border bg-background text-sm text-foreground" />
+                    className={`w-full h-9 px-3 mt-2 rounded-lg border bg-background text-sm text-foreground ${
+                      attemptedInvalidSave && !answers[`${q.key}_custom`] ? "border-red-400" : "border-border"
+                    }`} />
                 )}
               </>
             )}
@@ -179,29 +207,43 @@ function DDEvidenceModal({ item, initialAnswers, onClose, onSave }: {
               <>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setAnswer(q.key, true)}
-                    className={`flex-1 h-9 rounded-lg border text-sm font-medium transition-colors ${answers[q.key] === true ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-muted-foreground hover:border-[#2D6A4F]"}`}>
+                    className={`flex-1 h-9 rounded-lg border text-sm font-medium transition-colors ${
+                      answers[q.key] === true ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : `${flagClass} text-muted-foreground hover:border-[#2D6A4F]`
+                    }`}>
                     Yes
                   </button>
                   <button type="button" onClick={() => setAnswer(q.key, false)}
-                    className={`flex-1 h-9 rounded-lg border text-sm font-medium transition-colors ${answers[q.key] === false ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-muted-foreground hover:border-[#2D6A4F]"}`}>
+                    className={`flex-1 h-9 rounded-lg border text-sm font-medium transition-colors ${
+                      answers[q.key] === false ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : `${flagClass} text-muted-foreground hover:border-[#2D6A4F]`
+                    }`}>
                     No
                   </button>
                 </div>
                 {q.followUpIfYes && answers[q.key] === true && (
                   <input value={answers[q.followUpIfYes.key] ?? ""} onChange={e => setAnswer(q.followUpIfYes!.key, e.target.value)}
                     placeholder={q.followUpIfYes.label}
-                    className="w-full h-9 px-3 mt-2 rounded-lg border border-border bg-background text-sm text-foreground" />
+                    className={`w-full h-9 px-3 mt-2 rounded-lg border bg-background text-sm text-foreground ${
+                      attemptedInvalidSave && !answers[q.followUpIfYes.key] ? "border-red-400" : "border-border"
+                    }`} />
                 )}
               </>
             )}
           </div>
-        ))}
+          );
+        })}
+
+        {attemptedInvalidSave && !canSave && (
+          <p className="text-xs text-red-500 font-medium">
+            Fill in the required fields (marked *) before saving.
+          </p>
+        )}
+
         <div className="flex gap-2 pt-1">
           <button type="button" onClick={onClose}
             className="flex-1 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
             Cancel
           </button>
-          <button type="button" onClick={() => onSave(answers)}
+          <button type="button" onClick={handleSave}
             className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
             Save &amp; check
           </button>
