@@ -10,6 +10,10 @@ import {
   Loader2, Handshake, ArrowUpRight, ArrowDownLeft,
   Briefcase, CheckCircle2, X
 } from "lucide-react";
+import {
+  updateConnectionStatus, acceptPartnershipWithType,
+  markPartnershipFormed, unlistPartnership,
+} from "@/lib/partnershipActions";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -230,63 +234,13 @@ export function PartnershipTab() {
   // Accept/Decline expression of interest
   async function updateStatus(conn: ConnectionRow, status: "accepted" | "declined") {
     setUpdating(conn.id);
-
-    await supabase.from("partnership_connections")
-      .update({ status, updated_at: new Date().toISOString() })
-      .eq("id", conn.id);
-
-    let newConvId: string | undefined;
-    if (status === "accepted") {
-      if (conn.conversation_id) {
-        newConvId = conn.conversation_id;
-        await supabase.rpc("accept_partnership_connection", {
-          p_connection_id: conn.id,
-          p_conversation_id: conn.conversation_id,
-        });
-      } else {
-        const { data: conv } = await supabase.from("conversations").insert({
-          conversation_type: "partnership",
-          status: "open",
-          initiative_owner_id: user!.id,
-        }).select("id").single();
-
-        newConvId = conv?.id;
-
-        if (conv?.id) {
-          await supabase.rpc("accept_partnership_connection", {
-            p_connection_id: conn.id,
-            p_conversation_id: conv.id,
-          });
-          if (conn.ai_rationale) {
-            await supabase.from("messages").insert({
-              conversation_id: conv.id,
-              sender_id: user!.id,
-              body: `Match rationale: ${conn.ai_rationale}`,
-            });
-          }
-        }
-      }
-
-      await supabase.rpc("send_partnership_notification", {
-        p_connection_id: conn.id,
-        p_type: "partnership_accepted",
-        p_title: "Partnership interest accepted",
-        p_body: `${myListing?.organisation_name} accepted your partnership interest. A conversation has been opened in Messages.`,
-        p_link: "/dashboard/messages",
-      });
-    } else {
-      await supabase.rpc("send_partnership_notification", {
-        p_connection_id: conn.id,
-        p_type: "partnership_declined",
-        p_title: "Partnership interest not taken forward",
-        p_body: `${myListing?.organisation_name} did not take your partnership interest forward at this time.`,
-        p_link: "/dashboard/messages",
-      });
-    }
-
+    const { conversationId } = await updateConnectionStatus(conn, status, {
+      userId: user!.id,
+      myOrgName: myListing?.organisation_name ?? "",
+    });
     await load();
-      setUpdating(null);
-      if (status === "accepted" && newConvId) navigate(`/dashboard/messages?conversation=${newConvId}`);
+    setUpdating(null);
+    if (status === "accepted" && conversationId) navigate(`/dashboard/messages?conversation=${conversationId}`);
   }
 
   // Accept Partnership — moves to Confirmed with a type
@@ -294,21 +248,7 @@ export function PartnershipTab() {
     if (!acceptModal || !partnershipType || accepting) return;
     setAccepting(true);
 
-    await supabase.from("partnership_connections")
-      .update({
-        status: "accepted",
-        partnership_type: partnershipType,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", acceptModal.id);
-
-    // Notify the sender
-    await supabase.rpc("send_partnership_notification", {
-      p_connection_id: acceptModal.id,
-      p_type: "partnership_confirmed",
-      p_title: "Partnership accepted",
-      p_body: `${myListing?.organisation_name} has accepted the partnership as ${partnershipType}.`,
-    });
+    await acceptPartnershipWithType(acceptModal.id, partnershipType, myListing?.organisation_name ?? "");
 
     setAcceptModal(null);
     setPartnershipType("");
@@ -318,48 +258,10 @@ export function PartnershipTab() {
 
   // Mark Partnership Formed — closes entire listing
   async function markFormed() {
-    
     if (!myOrgId || formingAll) return;
     setFormingAll(true);
 
-    const { error: formedError } = await supabase.from("organizations")
-      .update({ partnership_formed: true })
-      .eq("id", myOrgId);
-
-    // Snapshot partnership title onto confirmed connections before any future reset
-    const formedIds = inbound
-      .filter(c => c.status === "formed")
-      .map(c => c.id);
-
-    if (formedIds.length > 0 && myListing?.partnership_title) {
-      await supabase.from("partnership_connections")
-        .update({ partnership_title: myListing.partnership_title })
-        .in("id", formedIds);
-    }
-
-    // Mark one accepted connection as formed, decline all remaining pending
-    const pendingIds = inbound
-      .filter(c => c.status === "pending")
-      .map(c => c.id);
-
-    if (pendingIds.length > 0) {
-      await supabase.from("partnership_connections")
-        .update({ status: "declined", updated_at: new Date().toISOString() })
-        .in("id", pendingIds);
-
-      // Notify all declined
-      const pendingToNotify = inbound.filter(c => c.status === "pending");
-      if (pendingToNotify.length > 0) {
-        await Promise.all(pendingToNotify.map(c =>
-          supabase.rpc("send_partnership_notification", {
-            p_connection_id: c.id,
-            p_type: "partnership_closed",
-            p_title: "Partnership request closed",
-            p_body: `${myListing?.organisation_name} has formed a partnership and closed this listing.`,
-          })
-        ));
-      }
-    }
+    await markPartnershipFormed(myOrgId, inbound, myListing?.organisation_name ?? "", myListing?.partnership_title ?? null);
 
     setFormingAll(false);
     await load();
@@ -446,8 +348,7 @@ export function PartnershipTab() {
                   )}
                   <button type="button"
                     onClick={async () => {
-                      await supabase.from("organizations")
-                        .update({ partnership_listed: false }).eq("id", myOrgId);
+                      await unlistPartnership(myOrgId!);
                       await load();
                     }}
                     className="text-xs text-muted-foreground hover:text-red-500 transition-colors border border-border rounded-full px-3 py-1.5">
