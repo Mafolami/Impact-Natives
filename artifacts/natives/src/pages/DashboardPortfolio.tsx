@@ -795,17 +795,8 @@ export default function DashboardInitiatives() {
             <p className="text-sm text-muted-foreground mt-1">Your initiatives and org-to-org partnerships.</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {/* Tabs / Table view toggle */}
+            {/* Table / Tabs view toggle */}
             <div className="flex gap-1 p-1 rounded-xl bg-muted">
-              <button type="button" onClick={() => setViewMode("tabs")} title="Tabs view"
-                className={`h-9 px-3 rounded-lg text-sm font-semibold transition-all flex items-center gap-1.5 ${
-                  viewMode === "tabs"
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}>
-                <LayoutList className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Tabs</span>
-              </button>
               <button type="button" onClick={() => setViewMode("table")} title="Table view"
                 className={`h-9 px-3 rounded-lg text-sm font-semibold transition-all flex items-center gap-1.5 ${
                   viewMode === "table"
@@ -814,6 +805,15 @@ export default function DashboardInitiatives() {
                 }`}>
                 <Table2 className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Table</span>
+              </button>
+              <button type="button" onClick={() => setViewMode("tabs")} title="Tabs view"
+                className={`h-9 px-3 rounded-lg text-sm font-semibold transition-all flex items-center gap-1.5 ${
+                  viewMode === "tabs"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}>
+                <LayoutList className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Tabs</span>
               </button>
             </div>
             </div>
