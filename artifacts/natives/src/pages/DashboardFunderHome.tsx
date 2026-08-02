@@ -634,22 +634,19 @@ export default function FunderHome({ profile }: { profile: any }) {
                 <button key={m.matched_org_id} type="button"
                   onClick={() => navigate(`/dashboard/partnerships?org=${m.org?.id ?? ""}`)}
                   className="w-full text-left rounded-xl border border-border bg-card px-4 py-3 hover:border-[#2D6A4F]/30 transition-colors group flex flex-col min-h-[220px]">
-                  <div className="flex items-start justify-between gap-3 mb-1.5">
-                    <p className="text-sm font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors break-words">
-                      {m.org?.partnership_sought || (m.org?.needs?.length ? m.org.needs.join(", ") : "Partnership inquiry")}
-                    </p>
-                    <span className="shrink-0 text-xs font-bold px-2 py-0.5 rounded-full"
-                      style={{
-                        background: m.fit_score >= 70 ? "rgba(45,106,79,0.12)" : m.fit_score >= 40 ? "rgba(180,83,9,0.12)" : "rgba(239,68,68,0.12)",
-                        color: m.fit_score >= 70 ? "#2D6A4F" : m.fit_score >= 40 ? "#b45309" : "#ef4444",
-                      }}>
-                      {m.fit_score}%
-                    </span>
-                  </div>
-                  <div className="inline-flex items-center gap-1 text-xs text-[#2D6A4F] mb-2 w-fit">
-                    <Building2 className="w-3.5 h-3.5" />
+                  <p className="text-sm font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors break-words mb-1">
                     {m.org?.organisation_name ?? "Organisation"}
-                  </div>
+                  </p>
+                  <p className="text-xs text-muted-foreground break-words mb-2">
+                    Seeking {m.org?.partnership_sought || (m.org?.needs?.length ? m.org.needs.join(", ") : "a partnership")}
+                  </p>
+                  <span className="inline-flex w-fit text-xs font-bold px-2 py-0.5 rounded-full mb-2"
+                    style={{
+                      background: m.fit_score >= 70 ? "rgba(45,106,79,0.12)" : m.fit_score >= 40 ? "rgba(180,83,9,0.12)" : "rgba(239,68,68,0.12)",
+                      color: m.fit_score >= 70 ? "#2D6A4F" : m.fit_score >= 40 ? "#b45309" : "#ef4444",
+                    }}>
+                    {m.fit_score}% fit
+                  </span>
                   {m.criteria ? (
                     <div className="flex flex-col gap-1 mb-2">
                       {[
