@@ -117,6 +117,7 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
   const [saving, setSaving] = useState(false);
 
   const isInitiative = row.type === "Initiative";
+  const completedAtVisible = status === "completed";
 
   async function save() {
     setSaving(true);
@@ -156,10 +157,19 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="bg-card rounded-2xl border border-border w-full max-w-md p-6 space-y-4" onClick={e => e.stopPropagation()}>
+      <div className="bg-card rounded-2xl border border-border w-full max-w-md p-6 space-y-5" onClick={e => e.stopPropagation()}>
         <div>
-          <h3 className="text-lg font-bold text-foreground">Update outcome</h3>
-          <p className="text-sm text-muted-foreground mt-0.5">{row.title} — {row.organisation}</p>
+          <div className="flex items-center gap-2 mb-0.5">
+            <h3 className="text-lg font-bold text-foreground">Update outcome</h3>
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+              style={{
+                background: isInitiative ? "rgba(45,106,79,0.12)" : "rgba(3,105,161,0.12)",
+                color: isInitiative ? "#2D6A4F" : "#0369a1",
+              }}>
+              {isInitiative ? "Initiative partner" : "Org partnership"}
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground">{row.title} — {row.organisation}</p>
         </div>
 
         <div>
@@ -174,37 +184,49 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
           </select>
         </div>
 
+        {/* Dates only appear once relevant to the chosen status -- no
+            empty pickers cluttering the form before they mean anything. */}
+        {status !== "not_started" && (
+          <div className={completedAtVisible ? "grid grid-cols-2 gap-2" : ""}>
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Started</label>
+              <input type="date" value={startedAt} onChange={e => setStartedAt(e.target.value)}
+                className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
+            </div>
+            {completedAtVisible && (
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Completed</label>
+                <input type="date" value={completedAt} onChange={e => setCompletedAt(e.target.value)}
+                  className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Funding is its own distinct section -- only for initiative
+            partnerships, since org-to-org partnerships don't disburse
+            capital the same way. Given its own card rather than a
+            checkbox buried in the general flow, since it's a materially
+            different kind of update from status/dates. */}
         {isInitiative && (
-          <div>
-            <label className="flex items-center gap-2 text-sm text-foreground mb-2">
-              <input type="checkbox" checked={fundingDisbursed} onChange={e => setFundingDisbursed(e.target.checked)} />
+          <div className="rounded-xl border border-[#2D6A4F]/25 bg-[#2D6A4F]/5 p-4 space-y-3">
+            <label className="flex items-center gap-2 text-sm font-semibold text-foreground cursor-pointer">
+              <input type="checkbox" checked={fundingDisbursed} onChange={e => setFundingDisbursed(e.target.checked)}
+                className="accent-[#2D6A4F]" />
               Funding disbursed
             </label>
             {fundingDisbursed && (
               <div className="flex gap-2">
                 <input type="number" value={fundingAmount} onChange={e => setFundingAmount(e.target.value)}
                   placeholder="Amount"
-                  className="flex-1 h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
+                  className="flex-1 h-9 px-3 rounded-lg border border-[#2D6A4F]/25 bg-card text-sm text-foreground" />
                 <input value={fundingCurrency} onChange={e => setFundingCurrency(e.target.value)}
                   placeholder="Currency" maxLength={3}
-                  className="w-20 h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
+                  className="w-20 h-9 px-3 rounded-lg border border-[#2D6A4F]/25 bg-card text-sm text-foreground" />
               </div>
             )}
           </div>
         )}
-
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Started</label>
-            <input type="date" value={startedAt} onChange={e => setStartedAt(e.target.value)}
-              className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
-          </div>
-          <div>
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Completed</label>
-            <input type="date" value={completedAt} onChange={e => setCompletedAt(e.target.value)}
-              className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
-          </div>
-        </div>
 
         <div>
           <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">What happened</label>
@@ -213,7 +235,7 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
             className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground resize-none" />
         </div>
 
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-2 pt-1">
           <button type="button" onClick={onClose}
             className="flex-1 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
             Cancel
