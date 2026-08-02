@@ -15,7 +15,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { Loader2, ArrowUpDown, Search, Banknote } from "lucide-react";
+import { Loader2, ArrowUpDown, Search, Banknote, StickyNote } from "lucide-react";
 import { fetchPortfolioRows, PortfolioRow, PortfolioRowType, PortfolioDirection, PortfolioOutcome, PortfolioTimelineStage, upsertPartnershipOutcome } from "@/lib/portfolioData";
 import {
   updateConnectionStatus, markPartnershipFormed, unlistPartnership, relistPartnership,
@@ -179,7 +179,20 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
 
   const isStalledOrFell = status === "stalled" || status === "fell_through";
 
+  const canSave = (() => {
+    if (status === "not_started") return true;
+    if (status === "in_progress") return !!startedAt;
+    if (status === "completed") return !!startedAt && !!completedAt;
+    if (isStalledOrFell) {
+      if (everStarted === null) return false;
+      const stageDate = status === "stalled" ? stalledAt : fellThroughAt;
+      return everStarted ? (!!startedAt && !!stageDate) : !!stageDate;
+    }
+    return true;
+  })();
+
   async function save() {
+    if (!canSave) return;
     setSaving(true);
     const effectiveStartedAt = isStalledOrFell
       ? (everStarted ? (startedAt || null) : null)
@@ -366,12 +379,20 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
             className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground resize-none" />
         </div>
 
+        {!canSave && (
+          <p className="text-xs text-[#C45C26] -mt-2">
+            {isStalledOrFell && everStarted === null
+              ? "Answer \"Did this ever start?\" before saving."
+              : "Fill in the required date(s) before saving."}
+          </p>
+        )}
+
         <div className="flex gap-2 pt-1">
           <button type="button" onClick={onClose}
             className="flex-1 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
             Cancel
           </button>
-          <button type="button" onClick={save} disabled={saving}
+          <button type="button" onClick={save} disabled={saving || !canSave}
             className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium disabled:opacity-40 transition-colors">
             {saving ? "Saving..." : "Save"}
           </button>
@@ -626,7 +647,17 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
                         )}
                       </div>
                       {isOutcomeEligible(row) && (
-                        <OutcomePill status={row.outcome?.status ?? "not_started"} />
+                        <div className="flex items-center gap-1">
+                          <OutcomePill status={row.outcome?.status ?? "not_started"} />
+                          {row.outcome?.outcome_summary && (
+                            <span className="relative inline-flex group/note">
+                              <StickyNote className="w-3.5 h-3.5 text-muted-foreground" />
+                              <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 hidden group-hover/note:block whitespace-pre-wrap text-[11px] font-medium bg-foreground text-background px-2.5 py-1.5 rounded-md z-20 w-48 leading-snug">
+                                {row.outcome.outcome_summary}
+                              </span>
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
                   </td>
