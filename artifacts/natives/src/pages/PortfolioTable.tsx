@@ -16,7 +16,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Loader2, ArrowUpDown, Search, Banknote, StickyNote } from "lucide-react";
-import { fetchPortfolioRows, PortfolioRow, PortfolioRowType, PortfolioDirection, PortfolioOutcome, PortfolioTimelineStage, upsertPartnershipOutcome } from "@/lib/portfolioData";
+import { fetchPortfolioRows, PortfolioRow, PortfolioRowType, PortfolioDirection, PortfolioOutcome, PortfolioTimelineStage, PortfolioOutcomeHistoryEntry, upsertPartnershipOutcome, fetchOutcomeHistory } from "@/lib/portfolioData";
 import {
   updateConnectionStatus, markPartnershipFormed, unlistPartnership, relistPartnership,
 } from "@/lib/partnershipActions";
@@ -154,16 +154,45 @@ function TimelineModal({ row, onClose }: { row: PortfolioRow; onClose: () => voi
 }
 
 function NotesModal({ row, onClose }: { row: PortfolioRow; onClose: () => void }) {
+  const [history, setHistory] = useState<PortfolioOutcomeHistoryEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!row.outcome?.id) { setLoading(false); return; }
+    fetchOutcomeHistory(row.outcome.id).then(data => {
+      setHistory(data);
+      setLoading(false);
+    });
+  }, [row.outcome?.id]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="bg-card rounded-2xl border border-border w-full max-w-sm p-6 space-y-4" onClick={e => e.stopPropagation()}>
+      <div className="bg-card rounded-2xl border border-border w-full max-w-md p-6 space-y-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div>
-          <h3 className="text-lg font-bold text-foreground">Outcome notes</h3>
+          <h3 className="text-lg font-bold text-foreground">Outcome history</h3>
           <p className="text-sm text-muted-foreground mt-0.5">{row.title} — {row.organisation}</p>
         </div>
-        <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
-          {row.outcome?.outcome_summary}
-        </p>
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-4 h-4 text-[#2D6A4F] animate-spin" />
+          </div>
+        ) : history.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No notes recorded yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {history.map(entry => (
+              <div key={entry.id} className="rounded-xl border border-border bg-muted/30 p-3.5 space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <OutcomePill status={entry.status} />
+                  <span className="text-xs text-muted-foreground">{formatDate(entry.recorded_at)}</span>
+                </div>
+                {entry.outcome_summary && (
+                  <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{entry.outcome_summary}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
         <button type="button" onClick={onClose}
           className="w-full h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
           Close
@@ -691,7 +720,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
                           <OutcomePill status={row.outcome?.status ?? "not_started"} />
                           {row.outcome?.outcome_summary && (
                             <button type="button" onClick={() => setNotesRow(row)}
-                              className="text-muted-foreground hover:text-[#2D6A4F] transition-colors">
+                              className="p-1 -m-1 rounded-full text-muted-foreground hover:text-[#2D6A4F] hover:bg-[#2D6A4F]/10 transition-colors">
                               <StickyNote className="w-3.5 h-3.5" />
                             </button>
                           )}

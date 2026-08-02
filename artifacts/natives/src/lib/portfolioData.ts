@@ -150,6 +150,13 @@ function buildConnectionTimeline(conn: {
 
 // ── Outcome upsert ──────────────────────────────────────────────────────
 
+export interface PortfolioOutcomeHistoryEntry {
+  id: string;
+  status: string;
+  outcome_summary: string | null;
+  recorded_at: string;
+}
+
 export async function upsertPartnershipOutcome(params: {
   existingId: string | null;
   relationshipType: "initiative_partner" | "org_partnership";
@@ -184,11 +191,35 @@ export async function upsertPartnershipOutcome(params: {
     reported_by_user_id: params.reportedByUserId,
   };
 
+  let outcomeId = params.existingId;
+
   if (params.existingId) {
     await supabase.from("partnership_outcomes").update(payload).eq("id", params.existingId);
   } else {
-    await supabase.from("partnership_outcomes").insert(payload);
+    const { data } = await supabase.from("partnership_outcomes").insert(payload).select("id").single();
+    outcomeId = data?.id ?? null;
   }
+
+  // Every save -- not just the first -- writes a new history entry, so
+  // the note trail accumulates one Status/Date/What-happened record per
+  // update instead of the current-state row silently overwriting itself.
+  if (outcomeId) {
+    await supabase.from("partnership_outcome_history").insert({
+      outcome_id: outcomeId,
+      status: params.status,
+      outcome_summary: params.outcomeSummary,
+      reported_by_user_id: params.reportedByUserId,
+    });
+  }
+}
+
+export async function fetchOutcomeHistory(outcomeId: string): Promise<PortfolioOutcomeHistoryEntry[]> {
+  const { data } = await supabase
+    .from("partnership_outcome_history")
+    .select("id, status, outcome_summary, recorded_at")
+    .eq("outcome_id", outcomeId)
+    .order("recorded_at", { ascending: false });
+  return data ?? [];
 }
 
 export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]> {
