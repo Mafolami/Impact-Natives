@@ -703,7 +703,7 @@ export default function DashboardInitiatives() {
   // Initiative sub-tabs
   const [initSubTab, setInitSubTab] = useState<"created" | "expressed" | "confirmed">("created");
 
-  const [, params] = useRoute("/dashboard/initiatives/:id");
+  const [, params] = useRoute("/dashboard/portfolio/:id");
   const routeId = params?.id;
 
   const [editingId, setEditingId] = useState<string | null>(null);
