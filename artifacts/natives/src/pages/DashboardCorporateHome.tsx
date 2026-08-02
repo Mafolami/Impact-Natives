@@ -374,7 +374,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
         const orgIds = cached.map((m: any) => m.matched_org_id);
         const { data: orgs } = await supabase
           .from("organizations")
-          .select("id, user_id, organisation_name, organisation_type, country, partnership_stage, partnership_budget")
+          .select("id, user_id, organisation_name, organisation_type, country, partnership_stage, partnership_budget, partnership_sought, needs")
           .in("id", orgIds);
         const orgMap = new Map((orgs ?? []).map((o: any) => [o.id, o]));
         if (!cancelled) {
@@ -479,14 +479,14 @@ export default function CorporateHome({ profile }: { profile: any }) {
           const Icon = m.icon;
           return (
             <button key={m.label} type="button" onClick={m.onClick}
-              className="text-left rounded-xl border bg-card px-4 py-3 hover:border-[#2D6A4F]/40 transition-colors group"
+              className="text-center rounded-xl border bg-card px-4 py-3 hover:border-[#2D6A4F]/40 transition-colors group flex flex-col items-center"
               style={{ borderColor: m.accent ? "#C45C26" : undefined }}>
-              <div className="flex items-start gap-1.5 mb-1.5">
-                <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground leading-snug">{m.label}</p>
+              <div className="flex items-center justify-center gap-1.5 mb-1.5">
+                <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground leading-snug text-center">{m.label}</p>
               </div>
               <p className="text-xl font-bold text-foreground tracking-tight group-hover:text-[#2D6A4F] transition-colors">{m.value}</p>
-              <p className="text-xs text-muted-foreground leading-snug mt-0.5">{m.sub}</p>
+              <p className="text-xs text-muted-foreground leading-snug mt-0.5 text-center">{m.sub}</p>
             </button>
           );
         })}
@@ -736,7 +736,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
                   className="w-full text-left rounded-xl border border-border bg-card px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group flex flex-col min-h-[220px]">
                   <div className="flex items-start justify-between gap-3 mb-1.5 flex-wrap">
                     <p className="text-sm font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors break-words">
-                      {m.org?.organisation_name ?? "Organisation"}
+                      {m.org?.partnership_sought || (m.org?.needs?.length ? m.org.needs.join(", ") : "Partnership inquiry")}
                     </p>
                     <span className="shrink-0 text-xs font-bold px-2 py-0.5 rounded-full"
                       style={{
@@ -745,6 +745,10 @@ export default function CorporateHome({ profile }: { profile: any }) {
                       }}>
                       {m.fit_score}% fit
                     </span>
+                  </div>
+                  <div className="inline-flex items-center gap-1 text-xs text-[#2D6A4F] mb-2 w-fit">
+                    <Building2 className="w-3.5 h-3.5" />
+                    {m.org?.organisation_name ?? "Organisation"}
                   </div>
                   {m.criteria ? (
                     <div className="flex flex-col gap-1 mb-2">
