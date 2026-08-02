@@ -26,6 +26,17 @@ import { supabase } from "@/lib/supabase";
 export type PortfolioRowType = "Initiative" | "Partnership";
 export type PortfolioDirection = "Mine" | "Outbound" | "Inbound";
 
+export interface PortfolioOutcome {
+  id: string;
+  status: "not_started" | "in_progress" | "completed" | "stalled" | "fell_through";
+  funding_disbursed: boolean | null;
+  funding_amount: number | null;
+  funding_currency: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  outcome_summary: string | null;
+}
+
 export interface PortfolioRow {
   id: string;
   title: string;
@@ -40,9 +51,10 @@ export interface PortfolioRow {
   contactPhone: string | null;
   status: string;
   date: string;
+  outcome: PortfolioOutcome | null;
   raw:
     | { kind: "initiative_mine"; initiativeId: string }
-    | { kind: "initiative_eoi"; initiativeId: string; eoiId: string; conversationId: string | null }
+    | { kind: "initiative_eoi"; initiativeId: string; eoiId: string; conversationId: string | null; partnerUserId: string }
     | { kind: "partnership_connection"; connectionId: string; orgId: string | null }
     | { kind: "partnership_listing"; orgId: string };
 }
@@ -107,6 +119,45 @@ function resolvePartnershipTitle(
 
 // ── Main fetch ──────────────────────────────────────────────────────────
 
+// ── Outcome upsert ──────────────────────────────────────────────────────
+
+export async function upsertPartnershipOutcome(params: {
+  existingId: string | null;
+  relationshipType: "initiative_partner" | "org_partnership";
+  initiativeId?: string | null;
+  partnerUserId?: string | null;
+  connectionId?: string | null;
+  status: PortfolioOutcome["status"];
+  fundingDisbursed: boolean | null;
+  fundingAmount: number | null;
+  fundingCurrency: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  outcomeSummary: string | null;
+  reportedByUserId: string;
+}): Promise<void> {
+  const payload = {
+    relationship_type: params.relationshipType,
+    initiative_id: params.initiativeId ?? null,
+    partner_user_id: params.partnerUserId ?? null,
+    connection_id: params.connectionId ?? null,
+    status: params.status,
+    funding_disbursed: params.fundingDisbursed,
+    funding_amount: params.fundingAmount,
+    funding_currency: params.fundingCurrency,
+    started_at: params.startedAt,
+    completed_at: params.completedAt,
+    outcome_summary: params.outcomeSummary,
+    reported_by_user_id: params.reportedByUserId,
+  };
+
+  if (params.existingId) {
+    await supabase.from("partnership_outcomes").update(payload).eq("id", params.existingId);
+  } else {
+    await supabase.from("partnership_outcomes").insert(payload);
+  }
+}
+
 export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]> {
   const rows: PortfolioRow[] = [];
 
@@ -141,6 +192,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
       contactPhone: null,
       status: INITIATIVE_STATUS_MAP[ini.status] ?? ini.status,
       date: ini.created_at,
+      outcome: null,
       raw: { kind: "initiative_mine", initiativeId: ini.id },
     });
   }
@@ -190,7 +242,8 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
         contactPhone: null,
         status,
         date: conv?.updated_at ?? eoi.created_at,
-        raw: { kind: "initiative_eoi", initiativeId: eoi.initiative_id, eoiId: eoi.id, conversationId: eoi.conversation_id },
+        outcome: null,
+        raw: { kind: "initiative_eoi", initiativeId: eoi.initiative_id, eoiId: eoi.id, conversationId: eoi.conversation_id, partnerUserId: userId },
       });
     }
   }
@@ -245,7 +298,8 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
           contactPhone: status === "Partner confirmed" ? (profile?.phone ?? null) : null,
           status,
           date: conv?.updated_at ?? eoi.created_at,
-          raw: { kind: "initiative_eoi", initiativeId: eoi.initiative_id, eoiId: eoi.id, conversationId: eoi.conversation_id },
+          outcome: null,
+          raw: { kind: "initiative_eoi", initiativeId: eoi.initiative_id, eoiId: eoi.id, conversationId: eoi.conversation_id, partnerUserId: eoi.user_id },
         });
       }
     }
@@ -290,6 +344,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
         contactPhone: null,
         status,
         date: conn.updated_at,
+        outcome: null,
         raw: { kind: "partnership_connection", connectionId: conn.id, orgId: counterpart?.id ?? null },
       });
     }
@@ -311,6 +366,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
         contactPhone: null,
         status,
         date: conn.updated_at,
+        outcome: null,
         raw: { kind: "partnership_connection", connectionId: conn.id, orgId: counterpart?.id ?? null },
       });
     }
@@ -332,8 +388,50 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
         contactPhone: null,
         status: myOrg.partnership_formed ? "Partnership formed" : myOrg.partnership_listed ? "Listed" : "Unlisted",
         date: myOrg.updated_at,
+        outcome: null,
         raw: { kind: "partnership_listing", orgId: myOrg.id },
       });
+    }
+  }
+
+  // ── 6. Attach outcome tracking to confirmed/formed relationships only ──
+  const initiativeOutcomeKeys = rows.filter(
+    r => r.raw.kind === "initiative_eoi" && r.status === "Partner confirmed"
+  ) as (PortfolioRow & { raw: { kind: "initiative_eoi"; initiativeId: string; partnerUserId: string } })[];
+  const connectionOutcomeRows = rows.filter(
+    r => r.raw.kind === "partnership_connection" && r.status === "Partnership formed"
+  ) as (PortfolioRow & { raw: { kind: "partnership_connection"; connectionId: string } })[];
+
+  if (initiativeOutcomeKeys.length > 0 || connectionOutcomeRows.length > 0) {
+    const initIds = [...new Set(initiativeOutcomeKeys.map(r => r.raw.initiativeId))];
+    const connIds = [...new Set(connectionOutcomeRows.map(r => r.raw.connectionId))];
+
+    const [{ data: initOutcomes }, { data: connOutcomes }] = await Promise.all([
+      initIds.length
+        ? supabase.from("partnership_outcomes")
+            .select("id, initiative_id, partner_user_id, status, funding_disbursed, funding_amount, funding_currency, started_at, completed_at, outcome_summary")
+            .eq("relationship_type", "initiative_partner")
+            .in("initiative_id", initIds)
+        : Promise.resolve({ data: [] }),
+      connIds.length
+        ? supabase.from("partnership_outcomes")
+            .select("id, connection_id, status, funding_disbursed, funding_amount, funding_currency, started_at, completed_at, outcome_summary")
+            .eq("relationship_type", "org_partnership")
+            .in("connection_id", connIds)
+        : Promise.resolve({ data: [] }),
+    ]);
+
+    const initOutcomeMap = new Map(
+      (initOutcomes ?? []).map((o: any) => [`${o.initiative_id}:${o.partner_user_id}`, o])
+    );
+    const connOutcomeMap = new Map((connOutcomes ?? []).map((o: any) => [o.connection_id, o]));
+
+    for (const row of initiativeOutcomeKeys) {
+      const key = `${row.raw.initiativeId}:${row.raw.partnerUserId}`;
+      row.outcome = initOutcomeMap.get(key) ?? null;
+    }
+    for (const row of connectionOutcomeRows) {
+      row.outcome = connOutcomeMap.get(row.raw.connectionId) ?? null;
     }
   }
 

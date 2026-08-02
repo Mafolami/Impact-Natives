@@ -16,7 +16,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Loader2, ArrowUpDown, Search } from "lucide-react";
-import { fetchPortfolioRows, PortfolioRow, PortfolioRowType, PortfolioDirection } from "@/lib/portfolioData";
+import { fetchPortfolioRows, PortfolioRow, PortfolioRowType, PortfolioDirection, PortfolioOutcome, upsertPartnershipOutcome } from "@/lib/portfolioData";
 import {
   updateConnectionStatus, markPartnershipFormed, unlistPartnership, relistPartnership,
 } from "@/lib/partnershipActions";
@@ -58,6 +58,24 @@ function StatusPill({ status }: { status: string }) {
   );
 }
 
+const OUTCOME_STATUS_STYLES: Record<string, { bg: string; color: string; label: string }> = {
+  not_started:   { bg: "rgba(107,114,128,0.12)", color: "#6b7280", label: "Not started" },
+  in_progress:   { bg: "rgba(180,83,9,0.12)",    color: "#b45309", label: "In progress" },
+  completed:     { bg: "rgba(45,106,79,0.12)",   color: "#2D6A4F", label: "Completed" },
+  stalled:       { bg: "rgba(196,92,38,0.12)",   color: "#C45C26", label: "Stalled" },
+  fell_through:  { bg: "rgba(239,68,68,0.12)",   color: "#ef4444", label: "Fell through" },
+};
+
+function OutcomePill({ status }: { status: string }) {
+  const s = OUTCOME_STATUS_STYLES[status] ?? OUTCOME_STATUS_STYLES.not_started;
+  return (
+    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+      style={{ background: s.bg, color: s.color }}>
+      {s.label}
+    </span>
+  );
+}
+
 function DirectionPill({ direction }: { direction: PortfolioDirection }) {
   const s = DIRECTION_STYLES[direction];
   return (
@@ -76,6 +94,140 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
+// Outcome tracking only applies once a relationship has actually formed --
+// a confirmed initiative partnership, or a formed org-to-org connection.
+function isOutcomeEligible(row: PortfolioRow): boolean {
+  return (
+    (row.raw.kind === "initiative_eoi" && row.status === "Partner confirmed") ||
+    (row.raw.kind === "partnership_connection" && row.status === "Partnership formed")
+  );
+}
+
+function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
+  row: PortfolioRow; currentUserId: string; onClose: () => void; onSaved: () => void;
+}) {
+  const existing = row.outcome;
+  const [status, setStatus] = useState<PortfolioOutcome["status"]>(existing?.status ?? "not_started");
+  const [fundingDisbursed, setFundingDisbursed] = useState(existing?.funding_disbursed ?? false);
+  const [fundingAmount, setFundingAmount] = useState(existing?.funding_amount?.toString() ?? "");
+  const [fundingCurrency, setFundingCurrency] = useState(existing?.funding_currency ?? "USD");
+  const [startedAt, setStartedAt] = useState(existing?.started_at ?? "");
+  const [completedAt, setCompletedAt] = useState(existing?.completed_at ?? "");
+  const [summary, setSummary] = useState(existing?.outcome_summary ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const isInitiative = row.type === "Initiative";
+
+  async function save() {
+    setSaving(true);
+    if (row.raw.kind === "initiative_eoi") {
+      await upsertPartnershipOutcome({
+        existingId: existing?.id ?? null,
+        relationshipType: "initiative_partner",
+        initiativeId: row.raw.initiativeId,
+        partnerUserId: row.raw.partnerUserId,
+        status,
+        fundingDisbursed: isInitiative ? fundingDisbursed : null,
+        fundingAmount: isInitiative && fundingDisbursed && fundingAmount ? Number(fundingAmount) : null,
+        fundingCurrency: isInitiative && fundingDisbursed ? fundingCurrency : null,
+        startedAt: startedAt || null,
+        completedAt: completedAt || null,
+        outcomeSummary: summary || null,
+        reportedByUserId: currentUserId,
+      });
+    } else if (row.raw.kind === "partnership_connection") {
+      await upsertPartnershipOutcome({
+        existingId: existing?.id ?? null,
+        relationshipType: "org_partnership",
+        connectionId: row.raw.connectionId,
+        status,
+        fundingDisbursed: null,
+        fundingAmount: null,
+        fundingCurrency: null,
+        startedAt: startedAt || null,
+        completedAt: completedAt || null,
+        outcomeSummary: summary || null,
+        reportedByUserId: currentUserId,
+      });
+    }
+    setSaving(false);
+    onSaved();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-card rounded-2xl border border-border w-full max-w-md p-6 space-y-4" onClick={e => e.stopPropagation()}>
+        <div>
+          <h3 className="text-lg font-bold text-foreground">Update outcome</h3>
+          <p className="text-sm text-muted-foreground mt-0.5">{row.title} — {row.organisation}</p>
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Status</label>
+          <select value={status} onChange={e => setStatus(e.target.value as PortfolioOutcome["status"])}
+            className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground">
+            <option value="not_started">Not started</option>
+            <option value="in_progress">In progress</option>
+            <option value="completed">Completed</option>
+            <option value="stalled">Stalled</option>
+            <option value="fell_through">Fell through</option>
+          </select>
+        </div>
+
+        {isInitiative && (
+          <div>
+            <label className="flex items-center gap-2 text-sm text-foreground mb-2">
+              <input type="checkbox" checked={fundingDisbursed} onChange={e => setFundingDisbursed(e.target.checked)} />
+              Funding disbursed
+            </label>
+            {fundingDisbursed && (
+              <div className="flex gap-2">
+                <input type="number" value={fundingAmount} onChange={e => setFundingAmount(e.target.value)}
+                  placeholder="Amount"
+                  className="flex-1 h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
+                <input value={fundingCurrency} onChange={e => setFundingCurrency(e.target.value)}
+                  placeholder="Currency" maxLength={3}
+                  className="w-20 h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Started</label>
+            <input type="date" value={startedAt} onChange={e => setStartedAt(e.target.value)}
+              className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Completed</label>
+            <input type="date" value={completedAt} onChange={e => setCompletedAt(e.target.value)}
+              className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">What happened</label>
+          <textarea value={summary} onChange={e => setSummary(e.target.value)} rows={3}
+            placeholder="What was delivered, or what's blocking progress..."
+            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground resize-none" />
+        </div>
+
+        <div className="flex gap-2 pt-2">
+          <button type="button" onClick={onClose}
+            className="flex-1 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Cancel
+          </button>
+          <button type="button" onClick={save} disabled={saving}
+            className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium disabled:opacity-40 transition-colors">
+            {saving ? "Saving..." : "Save"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => void }) {
   const { user } = useAuth();
   const [, navigate] = useLocation();
@@ -88,6 +240,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [editingListing, setEditingListing] = useState(false);
+  const [outcomeEditingRow, setOutcomeEditingRow] = useState<PortfolioRow | null>(null);
 
   async function load() {
     if (!user) return;
@@ -305,9 +458,17 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
                       </a>
                     ) : <span className="text-xs text-muted-foreground">—</span>}
                   </td>
-                  <td className="px-4 py-3"><StatusPill status={row.status} /></td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col gap-1 items-start">
+                      <StatusPill status={row.status} />
+                      {isOutcomeEligible(row) && (
+                        <OutcomePill status={row.outcome?.status ?? "not_started"} />
+                      )}
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{timeAgo(row.date)}</td>
                   <td className="px-4 py-3">
+                    <div className="flex flex-col gap-1.5 items-start">
                     {row.raw.kind === "partnership_connection" && row.status === "Pending" && row.direction === "Inbound" && (
                       <div className="flex gap-1.5">
                         <button type="button" disabled={actioningId === row.id} onClick={() => handleAccept(row)}
@@ -350,6 +511,13 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
                         </button>
                       </div>
                     )}
+                    {isOutcomeEligible(row) && (
+                      <button type="button" onClick={() => setOutcomeEditingRow(row)}
+                        className="text-xs px-2.5 py-1 rounded-full border border-border text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap">
+                        Update outcome
+                      </button>
+                    )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -362,6 +530,15 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
         isOpen={editingListing}
         onClose={() => { setEditingListing(false); load(); }}
       />
+
+      {outcomeEditingRow && user && (
+        <OutcomeEditor
+          row={outcomeEditingRow}
+          currentUserId={user.id}
+          onClose={() => setOutcomeEditingRow(null)}
+          onSaved={() => { setOutcomeEditingRow(null); load(); }}
+        />
+      )}
     </div>
   );
 }
