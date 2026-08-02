@@ -181,7 +181,7 @@ function DecisionIcons({
           type="button"
           onClick={onUndoPass}
           title={passReason ? `Passed · ${passReason} — click to undo` : "Passed — click to undo"}
-          className={`${dim} rounded-full flex items-center justify-center border border-gray-200 bg-gray-100 text-gray-500 hover:text-[#2D6A4F] hover:border-[#2D6A4F]/30 hover:bg-[rgba(45,106,79,0.12)] transition-colors`}>
+          className={`${dim} rounded-full flex items-center justify-center border border-border bg-muted text-muted-foreground hover:text-[#2D6A4F] hover:border-[#2D6A4F]/30 hover:bg-[rgba(45,106,79,0.12)] transition-colors`}>
           <RotateCcw className={iconDim} />
         </button>
       ) : (
@@ -423,7 +423,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
             </span>
           )}
           {ini.status === "closed" && (
-            <span className="text-[11px] font-medium text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full">
+            <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full">
               Partnership formed
             </span>
           )}
@@ -756,12 +756,12 @@ export default function DashboardMarketplace() {
         <button type="button" onClick={() => setShowPassed(v => !v)}
           className={`h-10 px-4 rounded-lg border text-sm flex items-center gap-2 transition-colors shrink-0 ${
             showPassed
-              ? "border-gray-400 text-gray-600 bg-gray-100"
+              ? "border-border text-foreground bg-muted"
               : "border-border text-muted-foreground hover:border-foreground/30"
           }`}>
           Passed
           {passedIds.size > 0 && (
-            <span className="w-4 h-4 rounded-full bg-gray-400 text-white text-[10px] flex items-center justify-center font-bold">
+            <span className="w-4 h-4 rounded-full bg-muted-foreground text-white text-[10px] flex items-center justify-center font-bold">
               {passedIds.size}
             </span>
           )}
