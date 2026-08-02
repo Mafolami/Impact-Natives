@@ -159,18 +159,31 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave }: {
         {countries.length > 0 ? countries.join(", ") : orgTypeLabel(org.organisation_type)}
       </p>
 
-      {/* Partnership title -- full, no clamp */}
-      {org.partnership_title && (
-        <p className="text-xs font-semibold text-foreground leading-snug">
-          {org.partnership_title}
+      {/* Seeking snippet -- partnership_sought is far more reliably
+          populated than partnership_title, which is often null */}
+      {(org.partnership_sought || normalizeArr(org.needs).length > 0) && (
+        <p className="text-xs text-muted-foreground leading-snug line-clamp-2">
+          Seeking {org.partnership_sought || normalizeArr(org.needs).join(", ")}
         </p>
       )}
-      {org.partnership_formed && (
-        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full mt-1.5"
-          style={{ background: "rgba(29,78,216,0.12)", color: "#1D4ED8", border: "1px solid rgba(29,78,216,0.3)" }}>
-          <CheckCircle2 className="w-2.5 h-2.5" />Partnership formed
-        </span>
-      )}
+
+      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+        {score > 0 && (
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
+            style={{
+              background: score >= 4 ? "rgba(45,106,79,0.12)" : score >= 2 ? "rgba(180,83,9,0.12)" : "rgba(107,114,128,0.12)",
+              color: score >= 4 ? "#2D6A4F" : score >= 2 ? "#b45309" : "#6b7280",
+            }}>
+            DD {score}/5
+          </span>
+        )}
+        {org.partnership_formed && (
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
+            style={{ background: "rgba(29,78,216,0.12)", color: "#1D4ED8", border: "1px solid rgba(29,78,216,0.3)" }}>
+            <CheckCircle2 className="w-2.5 h-2.5" />Partnership formed
+          </span>
+        )}
+      </div>
     </div>
   );}
 
