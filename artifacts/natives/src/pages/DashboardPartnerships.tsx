@@ -127,7 +127,6 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave }: {
 }) {
   const isVerified = org.verification_status === "verified";
   const countries = normalizeArr(org.country);
-  const score = ddScore(org);
 
   return (
     <div onClick={onClick}
@@ -168,15 +167,6 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave }: {
       )}
 
       <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-        {score > 0 && (
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
-            style={{
-              background: score >= 4 ? "rgba(45,106,79,0.12)" : score >= 2 ? "rgba(180,83,9,0.12)" : "rgba(107,114,128,0.12)",
-              color: score >= 4 ? "#2D6A4F" : score >= 2 ? "#b45309" : "#6b7280",
-            }}>
-            DD {score}/5
-          </span>
-        )}
         {org.partnership_formed && (
           <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
             style={{ background: "rgba(29,78,216,0.12)", color: "#1D4ED8", border: "1px solid rgba(29,78,216,0.3)" }}>
