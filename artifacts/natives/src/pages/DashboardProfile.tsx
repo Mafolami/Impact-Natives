@@ -137,6 +137,174 @@ type PaneKey =
 
 interface PaneDef { key: PaneKey; label: string; }
 
+type DDQuestion =
+  | { key: string; label: string; type: "text" }
+  | { key: string; label: string; type: "select"; options: string[] }
+  | { key: string; label: string; type: "yesno"; followUpIfYes?: { key: string; label: string } };
+
+interface DDItemDef {
+  key: string;
+  label: string;
+  sub: string;
+  questions: DDQuestion[];
+}
+
+const DD_ITEMS: DDItemDef[] = [
+  {
+    key: "financial_model",
+    label: "Financial model available",
+    sub: "A current financial model or projections document",
+    questions: [
+      { key: "preparedBy", label: "Prepared by", type: "select", options: ["Internal team", "External consultant", "Board-reviewed", "Other"] },
+      { key: "lastUpdated", label: "Last updated (date)", type: "text" },
+      { key: "notes", label: "Anything else worth noting?", type: "text" },
+    ],
+  },
+  {
+    key: "audited_accounts",
+    label: "Audited accounts on file",
+    sub: "Most recent audited financial statements",
+    questions: [
+      { key: "auditor", label: "Auditor / audit firm", type: "text" },
+      { key: "dateAudited", label: "Date of audit", type: "text" },
+      { key: "auditOpinion", label: "Audit opinion", type: "select", options: ["Clean", "Qualified", "Not sure"] },
+    ],
+  },
+  {
+    key: "governance_doc",
+    label: "Governance documentation",
+    sub: "Board structure, org chart, or governance policy",
+    questions: [
+      { key: "boardSize", label: "Board size", type: "select", options: ["1–3", "4–6", "7–10", "10+", "Other"] },
+      { key: "meetingCadence", label: "Meeting cadence", type: "select", options: ["Monthly", "Quarterly", "Semi-annually", "Annually", "Ad hoc", "Other"] },
+      { key: "notes", label: "Anything else worth noting?", type: "text" },
+    ],
+  },
+  {
+    key: "esg_assessment",
+    label: "ESG self-assessment completed",
+    sub: "Environmental, social and governance baseline assessment",
+    questions: [
+      { key: "framework", label: "Framework used", type: "select", options: ["GRI", "SASB", "UN Global Compact", "B Corp", "TCFD", "SDG Reporting", "Custom"] },
+      { key: "conductedBy", label: "Conducted by", type: "select", options: ["Internal team", "External consultant", "Board", "Other"] },
+      { key: "notes", label: "Anything else worth noting?", type: "text" },
+    ],
+  },
+  {
+    key: "impact_framework",
+    label: "Impact measurement framework",
+    sub: "Theory of change, IRIS+ alignment, or outcome tracking methodology",
+    questions: [
+      { key: "framework", label: "Framework used", type: "select", options: ["IRIS+", "SDG Indicators", "LogFrame", "Custom"] },
+      { key: "dateAdopted", label: "Date adopted", type: "text" },
+      { key: "notes", label: "Anything else worth noting?", type: "text" },
+    ],
+  },
+  {
+    key: "safeguarding_policy",
+    label: "Safeguarding policy",
+    sub: "Child protection / protection from sexual exploitation and abuse policy",
+    questions: [
+      { key: "ownership", label: "Ownership", type: "select", options: ["Dedicated Safeguarding Officer", "Shared responsibility (HR/Ops)", "Board-level oversight", "Other"] },
+      { key: "dateAdopted", label: "Date adopted", type: "text" },
+      { key: "notes", label: "Anything else worth noting?", type: "text" },
+    ],
+  },
+  {
+    key: "legal_registration",
+    label: "Legal registration / tax-exempt status",
+    sub: "Registered legal entity with valid tax status",
+    questions: [
+      { key: "registrationNumber", label: "Registration number", type: "text" },
+      { key: "country", label: "Country", type: "select", options: COUNTRIES },
+      { key: "registeringBody", label: "Registering body", type: "text" },
+    ],
+  },
+  {
+    key: "legal_compliance_declaration",
+    label: "Legal & compliance declaration",
+    sub: "No blacklisting, pending disputes, or undisclosed conflicts",
+    questions: [
+      { key: "noBlacklisting", label: "No current blacklisting by any government or regulatory agency?", type: "yesno" },
+      { key: "noPendingDisputes", label: "No pending legal disputes, investigations, or allegations?", type: "yesno" },
+      { key: "conflictsToDisclose", label: "Any related-party conflicts with funders or partners to disclose?", type: "yesno", followUpIfYes: { key: "conflictsDetail", label: "Please describe" } },
+    ],
+  },
+];
+
+function DDEvidenceModal({ item, initialAnswers, onClose, onSave }: {
+  item: DDItemDef; initialAnswers: Record<string, any>; onClose: () => void; onSave: (answers: Record<string, any>) => void;
+}) {
+  const [answers, setAnswers] = useState<Record<string, any>>(initialAnswers ?? {});
+
+  function setAnswer(key: string, value: any) {
+    setAnswers(prev => ({ ...prev, [key]: value }));
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-card rounded-2xl border border-border w-full max-w-md p-6 space-y-4 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div>
+          <h3 className="text-lg font-bold text-foreground">{item.label}</h3>
+          <p className="text-sm text-muted-foreground mt-0.5">{item.sub}</p>
+        </div>
+        {item.questions.map(q => (
+          <div key={q.key}>
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">{q.label}</label>
+            {q.type === "text" && (
+              <input value={answers[q.key] ?? ""} onChange={e => setAnswer(q.key, e.target.value)}
+                className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
+            )}
+            {q.type === "select" && (
+              <>
+                <select value={answers[q.key] ?? ""} onChange={e => setAnswer(q.key, e.target.value)}
+                  className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground">
+                  <option value="">Select...</option>
+                  {q.options.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+                {(answers[q.key] === "Other" || answers[q.key] === "Custom") && (
+                  <input value={answers[`${q.key}_custom`] ?? ""} onChange={e => setAnswer(`${q.key}_custom`, e.target.value)}
+                    placeholder="Please specify"
+                    className="w-full h-9 px-3 mt-2 rounded-lg border border-border bg-background text-sm text-foreground" />
+                )}
+              </>
+            )}
+            {q.type === "yesno" && (
+              <>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setAnswer(q.key, true)}
+                    className={`flex-1 h-9 rounded-lg border text-sm font-medium transition-colors ${answers[q.key] === true ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-muted-foreground hover:border-[#2D6A4F]"}`}>
+                    Yes
+                  </button>
+                  <button type="button" onClick={() => setAnswer(q.key, false)}
+                    className={`flex-1 h-9 rounded-lg border text-sm font-medium transition-colors ${answers[q.key] === false ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-muted-foreground hover:border-[#2D6A4F]"}`}>
+                    No
+                  </button>
+                </div>
+                {q.followUpIfYes && answers[q.key] === true && (
+                  <input value={answers[q.followUpIfYes.key] ?? ""} onChange={e => setAnswer(q.followUpIfYes!.key, e.target.value)}
+                    placeholder={q.followUpIfYes.label}
+                    className="w-full h-9 px-3 mt-2 rounded-lg border border-border bg-background text-sm text-foreground" />
+                )}
+              </>
+            )}
+          </div>
+        ))}
+        <div className="flex gap-2 pt-1">
+          <button type="button" onClick={onClose}
+            className="flex-1 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Cancel
+          </button>
+          <button type="button" onClick={() => onSave(answers)}
+            className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
+            Save &amp; check
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardProfile() {
   const { user, profile, refreshProfile } = useAuth();
   const [saving, setSaving]               = useState(false);
@@ -198,6 +366,11 @@ export default function DashboardProfile() {
   const [ddGovernanceDoc, setDdGovernanceDoc]         = useState(false);
   const [ddEsgAssessment, setDdEsgAssessment]         = useState(false);
   const [ddImpactFramework, setDdImpactFramework]     = useState(false);
+  const [ddSafeguardingPolicy, setDdSafeguardingPolicy] = useState(false);
+  const [ddLegalRegistration, setDdLegalRegistration] = useState(false);
+  const [ddLegalComplianceDeclaration, setDdLegalComplianceDeclaration] = useState(false);
+  const [ddEvidence, setDdEvidence]                   = useState<Record<string, any>>({});
+  const [ddModalKey, setDdModalKey]                   = useState<string | null>(null);
 
   // ── Mandate / CSR shared fields ───────────────────────────────────────────
   const [grantRangeMin, setGrantRangeMin]             = useState("");
@@ -224,7 +397,7 @@ export default function DashboardProfile() {
   useEffect(() => {
     if (!user) return;
     supabase.from("organizations")
-     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")      .eq("user_id", user.id).maybeSingle()
+     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")      .eq("user_id", user.id).maybeSingle()
       .then(({ data }) => {
         if (!data) return;
         setOrgId(data.id ?? null);
@@ -254,6 +427,10 @@ export default function DashboardProfile() {
         setDdGovernanceDoc(data.dd_governance_doc ?? false);
         setDdEsgAssessment(data.dd_esg_assessment ?? false);
         setDdImpactFramework(data.dd_impact_framework ?? false);
+        setDdSafeguardingPolicy(data.dd_safeguarding_policy ?? false);
+        setDdLegalRegistration(data.dd_legal_registration ?? false);
+        setDdLegalComplianceDeclaration(data.dd_legal_compliance_declaration ?? false);
+        setDdEvidence(data.dd_evidence ?? {});
         if (data.total_beneficiaries_reached) setTotalBeneficiaries(String(data.total_beneficiaries_reached));
         if (data.jobs_created) setJobsCreated(String(data.jobs_created));
         if (data.female_beneficiaries_pct) setFemalePct(String(data.female_beneficiaries_pct));
@@ -484,6 +661,10 @@ export default function DashboardProfile() {
           dd_governance_doc: ddGovernanceDoc,
           dd_esg_assessment: ddEsgAssessment,
           dd_impact_framework: ddImpactFramework,
+          dd_safeguarding_policy: ddSafeguardingPolicy,
+          dd_legal_registration: ddLegalRegistration,
+          dd_legal_compliance_declaration: ddLegalComplianceDeclaration,
+          dd_evidence: ddEvidence,
           total_beneficiaries_reached: totalBeneficiaries ? parseInt(totalBeneficiaries) : null,
           jobs_created: jobsCreated ? parseInt(jobsCreated) : null,
           female_beneficiaries_pct: femalePct ? parseInt(femalePct) : null,
@@ -503,7 +684,7 @@ export default function DashboardProfile() {
 
     if (user && profile?.user_type === "organisation") {
       const { data } = await supabase.from("organizations")
-        .select("logo_url,description,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")
+        .select("logo_url,description,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")
         .eq("user_id", user.id).maybeSingle();
       if (data) {
         if (data.previous_funders) setPreviousFunders(data.previous_funders);
@@ -538,7 +719,7 @@ export default function DashboardProfile() {
   // fields (grants count/value, previous funders, etc.) are collected but
   // not currently read by any AI function, so they're left out rather than
   // padding the score with fields that don't inform anything.
-  const ddReadinessFraction = [ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework].filter(Boolean).length / 5;
+  const ddReadinessFraction = [ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework, ddSafeguardingPolicy, ddLegalRegistration, ddLegalComplianceDeclaration].filter(Boolean).length / 8;
   const orgTypeStrengthItems: number[] = isFunder
     ? [investmentThesis ? 1 : 0]
     : isImplementer
@@ -939,16 +1120,20 @@ export default function DashboardProfile() {
               {activePane === "dd" && isImplementer && (
                 <div className="space-y-5">
                   <PaneHeader title="Due diligence readiness"
-                    subtitle="Signal to funders that you are investment-ready. Checked items appear as a readiness score on your profile." />
+                    subtitle="Signal to funders that you are investment-ready. Checking an item asks for a few quick details, which appear as a tooltip on your profile once matched." />
                   <div className="space-y-3">
                     {[
-                      { label: "Financial model available", sub: "A current financial model or projections document", state: ddFinancialModel, set: setDdFinancialModel },
-                      { label: "Audited accounts on file", sub: "Most recent audited financial statements", state: ddAuditedAccounts, set: setDdAuditedAccounts },
-                      { label: "Governance documentation", sub: "Board structure, org chart, or governance policy", state: ddGovernanceDoc, set: setDdGovernanceDoc },
-                      { label: "ESG self-assessment completed", sub: "Environmental, social and governance baseline assessment", state: ddEsgAssessment, set: setDdEsgAssessment },
-                      { label: "Impact measurement framework", sub: "Theory of change, IRIS+ alignment, or outcome tracking methodology", state: ddImpactFramework, set: setDdImpactFramework },
+                      { key: "financial_model", label: "Financial model available", sub: "A current financial model or projections document", state: ddFinancialModel, set: setDdFinancialModel },
+                      { key: "audited_accounts", label: "Audited accounts on file", sub: "Most recent audited financial statements", state: ddAuditedAccounts, set: setDdAuditedAccounts },
+                      { key: "governance_doc", label: "Governance documentation", sub: "Board structure, org chart, or governance policy", state: ddGovernanceDoc, set: setDdGovernanceDoc },
+                      { key: "esg_assessment", label: "ESG self-assessment completed", sub: "Environmental, social and governance baseline assessment", state: ddEsgAssessment, set: setDdEsgAssessment },
+                      { key: "impact_framework", label: "Impact measurement framework", sub: "Theory of change, IRIS+ alignment, or outcome tracking methodology", state: ddImpactFramework, set: setDdImpactFramework },
+                      { key: "safeguarding_policy", label: "Safeguarding policy", sub: "Child protection / protection from sexual exploitation and abuse policy", state: ddSafeguardingPolicy, set: setDdSafeguardingPolicy },
+                      { key: "legal_registration", label: "Legal registration / tax-exempt status", sub: "Registered legal entity with valid tax status", state: ddLegalRegistration, set: setDdLegalRegistration },
+                      { key: "legal_compliance_declaration", label: "Legal & compliance declaration", sub: "No blacklisting, pending disputes, or undisclosed conflicts", state: ddLegalComplianceDeclaration, set: setDdLegalComplianceDeclaration },
                     ].map(item => (
-                      <button key={item.label} type="button" onClick={() => item.set(!item.state)}
+                      <button key={item.key} type="button"
+                        onClick={() => { if (item.state) { item.set(false); } else { setDdModalKey(item.key); } }}
                         className={`w-full text-left px-4 py-3 rounded-xl border transition-colors flex items-start gap-3 ${
                           item.state ? "border-[#2D6A4F] bg-[rgba(45,106,79,0.12)]" : "border-border hover:border-foreground/20"
                         }`}>
@@ -968,17 +1153,43 @@ export default function DashboardProfile() {
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-xs text-muted-foreground">DD Readiness score</p>
                       <p className="text-xs font-bold text-foreground">
-                        {Math.round(([ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework].filter(Boolean).length / 5) * 100)}%
+                        {Math.round(([ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework, ddSafeguardingPolicy, ddLegalRegistration, ddLegalComplianceDeclaration].filter(Boolean).length / 8) * 100)}%
                       </p>
                     </div>
                     <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                       <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500"
-                        style={{ width: `${Math.round(([ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework].filter(Boolean).length / 5) * 100)}%` }} />
+                        style={{ width: `${Math.round(([ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework, ddSafeguardingPolicy, ddLegalRegistration, ddLegalComplianceDeclaration].filter(Boolean).length / 8) * 100)}%` }} />
                     </div>
                   </div>
                   <SaveBar />
                 </div>
               )}
+
+              {ddModalKey && (() => {
+                const item = DD_ITEMS.find(i => i.key === ddModalKey)!;
+                const setterMap: Record<string, (v: boolean) => void> = {
+                  financial_model: setDdFinancialModel,
+                  audited_accounts: setDdAuditedAccounts,
+                  governance_doc: setDdGovernanceDoc,
+                  esg_assessment: setDdEsgAssessment,
+                  impact_framework: setDdImpactFramework,
+                  safeguarding_policy: setDdSafeguardingPolicy,
+                  legal_registration: setDdLegalRegistration,
+                  legal_compliance_declaration: setDdLegalComplianceDeclaration,
+                };
+                return (
+                  <DDEvidenceModal
+                    item={item}
+                    initialAnswers={ddEvidence[ddModalKey] ?? {}}
+                    onClose={() => setDdModalKey(null)}
+                    onSave={(answers) => {
+                      setDdEvidence(prev => ({ ...prev, [ddModalKey]: answers }));
+                      setterMap[ddModalKey](true);
+                      setDdModalKey(null);
+                    }}
+                  />
+                );
+              })()}
 
               {/* ── TRACK RECORD PANE ── */}
               {activePane === "track" && isImplementer && (
