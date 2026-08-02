@@ -153,6 +153,26 @@ function TimelineModal({ row, onClose }: { row: PortfolioRow; onClose: () => voi
   );
 }
 
+function NotesModal({ row, onClose }: { row: PortfolioRow; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-card rounded-2xl border border-border w-full max-w-sm p-6 space-y-4" onClick={e => e.stopPropagation()}>
+        <div>
+          <h3 className="text-lg font-bold text-foreground">Outcome notes</h3>
+          <p className="text-sm text-muted-foreground mt-0.5">{row.title} — {row.organisation}</p>
+        </div>
+        <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+          {row.outcome?.outcome_summary}
+        </p>
+        <button type="button" onClick={onClose}
+          className="w-full h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
   row: PortfolioRow; currentUserId: string; onClose: () => void; onSaved: () => void;
 }) {
@@ -174,6 +194,7 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
   });
   const [summary, setSummary] = useState(existing?.outcome_summary ?? "");
   const [saving, setSaving] = useState(false);
+  const [attemptedInvalidSave, setAttemptedInvalidSave] = useState(false);
 
   const isInitiative = row.type === "Initiative";
 
@@ -192,7 +213,7 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
   })();
 
   async function save() {
-    if (!canSave) return;
+    if (!canSave) { setAttemptedInvalidSave(true); return; }
     setSaving(true);
     const effectiveStartedAt = isStalledOrFell
       ? (everStarted ? (startedAt || null) : null)
@@ -274,7 +295,9 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
           <div>
             <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Started</label>
             <input type="date" value={startedAt} onChange={e => setStartedAt(e.target.value)}
-              className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
+              className={`w-full h-9 px-3 rounded-lg border bg-background text-sm text-foreground ${
+                attemptedInvalidSave && !startedAt ? "border-red-400" : "border-border"
+              }`} />
           </div>
         )}
 
@@ -283,12 +306,16 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
             <div>
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Started</label>
               <input type="date" value={startedAt} onChange={e => setStartedAt(e.target.value)}
-                className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
+                className={`w-full h-9 px-3 rounded-lg border bg-background text-sm text-foreground ${
+                  attemptedInvalidSave && !startedAt ? "border-red-400" : "border-border"
+                }`} />
             </div>
             <div>
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Completed</label>
               <input type="date" value={completedAt} onChange={e => setCompletedAt(e.target.value)}
-                className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
+                className={`w-full h-9 px-3 rounded-lg border bg-background text-sm text-foreground ${
+                  attemptedInvalidSave && !completedAt ? "border-red-400" : "border-border"
+                }`} />
             </div>
           </div>
         )}
@@ -296,19 +323,25 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
         {isStalledOrFell && (
           <div className="space-y-3">
             <div>
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">
+              <label className={`text-xs font-semibold uppercase tracking-wider mb-1.5 block ${
+                attemptedInvalidSave && everStarted === null ? "text-red-500" : "text-muted-foreground"
+              }`}>
                 Did this ever start?
               </label>
               <div className="flex gap-2">
                 <button type="button" onClick={() => setEverStarted(true)}
                   className={`flex-1 h-9 rounded-lg border text-sm font-medium transition-colors ${
-                    everStarted === true ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-muted-foreground hover:border-[#2D6A4F]"
+                    everStarted === true ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
+                      : attemptedInvalidSave && everStarted === null ? "border-red-400 text-muted-foreground hover:border-[#2D6A4F]"
+                      : "border-border text-muted-foreground hover:border-[#2D6A4F]"
                   }`}>
                   Yes
                 </button>
                 <button type="button" onClick={() => setEverStarted(false)}
                   className={`flex-1 h-9 rounded-lg border text-sm font-medium transition-colors ${
-                    everStarted === false ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-muted-foreground hover:border-[#2D6A4F]"
+                    everStarted === false ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
+                      : attemptedInvalidSave && everStarted === null ? "border-red-400 text-muted-foreground hover:border-[#2D6A4F]"
+                      : "border-border text-muted-foreground hover:border-[#2D6A4F]"
                   }`}>
                   No
                 </button>
@@ -320,7 +353,9 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Started</label>
                   <input type="date" value={startedAt} onChange={e => setStartedAt(e.target.value)}
-                    className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
+                    className={`w-full h-9 px-3 rounded-lg border bg-background text-sm text-foreground ${
+                      attemptedInvalidSave && !startedAt ? "border-red-400" : "border-border"
+                    }`} />
                 </div>
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">
@@ -328,7 +363,9 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
                   </label>
                   <input type="date" value={status === "stalled" ? stalledAt : fellThroughAt}
                     onChange={e => status === "stalled" ? setStalledAt(e.target.value) : setFellThroughAt(e.target.value)}
-                    className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
+                    className={`w-full h-9 px-3 rounded-lg border bg-background text-sm text-foreground ${
+                      attemptedInvalidSave && !(status === "stalled" ? stalledAt : fellThroughAt) ? "border-red-400" : "border-border"
+                    }`} />
                 </div>
               </div>
             )}
@@ -340,7 +377,9 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
                 </label>
                 <input type="date" value={status === "stalled" ? stalledAt : fellThroughAt}
                   onChange={e => status === "stalled" ? setStalledAt(e.target.value) : setFellThroughAt(e.target.value)}
-                  className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground" />
+                  className={`w-full h-9 px-3 rounded-lg border bg-background text-sm text-foreground ${
+                    attemptedInvalidSave && !(status === "stalled" ? stalledAt : fellThroughAt) ? "border-red-400" : "border-border"
+                  }`} />
               </div>
             )}
           </div>
@@ -379,11 +418,11 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
             className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground resize-none" />
         </div>
 
-        {!canSave && (
-          <p className="text-xs text-[#C45C26] -mt-2">
+        {attemptedInvalidSave && !canSave && (
+          <p className="text-xs text-red-500 -mt-2 font-medium">
             {isStalledOrFell && everStarted === null
               ? "Answer \"Did this ever start?\" before saving."
-              : "Fill in the required date(s) before saving."}
+              : "Fill in the required date(s), highlighted above, before saving."}
           </p>
         )}
 
@@ -392,7 +431,7 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
             className="flex-1 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
             Cancel
           </button>
-          <button type="button" onClick={save} disabled={saving || !canSave}
+          <button type="button" onClick={save} disabled={saving}
             className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium disabled:opacity-40 transition-colors">
             {saving ? "Saving..." : "Save"}
           </button>
@@ -416,6 +455,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
   const [editingListing, setEditingListing] = useState(false);
   const [outcomeEditingRow, setOutcomeEditingRow] = useState<PortfolioRow | null>(null);
   const [timelineRow, setTimelineRow] = useState<PortfolioRow | null>(null);
+  const [notesRow, setNotesRow] = useState<PortfolioRow | null>(null);
 
   async function load(showLoader = true) {
     if (!user) return;
@@ -650,12 +690,10 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
                         <div className="flex items-center gap-1">
                           <OutcomePill status={row.outcome?.status ?? "not_started"} />
                           {row.outcome?.outcome_summary && (
-                            <span className="relative inline-flex group/note">
-                              <StickyNote className="w-3.5 h-3.5 text-muted-foreground" />
-                              <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 hidden group-hover/note:block whitespace-pre-wrap text-[11px] font-medium bg-foreground text-background px-2.5 py-1.5 rounded-md z-20 w-48 leading-snug">
-                                {row.outcome.outcome_summary}
-                              </span>
-                            </span>
+                            <button type="button" onClick={() => setNotesRow(row)}
+                              className="text-muted-foreground hover:text-[#2D6A4F] transition-colors">
+                              <StickyNote className="w-3.5 h-3.5" />
+                            </button>
                           )}
                         </div>
                       )}
@@ -742,6 +780,10 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
 
       {timelineRow && (
         <TimelineModal row={timelineRow} onClose={() => setTimelineRow(null)} />
+      )}
+
+      {notesRow && (
+        <NotesModal row={notesRow} onClose={() => setNotesRow(null)} />
       )}
     </div>
   );
