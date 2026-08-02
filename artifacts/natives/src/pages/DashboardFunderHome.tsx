@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
-import { Sparkles, Bookmark, MessageSquare, Users, Building2 } from "lucide-react";
+import { Sparkles, Bookmark, MessageSquare, Users, Building2, UserCheck } from "lucide-react";
 
 // Maps a pass reason to the specific mandate field it points at.
 const PASS_REASON_FIELD_MAP: Record<string, { label: string; hint: string }> = {
@@ -67,6 +67,7 @@ export default function FunderHome({ profile }: { profile: any }) {
   const [conversations, setConversations] = useState(0);
   const [awaitingResponse, setAwaitingResponse] = useState(0);
   const [savedCount, setSavedCount] = useState(0);
+  const [expressedCount, setExpressedCount] = useState(0);
   const [passInsight, setPassInsight] = useState<{ reason: string; count: number; label: string; hint: string } | null>(null);
 
   // Partnership matches — secondary here, since a funder's core action is
@@ -123,6 +124,15 @@ export default function FunderHome({ profile }: { profile: any }) {
         .select("initiative_id")
         .eq("user_id", profile.id);
       setSavedCount(savedInits?.length ?? 0);
+
+      // Outbound EOIs sent -- count only, feeds the "Interest expressed"
+      // tile linking to Portfolio's Interests Expressed tab. Previously
+      // nothing on this page surfaced this at all.
+      const { count: eoiCount } = await supabase
+        .from("expressions_of_interest")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", profile.id);
+      setExpressedCount(eoiCount ?? 0);
 
       // Conversations + awaiting-your-response
       const { data: convData } = await supabase
@@ -350,6 +360,14 @@ export default function FunderHome({ profile }: { profile: any }) {
       sub: savedCount > 0 ? "to review" : "nothing saved",
       onClick: () => navigate("/dashboard/marketplace"),
       icon: Bookmark,
+      accent: false,
+    },
+    {
+      label: "Interest expressed",
+      value: expressedCount,
+      sub: expressedCount > 0 ? "track status" : "none sent yet",
+      onClick: () => navigate("/dashboard/portfolio?tab=expressed"),
+      icon: UserCheck,
       accent: false,
     },
   ];

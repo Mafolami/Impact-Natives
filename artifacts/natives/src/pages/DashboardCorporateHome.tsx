@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
-import { Sparkles, Leaf, Building2, Bookmark, MessageSquare, Users } from "lucide-react";
+import { Sparkles, Leaf, Building2, Bookmark, MessageSquare, Users, UserCheck, Handshake } from "lucide-react";
 
 const ESG_PARTNERSHIP_TYPES = ["operational", "strategic", "lead", "other"];
 
@@ -84,6 +84,8 @@ export default function CorporateHome({ profile }: { profile: any }) {
   const [awaitingResponse, setAwaitingResponse] = useState(0);
   const [activeConvos, setActiveConvos]     = useState(0);
   const [esgAdoptions, setEsgAdoptions]     = useState(0);
+  const [expressedCount, setExpressedCount] = useState(0);
+  const [confirmedPartnershipsCount, setConfirmedPartnershipsCount] = useState(0);
   const [passInsight, setPassInsight]       = useState<{ reason: string; count: number; label: string; hint: string } | null>(null);
 
   // Pipeline
@@ -117,6 +119,18 @@ export default function CorporateHome({ profile }: { profile: any }) {
       .maybeSingle();
     setOrgData(org);
 
+    // Confirmed org-to-org partnerships -- real count, distinct from the
+    // ESG-adoption-flagged EOIs below. Nothing on this page surfaced this
+    // before.
+    if (org?.id) {
+      const { count: formedCount } = await supabase
+        .from("partnership_connections")
+        .select("id", { count: "exact", head: true })
+        .or(`sender_org_id.eq.${org.id},receiver_org_id.eq.${org.id}`)
+        .eq("status", "formed");
+      setConfirmedPartnershipsCount(formedCount ?? 0);
+    }
+
     // EOIs sent by this user
     const { data: eoisSent } = await supabase
       .from("expressions_of_interest")
@@ -126,6 +140,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
 
     const eois = eoisSent ?? [];
     setEsgAdoptions(eois.filter((e: any) => e.esg_adoption).length);
+    setExpressedCount(eois.length);
 
     // Enrich outbound EOIs with initiative titles
     if (eois.length > 0) {
@@ -415,9 +430,25 @@ export default function CorporateHome({ profile }: { profile: any }) {
     {
       label: "ESG/CSR adoptions",
       value: esgAdoptions,
-      sub: "confirmed",
-      onClick: () => navigate("/dashboard/portfolio?tab=confirmed"),
+      sub: "flagged as ESG",
+      onClick: () => navigate("/dashboard/portfolio?tab=expressed"),
       icon: Leaf,
+      accent: false,
+    },
+    {
+      label: "Interest expressed",
+      value: expressedCount,
+      sub: expressedCount > 0 ? "track status" : "none sent yet",
+      onClick: () => navigate("/dashboard/portfolio?tab=expressed"),
+      icon: UserCheck,
+      accent: false,
+    },
+    {
+      label: "Confirmed partnerships",
+      value: confirmedPartnershipsCount,
+      sub: confirmedPartnershipsCount > 0 ? "formed" : "none yet",
+      onClick: () => navigate("/dashboard/portfolio?tab=partnerships"),
+      icon: Handshake,
       accent: false,
     },
   ];
