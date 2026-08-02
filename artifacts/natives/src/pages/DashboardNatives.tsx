@@ -1,11 +1,14 @@
 // ─── DashboardNatives.tsx ─────────────────────────────────────────────────────
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 import { Loader2, Search, Users, Sparkles, RefreshCw } from "lucide-react";
 import { UserAvatar, avatarColor, initials } from "@/components/ui/UserAvatar";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { COUNTRIES } from "@/lib/countries";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
+import { DD_ITEMS, DDItemDef, DD_SENSITIVE_EVIDENCE_KEYS } from "@/lib/ddItems";
+import { hasLiveRelationshipWith } from "@/lib/relationshipAccess";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -44,6 +47,10 @@ interface OrgRow {
   dd_governance_doc?: boolean;
   dd_esg_assessment?: boolean;
   dd_impact_framework?: boolean;
+  dd_safeguarding_policy?: boolean;
+  dd_legal_registration?: boolean;
+  dd_legal_compliance_declaration?: boolean;
+  dd_evidence?: Record<string, any>;
   needs?: string[];
   offers?: string[];
   sdgs?: string[];
@@ -422,7 +429,8 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
       setLoading(true);
       const { data: orgData, error } = await supabase
         .from("organizations")
-        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status,investment_thesis,stage_preference,geographic_focus,impact_strategy")        .eq("status", "published")
+        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status,investment_thesis,stage_preference,geographic_focus,impact_strategy")        
+        .eq("status", "published")
         .order("organisation_name", { ascending: true });
 
       if (error) { console.error(error); setLoading(false); return; }
@@ -557,9 +565,53 @@ function NativesOrgCard({ org, onClick }: { org: OrgRow; onClick: () => void }) 
   );
 }
 
+// ── DD evidence viewer (read-only, for visitors to another org's profile) ──
+
+function DDEvidenceViewModal({ item, evidence, canSeeSensitive, onClose }: {
+  item: DDItemDef; evidence: Record<string, any>; canSeeSensitive: boolean; onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-card rounded-2xl border border-border w-full max-w-sm p-6 space-y-3" onClick={e => e.stopPropagation()}>
+        <div>
+          <h3 className="text-lg font-bold text-foreground">{item.label}</h3>
+          <p className="text-sm text-muted-foreground mt-0.5">{item.sub}</p>
+        </div>
+        <div className="space-y-3">
+          {item.questions.map(q => {
+            const isSensitive = DD_SENSITIVE_EVIDENCE_KEYS.has(q.key);
+            if (isSensitive && !canSeeSensitive) {
+              return (
+                <div key={q.key}>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{q.label}</p>
+                  <p className="text-sm text-muted-foreground italic mt-0.5">Visible once you're in an active conversation</p>
+                </div>
+              );
+            }
+            const raw = evidence[q.key];
+            const display = raw === true ? "Yes" : raw === false ? "No" : (raw === "Other" || raw === "Custom") ? (evidence[`${q.key}_custom`] || raw) : raw;
+            if (!display) return null;
+            return (
+              <div key={q.key}>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{q.label}</p>
+                <p className="text-sm text-foreground mt-0.5">{display}</p>
+              </div>
+            );
+          })}
+        </div>
+        <button type="button" onClick={onClose}
+          className="w-full h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Org Detail ────────────────────────────────────────────────────────────────
 
 function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) {
+  const { user } = useAuth();
   const isVerified = org.verification_status === "verified";
   const sectors    = normalizeArr(org.sector);
   const countries  = normalizeArr(org.country);
@@ -568,6 +620,21 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
   const [aiSummary, setAiSummary]         = useState<string | null>(org.ai_partnership_summary ?? null);
   const [loadingAi, setLoadingAi]         = useState(false);
   const [aiError, setAiError]             = useState(false);
+  const [ddViewingKey, setDdViewingKey]   = useState<string | null>(null);
+  const [canSeeSensitive, setCanSeeSensitive] = useState(false);
+
+  useEffect(() => {
+    if (!user || user.id === org.user_id) { setCanSeeSensitive(true); return; }
+    supabase.from("organizations").select("id").eq("user_id", user.id).maybeSingle()
+      .then(({ data: myOrg }) => {
+        hasLiveRelationshipWith({
+          viewerUserId: user.id,
+          viewerOrgId: myOrg?.id ?? null,
+          targetUserId: org.user_id,
+          targetOrgId: org.id,
+        }).then(setCanSeeSensitive);
+      });
+  }, [user, org.user_id, org.id]);
 
   async function generateSummary() {
     if (!org.description && !org.needs?.length && !org.offers?.length) return;
@@ -743,14 +810,29 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
       )}
 
       {(() => {
-        const ddItems = [org.dd_financial_model, org.dd_audited_accounts, org.dd_governance_doc, org.dd_esg_assessment, org.dd_impact_framework];
-        const ddScore = Math.round((ddItems.filter(Boolean).length / 5) * 100);
+        const ddItems = [org.dd_financial_model, org.dd_audited_accounts, org.dd_governance_doc, org.dd_esg_assessment, org.dd_impact_framework, org.dd_safeguarding_policy, org.dd_legal_registration, org.dd_legal_compliance_declaration];
+        const ddScore = Math.round((ddItems.filter(Boolean).length / 8) * 100);
         if (ddScore === 0) return null;
+        const stateMap: Record<string, boolean | undefined> = {
+          financial_model: org.dd_financial_model,
+          audited_accounts: org.dd_audited_accounts,
+          governance_doc: org.dd_governance_doc,
+          esg_assessment: org.dd_esg_assessment,
+          impact_framework: org.dd_impact_framework,
+          safeguarding_policy: org.dd_safeguarding_policy,
+          legal_registration: org.dd_legal_registration,
+          legal_compliance_declaration: org.dd_legal_compliance_declaration,
+        };
         return (
           <div className="rounded-xl px-4 py-3 space-y-2"
             style={{ background: "linear-gradient(135deg, rgba(45,106,79,0.05) 0%, transparent 100%)", border: "1px solid rgba(45,106,79,0.14)" }}>
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">DD Readiness</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">DD Readiness</p>
+                <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground/70 px-1.5 py-0.5 rounded-full border border-border">
+                  Self-attested
+                </span>
+              </div>
               <span className="text-xs font-bold px-2 py-0.5 rounded-full"
                 style={{
                   background: ddScore >= 80 ? "#eaf5ee" : ddScore >= 50 ? "#fffbeb" : "#f5f5f5",
@@ -767,24 +849,39 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                 }} />
             </div>
             <div className="flex flex-wrap gap-1.5 pt-1">
-              {[
-                { label: "Financial model", done: org.dd_financial_model },
-                { label: "Audited accounts", done: org.dd_audited_accounts },
-                { label: "Governance docs", done: org.dd_governance_doc },
-                { label: "ESG assessment", done: org.dd_esg_assessment },
-                { label: "Impact framework", done: org.dd_impact_framework },
-              ].map(item => (
-                <span key={item.label} className="text-[10px] px-2 py-0.5 rounded-full border"
-                  style={{
-                    borderColor: item.done ? "#2D6A4F40" : "#e5e7eb",
-                    color: item.done ? "#2D6A4F" : "#9ca3af",
-                    background: item.done ? "#eaf5ee" : "transparent",
-                  }}>
-                  {item.done ? "✓" : "·"} {item.label}
-                </span>
-              ))}
+              {DD_ITEMS.map(item => {
+                const done = stateMap[item.key];
+                const hasEvidence = done && org.dd_evidence?.[item.key];
+                return (
+                  <button key={item.key} type="button"
+                    disabled={!hasEvidence}
+                    onClick={() => hasEvidence && setDdViewingKey(item.key)}
+                    className="text-[10px] px-2 py-0.5 rounded-full border transition-colors"
+                    style={{
+                      borderColor: done ? "#2D6A4F40" : "#e5e7eb",
+                      color: done ? "#2D6A4F" : "#9ca3af",
+                      background: done ? "#eaf5ee" : "transparent",
+                      cursor: hasEvidence ? "pointer" : "default",
+                    }}>
+                    {done ? "✓" : "·"} {item.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
+        );
+      })()}
+
+      {ddViewingKey && (() => {
+        const item = DD_ITEMS.find(i => i.key === ddViewingKey);
+        if (!item) return null;
+        return (
+          <DDEvidenceViewModal
+            item={item}
+            evidence={org.dd_evidence?.[ddViewingKey] ?? {}}
+            canSeeSensitive={canSeeSensitive}
+            onClose={() => setDdViewingKey(null)}
+          />
         );
       })()}
 
