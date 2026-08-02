@@ -18,7 +18,7 @@ import { supabase } from "@/lib/supabase";
 import { Loader2, ArrowUpDown, Search } from "lucide-react";
 import { fetchPortfolioRows, PortfolioRow, PortfolioRowType, PortfolioDirection } from "@/lib/portfolioData";
 import {
-  updateConnectionStatus, markPartnershipFormed, unlistPartnership,
+  updateConnectionStatus, markPartnershipFormed, unlistPartnership, relistPartnership,
 } from "@/lib/partnershipActions";
 import { FindPartnerModalDashboard } from "./FindPartnerModalDashboard";
 
@@ -76,7 +76,7 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
-export function PortfolioTable() {
+export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => void }) {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const [rows, setRows] = useState<PortfolioRow[]>([]);
@@ -170,6 +170,14 @@ export function PortfolioTable() {
     setActioningId(null);
   }
 
+  async function handleRelist(row: PortfolioRow) {
+    if (row.raw.kind !== "partnership_listing") return;
+    setActioningId(row.id);
+    await relistPartnership(row.raw.orgId);
+    await load();
+    setActioningId(null);
+  }
+
   async function handleMarkFormed(row: PortfolioRow) {
     if (row.raw.kind !== "partnership_listing" || !user) return;
     setActioningId(row.id);
@@ -257,7 +265,12 @@ export function PortfolioTable() {
               {filteredSorted.map(row => (
                 <tr key={row.id} className="hover:bg-muted/20 transition-colors">
                   <td className="px-4 py-3 max-w-[260px]">
-                    {row.titleHref ? (
+                    {row.raw.kind === "partnership_listing" ? (
+                      <button type="button" onClick={() => onOpenOwnListing?.()}
+                        className="text-sm font-medium text-foreground hover:text-[#2D6A4F] transition-colors line-clamp-2 text-left">
+                        {row.title}
+                      </button>
+                    ) : row.titleHref ? (
                       <Link href={row.titleHref}
                         className="text-sm font-medium text-foreground hover:text-[#2D6A4F] transition-colors line-clamp-2">
                         {row.title}
@@ -267,7 +280,12 @@ export function PortfolioTable() {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    {row.organisationHref ? (
+                    {row.raw.kind === "partnership_listing" ? (
+                      <button type="button" onClick={() => onOpenOwnListing?.()}
+                        className="text-sm text-muted-foreground hover:text-[#2D6A4F] transition-colors text-left">
+                        {row.organisation}
+                      </button>
+                    ) : row.organisationHref ? (
                       <Link href={row.organisationHref}
                         className="text-sm text-muted-foreground hover:text-[#2D6A4F] transition-colors">
                         {row.organisation}
@@ -302,7 +320,19 @@ export function PortfolioTable() {
                         </button>
                       </div>
                     )}
-                    {row.raw.kind === "partnership_listing" && (
+                    {row.raw.kind === "partnership_listing" && row.status === "Unlisted" && (
+                      <div className="flex gap-1.5">
+                        <button type="button" disabled={actioningId === row.id} onClick={() => handleRelist(row)}
+                          className="text-xs px-2.5 py-1 rounded-full border border-[#2D6A4F]/40 text-[#2D6A4F] hover:bg-[#2D6A4F]/5 disabled:opacity-40 transition-colors whitespace-nowrap">
+                          Relist
+                        </button>
+                        <button type="button" disabled={actioningId === row.id} onClick={() => setEditingListing(true)}
+                          className="text-xs px-2.5 py-1 rounded-full border border-border text-muted-foreground hover:text-foreground disabled:opacity-40 transition-colors whitespace-nowrap">
+                          Edit
+                        </button>
+                      </div>
+                    )}
+                    {row.raw.kind === "partnership_listing" && row.status !== "Unlisted" && (
                       <div className="flex gap-1.5">
                         {row.status !== "Partnership formed" && (
                           <button type="button" disabled={actioningId === row.id} onClick={() => handleMarkFormed(row)}

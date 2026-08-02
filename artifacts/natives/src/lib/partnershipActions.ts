@@ -191,3 +191,16 @@ export async function unlistPartnership(myOrgId: string): Promise<void> {
     .update({ partnership_listed: false })
     .eq("id", myOrgId);
 }
+
+/**
+ * Re-lists a previously unlisted partnership listing. Only touches
+ * partnership_listed -- if the listing had already been fully reset via
+ * the "start fresh" flow (partnership_sought cleared to null), relisting
+ * alone won't bring back a description; the org would need to fill the
+ * form in again via FindPartnerModalDashboard in that case.
+ */
+export async function relistPartnership(myOrgId: string): Promise<void> {
+  await supabase.from("organizations")
+    .update({ partnership_listed: true })
+    .eq("id", myOrgId);
+}

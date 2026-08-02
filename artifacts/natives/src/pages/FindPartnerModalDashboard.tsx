@@ -305,7 +305,20 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
 
     async function loadOrg() {
       const [orgRes, profileRes] = await Promise.all([
-        supabase.from("organizations").select("id,organisation_name,description,sector,country,organisation_type,needs,offers,sdgs,website,email,verification_status,partnership_listed,partnership_formed,partnership_title").eq("user_id", user!.id).maybeSingle(),
+        supabase.from("organizations").select(`
+          id,organisation_name,description,sector,country,organisation_type,needs,offers,sdgs,
+          website,email,verification_status,partnership_listed,partnership_formed,partnership_title,
+          partnership_sought,partnership_stage,partnership_duration,partnership_geo_specificity,
+          partnership_budget,partnership_decision_timeline,partnership_success_definition,
+          partnership_legal_type,partnership_exclusivity,partnership_language,partnership_team_capacity,
+          partnership_funding_status,partnership_dd_financial_model,partnership_dd_audited_accounts,
+          partnership_dd_safeguarding_policy,partnership_dd_data_policy,partnership_dd_governance_doc,
+          partnership_financial_transfer,partnership_working_style,partnership_reporting,
+          partnership_ip_ownership,partnership_constraints,partnership_prior_attempts,
+          partnership_decision_maker_confirmed,partnership_prior_experience,
+          partnership_prior_experience_detail,partnership_contact_seniority,
+          partnership_physically_present,partnership_theory_of_change
+        `).eq("user_id", user!.id).maybeSingle(),
         supabase.from("profiles").select("org_name").eq("id", user!.id).maybeSingle(),
       ]);
       const data = orgRes.data;
@@ -320,6 +333,55 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
         const cutoff = new Date(Date.now() - 7 * 60 * 60 * 1000).toISOString();
         const { data: recent } = await supabase.from("partnership_connections").select("created_at").eq("sender_user_id", user!.id).gte("created_at", cutoff).limit(1);
         if (recent && recent.length > 0) { setAppState("rate_limited"); return; }
+      }
+
+      // Editing an existing listing -- skip the AI free-text intake step
+      // (it exists only to produce structured form data via AI, which we
+      // already have stored) and pre-populate every field from what's on
+      // file, landing straight on the real form.
+      if (data.partnership_sought) {
+        setForm({
+          country: Array.isArray(data.country) ? data.country : (data.country ? [data.country] : []),
+          sectors: Array.isArray(data.sector) ? data.sector : (data.sector ? [data.sector] : []),
+          sdgs: data.sdgs ?? [],
+          organisation_type: data.organisation_type ?? "",
+          needs: data.needs ?? [],
+          offers: data.offers ?? [],
+          description: data.description ?? "",
+          partnership_sought: data.partnership_sought ?? "",
+          partnership_stage: data.partnership_stage ?? "",
+          partnership_duration: data.partnership_duration ?? "",
+          partnership_geo_specificity: data.partnership_geo_specificity ?? "",
+          partnership_budget: data.partnership_budget ?? "",
+          partnership_decision_timeline: data.partnership_decision_timeline ?? "",
+          partnership_success_definition: data.partnership_success_definition ?? "",
+          partnership_legal_type: data.partnership_legal_type ?? [],
+          partnership_exclusivity: data.partnership_exclusivity ?? "",
+          partnership_language: data.partnership_language ?? [],
+          partnership_team_capacity: data.partnership_team_capacity ?? "",
+          partnership_funding_status: data.partnership_funding_status ?? "",
+          partnership_dd_financial_model: data.partnership_dd_financial_model ?? false,
+          partnership_dd_audited_accounts: data.partnership_dd_audited_accounts ?? false,
+          partnership_dd_safeguarding_policy: data.partnership_dd_safeguarding_policy ?? false,
+          partnership_dd_data_policy: data.partnership_dd_data_policy ?? false,
+          partnership_dd_governance_doc: data.partnership_dd_governance_doc ?? false,
+          partnership_financial_transfer: data.partnership_financial_transfer ?? "",
+          partnership_working_style: data.partnership_working_style ?? "",
+          partnership_reporting: data.partnership_reporting ?? [],
+          partnership_ip_ownership: data.partnership_ip_ownership ?? "",
+          partnership_constraints: data.partnership_constraints ?? "",
+          partnership_prior_attempts: data.partnership_prior_attempts ?? "",
+          partnership_decision_maker_confirmed: data.partnership_decision_maker_confirmed ?? false,
+          partnership_prior_experience: data.partnership_prior_experience ?? null,
+          partnership_prior_experience_detail: data.partnership_prior_experience_detail ?? "",
+          partnership_contact_seniority: data.partnership_contact_seniority ?? "",
+          partnership_physically_present: data.partnership_physically_present ?? null,
+          partnership_funding_status_readiness: "",
+          partnership_theory_of_change: data.partnership_theory_of_change ?? "",
+        });
+        setPartnershipTitle(data.partnership_title ?? "");
+        setListPublicly(data.partnership_listed ?? true);
+        setFormStep(1);
       }
     }
     loadOrg();

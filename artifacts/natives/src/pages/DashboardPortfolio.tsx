@@ -694,6 +694,7 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
 
 export default function DashboardInitiatives() {
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   const [initiatives, setInitiatives] = useState<InitiativeRow[]>([]);
   const [loading, setLoading]         = useState(true);
   const [showModal, setShowModal]     = useState(false);
@@ -706,7 +707,7 @@ export default function DashboardInitiatives() {
   // Tabs vs unified spreadsheet-table view. Uses "mode" as the query param
   // name specifically to avoid colliding with PartnershipTab's own "view"
   // param (?view=requested/inbound/outbound/confirmed).
-  const [viewMode, setViewMode] = useState<"tabs" | "table">("tabs");
+  const [viewMode, setViewMode] = useState<"tabs" | "table">("table");
 
   const [, params] = useRoute("/dashboard/portfolio/:id");
   const routeId = params?.id;
@@ -723,12 +724,24 @@ export default function DashboardInitiatives() {
     load();
   }
 
+  // Navigates to your own partnership listing. Deliberately does NOT rely
+  // on <Link href="/dashboard/portfolio?..."> -- that's the same route
+  // we're already on, and the deep-link effect that reads tab/view params
+  // only runs once on initial mount, so a same-route query-string change
+  // alone does nothing visible. Updating the URL AND flipping local state
+  // directly is what actually works.
+  function goToOwnListing() {
+    navigate("/dashboard/portfolio?tab=partnerships&view=requested");
+    setViewMode("tabs");
+    setTopTab("partnerships");
+  }
+
   // Handle deep links
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
-    if (p.get("tab") === "partners") { setTopTab("initiatives"); setInitSubTab("confirmed"); }
-    if (p.get("tab") === "expressed") { setTopTab("initiatives"); setInitSubTab("expressed"); }
-    if (p.get("tab") === "partnerships") setTopTab("partnerships");
+    if (p.get("tab") === "partners") { setTopTab("initiatives"); setInitSubTab("confirmed"); setViewMode("tabs"); }
+    if (p.get("tab") === "expressed") { setTopTab("initiatives"); setInitSubTab("expressed"); setViewMode("tabs"); }
+    if (p.get("tab") === "partnerships") { setTopTab("partnerships"); setViewMode("tabs"); }
     if (p.get("mode") === "table") setViewMode("table");
   }, []);
 
@@ -753,7 +766,17 @@ export default function DashboardInitiatives() {
   }, [routeId, initiatives]);
 
   if (selected) {
-    return <InitiativeDetail initiative={selected} onBack={() => setSelected(null)} onRequestEdit={id => setEditingId(id)} />;
+    return (
+      <>
+        <InitiativeDetail initiative={selected} onBack={() => setSelected(null)} onRequestEdit={id => setEditingId(id)} />
+        <EditInitiativeModalDashboard
+          isOpen={!!editingId}
+          initiativeId={editingId}
+          onClose={() => setEditingId(null)}
+          onSaved={() => { setEditingId(null); setSelected(null); load(); }}
+        />
+      </>
+    );
   }
 
   const initSubTabs = [
@@ -793,17 +816,11 @@ export default function DashboardInitiatives() {
                 <span className="hidden sm:inline">Table</span>
               </button>
             </div>
-            {viewMode === "tabs" && topTab === "initiatives" && initSubTab === "created" && (
-              <button type="button" onClick={() => setShowModal(true)}
-                className="shrink-0 rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
-                + New Initiative
-              </button>
-            )}
-          </div>
+            </div>
         </div>
 
         {viewMode === "table" ? (
-          <PortfolioTable />
+          <PortfolioTable onOpenOwnListing={goToOwnListing} />
         ) : (
           <>
         {/* Top-level tabs — segmented control */}
