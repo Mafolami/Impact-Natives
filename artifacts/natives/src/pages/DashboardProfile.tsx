@@ -10,7 +10,7 @@ import { Loader2, CheckCircle2, ShieldCheck, Camera, ArrowRight, Building2, Tras
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { COUNTRIES } from "@/lib/countries";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
-import { DD_ITEMS, DDItemDef } from "@/lib/ddItems";
+import { DD_ITEMS, DDItemDef, DDDocument } from "@/lib/ddItems";
 
 
 const ORG_TYPE_OPTIONS = [
@@ -138,14 +138,6 @@ type PaneKey =
 
 interface PaneDef { key: PaneKey; label: string; }
 
-interface DDDocument {
-  id: string;
-  file_path: string;
-  file_name: string;
-  visibility: "private" | "relationship" | "public";
-  created_at: string;
-}
-
 function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave }: {
   item: DDItemDef; initialAnswers: Record<string, any>; orgId: string; userId: string;
   onClose: () => void; onSave: (answers: Record<string, any>) => void;
@@ -162,7 +154,7 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
     if (!orgId) { setDocsLoading(false); return; }
     let cancelled = false;
     supabase.from("dd_evidence_documents")
-      .select("id,file_path,file_name,visibility,created_at")
+      .select("id,organization_id,dd_item_key,file_path,file_name,visibility,created_at")
       .eq("organization_id", orgId)
       .eq("dd_item_key", item.key)
       .order("created_at", { ascending: false })
@@ -180,7 +172,7 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
     if (uploadError) { alert(`Upload failed: ${uploadError.message}`); setUploading(false); return; }
     const { data, error: insertError } = await supabase.from("dd_evidence_documents")
       .insert({ organization_id: orgId, dd_item_key: item.key, file_path: filePath, file_name: file.name, visibility: uploadVisibility })
-      .select("id,file_path,file_name,visibility,created_at").single();
+      .select("id,organization_id,dd_item_key,file_path,file_name,visibility,created_at").single();
     if (insertError) { alert(`Couldn't save document record: ${insertError.message}`); setUploading(false); return; }
     setDocuments(prev => [data as DDDocument, ...prev]);
     setWantsUpload(false);

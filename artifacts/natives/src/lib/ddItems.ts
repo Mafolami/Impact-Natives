@@ -19,6 +19,19 @@ export interface DDItemDef {
   questions: DDQuestion[];
 }
 
+// A single uploaded evidence file for one DD item. Shared between the
+// editor (DashboardProfile.tsx) and the public viewer (DashboardNatives.tsx)
+// so the shape never drifts between the two.
+export interface DDDocument {
+  id: string;
+  organization_id: string;
+  dd_item_key: string;
+  file_path: string;
+  file_name: string;
+  visibility: "private" | "relationship" | "public";
+  created_at: string;
+}
+
 // Fields whose evidence is sensitive enough to gate behind a live
 // relationship (open conversation or accepted partnership) rather than
 // showing to any visitor. Currently just the two identifying fields on

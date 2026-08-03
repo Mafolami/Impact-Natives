@@ -7,7 +7,7 @@ import { UserAvatar, avatarColor, initials } from "@/components/ui/UserAvatar";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { COUNTRIES } from "@/lib/countries";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
-import { DD_ITEMS, DDItemDef, DD_SENSITIVE_EVIDENCE_KEYS } from "@/lib/ddItems";
+import { DD_ITEMS, DDItemDef, DD_SENSITIVE_EVIDENCE_KEYS, DDDocument } from "@/lib/ddItems";
 import { hasLiveRelationshipWith } from "@/lib/relationshipAccess";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -567,9 +567,29 @@ function NativesOrgCard({ org, onClick }: { org: OrgRow; onClick: () => void }) 
 
 // ── DD evidence viewer (read-only, for visitors to another org's profile) ──
 
-function DDEvidenceViewModal({ item, evidence, canSeeSensitive, onClose }: {
-  item: DDItemDef; evidence: Record<string, any>; canSeeSensitive: boolean; onClose: () => void;
+function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, onClose }: {
+  item: DDItemDef; evidence: Record<string, any>; documents: DDDocument[]; canSeeSensitive: boolean; onClose: () => void;
 }) {
+  const [openingDocId, setOpeningDocId] = useState<string | null>(null);
+
+  async function handleView(doc: DDDocument) {
+    setOpeningDocId(doc.id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-dd-document-url`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token ?? ""}` },
+        body: JSON.stringify({ documentId: doc.id }),
+      });
+      const result = await res.json();
+      if (result.url) window.open(result.url, "_blank");
+      else alert("Couldn't open document.");
+    } catch {
+      alert("Couldn't open document.");
+    }
+    setOpeningDocId(null);
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="bg-card rounded-2xl border border-border w-full max-w-sm p-6 space-y-3" onClick={e => e.stopPropagation()}>
@@ -602,6 +622,18 @@ function DDEvidenceViewModal({ item, evidence, canSeeSensitive, onClose }: {
             );
           })}
         </div>
+        {documents.length > 0 && (
+          <div className="pt-3 border-t border-border space-y-1.5">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Supporting documents</p>
+            {documents.map(doc => (
+              <button key={doc.id} type="button" onClick={() => handleView(doc)} disabled={openingDocId === doc.id}
+                className="w-full flex items-center justify-between gap-2 text-left text-sm text-foreground hover:underline underline-offset-2 disabled:opacity-50">
+                <span className="truncate">{doc.file_name}</span>
+                {openingDocId === doc.id && <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />}
+              </button>
+            ))}
+          </div>
+        )}
         <button type="button" onClick={onClose}
           className="w-full h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
           Close
@@ -625,6 +657,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
   const [aiError, setAiError]             = useState(false);
   const [ddViewingKey, setDdViewingKey]   = useState<string | null>(null);
   const [canSeeSensitive, setCanSeeSensitive] = useState(false);
+  const [docsByItem, setDocsByItem]       = useState<Record<string, DDDocument[]>>({});
 
   useEffect(() => {
     if (!user || user.id === org.user_id) { setCanSeeSensitive(true); return; }
@@ -638,6 +671,22 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
         }).then(setCanSeeSensitive);
       });
   }, [user, org.user_id, org.id]);
+
+  // Rows come back already filtered by dd_evidence_documents' own RLS
+  // (owner, uploader, public, or a live relationship for
+  // visibility='relationship') -- nothing to filter client-side, just group.
+  useEffect(() => {
+    supabase.from("dd_evidence_documents")
+      .select("id,organization_id,dd_item_key,file_path,file_name,visibility,created_at")
+      .eq("organization_id", org.id)
+      .then(({ data }) => {
+        const grouped: Record<string, DDDocument[]> = {};
+        (data ?? []).forEach((doc: DDDocument) => {
+          grouped[doc.dd_item_key] = [...(grouped[doc.dd_item_key] ?? []), doc];
+        });
+        setDocsByItem(grouped);
+      });
+  }, [org.id]);
 
   async function generateSummary() {
     if (!org.description && !org.needs?.length && !org.offers?.length) return;
@@ -882,6 +931,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
           <DDEvidenceViewModal
             item={item}
             evidence={org.dd_evidence?.[ddViewingKey] ?? {}}
+            documents={docsByItem[ddViewingKey] ?? []}
             canSeeSensitive={canSeeSensitive}
             onClose={() => setDdViewingKey(null)}
           />
