@@ -1596,7 +1596,7 @@ export default function DashboardProfile() {
                 { label: "Investment thesis", done: !!investmentThesis },
               ] : []),
               ...(isImplementer ? [
-                { label: `DD readiness (${Math.round(ddReadinessFraction * 5)}/5)`, done: ddReadinessFraction === 1, partial: ddReadinessFraction > 0 && ddReadinessFraction < 1 },
+                { label: `DD readiness (${Math.round(ddReadinessFraction * 8)}/8)`, done: ddReadinessFraction === 1, partial: ddReadinessFraction > 0 && ddReadinessFraction < 1 },
                 { label: "Beneficiaries reached", done: totalBeneficiaries !== "" },
               ] : []),
               ...(isOrg ? [{ label: "Verified organisation", done: !!profile?.is_verified }] : []),
