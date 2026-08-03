@@ -138,11 +138,74 @@ type PaneKey =
 
 interface PaneDef { key: PaneKey; label: string; }
 
-function DDEvidenceModal({ item, initialAnswers, onClose, onSave }: {
-  item: DDItemDef; initialAnswers: Record<string, any>; onClose: () => void; onSave: (answers: Record<string, any>) => void;
+interface DDDocument {
+  id: string;
+  file_path: string;
+  file_name: string;
+  visibility: "private" | "relationship" | "public";
+  created_at: string;
+}
+
+function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave }: {
+  item: DDItemDef; initialAnswers: Record<string, any>; orgId: string; userId: string;
+  onClose: () => void; onSave: (answers: Record<string, any>) => void;
 }) {
   const [answers, setAnswers] = useState<Record<string, any>>(initialAnswers ?? {});
   const [attemptedInvalidSave, setAttemptedInvalidSave] = useState(false);
+  const [documents, setDocuments] = useState<DDDocument[]>([]);
+  const [docsLoading, setDocsLoading] = useState(true);
+  const [wantsUpload, setWantsUpload] = useState(false);
+  const [uploadVisibility, setUploadVisibility] = useState<DDDocument["visibility"]>("private");
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    if (!orgId) { setDocsLoading(false); return; }
+    let cancelled = false;
+    supabase.from("dd_evidence_documents")
+      .select("id,file_path,file_name,visibility,created_at")
+      .eq("organization_id", orgId)
+      .eq("dd_item_key", item.key)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => { if (!cancelled) { setDocuments(data ?? []); setDocsLoading(false); } });
+    return () => { cancelled = true; };
+  }, [orgId, item.key]);
+
+  async function handleDocUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !userId || !orgId) return;
+    if (file.size > 10 * 1024 * 1024) { alert("File size must be under 10 MB."); return; }
+    setUploading(true);
+    const filePath = `${userId}/${item.key}/${Date.now()}_${file.name}`;
+    const { error: uploadError } = await supabase.storage.from("dd-evidence-docs").upload(filePath, file);
+    if (uploadError) { alert(`Upload failed: ${uploadError.message}`); setUploading(false); return; }
+    const { data, error: insertError } = await supabase.from("dd_evidence_documents")
+      .insert({ organization_id: orgId, dd_item_key: item.key, file_path: filePath, file_name: file.name, visibility: uploadVisibility })
+      .select("id,file_path,file_name,visibility,created_at").single();
+    if (insertError) { alert(`Couldn't save document record: ${insertError.message}`); setUploading(false); return; }
+    setDocuments(prev => [data as DDDocument, ...prev]);
+    setWantsUpload(false);
+    setUploading(false);
+  }
+
+  async function handleDocView(doc: DDDocument) {
+    const { data, error } = await supabase.storage.from("dd-evidence-docs").createSignedUrl(doc.file_path, 60);
+    if (error || !data) { alert("Couldn't open document."); return; }
+    window.open(data.signedUrl, "_blank");
+  }
+
+  async function handleDocVisibilityChange(doc: DDDocument, visibility: DDDocument["visibility"]) {
+    setDocuments(prev => prev.map(d => d.id === doc.id ? { ...d, visibility } : d));
+    const { error } = await supabase.from("dd_evidence_documents").update({ visibility, updated_at: new Date().toISOString() }).eq("id", doc.id);
+    if (error) alert(`Couldn't update visibility: ${error.message}`);
+  }
+
+  async function handleDocDelete(doc: DDDocument) {
+    if (!confirm(`Remove "${doc.file_name}"?`)) return;
+    await supabase.storage.from("dd-evidence-docs").remove([doc.file_path]);
+    const { error } = await supabase.from("dd_evidence_documents").delete().eq("id", doc.id);
+    if (error) { alert(`Couldn't remove document: ${error.message}`); return; }
+    setDocuments(prev => prev.filter(d => d.id !== doc.id));
+  }
 
   function setAnswer(key: string, value: any) {
     setAnswers(prev => ({ ...prev, [key]: value }));
@@ -235,6 +298,66 @@ function DDEvidenceModal({ item, initialAnswers, onClose, onSave }: {
           </div>
           );
         })}
+
+        {orgId && (
+          <div className="pt-3 border-t border-border space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Supporting documents</p>
+
+            {!docsLoading && documents.length > 0 && (
+              <div className="space-y-2">
+                {documents.map(doc => (
+                  <div key={doc.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-border bg-muted/20">
+                    <button type="button" onClick={() => handleDocView(doc)}
+                      className="text-sm text-foreground hover:underline underline-offset-2 truncate text-left">
+                      {doc.file_name}
+                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <select value={doc.visibility} onChange={e => handleDocVisibilityChange(doc, e.target.value as DDDocument["visibility"])}
+                        className="h-7 text-xs rounded-md border border-border bg-background px-1.5 text-foreground">
+                        <option value="private">Private</option>
+                        <option value="relationship">Connections only</option>
+                        <option value="public">Public</option>
+                      </select>
+                      <button type="button" onClick={() => handleDocDelete(doc)} className="text-muted-foreground hover:text-red-500 transition-colors">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!wantsUpload ? (
+              <button type="button" onClick={() => setWantsUpload(true)}
+                className="text-sm text-[#2D6A4F] hover:underline underline-offset-2 font-medium">
+                + Upload a supporting document
+              </button>
+            ) : (
+              <div className="space-y-2 rounded-lg border border-dashed border-border p-3">
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Who can view this document?</label>
+                  <div className="flex gap-1.5">
+                    {([["private","Only me"],["relationship","Connections"],["public","Public"]] as const).map(([v, label]) => (
+                      <button key={v} type="button" onClick={() => setUploadVisibility(v)}
+                        className={`flex-1 h-8 rounded-lg border text-xs font-medium transition-colors ${
+                          uploadVisibility === v ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-muted-foreground hover:border-[#2D6A4F]"
+                        }`}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <label className="flex items-center justify-center gap-2 h-9 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
+                  {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Choose file"}
+                  <input type="file" className="sr-only" onChange={handleDocUpload} disabled={uploading} />
+                </label>
+                <button type="button" onClick={() => setWantsUpload(false)} className="text-xs text-muted-foreground hover:text-foreground">
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {attemptedInvalidSave && !canSave && (
           <p className="text-xs text-red-500 font-medium">
@@ -1133,6 +1256,8 @@ export default function DashboardProfile() {
                   <DDEvidenceModal
                     item={item}
                     initialAnswers={ddEvidence[ddModalKey] ?? {}}
+                    orgId={orgId ?? ""}
+                    userId={user?.id ?? ""}
                     onClose={() => setDdModalKey(null)}
                     onSave={(answers) => {
                       setDdEvidence(prev => ({ ...prev, [ddModalKey]: answers }));
