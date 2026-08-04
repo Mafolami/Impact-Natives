@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Link } from "wouter";
-import { Loader2, CheckCircle2, ShieldCheck, Camera, ArrowRight, Building2, Trash2 } from "lucide-react";
+import { Loader2, CheckCircle2, ShieldCheck, Camera, ArrowRight, Building2, Trash2, Pencil } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { COUNTRIES } from "@/lib/countries";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
@@ -158,15 +158,17 @@ async function saveOrgFields(userId: string, fields: Record<string, any>) {
 
 function SectionCard({ title, onEdit, children }: { title: string; onEdit: () => void; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-border bg-white dark:bg-card p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="w-[calc(100%+3rem)] -mx-6 rounded-2xl border border-border bg-white dark:bg-card p-6">
+      <div className="flex items-center justify-between mb-6">
         <h3 className="text-base font-bold text-black dark:text-white">{title}</h3>
-        <button type="button" onClick={onEdit}
-          className="text-xs font-medium text-black dark:text-white border border-border rounded-full px-3 py-1.5 hover:border-foreground/40 transition-colors shrink-0">
-          Edit
+        <button type="button" onClick={onEdit} aria-label={`Edit ${title}`}
+          className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-black dark:text-white hover:border-foreground/40 transition-colors shrink-0">
+          <Pencil className="w-3.5 h-3.5" />
         </button>
       </div>
-      {children}
+      <div className="divide-y divide-border dark:divide-border [&>*:not(:first-child)]:pt-6">
+        {children}
+      </div>
     </div>
   );
 }
@@ -1137,7 +1139,7 @@ export default function DashboardProfile() {
           <div className="flex flex-col md:flex-row">
 
             {/* Inner left pane nav */}
-            <div className="md:w-[200px] shrink-0 border-b md:border-b-0 md:border-r border-border bg-muted/20">
+            <div className="md:w-[200px] shrink-0 border-b md:border-b-0 md:border-r border-border bg-muted/20 md:sticky md:top-[9.5rem] md:self-start">
               <div className="flex md:flex-col overflow-x-auto md:overflow-visible p-2 gap-1 scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
                 {panes.map(p => (
                   <button key={p.key} type="button" onClick={() => setActivePane(p.key)}
@@ -1775,32 +1777,26 @@ export default function DashboardProfile() {
                         : <EmptyValue />}
                     </DisplayField>
 
-                    <div className="pt-6 border-t border-border">
-                      <DisplayField label="Engagement options">
+                    <DisplayField label="Engagement options">
                         {(employeeEngagement || cobrandingOpen) ? (
                           <div className="space-y-1">
                             {employeeEngagement && <p className="text-sm text-black dark:text-white">✓ Open to employee engagement opportunities</p>}
                             {cobrandingOpen && <p className="text-sm text-black dark:text-white">✓ Open to co-branding</p>}
                           </div>
                         ) : <EmptyValue />}
-                      </DisplayField>
-                    </div>
+                    </DisplayField>
 
-                    <div className="pt-6 border-t border-border">
-                      <DisplayField label="Preferred partner types">
-                        {partnerTypePreference.length > 0
-                          ? <div className="flex flex-wrap gap-2">{partnerTypePreference.map(p => <FlatTag key={p}>{p}</FlatTag>)}</div>
-                          : <EmptyValue />}
-                      </DisplayField>
-                    </div>
+                    <DisplayField label="Preferred partner types">
+                      {partnerTypePreference.length > 0
+                        ? <div className="flex flex-wrap gap-2">{partnerTypePreference.map(p => <FlatTag key={p}>{p}</FlatTag>)}</div>
+                        : <EmptyValue />}
+                    </DisplayField>
 
-                    <div className="pt-6 border-t border-border">
-                      <DisplayField label="Geographic focus">
-                        {geographicFocus.length > 0
-                          ? <div className="flex flex-wrap gap-2">{geographicFocus.map(g => <FlatTag key={g}>{g}</FlatTag>)}</div>
-                          : <EmptyValue />}
-                      </DisplayField>
-                    </div>
+                    <DisplayField label="Geographic focus">
+                      {geographicFocus.length > 0
+                        ? <div className="flex flex-wrap gap-2">{geographicFocus.map(g => <FlatTag key={g}>{g}</FlatTag>)}</div>
+                        : <EmptyValue />}
+                    </DisplayField>
                   </SectionCard>
 
                   {/* ── Technology support card (technology_company only, display only) ── */}
@@ -1812,16 +1808,14 @@ export default function DashboardProfile() {
                           : <EmptyValue />}
                       </DisplayField>
 
-                      <div className="pt-6 border-t border-border">
-                        <DisplayField label="Sandbox / beta testing">
-                          {sandboxReady ? (
-                            <div>
-                              <p className="text-sm text-black dark:text-white">✓ Open to sandbox/beta testing partnerships</p>
-                              {sandboxDescription && <p className="text-sm text-black dark:text-white mt-1.5">{sandboxDescription}</p>}
-                            </div>
-                          ) : <EmptyValue />}
-                        </DisplayField>
-                      </div>
+                      <DisplayField label="Sandbox / beta testing">
+                        {sandboxReady ? (
+                          <div>
+                            <p className="text-sm text-black dark:text-white">✓ Open to sandbox/beta testing partnerships</p>
+                            {sandboxDescription && <p className="text-sm text-black dark:text-white mt-1.5">{sandboxDescription}</p>}
+                          </div>
+                        ) : <EmptyValue />}
+                      </DisplayField>
                     </SectionCard>
                   )}
                 </div>
@@ -1994,7 +1988,7 @@ export default function DashboardProfile() {
       </div>
 
       {/* Right column — persistent across all panes */}
-      <div className="space-y-4" style={{ top: "9.5rem" }}>
+      <div className="space-y-4 md:sticky md:top-[9.5rem] md:self-start">
 
         <div className="rounded-2xl border border-border bg-white dark:bg-card p-5 space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Profile strength</p>
