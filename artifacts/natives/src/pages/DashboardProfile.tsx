@@ -1169,7 +1169,7 @@ export default function DashboardProfile() {
               mobile, unchanged there. */}
           <div className="md:w-[200px] shrink-0 rounded-b-xl border border-border bg-muted/20 md:fixed md:top-[104px]"
             style={paneNavLeft !== null ? { left: paneNavLeft } : undefined}>
-            <div className="flex md:flex-col overflow-x-auto md:overflow-visible p-2 gap-1 scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
+            <div className="flex md:flex-col overflow-x-auto md:overflow-visible p-2 md:pt-12 gap-1 scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
               {panes.map(p => (
                 <button key={p.key} type="button" onClick={() => setActivePane(p.key)}
                   className={`text-left px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap md:whitespace-normal transition-all shrink-0 ${
@@ -1185,7 +1185,7 @@ export default function DashboardProfile() {
           </div>
 
           {/* ── Pane shell (content only now -- nav no longer lives inside it) ── */}
-          <div className="flex-1 min-w-0 rounded-b-2xl border border-border bg-white dark:bg-card">
+          <div className="flex-1 min-w-0 md:-mt-10 rounded-b-2xl border border-border bg-white dark:bg-card">
 
             {/* Content area */}
             <div className="p-6 space-y-6 min-w-0">
