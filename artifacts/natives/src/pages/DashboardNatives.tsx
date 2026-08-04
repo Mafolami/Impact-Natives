@@ -9,6 +9,7 @@ import { COUNTRIES } from "@/lib/countries";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
 import { DD_ITEMS, DDItemDef, DD_SENSITIVE_EVIDENCE_KEYS, DDDocument } from "@/lib/ddItems";
 import { hasLiveRelationshipWith } from "@/lib/relationshipAccess";
+import mammoth from "mammoth";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -572,6 +573,23 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, onClo
 }) {
   const [openingDocId, setOpeningDocId] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ url: string; fileName: string } | null>(null);
+  const [docxHtml, setDocxHtml] = useState<string | null>(null);
+  const [docxLoading, setDocxLoading] = useState(false);
+  const [docxError, setDocxError] = useState(false);
+
+  useEffect(() => {
+    if (!preview) { setDocxHtml(null); return; }
+    const ext = preview.fileName.split(".").pop()?.toLowerCase() ?? "";
+    if (ext !== "docx") return;
+    setDocxLoading(true);
+    setDocxError(false);
+    fetch(preview.url)
+      .then(res => res.arrayBuffer())
+      .then(buffer => mammoth.convertToHtml({ arrayBuffer: buffer }))
+      .then(result => setDocxHtml(result.value))
+      .catch(() => setDocxError(true))
+      .finally(() => setDocxLoading(false));
+  }, [preview]);
 
   async function handleView(doc: DDDocument) {
     setOpeningDocId(doc.id);
@@ -595,6 +613,7 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, onClo
     const ext = preview.fileName.split(".").pop()?.toLowerCase() ?? "";
     const isImage = ["png", "jpg", "jpeg", "webp", "gif"].includes(ext);
     const isPdf = ext === "pdf";
+    const isDocx = ext === "docx";
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setPreview(null)}>
         <div className="bg-card rounded-2xl border border-border w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -617,6 +636,27 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, onClo
               <img src={preview.url} alt={preview.fileName} className="max-w-full max-h-[85vh] object-contain" />
             ) : isPdf ? (
               <iframe src={preview.url} title={preview.fileName} className="w-full h-[75vh] border-0" />
+            ) : isDocx ? (
+              docxLoading ? (
+                <div className="p-8 flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Loading preview...
+                </div>
+              ) : docxError || !docxHtml ? (
+                <div className="p-8 text-center space-y-2">
+                  <p className="text-sm text-muted-foreground">Couldn't render a preview for this file.</p>
+                  <a href={preview.url} download={preview.fileName}
+                    className="text-sm text-[#2D6A4F] hover:underline underline-offset-2 font-medium">
+                    Download {preview.fileName}
+                  </a>
+                </div>
+              ) : (
+                <div className="w-full h-full overflow-auto bg-white p-6 sm:p-10">
+                  <div
+                    className="max-w-2xl mx-auto text-sm text-neutral-900 leading-relaxed [&_p]:mb-3 [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_table]:border-collapse [&_td]:border [&_td]:border-neutral-300 [&_td]:px-2 [&_td]:py-1"
+                    dangerouslySetInnerHTML={{ __html: docxHtml }}
+                  />
+                </div>
+              )
             ) : (
               <div className="p-8 text-center space-y-2">
                 <p className="text-sm text-muted-foreground">Preview isn't available for this file type.</p>
