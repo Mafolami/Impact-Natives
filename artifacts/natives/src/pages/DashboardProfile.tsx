@@ -1558,124 +1558,137 @@ export default function DashboardProfile() {
             )}
             
             {/* ── CSR & ESG PANE (corporates/tech/public sector) ── */}
-              {activePane === "csr" && isCorporate && (
-                <div className="space-y-5">
-                  <PaneHeader title="CSR & ESG positioning" subtitle="Shown on your directory profile. Helps implementers understand your focus and what you bring to a partnership." />
+            {activePane === "csr" && isCorporate && (
+                <div className="space-y-6">
 
-                  <div>
-                    <Label className="text-sm font-medium">CSR/ESG focus statement</Label>
-                    <Textarea value={csrFocusStatement} onChange={e => setCsrFocusStatement(e.target.value)} className="mt-1 resize-none" rows={4}
-                      placeholder="e.g. We prioritise climate resilience and digital inclusion programmes across West Africa, aligned with our operational footprint. We seek implementing partners with strong community reach and measurable outcomes." />
-                    <p className="text-xs text-muted-foreground mt-1.5">Used by AI to match your profile with relevant initiatives and implementers.</p>
-                  </div>
+                  {/* ── CSR & ESG card ── */}
+                  <div className="rounded-2xl border border-border bg-white dark:bg-card p-6 space-y-6">
+                    <div>
+                      <h3 className="text-base font-bold text-black dark:text-white">CSR & ESG</h3>
+                      <p className="text-xs text-muted-foreground mt-1">Shown on your directory profile. Helps implementers understand your focus and what you bring to a partnership.</p>
+                    </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium">CSR/ESG focus statement</Label>
+                      <Textarea value={csrFocusStatement} onChange={e => setCsrFocusStatement(e.target.value)} className="mt-1 resize-none" rows={4}
+                        placeholder="e.g. We prioritise climate resilience and digital inclusion programmes across West Africa, aligned with our operational footprint. We seek implementing partners with strong community reach and measurable outcomes." />
+                      <p className="text-xs text-muted-foreground mt-1.5">Used by AI to match your profile with relevant initiatives and implementers.</p>
+                    </div>
+
                     <div>
                       <Label className="text-sm font-medium">Annual CSR/ESG budget range</Label>
-                      <Input value={csrBudgetRange} onChange={e => setCsrBudgetRange(e.target.value)} className="mt-1 h-10" placeholder="e.g. $500K–$2M" />
+                      <Input value={csrBudgetRange} onChange={e => setCsrBudgetRange(e.target.value)} className="mt-1 h-10 w-full sm:max-w-xs" placeholder="e.g. $500K–$2M" />
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium">ESG reporting frameworks</Label>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {["GRI", "SASB", "UN Global Compact", "B Corp", "TCFD", "SDG Reporting"].map(f => (
+                          <button key={f} type="button"
+                            onClick={() => setEsgFrameworks(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f])}
+                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${esgFrameworks.includes(f) ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-muted-foreground hover:border-foreground/30"}`}>
+                            {f}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
-                  <div>
-                    <Label className="text-sm font-medium">ESG reporting frameworks</Label>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {["GRI", "SASB", "UN Global Compact", "B Corp", "TCFD", "SDG Reporting"].map(f => (
-                        <button key={f} type="button"
-                          onClick={() => setEsgFrameworks(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f])}
-                          className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${esgFrameworks.includes(f) ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-muted-foreground hover:border-foreground/30"}`}>
-                          {f}
+                  {/* ── Partnership preferences card ── */}
+                  <div className="rounded-2xl border border-border bg-white dark:bg-card p-6 space-y-6">
+                    <h3 className="text-base font-bold text-black dark:text-white">Partnership preferences</h3>
+
+                    <div>
+                      <Label className="text-sm font-medium">What we bring to partnerships</Label>
+                      <p className="text-xs text-muted-foreground mt-0.5 mb-2">Select all that apply.</p>
+                      <div className="flex flex-wrap gap-2">
+                        {["Cash funding", "In-kind technology", "Employee volunteering", "Pro-bono expertise", "Marketing & visibility", "Supply chain access", "Co-branding opportunity", "Logistics support"].map(s => (
+                          <button key={s} type="button"
+                            onClick={() => setInkindSupport(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])}
+                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${inkindSupport.includes(s) ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-muted-foreground hover:border-foreground/30"}`}>
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="pt-6 border-t border-border space-y-3">
+                      <Label className="text-sm font-medium">Engagement options</Label>
+                      {[
+                        { label: "Open to employee engagement opportunities", sub: "Staff volunteering, mentoring, or pro-bono involvement", state: employeeEngagement, set: setEmployeeEngagement },
+                        { label: "Open to co-branding", sub: "Joint communications, case studies, or public visibility", state: cobrandingOpen, set: setCobrandingOpen },
+                      ].map(item => (
+                        <button key={item.label} type="button" onClick={() => item.set(!item.state)}
+                          className={`w-full text-left px-4 py-3 rounded-xl border transition-colors flex items-start gap-3 ${
+                            item.state ? "border-[#2D6A4F] bg-[rgba(45,106,79,0.12)]" : "border-border hover:border-foreground/20"
+                          }`}>
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                            item.state ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-border"
+                          }`}>
+                            {item.state && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
+                          </div>
+                          <div>
+                            <p className={`text-sm font-medium ${item.state ? "text-[#2D6A4F]" : "text-foreground"}`}>{item.label}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{item.sub}</p>
+                          </div>
                         </button>
                       ))}
                     </div>
-                  </div>
 
-                  <div>
-                    <Label className="text-sm font-medium">What we bring to partnerships</Label>
-                    <p className="text-xs text-muted-foreground mt-0.5 mb-2">Select all that apply.</p>
-                    <div className="flex flex-wrap gap-2">
-                      {["Cash funding", "In-kind technology", "Employee volunteering", "Pro-bono expertise", "Marketing & visibility", "Supply chain access", "Co-branding opportunity", "Logistics support"].map(s => (
-                        <button key={s} type="button"
-                          onClick={() => setInkindSupport(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])}
-                          className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${inkindSupport.includes(s) ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-muted-foreground hover:border-foreground/30"}`}>
-                          {s}
-                        </button>
-                      ))}
+                    <div className="pt-6 border-t border-border">
+                      <Label className="text-sm font-medium">Preferred partner types</Label>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {["Registered Charity / NGO", "Social Enterprise / CIC / B Corp", "Research Institution / Academia", "Government / Public Sector", "Individual Practitioner"].map(p => (
+                          <button key={p} type="button"
+                            onClick={() => setPartnerTypePreference(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p])}
+                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${partnerTypePreference.includes(p) ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-muted-foreground hover:border-foreground/30"}`}>
+                            {p}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-3">
-                    <Label className="text-sm font-medium">Partnership preferences</Label>
-                    {[
-                      { label: "Open to employee engagement opportunities", sub: "Staff volunteering, mentoring, or pro-bono involvement", state: employeeEngagement, set: setEmployeeEngagement },
-                      { label: "Open to co-branding", sub: "Joint communications, case studies, or public visibility", state: cobrandingOpen, set: setCobrandingOpen },
-                    ].map(item => (
-                      <button key={item.label} type="button" onClick={() => item.set(!item.state)}
-                        className={`w-full text-left px-4 py-3 rounded-xl border transition-colors flex items-start gap-3 ${
-                          item.state ? "border-[#2D6A4F] bg-[rgba(45,106,79,0.12)]" : "border-border hover:border-foreground/20"
-                        }`}>
-                        <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
-                          item.state ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-border"
-                        }`}>
-                          {item.state && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
-                        </div>
-                        <div>
-                        <p className={`text-sm font-medium ${item.state ? "text-[#2D6A4F]" : "text-foreground"}`}>{item.label}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">{item.sub}</p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Preferred partner types</Label>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {["Registered Charity / NGO", "Social Enterprise / CIC / B Corp", "Research Institution / Academia", "Government / Public Sector", "Individual Practitioner"].map(p => (
-                        <button key={p} type="button"
-                          onClick={() => setPartnerTypePreference(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p])}
-                          className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${partnerTypePreference.includes(p) ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-muted-foreground hover:border-foreground/30"}`}>
-                          {p}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label className="text-sm font-medium">Geographic focus</Label>
-                    <div className="flex gap-2 mt-1">
-                      <Input value={geographicInput} onChange={e => setGeographicInput(e.target.value)}
-                        onKeyDown={e => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
+                    <div className="pt-6 border-t border-border">
+                      <Label className="text-sm font-medium">Geographic focus</Label>
+                      <div className="flex gap-2 mt-1">
+                        <Input value={geographicInput} onChange={e => setGeographicInput(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              const v = geographicInput.trim();
+                              if (v && !geographicFocus.includes(v)) setGeographicFocus(p => [...p, v]);
+                              setGeographicInput("");
+                            }
+                          }}
+                          className="h-10 flex-1" placeholder="e.g. Nigeria, East Africa" />
+                        <button type="button"
+                          onClick={() => {
                             const v = geographicInput.trim();
                             if (v && !geographicFocus.includes(v)) setGeographicFocus(p => [...p, v]);
                             setGeographicInput("");
-                          }
-                        }}
-                        className="h-10 flex-1" placeholder="e.g. Nigeria, East Africa" />
-                      <button type="button"
-                        onClick={() => {
-                          const v = geographicInput.trim();
-                          if (v && !geographicFocus.includes(v)) setGeographicFocus(p => [...p, v]);
-                          setGeographicInput("");
-                        }}
-                        className="h-10 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors shrink-0">
-                        Add
-                      </button>
-                    </div>
-                    {geographicFocus.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {geographicFocus.map(g => (
-                          <span key={g} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-black dark:text-white">
-                            {g}
-                            <button type="button" onClick={() => setGeographicFocus(p => p.filter(x => x !== g))} className="hover:opacity-70 ml-0.5">×</button>
-                          </span>
-                        ))}
+                          }}
+                          className="h-10 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors shrink-0">
+                          Add
+                        </button>
                       </div>
-                    )}
+                      {geographicFocus.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {geographicFocus.map(g => (
+                            <span key={g} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-black dark:text-white">
+                              {g}
+                              <button type="button" onClick={() => setGeographicFocus(p => p.filter(x => x !== g))} className="hover:opacity-70 ml-0.5">×</button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
+                  {/* ── Technology support card (technology_company only) ── */}
                   {profile?.org_type === "technology_company" && (
-                    <div className="pt-4 border-t border-border space-y-5">
-                      <PaneHeader title="Technology support" />
+                    <div className="rounded-2xl border border-border bg-white dark:bg-card p-6 space-y-6">
+                      <h3 className="text-base font-bold text-black dark:text-white">Technology support</h3>
+
                       <div>
                         <Label className="text-sm font-medium">Tech resources we can offer</Label>
                         <div className="flex flex-wrap gap-2 mt-2">
@@ -1688,7 +1701,8 @@ export default function DashboardProfile() {
                           ))}
                         </div>
                       </div>
-                      <div>
+
+                      <div className="pt-6 border-t border-border">
                         <button type="button" onClick={() => setSandboxReady(v => !v)}
                           className={`w-full text-left px-4 py-3 rounded-xl border transition-colors flex items-start gap-3 ${
                             sandboxReady ? "border-[#2D6A4F] bg-[rgba(45,106,79,0.12)]" : "border-border hover:border-foreground/20"
@@ -1710,6 +1724,7 @@ export default function DashboardProfile() {
                       </div>
                     </div>
                   )}
+
                   <SaveBar />
                 </div>
               )}
