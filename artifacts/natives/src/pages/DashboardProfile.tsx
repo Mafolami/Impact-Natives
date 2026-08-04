@@ -814,6 +814,76 @@ export default function DashboardProfile() {
     setOrgSectionSaving(false);
   }
 
+  // ── Contact Details pane (both variants): display-card / edit-modal state ──
+  const [editingContactSection, setEditingContactSection] = useState(false);
+  const [contactSaving, setContactSaving]     = useState(false);
+  const [draftFullName, setDraftFullName]     = useState("");
+  const [draftRoleTitle, setDraftRoleTitle]   = useState("");
+  const [draftPhone, setDraftPhone]           = useState("");
+  const [draftBio, setDraftBio]               = useState("");
+  const [draftLinkedinUrl, setDraftLinkedinUrl] = useState("");
+
+  function openIndividualContactModal() {
+    setDraftFullName(fullName);
+    setDraftCountry(country);
+    setDraftRoleTitle(roleTitle);
+    setDraftPhone(phone);
+    setDraftBio(bio);
+    setEditingContactSection(true);
+  }
+  async function saveIndividualContactSection() {
+    if (!user) return;
+    setContactSaving(true);
+    try {
+      await saveProfileFields(user.id, {
+        full_name: draftFullName || null,
+        country: draftCountry || null,
+        role_title: draftRoleTitle || null,
+        phone: draftPhone || null,
+        bio: draftBio || null,
+      });
+      setFullName(draftFullName);
+      setCountry(draftCountry);
+      setRoleTitle(draftRoleTitle);
+      setPhone(draftPhone);
+      setBio(draftBio);
+      await refreshProfile();
+      setEditingContactSection(false);
+    } catch (err: any) {
+      alert(`Couldn't save: ${err.message}`);
+    }
+    setContactSaving(false);
+  }
+
+  function openOrgContactModal() {
+    setDraftFullName(fullName);
+    setDraftRoleTitle(roleTitle);
+    setDraftPhone(phone);
+    setDraftLinkedinUrl(linkedinUrl);
+    setEditingContactSection(true);
+  }
+  async function saveOrgContactSection() {
+    if (!user) return;
+    setContactSaving(true);
+    try {
+      await saveProfileFields(user.id, {
+        full_name: draftFullName || null,
+        role_title: draftRoleTitle || null,
+        phone: draftPhone || null,
+        linkedin_url: draftLinkedinUrl || null,
+      });
+      setFullName(draftFullName);
+      setRoleTitle(draftRoleTitle);
+      setPhone(draftPhone);
+      setLinkedinUrl(draftLinkedinUrl);
+      await refreshProfile();
+      setEditingContactSection(false);
+    } catch (err: any) {
+      alert(`Couldn't save: ${err.message}`);
+    }
+    setContactSaving(false);
+  }
+
   useEffect(() => {
     if (!user) return;
     supabase.from("organizations")
@@ -1253,9 +1323,9 @@ export default function DashboardProfile() {
 
               {/* ── BASIC / CONTACT DETAILS PANE ── */}
               {activePane === "basic" && !isOrg && (
-                <div className="space-y-8">
-                  <div className="space-y-4">
-                    <PaneHeader title="Profile photo" />
+                <SectionCardGroup>
+                  <div className="px-8 sm:px-12 py-10">
+                    <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5] mb-6">Profile photo</p>
                     <div className="flex items-center gap-5">
                       <div className="group relative w-14 h-14">
                         <UserAvatar id={user?.id ?? ""} name={profile?.full_name} avatarUrl={profile?.avatar_url} size="lg" />
@@ -1283,125 +1353,166 @@ export default function DashboardProfile() {
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-dashed border-[#2D6A4F]/40 bg-[#2D6A4F]/5 p-5 flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-[rgba(45,106,79,0.12)] flex items-center justify-center shrink-0">
-                      <Building2 className="w-5 h-5 text-[#2D6A4F]" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-foreground">Represent an organisation?</p>
-                      <p className="text-xs text-black dark:text-white mt-1 leading-relaxed">
-                        Register your organisation without losing your individual profile or activity.
-                      </p>
-                      <a href="/dashboard/upgrade-organisation"
-                        className="inline-flex items-center gap-1.5 mt-3 text-sm font-semibold text-[#2D6A4F] hover:underline underline-offset-2">
-                        Register an organisation
-                      </a>
+                  <div className="px-8 sm:px-12 py-10">
+                    <div className="rounded-xl border border-dashed border-[#2D6A4F]/40 bg-[#2D6A4F]/5 p-5 flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-[rgba(45,106,79,0.12)] flex items-center justify-center shrink-0">
+                        <Building2 className="w-5 h-5 text-[#2D6A4F]" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-foreground">Represent an organisation?</p>
+                        <p className="text-xs text-black dark:text-white mt-1 leading-relaxed">
+                          Register your organisation without losing your individual profile or activity.
+                        </p>
+                        <a href="/dashboard/upgrade-organisation"
+                          className="inline-flex items-center gap-1.5 mt-3 text-sm font-semibold text-[#2D6A4F] hover:underline underline-offset-2">
+                          Register an organisation
+                        </a>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="space-y-5 pt-2">
-                    <PaneHeader title="Basic info" />
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm font-medium">Full name</Label>
-                        <Input value={fullName} onChange={e => setFullName(e.target.value)} className="mt-1 h-10" placeholder="e.g. Amara Osei" />
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium">Country</Label>
-                        <CountryPicker value={country} onChange={setCountry} />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm font-medium">Headline</Label>
-                        <Input value={roleTitle} onChange={e => setRoleTitle(e.target.value.slice(0, 120))} className="mt-1 h-10" placeholder="e.g. Impact Evaluator & Filmmaker" />
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium">Phone</Label>
-                        <Input value={phone} onChange={e => setPhone(e.target.value)} className="mt-1 h-10" placeholder="+234 800 000 0000" />
-                      </div>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Bio</Label>
-                      <Textarea value={bio} onChange={e => setBio(e.target.value)} className="mt-1 resize-none" rows={3}
-                        placeholder="What do you work on? What's your focus area?" />
-                    </div>
-                  </div>
-                  <SaveBar />
-                </div>
+                  <SectionCard title="Basic info" onEdit={openIndividualContactModal}>
+                    <DisplayField label="Full name">
+                      {fullName ? <p className="text-sm text-black dark:text-white">{fullName}</p> : <EmptyValue />}
+                    </DisplayField>
+                    <DisplayField label="Country">
+                      {country ? <p className="text-sm text-black dark:text-white">{country}</p> : <EmptyValue />}
+                    </DisplayField>
+                    <DisplayField label="Headline">
+                      {roleTitle ? <p className="text-sm text-black dark:text-white">{roleTitle}</p> : <EmptyValue />}
+                    </DisplayField>
+                    <DisplayField label="Phone">
+                      {phone ? <p className="text-sm text-black dark:text-white">{phone}</p> : <EmptyValue />}
+                    </DisplayField>
+                    <DisplayField label="Bio">
+                      {bio ? <p className="text-sm text-black dark:text-white leading-relaxed">{bio}</p> : <EmptyValue />}
+                    </DisplayField>
+                  </SectionCard>
+                </SectionCardGroup>
               )}
 
-              {activePane === "basic" && isOrg && (
-                <div className="space-y-8">
-                  <PaneHeader title="Contact details"
-                    subtitle="Used as your organisation's contact person. If you turn on 'also appear as an individual,' this also becomes your personal profile in the Natives directory." />
-                  {/* Unconditional now — this section always renders so the
-                      pane has the same shape whether show_individual_profile
-                      is on or off. Lets someone fill in a personal photo
-                      ahead of time and flip the toggle on whenever they're
-                      ready, rather than the section appearing/disappearing
-                      and changing the pane's layout depending on that flag. */}
-                  <div className="rounded-xl border border-dashed border-border p-4 space-y-3">
+              {editingContactSection && !isOrg && (
+                <EditModal title="Edit basic info" onClose={() => setEditingContactSection(false)} onSave={saveIndividualContactSection} saving={contactSaving}>
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Your personal photo</p>
-                      <p className="text-xs text-black dark:text-white mt-1">
-                        Only shown on your individual profile in the Natives directory if "also appear as an individual" is turned on.
-                      </p>
+                      <Label className="text-sm font-medium">Full name</Label>
+                      <Input value={draftFullName} onChange={e => setDraftFullName(e.target.value)} className="mt-1 h-10" placeholder="e.g. Amara Osei" />
                     </div>
-                    <div className="flex items-center gap-5">
-                    <div className="group relative w-14 h-14 rounded-full border border-border bg-white dark:bg-card flex items-center justify-center overflow-hidden shrink-0">
-                          {profile?.avatar_url ? (
-                            <img src={profile.avatar_url} alt="Personal photo" className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-xl font-bold text-black dark:text-white">{(fullName || "?")[0].toUpperCase()}</span>
-                          )}
-                          {profile?.avatar_url && (
-                            <button type="button" onClick={handlePersonalPhotoDelete} disabled={personalPhotoUploading}
-                              className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
-                              title="Remove photo">
-                              <Trash2 className="w-4 h-4 text-white" />
-                            </button>
+                    <div>
+                      <Label className="text-sm font-medium">Country</Label>
+                      <CountryPicker value={draftCountry} onChange={setDraftCountry} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium">Headline</Label>
+                      <Input value={draftRoleTitle} onChange={e => setDraftRoleTitle(e.target.value.slice(0, 120))} className="mt-1 h-10" placeholder="e.g. Impact Evaluator & Filmmaker" />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Phone</Label>
+                      <Input value={draftPhone} onChange={e => setDraftPhone(e.target.value)} className="mt-1 h-10" placeholder="+234 800 000 0000" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Bio</Label>
+                    <Textarea value={draftBio} onChange={e => setDraftBio(e.target.value)} className="mt-1 resize-none" rows={3}
+                      placeholder="What do you work on? What's your focus area?" />
+                  </div>
+                </EditModal>
+              )}
+
+{activePane === "basic" && isOrg && (
+                <SectionCardGroup>
+                  <div className="px-8 sm:px-12 py-10">
+                    <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5] mb-1">Contact details</p>
+                    <p className="text-xs text-black dark:text-white opacity-60 mb-6">
+                      Used as your organisation's contact person. If you turn on 'also appear as an individual,' this also becomes your personal profile in the Natives directory.
+                    </p>
+                    {/* Unconditional now — this section always renders so the
+                        pane has the same shape whether show_individual_profile
+                        is on or off. Lets someone fill in a personal photo
+                        ahead of time and flip the toggle on whenever they're
+                        ready, rather than the section appearing/disappearing
+                        and changing the pane's layout depending on that flag. */}
+                    <div className="rounded-xl border border-dashed border-border p-4 space-y-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Your personal photo</p>
+                        <p className="text-xs text-black dark:text-white mt-1">
+                          Only shown on your individual profile in the Natives directory if "also appear as an individual" is turned on.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-5">
+                      <div className="group relative w-14 h-14 rounded-full border border-border bg-white dark:bg-card flex items-center justify-center overflow-hidden shrink-0">
+                            {profile?.avatar_url ? (
+                              <img src={profile.avatar_url} alt="Personal photo" className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-xl font-bold text-black dark:text-white">{(fullName || "?")[0].toUpperCase()}</span>
+                            )}
+                            {profile?.avatar_url && (
+                              <button type="button" onClick={handlePersonalPhotoDelete} disabled={personalPhotoUploading}
+                                className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                                title="Remove photo">
+                                <Trash2 className="w-4 h-4 text-white" />
+                              </button>
+                            )}
+                          </div>
+                        <div>
+                          <label className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm text-black dark:text-white hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
+                            <Camera className="w-3.5 h-3.5" />
+                            {profile?.avatar_url ? "Replace photo" : "Upload photo"}
+                            <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handlePersonalPhotoUpload} />
+                          </label>
+                          <p className="text-xs text-black dark:text-white mt-1.5">PNG, JPG or WebP. Max 2 MB.</p>
+                          {personalPhotoUploading && (
+                            <p className="text-xs text-[#2D6A4F] mt-1 flex items-center gap-1">
+                              <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
+                            </p>
                           )}
                         </div>
-                      <div>
-                        <label className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm text-black dark:text-white hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
-                          <Camera className="w-3.5 h-3.5" />
-                          {profile?.avatar_url ? "Replace photo" : "Upload photo"}
-                          <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handlePersonalPhotoUpload} />
-                        </label>
-                        <p className="text-xs text-black dark:text-white mt-1.5">PNG, JPG or WebP. Max 2 MB.</p>
-                        {personalPhotoUploading && (
-                          <p className="text-xs text-[#2D6A4F] mt-1 flex items-center gap-1">
-                            <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
-                          </p>
-                        )}
                       </div>
                     </div>
                   </div>
 
+                  <SectionCard title="Contact person" onEdit={openOrgContactModal}>
+                    <DisplayField label="Full name">
+                      {fullName ? <p className="text-sm text-black dark:text-white">{fullName}</p> : <EmptyValue />}
+                    </DisplayField>
+                    <DisplayField label="Role / Title">
+                      {roleTitle ? <p className="text-sm text-black dark:text-white">{roleTitle}</p> : <EmptyValue />}
+                    </DisplayField>
+                    <DisplayField label="Email">
+                      <p className="text-sm text-black dark:text-white">{user?.email ?? ""}</p>
+                      <p className="text-xs text-black dark:text-white opacity-60 mt-1">Your sign-in email. Cannot be changed here.</p>
+                    </DisplayField>
+                    <DisplayField label="Phone">
+                      {phone ? <p className="text-sm text-black dark:text-white">{phone}</p> : <EmptyValue />}
+                    </DisplayField>
+                    <DisplayField label="LinkedIn">
+                      {linkedinUrl ? <p className="text-sm text-black dark:text-white">{linkedinUrl}</p> : <EmptyValue />}
+                    </DisplayField>
+                  </SectionCard>
+                </SectionCardGroup>
+              )}
+
+              {editingContactSection && isOrg && (
+                <EditModal title="Edit contact person" onClose={() => setEditingContactSection(false)} onSave={saveOrgContactSection} saving={contactSaving}>
                   <div>
                     <Label className="text-sm font-medium">Full name <span className="text-destructive">*</span></Label>
-                    <Input value={fullName} onChange={e => setFullName(e.target.value)} className="mt-1 h-10" placeholder="e.g. Amara Osei" required />
+                    <Input value={draftFullName} onChange={e => setDraftFullName(e.target.value)} className="mt-1 h-10" placeholder="e.g. Amara Osei" required />
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Role / Title <span className="text-black dark:text-white font-normal text-xs">(optional)</span></Label>
-                    <Input value={roleTitle} onChange={e => setRoleTitle(e.target.value)} className="mt-1 h-10" placeholder="e.g. Executive Director, Programme Manager" />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Email</Label>
-                    <Input value={user?.email ?? ""} className="mt-1 h-10 opacity-60 cursor-not-allowed" readOnly />
-                    <p className="text-xs text-black dark:text-white mt-1">Your sign-in email. Cannot be changed here.</p>
+                    <Input value={draftRoleTitle} onChange={e => setDraftRoleTitle(e.target.value)} className="mt-1 h-10" placeholder="e.g. Executive Director, Programme Manager" />
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Phone <span className="text-black dark:text-white font-normal text-xs">(optional)</span></Label>
-                    <Input value={phone} onChange={e => setPhone(e.target.value)} className="mt-1 h-10" placeholder="+234 800 000 0000" />
+                    <Input value={draftPhone} onChange={e => setDraftPhone(e.target.value)} className="mt-1 h-10" placeholder="+234 800 000 0000" />
                   </div>
                   <div>
                     <Label className="text-sm font-medium">LinkedIn <span className="text-black dark:text-white font-normal text-xs">(optional)</span></Label>
-                    <Input value={linkedinUrl} onChange={e => setLinkedinUrl(e.target.value)} className="mt-1 h-10" placeholder="https://linkedin.com/in/..." type="url" />
+                    <Input value={draftLinkedinUrl} onChange={e => setDraftLinkedinUrl(e.target.value)} className="mt-1 h-10" placeholder="https://linkedin.com/in/..." type="url" />
                   </div>
-                  <SaveBar />
-                </div>
+                </EditModal>
               )}
 
               {/* ── ORGANISATION PANE ── */}
