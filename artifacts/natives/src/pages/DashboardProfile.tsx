@@ -122,20 +122,22 @@ function ChipPicker({ options, selected, onChange }: { options: string[]; select
 }
 
 function PaneHeader({ title, subtitle, info }: { title: string; subtitle?: string; info?: string }) {
-  const [infoOpen, setInfoOpen] = useState(false);
   return (
     <div className="mb-1">
       <div className="flex items-center gap-1.5">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>
         {info && (
-          <button type="button" onClick={() => setInfoOpen(o => !o)}
-            className="w-3.5 h-3.5 rounded-full border border-muted-foreground/40 text-muted-foreground/70 text-[9px] leading-[13px] font-bold inline-flex items-center justify-center hover:border-foreground/50 hover:text-foreground/70 transition-colors shrink-0"
-            aria-label="What does this mean?">
-            i
-          </button>
+          <span className="relative inline-flex group shrink-0">
+            <span className="w-3.5 h-3.5 rounded-full border border-muted-foreground/50 text-foreground text-[9px] leading-[13px] font-bold inline-flex items-center justify-center cursor-default"
+              aria-label="What does this mean?">
+              i
+            </span>
+            <span className="pointer-events-none absolute left-0 bottom-full mb-1.5 w-64 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-md">
+              {info}
+            </span>
+          </span>
         )}
       </div>
-      {info && infoOpen && <p className="text-xs text-muted-foreground italic mt-1">{info}</p>}
       {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
     </div>
   );
@@ -151,7 +153,6 @@ interface PaneDef { key: PaneKey; label: string; }
 
 function DeliveryStatsCard({ orgId }: { orgId: string | null }) {
   const [stats, setStats] = useState<{ completed: number; stalled: number; fell_through: number; resolved: number; total: number } | null>(null);
-  const [infoOpen, setInfoOpen] = useState(false);
 
   useEffect(() => {
     if (!orgId) return;
@@ -169,15 +170,18 @@ function DeliveryStatsCard({ orgId }: { orgId: string | null }) {
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
           <p className="text-xs text-muted-foreground">Delivery (platform-tracked, not editable here)</p>
-          <button type="button" onClick={() => setInfoOpen(o => !o)}
-            className="w-3.5 h-3.5 rounded-full border border-muted-foreground/40 text-muted-foreground/70 text-[9px] leading-[13px] font-bold inline-flex items-center justify-center hover:border-foreground/50 hover:text-foreground/70 transition-colors shrink-0"
-            aria-label="What does this mean?">
-            i
-          </button>
+          <span className="relative inline-flex group shrink-0">
+            <span className="w-3.5 h-3.5 rounded-full border border-muted-foreground/50 text-foreground text-[9px] leading-[13px] font-bold inline-flex items-center justify-center cursor-default"
+              aria-label="What does this mean?">
+              i
+            </span>
+            <span className="pointer-events-none absolute left-0 bottom-full mb-1.5 w-64 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-md">
+              {PILLAR_INFO.delivery}
+            </span>
+          </span>
         </div>
         {hasEnoughData && <p className="text-xs font-bold text-foreground">{rate}%</p>}
       </div>
-      {infoOpen && <p className="text-xs text-muted-foreground italic mb-2">{PILLAR_INFO.delivery}</p>}
       {hasEnoughData ? (
         <>
           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
