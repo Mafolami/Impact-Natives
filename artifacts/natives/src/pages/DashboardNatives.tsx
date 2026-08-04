@@ -921,7 +921,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
         Back
       </button>
 
-      <div className="bg-white dark:bg-card w-full -mx-6 divide-y-[6px] divide-[#FAF6F0] dark:divide-black">
+      <div className="bg-white dark:bg-card w-[calc(100%+3rem)] -mx-6 divide-y-[6px] divide-[#FAF6F0] dark:divide-black">
 
         <div className="px-8 sm:px-12 py-10">
           <div className="flex items-start gap-5">
