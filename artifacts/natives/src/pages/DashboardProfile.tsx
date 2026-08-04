@@ -125,14 +125,14 @@ function PaneHeader({ title, subtitle, info }: { title: string; subtitle?: strin
   return (
     <div className="mb-1">
       <div className="flex items-center gap-1.5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">{title}</p>
         {info && (
           <span className="relative inline-flex group shrink-0">
             <span className="w-3.5 h-3.5 rounded-full border border-muted-foreground/50 text-foreground text-[9px] leading-[13px] font-bold inline-flex items-center justify-center cursor-default"
               aria-label="What does this mean?">
               i
             </span>
-            <span className="pointer-events-none absolute left-0 bottom-full mb-1.5 w-64 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-md">
+            <span className="pointer-events-none absolute left-0 bottom-full mb-1.5 w-64 rounded-lg border border-border bg-white dark:bg-card px-2.5 py-1.5 text-xs text-foreground opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-md">
               {info}
             </span>
           </span>
@@ -169,13 +169,13 @@ function DeliveryStatsCard({ orgId }: { orgId: string | null }) {
     <div className="pt-2 border-t border-border">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
-          <p className="text-xs text-muted-foreground">Delivery (platform-tracked, not editable here)</p>
+          <p className="text-xs text-black dark:text-white">Delivery (platform-tracked, not editable here)</p>
           <span className="relative inline-flex group shrink-0">
             <span className="w-3.5 h-3.5 rounded-full border border-muted-foreground/50 text-foreground text-[9px] leading-[13px] font-bold inline-flex items-center justify-center cursor-default"
               aria-label="What does this mean?">
               i
             </span>
-            <span className="pointer-events-none absolute left-0 bottom-full mb-1.5 w-64 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-md">
+            <span className="pointer-events-none absolute left-0 bottom-full mb-1.5 w-64 rounded-lg border border-border bg-white dark:bg-card px-2.5 py-1.5 text-xs text-foreground opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-md">
               {PILLAR_INFO.delivery}
             </span>
           </span>
@@ -187,7 +187,7 @@ function DeliveryStatsCard({ orgId }: { orgId: string | null }) {
           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
             <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${rate}%` }} />
           </div>
-          <p className="text-xs text-muted-foreground mt-1.5">
+          <p className="text-xs text-black dark:text-white mt-1.5">
             {stats.completed} of {stats.resolved} relationship{stats.resolved !== 1 ? "s" : ""} completed
             {[
               stats.stalled > 0 ? `${stats.stalled} stalled` : null,
@@ -203,9 +203,9 @@ function DeliveryStatsCard({ orgId }: { orgId: string | null }) {
           </p>
         </>
       ) : stats.total === 0 ? (
-        <p className="text-xs text-muted-foreground">No tracked delivery history yet.</p>
+        <p className="text-xs text-black dark:text-white">No tracked delivery history yet.</p>
       ) : (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-black dark:text-white">
           {stats.total} active relationship{stats.total !== 1 ? "s" : ""}, no completed outcomes yet.
         </p>
       )}
@@ -300,7 +300,7 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="bg-card rounded-2xl border border-border w-full max-w-md p-6 space-y-4 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-md p-6 space-y-4 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div>
           <h3 className="text-lg font-bold text-foreground">{item.label}</h3>
           <p className="text-sm text-muted-foreground mt-0.5">{item.sub}</p>
@@ -310,7 +310,7 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
           const flagClass = missing ? "border-red-400" : "border-border";
           return (
           <div key={q.key}>
-            <label className={`text-xs font-semibold uppercase tracking-wider mb-1.5 block ${missing ? "text-red-500" : "text-muted-foreground"}`}>
+            <label className={`text-xs font-semibold uppercase tracking-wider mb-1.5 block ${missing ? "text-red-500" : "text-black dark:text-white"}`}>
               {q.label}{q.required !== false && <span className="text-red-500"> *</span>}
             </label>
             {q.type === "text" && (
@@ -368,7 +368,7 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
 
         {orgId && (
           <div className="pt-3 border-t border-border space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Supporting documents</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Supporting documents</p>
 
             {!docsLoading && documents.length > 0 && (
               <div className="space-y-2">
@@ -402,7 +402,7 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
             ) : (
               <div className="space-y-2 rounded-lg border border-dashed border-border p-3">
                 <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Who can view this document?</label>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1.5 block">Who can view this document?</label>
                   <div className="flex gap-1.5">
                     {([["private","Only me"],["relationship","Connections"],["public","Public"]] as const).map(([v, label]) => (
                       <button key={v} type="button" onClick={() => setUploadVisibility(v)}
@@ -942,13 +942,13 @@ export default function DashboardProfile() {
     <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-8 items-start w-full relative">
       <div className="space-y-4">
         <div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-black dark:text-white">
             How you appear to partners and organisations across Natives.
           </p>
         </div>
 
         {/* ── Pane shell ── */}
-        <div className="rounded-2xl border border-border bg-card">
+        <div className="rounded-2xl border border-border bg-white dark:bg-card">
           <div className="flex flex-col md:flex-row">
 
             {/* Inner left pane nav */}
@@ -1063,13 +1063,13 @@ export default function DashboardProfile() {
                       and changing the pane's layout depending on that flag. */}
                   <div className="rounded-xl border border-dashed border-border p-4 space-y-3">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your personal photo</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Your personal photo</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         Only shown on your individual profile in the Natives directory if "also appear as an individual" is turned on.
                       </p>
                     </div>
                     <div className="flex items-center gap-5">
-                    <div className="group relative w-14 h-14 rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                    <div className="group relative w-14 h-14 rounded-full border border-border bg-white dark:bg-card flex items-center justify-center overflow-hidden shrink-0">
                           {profile?.avatar_url ? (
                             <img src={profile.avatar_url} alt="Personal photo" className="w-full h-full object-cover" />
                           ) : (
@@ -1131,7 +1131,7 @@ export default function DashboardProfile() {
                     <PaneHeader title="Organisation logo" />
                     <div className="flex items-center gap-5">
                       <div className="group relative w-16 h-16 shrink-0">
-                        <div className="w-16 h-16 rounded-xl border border-border bg-muted flex items-center justify-center overflow-hidden">
+                        <div className="w-16 h-16 rounded-xl border border-border bg-white dark:bg-card flex items-center justify-center overflow-hidden">
                           {logoUrl ? (
                             <img src={logoUrl} alt="Organisation logo" className="w-full h-full object-contain" />
                           ) : (
@@ -1173,7 +1173,7 @@ export default function DashboardProfile() {
                     <div>
                       <Label className="text-sm font-medium">Organisation type</Label>
                       <div className="mt-1 h-10 px-3 rounded-lg border border-border bg-muted/30 flex items-center">
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-sm text-black dark:text-white">
                           {ORG_TYPE_OPTIONS.find(o => o.value === (profile?.org_type ?? orgType))?.label ?? "Not set"}
                         </span>
                       </div>
@@ -1245,7 +1245,7 @@ export default function DashboardProfile() {
                           <div key={i} className="flex items-center justify-between text-xs border border-border rounded-lg px-3 py-2 bg-muted/30">
                             <div className="flex items-center gap-2 min-w-0">
                               <span className="font-medium text-foreground shrink-0">{s.label}</span>
-                              <span className="text-muted-foreground truncate">{s.url}</span>
+                              <span className="text-black dark:text-white truncate">{s.url}</span>
                             </div>
                             <button type="button" onClick={() => setSocialLinks((prev) => prev.filter((_, idx) => idx !== i))}
                               className="ml-2 text-muted-foreground hover:text-foreground shrink-0">✕</button>
@@ -1306,7 +1306,7 @@ export default function DashboardProfile() {
                   </div>
                   <div className="pt-2 border-t border-border">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs text-muted-foreground">DD Readiness score</p>
+                      <p className="text-xs text-black dark:text-white">DD Readiness score</p>
                       <p className="text-xs font-bold text-foreground">
                         {Math.round(([ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework, ddSafeguardingPolicy, ddLegalRegistration, ddLegalComplianceDeclaration].filter(Boolean).length / 8) * 100)}%
                       </p>
@@ -1356,7 +1356,7 @@ export default function DashboardProfile() {
                     info={PILLAR_INFO.trackRecord} />
 
                   <div>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Cumulative reach</p>
+                    <p className="text-xs font-semibold text-black dark:text-white uppercase tracking-wider mb-3">Cumulative reach</p>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label className="text-sm font-medium">Total beneficiaries reached</Label>
@@ -1382,7 +1382,7 @@ export default function DashboardProfile() {
                   </div>
 
                   <div className="pt-4 border-t border-border">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Track record</p>
+                    <p className="text-xs font-semibold text-black dark:text-white uppercase tracking-wider mb-3">Track record</p>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label className="text-sm font-medium">Grants/contracts received (count)</Label>
@@ -1426,7 +1426,7 @@ export default function DashboardProfile() {
                     {previousFunders.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {previousFunders.map(f => (
-                          <span key={f} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-muted-foreground">
+                          <span key={f} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-black dark:text-white">
                             {f}
                             <button type="button" onClick={() => setPreviousFunders(p => p.filter(x => x !== f))} className="hover:opacity-70 ml-0.5">×</button>
                           </span>
@@ -1544,7 +1544,7 @@ export default function DashboardProfile() {
                       {geographicFocus.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mt-2">
                           {geographicFocus.map(g => (
-                            <span key={g} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-muted-foreground">
+                            <span key={g} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-black dark:text-white">
                             {g}
                             <button type="button" onClick={() => setGeographicFocus(p => p.filter(x => x !== g))} className="hover:opacity-70 ml-0.5">×</button>
                           </span>
@@ -1664,7 +1664,7 @@ export default function DashboardProfile() {
                     {geographicFocus.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {geographicFocus.map(g => (
-                          <span key={g} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-muted-foreground">
+                          <span key={g} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-black dark:text-white">
                             {g}
                             <button type="button" onClick={() => setGeographicFocus(p => p.filter(x => x !== g))} className="hover:opacity-70 ml-0.5">×</button>
                           </span>
@@ -1730,7 +1730,7 @@ export default function DashboardProfile() {
                   </div>
 
                   {profile?.is_verified ? (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-black dark:text-white">
                       Your organisation is verified. No further action is required for now. A badge appears on your profile, listings, and activity across the platform.
                     </p>
                   ) : profile?.verification_requested ? (
@@ -1738,14 +1738,14 @@ export default function DashboardProfile() {
                       <ShieldCheck className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                       <div>
                         <p className="text-sm font-medium text-foreground">Verification pending</p>
-                        <p className="text-sm text-muted-foreground mt-0.5">Your documents are under review.</p>
+                        <p className="text-sm text-black dark:text-white mt-0.5">Your documents are under review.</p>
                       </div>
                     </div>
                   ) : (
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-sm font-medium text-foreground">Not verified</p>
-                        <p className="text-sm text-muted-foreground mt-0.5">
+                        <p className="text-sm text-black dark:text-white mt-0.5">
                           Verified organisations get a badge on all activity, priority placement in the partner directory, and a credibility multiplier on Impact Points.
                         </p>
                       </div>
@@ -1768,8 +1768,8 @@ export default function DashboardProfile() {
       {/* Right column — persistent across all panes */}
       <div className="space-y-4" style={{ top: "9.5rem" }}>
 
-        <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Profile strength</p>
+        <div className="rounded-2xl border border-border bg-white dark:bg-card p-5 space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Profile strength</p>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-2xl font-bold text-foreground">{strengthScore}%</span>
@@ -1819,8 +1819,8 @@ export default function DashboardProfile() {
         </div>
 
         {isOrg && (
-          <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Visibility</p>
+          <div className="rounded-2xl border border-border bg-white dark:bg-card p-5 space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Visibility</p>
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full shrink-0 ${profile?.is_verified ? "bg-[#2D6A4F]" : "bg-muted-foreground/40"}`} />
               <span className="text-xs text-foreground">{profile?.is_verified ? "Verified organisation" : "Not yet verified"}</span>
@@ -1835,8 +1835,8 @@ export default function DashboardProfile() {
           </div>
         )}
 
-        <div className="rounded-2xl border border-border bg-card p-5 space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Quick links</p>
+        <div className="rounded-2xl border border-border bg-white dark:bg-card p-5 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Quick links</p>
           <a href="/dashboard/natives" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
             <ArrowRight className="w-3 h-3 text-[#2D6A4F]" /> View your directory listing
           </a>
