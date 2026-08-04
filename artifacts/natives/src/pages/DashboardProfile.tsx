@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -584,6 +584,26 @@ export default function DashboardProfile() {
 
   const [activePane, setActivePane] = useState<PaneKey>("basic");
 
+  // ── Fixed pane-nav horizontal position ────────────────────────────────────
+  // The nav is position:fixed on desktop so it stays put on scroll, but a
+  // fixed element needs an explicit `left` and this component has no access
+  // to the app Sidebar's collapsed/expanded width. Instead we measure a
+  // spacer div that stays in normal flow right where the nav used to sit,
+  // and use its real screen position as the nav's `left`.
+  const paneNavSpacerRef = useRef<HTMLDivElement>(null);
+  const [paneNavLeft, setPaneNavLeft] = useState<number | null>(null);
+  useEffect(() => {
+    function measure() {
+      if (paneNavSpacerRef.current) setPaneNavLeft(paneNavSpacerRef.current.getBoundingClientRect().left);
+    }
+    measure();
+    window.addEventListener("resize", measure);
+    // Re-measure shortly after mount in case the Sidebar's collapse/expand
+    // transition is still animating when this runs.
+    const t = setTimeout(measure, 250);
+    return () => { window.removeEventListener("resize", measure); clearTimeout(t); };
+  }, []);
+
   // ── Mandate fields (funders/corporates) ──────────────────────────────────
   const [investmentThesis, setInvestmentThesis]       = useState(profile?.investment_thesis ?? "");
 
@@ -1144,29 +1164,37 @@ export default function DashboardProfile() {
           </p>
         </div>
 
-        {/* ── Pane shell ── */}
-        <div className="rounded-2xl border border-border bg-white dark:bg-card">
-          <div className="flex flex-col md:flex-row">
+        <div className="flex flex-col md:flex-row md:gap-6">
 
-            {/* Inner left pane nav */}
-            <div className="md:w-[200px] shrink-0 border-b md:border-b-0 md:border-r border-border bg-muted/20 md:sticky md:top-[9.5rem]">
-              <div className="flex md:flex-col overflow-x-auto md:overflow-visible p-2 gap-1 scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
-                {panes.map(p => (
-                  <button key={p.key} type="button" onClick={() => setActivePane(p.key)}
-                    className={`text-left px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap md:whitespace-normal transition-all shrink-0 ${
-                      activePane === p.key
-                        ? "text-white shadow-sm"
-                        : "text-black dark:text-white hover:bg-muted"
-                    }`}
-                    style={activePane === p.key ? { background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" } : undefined}>
-                    {p.label}
-                  </button>
-                ))}
-              </div>
+          {/* Spacer reserving the fixed nav's old slot in normal flow
+              (desktop only) -- also what we measure to position the nav */}
+          <div ref={paneNavSpacerRef} className="hidden md:block md:w-[200px] shrink-0" />
+
+          {/* Inner left pane nav -- fixed on desktop (measured left offset,
+              see paneNavLeft above), normal horizontal-scroll tab bar on
+              mobile, unchanged there. */}
+          <div className="md:w-[200px] shrink-0 rounded-xl border border-border bg-muted/20 md:fixed md:top-20"
+            style={paneNavLeft !== null ? { left: paneNavLeft } : undefined}>
+            <div className="flex md:flex-col overflow-x-auto md:overflow-visible p-2 gap-1 scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
+              {panes.map(p => (
+                <button key={p.key} type="button" onClick={() => setActivePane(p.key)}
+                  className={`text-left px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap md:whitespace-normal transition-all shrink-0 ${
+                    activePane === p.key
+                      ? "text-white shadow-sm"
+                      : "text-black dark:text-white hover:bg-muted"
+                  }`}
+                  style={activePane === p.key ? { background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" } : undefined}>
+                  {p.label}
+                </button>
+              ))}
             </div>
+          </div>
+
+          {/* ── Pane shell (content only now -- nav no longer lives inside it) ── */}
+          <div className="flex-1 min-w-0 rounded-2xl border border-border bg-white dark:bg-card">
 
             {/* Content area */}
-            <div className="flex-1 p-6 space-y-6 min-w-0">
+            <div className="p-6 space-y-6 min-w-0">
 
               {/* ── BASIC / CONTACT DETAILS PANE ── */}
               {activePane === "basic" && !isOrg && (
@@ -2000,7 +2028,7 @@ export default function DashboardProfile() {
       {/* Right column — persistent across all panes, fully detached from the
           main content flow via fixed positioning so no parent overflow/flex
           quirks can drag it along with page scroll. */}
-      <div className="space-y-4 md:fixed md:top-[9.5rem] md:right-6 md:w-[280px]">
+      <div className="space-y-4 md:fixed md:top-20 md:right-6 md:w-[280px]">
 
         <div className="rounded-2xl border border-border bg-white dark:bg-card p-5 space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Profile strength</p>
