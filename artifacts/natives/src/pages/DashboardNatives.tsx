@@ -549,8 +549,8 @@ function NativesOrgCard({ org, onClick }: { org: OrgRow; onClick: () => void }) 
 
       {/* Mobile: compact row, same pattern as the individual card */}
       <div className="sm:hidden flex items-center gap-4 bg-white dark:bg-card border border-border rounded-2xl p-5 transition-all duration-200 hover:shadow-md">
-        <div className="w-14 h-14 rounded-full shrink-0 flex items-center justify-center overflow-hidden"
-          style={{ background: org.logo_url ? "#FFFFFF" : "#D1D5DB" }}>
+        <div className={`w-14 h-14 rounded-full shrink-0 flex items-center justify-center overflow-hidden ${org.logo_url ? "bg-white dark:bg-card" : ""}`}
+          style={!org.logo_url ? { background: "#D1D5DB" } : undefined}>
           {org.logo_url ? (
             <img src={org.logo_url} alt={org.organisation_name} className="w-full h-full object-contain p-1.5" />
           ) : (
@@ -571,8 +571,8 @@ function NativesOrgCard({ org, onClick }: { org: OrgRow; onClick: () => void }) 
 
       {/* Desktop / tablet: full card with large logo panel */}
       <div className="hidden sm:flex bg-white dark:bg-card border border-border rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md">
-        <div className="w-56 shrink-0 flex items-center justify-center overflow-hidden"
-          style={{ background: org.logo_url ? "#FFFFFF" : "#D1D5DB" }}>
+        <div className={`w-56 shrink-0 flex items-center justify-center overflow-hidden ${org.logo_url ? "bg-white dark:bg-card" : ""}`}
+          style={!org.logo_url ? { background: "#D1D5DB" } : undefined}>
           {org.logo_url ? (
             <img src={org.logo_url} alt={org.organisation_name} className="max-w-[55%] max-h-[55%] object-contain" />
           ) : (
