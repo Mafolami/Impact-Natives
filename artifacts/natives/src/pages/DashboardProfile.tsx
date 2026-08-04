@@ -625,6 +625,7 @@ export default function DashboardProfile() {
     try {
       await saveProfileFields(user.id, { sectors: draftSectors.length > 0 ? draftSectors : null });
       setSectors(draftSectors);
+      await refreshProfile();
       setEditingFocusOpen(false);
     } catch (err: any) {
       alert(`Couldn't save: ${err.message}`);
@@ -734,6 +735,7 @@ export default function DashboardProfile() {
       setCsrFocusStatement(draftCsrFocusStatement);
       setCsrBudgetRange(draftCsrBudgetRange);
       setEsgFrameworks(draftEsgFrameworks);
+      await refreshProfile();
       setEditingCsrSection(null);
     } catch (err: any) {
       alert(`Couldn't save: ${err.message}`);
@@ -756,6 +758,7 @@ export default function DashboardProfile() {
       setCobrandingOpen(draftCobrandingOpen);
       setPartnerTypePreference(draftPartnerTypePreference);
       setGeographicFocus(draftGeographicFocus);
+      await refreshProfile();
       setEditingCsrSection(null);
     } catch (err: any) {
       alert(`Couldn't save: ${err.message}`);
@@ -774,6 +777,7 @@ export default function DashboardProfile() {
       setTechSupport(draftTechSupport);
       setSandboxReady(draftSandboxReady);
       setSandboxDescription(draftSandboxDescription);
+      await refreshProfile();
       setEditingCsrSection(null);
     } catch (err: any) {
       alert(`Couldn't save: ${err.message}`);
@@ -802,6 +806,7 @@ export default function DashboardProfile() {
       setOrgName(draftOrgName);
       setOrgDescription(draftOrgDescription);
       setCountry(draftCountry);
+      await refreshProfile();
       setEditingOrgSection(false);
     } catch (err: any) {
       alert(`Couldn't save: ${err.message}`);
