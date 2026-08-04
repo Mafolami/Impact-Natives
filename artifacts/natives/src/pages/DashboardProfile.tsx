@@ -172,8 +172,8 @@ function SectionCard({ title, onEdit, children }: { title: string; onEdit: () =>
       <div className="flex items-center justify-between mb-6">
         <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
         <button type="button" onClick={onEdit} aria-label={`Edit ${title}`}
-          className="w-8 h-8 rounded-md border border-border flex items-center justify-center text-[#111111] dark:text-[#F5F5F5] hover:border-foreground/40 transition-colors shrink-0">
-          <Pencil className="w-3.5 h-3.5" />
+          className="text-[#111111] dark:text-[#F5F5F5] hover:opacity-60 transition-opacity shrink-0">
+          <Pencil className="w-4 h-4" />
         </button>
       </div>
       <div className="space-y-9">
@@ -1136,8 +1136,8 @@ export default function DashboardProfile() {
     </div>
   );
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-8 w-full relative">
-      <div className="space-y-4">
+    <div className="w-full relative">
+      <div className="space-y-4 md:pr-[320px]">
         <div>
           <p className="text-sm text-black dark:text-white">
             How you appear to partners and organisations across Natives.
@@ -1997,8 +1997,10 @@ export default function DashboardProfile() {
         </div>
       </div>
 
-      {/* Right column — persistent across all panes */}
-      <div className="space-y-4 md:sticky md:top-[9.5rem]">
+      {/* Right column — persistent across all panes, fully detached from the
+          main content flow via fixed positioning so no parent overflow/flex
+          quirks can drag it along with page scroll. */}
+      <div className="space-y-4 md:fixed md:top-[9.5rem] md:right-6 md:w-[280px]">
 
         <div className="rounded-2xl border border-border bg-white dark:bg-card p-5 space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Profile strength</p>
