@@ -1136,7 +1136,7 @@ export default function DashboardProfile() {
     </div>
   );
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-8 items-start w-full relative">
+    <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-8 w-full relative">
       <div className="space-y-4">
         <div>
           <p className="text-sm text-black dark:text-white">
@@ -1149,7 +1149,7 @@ export default function DashboardProfile() {
           <div className="flex flex-col md:flex-row">
 
             {/* Inner left pane nav */}
-            <div className="md:w-[200px] shrink-0 border-b md:border-b-0 md:border-r border-border bg-muted/20 md:sticky md:top-[9.5rem] md:self-start">
+            <div className="md:w-[200px] shrink-0 border-b md:border-b-0 md:border-r border-border bg-muted/20 md:sticky md:top-[9.5rem]">
               <div className="flex md:flex-col overflow-x-auto md:overflow-visible p-2 gap-1 scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
                 {panes.map(p => (
                   <button key={p.key} type="button" onClick={() => setActivePane(p.key)}
@@ -1998,7 +1998,7 @@ export default function DashboardProfile() {
       </div>
 
       {/* Right column — persistent across all panes */}
-      <div className="space-y-4 md:sticky md:top-[9.5rem] md:self-start">
+      <div className="space-y-4 md:sticky md:top-[9.5rem]">
 
         <div className="rounded-2xl border border-border bg-white dark:bg-card p-5 space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Profile strength</p>
