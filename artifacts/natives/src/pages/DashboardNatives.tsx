@@ -740,7 +740,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
   const [ddViewingKey, setDdViewingKey]   = useState<string | null>(null);
   const [canSeeSensitive, setCanSeeSensitive] = useState(false);
   const [docsByItem, setDocsByItem]       = useState<Record<string, DDDocument[]>>({});
-  const [deliveryStats, setDeliveryStats] = useState<{ completed: number; resolved: number; total: number } | null>(null);
+  const [deliveryStats, setDeliveryStats] = useState<{ completed: number; stalled: number; fell_through: number; resolved: number; total: number } | null>(null);
 
   useEffect(() => {
     if (!user || user.id === org.user_id) { setCanSeeSensitive(true); return; }
@@ -1027,8 +1027,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
       })()}
 
       {deliveryStats && (() => {
-        const MIN_RESOLVED = 3;
-        const hasEnoughData = deliveryStats.resolved >= MIN_RESOLVED;
+        const hasEnoughData = deliveryStats.resolved >= 1;
         const rate = hasEnoughData ? Math.round((deliveryStats.completed / deliveryStats.resolved) * 100) : null;
         const inProgress = deliveryStats.total - deliveryStats.resolved;
         return (
@@ -1058,19 +1057,25 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                     style={{ width: `${rate}%`, background: rate! >= 80 ? "#2D6A4F" : rate! >= 50 ? "#f59e0b" : "#9ca3af" }} />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {deliveryStats.completed} of {deliveryStats.resolved} finished relationships completed
-                  {inProgress > 0 ? ` (${inProgress} still in progress)` : ""}
+                  {deliveryStats.completed} of {deliveryStats.resolved} relationship{deliveryStats.resolved !== 1 ? "s" : ""} completed
+                  {[
+                    deliveryStats.stalled > 0 ? `${deliveryStats.stalled} stalled` : null,
+                    deliveryStats.fell_through > 0 ? `${deliveryStats.fell_through} fell through` : null,
+                    inProgress > 0 ? `${inProgress} still in progress` : null,
+                  ].filter(Boolean).length > 0
+                    ? ` (${[
+                        deliveryStats.stalled > 0 ? `${deliveryStats.stalled} stalled` : null,
+                        deliveryStats.fell_through > 0 ? `${deliveryStats.fell_through} fell through` : null,
+                        inProgress > 0 ? `${inProgress} still in progress` : null,
+                      ].filter(Boolean).join(", ")})`
+                    : ""}
                 </p>
               </>
             ) : deliveryStats.total === 0 ? (
               <p className="text-xs text-muted-foreground">No tracked delivery history yet.</p>
-            ) : deliveryStats.resolved === 0 ? (
-              <p className="text-xs text-muted-foreground">
-                {deliveryStats.total} active relationship{deliveryStats.total !== 1 ? "s" : ""}, no completed outcomes yet.
-              </p>
             ) : (
               <p className="text-xs text-muted-foreground">
-                {deliveryStats.resolved} of {MIN_RESOLVED} finished relationships needed to show a rate.
+                {deliveryStats.total} active relationship{deliveryStats.total !== 1 ? "s" : ""}, no completed outcomes yet.
               </p>
             )}
           </div>

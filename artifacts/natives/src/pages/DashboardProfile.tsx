@@ -139,7 +139,7 @@ type PaneKey =
 interface PaneDef { key: PaneKey; label: string; }
 
 function DeliveryStatsCard({ orgId }: { orgId: string | null }) {
-  const [stats, setStats] = useState<{ completed: number; resolved: number; total: number } | null>(null);
+  const [stats, setStats] = useState<{ completed: number; stalled: number; fell_through: number; resolved: number; total: number } | null>(null);
 
   useEffect(() => {
     if (!orgId) return;
@@ -148,8 +148,7 @@ function DeliveryStatsCard({ orgId }: { orgId: string | null }) {
   }, [orgId]);
 
   if (!stats) return null;
-  const MIN_RESOLVED = 3;
-  const hasEnoughData = stats.resolved >= MIN_RESOLVED;
+  const hasEnoughData = stats.resolved >= 1;
   const rate = hasEnoughData ? Math.round((stats.completed / stats.resolved) * 100) : null;
   const inProgress = stats.total - stats.resolved;
 
@@ -165,19 +164,25 @@ function DeliveryStatsCard({ orgId }: { orgId: string | null }) {
             <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${rate}%` }} />
           </div>
           <p className="text-xs text-muted-foreground mt-1.5">
-            {stats.completed} of {stats.resolved} finished relationships completed
-            {inProgress > 0 ? ` (${inProgress} still in progress)` : ""}
+            {stats.completed} of {stats.resolved} relationship{stats.resolved !== 1 ? "s" : ""} completed
+            {[
+              stats.stalled > 0 ? `${stats.stalled} stalled` : null,
+              stats.fell_through > 0 ? `${stats.fell_through} fell through` : null,
+              inProgress > 0 ? `${inProgress} still in progress` : null,
+            ].filter(Boolean).length > 0
+              ? ` (${[
+                  stats.stalled > 0 ? `${stats.stalled} stalled` : null,
+                  stats.fell_through > 0 ? `${stats.fell_through} fell through` : null,
+                  inProgress > 0 ? `${inProgress} still in progress` : null,
+                ].filter(Boolean).join(", ")})`
+              : ""}
           </p>
         </>
       ) : stats.total === 0 ? (
         <p className="text-xs text-muted-foreground">No tracked delivery history yet.</p>
-      ) : stats.resolved === 0 ? (
-        <p className="text-xs text-muted-foreground">
-          {stats.total} active relationship{stats.total !== 1 ? "s" : ""}, no completed outcomes yet.
-        </p>
       ) : (
         <p className="text-xs text-muted-foreground">
-          {stats.resolved} of {MIN_RESOLVED} finished relationships needed to show a rate.
+          {stats.total} active relationship{stats.total !== 1 ? "s" : ""}, no completed outcomes yet.
         </p>
       )}
     </div>
