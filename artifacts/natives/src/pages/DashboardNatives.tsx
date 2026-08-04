@@ -139,6 +139,7 @@ export default function DashboardNatives() {
     const params = new URLSearchParams(window.location.search);
     return params.get("user");
   });
+  const [detailOpen, setDetailOpen] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -156,106 +157,113 @@ export default function DashboardNatives() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-sm text-muted-foreground mt-1">
-          Browse individuals and organisations in the ecosystem.
-        </p>
-      </div>
-      <div className="flex gap-1 p-1 rounded-xl bg-muted w-fit">
-        {(["individual", "organisation"] as const).map(t => (
-          <button key={t} type="button"
-            onClick={() => { setTab(t); setSearch(""); }}
-            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
-              tab === t
-                ? "text-white shadow-sm bg-gradient-to-br from-[#3D2618] via-[#33301F] to-[#1B3328]"
-                : "text-muted-foreground hover:text-foreground"
-            }`}>
-            {t === "individual" ? "Individuals" : "Organisations"}
-          </button>
-        ))}
-      </div>
+      {!detailOpen && (
+        <>
+          <div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Browse individuals and organisations in the ecosystem.
+            </p>
+          </div>
+          <div className="flex gap-1 p-1 rounded-xl bg-muted w-fit">
+            {(["individual", "organisation"] as const).map(t => (
+              <button key={t} type="button"
+                onClick={() => { setTab(t); setSearch(""); }}
+                className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  tab === t
+                    ? "text-white shadow-sm bg-gradient-to-br from-[#3D2618] via-[#33301F] to-[#1B3328]"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}>
+                {t === "individual" ? "Individuals" : "Organisations"}
+              </button>
+            ))}
+          </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input type="text"
-            placeholder={tab === "individual" ? "Search people..." : "Search organisations..."}
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="h-9 w-52 pl-9 pr-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
-        </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input type="text"
+                placeholder={tab === "individual" ? "Search people..." : "Search organisations..."}
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="h-9 w-52 pl-9 pr-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
+            </div>
 
-        <select value={sectorFilter} onChange={e => setSectorFilter(e.target.value)}
-          className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
-          <option value="">Sector</option>
-          {SECTOR_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
+            <select value={sectorFilter} onChange={e => setSectorFilter(e.target.value)}
+              className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
+              <option value="">Sector</option>
+              {SECTOR_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
 
-        <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)}
-          className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
-          <option value="">Country</option>
-          {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
+            <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)}
+              className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
+              <option value="">Country</option>
+              {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
 
-        {tab === "organisation" && (
-          <select value={orgTypeFilter} onChange={e => setOrgTypeFilter(e.target.value)}
-            className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
-            <option value="">Type</option>
-            <option value="ngo_non_profit">NGO / Non-Profit</option>
-            <option value="social_enterprise">Social Enterprise</option>
-            <option value="startup">Startup</option>
-            <option value="technology_company">Technology Company</option>
-            <option value="corporation">Corporation</option>
-            <option value="philanthropic_foundation">Philanthropic Foundation</option>
-            <option value="venture_capital">Venture Capital</option>
-            <option value="public_sector">Public Sector</option>
-            <option value="research_academic">Research & Academic</option>
-          </select>
-        )}
+            {tab === "organisation" && (
+              <select value={orgTypeFilter} onChange={e => setOrgTypeFilter(e.target.value)}
+                className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
+                <option value="">Type</option>
+                <option value="ngo_non_profit">NGO / Non-Profit</option>
+                <option value="social_enterprise">Social Enterprise</option>
+                <option value="startup">Startup</option>
+                <option value="technology_company">Technology Company</option>
+                <option value="corporation">Corporation</option>
+                <option value="philanthropic_foundation">Philanthropic Foundation</option>
+                <option value="venture_capital">Venture Capital</option>
+                <option value="public_sector">Public Sector</option>
+                <option value="research_academic">Research & Academic</option>
+              </select>
+            )}
 
-        {tab === "organisation" && (
-          <button type="button"
-            onClick={() => setVerifiedOnly(v => !v)}
-            className={`h-9 px-3 rounded-lg border text-sm font-medium transition-colors flex items-center gap-1.5 ${
-              verifiedOnly
-                ? "border-[#2D6A4F] bg-[#2D6A4F] text-white"
-                : "border-border text-muted-foreground hover:text-foreground"
-            }`}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-            Verified
-          </button>
-        )}
+            {tab === "organisation" && (
+              <button type="button"
+                onClick={() => setVerifiedOnly(v => !v)}
+                className={`h-9 px-3 rounded-lg border text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                  verifiedOnly
+                    ? "border-[#2D6A4F] bg-[#2D6A4F] text-white"
+                    : "border-border text-muted-foreground hover:text-foreground"
+                }`}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                Verified
+              </button>
+            )}
 
-        {(sectorFilter || countryFilter || orgTypeFilter || verifiedOnly) && (
-          <button type="button"
-            onClick={() => { setSectorFilter(""); setCountryFilter(""); setOrgTypeFilter(""); setVerifiedOnly(false); }}
-            className="h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
-            ✕ Clear
-          </button>
-        )}
-      </div>
+            {(sectorFilter || countryFilter || orgTypeFilter || verifiedOnly) && (
+              <button type="button"
+                onClick={() => { setSectorFilter(""); setCountryFilter(""); setOrgTypeFilter(""); setVerifiedOnly(false); }}
+                className="h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
+                ✕ Clear
+              </button>
+            )}
+          </div>
+        </>
+      )}
 
       {tab === "individual"
-        ? <IndividualsPanel search={search} sectorFilter={sectorFilter} countryFilter={countryFilter} autoOpenUserId={autoOpenUserId} onAutoOpened={() => setAutoOpenUserId(null)} />
-        : <OrgsPanel search={search} sectorFilter={sectorFilter} countryFilter={countryFilter} orgTypeFilter={orgTypeFilter} verifiedOnly={verifiedOnly} autoOpenUserId={autoOpenUserId} onAutoOpened={() => setAutoOpenUserId(null)} />}
+        ? <IndividualsPanel search={search} sectorFilter={sectorFilter} countryFilter={countryFilter} autoOpenUserId={autoOpenUserId} onAutoOpened={() => setAutoOpenUserId(null)} onSelectionChange={setDetailOpen} />
+        : <OrgsPanel search={search} sectorFilter={sectorFilter} countryFilter={countryFilter} orgTypeFilter={orgTypeFilter} verifiedOnly={verifiedOnly} autoOpenUserId={autoOpenUserId} onAutoOpened={() => setAutoOpenUserId(null)} onSelectionChange={setDetailOpen} />}
     </div>
   );
 }
 
 // ── Individuals Panel ─────────────────────────────────────────────────────────
 
-function IndividualsPanel({ search, sectorFilter, countryFilter, autoOpenUserId, onAutoOpened }: {
+function IndividualsPanel({ search, sectorFilter, countryFilter, autoOpenUserId, onAutoOpened, onSelectionChange }: {
   search: string;
   sectorFilter: string;
   countryFilter: string;
   autoOpenUserId?: string | null;
   onAutoOpened?: () => void;
+  onSelectionChange?: (open: boolean) => void;
 }) {
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [loading, setLoading]   = useState(true);
   const [selected, setSelected] = useState<ProfileRow | null>(null);
+
+  useEffect(() => { onSelectionChange?.(!!selected); }, [selected]);
 
   useEffect(() => {
     async function load() {
@@ -412,7 +420,7 @@ function ProfileDetail({ profile, onBack }: { profile: ProfileRow; onBack: () =>
 
 // ── Orgs Panel ────────────────────────────────────────────────────────────────
 
-function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifiedOnly, autoOpenUserId, onAutoOpened }: {
+function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifiedOnly, autoOpenUserId, onAutoOpened, onSelectionChange }: {
   search: string;
   sectorFilter: string;
   countryFilter: string;
@@ -420,10 +428,13 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
   verifiedOnly: boolean;
   autoOpenUserId?: string | null;
   onAutoOpened?: () => void;
+  onSelectionChange?: (open: boolean) => void;
 }) {
   const [orgs, setOrgs]       = useState<OrgRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<OrgRow | null>(null);
+
+  useEffect(() => { onSelectionChange?.(!!selected); }, [selected]);
 
   useEffect(() => {
     async function load() {
@@ -910,7 +921,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
         Back
       </button>
 
-      <div className="bg-white dark:bg-card w-full divide-y-2 divide-[#F7F1E9] dark:divide-[#3A2E24]">
+      <div className="bg-white dark:bg-card w-full -mx-6 divide-y-[3px] divide-[#FAF6F0] dark:divide-[#2A2A2A]">
 
         <div className="px-8 sm:px-12 py-10">
           <div className="flex items-start gap-5">
