@@ -1158,18 +1158,6 @@ export default function DashboardProfile() {
   return (
     <div className="w-full relative">
       <div className="space-y-4 md:pr-[304px]">
-        {/* Spacer reserving the intro line's slot in flow (desktop only) */}
-        <div className="hidden md:block md:h-6" />
-
-        {/* Intro line, fixed above the nav on desktop so it doesn't scroll
-            away either; reuses the same measured left offset as the nav
-            since it lives in the same column. */}
-        <div className="md:fixed md:top-20" style={paneNavLeft !== null ? { left: paneNavLeft } : undefined}>
-          <p className="text-sm text-black dark:text-white">
-            How you appear to partners and organisations across Natives.
-          </p>
-        </div>
-
         <div className="flex flex-col md:flex-row md:gap-6">
 
           {/* Spacer reserving the fixed nav's old slot in normal flow
@@ -1179,7 +1167,7 @@ export default function DashboardProfile() {
           {/* Inner left pane nav -- fixed on desktop (measured left offset,
               see paneNavLeft above), normal horizontal-scroll tab bar on
               mobile, unchanged there. */}
-          <div className="md:w-[200px] shrink-0 rounded-xl border border-border bg-muted/20 md:fixed md:top-30"
+          <div className="md:w-[200px] shrink-0 rounded-xl border border-border bg-muted/20 md:fixed md:top-[104px]"
             style={paneNavLeft !== null ? { left: paneNavLeft } : undefined}>
             <div className="flex md:flex-col overflow-x-auto md:overflow-visible p-2 gap-1 scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
               {panes.map(p => (
@@ -2034,7 +2022,7 @@ export default function DashboardProfile() {
       {/* Right column — persistent across all panes, fully detached from the
           main content flow via fixed positioning so no parent overflow/flex
           quirks can drag it along with page scroll. */}
-      <div className="space-y-4 md:fixed md:top-30 md:right-6 md:w-[280px]">
+      <div className="space-y-4 md:flex md:flex-col md:min-h-[calc(100vh-128px)] md:fixed md:top-[104px] md:right-6 md:w-[280px]">
 
         <div className="rounded-2xl border border-border bg-white dark:bg-card p-5 space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Profile strength</p>

@@ -18,6 +18,12 @@ const PAGE_TITLES: Record<string, string> = {
   "/dashboard/profile":       "Profile",
   "/dashboard/settings":      "Settings",
 };
+// Optional second line under the page title. Pages without an entry here
+// just get the title alone -- the header's height stays the same either
+// way, so every page's content still starts at the exact same offset.
+const PAGE_SUBTITLES: Record<string, string> = {
+  "/dashboard/profile": "How you appear to partners and organisations across Natives.",
+};
 
 const SUMMARY_ONLY_TYPES = ["monthly_activity_digest"];
 
@@ -55,6 +61,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
   const [location, navigate] = useLocation();
   const { profile, user }    = useAuth();
   const title                = PAGE_TITLES[location] ?? "Dashboard";
+  const subtitle              = PAGE_SUBTITLES[location];
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [panelOpen, setPanelOpen]         = useState(false);
@@ -135,21 +142,24 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
   return (
     <header
       className={cn(
-        "fixed top-0 right-0 h-18 bg-background border-b border-border flex items-center justify-between px-6 py-3 z-30 transition-all duration-200",
+        "fixed top-0 right-0 h-[104px] bg-background border-b border-border flex items-center justify-between px-6 py-3 z-30 transition-all duration-200",
         sidebarCollapsed ? "left-16" : "left-72"
       )}
     >
-      <div className="flex items-center gap-2">
-        <span className="w-1.5 h-1.5 rounded-full shrink-0 animate-pulse" style={{ background: "#C45C26" }} />
-        <h1 style={{
-          fontSize: "15px",
-          fontWeight: 700,
-          letterSpacing: "0.14em",
-          textTransform: "uppercase" as const,
-          color: "#C45C26",
-        }}>
-          {title}
-        </h1>
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full shrink-0 animate-pulse" style={{ background: "#C45C26" }} />
+          <h1 style={{
+            fontSize: "15px",
+            fontWeight: 700,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase" as const,
+            color: "#C45C26",
+          }}>
+            {title}
+          </h1>
+        </div>
+        {subtitle && <p className="text-xs text-black dark:text-white pl-3.5">{subtitle}</p>}
       </div>
 
       <div className="flex items-center gap-3">
