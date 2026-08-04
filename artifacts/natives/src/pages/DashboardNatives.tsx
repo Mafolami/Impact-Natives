@@ -903,440 +903,454 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
   return (
     <div className="space-y-6 w-full">
       <button type="button" onClick={onBack}
-        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        className="flex items-center gap-1.5 text-sm text-[#111111] dark:text-[#F5F5F5] hover:opacity-70 transition-opacity">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
           <path d="M19 12H5M12 5l-7 7 7 7" />
         </svg>
         Back
       </button>
 
-      <div className="bg-[#FFFFFF] rounded-2xl border border-[#E5E7EB] p-8 sm:p-14">
-        <div className="flex items-start gap-5">
-          <div className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-full flex items-center justify-center shrink-0 overflow-hidden border border-[#E5E7EB]"
-            style={{ background: org.logo_url ? "transparent" : color }}>
-            {org.logo_url ? (
-              <img src={org.logo_url} alt={org.organisation_name} className="w-full h-full object-cover" />
+      <div className="bg-[#FFFFFF] dark:bg-[#161616] w-full divide-y-[1.5px] divide-[#F0E0D0] dark:divide-[#4A3626]">
+
+        <div className="px-8 sm:px-12 py-10">
+          <div className="flex items-start gap-5">
+            <div className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-full flex items-center justify-center shrink-0 overflow-hidden border border-[#F0E0D0] dark:border-[#4A3626]"
+              style={{ background: org.logo_url ? "transparent" : color }}>
+              {org.logo_url ? (
+                <img src={org.logo_url} alt={org.organisation_name} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-white text-xl font-bold">{initials(org.organisation_name || "?")}</span>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h3 className="text-2xl sm:text-[32px] font-bold text-[#111111] dark:text-[#F5F5F5] tracking-tight">{org.organisation_name}</h3>
+                {isVerified && <VerifiedBadge withTooltip />}
+              </div>
+              <p className="text-sm text-[#111111] dark:text-[#F5F5F5] mt-2">
+                {org.organisation_type && <span className="capitalize">{org.organisation_type.replace(/_/g, " ")}</span>}
+                {org.organisation_type && countries.length > 0 && " · "}
+                {countries.join(", ")}
+                {org.year_founded && ` · Est. ${org.year_founded}`}
+              </p>
+              {org.website && org.website !== "https://" && (
+                <a href={org.website} target="_blank" rel="noopener noreferrer"
+                  className="text-sm text-[#2D6A4F] hover:underline mt-1 inline-block">
+                  {org.website.replace(/^https?:\/\//, "")}
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {(aiSummary || loadingAi) && (
+          <div className="px-8 sm:px-12 py-10">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-[#2D6A4F]" />
+                <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Partnership fit</p>
+              </div>
+              {!loadingAi && (
+                <button type="button" onClick={() => { setAiSummary(null); generateSummary(); }}
+                  className="p-1 rounded hover:opacity-70 transition-opacity" title="Refresh partnership fit">
+                  <RefreshCw className="w-3.5 h-3.5 text-[#111111] dark:text-[#F5F5F5]" />
+                </button>
+              )}
+            </div>
+            {loadingAi ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-3.5 h-3.5 text-[#2D6A4F] animate-spin shrink-0" />
+                <p className="text-sm text-[#111111] dark:text-[#F5F5F5]">Generating partnership summary...</p>
+              </div>
             ) : (
-              <span className="text-white text-xl font-bold">{initials(org.organisation_name || "?")}</span>
+              <p className="text-base text-[#111111] dark:text-[#F5F5F5] leading-relaxed">{aiSummary}</p>
             )}
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h3 className="text-2xl sm:text-[32px] font-bold text-[#111111] tracking-tight">{org.organisation_name}</h3>
-              {isVerified && <VerifiedBadge withTooltip />}
-            </div>
-            <p className="text-sm text-muted-foreground mt-2">
-              {org.organisation_type && <span className="capitalize">{org.organisation_type.replace(/_/g, " ")}</span>}
-              {org.organisation_type && countries.length > 0 && " · "}
-              {countries.join(", ")}
-              {org.year_founded && ` · Est. ${org.year_founded}`}
-            </p>
-            {org.website && org.website !== "https://" && (
-              <a href={org.website} target="_blank" rel="noopener noreferrer"
-                className="text-sm text-[#2D6A4F] hover:underline mt-1 inline-block">
-                {org.website.replace(/^https?:\/\//, "")}
-              </a>
+        )}
+
+        <div className="px-8 sm:px-12 py-10">
+          <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5] mb-6">About</p>
+
+          <div className="space-y-9">
+            {org.description && (
+              <p className="text-base text-[#111111] dark:text-[#F5F5F5] leading-relaxed">{org.description}</p>
+            )}
+
+            {ddScore > 0 && (
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5]">DD readiness</p>
+                  <InfoTooltip text={PILLAR_INFO.ddReadiness} />
+                  <span className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] ml-auto">{ddScore}%</span>
+                </div>
+                <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mt-1">Self-attested, not verified by Impact Natives</p>
+                <div className="h-[3px] bg-[#F0F0F0] dark:bg-[#333333] rounded-full mt-2.5">
+                  <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${ddScore}%` }} />
+                </div>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {DD_ITEMS.map(item => {
+                    const done = ddStateMap[item.key];
+                    const hasEvidence = done && org.dd_evidence?.[item.key];
+                    return (
+                      <button key={item.key} type="button"
+                        disabled={!hasEvidence}
+                        onClick={() => hasEvidence && setDdViewingKey(item.key)}
+                        className="text-[11px] px-2.5 py-1 rounded-md border transition-colors"
+                        style={{
+                          borderColor: done ? "#2D6A4F40" : "#E5E7EB",
+                          color: done ? "#2D6A4F" : "#9ca3af",
+                          background: done ? "#eaf5ee" : "transparent",
+                          cursor: hasEvidence ? "pointer" : "default",
+                        }}>
+                        {done ? "✓" : "·"} {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {hasTrackRecord && (
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5]">Track record</p>
+                  <InfoTooltip text={PILLAR_INFO.trackRecord} />
+                </div>
+                <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mt-1 mb-3">Self-reported reach and history</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
+                  {org.total_beneficiaries_reached && (
+                    <div>
+                      <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mb-0.5">Beneficiaries reached</p>
+                      <p className="text-sm font-semibold text-[#111111] dark:text-[#F5F5F5]">{org.total_beneficiaries_reached.toLocaleString()}</p>
+                    </div>
+                  )}
+                  {org.jobs_created && (
+                    <div>
+                      <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mb-0.5">Jobs created</p>
+                      <p className="text-sm font-semibold text-[#111111] dark:text-[#F5F5F5]">{org.jobs_created.toLocaleString()}</p>
+                    </div>
+                  )}
+                  {org.years_of_operation && (
+                    <div>
+                      <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mb-0.5">Years operating</p>
+                      <p className="text-sm font-semibold text-[#111111] dark:text-[#F5F5F5]">{org.years_of_operation}</p>
+                    </div>
+                  )}
+                  {org.female_beneficiaries_pct && (
+                    <div>
+                      <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mb-0.5">Female beneficiaries</p>
+                      <p className="text-sm font-semibold text-[#111111] dark:text-[#F5F5F5]">{org.female_beneficiaries_pct}%</p>
+                    </div>
+                  )}
+                  {org.youth_beneficiaries_pct && (
+                    <div>
+                      <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mb-0.5">Youth beneficiaries</p>
+                      <p className="text-sm font-semibold text-[#111111] dark:text-[#F5F5F5]">{org.youth_beneficiaries_pct}%</p>
+                    </div>
+                  )}
+                  {org.grants_received_count && (
+                    <div>
+                      <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mb-0.5">Grants received</p>
+                      <p className="text-sm font-semibold text-[#111111] dark:text-[#F5F5F5]">{org.grants_received_count}</p>
+                    </div>
+                  )}
+                  {org.grants_total_value_usd && (
+                    <div>
+                      <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mb-0.5">Total grant value</p>
+                      <p className="text-sm font-semibold text-[#111111] dark:text-[#F5F5F5]">${org.grants_total_value_usd.toLocaleString()}</p>
+                    </div>
+                  )}
+                  {org.grants_delivered_on_time_pct && (
+                    <div>
+                      <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mb-0.5">Delivered on time</p>
+                      <p className="text-sm font-semibold text-[#111111] dark:text-[#F5F5F5]">{org.grants_delivered_on_time_pct}%</p>
+                    </div>
+                  )}
+                </div>
+                {org.previous_funders && org.previous_funders.length > 0 && (
+                  <p className="text-sm text-[#111111] dark:text-[#F5F5F5] mt-4"><span className="font-semibold">Previous funders: </span>{org.previous_funders.join(", ")}</p>
+                )}
+                {org.third_party_evaluations && (
+                  <div className="flex items-center gap-1.5 text-sm text-[#2D6A4F] mt-3">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    Third-party evaluations available
+                  </div>
+                )}
+              </div>
+            )}
+
+            {sectors.length > 0 && (
+              <div>
+                <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] mb-1.5">Sector</p>
+                <p className="text-sm text-[#111111] dark:text-[#F5F5F5]">{sectors.join(", ")}</p>
+              </div>
+            )}
+
+            {countries.length > 0 && (
+              <div>
+                <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] mb-1.5">Location</p>
+                <p className="text-sm text-[#111111] dark:text-[#F5F5F5]">{countries.join(", ")}</p>
+              </div>
+            )}
+
+            {((org.needs && org.needs.length > 0) || (org.offers && org.offers.length > 0)) && (
+              <div>
+                <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] mb-2">Seeking and offers</p>
+                <div className="flex flex-wrap gap-2">
+                  {org.needs?.map(n => (
+                    <span key={n} className="text-sm font-medium px-3 py-1 rounded-md" style={{ color: "#993C1D", background: "#FAECE7" }}>{n}</span>
+                  ))}
+                  {org.offers?.map(o => (
+                    <span key={o} className="text-sm font-medium px-3 py-1 rounded-md" style={{ color: "#0F6E56", background: "#E1F5EE" }}>{o}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {org.stage_preference && org.stage_preference.length > 0 && (
+              <div>
+                <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] mb-1.5">Stage preference</p>
+                <p className="text-sm text-[#111111] dark:text-[#F5F5F5]">{org.stage_preference.join(", ")}</p>
+              </div>
+            )}
+
+            {org.geographic_focus && org.geographic_focus.length > 0 && (
+              <div>
+                <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] mb-1.5">Geographic focus</p>
+                <p className="text-sm text-[#111111] dark:text-[#F5F5F5]">{org.geographic_focus.join(", ")}</p>
+              </div>
+            )}
+
+            {org.investment_thesis && (
+              <div>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Sparkles className="w-3 h-3 text-[#2D6A4F]" />
+                  <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5]">Investment thesis</p>
+                </div>
+                <p className="text-base text-[#111111] dark:text-[#F5F5F5] leading-relaxed">{org.investment_thesis}</p>
+              </div>
+            )}
+
+            {showCsrEsg && (
+              <>
+                {org.csr_focus_statement && (
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Sparkles className="w-3 h-3 text-[#C45C26]" />
+                      <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5]">CSR and ESG focus</p>
+                    </div>
+                    <p className="text-base text-[#111111] dark:text-[#F5F5F5] leading-relaxed">{org.csr_focus_statement}</p>
+                  </div>
+                )}
+                {org.csr_budget_range && (
+                  <div>
+                    <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] mb-1.5">CSR budget</p>
+                    <p className="text-sm text-[#111111] dark:text-[#F5F5F5]">{org.csr_budget_range}</p>
+                  </div>
+                )}
+                {org.inkind_support && org.inkind_support.length > 0 && (
+                  <div>
+                    <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] mb-2">What we bring</p>
+                    <div className="flex flex-wrap gap-2">
+                      {org.inkind_support.map(s => (
+                        <span key={s} className="text-sm text-[#111111] dark:text-[#F5F5F5] border border-[#F0E0D0] dark:border-[#4A3626] px-3 py-1 rounded-md">{s}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {org.esg_frameworks && org.esg_frameworks.length > 0 && (
+                  <div>
+                    <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] mb-2">ESG frameworks</p>
+                    <div className="flex flex-wrap gap-2">
+                      {org.esg_frameworks.map(f => (
+                        <span key={f} className="text-sm text-[#111111] dark:text-[#F5F5F5] border border-[#F0E0D0] dark:border-[#4A3626] px-3 py-1 rounded-md">{f}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {(org.employee_engagement_available || org.cobranding_open) && (
+                  <div>
+                    <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] mb-1.5">Partnership preferences</p>
+                    <p className="text-sm text-[#111111] dark:text-[#F5F5F5]">
+                      {[org.employee_engagement_available ? "Open to employee engagement" : null, org.cobranding_open ? "Open to co-branding" : null].filter(Boolean).join(", ")}
+                    </p>
+                  </div>
+                )}
+                {org.tech_support_available && org.tech_support_available.length > 0 && (
+                  <div>
+                    <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] mb-2">Technology support available</p>
+                    <div className="flex flex-wrap gap-2">
+                      {org.tech_support_available.map(t => (
+                        <span key={t} className="text-sm text-[#111111] dark:text-[#F5F5F5] border border-[#F0E0D0] dark:border-[#4A3626] px-3 py-1 rounded-md">{t}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {org.sandbox_ready && (
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Sparkles className="w-3 h-3 text-[#2D6A4F]" />
+                      <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5]">Open to sandbox or beta testing</p>
+                    </div>
+                    {org.sandbox_description && <p className="text-base text-[#111111] dark:text-[#F5F5F5] leading-relaxed">{org.sandbox_description}</p>}
+                  </div>
+                )}
+              </>
+            )}
+
+            {org.sdgs && org.sdgs.length > 0 && (
+              <div>
+                <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] mb-2">SDG alignment</p>
+                <div className="flex flex-wrap gap-2">
+                  {org.sdgs.map(s => (
+                    <span key={s} className="text-sm font-medium px-3 py-1 rounded-md" style={{ background: "#2D6A4F", color: "white" }}>
+                      {sdgLabel(s)}
+                    </span>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </div>
-      </div>
 
-      {(aiSummary || loadingAi) && (
-        <div className="bg-[#FFFFFF] rounded-2xl border border-[#E5E7EB] p-8 sm:p-10">
-          <div className="flex items-center justify-between">
-            <p className="text-xl font-bold text-[#111111]">Partnership fit</p>
-            {!loadingAi && (
-              <button type="button" onClick={() => { setAiSummary(null); generateSummary(); }}
-                className="p-1 rounded hover:bg-[#F5F5F5] transition-colors" title="Refresh partnership fit">
-                <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />
-              </button>
-            )}
-          </div>
-          <div className="h-0.5 bg-[#E5E7EB] mt-3 mb-6" />
-          {loadingAi ? (
-            <div className="flex items-center gap-2">
-              <Loader2 className="w-3.5 h-3.5 text-[#2D6A4F] animate-spin shrink-0" />
-              <p className="text-sm text-muted-foreground">Generating partnership summary...</p>
-            </div>
-          ) : (
-            <p className="text-base text-[#111111] leading-relaxed">{aiSummary}</p>
-          )}
-        </div>
-      )}
+        {ddViewingKey && (() => {
+          const item = DD_ITEMS.find(i => i.key === ddViewingKey);
+          if (!item) return null;
+          return (
+            <DDEvidenceViewModal
+              item={item}
+              evidence={org.dd_evidence?.[ddViewingKey] ?? {}}
+              documents={docsByItem[ddViewingKey] ?? []}
+              canSeeSensitive={canSeeSensitive}
+              onClose={() => setDdViewingKey(null)}
+            />
+          );
+        })()}
 
-      <div className="bg-[#FFFFFF] rounded-2xl border border-[#E5E7EB] p-8 sm:p-10">
-        <p className="text-xl font-bold text-[#111111]">About</p>
-        <div className="h-0.5 bg-[#E5E7EB] mt-3 mb-6" />
-
-        <div className="space-y-9">
-          {org.description && (
-            <p className="text-base text-[#111111] leading-relaxed">{org.description}</p>
-          )}
-
-          {ddScore > 0 && (
-            <div>
+        {deliveryStats && (
+          <div className="px-8 sm:px-12 py-10">
+            <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5">
-                <p className="text-sm font-bold text-[#111111]">DD readiness</p>
-                <InfoTooltip text={PILLAR_INFO.ddReadiness} />
-                <span className="text-sm font-bold text-[#111111] ml-auto">{ddScore}%</span>
+                <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Delivery</p>
+                <InfoTooltip text={PILLAR_INFO.delivery} />
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Self-attested, not verified by Impact Natives</p>
-              <div className="h-[3px] bg-[#F0F0F0] rounded-full mt-2.5">
-                <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${ddScore}%` }} />
-              </div>
-              <div className="flex flex-wrap gap-2 mt-3">
-                {DD_ITEMS.map(item => {
-                  const done = ddStateMap[item.key];
-                  const hasEvidence = done && org.dd_evidence?.[item.key];
-                  return (
-                    <button key={item.key} type="button"
-                      disabled={!hasEvidence}
-                      onClick={() => hasEvidence && setDdViewingKey(item.key)}
-                      className="text-[11px] px-2.5 py-1 rounded-md border transition-colors"
-                      style={{
-                        borderColor: done ? "#2D6A4F40" : "#E5E7EB",
-                        color: done ? "#2D6A4F" : "#9ca3af",
-                        background: done ? "#eaf5ee" : "transparent",
-                        cursor: hasEvidence ? "pointer" : "default",
-                      }}>
-                      {done ? "✓" : "·"} {item.label}
-                    </button>
-                  );
-                })}
-              </div>
+              {hasDelivery && <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">{deliveryRate}%</p>}
             </div>
-          )}
-
-          {hasTrackRecord && (
-            <div>
-              <div className="flex items-center gap-1.5">
-                <p className="text-sm font-bold text-[#111111]">Track record</p>
-                <InfoTooltip text={PILLAR_INFO.trackRecord} />
-              </div>
-              <p className="text-xs text-muted-foreground mt-1 mb-3">Self-reported reach and history</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
-                {org.total_beneficiaries_reached && (
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-0.5">Beneficiaries reached</p>
-                    <p className="text-sm font-semibold text-[#111111]">{org.total_beneficiaries_reached.toLocaleString()}</p>
-                  </div>
-                )}
-                {org.jobs_created && (
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-0.5">Jobs created</p>
-                    <p className="text-sm font-semibold text-[#111111]">{org.jobs_created.toLocaleString()}</p>
-                  </div>
-                )}
-                {org.years_of_operation && (
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-0.5">Years operating</p>
-                    <p className="text-sm font-semibold text-[#111111]">{org.years_of_operation}</p>
-                  </div>
-                )}
-                {org.female_beneficiaries_pct && (
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-0.5">Female beneficiaries</p>
-                    <p className="text-sm font-semibold text-[#111111]">{org.female_beneficiaries_pct}%</p>
-                  </div>
-                )}
-                {org.youth_beneficiaries_pct && (
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-0.5">Youth beneficiaries</p>
-                    <p className="text-sm font-semibold text-[#111111]">{org.youth_beneficiaries_pct}%</p>
-                  </div>
-                )}
-                {org.grants_received_count && (
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-0.5">Grants received</p>
-                    <p className="text-sm font-semibold text-[#111111]">{org.grants_received_count}</p>
-                  </div>
-                )}
-                {org.grants_total_value_usd && (
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-0.5">Total grant value</p>
-                    <p className="text-sm font-semibold text-[#111111]">${org.grants_total_value_usd.toLocaleString()}</p>
-                  </div>
-                )}
-                {org.grants_delivered_on_time_pct && (
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-0.5">Delivered on time</p>
-                    <p className="text-sm font-semibold text-[#111111]">{org.grants_delivered_on_time_pct}%</p>
-                  </div>
-                )}
-              </div>
-              {org.previous_funders && org.previous_funders.length > 0 && (
-                <p className="text-sm text-[#111111] mt-4"><span className="text-xs text-muted-foreground">Previous funders: </span>{org.previous_funders.join(", ")}</p>
-              )}
-              {org.third_party_evaluations && (
-                <p className="text-sm text-[#2D6A4F] mt-3">Third-party evaluations available</p>
-              )}
-            </div>
-          )}
-
-          {sectors.length > 0 && (
-            <div>
-              <p className="text-sm font-bold text-[#111111] mb-1.5">Sector</p>
-              <p className="text-sm text-[#111111]">{sectors.join(", ")}</p>
-            </div>
-          )}
-
-          {countries.length > 0 && (
-            <div>
-              <p className="text-sm font-bold text-[#111111] mb-1.5">Location</p>
-              <p className="text-sm text-[#111111]">{countries.join(", ")}</p>
-            </div>
-          )}
-
-          {((org.needs && org.needs.length > 0) || (org.offers && org.offers.length > 0)) && (
-            <div>
-              <p className="text-sm font-bold text-[#111111] mb-2">Seeking and offers</p>
-              <div className="flex flex-wrap gap-2">
-                {org.needs?.map(n => (
-                  <span key={n} className="text-sm font-medium px-3 py-1 rounded-md" style={{ color: "#993C1D", background: "#FAECE7" }}>{n}</span>
-                ))}
-                {org.offers?.map(o => (
-                  <span key={o} className="text-sm font-medium px-3 py-1 rounded-md" style={{ color: "#0F6E56", background: "#E1F5EE" }}>{o}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {org.stage_preference && org.stage_preference.length > 0 && (
-            <div>
-              <p className="text-sm font-bold text-[#111111] mb-1.5">Stage preference</p>
-              <p className="text-sm text-[#111111]">{org.stage_preference.join(", ")}</p>
-            </div>
-          )}
-
-          {org.geographic_focus && org.geographic_focus.length > 0 && (
-            <div>
-              <p className="text-sm font-bold text-[#111111] mb-1.5">Geographic focus</p>
-              <p className="text-sm text-[#111111]">{org.geographic_focus.join(", ")}</p>
-            </div>
-          )}
-
-          {org.investment_thesis && (
-            <div>
-              <p className="text-sm font-bold text-[#111111] mb-1.5">Investment thesis</p>
-              <p className="text-base text-[#111111] leading-relaxed">{org.investment_thesis}</p>
-            </div>
-          )}
-
-          {showCsrEsg && (
-            <>
-              {org.csr_focus_statement && (
-                <div>
-                  <p className="text-sm font-bold text-[#111111] mb-1.5">CSR and ESG focus</p>
-                  <p className="text-base text-[#111111] leading-relaxed">{org.csr_focus_statement}</p>
+            <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mb-3">From outcomes tracked on this platform</p>
+            {hasDelivery ? (
+              <>
+                <div className="h-[3px] bg-[#F0F0F0] dark:bg-[#333333] rounded-full">
+                  <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${deliveryRate}%` }} />
                 </div>
-              )}
-              {org.csr_budget_range && (
-                <div>
-                  <p className="text-sm font-bold text-[#111111] mb-1.5">CSR budget</p>
-                  <p className="text-sm text-[#111111]">{org.csr_budget_range}</p>
-                </div>
-              )}
-              {org.inkind_support && org.inkind_support.length > 0 && (
-                <div>
-                  <p className="text-sm font-bold text-[#111111] mb-2">What we bring</p>
-                  <div className="flex flex-wrap gap-2">
-                    {org.inkind_support.map(s => (
-                      <span key={s} className="text-sm text-[#111111] border border-[#E5E7EB] px-3 py-1 rounded-md">{s}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {org.esg_frameworks && org.esg_frameworks.length > 0 && (
-                <div>
-                  <p className="text-sm font-bold text-[#111111] mb-2">ESG frameworks</p>
-                  <div className="flex flex-wrap gap-2">
-                    {org.esg_frameworks.map(f => (
-                      <span key={f} className="text-sm text-[#111111] border border-[#E5E7EB] px-3 py-1 rounded-md">{f}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {(org.employee_engagement_available || org.cobranding_open) && (
-                <div>
-                  <p className="text-sm font-bold text-[#111111] mb-1.5">Partnership preferences</p>
-                  <p className="text-sm text-[#111111]">
-                    {[org.employee_engagement_available ? "Open to employee engagement" : null, org.cobranding_open ? "Open to co-branding" : null].filter(Boolean).join(", ")}
-                  </p>
-                </div>
-              )}
-              {org.tech_support_available && org.tech_support_available.length > 0 && (
-                <div>
-                  <p className="text-sm font-bold text-[#111111] mb-2">Technology support available</p>
-                  <div className="flex flex-wrap gap-2">
-                    {org.tech_support_available.map(t => (
-                      <span key={t} className="text-sm text-[#111111] border border-[#E5E7EB] px-3 py-1 rounded-md">{t}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {org.sandbox_ready && (
-                <div>
-                  <p className="text-sm font-bold text-[#111111] mb-1.5">Open to sandbox or beta testing</p>
-                  {org.sandbox_description && <p className="text-base text-[#111111] leading-relaxed">{org.sandbox_description}</p>}
-                </div>
-              )}
-            </>
-          )}
-
-          {org.sdgs && org.sdgs.length > 0 && (
-            <div>
-              <p className="text-sm font-bold text-[#111111] mb-2">SDG alignment</p>
-              <div className="flex flex-wrap gap-2">
-                {org.sdgs.map(s => (
-                  <span key={s} className="text-sm font-medium px-3 py-1 rounded-md" style={{ background: "#2D6A4F", color: "white" }}>
-                    {sdgLabel(s)}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {ddViewingKey && (() => {
-        const item = DD_ITEMS.find(i => i.key === ddViewingKey);
-        if (!item) return null;
-        return (
-          <DDEvidenceViewModal
-            item={item}
-            evidence={org.dd_evidence?.[ddViewingKey] ?? {}}
-            documents={docsByItem[ddViewingKey] ?? []}
-            canSeeSensitive={canSeeSensitive}
-            onClose={() => setDdViewingKey(null)}
-          />
-        );
-      })()}
-
-      {deliveryStats && (
-        <div className="bg-[#FFFFFF] rounded-2xl border border-[#E5E7EB] p-8 sm:p-10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <p className="text-xl font-bold text-[#111111]">Delivery</p>
-              <InfoTooltip text={PILLAR_INFO.delivery} />
-            </div>
-            {hasDelivery && <p className="text-xl font-bold text-[#111111]">{deliveryRate}%</p>}
-          </div>
-          <div className="h-0.5 bg-[#E5E7EB] mt-3 mb-6" />
-          <p className="text-xs text-muted-foreground mb-3">From outcomes tracked on this platform</p>
-          {hasDelivery ? (
-            <>
-              <div className="h-[3px] bg-[#F0F0F0] rounded-full">
-                <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${deliveryRate}%` }} />
-              </div>
-              <p className="text-sm text-[#111111] mt-3">
-                {deliveryStats.completed} of {deliveryStats.resolved} relationship{deliveryStats.resolved !== 1 ? "s" : ""} completed
-                {[
-                  deliveryStats.stalled > 0 ? `${deliveryStats.stalled} stalled` : null,
-                  deliveryStats.fell_through > 0 ? `${deliveryStats.fell_through} fell through` : null,
-                  deliveryInProgress > 0 ? `${deliveryInProgress} still in progress` : null,
-                ].filter(Boolean).length > 0
-                  ? ` (${[
-                      deliveryStats.stalled > 0 ? `${deliveryStats.stalled} stalled` : null,
-                      deliveryStats.fell_through > 0 ? `${deliveryStats.fell_through} fell through` : null,
-                      deliveryInProgress > 0 ? `${deliveryInProgress} still in progress` : null,
-                    ].filter(Boolean).join(", ")})`
-                  : ""}
-              </p>
-            </>
-          ) : (
-            <p className="text-sm text-[#111111]">
-              {deliveryStats.total === 0
-                ? "No tracked delivery history yet."
-                : `${deliveryStats.total} active relationship${deliveryStats.total !== 1 ? "s" : ""}, no completed outcomes yet.`}
-            </p>
-          )}
-        </div>
-      )}
-
-      {orgPartnership?.title && (
-        <div className="bg-[#FFFFFF] rounded-2xl border border-[#E5E7EB] p-8 sm:p-10">
-          <p className="text-xl font-bold text-[#111111]">Partnership listing</p>
-          <div className="h-0.5 bg-[#E5E7EB] mt-3 mb-6" />
-          <p className="text-base font-semibold text-[#111111] leading-snug">{orgPartnership.title}</p>
-          {orgPartnership.sought && <p className="text-sm text-[#111111] leading-relaxed mt-2">{orgPartnership.sought}</p>}
-          <p className="text-sm text-muted-foreground mt-3">
-            {[
-              orgPartnership.stage?.replace(/_/g, " "),
-              orgPartnership.funding_status?.replace(/_/g, " "),
-              orgPartnership.budget?.replace(/_/g, " "),
-            ].filter(Boolean).join(" · ")}
-          </p>
-        </div>
-      )}
-
-      {orgInitiatives.length > 0 && (
-        <div className="bg-[#FFFFFF] rounded-2xl border border-[#E5E7EB] p-8 sm:p-10">
-          <p className="text-xl font-bold text-[#111111]">Active initiatives</p>
-          <div className="h-0.5 bg-[#E5E7EB] mt-3 mb-6" />
-          <div className="space-y-5">
-            {orgInitiatives.map(ini => (
-              <div key={ini.id} className="pb-5 border-b border-[#E5E7EB] last:border-0 last:pb-0 space-y-1.5">
-                <p className="text-base font-semibold text-[#111111] leading-snug">{ini.title}</p>
-                <p className="text-sm text-muted-foreground">
-                  {[ini.locations?.slice(0,2).join(", "), ini.budget].filter(Boolean).join(" · ")}
-                  {ini.eois ? ` · ${ini.eois} EOI${ini.eois !== 1 ? "s" : ""}` : ""}
+                <p className="text-sm text-[#111111] dark:text-[#F5F5F5] mt-3">
+                  {deliveryStats.completed} of {deliveryStats.resolved} relationship{deliveryStats.resolved !== 1 ? "s" : ""} completed
+                  {[
+                    deliveryStats.stalled > 0 ? `${deliveryStats.stalled} stalled` : null,
+                    deliveryStats.fell_through > 0 ? `${deliveryStats.fell_through} fell through` : null,
+                    deliveryInProgress > 0 ? `${deliveryInProgress} still in progress` : null,
+                  ].filter(Boolean).length > 0
+                    ? ` (${[
+                        deliveryStats.stalled > 0 ? `${deliveryStats.stalled} stalled` : null,
+                        deliveryStats.fell_through > 0 ? `${deliveryStats.fell_through} fell through` : null,
+                        deliveryInProgress > 0 ? `${deliveryInProgress} still in progress` : null,
+                      ].filter(Boolean).join(", ")})`
+                    : ""}
                 </p>
-                {ini.sectors?.length > 0 && <p className="text-sm text-[#111111]">{ini.sectors.slice(0,2).join(", ")}</p>}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {impactPillars.length > 0 && (
-        <div className="bg-[#FFFFFF] rounded-2xl border border-[#E5E7EB] p-8 sm:p-10">
-          <p className="text-xl font-bold text-[#111111]">Impact strategy</p>
-          <div className="h-0.5 bg-[#E5E7EB] mt-3 mb-6" />
-          <div className="space-y-5">
-            {impactPillars.map((pillar: any, i: number) => {
-              const publishedRow = orgInitiatives.find(ini => ini.title === pillar.pillar_name);
-              const specificAsk = publishedRow?.specific_ask ?? pillar.specific_ask_draft;
-              return (
-                <div key={i} className="pb-5 border-b border-[#E5E7EB] last:border-0 last:pb-0 space-y-1.5">
-                  <p className="text-base font-semibold text-[#111111] leading-snug">{pillar.pillar_name}</p>
-                  {specificAsk && <p className="text-sm text-[#111111] leading-relaxed">{specificAsk}</p>}
-                  {pillar.un_sdg_code && <p className="text-xs text-muted-foreground">{pillar.un_sdg_code}</p>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {reputationPartners.length > 0 && (
-        <div className="bg-[#FFFFFF] rounded-2xl border border-[#E5E7EB] p-8 sm:p-10">
-          <p className="text-xl font-bold text-[#111111]">Confirmed partnerships</p>
-          <div className="h-0.5 bg-[#E5E7EB] mt-3 mb-6" />
-          <div className="space-y-2">
-            {reputationPartners.slice(0, 5).map((p, i) => (
-              <p key={i} className="text-sm text-[#111111]">
-                {p.as === "owner"
-                  ? `Partnered with ${p.partner_name} as ${partnerRolePhrase(p.role)} on "${p.initiative_title}"`
-                  : `Confirmed as ${partnerRolePhrase(p.role)} on "${p.initiative_title}"`}
+              </>
+            ) : (
+              <p className="text-sm text-[#111111] dark:text-[#F5F5F5]">
+                {deliveryStats.total === 0
+                  ? "No tracked delivery history yet."
+                  : `${deliveryStats.total} active relationship${deliveryStats.total !== 1 ? "s" : ""}, no completed outcomes yet.`}
               </p>
-            ))}
+            )}
           </div>
-        </div>
-      )}
+        )}
 
-      {orgInitiatives.length === 0 && !orgPartnership?.title && (
-        <div className="bg-[#FFFFFF] rounded-2xl border border-[#E5E7EB] p-8 sm:p-10">
-          <p className="text-sm text-muted-foreground">No active initiatives or partnership listing yet.</p>
-        </div>
-      )}
+        {orgPartnership?.title && (
+          <div className="px-8 sm:px-12 py-10">
+            <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5] mb-6">Partnership listing</p>
+            <p className="text-base font-semibold text-[#111111] dark:text-[#F5F5F5] leading-snug">{orgPartnership.title}</p>
+            {orgPartnership.sought && <p className="text-sm text-[#111111] dark:text-[#F5F5F5] leading-relaxed mt-2">{orgPartnership.sought}</p>}
+            <p className="text-sm text-[#111111] dark:text-[#F5F5F5] mt-3">
+              {[
+                orgPartnership.stage?.replace(/_/g, " "),
+                orgPartnership.funding_status?.replace(/_/g, " "),
+                orgPartnership.budget?.replace(/_/g, "–"),
+              ].filter(Boolean).join(" · ")}
+            </p>
+          </div>
+        )}
 
-      {org.contact_name && (
-        <div className="bg-[#FFFFFF] rounded-2xl border border-[#E5E7EB] p-8 sm:p-10">
-          <p className="text-xl font-bold text-[#111111]">Contact</p>
-          <div className="h-0.5 bg-[#E5E7EB] mt-3 mb-6" />
-          <p className="text-sm text-[#111111]">{org.contact_name}</p>
-        </div>
-      )}
+        {orgInitiatives.length > 0 && (
+          <div className="px-8 sm:px-12 py-10">
+            <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5] mb-6">Active initiatives</p>
+            <div className="space-y-5">
+              {orgInitiatives.map(ini => (
+                <div key={ini.id} className="pb-5 border-b border-[#F0E0D0] dark:border-[#4A3626] last:border-0 last:pb-0 space-y-1.5">
+                  <p className="text-base font-semibold text-[#111111] dark:text-[#F5F5F5] leading-snug">{ini.title}</p>
+                  <p className="text-sm text-[#111111] dark:text-[#F5F5F5]">
+                    {[ini.locations?.slice(0,2).join(", "), ini.budget].filter(Boolean).join(" · ")}
+                    {ini.eois ? ` · ${ini.eois} EOI${ini.eois !== 1 ? "s" : ""}` : ""}
+                  </p>
+                  {ini.sectors?.length > 0 && <p className="text-sm text-[#111111] dark:text-[#F5F5F5]">{ini.sectors.slice(0,2).join(", ")}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {impactPillars.length > 0 && (
+          <div className="px-8 sm:px-12 py-10">
+            <div className="flex items-center gap-1.5 mb-6">
+              <Sparkles className="w-4 h-4 text-[#2D6A4F]" />
+              <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Impact strategy</p>
+            </div>
+            <div className="space-y-5">
+              {impactPillars.map((pillar: any, i: number) => {
+                const publishedRow = orgInitiatives.find(ini => ini.title === pillar.pillar_name);
+                const specificAsk = publishedRow?.specific_ask ?? pillar.specific_ask_draft;
+                return (
+                  <div key={i} className="pb-5 border-b border-[#F0E0D0] dark:border-[#4A3626] last:border-0 last:pb-0 space-y-1.5">
+                    <p className="text-base font-semibold text-[#111111] dark:text-[#F5F5F5] leading-snug">{pillar.pillar_name}</p>
+                    {specificAsk && <p className="text-sm text-[#111111] dark:text-[#F5F5F5] leading-relaxed">{specificAsk}</p>}
+                    {pillar.un_sdg_code && <p className="text-xs text-[#111111] dark:text-[#F5F5F5]">{pillar.un_sdg_code}</p>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {reputationPartners.length > 0 && (
+          <div className="px-8 sm:px-12 py-10">
+            <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5] mb-6">Confirmed partnerships</p>
+            <div className="space-y-2">
+              {reputationPartners.slice(0, 5).map((p, i) => (
+                <p key={i} className="text-sm text-[#111111] dark:text-[#F5F5F5]">
+                  {p.as === "owner"
+                    ? `Partnered with ${p.partner_name} as ${partnerRolePhrase(p.role)} on "${p.initiative_title}"`
+                    : `Confirmed as ${partnerRolePhrase(p.role)} on "${p.initiative_title}"`}
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {orgInitiatives.length === 0 && !orgPartnership?.title && (
+          <div className="px-8 sm:px-12 py-10">
+            <p className="text-sm text-[#111111] dark:text-[#F5F5F5]">No active initiatives or partnership listing yet.</p>
+          </div>
+        )}
+
+        {org.contact_name && (
+          <div className="px-8 sm:px-12 py-10">
+            <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5] mb-6">Contact</p>
+            <p className="text-sm text-[#111111] dark:text-[#F5F5F5]">{org.contact_name}</p>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }
