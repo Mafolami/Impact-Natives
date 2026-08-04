@@ -1030,6 +1030,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
         const MIN_RESOLVED = 3;
         const hasEnoughData = deliveryStats.resolved >= MIN_RESOLVED;
         const rate = hasEnoughData ? Math.round((deliveryStats.completed / deliveryStats.resolved) * 100) : null;
+        const inProgress = deliveryStats.total - deliveryStats.resolved;
         return (
           <div className="rounded-xl px-4 py-3 space-y-2"
             style={{ background: "linear-gradient(135deg, rgba(45,106,79,0.05) 0%, transparent 100%)", border: "1px solid rgba(45,106,79,0.14)" }}>
@@ -1057,14 +1058,19 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                     style={{ width: `${rate}%`, background: rate! >= 80 ? "#2D6A4F" : rate! >= 50 ? "#f59e0b" : "#9ca3af" }} />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {deliveryStats.completed} of {deliveryStats.resolved} tracked relationships completed
+                  {deliveryStats.completed} of {deliveryStats.resolved} finished relationships completed
+                  {inProgress > 0 ? ` (${inProgress} still in progress)` : ""}
                 </p>
               </>
+            ) : deliveryStats.total === 0 ? (
+              <p className="text-xs text-muted-foreground">No tracked delivery history yet.</p>
+            ) : deliveryStats.resolved === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                {deliveryStats.total} active relationship{deliveryStats.total !== 1 ? "s" : ""}, no completed outcomes yet.
+              </p>
             ) : (
               <p className="text-xs text-muted-foreground">
-                {deliveryStats.total === 0
-                  ? "No tracked delivery history yet."
-                  : `${deliveryStats.resolved} of ${MIN_RESOLVED} relationships needed to show a delivery rate.`}
+                {deliveryStats.resolved} of {MIN_RESOLVED} finished relationships needed to show a rate.
               </p>
             )}
           </div>

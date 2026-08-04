@@ -151,6 +151,7 @@ function DeliveryStatsCard({ orgId }: { orgId: string | null }) {
   const MIN_RESOLVED = 3;
   const hasEnoughData = stats.resolved >= MIN_RESOLVED;
   const rate = hasEnoughData ? Math.round((stats.completed / stats.resolved) * 100) : null;
+  const inProgress = stats.total - stats.resolved;
 
   return (
     <div className="pt-2 border-t border-border">
@@ -163,11 +164,20 @@ function DeliveryStatsCard({ orgId }: { orgId: string | null }) {
           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
             <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${rate}%` }} />
           </div>
-          <p className="text-xs text-muted-foreground mt-1.5">{stats.completed} of {stats.resolved} tracked relationships completed</p>
+          <p className="text-xs text-muted-foreground mt-1.5">
+            {stats.completed} of {stats.resolved} finished relationships completed
+            {inProgress > 0 ? ` (${inProgress} still in progress)` : ""}
+          </p>
         </>
+      ) : stats.total === 0 ? (
+        <p className="text-xs text-muted-foreground">No tracked delivery history yet.</p>
+      ) : stats.resolved === 0 ? (
+        <p className="text-xs text-muted-foreground">
+          {stats.total} active relationship{stats.total !== 1 ? "s" : ""}, no completed outcomes yet.
+        </p>
       ) : (
         <p className="text-xs text-muted-foreground">
-          {stats.total === 0 ? "No tracked delivery history yet." : `${stats.resolved} of ${MIN_RESOLVED} relationships needed to show a rate.`}
+          {stats.resolved} of {MIN_RESOLVED} finished relationships needed to show a rate.
         </p>
       )}
     </div>
