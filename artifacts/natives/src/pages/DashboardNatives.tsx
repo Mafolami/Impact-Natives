@@ -128,7 +128,7 @@ function partnerRolePhrase(value: string): string {
 export default function DashboardNatives() {
   const [tab, setTab] = useState<Tab>(() => {
     const params = new URLSearchParams(window.location.search);
-    return (params.get("tab") as Tab) ?? "individual";
+    return (params.get("tab") as Tab) ?? "organisation";
   });
   const [search, setSearch] = useState("");
   const [sectorFilter, setSectorFilter] = useState("");
@@ -165,7 +165,7 @@ export default function DashboardNatives() {
             </p>
           </div>
           <div className="flex gap-1 p-1 rounded-xl bg-muted w-fit">
-            {(["individual", "organisation"] as const).map(t => (
+            {(["organisation", "individual"] as const).map(t => (
               <button key={t} type="button"
                 onClick={() => { setTab(t); setSearch(""); }}
                 className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
@@ -502,7 +502,7 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
   });
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4">
       {sorted.map(o => <NativesOrgCard key={o.id} org={o} onClick={() => setSelected(o)} />)}
     </div>
   );
@@ -519,60 +519,45 @@ function NativesOrgCard({ org, onClick }: { org: OrgRow; onClick: () => void }) 
   return (
     <div
       onClick={onClick}
-      className={`rounded-xl border bg-card px-5 py-4 flex flex-col gap-3 cursor-pointer transition-all duration-200 ${
-        isVerified
-          ? "border-l-4 border-l-[#2D6A4F] border-t-border border-r-border border-b-border hover:shadow-md hover:border-l-[6px]"
-          : "border-border hover:border-[#452A1D]/50 hover:shadow-md"
-      }`}>
-      <div className="flex items-start gap-3">
-      <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 overflow-hidden border border-border"
-          style={{ background: org.logo_url ? "transparent" : color }}>
-          {org.logo_url ? (
-            <img src={org.logo_url} alt={org.organisation_name} className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-white text-sm font-bold">{initials(org.organisation_name || "?")}</span>
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-semibold text-foreground truncate">{org.organisation_name}</p>
-            {isVerified && <VerifiedBadge />}
-          </div>
-          {org.organisation_type && (
-            <p className="text-xs text-muted-foreground mt-0.5 capitalize">
-              {org.organisation_type.replace(/_/g, " ")}
-            </p>
-          )}
-        </div>
-      </div>
-      {org.description && (
-        <p className="text-[13px] text-foreground leading-relaxed line-clamp-2">{org.description}</p>
-      )}
-      <div className="flex flex-col gap-1 text-xs text-muted-foreground">        
-        {sectors.length > 0   && <p><span className="font-medium text-foreground">Sector: </span>{sectors.slice(0, 2).join(", ")}{sectors.length > 2 ? ` +${sectors.length - 2}` : ""}</p>}
-        {countries.length > 0 && <p><span className="font-medium text-foreground">Location: </span>{countries.join(", ")}</p>}
-        {org.website && org.website !== "https://" && (
-          <a href={org.website} target="_blank" rel="noopener noreferrer"
-            onClick={e => e.stopPropagation()}
-            className="text-primary hover:underline truncate">
-            {org.website.replace(/^https?:\/\//, "")}
-          </a>
+      className="flex bg-white dark:bg-card border border-border rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-md">
+      <div className="w-36 sm:w-56 shrink-0 flex items-center justify-center overflow-hidden"
+        style={{ background: org.logo_url ? "transparent" : color }}>
+        {org.logo_url ? (
+          <img src={org.logo_url} alt={org.organisation_name} className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-white text-4xl sm:text-5xl font-bold">{initials(org.organisation_name || "?")}</span>
         )}
       </div>
-
-      {/* Needs/offers preview */}
-      {(org.needs?.length || org.offers?.length) ? (
-        <div className="flex flex-wrap gap-1.5 pt-1 border-t border-border">
-          {org.needs?.slice(0, 2).map(n => (
-            <span key={n} className="text-[10px] px-2 py-0.5 rounded-full"
-              style={{ background: "#f5ede8", color: "#C45C26" }}>{n}</span>
-          ))}
-          {org.offers?.slice(0, 1).map(o => (
-            <span key={o} className="text-[10px] px-2 py-0.5 rounded-full"
-              style={{ background: "#eaf5ee", color: "#2D6A4F" }}>{o}</span>
-          ))}
+      <div className="flex-1 min-w-0 p-5 sm:p-7 flex flex-col gap-2.5">
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-lg sm:text-xl font-bold text-[#111111] dark:text-[#F5F5F5] truncate">{org.organisation_name}</p>
+          {isVerified && <VerifiedBadge />}
         </div>
-      ) : null}
+        {org.organisation_type && (
+          <p className="text-sm text-[#111111] dark:text-[#F5F5F5] capitalize">{org.organisation_type.replace(/_/g, " ")}</p>
+        )}
+        {org.description && (
+          <p className="text-sm text-[#111111] dark:text-[#F5F5F5] leading-relaxed line-clamp-2">{org.description}</p>
+        )}
+        <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-[#111111] dark:text-[#F5F5F5]">
+          {sectors.length > 0 && (
+            <p><span className="font-semibold">Sector: </span>{sectors.slice(0, 2).join(", ")}{sectors.length > 2 ? ` +${sectors.length - 2}` : ""}</p>
+          )}
+          {countries.length > 0 && (
+            <p><span className="font-semibold">Location: </span>{countries.join(", ")}</p>
+          )}
+        </div>
+        {(org.needs?.length || org.offers?.length) ? (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {org.needs?.slice(0, 2).map(n => (
+              <span key={n} className="text-xs font-medium px-2.5 py-1 rounded-md" style={{ color: "#993C1D", background: "#FAECE7" }}>{n}</span>
+            ))}
+            {org.offers?.slice(0, 1).map(o => (
+              <span key={o} className="text-xs font-medium px-2.5 py-1 rounded-md" style={{ color: "#0F6E56", background: "#E1F5EE" }}>{o}</span>
+            ))}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
