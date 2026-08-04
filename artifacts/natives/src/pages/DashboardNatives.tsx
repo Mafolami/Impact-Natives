@@ -549,12 +549,12 @@ function NativesOrgCard({ org, onClick }: { org: OrgRow; onClick: () => void }) 
     <div
       onClick={onClick}
       className="flex bg-white dark:bg-card border border-border rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-md">
-      <div className="w-24 sm:w-56 shrink-0 flex items-center justify-center overflow-hidden"
+      <div className="w-16 sm:w-32 shrink-0 flex items-center justify-center overflow-hidden"
         style={{ background: org.logo_url ? "transparent" : "#D1D5DB" }}>
         {org.logo_url ? (
           <img src={org.logo_url} alt={org.organisation_name} className="w-full h-full object-cover" />
         ) : (
-          <span className="text-white text-2xl sm:text-5xl font-bold">{initials(org.organisation_name || "?")}</span>
+          <span className="text-white text-xl sm:text-3xl font-bold">{initials(org.organisation_name || "?")}</span>
         )}
       </div>
       <div className="flex-1 min-w-0 p-5 sm:p-7 flex flex-col gap-2.5">
