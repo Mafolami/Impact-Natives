@@ -526,7 +526,7 @@ function NativesOrgCard({ org, onClick }: { org: OrgRow; onClick: () => void }) 
       onClick={onClick}
       className="flex bg-white dark:bg-card border border-border rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-md">
       <div className="w-24 sm:w-56 shrink-0 flex items-center justify-center overflow-hidden"
-        style={{ background: org.logo_url ? "transparent" : "#4A6FA5" }}>
+        style={{ background: org.logo_url ? "transparent" : "#6B7280" }}>
         {org.logo_url ? (
           <img src={org.logo_url} alt={org.organisation_name} className="w-full h-full object-cover" />
         ) : (
