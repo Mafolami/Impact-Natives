@@ -571,6 +571,7 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, onClo
   item: DDItemDef; evidence: Record<string, any>; documents: DDDocument[]; canSeeSensitive: boolean; onClose: () => void;
 }) {
   const [openingDocId, setOpeningDocId] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{ url: string; fileName: string } | null>(null);
 
   async function handleView(doc: DDDocument) {
     setOpeningDocId(doc.id);
@@ -582,12 +583,53 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, onClo
         body: JSON.stringify({ documentId: doc.id }),
       });
       const result = await res.json();
-      if (result.url) window.open(result.url, "_blank");
+      if (result.url) setPreview({ url: result.url, fileName: doc.file_name });
       else alert("Couldn't open document.");
     } catch {
       alert("Couldn't open document.");
     }
     setOpeningDocId(null);
+  }
+
+  if (preview) {
+    const ext = preview.fileName.split(".").pop()?.toLowerCase() ?? "";
+    const isImage = ["png", "jpg", "jpeg", "webp", "gif"].includes(ext);
+    const isPdf = ext === "pdf";
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setPreview(null)}>
+        <div className="bg-card rounded-2xl border border-border w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border shrink-0">
+            <button type="button" onClick={() => setPreview(null)}
+              className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5 shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+                <path d="M19 12H5M12 5l-7 7 7 7" />
+              </svg>
+              Back
+            </button>
+            <p className="text-sm font-medium text-foreground truncate flex-1 text-center">{preview.fileName}</p>
+            <a href={preview.url} download={preview.fileName}
+              className="text-sm text-[#2D6A4F] hover:underline underline-offset-2 shrink-0">
+              Download
+            </a>
+          </div>
+          <div className="flex-1 overflow-auto bg-muted/20 flex items-center justify-center min-h-[50vh]">
+            {isImage ? (
+              <img src={preview.url} alt={preview.fileName} className="max-w-full max-h-[85vh] object-contain" />
+            ) : isPdf ? (
+              <iframe src={preview.url} title={preview.fileName} className="w-full h-[75vh] border-0" />
+            ) : (
+              <div className="p-8 text-center space-y-2">
+                <p className="text-sm text-muted-foreground">Preview isn't available for this file type.</p>
+                <a href={preview.url} download={preview.fileName}
+                  className="text-sm text-[#2D6A4F] hover:underline underline-offset-2 font-medium">
+                  Download {preview.fileName}
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
