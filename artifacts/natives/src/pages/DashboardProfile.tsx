@@ -884,6 +884,44 @@ export default function DashboardProfile() {
     setContactSaving(false);
   }
 
+  // ── Online Presence pane: display-card / edit-modal state ────────────────
+  const [editingPresenceOpen, setEditingPresenceOpen] = useState(false);
+  const [presenceSaving, setPresenceSaving]     = useState(false);
+  const [draftWebsite, setDraftWebsite]         = useState("");
+  const [draftSocialLinks, setDraftSocialLinks] = useState<{ label: string; url: string }[]>([]);
+  const [draftSocialLabel, setDraftSocialLabel] = useState("");
+  const [draftSocialUrl, setDraftSocialUrl]     = useState("");
+  function openPresenceModal() {
+    setDraftLinkedinUrl(linkedinUrl);
+    setDraftWebsite(website);
+    setDraftSocialLinks(socialLinks);
+    setDraftSocialLabel("");
+    setDraftSocialUrl("");
+    setEditingPresenceOpen(true);
+  }
+  async function savePresenceSection() {
+    if (!user) return;
+    setPresenceSaving(true);
+    try {
+      await saveProfileFields(user.id, {
+        linkedin_url: draftLinkedinUrl || null,
+        website: draftWebsite || null,
+        social_links: draftSocialLinks.length > 0 ? draftSocialLinks : null,
+      });
+      if (isOrg) {
+        await saveOrgFields(user.id, { website: draftWebsite || null });
+      }
+      setLinkedinUrl(draftLinkedinUrl);
+      setWebsite(draftWebsite);
+      setSocialLinks(draftSocialLinks);
+      await refreshProfile();
+      setEditingPresenceOpen(false);
+    } catch (err: any) {
+      alert(`Couldn't save: ${err.message}`);
+    }
+    setPresenceSaving(false);
+  }
+
   useEffect(() => {
     if (!user) return;
     supabase.from("organizations")
@@ -1624,53 +1662,75 @@ export default function DashboardProfile() {
 
               {/* ── ONLINE PRESENCE PANE ── */}
               {activePane === "presence" && (
-                <div className="space-y-8">
-                  <PaneHeader title="Online presence" />
-                  <div className="grid grid-cols-2 gap-4">
+                <SectionCardGroup>
+                  <SectionCard title="Online presence" onEdit={openPresenceModal}>
                     {!isOrg && (
-                      <div>
-                        <Label className="text-sm font-medium">LinkedIn</Label>
-                        <Input value={linkedinUrl} onChange={e => setLinkedinUrl(e.target.value)} className="mt-1 h-10" placeholder="https://linkedin.com/in/..." type="url" />
-                      </div>
+                      <DisplayField label="LinkedIn">
+                        {linkedinUrl ? <p className="text-sm text-black dark:text-white">{linkedinUrl}</p> : <EmptyValue />}
+                      </DisplayField>
                     )}
+                    <DisplayField label="Website or portfolio">
+                      {website ? <p className="text-sm text-black dark:text-white">{website}</p> : <EmptyValue />}
+                    </DisplayField>
+                    <DisplayField label="Social profiles">
+                      {socialLinks.length > 0
+                        ? (
+                          <div className="space-y-1">
+                            {socialLinks.map((s, i) => (
+                              <p key={i} className="text-sm text-black dark:text-white"><span className="font-semibold">{s.label}:</span> {s.url}</p>
+                            ))}
+                          </div>
+                        )
+                        : <EmptyValue />}
+                    </DisplayField>
+                  </SectionCard>
+                </SectionCardGroup>
+              )}
+
+              {editingPresenceOpen && (
+                <EditModal title="Edit online presence" onClose={() => setEditingPresenceOpen(false)} onSave={savePresenceSection} saving={presenceSaving}>
+                  {!isOrg && (
                     <div>
-                      <Label className="text-sm font-medium">Website or portfolio</Label>
-                      <Input value={website} onChange={e => setWebsite(e.target.value)} className="mt-1 h-10" placeholder="https://yourwebsite.org" type="url" />
+                      <Label className="text-sm font-medium">LinkedIn</Label>
+                      <Input value={draftLinkedinUrl} onChange={e => setDraftLinkedinUrl(e.target.value)} className="mt-1 h-10" placeholder="https://linkedin.com/in/..." type="url" />
                     </div>
+                  )}
+                  <div>
+                    <Label className="text-sm font-medium">Website or portfolio</Label>
+                    <Input value={draftWebsite} onChange={e => setDraftWebsite(e.target.value)} className="mt-1 h-10" placeholder="https://yourwebsite.org" type="url" />
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Social profiles</Label>
-                    <p className="text-xs text-black dark:text-white mt-0.5 mb-2">Add Instagram, X, TikTok, YouTube, Behance — any platform.</p>
+                    <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">Add Instagram, X, TikTok, YouTube, Behance — any platform.</p>
                     <div className="flex gap-2">
-                      <Input value={socialLabel} onChange={(e) => setSocialLabel(e.target.value)} className="h-10 w-28 shrink-0" placeholder="e.g. Instagram" />
-                      <Input value={socialUrl} onChange={(e) => setSocialUrl(e.target.value)} className="h-10 flex-1" placeholder="https://instagram.com/yourhandle" type="url" />
+                      <Input value={draftSocialLabel} onChange={(e) => setDraftSocialLabel(e.target.value)} className="h-10 w-28 shrink-0" placeholder="e.g. Instagram" />
+                      <Input value={draftSocialUrl} onChange={(e) => setDraftSocialUrl(e.target.value)} className="h-10 flex-1" placeholder="https://instagram.com/yourhandle" type="url" />
                       <button type="button"
                         onClick={() => {
-                          if (!socialLabel.trim() || !socialUrl.trim()) return;
-                          setSocialLinks((prev) => [...prev, { label: socialLabel.trim(), url: socialUrl.trim() }]);
-                          setSocialLabel(""); setSocialUrl("");
+                          if (!draftSocialLabel.trim() || !draftSocialUrl.trim()) return;
+                          setDraftSocialLinks((prev) => [...prev, { label: draftSocialLabel.trim(), url: draftSocialUrl.trim() }]);
+                          setDraftSocialLabel(""); setDraftSocialUrl("");
                         }}
-                        className="h-10 px-3 rounded-lg border border-border text-sm text-black dark:text-white hover:text-foreground hover:border-foreground/30 transition-colors shrink-0">
+                        className="h-10 px-3 rounded-lg border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
                         Add
                       </button>
                     </div>
-                    {socialLinks.length > 0 && (
+                    {draftSocialLinks.length > 0 && (
                       <div className="mt-2 space-y-1.5">
-                        {socialLinks.map((s, i) => (
+                        {draftSocialLinks.map((s, i) => (
                           <div key={i} className="flex items-center justify-between text-xs border border-border rounded-lg px-3 py-2 bg-muted/30">
                             <div className="flex items-center gap-2 min-w-0">
                               <span className="font-medium text-foreground shrink-0">{s.label}</span>
                               <span className="text-black dark:text-white truncate">{s.url}</span>
                             </div>
-                            <button type="button" onClick={() => setSocialLinks((prev) => prev.filter((_, idx) => idx !== i))}
+                            <button type="button" onClick={() => setDraftSocialLinks((prev) => prev.filter((_, idx) => idx !== i))}
                               className="ml-2 text-black dark:text-white hover:text-foreground shrink-0">✕</button>
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
-                  <SaveBar />
-                </div>
+                </EditModal>
               )}
 
               {/* ── DD READINESS PANE ── */}
