@@ -115,6 +115,11 @@ function sdgLabel(value: string | number): string {
   if (!Number.isNaN(n) && n >= 1 && n <= SDG_NAMES.length) return SDG_NAMES[n - 1];
   return String(value);
 }
+function firstSentence(text: string): string {
+  const idx = text.indexOf(".");
+  return idx === -1 ? text : text.slice(0, idx + 1);
+}
+
 const PARTNER_ROLE_LABELS: Record<string, string> = {
   funding: "Funding", technical: "Technical", operational: "Operational",
   leadership: "Leadership", strategic: "Strategic", lead: "Project Lead", other: "Other",
@@ -520,12 +525,12 @@ function NativesOrgCard({ org, onClick }: { org: OrgRow; onClick: () => void }) 
     <div
       onClick={onClick}
       className="flex bg-white dark:bg-card border border-border rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-md">
-      <div className="w-36 sm:w-56 shrink-0 flex items-center justify-center overflow-hidden"
-        style={{ background: org.logo_url ? "transparent" : color }}>
+      <div className="w-24 sm:w-56 shrink-0 flex items-center justify-center overflow-hidden"
+        style={{ background: org.logo_url ? "transparent" : "#4A6FA5" }}>
         {org.logo_url ? (
           <img src={org.logo_url} alt={org.organisation_name} className="w-full h-full object-cover" />
         ) : (
-          <span className="text-white text-4xl sm:text-5xl font-bold">{initials(org.organisation_name || "?")}</span>
+          <span className="text-white text-2xl sm:text-5xl font-bold">{initials(org.organisation_name || "?")}</span>
         )}
       </div>
       <div className="flex-1 min-w-0 p-5 sm:p-7 flex flex-col gap-2.5">
@@ -537,7 +542,7 @@ function NativesOrgCard({ org, onClick }: { org: OrgRow; onClick: () => void }) 
           <p className="text-sm text-[#111111] dark:text-[#F5F5F5] capitalize">{org.organisation_type.replace(/_/g, " ")}</p>
         )}
         {org.description && (
-          <p className="text-sm text-[#111111] dark:text-[#F5F5F5] leading-relaxed line-clamp-2">{org.description}</p>
+          <p className="text-sm text-[#111111] dark:text-[#F5F5F5] leading-relaxed line-clamp-3">{firstSentence(org.description)}</p>
         )}
         <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-[#111111] dark:text-[#F5F5F5]">
           {sectors.length > 0 && (
