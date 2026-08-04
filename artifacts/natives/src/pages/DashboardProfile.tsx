@@ -1198,19 +1198,31 @@ export default function DashboardProfile() {
                       { key: "safeguarding_policy", label: "Safeguarding policy", sub: "Child protection / protection from sexual exploitation and abuse policy", state: ddSafeguardingPolicy, set: setDdSafeguardingPolicy },
                       { key: "legal_registration", label: "Legal registration / tax-exempt status", sub: "Registered legal entity with valid tax status", state: ddLegalRegistration, set: setDdLegalRegistration },
                       { key: "legal_compliance_declaration", label: "Legal & compliance declaration", sub: "No blacklisting, pending disputes, or undisclosed conflicts", state: ddLegalComplianceDeclaration, set: setDdLegalComplianceDeclaration },
-                    ].map(item => (
-                      <button key={item.key} type="button"
-                        onClick={() => { if (item.state) { item.set(false); } else { setDdModalKey(item.key); } }}
-                        className={`w-full text-left px-4 py-3 rounded-xl border transition-colors flex items-start gap-3 ${
-                          item.state ? "border-[#2D6A4F] bg-[rgba(45,106,79,0.12)]" : "border-border hover:border-foreground/20"
-                        }`}>
-                        <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
-                          item.state ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-border"
-                        }`}>
-                          {item.state && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
-                        </div>
+                    ].map(item => item.state ? (
+                      <div key={item.key}
+                        className="w-full px-4 py-3 rounded-xl border border-[#2D6A4F] bg-[rgba(45,106,79,0.12)] flex items-start gap-3">
+                        <button type="button" onClick={() => setDdModalKey(item.key)}
+                          className="w-4 h-4 rounded border border-[#2D6A4F] bg-[#2D6A4F] flex items-center justify-center shrink-0 mt-0.5"
+                          title="Review or edit">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                        </button>
+                        <button type="button" onClick={() => setDdModalKey(item.key)} className="flex-1 min-w-0 text-left">
+                          <p className="text-sm font-medium text-[#2D6A4F]">{item.label}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{item.sub}</p>
+                        </button>
+                        <button type="button"
+                          onClick={() => { if (confirm("Mark this item as not complete? You'll need to re-verify it later.")) item.set(false); }}
+                          className="text-muted-foreground hover:text-red-500 transition-colors shrink-0 mt-0.5"
+                          title="Mark as not complete">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <button key={item.key} type="button" onClick={() => setDdModalKey(item.key)}
+                        className="w-full text-left px-4 py-3 rounded-xl border border-border hover:border-foreground/20 transition-colors flex items-start gap-3">
+                        <div className="w-4 h-4 rounded border border-border shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-medium ${item.state ? "text-[#2D6A4F]" : "text-foreground"}`}>{item.label}</p>
+                          <p className="text-sm font-medium text-foreground">{item.label}</p>
                           <p className="text-xs text-muted-foreground mt-0.5">{item.sub}</p>
                         </div>
                       </button>
