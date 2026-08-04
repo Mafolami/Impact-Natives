@@ -549,12 +549,11 @@ function NativesOrgCard({ org, onClick }: { org: OrgRow; onClick: () => void }) 
 
       {/* Mobile: compact row, same pattern as the individual card */}
       <div className="sm:hidden flex items-center gap-4 bg-white dark:bg-card border border-border rounded-2xl p-5 transition-all duration-200 hover:shadow-md">
-        <div className={`w-14 h-14 rounded-full shrink-0 flex items-center justify-center overflow-hidden ${org.logo_url ? "bg-white dark:bg-card" : ""}`}
-          style={!org.logo_url ? { background: "#D1D5DB" } : undefined}>
+        <div className="w-14 h-14 rounded-full shrink-0 flex items-center justify-center overflow-hidden bg-white dark:bg-card">
           {org.logo_url ? (
             <img src={org.logo_url} alt={org.organisation_name} className="w-full h-full object-contain p-1.5" />
           ) : (
-            <span className="text-[#6B7280] text-base font-bold">{initials(org.organisation_name || "?")}</span>
+            <span className="text-[#6B7280] dark:text-[#D1D5DB] text-base font-bold">{initials(org.organisation_name || "?")}</span>
           )}
         </div>
         <div className="min-w-0 flex-1">
@@ -571,13 +570,12 @@ function NativesOrgCard({ org, onClick }: { org: OrgRow; onClick: () => void }) 
 
       {/* Desktop / tablet: full card with large logo panel */}
       <div className="hidden sm:flex bg-white dark:bg-card border border-border rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md">
-        <div className={`w-56 shrink-0 flex items-center justify-center overflow-hidden ${org.logo_url ? "bg-white dark:bg-card" : ""}`}
-          style={!org.logo_url ? { background: "#D1D5DB" } : undefined}>
+        <div className="w-56 shrink-0 flex items-center justify-center overflow-hidden bg-white dark:bg-card">
           {org.logo_url ? (
             <img src={org.logo_url} alt={org.organisation_name} className="max-w-[55%] max-h-[55%] object-contain" />
           ) : (
-            <div className="w-24 h-24 rounded-full bg-white/60 flex items-center justify-center">
-              <span className="text-[#6B7280] text-2xl font-bold">{initials(org.organisation_name || "?")}</span>
+            <div className="w-24 h-24 rounded-full bg-[#F3F4F6] dark:bg-white/10 flex items-center justify-center">
+              <span className="text-[#6B7280] dark:text-[#D1D5DB] text-2xl font-bold">{initials(org.organisation_name || "?")}</span>
             </div>
           )}
         </div>
