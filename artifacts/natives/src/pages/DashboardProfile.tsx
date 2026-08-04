@@ -138,6 +138,42 @@ type PaneKey =
 
 interface PaneDef { key: PaneKey; label: string; }
 
+function DeliveryStatsCard({ orgId }: { orgId: string | null }) {
+  const [stats, setStats] = useState<{ completed: number; resolved: number; total: number } | null>(null);
+
+  useEffect(() => {
+    if (!orgId) return;
+    supabase.rpc("get_org_delivery_stats", { target_org_id: orgId })
+      .then(({ data }) => { if (data?.[0]) setStats(data[0]); });
+  }, [orgId]);
+
+  if (!stats) return null;
+  const MIN_RESOLVED = 3;
+  const hasEnoughData = stats.resolved >= MIN_RESOLVED;
+  const rate = hasEnoughData ? Math.round((stats.completed / stats.resolved) * 100) : null;
+
+  return (
+    <div className="pt-2 border-t border-border">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs text-muted-foreground">Delivery (platform-tracked, not editable here)</p>
+        {hasEnoughData && <p className="text-xs font-bold text-foreground">{rate}%</p>}
+      </div>
+      {hasEnoughData ? (
+        <>
+          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+            <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${rate}%` }} />
+          </div>
+          <p className="text-xs text-muted-foreground mt-1.5">{stats.completed} of {stats.resolved} tracked relationships completed</p>
+        </>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          {stats.total === 0 ? "No tracked delivery history yet." : `${stats.resolved} of ${MIN_RESOLVED} relationships needed to show a rate.`}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave }: {
   item: DDItemDef; initialAnswers: Record<string, any>; orgId: string; userId: string;
   onClose: () => void; onSave: (answers: Record<string, any>) => void;
@@ -1240,6 +1276,7 @@ export default function DashboardProfile() {
                         style={{ width: `${Math.round(([ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework, ddSafeguardingPolicy, ddLegalRegistration, ddLegalComplianceDeclaration].filter(Boolean).length / 8) * 100)}%` }} />
                     </div>
                   </div>
+                  <DeliveryStatsCard orgId={orgId} />
                   <SaveBar />
                 </div>
               )}

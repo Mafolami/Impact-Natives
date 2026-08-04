@@ -740,6 +740,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
   const [ddViewingKey, setDdViewingKey]   = useState<string | null>(null);
   const [canSeeSensitive, setCanSeeSensitive] = useState(false);
   const [docsByItem, setDocsByItem]       = useState<Record<string, DDDocument[]>>({});
+  const [deliveryStats, setDeliveryStats] = useState<{ completed: number; resolved: number; total: number } | null>(null);
 
   useEffect(() => {
     if (!user || user.id === org.user_id) { setCanSeeSensitive(true); return; }
@@ -859,6 +860,11 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
         });
         setReputationPartners(results);
       });
+  }, [org.id]);
+
+  useEffect(() => {
+    supabase.rpc("get_org_delivery_stats", { target_org_id: org.id })
+      .then(({ data }) => { if (data?.[0]) setDeliveryStats(data[0]); });
   }, [org.id]);
 
   return (
@@ -1017,6 +1023,51 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
             canSeeSensitive={canSeeSensitive}
             onClose={() => setDdViewingKey(null)}
           />
+        );
+      })()}
+
+      {deliveryStats && (() => {
+        const MIN_RESOLVED = 3;
+        const hasEnoughData = deliveryStats.resolved >= MIN_RESOLVED;
+        const rate = hasEnoughData ? Math.round((deliveryStats.completed / deliveryStats.resolved) * 100) : null;
+        return (
+          <div className="rounded-xl px-4 py-3 space-y-2"
+            style={{ background: "linear-gradient(135deg, rgba(45,106,79,0.05) 0%, transparent 100%)", border: "1px solid rgba(45,106,79,0.14)" }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Delivery</p>
+                <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground/70 px-1.5 py-0.5 rounded-full border border-border">
+                  Platform-tracked
+                </span>
+              </div>
+              {hasEnoughData && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                  style={{
+                    background: rate! >= 80 ? "#eaf5ee" : rate! >= 50 ? "#fffbeb" : "#f5f5f5",
+                    color: rate! >= 80 ? "#2D6A4F" : rate! >= 50 ? "#f59e0b" : "#6b7280",
+                  }}>
+                  {rate}% completed
+                </span>
+              )}
+            </div>
+            {hasEnoughData ? (
+              <>
+                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${rate}%`, background: rate! >= 80 ? "#2D6A4F" : rate! >= 50 ? "#f59e0b" : "#9ca3af" }} />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {deliveryStats.completed} of {deliveryStats.resolved} tracked relationships completed
+                </p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {deliveryStats.total === 0
+                  ? "No tracked delivery history yet."
+                  : `${deliveryStats.resolved} of ${MIN_RESOLVED} relationships needed to show a delivery rate.`}
+              </p>
+            )}
+          </div>
         );
       })()}
 
