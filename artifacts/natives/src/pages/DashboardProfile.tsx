@@ -156,17 +156,27 @@ async function saveOrgFields(userId: string, fields: Record<string, any>) {
   if (error) throw error;
 }
 
+// Wraps a set of SectionCards in the same full-bleed, thick-divider strip
+// used throughout DashboardNatives -- NOT individually bordered boxes.
+function SectionCardGroup({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="bg-white dark:bg-card w-[calc(100%+3rem)] -mx-6 divide-y-[6px] divide-[#FAF6F0] dark:divide-black">
+      {children}
+    </div>
+  );
+}
+
 function SectionCard({ title, onEdit, children }: { title: string; onEdit: () => void; children: React.ReactNode }) {
   return (
-    <div className="w-[calc(100%+3rem)] -mx-6 rounded-2xl border border-border bg-white dark:bg-card p-6">
+    <div className="px-8 sm:px-12 py-10">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-base font-bold text-black dark:text-white">{title}</h3>
+        <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
         <button type="button" onClick={onEdit} aria-label={`Edit ${title}`}
-          className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-black dark:text-white hover:border-foreground/40 transition-colors shrink-0">
+          className="w-8 h-8 rounded-md border border-border flex items-center justify-center text-[#111111] dark:text-[#F5F5F5] hover:border-foreground/40 transition-colors shrink-0">
           <Pencil className="w-3.5 h-3.5" />
         </button>
       </div>
-      <div className="divide-y divide-border dark:divide-border [&>*:not(:first-child)]:pt-6">
+      <div className="space-y-9">
         {children}
       </div>
     </div>
@@ -176,19 +186,19 @@ function SectionCard({ title, onEdit, children }: { title: string; onEdit: () =>
 function DisplayField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1.5">{label}</p>
+      <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] mb-1.5">{label}</p>
       {children}
     </div>
   );
 }
 
 function EmptyValue() {
-  return <p className="text-sm text-black dark:text-white italic opacity-60">Not set yet</p>;
+  return <p className="text-sm text-[#111111] dark:text-[#F5F5F5] italic opacity-60">Not set yet</p>;
 }
 
 function FlatTag({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center px-3 py-1.5 rounded-full border border-border text-xs font-medium text-black dark:text-white">
+    <span className="text-sm text-[#111111] dark:text-[#F5F5F5] border border-border px-3 py-1 rounded-md">
       {children}
     </span>
   );
@@ -1746,9 +1756,9 @@ export default function DashboardProfile() {
             
             {/* ── CSR & ESG PANE (corporates/tech/public sector) ── */}
             {activePane === "csr" && isCorporate && (
-                <div className="space-y-6">
+                <SectionCardGroup>
 
-                  {/* ── CSR & ESG card (display only -- edit via modal) ── */}
+                  {/* ── CSR & ESG section (display only -- edit via modal) ── */}
                   <SectionCard title="CSR & ESG" onEdit={openCsrEsgModal}>
                     <DisplayField label="CSR/ESG focus statement">
                       {csrFocusStatement
@@ -1818,12 +1828,12 @@ export default function DashboardProfile() {
                       </DisplayField>
                     </SectionCard>
                   )}
-                </div>
+                </SectionCardGroup>
               )}
 
               {/* ── CSR & ESG edit modal ── */}
               {editingCsrSection === "csrEsg" && (
-                <EditModal title="Edit CSR & ESG" onClose={() => setEditingCsrSection(null)} onSave={saveCsrEsgSection} saving={csrSectionSaving}>
+                <EditModal title="CSR & ESG" onClose={() => setEditingCsrSection(null)} onSave={saveCsrEsgSection} saving={csrSectionSaving}>
                   <div>
                     <Label className="text-sm font-medium">CSR/ESG focus statement</Label>
                     <Textarea value={draftCsrFocusStatement} onChange={e => setDraftCsrFocusStatement(e.target.value)} className="mt-1 resize-none" rows={4}
@@ -1848,7 +1858,7 @@ export default function DashboardProfile() {
 
               {/* ── Partnership preferences edit modal ── */}
               {editingCsrSection === "partnership" && (
-                <EditModal title="Edit partnership preferences" onClose={() => setEditingCsrSection(null)} onSave={savePartnershipSection} saving={csrSectionSaving}>
+                <EditModal title="Partnership preferences" onClose={() => setEditingCsrSection(null)} onSave={savePartnershipSection} saving={csrSectionSaving}>
                   <div>
                     <Label className="text-sm font-medium">What we bring to partnerships</Label>
                     <div className="mt-2 space-y-1">
@@ -1915,7 +1925,7 @@ export default function DashboardProfile() {
 
               {/* ── Technology support edit modal ── */}
               {editingCsrSection === "tech" && (
-                <EditModal title="Edit technology support" onClose={() => setEditingCsrSection(null)} onSave={saveTechSection} saving={csrSectionSaving}>
+                <EditModal title="Technology support" onClose={() => setEditingCsrSection(null)} onSave={saveTechSection} saving={csrSectionSaving}>
                   <div>
                     <Label className="text-sm font-medium">Tech resources we can offer</Label>
                     <div className="mt-2 space-y-1">
