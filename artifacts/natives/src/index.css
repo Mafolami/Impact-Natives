@@ -161,6 +161,7 @@
   }
   html {
     font-size: 15px;
+    scrollbar-gutter: stable;
   }
 
 }
