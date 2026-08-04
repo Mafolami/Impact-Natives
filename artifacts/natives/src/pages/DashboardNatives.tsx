@@ -910,11 +910,11 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
         Back
       </button>
 
-      <div className="bg-[#FFFFFF] dark:bg-[#161616] w-full divide-y-[1.5px] divide-[#F0E0D0] dark:divide-[#4A3626]">
+      <div className="bg-white dark:bg-card w-full divide-y-2 divide-[#F7F1E9] dark:divide-[#3A2E24]">
 
         <div className="px-8 sm:px-12 py-10">
           <div className="flex items-start gap-5">
-            <div className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-full flex items-center justify-center shrink-0 overflow-hidden border border-[#F0E0D0] dark:border-[#4A3626]"
+            <div className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-full flex items-center justify-center shrink-0 overflow-hidden border border-border"
               style={{ background: org.logo_url ? "transparent" : color }}>
               {org.logo_url ? (
                 <img src={org.logo_url} alt={org.organisation_name} className="w-full h-full object-cover" />
@@ -984,7 +984,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                   <span className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] ml-auto">{ddScore}%</span>
                 </div>
                 <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mt-1">Self-attested, not verified by Impact Natives</p>
-                <div className="h-[3px] bg-[#F0F0F0] dark:bg-[#333333] rounded-full mt-2.5">
+                <div className="h-[3px] bg-muted rounded-full mt-2.5">
                   <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${ddScore}%` }} />
                 </div>
                 <div className="flex flex-wrap gap-2 mt-3">
@@ -1153,7 +1153,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                     <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] mb-2">What we bring</p>
                     <div className="flex flex-wrap gap-2">
                       {org.inkind_support.map(s => (
-                        <span key={s} className="text-sm text-[#111111] dark:text-[#F5F5F5] border border-[#F0E0D0] dark:border-[#4A3626] px-3 py-1 rounded-md">{s}</span>
+                        <span key={s} className="text-sm text-[#111111] dark:text-[#F5F5F5] border border-border px-3 py-1 rounded-md">{s}</span>
                       ))}
                     </div>
                   </div>
@@ -1163,7 +1163,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                     <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] mb-2">ESG frameworks</p>
                     <div className="flex flex-wrap gap-2">
                       {org.esg_frameworks.map(f => (
-                        <span key={f} className="text-sm text-[#111111] dark:text-[#F5F5F5] border border-[#F0E0D0] dark:border-[#4A3626] px-3 py-1 rounded-md">{f}</span>
+                        <span key={f} className="text-sm text-[#111111] dark:text-[#F5F5F5] border border-border px-3 py-1 rounded-md">{f}</span>
                       ))}
                     </div>
                   </div>
@@ -1181,7 +1181,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                     <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] mb-2">Technology support available</p>
                     <div className="flex flex-wrap gap-2">
                       {org.tech_support_available.map(t => (
-                        <span key={t} className="text-sm text-[#111111] dark:text-[#F5F5F5] border border-[#F0E0D0] dark:border-[#4A3626] px-3 py-1 rounded-md">{t}</span>
+                        <span key={t} className="text-sm text-[#111111] dark:text-[#F5F5F5] border border-border px-3 py-1 rounded-md">{t}</span>
                       ))}
                     </div>
                   </div>
@@ -1239,10 +1239,12 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
             <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mb-3">From outcomes tracked on this platform</p>
             {hasDelivery ? (
               <>
-                <div className="h-[3px] bg-[#F0F0F0] dark:bg-[#333333] rounded-full">
-                  <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${deliveryRate}%` }} />
-                </div>
-                <p className="text-sm text-[#111111] dark:text-[#F5F5F5] mt-3">
+              <div className="flex gap-1">
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <div key={i} className={`h-2 flex-1 rounded-sm ${i < Math.round((deliveryRate ?? 0) / 10) ? "bg-[#2D6A4F]" : "bg-muted"}`} />
+                ))}
+              </div>
+              <p className="text-sm text-[#111111] dark:text-[#F5F5F5] mt-3">
                   {deliveryStats.completed} of {deliveryStats.resolved} relationship{deliveryStats.resolved !== 1 ? "s" : ""} completed
                   {[
                     deliveryStats.stalled > 0 ? `${deliveryStats.stalled} stalled` : null,
@@ -1287,7 +1289,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
             <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5] mb-6">Active initiatives</p>
             <div className="space-y-5">
               {orgInitiatives.map(ini => (
-                <div key={ini.id} className="pb-5 border-b border-[#F0E0D0] dark:border-[#4A3626] last:border-0 last:pb-0 space-y-1.5">
+                <div key={ini.id} className="pb-5 border-b border-border last:border-0 last:pb-0 space-y-1.5">
                   <p className="text-base font-semibold text-[#111111] dark:text-[#F5F5F5] leading-snug">{ini.title}</p>
                   <p className="text-sm text-[#111111] dark:text-[#F5F5F5]">
                     {[ini.locations?.slice(0,2).join(", "), ini.budget].filter(Boolean).join(" · ")}
@@ -1311,7 +1313,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                 const publishedRow = orgInitiatives.find(ini => ini.title === pillar.pillar_name);
                 const specificAsk = publishedRow?.specific_ask ?? pillar.specific_ask_draft;
                 return (
-                  <div key={i} className="pb-5 border-b border-[#F0E0D0] dark:border-[#4A3626] last:border-0 last:pb-0 space-y-1.5">
+                  <div key={i} className="pb-5 border-b border-border last:border-0 last:pb-0 space-y-1.5">
                     <p className="text-base font-semibold text-[#111111] dark:text-[#F5F5F5] leading-snug">{pillar.pillar_name}</p>
                     {specificAsk && <p className="text-sm text-[#111111] dark:text-[#F5F5F5] leading-relaxed">{specificAsk}</p>}
                     {pillar.un_sdg_code && <p className="text-xs text-[#111111] dark:text-[#F5F5F5]">{pillar.un_sdg_code}</p>}
