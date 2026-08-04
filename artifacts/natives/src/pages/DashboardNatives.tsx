@@ -631,7 +631,7 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, onClo
               Download
             </a>
           </div>
-          <div className="flex-1 overflow-auto bg-muted/20 flex items-center justify-center min-h-[50vh]">
+          <div className="flex-1 overflow-auto bg-muted/20 flex items-start justify-center min-h-[50vh]">
             {isImage ? (
               <img src={preview.url} alt={preview.fileName} className="max-w-full max-h-[85vh] object-contain" />
             ) : isPdf ? (
