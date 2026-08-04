@@ -543,50 +543,76 @@ function NativesOrgCard({ org, onClick }: { org: OrgRow; onClick: () => void }) 
   const isVerified = org.verification_status === "verified";
   const sectors    = normalizeArr(org.sector);
   const countries  = normalizeArr(org.country);
-  const color      = avatarColor(org.id);
 
   return (
-    <div
-      onClick={onClick}
-      className="flex bg-white dark:bg-card border border-border rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-md">
-      <div className="w-32 sm:w-44 shrink-0 flex items-center justify-center overflow-hidden"
-        style={{ background: org.logo_url ? "transparent" : "#D1D5DB" }}>
-        {org.logo_url ? (
-          <img src={org.logo_url} alt={org.organisation_name} className="w-full h-full object-cover" />
-        ) : (
-          <span className="text-white text-3xl sm:text-4xl font-bold">{initials(org.organisation_name || "?")}</span>
-        )}
-      </div>
-      <div className="flex-1 min-w-0 p-5 sm:p-7 flex flex-col gap-2.5">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-lg sm:text-xl font-bold text-[#111111] dark:text-[#F5F5F5] truncate">{org.organisation_name}</p>
-          {isVerified && <VerifiedBadge />}
-        </div>
-        {org.organisation_type && (
-          <p className="text-sm text-[#111111] dark:text-[#F5F5F5] capitalize">{org.organisation_type.replace(/_/g, " ")}</p>
-        )}
-        {org.description && (
-          <p className="text-sm text-[#111111] dark:text-[#F5F5F5] leading-relaxed line-clamp-3">{firstSentence(org.description)}</p>
-        )}
-        <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-[#111111] dark:text-[#F5F5F5]">
-          {sectors.length > 0 && (
-            <p><span className="font-semibold">Sector: </span>{sectors.slice(0, 2).join(", ")}{sectors.length > 2 ? ` +${sectors.length - 2}` : ""}</p>
-          )}
-          {countries.length > 0 && (
-            <p><span className="font-semibold">Location: </span>{countries.join(", ")}</p>
+    <div onClick={onClick} className="cursor-pointer">
+
+      {/* Mobile: compact row, same pattern as the individual card */}
+      <div className="sm:hidden flex items-center gap-4 bg-white dark:bg-card border border-border rounded-2xl p-5 transition-all duration-200 hover:shadow-md">
+        <div className="w-14 h-14 rounded-full shrink-0 flex items-center justify-center overflow-hidden"
+          style={{ background: org.logo_url ? "#FFFFFF" : "#D1D5DB" }}>
+          {org.logo_url ? (
+            <img src={org.logo_url} alt={org.organisation_name} className="w-full h-full object-contain p-1.5" />
+          ) : (
+            <span className="text-[#6B7280] text-base font-bold">{initials(org.organisation_name || "?")}</span>
           )}
         </div>
-        {(org.needs?.length || org.offers?.length) ? (
-          <div className="flex flex-wrap gap-2 pt-1">
-            {org.needs?.slice(0, 2).map(n => (
-              <span key={n} className="text-xs font-medium px-2.5 py-1 rounded-md" style={{ color: "#993C1D", background: "#FAECE7" }}>{n}</span>
-            ))}
-            {org.offers?.slice(0, 1).map(o => (
-              <span key={o} className="text-xs font-medium px-2.5 py-1 rounded-md" style={{ color: "#0F6E56", background: "#E1F5EE" }}>{o}</span>
-            ))}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-base font-bold text-[#111111] dark:text-[#F5F5F5] truncate">{org.organisation_name}</p>
+            {isVerified && <VerifiedBadge />}
           </div>
-        ) : null}
+          {org.organisation_type && (
+            <p className="text-sm text-[#111111] dark:text-[#F5F5F5] capitalize truncate">{org.organisation_type.replace(/_/g, " ")}</p>
+          )}
+          {countries.length > 0 && <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mt-0.5">{countries.join(", ")}</p>}
+        </div>
       </div>
+
+      {/* Desktop / tablet: full card with large logo panel */}
+      <div className="hidden sm:flex bg-white dark:bg-card border border-border rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md">
+        <div className="w-56 shrink-0 flex items-center justify-center overflow-hidden"
+          style={{ background: org.logo_url ? "#FFFFFF" : "#D1D5DB" }}>
+          {org.logo_url ? (
+            <img src={org.logo_url} alt={org.organisation_name} className="max-w-[55%] max-h-[55%] object-contain" />
+          ) : (
+            <div className="w-24 h-24 rounded-full bg-white/60 flex items-center justify-center">
+              <span className="text-[#6B7280] text-2xl font-bold">{initials(org.organisation_name || "?")}</span>
+            </div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0 p-7 flex flex-col gap-2.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5] truncate">{org.organisation_name}</p>
+            {isVerified && <VerifiedBadge />}
+          </div>
+          {org.organisation_type && (
+            <p className="text-sm text-[#111111] dark:text-[#F5F5F5] capitalize">{org.organisation_type.replace(/_/g, " ")}</p>
+          )}
+          {org.description && (
+            <p className="text-sm text-[#111111] dark:text-[#F5F5F5] leading-relaxed line-clamp-3">{firstSentence(org.description)}</p>
+          )}
+          <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-[#111111] dark:text-[#F5F5F5]">
+            {sectors.length > 0 && (
+              <p><span className="font-semibold">Sector: </span>{sectors.slice(0, 2).join(", ")}{sectors.length > 2 ? ` +${sectors.length - 2}` : ""}</p>
+            )}
+            {countries.length > 0 && (
+              <p><span className="font-semibold">Location: </span>{countries.join(", ")}</p>
+            )}
+          </div>
+          {(org.needs?.length || org.offers?.length) ? (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {org.needs?.slice(0, 2).map(n => (
+                <span key={n} className="text-xs font-medium px-2.5 py-1 rounded-md" style={{ color: "#993C1D", background: "#FAECE7" }}>{n}</span>
+              ))}
+              {org.offers?.slice(0, 1).map(o => (
+                <span key={o} className="text-xs font-medium px-2.5 py-1 rounded-md" style={{ color: "#0F6E56", background: "#E1F5EE" }}>{o}</span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
     </div>
   );
 }
