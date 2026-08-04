@@ -121,6 +121,20 @@ function ChipPicker({ options, selected, onChange }: { options: string[]; select
   );
 }
 
+function InfoTooltip({ text }: { text: string }) {
+  return (
+    <span className="relative inline-flex group shrink-0">
+      <span className="w-3.5 h-3.5 rounded-full border border-muted-foreground/50 text-foreground text-[9px] leading-[13px] font-bold inline-flex items-center justify-center cursor-default"
+        aria-label="What does this mean?">
+        i
+      </span>
+      <span className="pointer-events-none absolute left-0 bottom-full mb-1.5 w-64 rounded-lg border border-border bg-white dark:bg-card px-2.5 py-1.5 text-xs text-foreground opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-md">
+        {text}
+      </span>
+    </span>
+  );
+}
+
 function PaneHeader({ title, subtitle, info }: { title: string; subtitle?: string; info?: string }) {
   return (
     <div className="mb-1">
@@ -1338,7 +1352,7 @@ export default function DashboardProfile() {
               mobile, unchanged there. */}
           <div className="md:w-[200px] shrink-0 rounded-b-xl border-x border-b border-border bg-muted/20 md:fixed md:top-[104px]"
             style={paneNavLeft !== null ? { left: paneNavLeft } : undefined}>
-            <div className="flex md:flex-col overflow-x-auto md:overflow-visible p-2 md:pt-4 gap-1 scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
+            <div className="flex md:flex-col overflow-x-auto md:overflow-visible p-2 md:pt-10 gap-1 scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
               {panes.map(p => (
                 <button key={p.key} type="button" onClick={() => setActivePane(p.key)}
                   className={`text-left px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap md:whitespace-normal transition-all shrink-0 ${
@@ -1462,10 +1476,10 @@ export default function DashboardProfile() {
 {activePane === "basic" && isOrg && (
                 <SectionCardGroup>
                   <div className="px-8 sm:px-12 py-10">
-                    <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5] mb-1">Contact details</p>
-                    <p className="text-xs text-black dark:text-white opacity-60 mb-6">
-                      Used as your organisation's contact person. If you turn on 'also appear as an individual,' this also becomes your personal profile in the Natives directory.
-                    </p>
+                    <div className="flex items-center gap-1.5 mb-6">
+                      <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Contact</p>
+                      <InfoTooltip text="Used as your organisation's contact person. If you turn on 'also appear as an individual,' this also becomes your personal profile in the Natives directory." />
+                    </div>
                     {/* Unconditional now — this section always renders so the
                         pane has the same shape whether show_individual_profile
                         is on or off. Lets someone fill in a personal photo
@@ -1474,10 +1488,10 @@ export default function DashboardProfile() {
                         and changing the pane's layout depending on that flag. */}
                     <div className="rounded-xl border border-dashed border-border p-4 space-y-3">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Your personal photo</p>
-                        <p className="text-xs text-black dark:text-white mt-1">
-                          Only shown on your individual profile in the Natives directory if "also appear as an individual" is turned on.
-                        </p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Your personal photo</p>
+                          <InfoTooltip text='Only shown on your individual profile in the Natives directory if "also appear as an individual" is turned on.' />
+                        </div>
                       </div>
                       <div className="flex items-center gap-5">
                       <div className="group relative w-14 h-14 rounded-full border border-border bg-white dark:bg-card flex items-center justify-center overflow-hidden shrink-0">
@@ -1511,7 +1525,7 @@ export default function DashboardProfile() {
                     </div>
                   </div>
 
-                  <SectionCard title="Contact person" onEdit={openOrgContactModal}>
+                  <SectionCard title="Contact Details" onEdit={openOrgContactModal}>
                     <DisplayField label="Full name">
                       {fullName ? <p className="text-sm text-black dark:text-white">{fullName}</p> : <EmptyValue />}
                     </DisplayField>
@@ -2280,7 +2294,7 @@ export default function DashboardProfile() {
           quirks can drag it along with page scroll. */}
       <div className="space-y-4 md:flex md:flex-col md:min-h-[calc(100vh-128px)] md:fixed md:top-[104px] md:right-6 md:w-[280px]">
 
-        <div className="rounded-b-2xl border-x border-b border-border bg-white dark:bg-card p-5 space-y-4">
+        <div className="rounded-b-2xl border-x border-b border-border bg-white dark:bg-card p-5 md:pt-10 space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Profile strength</p>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
