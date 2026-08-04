@@ -1480,15 +1480,30 @@ export default function DashboardProfile() {
 
               {/* ── FOCUS AREAS PANE ── */}
               {activePane === "focus" && (
-                <div className="space-y-8">
-                  <PaneHeader title="Focus areas" subtitle="Used to match you with relevant initiatives and partners." />
+                <SectionCardGroup>
+                  <SectionCard title="Focus areas" onEdit={openFocusModal}>
+                    <DisplayField label="Sectors">
+                      {sectors.length > 0
+                        ? <div className="flex flex-wrap gap-2">{sectors.map(s => <FlatTag key={s}>{s}</FlatTag>)}</div>
+                        : <EmptyValue />}
+                    </DisplayField>
+                  </SectionCard>
+                </SectionCardGroup>
+              )}
+
+              {editingFocusOpen && (
+                <EditModal title="Edit focus areas" onClose={() => setEditingFocusOpen(false)} onSave={saveFocusSection} saving={focusSaving}>
                   <div>
                     <Label className="text-sm font-medium">Sectors</Label>
-                    <SectorChips selected={sectors} onChange={setSectors} />
-                    {sectors.length > 0 && <p className="text-xs text-black dark:text-white mt-2">{sectors.length} selected</p>}
+                    <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">Used to match you with relevant initiatives and partners.</p>
+                    <div className="mt-2 space-y-1">
+                      {SECTOR_OPTIONS.map(s => (
+                        <ModalCheckbox key={s} checked={draftSectors.includes(s)} label={s}
+                          onChange={() => setDraftSectors(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])} />
+                      ))}
+                    </div>
                   </div>
-                  <SaveBar />
-                </div>
+                </EditModal>
               )}
 
               {/* ── ONLINE PRESENCE PANE ── */}
