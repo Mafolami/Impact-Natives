@@ -143,6 +143,92 @@ function PaneHeader({ title, subtitle, info }: { title: string; subtitle?: strin
   );
 }
 
+// ─── Display-card / edit-modal pattern ──────────────────────────────────────
+// Sections render their FINALIZED, saved values by default (read-only), with
+// an "Edit" button that opens a modal scoped to just that section's fields.
+// Editing happens only inside the modal; the page itself is never a live
+// form. Selected states use a neutral checkmark, never a color fill.
+
+async function saveOrgFields(userId: string, fields: Record<string, any>) {
+  const { error } = await supabase.from("organizations")
+    .update({ ...fields, updated_at: new Date().toISOString() })
+    .eq("user_id", userId);
+  if (error) throw error;
+}
+
+function SectionCard({ title, onEdit, children }: { title: string; onEdit: () => void; children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-border bg-white dark:bg-card p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-bold text-black dark:text-white">{title}</h3>
+        <button type="button" onClick={onEdit}
+          className="text-xs font-medium text-black dark:text-white border border-border rounded-full px-3 py-1.5 hover:border-foreground/40 transition-colors shrink-0">
+          Edit
+        </button>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function DisplayField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1.5">{label}</p>
+      {children}
+    </div>
+  );
+}
+
+function EmptyValue() {
+  return <p className="text-sm text-black dark:text-white italic opacity-60">Not set yet</p>;
+}
+
+function FlatTag({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center px-3 py-1.5 rounded-full border border-border text-xs font-medium text-black dark:text-white">
+      {children}
+    </span>
+  );
+}
+
+// Neutral checkbox for modals -- checked state is a checkmark inside a
+// bordered square, never a color fill across the whole row.
+function ModalCheckbox({ checked, onChange, label, sub }: { checked: boolean; onChange: () => void; label: string; sub?: string }) {
+  return (
+    <button type="button" onClick={onChange} className="w-full flex items-start gap-3 text-left py-1.5">
+      <div className={`w-4 h-4 rounded border shrink-0 mt-0.5 flex items-center justify-center transition-colors ${checked ? "border-black dark:border-white" : "border-border"}`}>
+        {checked && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-black dark:text-white"><polyline points="20 6 9 17 4 12" /></svg>}
+      </div>
+      <div>
+        <p className="text-sm text-black dark:text-white">{label}</p>
+        {sub && <p className="text-xs text-black dark:text-white opacity-60 mt-0.5">{sub}</p>}
+      </div>
+    </button>
+  );
+}
+
+function EditModal({ title, onClose, onSave, saving, children }: { title: string; onClose: () => void; onSave: () => void; saving: boolean; children: React.ReactNode }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-lg p-6 space-y-5 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <h3 className="text-lg font-bold text-black dark:text-white">{title}</h3>
+        {children}
+        <div className="flex gap-2 pt-1">
+          <button type="button" onClick={onClose}
+            className="flex-1 h-9 rounded-full border border-border text-sm text-black dark:text-white hover:bg-muted transition-colors">
+            Cancel
+          </button>
+          <button type="button" onClick={onSave} disabled={saving}
+            className="flex-1 h-9 rounded-full bg-black dark:bg-white text-white dark:text-black text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">
+            {saving ? "Saving..." : "Save"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Pane definitions ────────────────────────────────────────────────────────
 
 type PaneKey =
@@ -535,6 +621,105 @@ export default function DashboardProfile() {
   const [techSupport, setTechSupport]                 = useState<string[]>([]);
   const [sandboxReady, setSandboxReady]               = useState(false);
   const [sandboxDescription, setSandboxDescription]   = useState("");
+
+  // ── CSR & ESG pane: display-card / edit-modal state ──────────────────────
+  const [editingCsrSection, setEditingCsrSection]     = useState<null | "csrEsg" | "partnership" | "tech">(null);
+  const [csrSectionSaving, setCsrSectionSaving]       = useState(false);
+  // Draft copies -- edits inside the modal only touch these, so Cancel
+  // discards them and the page's finalized display never flickers mid-edit.
+  const [draftCsrFocusStatement, setDraftCsrFocusStatement] = useState("");
+  const [draftCsrBudgetRange, setDraftCsrBudgetRange] = useState("");
+  const [draftEsgFrameworks, setDraftEsgFrameworks]   = useState<string[]>([]);
+  const [draftInkindSupport, setDraftInkindSupport]   = useState<string[]>([]);
+  const [draftEmployeeEngagement, setDraftEmployeeEngagement] = useState(false);
+  const [draftCobrandingOpen, setDraftCobrandingOpen] = useState(false);
+  const [draftPartnerTypePreference, setDraftPartnerTypePreference] = useState<string[]>([]);
+  const [draftGeographicFocus, setDraftGeographicFocus] = useState<string[]>([]);
+  const [draftGeographicInput, setDraftGeographicInput] = useState("");
+  const [draftTechSupport, setDraftTechSupport]       = useState<string[]>([]);
+  const [draftSandboxReady, setDraftSandboxReady]     = useState(false);
+  const [draftSandboxDescription, setDraftSandboxDescription] = useState("");
+
+  function openCsrEsgModal() {
+    setDraftCsrFocusStatement(csrFocusStatement);
+    setDraftCsrBudgetRange(csrBudgetRange);
+    setDraftEsgFrameworks(esgFrameworks);
+    setEditingCsrSection("csrEsg");
+  }
+  function openPartnershipModal() {
+    setDraftInkindSupport(inkindSupport);
+    setDraftEmployeeEngagement(employeeEngagement);
+    setDraftCobrandingOpen(cobrandingOpen);
+    setDraftPartnerTypePreference(partnerTypePreference);
+    setDraftGeographicFocus(geographicFocus);
+    setDraftGeographicInput("");
+    setEditingCsrSection("partnership");
+  }
+  function openTechModal() {
+    setDraftTechSupport(techSupport);
+    setDraftSandboxReady(sandboxReady);
+    setDraftSandboxDescription(sandboxDescription);
+    setEditingCsrSection("tech");
+  }
+
+  async function saveCsrEsgSection() {
+    if (!user) return;
+    setCsrSectionSaving(true);
+    try {
+      await saveOrgFields(user.id, {
+        csr_focus_statement: draftCsrFocusStatement || null,
+        csr_budget_range: draftCsrBudgetRange || null,
+        esg_frameworks: draftEsgFrameworks.length > 0 ? draftEsgFrameworks : null,
+      });
+      setCsrFocusStatement(draftCsrFocusStatement);
+      setCsrBudgetRange(draftCsrBudgetRange);
+      setEsgFrameworks(draftEsgFrameworks);
+      setEditingCsrSection(null);
+    } catch (err: any) {
+      alert(`Couldn't save: ${err.message}`);
+    }
+    setCsrSectionSaving(false);
+  }
+  async function savePartnershipSection() {
+    if (!user) return;
+    setCsrSectionSaving(true);
+    try {
+      await saveOrgFields(user.id, {
+        inkind_support: draftInkindSupport.length > 0 ? draftInkindSupport : null,
+        employee_engagement_available: draftEmployeeEngagement,
+        cobranding_open: draftCobrandingOpen,
+        partner_type_preference: draftPartnerTypePreference.length > 0 ? draftPartnerTypePreference : null,
+        geographic_focus: draftGeographicFocus.length > 0 ? draftGeographicFocus : null,
+      });
+      setInkindSupport(draftInkindSupport);
+      setEmployeeEngagement(draftEmployeeEngagement);
+      setCobrandingOpen(draftCobrandingOpen);
+      setPartnerTypePreference(draftPartnerTypePreference);
+      setGeographicFocus(draftGeographicFocus);
+      setEditingCsrSection(null);
+    } catch (err: any) {
+      alert(`Couldn't save: ${err.message}`);
+    }
+    setCsrSectionSaving(false);
+  }
+  async function saveTechSection() {
+    if (!user) return;
+    setCsrSectionSaving(true);
+    try {
+      await saveOrgFields(user.id, {
+        tech_support_available: draftTechSupport.length > 0 ? draftTechSupport : null,
+        sandbox_ready: draftSandboxReady,
+        sandbox_description: draftSandboxDescription || null,
+      });
+      setTechSupport(draftTechSupport);
+      setSandboxReady(draftSandboxReady);
+      setSandboxDescription(draftSandboxDescription);
+      setEditingCsrSection(null);
+    } catch (err: any) {
+      alert(`Couldn't save: ${err.message}`);
+    }
+    setCsrSectionSaving(false);
+  }
 
   useEffect(() => {
     if (!user) return;
@@ -1561,172 +1746,200 @@ export default function DashboardProfile() {
             {activePane === "csr" && isCorporate && (
                 <div className="space-y-6">
 
-                  {/* ── CSR & ESG card ── */}
-                  <div className="rounded-2xl border border-border bg-white dark:bg-card p-6 space-y-6">
-                    <div>
-                      <h3 className="text-base font-bold text-black dark:text-white">CSR & ESG</h3>
-                      <p className="text-xs text-black dark:text-white mt-1">Shown on your directory profile. Helps implementers understand your focus and what you bring to a partnership.</p>
-                    </div>
+                  {/* ── CSR & ESG card (display only -- edit via modal) ── */}
+                  <SectionCard title="CSR & ESG" onEdit={openCsrEsgModal}>
+                    <DisplayField label="CSR/ESG focus statement">
+                      {csrFocusStatement
+                        ? <p className="text-sm text-black dark:text-white leading-relaxed">{csrFocusStatement}</p>
+                        : <EmptyValue />}
+                    </DisplayField>
 
-                    <div>
-                      <Label className="text-sm font-medium">CSR/ESG focus statement</Label>
-                      <Textarea value={csrFocusStatement} onChange={e => setCsrFocusStatement(e.target.value)} className="mt-1 resize-none" rows={4}
-                        placeholder="e.g. We prioritise climate resilience and digital inclusion programmes across West Africa, aligned with our operational footprint. We seek implementing partners with strong community reach and measurable outcomes." />
-                      <p className="text-xs text-black dark:text-white mt-1.5">Used by AI to match your profile with relevant initiatives and implementers.</p>
-                    </div>
+                    <DisplayField label="Annual CSR/ESG budget range">
+                      {csrBudgetRange
+                        ? <p className="text-sm text-black dark:text-white">{csrBudgetRange}</p>
+                        : <EmptyValue />}
+                    </DisplayField>
 
-                    <div>
-                      <Label className="text-sm font-medium">Annual CSR/ESG budget range</Label>
-                      <Input value={csrBudgetRange} onChange={e => setCsrBudgetRange(e.target.value)} className="mt-1 h-10 w-full sm:max-w-xs" placeholder="e.g. $500K–$2M" />
-                    </div>
+                    <DisplayField label="ESG reporting frameworks">
+                      {esgFrameworks.length > 0
+                        ? <div className="flex flex-wrap gap-2">{esgFrameworks.map(f => <FlatTag key={f}>{f}</FlatTag>)}</div>
+                        : <EmptyValue />}
+                    </DisplayField>
+                  </SectionCard>
 
-                    <div>
-                      <Label className="text-sm font-medium">ESG reporting frameworks</Label>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {["GRI", "SASB", "UN Global Compact", "B Corp", "TCFD", "SDG Reporting"].map(f => (
-                          <button key={f} type="button"
-                            onClick={() => setEsgFrameworks(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f])}
-                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${esgFrameworks.includes(f) ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-black dark:text-white hover:border-foreground/30"}`}>
-                            {f}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                  {/* ── Partnership preferences card (display only) ── */}
+                  <SectionCard title="Partnership preferences" onEdit={openPartnershipModal}>
+                    <DisplayField label="What we bring to partnerships">
+                      {inkindSupport.length > 0
+                        ? <div className="flex flex-wrap gap-2">{inkindSupport.map(s => <FlatTag key={s}>{s}</FlatTag>)}</div>
+                        : <EmptyValue />}
+                    </DisplayField>
 
-                  {/* ── Partnership preferences card ── */}
-                  <div className="rounded-2xl border border-border bg-white dark:bg-card p-6 space-y-6">
-                    <h3 className="text-base font-bold text-black dark:text-white">Partnership preferences</h3>
-
-                    <div>
-                      <Label className="text-sm font-medium">What we bring to partnerships</Label>
-                      <p className="text-xs text-black dark:text-white mt-0.5 mb-2">Select all that apply.</p>
-                      <div className="flex flex-wrap gap-2">
-                        {["Cash funding", "In-kind technology", "Employee volunteering", "Pro-bono expertise", "Marketing & visibility", "Supply chain access", "Co-branding opportunity", "Logistics support"].map(s => (
-                          <button key={s} type="button"
-                            onClick={() => setInkindSupport(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])}
-                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${inkindSupport.includes(s) ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-black dark:text-white hover:border-foreground/30"}`}>
-                            {s}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="pt-6 border-t border-border space-y-3">
-                      <Label className="text-sm font-medium">Engagement options</Label>
-                      {[
-                        { label: "Open to employee engagement opportunities", sub: "Staff volunteering, mentoring, or pro-bono involvement", state: employeeEngagement, set: setEmployeeEngagement },
-                        { label: "Open to co-branding", sub: "Joint communications, case studies, or public visibility", state: cobrandingOpen, set: setCobrandingOpen },
-                      ].map(item => (
-                        <button key={item.label} type="button" onClick={() => item.set(!item.state)}
-                          className={`w-full text-left px-4 py-3 rounded-xl border transition-colors flex items-start gap-3 ${
-                            item.state ? "border-[#2D6A4F] bg-[rgba(45,106,79,0.12)]" : "border-border hover:border-foreground/20"
-                          }`}>
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
-                            item.state ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-border"
-                          }`}>
-                            {item.state && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
+                    <div className="pt-6 border-t border-border">
+                      <DisplayField label="Engagement options">
+                        {(employeeEngagement || cobrandingOpen) ? (
+                          <div className="space-y-1">
+                            {employeeEngagement && <p className="text-sm text-black dark:text-white">✓ Open to employee engagement opportunities</p>}
+                            {cobrandingOpen && <p className="text-sm text-black dark:text-white">✓ Open to co-branding</p>}
                           </div>
-                          <div>
-                            <p className={`text-sm font-medium ${item.state ? "text-[#2D6A4F]" : "text-foreground"}`}>{item.label}</p>
-                            <p className="text-xs text-black dark:text-white mt-0.5">{item.sub}</p>
-                          </div>
-                        </button>
-                      ))}
+                        ) : <EmptyValue />}
+                      </DisplayField>
                     </div>
 
                     <div className="pt-6 border-t border-border">
-                      <Label className="text-sm font-medium">Preferred partner types</Label>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {["Registered Charity / NGO", "Social Enterprise / CIC / B Corp", "Research Institution / Academia", "Government / Public Sector", "Individual Practitioner"].map(p => (
-                          <button key={p} type="button"
-                            onClick={() => setPartnerTypePreference(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p])}
-                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${partnerTypePreference.includes(p) ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-black dark:text-white hover:border-foreground/30"}`}>
-                            {p}
-                          </button>
-                        ))}
-                      </div>
+                      <DisplayField label="Preferred partner types">
+                        {partnerTypePreference.length > 0
+                          ? <div className="flex flex-wrap gap-2">{partnerTypePreference.map(p => <FlatTag key={p}>{p}</FlatTag>)}</div>
+                          : <EmptyValue />}
+                      </DisplayField>
                     </div>
 
                     <div className="pt-6 border-t border-border">
-                      <Label className="text-sm font-medium">Geographic focus</Label>
-                      <div className="flex gap-2 mt-1">
-                        <Input value={geographicInput} onChange={e => setGeographicInput(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              const v = geographicInput.trim();
-                              if (v && !geographicFocus.includes(v)) setGeographicFocus(p => [...p, v]);
-                              setGeographicInput("");
-                            }
-                          }}
-                          className="h-10 flex-1" placeholder="e.g. Nigeria, East Africa" />
-                        <button type="button"
-                          onClick={() => {
-                            const v = geographicInput.trim();
-                            if (v && !geographicFocus.includes(v)) setGeographicFocus(p => [...p, v]);
-                            setGeographicInput("");
-                          }}
-                          className="h-10 px-3 rounded-lg border border-border text-sm text-black dark:text-white hover:text-foreground hover:border-foreground/30 transition-colors shrink-0">
-                          Add
-                        </button>
-                      </div>
-                      {geographicFocus.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {geographicFocus.map(g => (
-                            <span key={g} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-black dark:text-white">
-                              {g}
-                              <button type="button" onClick={() => setGeographicFocus(p => p.filter(x => x !== g))} className="hover:opacity-70 ml-0.5">×</button>
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                      <DisplayField label="Geographic focus">
+                        {geographicFocus.length > 0
+                          ? <div className="flex flex-wrap gap-2">{geographicFocus.map(g => <FlatTag key={g}>{g}</FlatTag>)}</div>
+                          : <EmptyValue />}
+                      </DisplayField>
                     </div>
-                  </div>
+                  </SectionCard>
 
-                  {/* ── Technology support card (technology_company only) ── */}
+                  {/* ── Technology support card (technology_company only, display only) ── */}
                   {profile?.org_type === "technology_company" && (
-                    <div className="rounded-2xl border border-border bg-white dark:bg-card p-6 space-y-6">
-                      <h3 className="text-base font-bold text-black dark:text-white">Technology support</h3>
-
-                      <div>
-                        <Label className="text-sm font-medium">Tech resources we can offer</Label>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {["Cloud computing credits", "AI/ML API access", "Software licences", "Pro-bono engineering hours", "Data analytics tools", "Cybersecurity support"].map(t => (
-                            <button key={t} type="button"
-                              onClick={() => setTechSupport(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])}
-                              className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${techSupport.includes(t) ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-black dark:text-white hover:border-foreground/30"}`}>
-                              {t}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                    <SectionCard title="Technology support" onEdit={openTechModal}>
+                      <DisplayField label="Tech resources we can offer">
+                        {techSupport.length > 0
+                          ? <div className="flex flex-wrap gap-2">{techSupport.map(t => <FlatTag key={t}>{t}</FlatTag>)}</div>
+                          : <EmptyValue />}
+                      </DisplayField>
 
                       <div className="pt-6 border-t border-border">
-                        <button type="button" onClick={() => setSandboxReady(v => !v)}
-                          className={`w-full text-left px-4 py-3 rounded-xl border transition-colors flex items-start gap-3 ${
-                            sandboxReady ? "border-[#2D6A4F] bg-[rgba(45,106,79,0.12)]" : "border-border hover:border-foreground/20"
-                          }`}>
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
-                            sandboxReady ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-border"
-                          }`}>
-                            {sandboxReady && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
-                          </div>
-                          <div>
-                            <p className={`text-sm font-medium ${sandboxReady ? "text-[#2D6A4F]" : "text-foreground"}`}>Open to sandbox/beta testing partnerships</p>
-                            <p className="text-xs text-black dark:text-white mt-0.5">We can act as a testing ground for technologies designed for social good</p>
-                          </div>
-                        </button>
-                        {sandboxReady && (
-                          <Textarea value={sandboxDescription} onChange={e => setSandboxDescription(e.target.value)} className="mt-2 resize-none" rows={2}
-                            placeholder="Briefly describe what kind of technology testing you can support..." />
-                        )}
+                        <DisplayField label="Sandbox / beta testing">
+                          {sandboxReady ? (
+                            <div>
+                              <p className="text-sm text-black dark:text-white">✓ Open to sandbox/beta testing partnerships</p>
+                              {sandboxDescription && <p className="text-sm text-black dark:text-white mt-1.5">{sandboxDescription}</p>}
+                            </div>
+                          ) : <EmptyValue />}
+                        </DisplayField>
                       </div>
-                    </div>
+                    </SectionCard>
                   )}
-
-                  <SaveBar />
                 </div>
+              )}
+
+              {/* ── CSR & ESG edit modal ── */}
+              {editingCsrSection === "csrEsg" && (
+                <EditModal title="Edit CSR & ESG" onClose={() => setEditingCsrSection(null)} onSave={saveCsrEsgSection} saving={csrSectionSaving}>
+                  <div>
+                    <Label className="text-sm font-medium">CSR/ESG focus statement</Label>
+                    <Textarea value={draftCsrFocusStatement} onChange={e => setDraftCsrFocusStatement(e.target.value)} className="mt-1 resize-none" rows={4}
+                      placeholder="e.g. We prioritise climate resilience and digital inclusion programmes across West Africa, aligned with our operational footprint. We seek implementing partners with strong community reach and measurable outcomes." />
+                    <p className="text-xs text-black dark:text-white mt-1.5 opacity-60">Used by AI to match your profile with relevant initiatives and implementers.</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Annual CSR/ESG budget range</Label>
+                    <Input value={draftCsrBudgetRange} onChange={e => setDraftCsrBudgetRange(e.target.value)} className="mt-1 h-10" placeholder="e.g. $500K–$2M" />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">ESG reporting frameworks</Label>
+                    <div className="mt-2 space-y-1">
+                      {["GRI", "SASB", "UN Global Compact", "B Corp", "TCFD", "SDG Reporting"].map(f => (
+                        <ModalCheckbox key={f} checked={draftEsgFrameworks.includes(f)} label={f}
+                          onChange={() => setDraftEsgFrameworks(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f])} />
+                      ))}
+                    </div>
+                  </div>
+                </EditModal>
+              )}
+
+              {/* ── Partnership preferences edit modal ── */}
+              {editingCsrSection === "partnership" && (
+                <EditModal title="Edit partnership preferences" onClose={() => setEditingCsrSection(null)} onSave={savePartnershipSection} saving={csrSectionSaving}>
+                  <div>
+                    <Label className="text-sm font-medium">What we bring to partnerships</Label>
+                    <div className="mt-2 space-y-1">
+                      {["Cash funding", "In-kind technology", "Employee volunteering", "Pro-bono expertise", "Marketing & visibility", "Supply chain access", "Co-branding opportunity", "Logistics support"].map(s => (
+                        <ModalCheckbox key={s} checked={draftInkindSupport.includes(s)} label={s}
+                          onChange={() => setDraftInkindSupport(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])} />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-border">
+                    <Label className="text-sm font-medium">Engagement options</Label>
+                    <div className="mt-2 space-y-1">
+                      <ModalCheckbox checked={draftEmployeeEngagement} onChange={() => setDraftEmployeeEngagement(v => !v)}
+                        label="Open to employee engagement opportunities" sub="Staff volunteering, mentoring, or pro-bono involvement" />
+                      <ModalCheckbox checked={draftCobrandingOpen} onChange={() => setDraftCobrandingOpen(v => !v)}
+                        label="Open to co-branding" sub="Joint communications, case studies, or public visibility" />
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-border">
+                    <Label className="text-sm font-medium">Preferred partner types</Label>
+                    <div className="mt-2 space-y-1">
+                      {["Registered Charity / NGO", "Social Enterprise / CIC / B Corp", "Research Institution / Academia", "Government / Public Sector", "Individual Practitioner"].map(p => (
+                        <ModalCheckbox key={p} checked={draftPartnerTypePreference.includes(p)} label={p}
+                          onChange={() => setDraftPartnerTypePreference(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p])} />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-border">
+                    <Label className="text-sm font-medium">Geographic focus</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input value={draftGeographicInput} onChange={e => setDraftGeographicInput(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            const v = draftGeographicInput.trim();
+                            if (v && !draftGeographicFocus.includes(v)) setDraftGeographicFocus(p => [...p, v]);
+                            setDraftGeographicInput("");
+                          }
+                        }}
+                        className="h-10 flex-1" placeholder="e.g. Nigeria, East Africa" />
+                      <button type="button"
+                        onClick={() => {
+                          const v = draftGeographicInput.trim();
+                          if (v && !draftGeographicFocus.includes(v)) setDraftGeographicFocus(p => [...p, v]);
+                          setDraftGeographicInput("");
+                        }}
+                        className="h-10 px-3 rounded-lg border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
+                        Add
+                      </button>
+                    </div>
+                    {draftGeographicFocus.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {draftGeographicFocus.map(g => (
+                          <span key={g} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-black dark:text-white">
+                            {g}
+                            <button type="button" onClick={() => setDraftGeographicFocus(p => p.filter(x => x !== g))} className="hover:opacity-70 ml-0.5">×</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </EditModal>
+              )}
+
+              {/* ── Technology support edit modal ── */}
+              {editingCsrSection === "tech" && (
+                <EditModal title="Edit technology support" onClose={() => setEditingCsrSection(null)} onSave={saveTechSection} saving={csrSectionSaving}>
+                  <div>
+                    <Label className="text-sm font-medium">Tech resources we can offer</Label>
+                    <div className="mt-2 space-y-1">
+                      {["Cloud computing credits", "AI/ML API access", "Software licences", "Pro-bono engineering hours", "Data analytics tools", "Cybersecurity support"].map(t => (
+                        <ModalCheckbox key={t} checked={draftTechSupport.includes(t)} label={t}
+                          onChange={() => setDraftTechSupport(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])} />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-border">
+                    <ModalCheckbox checked={draftSandboxReady} onChange={() => setDraftSandboxReady(v => !v)}
+                      label="Open to sandbox/beta testing partnerships" sub="We can act as a testing ground for technologies designed for social good" />
+                    {draftSandboxReady && (
+                      <Textarea value={draftSandboxDescription} onChange={e => setDraftSandboxDescription(e.target.value)} className="mt-2 resize-none" rows={2}
+                        placeholder="Briefly describe what kind of technology testing you can support..." />
+                    )}
+                  </div>
+                </EditModal>
               )}
 
               {/* ── IMPACT STRATEGY PANE (corporates/tech/telecom) ── */}
