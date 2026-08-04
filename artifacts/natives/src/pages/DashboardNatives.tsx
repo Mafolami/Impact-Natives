@@ -314,7 +314,7 @@ function IndividualsPanel({ search, sectorFilter, countryFilter, autoOpenUserId,
   );
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4">
       {filtered.map(p => <ProfileCard key={p.id} profile={p} onClick={() => setSelected(p)} />)}
     </div>
   );
@@ -325,99 +325,123 @@ function ProfileCard({ profile, onClick }: { profile: ProfileRow; onClick: () =>
   return (
     <div
       onClick={onClick}
-      className="rounded-xl border border-border bg-card px-5 py-4 flex flex-col gap-3 cursor-pointer hover:border-[#452A1D]/50 hover:shadow-md transition-all duration-200">
-      <div className="flex items-start gap-3">
-        <UserAvatar id={profile.id} name={profile.full_name} avatarUrl={profile.avatar_url} size="md" />
-        <div className="min-w-0 flex-1">
-          <p className="font-semibold text-foreground truncate">{profile.full_name}</p>
-          {profile.role_title && <p className="text-xs text-muted-foreground truncate">{profile.role_title}</p>}
+      className="flex items-center gap-4 bg-white dark:bg-card border border-border rounded-2xl p-5 cursor-pointer transition-all duration-200 hover:shadow-md">
+      <UserAvatar id={profile.id} name={profile.full_name} avatarUrl={profile.avatar_url} size="md" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-base font-bold text-[#111111] dark:text-[#F5F5F5] truncate">{profile.full_name}</p>
           {profile.user_type === "organisation" && profile.org_name && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1"
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
               style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
               {profile.org_name}
             </span>
-          )}        </div>
-      </div>
-      {profile.country && <p className="text-xs text-muted-foreground">{profile.country}</p>}
-      {profile.bio && <p className="text-[13px] text-foreground leading-relaxed line-clamp-2">{profile.bio}</p>}      
-      {sectors.length > 0 && (
-        <div className="flex gap-1.5 flex-wrap">
-          {sectors.slice(0, 3).map(s => (
-            <span key={s} className="text-xs px-2.5 py-0.5 rounded-full border border-border text-muted-foreground">{s}</span>
-          ))}
+          )}
         </div>
-      )}
+        {profile.role_title && <p className="text-sm text-[#111111] dark:text-[#F5F5F5] truncate">{profile.role_title}</p>}
+        {profile.country && <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mt-0.5">{profile.country}</p>}
+        {profile.bio && <p className="text-sm text-[#111111] dark:text-[#F5F5F5] leading-relaxed line-clamp-2 mt-1">{firstSentence(profile.bio)}</p>}
+        {sectors.length > 0 && (
+          <div className="flex gap-1.5 flex-wrap mt-2">
+            {sectors.slice(0, 3).map(s => (
+              <span key={s} className="text-xs px-2.5 py-0.5 rounded-md border border-border text-[#111111] dark:text-[#F5F5F5]">{s}</span>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 function ProfileDetail({ profile, onBack }: { profile: ProfileRow; onBack: () => void }) {
   const sectors = profile.sectors ?? [];
+  const hasContact = !!(profile.linkedin_url || (profile.website && profile.website !== "https://") || (profile.social_links && profile.social_links.length > 0));
+
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 space-y-5 max-w-2xl">
+    <div className="space-y-6 w-full">
       <button type="button" onClick={onBack}
-        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        className="flex items-center gap-1.5 text-sm text-[#111111] dark:text-[#F5F5F5] hover:opacity-70 transition-opacity">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
           <path d="M19 12H5M12 5l-7 7 7 7" />
         </svg>
         Back
       </button>
-      <div className="flex items-start gap-4">
-        <UserAvatar id={profile.id} name={profile.full_name} avatarUrl={profile.avatar_url} size="lg" />
-        <div className="min-w-0">
-          <h3 className="text-xl font-bold text-foreground">{profile.full_name}</h3>
-          {profile.role_title && <p className="text-sm text-muted-foreground">{profile.role_title}</p>}
-          {profile.user_type === "organisation" && profile.org_name && (
-            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full mt-1.5"
-              style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
-              {profile.org_name}
-            </span>
-          )}          {profile.country   && <p className="text-xs text-muted-foreground mt-1">{profile.country}</p>}
+
+      <div className="bg-white dark:bg-card w-[calc(100%+3rem)] -mx-6 divide-y-[6px] divide-[#FAF6F0] dark:divide-black">
+
+        <div className="px-8 sm:px-12 py-10">
+          <div className="flex items-start gap-5">
+            <UserAvatar id={profile.id} name={profile.full_name} avatarUrl={profile.avatar_url} size="lg" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h3 className="text-2xl sm:text-[32px] font-bold text-[#111111] dark:text-[#F5F5F5] tracking-tight">{profile.full_name}</h3>
+                {profile.user_type === "organisation" && profile.org_name && (
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
+                    style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+                    {profile.org_name}
+                  </span>
+                )}
+              </div>
+              {profile.role_title && <p className="text-sm text-[#111111] dark:text-[#F5F5F5] mt-2">{profile.role_title}</p>}
+              {profile.country && <p className="text-sm text-[#111111] dark:text-[#F5F5F5] mt-1">{profile.country}</p>}
+            </div>
+          </div>
         </div>
-      </div>
-      {sectors.length > 0 && (
-        <div className="flex gap-1.5 flex-wrap">
-          {sectors.map(s => (
-            <span key={s} className="text-xs px-2.5 py-1 rounded-full border border-border text-muted-foreground">{s}</span>
-          ))}
-        </div>
-      )}
-      {profile.bio && <p className="text-[15px] text-foreground leading-relaxed">{profile.bio}</p>}      <div className="pt-3 border-t border-border space-y-2">
-        <p className="text-sm font-medium text-foreground mb-2">Contact</p>
-        {profile.linkedin_url && (
-          <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-[#452A1D] transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5">
-              <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
-              <rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
-            </svg>
-            LinkedIn
-          </a>
-        )}
-        {profile.website && (
-          <a href={profile.website} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs text-primary hover:underline">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"/>
-            </svg>
-            {profile.website.replace(/^https?:\/\//, "")}
-          </a>
-        )}
-        {profile.social_links && profile.social_links.length > 0 && (
-          <div className="pt-1 space-y-1.5">
-            {profile.social_links.map((s, i) => (
-              <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-[#452A1D] transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5 shrink-0">
-                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                </svg>
-                {s.label}
-              </a>
-            ))}
+
+        {(profile.bio || sectors.length > 0) && (
+          <div className="px-8 sm:px-12 py-10">
+            <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5] mb-6">About</p>
+            <div className="space-y-9">
+              {profile.bio && (
+                <p className="text-base text-[#111111] dark:text-[#F5F5F5] leading-relaxed">{profile.bio}</p>
+              )}
+              {sectors.length > 0 && (
+                <div>
+                  <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] mb-1.5">Sector</p>
+                  <p className="text-sm text-[#111111] dark:text-[#F5F5F5]">{sectors.join(", ")}</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
+
+        {hasContact && (
+          <div className="px-8 sm:px-12 py-10">
+            <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5] mb-6">Contact</p>
+            <div className="space-y-3">
+              {profile.linkedin_url && (
+                <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm text-[#111111] dark:text-[#F5F5F5] hover:text-[#2D6A4F] transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
+                    <rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
+                  </svg>
+                  LinkedIn
+                </a>
+              )}
+              {profile.website && profile.website !== "https://" && (
+                <a href={profile.website} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm text-[#2D6A4F] hover:underline">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"/>
+                  </svg>
+                  {profile.website.replace(/^https?:\/\//, "")}
+                </a>
+              )}
+              {profile.social_links?.map((s, i) => (
+                <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm text-[#111111] dark:text-[#F5F5F5] hover:text-[#2D6A4F] transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4 shrink-0">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                  </svg>
+                  {s.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
