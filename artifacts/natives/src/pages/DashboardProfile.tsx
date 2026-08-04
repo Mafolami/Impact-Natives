@@ -156,6 +156,13 @@ async function saveOrgFields(userId: string, fields: Record<string, any>) {
   if (error) throw error;
 }
 
+async function saveProfileFields(userId: string, fields: Record<string, any>) {
+  const { error } = await supabase.from("profiles")
+    .update({ ...fields, updated_at: new Date().toISOString() })
+    .eq("id", userId);
+  if (error) throw error;
+}
+
 // Wraps a set of SectionCards in the same full-bleed, thick-divider strip
 // used throughout DashboardNatives -- NOT individually bordered boxes.
 function SectionCardGroup({ children }: { children: React.ReactNode }) {
@@ -604,6 +611,27 @@ export default function DashboardProfile() {
     return () => { window.removeEventListener("resize", measure); clearTimeout(t); };
   }, []);
 
+  // ── Focus Areas pane: display-card / edit-modal state ────────────────────
+  const [editingFocusOpen, setEditingFocusOpen] = useState(false);
+  const [focusSaving, setFocusSaving]           = useState(false);
+  const [draftSectors, setDraftSectors]         = useState<string[]>([]);
+  function openFocusModal() {
+    setDraftSectors(sectors);
+    setEditingFocusOpen(true);
+  }
+  async function saveFocusSection() {
+    if (!user) return;
+    setFocusSaving(true);
+    try {
+      await saveProfileFields(user.id, { sectors: draftSectors.length > 0 ? draftSectors : null });
+      setSectors(draftSectors);
+      setEditingFocusOpen(false);
+    } catch (err: any) {
+      alert(`Couldn't save: ${err.message}`);
+    }
+    setFocusSaving(false);
+  }
+
   // ── Mandate fields (funders/corporates) ──────────────────────────────────
   const [investmentThesis, setInvestmentThesis]       = useState(profile?.investment_thesis ?? "");
 
@@ -751,6 +779,34 @@ export default function DashboardProfile() {
       alert(`Couldn't save: ${err.message}`);
     }
     setCsrSectionSaving(false);
+  }
+
+  // ── Organisation pane: display-card / edit-modal state ───────────────────
+  const [editingOrgSection, setEditingOrgSection] = useState(false);
+  const [orgSectionSaving, setOrgSectionSaving]   = useState(false);
+  const [draftOrgName, setDraftOrgName]           = useState("");
+  const [draftOrgDescription, setDraftOrgDescription] = useState("");
+  const [draftCountry, setDraftCountry]           = useState("");
+  function openOrgModal() {
+    setDraftOrgName(orgName);
+    setDraftOrgDescription(orgDescription);
+    setDraftCountry(country);
+    setEditingOrgSection(true);
+  }
+  async function saveOrgSection() {
+    if (!user) return;
+    setOrgSectionSaving(true);
+    try {
+      await saveProfileFields(user.id, { org_name: draftOrgName || null, country: draftCountry || null });
+      await saveOrgFields(user.id, { description: draftOrgDescription || null });
+      setOrgName(draftOrgName);
+      setOrgDescription(draftOrgDescription);
+      setCountry(draftCountry);
+      setEditingOrgSection(false);
+    } catch (err: any) {
+      alert(`Couldn't save: ${err.message}`);
+    }
+    setOrgSectionSaving(false);
   }
 
   useEffect(() => {
@@ -1345,9 +1401,9 @@ export default function DashboardProfile() {
 
               {/* ── ORGANISATION PANE ── */}
               {activePane === "organisation" && isOrg && (
-                <div className="space-y-8">
-                  <div className="space-y-4">
-                    <PaneHeader title="Organisation logo" />
+                <SectionCardGroup>
+                  <div className="px-8 sm:px-12 py-10">
+                    <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5] mb-6">Organisation logo</p>
                     <div className="flex items-center gap-5">
                       <div className="group relative w-16 h-16 shrink-0">
                         <div className="w-16 h-16 rounded-xl border border-border bg-white dark:bg-card flex items-center justify-center overflow-hidden">
@@ -1365,7 +1421,7 @@ export default function DashboardProfile() {
                           </button>
                         )}
                       </div>
-                    
+
                       <div>
                         <label className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm text-black dark:text-white hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
                           <Camera className="w-3.5 h-3.5" />
@@ -1383,34 +1439,43 @@ export default function DashboardProfile() {
                     </div>
                   </div>
 
-                  <div className="space-y-5 pt-2">
-                    <PaneHeader title="Organisation" />
-                    <div>
-                      <Label className="text-sm font-medium">Organisation name</Label>
-                      <Input value={orgName} onChange={e => setOrgName(e.target.value)} className="mt-1 h-10" placeholder="e.g. Ashoka Foundation" />
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Organisation type</Label>
-                      <div className="mt-1 h-10 px-3 rounded-lg border border-border bg-muted/30 flex items-center">
-                        <span className="text-sm text-black dark:text-white">
-                          {ORG_TYPE_OPTIONS.find(o => o.value === (profile?.org_type ?? orgType))?.label ?? "Not set"}
-                        </span>
-                      </div>
-                      <p className="text-xs text-black dark:text-white mt-1">Organisation type cannot be changed. Contact support if this is incorrect.</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Organisation description</Label>
-                      <Textarea value={orgDescription} onChange={e => setOrgDescription(e.target.value)} className="mt-1 resize-none" rows={4}
-                        placeholder="What does your organisation do, where does it work, and who does it serve?" />
-                      <p className="text-xs text-black dark:text-white mt-1.5">Shown on your directory profile and used by AI to match you with relevant partners.</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium">Country</Label>
-                      <CountryPicker value={country} onChange={setCountry} />
-                    </div>
+                  <SectionCard title="Organisation" onEdit={openOrgModal}>
+                    <DisplayField label="Organisation name">
+                      {orgName ? <p className="text-sm text-black dark:text-white">{orgName}</p> : <EmptyValue />}
+                    </DisplayField>
+                    <DisplayField label="Organisation type">
+                      <p className="text-sm text-black dark:text-white">
+                        {ORG_TYPE_OPTIONS.find(o => o.value === (profile?.org_type ?? orgType))?.label ?? "Not set"}
+                      </p>
+                      <p className="text-xs text-black dark:text-white opacity-60 mt-1">Cannot be changed. Contact support if this is incorrect.</p>
+                    </DisplayField>
+                    <DisplayField label="Organisation description">
+                      {orgDescription ? <p className="text-sm text-black dark:text-white leading-relaxed">{orgDescription}</p> : <EmptyValue />}
+                    </DisplayField>
+                    <DisplayField label="Country">
+                      {country ? <p className="text-sm text-black dark:text-white">{country}</p> : <EmptyValue />}
+                    </DisplayField>
+                  </SectionCard>
+                </SectionCardGroup>
+              )}
+
+              {editingOrgSection && (
+                <EditModal title="Edit organisation" onClose={() => setEditingOrgSection(false)} onSave={saveOrgSection} saving={orgSectionSaving}>
+                  <div>
+                    <Label className="text-sm font-medium">Organisation name</Label>
+                    <Input value={draftOrgName} onChange={e => setDraftOrgName(e.target.value)} className="mt-1 h-10" placeholder="e.g. Ashoka Foundation" />
                   </div>
-                  <SaveBar />
-                </div>
+                  <div>
+                    <Label className="text-sm font-medium">Organisation description</Label>
+                    <Textarea value={draftOrgDescription} onChange={e => setDraftOrgDescription(e.target.value)} className="mt-1 resize-none" rows={4}
+                      placeholder="What does your organisation do, where does it work, and who does it serve?" />
+                    <p className="text-xs text-black dark:text-white opacity-60 mt-1.5">Shown on your directory profile and used by AI to match you with relevant partners.</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Country</Label>
+                    <CountryPicker value={draftCountry} onChange={setDraftCountry} />
+                  </div>
+                </EditModal>
               )}
 
               {/* ── FOCUS AREAS PANE ── */}
