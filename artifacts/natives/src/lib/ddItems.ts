@@ -38,6 +38,15 @@ export interface DDDocument {
 // legal registration -- everything else is fine to show to anyone.
 export const DD_SENSITIVE_EVIDENCE_KEYS = new Set(["registrationNumber", "registeringBody"]);
 
+// Short, plain-language explanations for the three similar-looking score
+// cards (DD Readiness, Delivery, Impact & Track Record), so a viewer can
+// tell them apart instead of reading three green cards as one thing.
+export const PILLAR_INFO = {
+  ddReadiness: "What the organisation has confirmed about itself directly. Not verified by Impact Natives.",
+  delivery: "How relationships tracked on this platform have actually turned out, based on outcomes recorded here, not self-reported.",
+  trackRecord: "Numbers and history the organisation has entered about its own past work. Not verified by Impact Natives.",
+} as const;
+
 export const DD_ITEMS: DDItemDef[] = [
     {
       key: "financial_model",

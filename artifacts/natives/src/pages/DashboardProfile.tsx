@@ -10,7 +10,7 @@ import { Loader2, CheckCircle2, ShieldCheck, Camera, ArrowRight, Building2, Tras
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { COUNTRIES } from "@/lib/countries";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
-import { DD_ITEMS, DDItemDef, DDDocument } from "@/lib/ddItems";
+import { DD_ITEMS, DDItemDef, DDDocument, PILLAR_INFO } from "@/lib/ddItems";
 
 
 const ORG_TYPE_OPTIONS = [
@@ -121,10 +121,21 @@ function ChipPicker({ options, selected, onChange }: { options: string[]; select
   );
 }
 
-function PaneHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+function PaneHeader({ title, subtitle, info }: { title: string; subtitle?: string; info?: string }) {
+  const [infoOpen, setInfoOpen] = useState(false);
   return (
     <div className="mb-1">
-      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>
+      <div className="flex items-center gap-1.5">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>
+        {info && (
+          <button type="button" onClick={() => setInfoOpen(o => !o)}
+            className="w-3.5 h-3.5 rounded-full border border-muted-foreground/40 text-muted-foreground/70 text-[9px] leading-[13px] font-bold inline-flex items-center justify-center hover:border-foreground/50 hover:text-foreground/70 transition-colors shrink-0"
+            aria-label="What does this mean?">
+            i
+          </button>
+        )}
+      </div>
+      {info && infoOpen && <p className="text-xs text-muted-foreground italic mt-1">{info}</p>}
       {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
     </div>
   );
@@ -140,6 +151,7 @@ interface PaneDef { key: PaneKey; label: string; }
 
 function DeliveryStatsCard({ orgId }: { orgId: string | null }) {
   const [stats, setStats] = useState<{ completed: number; stalled: number; fell_through: number; resolved: number; total: number } | null>(null);
+  const [infoOpen, setInfoOpen] = useState(false);
 
   useEffect(() => {
     if (!orgId) return;
@@ -155,9 +167,17 @@ function DeliveryStatsCard({ orgId }: { orgId: string | null }) {
   return (
     <div className="pt-2 border-t border-border">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs text-muted-foreground">Delivery (platform-tracked, not editable here)</p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-xs text-muted-foreground">Delivery (platform-tracked, not editable here)</p>
+          <button type="button" onClick={() => setInfoOpen(o => !o)}
+            className="w-3.5 h-3.5 rounded-full border border-muted-foreground/40 text-muted-foreground/70 text-[9px] leading-[13px] font-bold inline-flex items-center justify-center hover:border-foreground/50 hover:text-foreground/70 transition-colors shrink-0"
+            aria-label="What does this mean?">
+            i
+          </button>
+        </div>
         {hasEnoughData && <p className="text-xs font-bold text-foreground">{rate}%</p>}
       </div>
+      {infoOpen && <p className="text-xs text-muted-foreground italic mb-2">{PILLAR_INFO.delivery}</p>}
       {hasEnoughData ? (
         <>
           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
@@ -1238,7 +1258,8 @@ export default function DashboardProfile() {
               {activePane === "dd" && isImplementer && (
                 <div className="space-y-5">
                   <PaneHeader title="Due diligence readiness"
-                    subtitle="Signal to funders that you are investment-ready. Checking an item asks for a few quick details, which appear as a tooltip on your profile once matched." />
+                    subtitle="Signal to funders that you are investment-ready. Checking an item asks for a few quick details, which appear as a tooltip on your profile once matched."
+                    info={PILLAR_INFO.ddReadiness} />
                   <div className="space-y-3">
                     {[
                       { key: "financial_model", label: "Financial model available", sub: "A current financial model or projections document", state: ddFinancialModel, set: setDdFinancialModel },
@@ -1327,7 +1348,8 @@ export default function DashboardProfile() {
               {/* ── TRACK RECORD PANE ── */}
               {activePane === "track" && isImplementer && (
                 <div className="space-y-5">
-                  <PaneHeader title="Impact & track record" subtitle="Help funders and corporates quickly understand your reach and credibility. All fields optional." />
+                  <PaneHeader title="Impact & track record" subtitle="Help funders and corporates quickly understand your reach and credibility. All fields optional."
+                    info={PILLAR_INFO.trackRecord} />
 
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Cumulative reach</p>
