@@ -11,11 +11,11 @@
 // Wiring that modal in here too would double the complexity of this file
 // for a step that already has a working home.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { Loader2, ArrowUpDown, Search, Banknote, StickyNote } from "lucide-react";
+import { Loader2, ArrowUpDown, Search, Banknote, StickyNote, X } from "lucide-react";
 import { fetchPortfolioRows, PortfolioRow, PortfolioRowType, PortfolioDirection, PortfolioOutcome, PortfolioTimelineStage, PortfolioOutcomeHistoryEntry, upsertPartnershipOutcome, fetchOutcomeHistory } from "@/lib/portfolioData";
 import {
   updateConnectionStatus, markPartnershipFormed, unlistPartnership, relistPartnership,
@@ -86,6 +86,44 @@ function DirectionPill({ direction }: { direction: PortfolioDirection }) {
   );
 }
 
+function FundingPopover({ currency, amount }: { currency: string | null; amount: number | null }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    document.addEventListener("keydown", onEscape);
+    return () => {
+      document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("keydown", onEscape);
+    };
+  }, [open]);
+
+  return (
+    <div className="relative inline-flex" ref={ref}>
+      <button type="button" onClick={() => setOpen(o => !o)}
+        className="p-0.5 -m-0.5 rounded-full hover:bg-[#2D6A4F]/10 transition-colors">
+        <Banknote className="w-3.5 h-3.5 text-[#2D6A4F]" />
+      </button>
+      {open && (
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 z-30 whitespace-nowrap text-[11px] font-medium bg-black dark:bg-white text-white dark:text-black px-2.5 py-1.5 rounded-md flex items-center gap-2">
+          {currency} {amount?.toLocaleString() ?? "—"} disbursed
+          <button type="button" onClick={() => setOpen(false)} className="opacity-70 hover:opacity-100">
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
   const day = d.getDate();
@@ -118,9 +156,9 @@ function formatDuration(fromISO: string, toISO: string): string {
 function TimelineModal({ row, onClose }: { row: PortfolioRow; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="bg-card rounded-2xl border border-border w-full max-w-sm p-6 space-y-4" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-sm p-6 space-y-4" onClick={e => e.stopPropagation()}>
         <div>
-          <h3 className="text-lg font-bold text-foreground">Timeline</h3>
+          <h3 className="text-lg font-bold text-black dark:text-white">Timeline</h3>
           <p className="text-sm text-muted-foreground mt-0.5">{row.title} — {row.organisation}</p>
         </div>
         <div>
@@ -132,7 +170,7 @@ function TimelineModal({ row, onClose }: { row: PortfolioRow; onClose: () => voi
                 {!isLast && <div className="absolute left-[6px] top-4 bottom-0 w-px bg-border" />}
                 <div className="w-3.5 h-3.5 rounded-full bg-[#2D6A4F] shrink-0 mt-1 relative z-10 border-2 border-card" />
                 <div className="flex-1 min-w-0 -mt-0.5">
-                  <p className="text-sm font-medium text-foreground">{stage.label}</p>
+                  <p className="text-sm font-medium text-black dark:text-white">{stage.label}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {new Date(stage.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                     {prev && (
@@ -167,9 +205,9 @@ function NotesModal({ row, onClose }: { row: PortfolioRow; onClose: () => void }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="bg-card rounded-2xl border border-border w-full max-w-md p-6 space-y-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-md p-6 space-y-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div>
-          <h3 className="text-lg font-bold text-foreground">Outcome history</h3>
+          <h3 className="text-lg font-bold text-black dark:text-white">Outcome history</h3>
           <p className="text-sm text-muted-foreground mt-0.5">{row.title} — {row.organisation}</p>
         </div>
         {loading ? (
@@ -187,7 +225,7 @@ function NotesModal({ row, onClose }: { row: PortfolioRow; onClose: () => void }
                   <span className="text-xs text-muted-foreground">{formatDate(entry.recorded_at)}</span>
                 </div>
                 {entry.outcome_summary && (
-                  <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{entry.outcome_summary}</p>
+                  <p className="text-sm text-black dark:text-white leading-relaxed whitespace-pre-wrap">{entry.outcome_summary}</p>
                 )}
               </div>
             ))}
@@ -291,10 +329,10 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="bg-card rounded-2xl border border-border w-full max-w-md p-6 space-y-5" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-md p-6 space-y-5" onClick={e => e.stopPropagation()}>
         <div>
           <div className="flex items-center gap-2 mb-0.5">
-            <h3 className="text-lg font-bold text-foreground">Update outcome</h3>
+            <h3 className="text-lg font-bold text-black dark:text-white">Update outcome</h3>
             <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
               style={{
                 background: isInitiative ? "rgba(45,106,79,0.12)" : "rgba(3,105,161,0.12)",
@@ -637,12 +675,12 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
 
       {/* Table */}
       {filteredSorted.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-card p-12 text-center">
-          <p className="text-foreground font-medium mb-1">No matching rows.</p>
+        <div className="rounded-2xl border border-border bg-white dark:bg-card p-12 text-center">
+          <p className="text-black dark:text-white font-medium mb-1">No matching rows.</p>
           <p className="text-sm text-muted-foreground">Try clearing filters.</p>
         </div>
       ) : (
-        <div className="rounded-xl border border-border bg-card overflow-x-auto">
+        <div className="rounded-xl border border-border bg-white dark:bg-card overflow-x-auto">
           <table className="w-full text-sm min-w-[960px]">
             <thead>
               <tr className="border-b border-border bg-muted/30">
@@ -664,16 +702,16 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
                   <td className="px-4 py-3 max-w-[260px]">
                     {row.raw.kind === "partnership_listing" ? (
                       <button type="button" onClick={() => onOpenOwnListing?.()}
-                        className="text-sm font-medium text-foreground hover:text-[#2D6A4F] transition-colors line-clamp-2 text-left">
+                        className="text-sm font-medium text-black dark:text-white hover:text-[#2D6A4F] transition-colors line-clamp-2 text-left">
                         {row.title}
                       </button>
                     ) : row.titleHref ? (
                       <Link href={row.titleHref}
-                        className="text-sm font-medium text-foreground hover:text-[#2D6A4F] transition-colors line-clamp-2">
+                        className="text-sm font-medium text-black dark:text-white hover:text-[#2D6A4F] transition-colors line-clamp-2">
                         {row.title}
                       </Link>
                     ) : (
-                      <span className="text-sm text-foreground line-clamp-2">{row.title}</span>
+                      <span className="text-sm text-black dark:text-white line-clamp-2">{row.title}</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -691,10 +729,10 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
                       <span className="text-sm text-muted-foreground">{row.organisation}</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm text-foreground whitespace-nowrap">{row.type}</td>
+                  <td className="px-4 py-3 text-sm text-black dark:text-white whitespace-nowrap">{row.type}</td>
                   <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{row.supportType ?? "—"}</td>
                   <td className="px-4 py-3"><DirectionPill direction={row.direction} /></td>
-                  <td className="px-4 py-3 text-sm text-foreground">{row.eoiCount ?? "—"}</td>
+                  <td className="px-4 py-3 text-sm text-black dark:text-white">{row.eoiCount ?? "—"}</td>
                   <td className="px-4 py-3">
                     {row.contactEmail ? (
                       <a href={`mailto:${row.contactEmail}`} className="text-xs text-[#2D6A4F] hover:underline whitespace-nowrap">
@@ -707,12 +745,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
                       <div className="flex items-center gap-1.5">
                         <StatusPill status={row.status} />
                         {row.outcome?.funding_disbursed && (
-                          <span className="relative inline-flex group/fund">
-                            <Banknote className="w-3.5 h-3.5 text-[#2D6A4F]" />
-                            <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 hidden group-hover/fund:block whitespace-nowrap text-[11px] font-medium bg-foreground text-background px-2.5 py-1 rounded-md z-20">
-                              {row.outcome.funding_currency} {row.outcome.funding_amount?.toLocaleString() ?? "—"} disbursed
-                            </span>
-                          </span>
+                          <FundingPopover currency={row.outcome.funding_currency} amount={row.outcome.funding_amount} />
                         )}
                       </div>
                       {isOutcomeEligible(row) && (
