@@ -397,7 +397,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
     ];
     const { data: counterpartOrgs } = counterpartIds.length
       ? await supabase.from("organizations")
-          .select("id, organisation_name, partnership_sought, needs, email")
+          .select("id, user_id, organisation_name, partnership_sought, needs, email")
           .in("id", [...new Set(counterpartIds)])
       : { data: [] };
     const counterpartMap = new Map((counterpartOrgs ?? []).map(o => [o.id, o]));
@@ -410,7 +410,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
         title: resolvePartnershipTitle(counterpart, conn.partnership_title),
         titleHref: counterpart ? `/dashboard/partnerships?org=${counterpart.id}` : null,
         organisation: counterpart?.organisation_name ?? "Unknown",
-        organisationHref: counterpart ? `/dashboard/partnerships?org=${counterpart.id}` : null,
+        organisationHref: counterpart?.user_id ? `/dashboard/natives?tab=organisation&user=${counterpart.user_id}` : null,
         type: "Partnership",
         supportType: conn.partnership_type ?? null,
         direction: "Outbound",
@@ -433,7 +433,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
         title: resolvePartnershipTitle(counterpart, conn.partnership_title),
         titleHref: counterpart ? `/dashboard/partnerships?org=${counterpart.id}` : null,
         organisation: counterpart?.organisation_name ?? "Unknown",
-        organisationHref: counterpart ? `/dashboard/partnerships?org=${counterpart.id}` : null,
+        organisationHref: counterpart?.user_id ? `/dashboard/natives?tab=organisation&user=${counterpart.user_id}` : null,
         type: "Partnership",
         supportType: conn.partnership_type ?? null,
         direction: "Inbound",
