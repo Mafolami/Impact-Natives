@@ -705,7 +705,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
                   <td className="px-4 py-3">
                     {row.titleHref ? (
                       <Link href={row.titleHref}
-                        className="text-sm font-medium text-black dark:text-white hover:text-[#C45C26] transition-colors">
+                        className="text-sm font-medium text-black dark:text-white hover:text-[#C45C26] dark:hover:text-[#C45C26] transition-colors">
                         {row.title}
                       </Link>
                     ) : (
@@ -715,7 +715,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
                   <td className="px-4 py-3">
                     {row.organisationHref ? (
                       <Link href={row.organisationHref}
-                        className="text-sm text-black dark:text-white hover:text-[#C45C26] transition-colors">
+                        className="text-sm text-black dark:text-white hover:text-[#C45C26] dark:hover:text-[#C45C26] transition-colors">
                         {row.organisation}
                       </Link>
                     ) : (
