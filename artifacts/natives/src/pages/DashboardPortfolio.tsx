@@ -792,6 +792,7 @@ export default function DashboardInitiatives() {
         sending={sendingInterest === selectedPartnerOrg.id}
         onExpressInterest={e => expressInterest(selectedPartnerOrg, e)}
         onBack={() => navigate("/dashboard/portfolio")}
+        backLabel="Back to portfolio"
         viewerOrg={viewerOrg}
       />
     );

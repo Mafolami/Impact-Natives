@@ -11,7 +11,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Loader2, ShieldCheck, Sparkles, CheckCircle2, ArrowUpRight, X } from "lucide-react";
+import { Loader2, ShieldCheck, Sparkles, CheckCircle2, ArrowUpRight, ArrowLeft } from "lucide-react";
 import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -143,10 +143,11 @@ function BentoCell({ label, value, accent }: { label: string; value: string; acc
 
 // ─── Main panel ─────────────────────────────────────────────────────────────────
 
-export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, onExpressInterest, onBack, viewerOrg }: {
+export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, onExpressInterest, onBack, backLabel, viewerOrg }: {
   org: OrgRow | null; isSaved: boolean; onToggleSave: (e: React.MouseEvent) => void;
   isOrg: boolean; alreadySent: boolean; sending: boolean;
   onExpressInterest: (e: React.MouseEvent) => void; onBack: () => void;
+  backLabel?: string;
   viewerOrg: OrgRow | null;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -229,13 +230,17 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
       {/* ── Identity block ── */}
       <div className="shrink-0 px-8 pt-7 pb-6 border-b-2 border-border"
         style={{ background: "linear-gradient(to bottom, rgba(45,106,79,0.06), transparent)" }}>
-        {/* Back */}
-        <div className="flex justify-between mb-4">
-          <button type="button" onClick={onBack}
-            className="p-1.5 -ml-1.5 rounded-lg text-foreground hover:bg-muted transition-colors">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+        {/* Back -- only shown when the caller supplies a label (e.g. Portfolio's
+            in-state view). DashboardPartnerships.tsx's own split-pane view has
+            no header back control; it handles mobile-only closing separately. */}
+        {backLabel && (
+          <div className="flex justify-between mb-4">
+            <button type="button" onClick={onBack}
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <ArrowLeft className="w-3.5 h-3.5" /> {backLabel}
+            </button>
+          </div>
+        )}
 
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="flex-1 min-w-0">
