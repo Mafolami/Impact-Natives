@@ -509,6 +509,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | PortfolioRowType>("all");
+  const [directionFilter, setDirectionFilter] = useState<"all" | PortfolioDirection>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -540,6 +541,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
       out = out.filter(r => r.title.toLowerCase().includes(q) || r.organisation.toLowerCase().includes(q));
     }
     if (typeFilter !== "all") out = out.filter(r => r.type === typeFilter);
+    if (directionFilter !== "all") out = out.filter(r => r.direction === directionFilter);
     if (statusFilter !== "all") out = out.filter(r => r.status === statusFilter);
 
     const dir = sortDir === "asc" ? 1 : -1;
@@ -553,7 +555,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
         default:              return 0;
       }
     });
-  }, [rows, search, typeFilter, statusFilter, sortKey, sortDir]);
+  }, [rows, search, typeFilter, directionFilter, statusFilter, sortKey, sortDir]);
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir(d => (d === "asc" ? "desc" : "asc"));
@@ -656,6 +658,13 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
           <option value="Initiative">Initiative</option>
           <option value="Partnership">Partnership</option>
         </select>
+        <select value={directionFilter} onChange={e => setDirectionFilter(e.target.value as any)}
+          className="h-9 px-3 rounded-lg border border-border bg-card text-sm text-foreground">
+          <option value="all">All directions</option>
+          <option value="Mine">Mine</option>
+          <option value="Outbound">Outbound</option>
+          <option value="Inbound">Inbound</option>
+        </select>
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
           className="h-9 px-3 rounded-lg border border-border bg-card text-sm text-foreground">
           {statusOptions.map(s => (
@@ -678,7 +687,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
           <table className="w-full text-sm min-w-[960px]">
             <thead>
               <tr className="border-b border-border bg-muted/30">
-                <th className="text-left px-4 py-3"><SortHeader label="Title" sortK="title" /></th>
+                <th className="text-left px-4 py-3 min-w-[280px]"><SortHeader label="Title" sortK="title" /></th>
                 <th className="text-left px-4 py-3"><SortHeader label="Organisation" sortK="organisation" /></th>
                 <th className="text-left px-4 py-3"><SortHeader label="Type" sortK="type" /></th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">Support Type</th>
