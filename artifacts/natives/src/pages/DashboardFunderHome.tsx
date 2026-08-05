@@ -378,9 +378,9 @@ export default function FunderHome({ profile }: { profile: any }) {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">{greeting}</p>
+          <p className="text-xs text-black dark:text-white mb-1 uppercase tracking-widest">{greeting}</p>
           <h2 className="text-2xl font-bold text-black dark:text-white tracking-tight">{firstName}.</h2>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-black dark:text-white mt-1">
             {mandateScore < 60
               ? "Complete your mandate to get better matched initiatives."
               : "Your mandate is active."}
@@ -402,10 +402,10 @@ export default function FunderHome({ profile }: { profile: any }) {
               style={{ borderColor: m.accent ? "#C45C26" : undefined }}>
               <div className="flex items-center justify-center gap-1.5 mb-1.5">
                 <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground leading-snug text-center">{m.label}</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-black dark:text-white leading-snug text-center">{m.label}</p>
               </div>
               <p className="text-xl font-bold text-black dark:text-white tracking-tight group-hover:text-[#2D6A4F] transition-colors">{m.value}</p>
-              <p className="text-xs text-muted-foreground leading-snug mt-0.5 text-center">{m.sub}</p>
+              <p className="text-xs text-black dark:text-white leading-snug mt-0.5 text-center">{m.sub}</p>
             </button>
           );
         })}
@@ -422,7 +422,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                   style={{ width: `${mandateScore}%` }} />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-black dark:text-white">
               {missingMandateFields.length > 0
                 ? `Add ${formatMissingList(missingMandateFields)}${mandateScore < 80 ? " — 80% unlocks partnership matches too." : "."}`
                 : ""}
@@ -442,7 +442,7 @@ export default function FunderHome({ profile }: { profile: any }) {
             <p className="text-sm font-semibold text-foreground mb-1">
               You've passed on {passInsight.count} initiatives citing "{passInsight.reason}"
             </p>
-            <p className="text-xs text-muted-foreground">{passInsight.hint}</p>
+            <p className="text-xs text-black dark:text-white">{passInsight.hint}</p>
           </div>
           <button type="button" onClick={() => navigate("/dashboard/profile")}
             className="shrink-0 text-xs font-semibold text-[#C45C26] border border-[#C45C26]/30 rounded-full px-3 py-1.5 hover:bg-[#C45C26]/10 transition-colors whitespace-nowrap">
@@ -463,7 +463,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                 style={{ background: "#2D6A4F", color: "#ffffff" }}>
                 Initiatives for you
               </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Top initiatives, matched to your mandate</p>
+              <p className="text-xs text-black dark:text-white mt-0.5">Top initiatives, matched to your mandate</p>
             </div>
             <button type="button" onClick={() => navigate("/dashboard/marketplace")}
               className="text-xs font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors shrink-0">
@@ -492,12 +492,12 @@ export default function FunderHome({ profile }: { profile: any }) {
           ) : matchingUnavailable && matchedInitiatives.length === 0 ? (
             <div className="rounded-2xl border border-border bg-white dark:bg-card p-8 text-center">
               <p className="text-sm font-medium text-black dark:text-white mb-1">Still finding your matches.</p>
-              <p className="text-xs text-muted-foreground">Matching is refreshing right now. Check back shortly.</p>
+              <p className="text-xs text-black dark:text-white">Matching is refreshing right now. Check back shortly.</p>
             </div>
           ) : matchedInitiatives.length === 0 ? (
             <div className="rounded-2xl border border-border bg-white dark:bg-card p-8 text-center">
               <p className="text-sm font-medium text-black dark:text-white mb-1">No initiatives yet.</p>
-              <p className="text-xs text-muted-foreground">Check back as organisations post their work.</p>
+              <p className="text-xs text-black dark:text-white">Check back as organisations post their work.</p>
             </div>
           ) : (() => {
             const strongMatches = matchedInitiatives.filter((i: any) => (i.score ?? 0) >= initiativeMinScore);
@@ -506,7 +506,7 @@ export default function FunderHome({ profile }: { profile: any }) {
             return (
             <div className="space-y-3">
               {strongMatches.length === 0 && otherMatches.length > 0 && (
-                <p className="text-xs text-muted-foreground mb-1">
+                <p className="text-xs text-black dark:text-white mb-1">
                   No strong matches right now. A few others worth a look:
                 </p>
               )}
@@ -545,7 +545,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                         ["budget_fit", "Budget"], ["dd_fit", "DD readiness"], ["esg_fit", "ESG fit"], ["support_type_fit", "Support type"],
                       ].filter(([key]) => ini.criteria[key]).map(([key, label]) => (
                         <div key={key} className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">{label}</span>
+                          <span className="text-xs text-black dark:text-white">{label}</span>
                           <span className="text-xs font-medium" style={{
                             color: ini.criteria[key] === "match" ? "#2D6A4F" : ini.criteria[key] === "partial" ? "#F59E0B" : "#EF4444",
                           }}>
@@ -614,7 +614,7 @@ export default function FunderHome({ profile }: { profile: any }) {
             <div className="rounded-xl border border-dashed border-border bg-white dark:bg-card p-6 text-center flex flex-col items-center justify-center min-h-[220px]">
               <Building2 className="w-6 h-6 text-muted-foreground/20 mb-3" />
               <p className="text-xs font-medium text-black dark:text-white mb-1">Locked for now</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-black dark:text-white">
                 Unlocks at 80% mandate completion — you're at {mandateScore}%.
               </p>
             </div>
@@ -626,7 +626,7 @@ export default function FunderHome({ profile }: { profile: any }) {
             </div>
           ) : partnershipMatches.length === 0 ? (
             <div className="rounded-xl border border-border bg-white dark:bg-card p-5 text-center">
-              <p className="text-xs text-muted-foreground">No partnership matches yet.</p>
+              <p className="text-xs text-black dark:text-white">No partnership matches yet.</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -637,7 +637,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                   <p className="text-sm font-semibold text-black dark:text-white group-hover:text-[#2D6A4F] transition-colors break-words mb-1">
                     {m.org?.organisation_name ?? "Organisation"}
                   </p>
-                  <p className="text-xs text-muted-foreground break-words mb-2">
+                  <p className="text-xs text-black dark:text-white break-words mb-2">
                     Seeking {m.org?.partnership_sought || (m.org?.needs?.length ? m.org.needs.join(", ") : "a partnership")}
                   </p>
                   <span className="inline-flex w-fit text-xs font-bold px-2 py-0.5 rounded-full mb-2"
@@ -654,7 +654,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                         ["working_style_fit", "Style"], ["stage_readiness_fit", "Stage"],
                       ].map(([key, label]) => (
                         <div key={key} className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">{label}</span>
+                          <span className="text-xs text-black dark:text-white">{label}</span>
                           <span className="text-xs font-medium" style={{
                             color: m.criteria[key] === "match" ? "#2D6A4F" : m.criteria[key] === "partial" ? "#F59E0B" : "#EF4444",
                           }}>

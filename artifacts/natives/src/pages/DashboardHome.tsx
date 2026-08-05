@@ -76,7 +76,7 @@ function MetricCard({ label, value, sub, onClick, accent, showSkeleton }: {
     <button type="button" onClick={onClick}
       className="text-left rounded-xl border bg-white dark:bg-card px-4 py-4 hover:border-[#2D6A4F]/40 transition-colors group card-interactive"
       style={{ borderColor: accent ? "#C45C26" : undefined }}>
-      <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">{label}</p>
+      <p className="text-xs font-bold uppercase tracking-widest text-black dark:text-white mb-2">{label}</p>
       {isLoading ? (
         <div className="skeleton h-9 w-12 mb-1" />
       ) : (
@@ -87,7 +87,7 @@ function MetricCard({ label, value, sub, onClick, accent, showSkeleton }: {
       {isLoading ? (
         <div className="skeleton h-3 w-20 mt-2" />
       ) : (
-        <p className="text-xs text-muted-foreground mt-1">{sub}</p>
+        <p className="text-xs text-black dark:text-white mt-1">{sub}</p>
       )}
     </button>
   );
@@ -151,7 +151,7 @@ function GettingStarted({
 
   return (
     <section>
-      <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
+      <h3 className="text-xs font-semibold uppercase tracking-widest text-black dark:text-white mb-4">
          Get started
        </h3>
       <div className="rounded-2xl border border-border bg-white dark:bg-card overflow-hidden">
@@ -170,7 +170,7 @@ function GettingStarted({
               <p className={`text-sm font-medium ${task.done ? "text-muted-foreground line-through" : "text-black dark:text-white"}`}>
                 {task.label}
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5">{task.sub}</p>            
+              <p className="text-xs text-black dark:text-white mt-0.5">{task.sub}</p>            
               </div>
             {!task.done && (
               <button type="button" onClick={task.action}
@@ -224,10 +224,10 @@ function MissedMatchesForYou({ userSectors }: { userSectors: string[] }) {
 
   return (
     <section>
-      <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1">
+      <h3 className="text-xs font-semibold uppercase tracking-widest text-black dark:text-white mb-1">
          A few things in your sectors
        </h3>
-      <p className="text-xs text-muted-foreground mb-4">
+      <p className="text-xs text-black dark:text-white mb-4">
         Matched to {userSectors.slice(0, 2).join(", ")}{userSectors.length > 2 ? ` and ${userSectors.length - 2} more` : ""}
       </p>
       {loading ? (
@@ -248,11 +248,11 @@ function MissedMatchesForYou({ userSectors }: { userSectors: string[] }) {
                 </p>
                 <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                   {ini.sharedSectors.slice(0, 2).map((s: string) => (
-                    <span key={s} className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground">{s}</span>
+                    <span key={s} className="text-xs px-2 py-0.5 rounded-full border border-border text-black dark:text-white">{s}</span>
                   ))}
                 </div>
               </div>
-              <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-[#2D6A4F] shrink-0 transition-colors" />
+              <ArrowRight className="w-3.5 h-3.5 text-black dark:text-white group-hover:text-[#2D6A4F] shrink-0 transition-colors" />
             </button>
           ))}
         </div>
@@ -271,7 +271,7 @@ function MyInitiativesMini({ initiatives }: { initiatives: InitiativeRow[] }) {
   return (
     <section>
       <div className="flex items-center justify-between mb-4">
-      <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+      <h3 className="text-xs font-semibold uppercase tracking-widest text-black dark:text-white">
          Your initiatives
        </h3>
         <button type="button" onClick={() => navigate("/dashboard/portfolio")}
@@ -289,15 +289,15 @@ function MyInitiativesMini({ initiatives }: { initiatives: InitiativeRow[] }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.dot }} />
-                  <span className="text-xs text-muted-foreground">{s.label}</span>
-                  <span className="text-xs text-muted-foreground">·</span>
-                  <span className="text-xs text-muted-foreground">{ini.eois} EOI{ini.eois !== 1 ? "s" : ""}</span>
+                  <span className="text-xs text-black dark:text-white">{s.label}</span>
+                  <span className="text-xs text-black dark:text-white">·</span>
+                  <span className="text-xs text-black dark:text-white">{ini.eois} EOI{ini.eois !== 1 ? "s" : ""}</span>
                 </div>
                 <p className="text-sm font-medium text-black dark:text-white group-hover:text-[#2D6A4F] transition-colors truncate">
                   {ini.title}
                 </p>
               </div>
-              <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-[#2D6A4F] shrink-0 transition-colors" />
+              <ArrowRight className="w-3.5 h-3.5 text-black dark:text-white group-hover:text-[#2D6A4F] shrink-0 transition-colors" />
             </button>
           );
         })}
@@ -519,10 +519,10 @@ export default function DashboardHome() {
         {/* Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">{greeting}</p>
+            <p className="text-xs text-black dark:text-white mb-1 uppercase tracking-widest">{greeting}</p>
             <h2 className="text-2xl font-bold text-black dark:text-white tracking-tight">{firstName}.</h2>
             {!loadingPersonal && (
-              <p className="text-muted-foreground mt-1 text-sm">{getStatusLine()}</p>
+              <p className="text-black dark:text-white mt-1 text-sm">{getStatusLine()}</p>
             )}
           </div>
           
