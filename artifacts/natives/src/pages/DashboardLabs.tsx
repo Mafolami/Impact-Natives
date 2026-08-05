@@ -230,12 +230,7 @@ export default function DashboardLabs() {
   return (
     <>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Innovation Labs you've commissioned or are involved in.
-            </p>
-          </div>
+        <div className="flex items-center justify-end">
           <button type="button" onClick={() => setShowModal(true)}
             className="rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
             + Commission a Lab

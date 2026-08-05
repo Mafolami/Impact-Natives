@@ -164,11 +164,6 @@ export default function DashboardNatives() {
     <div className="space-y-6">
       {!detailOpen && (
         <>
-          <div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Browse individuals and organisations in the ecosystem.
-            </p>
-          </div>
           <div className="flex gap-1 p-1 rounded-xl bg-muted w-fit">
             {(["organisation", "individual"] as const).map(t => (
               <button key={t} type="button"

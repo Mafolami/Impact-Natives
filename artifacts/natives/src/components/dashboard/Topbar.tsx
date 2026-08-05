@@ -23,6 +23,11 @@ const PAGE_TITLES: Record<string, string> = {
 // way, so every page's content still starts at the exact same offset.
 const PAGE_SUBTITLES: Record<string, string> = {
   "/dashboard/profile": "How you appear to partners and organisations across Natives.",
+  "/dashboard/messages": "Expressions of interest and active conversations.",
+  "/dashboard/portfolio": "Your initiatives and org-to-org partnerships.",
+  "/dashboard/labs": "Innovation Labs you've commissioned or are involved in.",
+  "/dashboard/natives": "Browse individuals and organisations in the ecosystem.",
+  "/dashboard/settings": "Manage your account and preferences.",
 };
 
 const SUMMARY_ONLY_TYPES = ["monthly_activity_digest"];

@@ -513,9 +513,6 @@ export default function DashboardMessages() {
 
   return (
     <div className="space-y-6 min-w-0 overflow-hidden">
-      <div>
-        <p className="text-sm text-muted-foreground mt-1">Expressions of interest and active conversations.</p>
-      </div>
       {!hasAnything ? (
         <div className="rounded-2xl border border-border bg-white dark:bg-card p-12 text-center">
           <Clock className="w-8 h-8 text-muted-foreground/40 mx-auto mb-4" />
