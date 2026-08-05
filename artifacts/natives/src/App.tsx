@@ -140,6 +140,7 @@ if (isAdmin) {
           }>
             <Switch>
               <Route path="/dashboard/partnerships"><DashboardPartnerships /></Route>
+              <Route path="/dashboard/portfolio/partner/:orgId"><DashboardPortfolio /></Route>
               <Route path="/dashboard/portfolio/:id"><DashboardPortfolio /></Route>
               <Route path="/dashboard/portfolio"><DashboardPortfolio /></Route>
               <Route path="/dashboard/labs"><DashboardLabs /></Route>

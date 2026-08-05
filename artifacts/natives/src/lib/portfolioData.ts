@@ -408,7 +408,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
       rows.push({
         id: `partner-out-${conn.id}`,
         title: resolvePartnershipTitle(counterpart, conn.partnership_title),
-        titleHref: counterpart ? `/dashboard/partnerships?org=${counterpart.id}` : null,
+        titleHref: counterpart ? `/dashboard/portfolio/partner/${counterpart.id}` : null,
         organisation: counterpart?.organisation_name ?? "Unknown",
         organisationHref: counterpart?.user_id ? `/dashboard/natives?tab=organisation&user=${counterpart.user_id}` : null,
         type: "Partnership",
@@ -431,7 +431,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
       rows.push({
         id: `partner-in-${conn.id}`,
         title: resolvePartnershipTitle(counterpart, conn.partnership_title),
-        titleHref: counterpart ? `/dashboard/partnerships?org=${counterpart.id}` : null,
+        titleHref: counterpart ? `/dashboard/portfolio/partner/${counterpart.id}` : null,
         organisation: counterpart?.organisation_name ?? "Unknown",
         organisationHref: counterpart?.user_id ? `/dashboard/natives?tab=organisation&user=${counterpart.user_id}` : null,
         type: "Partnership",
@@ -454,7 +454,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
       rows.push({
         id: `partner-mine-${myOrg.id}`,
         title: resolvePartnershipTitle(myOrg, myOrg.partnership_title),
-        titleHref: `/dashboard/partnerships?org=${myOrg.id}`,
+        titleHref: `/dashboard/portfolio/partner/${myOrg.id}`,
         organisation: myOrgName,
         organisationHref: myProfileHref,
         type: "Partnership",

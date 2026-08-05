@@ -13,6 +13,8 @@ import { useRoute } from "wouter";
 import { PartnershipTab } from "./PartnershipTab";
 import { PortfolioTable } from "./PortfolioTable";
 import { normalizeArr } from "@/lib/normalizeArr";
+import { OrgDetailPanel, type OrgRow } from "@/components/dashboard/OrgDetailPanel";
+import { useOrgActions } from "@/hooks/useOrgActions";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -712,6 +714,11 @@ export default function DashboardInitiatives() {
   const [, params] = useRoute("/dashboard/portfolio/:id");
   const routeId = params?.id;
 
+  const [, partnerParams] = useRoute("/dashboard/portfolio/partner/:orgId");
+  const partnerOrgId = partnerParams?.orgId;
+  const [selectedPartnerOrg, setSelectedPartnerOrg] = useState<OrgRow | null>(null);
+  const { viewerOrg, savedOrgs, sentInterests, sendingInterest, toggleSave, expressInterest } = useOrgActions(user?.id);
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [closingId, setClosingId] = useState<string | null>(null);
   const [closeSavingId, setCloseSavingId] = useState<string | null>(null);
@@ -764,6 +771,31 @@ export default function DashboardInitiatives() {
     const match = initiatives.find(i => i.id === routeId);
     if (match) setSelected(match);
   }, [routeId, initiatives]);
+
+  useEffect(() => {
+    if (!partnerOrgId) { setSelectedPartnerOrg(null); return; }
+    supabase.from("organizations")
+      .select("id,organisation_name,description,sector,country,organisation_type,website,email,needs,offers,sdgs,partnership_sought,partnership_title,verification_status,status,user_id,partnership_listed,partnership_formed,partnership_stage,partnership_duration,partnership_budget,partnership_decision_timeline,partnership_success_definition,partnership_funding_status,partnership_exclusivity,partnership_working_style,partnership_financial_transfer,partnership_reporting,partnership_ip_ownership,partnership_legal_type,partnership_team_capacity,partnership_contact_seniority,partnership_geo_specificity,partnership_theory_of_change,partnership_prior_attempts,partnership_constraints,partnership_dd_financial_model,partnership_dd_audited_accounts,partnership_dd_safeguarding_policy,partnership_dd_data_policy,partnership_dd_governance_doc,partnership_prior_experience,partnership_prior_experience_detail,partnership_physically_present")
+      .eq("id", partnerOrgId)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setSelectedPartnerOrg(data as OrgRow); });
+  }, [partnerOrgId]);
+
+  if (selectedPartnerOrg) {
+    return (
+      <OrgDetailPanel
+        org={selectedPartnerOrg}
+        isSaved={savedOrgs.has(selectedPartnerOrg.id)}
+        onToggleSave={e => toggleSave(selectedPartnerOrg.id, e)}
+        isOrg={!!user}
+        alreadySent={sentInterests.has(selectedPartnerOrg.id)}
+        sending={sendingInterest === selectedPartnerOrg.id}
+        onExpressInterest={e => expressInterest(selectedPartnerOrg, e)}
+        onBack={() => navigate("/dashboard/portfolio")}
+        viewerOrg={viewerOrg}
+      />
+    );
+  }
 
   if (selected) {
     return (
