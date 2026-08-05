@@ -15,7 +15,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { Loader2, ArrowUpDown, Search, Banknote, StickyNote, X } from "lucide-react";
+import { Loader2, ArrowUpDown, Search, Banknote, StickyNote } from "lucide-react";
 import { fetchPortfolioRows, PortfolioRow, PortfolioRowType, PortfolioDirection, PortfolioOutcome, PortfolioTimelineStage, PortfolioOutcomeHistoryEntry, upsertPartnershipOutcome, fetchOutcomeHistory } from "@/lib/portfolioData";
 import {
   updateConnectionStatus, markPartnershipFormed, unlistPartnership, relistPartnership,
@@ -88,39 +88,33 @@ function DirectionPill({ direction }: { direction: PortfolioDirection }) {
 
 function FundingPopover({ currency, amount }: { currency: string | null; amount: number | null }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    function onClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    function onEscape(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", onClickOutside);
-    document.addEventListener("keydown", onEscape);
-    return () => {
-      document.removeEventListener("mousedown", onClickOutside);
-      document.removeEventListener("keydown", onEscape);
-    };
-  }, [open]);
+  function show() {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (rect) setCoords({ top: rect.top - 8, left: rect.left + rect.width / 2 });
+    setOpen(true);
+  }
+  function hide() {
+    setOpen(false);
+  }
 
   return (
-    <div className="relative inline-flex" ref={ref}>
-      <button type="button" onClick={() => setOpen(o => !o)}
+    <span className="relative inline-flex">
+      <button type="button" ref={triggerRef}
+        onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}
         className="p-0.5 -m-0.5 rounded-full hover:bg-[#2D6A4F]/10 transition-colors">
         <Banknote className="w-3.5 h-3.5 text-[#2D6A4F]" />
       </button>
-      {open && (
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 z-30 whitespace-nowrap text-[11px] font-medium bg-black dark:bg-white text-white dark:text-black px-2.5 py-1.5 rounded-md flex items-center gap-2">
+      {open && coords && (
+        <div
+          style={{ position: "fixed", top: coords.top, left: coords.left, transform: "translate(-50%, -100%)" }}
+          className="pointer-events-none z-[100] whitespace-nowrap text-[11px] font-medium bg-black dark:bg-white text-white dark:text-black px-2.5 py-1.5 rounded-md">
           {currency} {amount?.toLocaleString() ?? "—"} disbursed
-          <button type="button" onClick={() => setOpen(false)} className="opacity-70 hover:opacity-100">
-            <X className="w-3 h-3" />
-          </button>
         </div>
       )}
-    </div>
+    </span>
   );
 }
 
@@ -699,34 +693,34 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
             <tbody className="divide-y divide-border">
               {filteredSorted.map(row => (
                 <tr key={row.id} className="hover:bg-muted/20 transition-colors">
-                  <td className="px-4 py-3 max-w-[260px]">
+                  <td className="px-4 py-3">
                     {row.raw.kind === "partnership_listing" ? (
                       <button type="button" onClick={() => onOpenOwnListing?.()}
-                        className="text-sm font-medium text-black dark:text-white hover:text-[#2D6A4F] transition-colors line-clamp-2 text-left">
+                        className="text-sm font-medium text-black dark:text-white hover:text-[#2D6A4F] transition-colors text-left">
                         {row.title}
                       </button>
                     ) : row.titleHref ? (
                       <Link href={row.titleHref}
-                        className="text-sm font-medium text-black dark:text-white hover:text-[#2D6A4F] transition-colors line-clamp-2">
+                        className="text-sm font-medium text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
                         {row.title}
                       </Link>
                     ) : (
-                      <span className="text-sm text-black dark:text-white line-clamp-2">{row.title}</span>
+                      <span className="text-sm text-black dark:text-white">{row.title}</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
                     {row.raw.kind === "partnership_listing" ? (
                       <button type="button" onClick={() => onOpenOwnListing?.()}
-                        className="text-sm text-muted-foreground hover:text-[#2D6A4F] transition-colors text-left">
+                        className="text-sm text-black dark:text-white hover:text-[#2D6A4F] transition-colors text-left">
                         {row.organisation}
                       </button>
                     ) : row.organisationHref ? (
                       <Link href={row.organisationHref}
-                        className="text-sm text-muted-foreground hover:text-[#2D6A4F] transition-colors">
+                        className="text-sm text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
                         {row.organisation}
                       </Link>
                     ) : (
-                      <span className="text-sm text-muted-foreground">{row.organisation}</span>
+                      <span className="text-sm text-black dark:text-white">{row.organisation}</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-sm text-black dark:text-white whitespace-nowrap">{row.type}</td>
