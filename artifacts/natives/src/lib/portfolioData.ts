@@ -232,7 +232,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
     .maybeSingle();
 
   const myOrgName = myOrg?.organisation_name ?? "You";
-  const myProfileHref = "/dashboard/profile";
+  const myProfileHref = `/dashboard/natives?tab=organisation&user=${userId}`;
 
   // ── 1. My own initiative listings ──────────────────────────────────────
   const { data: myInitiatives } = await supabase
@@ -454,7 +454,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
       rows.push({
         id: `partner-mine-${myOrg.id}`,
         title: resolvePartnershipTitle(myOrg, myOrg.partnership_title),
-        titleHref: "/dashboard/portfolio?tab=partnerships&view=requested",
+        titleHref: `/dashboard/partnerships?org=${myOrg.id}`,
         organisation: myOrgName,
         organisationHref: myProfileHref,
         type: "Partnership",

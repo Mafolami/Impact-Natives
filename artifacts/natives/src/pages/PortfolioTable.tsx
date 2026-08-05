@@ -703,12 +703,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
               {filteredSorted.map(row => (
                 <tr key={row.id} className="hover:bg-muted/20 transition-colors">
                   <td className="px-4 py-3">
-                    {row.raw.kind === "partnership_listing" ? (
-                      <button type="button" onClick={() => onOpenOwnListing?.()}
-                        className="text-sm font-medium text-black dark:text-white hover:text-[#2D6A4F] transition-colors text-left">
-                        {row.title}
-                      </button>
-                    ) : row.titleHref ? (
+                    {row.titleHref ? (
                       <Link href={row.titleHref}
                         className="text-sm font-medium text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
                         {row.title}
@@ -718,12 +713,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    {row.raw.kind === "partnership_listing" ? (
-                      <button type="button" onClick={() => onOpenOwnListing?.()}
-                        className="text-sm text-black dark:text-white hover:text-[#2D6A4F] transition-colors text-left">
-                        {row.organisation}
-                      </button>
-                    ) : row.organisationHref ? (
+                    {row.organisationHref ? (
                       <Link href={row.organisationHref}
                         className="text-sm text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
                         {row.organisation}
