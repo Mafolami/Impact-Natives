@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Link } from "wouter";
-import { Loader2, CheckCircle2, ShieldCheck, Camera, ArrowRight, Building2, Trash2, Pencil } from "lucide-react";
+import { Loader2, CheckCircle2, ShieldCheck, Camera, ArrowRight, Building2, Trash2, Pencil, Globe, Instagram, Twitter, Facebook, Youtube, Linkedin } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { COUNTRIES } from "@/lib/countries";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
@@ -211,6 +211,23 @@ function DisplayField({ label, children }: { label: string; children: React.Reac
       {children}
     </div>
   );
+}
+
+// Known social platforms for the Online Presence dropdown -- lets the
+// display view show a real icon instead of generic text. "Other" falls
+// back to a free-text label, same _custom pattern used by DD_ITEMS.
+const SOCIAL_PLATFORMS: { value: string; icon: any }[] = [
+  { value: "Instagram", icon: Instagram },
+  { value: "X (Twitter)", icon: Twitter },
+  { value: "Facebook", icon: Facebook },
+  { value: "YouTube", icon: Youtube },
+  { value: "LinkedIn", icon: Linkedin },
+  { value: "TikTok", icon: Globe },
+  { value: "Behance", icon: Globe },
+  { value: "Other", icon: Globe },
+];
+function socialPlatformIcon(label: string) {
+  return SOCIAL_PLATFORMS.find(p => p.value === label)?.icon ?? Globe;
 }
 
 function EmptyValue() {
@@ -904,6 +921,7 @@ export default function DashboardProfile() {
   const [draftWebsite, setDraftWebsite]         = useState("");
   const [draftSocialLinks, setDraftSocialLinks] = useState<{ label: string; url: string }[]>([]);
   const [draftSocialLabel, setDraftSocialLabel] = useState("");
+  const [draftSocialCustomLabel, setDraftSocialCustomLabel] = useState("");
   const [draftSocialUrl, setDraftSocialUrl]     = useState("");
   function openPresenceModal() {
     setDraftLinkedinUrl(linkedinUrl);
@@ -1350,9 +1368,9 @@ export default function DashboardProfile() {
           {/* Inner left pane nav -- fixed on desktop (measured left offset,
               see paneNavLeft above), normal horizontal-scroll tab bar on
               mobile, unchanged there. */}
-          <div className="md:w-[200px] shrink-0 rounded-b-xl border-x border-b border-border bg-muted/20 md:fixed md:top-[104px]"
+          <div className="md:w-[200px] shrink-0 border-x border-border bg-muted/20 md:fixed md:top-[104px] md:min-h-[calc(100vh-140px)]"
             style={paneNavLeft !== null ? { left: paneNavLeft } : undefined}>
-            <div className="flex md:flex-col overflow-x-auto md:overflow-visible p-2 md:pt-10 gap-1 scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
+            <div className="flex md:flex-col overflow-x-auto md:overflow-visible p-2 md:pt-6 gap-1 scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
               {panes.map(p => (
                 <button key={p.key} type="button" onClick={() => setActivePane(p.key)}
                   className={`text-left px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap md:whitespace-normal transition-all shrink-0 ${
@@ -1540,7 +1558,13 @@ export default function DashboardProfile() {
                       {phone ? <p className="text-sm text-black dark:text-white">{phone}</p> : <EmptyValue />}
                     </DisplayField>
                     <DisplayField label="LinkedIn">
-                      {linkedinUrl ? <p className="text-sm text-black dark:text-white">{linkedinUrl}</p> : <EmptyValue />}
+                      {linkedinUrl ? (
+                        <a href={linkedinUrl} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-sm text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
+                          <Linkedin className="w-4 h-4 shrink-0" />
+                          <span className="truncate">{linkedinUrl}</span>
+                        </a>
+                      ) : <EmptyValue />}
                     </DisplayField>
                   </SectionCard>
                 </SectionCardGroup>
@@ -1607,7 +1631,7 @@ export default function DashboardProfile() {
                     </div>
                   </div>
 
-                  <SectionCard title="Organisation" onEdit={openOrgModal}>
+                  <SectionCard title="Organisation Details" onEdit={openOrgModal}>
                     <DisplayField label="Organisation name">
                       {orgName ? <p className="text-sm text-black dark:text-white">{orgName}</p> : <EmptyValue />}
                     </DisplayField>
@@ -1680,19 +1704,38 @@ export default function DashboardProfile() {
                   <SectionCard title="Online presence" onEdit={openPresenceModal}>
                     {!isOrg && (
                       <DisplayField label="LinkedIn">
-                        {linkedinUrl ? <p className="text-sm text-black dark:text-white">{linkedinUrl}</p> : <EmptyValue />}
+                        {linkedinUrl ? (
+                          <a href={linkedinUrl} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-sm text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
+                            <Linkedin className="w-4 h-4 shrink-0" />
+                            <span className="truncate">{linkedinUrl}</span>
+                          </a>
+                        ) : <EmptyValue />}
                       </DisplayField>
                     )}
                     <DisplayField label="Website or portfolio">
-                      {website ? <p className="text-sm text-black dark:text-white">{website}</p> : <EmptyValue />}
+                      {website ? (
+                        <a href={website} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-sm text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
+                          <Globe className="w-4 h-4 shrink-0" />
+                          <span className="truncate">{website.replace(/^https?:\/\//, "")}</span>
+                        </a>
+                      ) : <EmptyValue />}
                     </DisplayField>
                     <DisplayField label="Social profiles">
                       {socialLinks.length > 0
                         ? (
-                          <div className="space-y-1">
-                            {socialLinks.map((s, i) => (
-                              <p key={i} className="text-sm text-black dark:text-white"><span className="font-semibold">{s.label}:</span> {s.url}</p>
-                            ))}
+                          <div className="space-y-2">
+                            {socialLinks.map((s, i) => {
+                              const Icon = socialPlatformIcon(s.label);
+                              return (
+                                <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
+                                  className="flex items-center gap-2 text-sm text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
+                                  <Icon className="w-4 h-4 shrink-0" />
+                                  <span className="truncate">{s.url}</span>
+                                </a>
+                              );
+                            })}
                           </div>
                         )
                         : <EmptyValue />}
@@ -1715,32 +1758,45 @@ export default function DashboardProfile() {
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Social profiles</Label>
-                    <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">Add Instagram, X, TikTok, YouTube, Behance — any platform.</p>
+                    <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">Pick a platform, or choose "Other" for anything else.</p>
                     <div className="flex gap-2">
-                      <Input value={draftSocialLabel} onChange={(e) => setDraftSocialLabel(e.target.value)} className="h-10 w-28 shrink-0" placeholder="e.g. Instagram" />
+                      <select value={draftSocialLabel} onChange={(e) => setDraftSocialLabel(e.target.value)}
+                        className="h-10 rounded-lg border border-border bg-background px-2 text-sm w-32 shrink-0 focus:outline-none focus:ring-2 focus:ring-primary/20">
+                        <option value="">Platform</option>
+                        {SOCIAL_PLATFORMS.map(p => <option key={p.value} value={p.value}>{p.value}</option>)}
+                      </select>
                       <Input value={draftSocialUrl} onChange={(e) => setDraftSocialUrl(e.target.value)} className="h-10 flex-1" placeholder="https://instagram.com/yourhandle" type="url" />
                       <button type="button"
                         onClick={() => {
-                          if (!draftSocialLabel.trim() || !draftSocialUrl.trim()) return;
-                          setDraftSocialLinks((prev) => [...prev, { label: draftSocialLabel.trim(), url: draftSocialUrl.trim() }]);
-                          setDraftSocialLabel(""); setDraftSocialUrl("");
+                          const label = draftSocialLabel === "Other" ? draftSocialCustomLabel.trim() : draftSocialLabel;
+                          if (!label || !draftSocialUrl.trim()) return;
+                          setDraftSocialLinks((prev) => [...prev, { label, url: draftSocialUrl.trim() }]);
+                          setDraftSocialLabel(""); setDraftSocialCustomLabel(""); setDraftSocialUrl("");
                         }}
                         className="h-10 px-3 rounded-lg border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
                         Add
                       </button>
                     </div>
+                    {draftSocialLabel === "Other" && (
+                      <Input value={draftSocialCustomLabel} onChange={(e) => setDraftSocialCustomLabel(e.target.value)}
+                        className="h-10 mt-2" placeholder="Platform name" />
+                    )}
                     {draftSocialLinks.length > 0 && (
                       <div className="mt-2 space-y-1.5">
-                        {draftSocialLinks.map((s, i) => (
-                          <div key={i} className="flex items-center justify-between text-xs border border-border rounded-lg px-3 py-2 bg-muted/30">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="font-medium text-foreground shrink-0">{s.label}</span>
-                              <span className="text-black dark:text-white truncate">{s.url}</span>
+                        {draftSocialLinks.map((s, i) => {
+                          const Icon = socialPlatformIcon(s.label);
+                          return (
+                            <div key={i} className="flex items-center justify-between text-xs border border-border rounded-lg px-3 py-2 bg-muted/30">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <Icon className="w-3.5 h-3.5 shrink-0 text-black dark:text-white" />
+                                <span className="font-medium text-foreground shrink-0">{s.label}</span>
+                                <span className="text-black dark:text-white truncate">{s.url}</span>
+                              </div>
+                              <button type="button" onClick={() => setDraftSocialLinks((prev) => prev.filter((_, idx) => idx !== i))}
+                                className="ml-2 text-black dark:text-white hover:text-foreground shrink-0">✕</button>
                             </div>
-                            <button type="button" onClick={() => setDraftSocialLinks((prev) => prev.filter((_, idx) => idx !== i))}
-                              className="ml-2 text-black dark:text-white hover:text-foreground shrink-0">✕</button>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -2294,7 +2350,7 @@ export default function DashboardProfile() {
           quirks can drag it along with page scroll. */}
       <div className="space-y-4 md:flex md:flex-col md:min-h-[calc(100vh-128px)] md:fixed md:top-[104px] md:right-6 md:w-[280px]">
 
-        <div className="rounded-b-2xl border-x border-b border-border bg-white dark:bg-card p-5 md:pt-10 space-y-4">
+        <div className="rounded-b-2xl border-x border-b border-border bg-white dark:bg-card p-5 md:pt-6 space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Profile strength</p>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
