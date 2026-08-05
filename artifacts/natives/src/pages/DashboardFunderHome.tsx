@@ -379,7 +379,7 @@ export default function FunderHome({ profile }: { profile: any }) {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">{greeting}</p>
-          <h2 className="text-2xl font-bold text-foreground tracking-tight">{firstName}.</h2>
+          <h2 className="text-2xl font-bold text-black dark:text-white tracking-tight">{firstName}.</h2>
           <p className="text-sm text-muted-foreground mt-1">
             {mandateScore < 60
               ? "Complete your mandate to get better matched initiatives."
@@ -398,13 +398,13 @@ export default function FunderHome({ profile }: { profile: any }) {
           const Icon = m.icon;
           return (
             <button key={m.label} type="button" onClick={m.onClick}
-              className="text-center rounded-xl border bg-card px-4 py-3 hover:border-[#2D6A4F]/40 transition-colors group flex flex-col items-center"
+              className="text-center rounded-xl border bg-white dark:bg-card px-4 py-3 hover:border-[#2D6A4F]/40 transition-colors group flex flex-col items-center"
               style={{ borderColor: m.accent ? "#C45C26" : undefined }}>
               <div className="flex items-center justify-center gap-1.5 mb-1.5">
                 <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground leading-snug text-center">{m.label}</p>
               </div>
-              <p className="text-xl font-bold text-foreground tracking-tight group-hover:text-[#2D6A4F] transition-colors">{m.value}</p>
+              <p className="text-xl font-bold text-black dark:text-white tracking-tight group-hover:text-[#2D6A4F] transition-colors">{m.value}</p>
               <p className="text-xs text-muted-foreground leading-snug mt-0.5 text-center">{m.sub}</p>
             </button>
           );
@@ -486,17 +486,17 @@ export default function FunderHome({ profile }: { profile: any }) {
                 </div>
               </div>
               {[1, 2, 3].map(i => (
-                <div key={i} className="h-24 rounded-xl border border-border bg-card animate-pulse" />
+                <div key={i} className="h-24 rounded-xl border border-border bg-white dark:bg-card animate-pulse" />
               ))}
             </div>
           ) : matchingUnavailable && matchedInitiatives.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-card p-8 text-center">
-              <p className="text-sm font-medium text-foreground mb-1">Still finding your matches.</p>
+            <div className="rounded-2xl border border-border bg-white dark:bg-card p-8 text-center">
+              <p className="text-sm font-medium text-black dark:text-white mb-1">Still finding your matches.</p>
               <p className="text-xs text-muted-foreground">Matching is refreshing right now. Check back shortly.</p>
             </div>
           ) : matchedInitiatives.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-card p-8 text-center">
-              <p className="text-sm font-medium text-foreground mb-1">No initiatives yet.</p>
+            <div className="rounded-2xl border border-border bg-white dark:bg-card p-8 text-center">
+              <p className="text-sm font-medium text-black dark:text-white mb-1">No initiatives yet.</p>
               <p className="text-xs text-muted-foreground">Check back as organisations post their work.</p>
             </div>
           ) : (() => {
@@ -512,10 +512,10 @@ export default function FunderHome({ profile }: { profile: any }) {
               )}
               {showList.slice(0, 3).map((ini: any) => (
                 <div key={ini.id}
-                  className="w-full text-left rounded-xl border border-border bg-card px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group flex flex-col min-h-[220px]">
+                  className="w-full text-left rounded-xl border border-border bg-white dark:bg-card px-5 py-4 hover:border-[#2D6A4F]/30 transition-colors group flex flex-col min-h-[220px]">
                   <button type="button" onClick={() => navigate(`/dashboard/marketplace?initiative=${ini.id}`)} className="w-full text-left">
                     <div className="flex items-start justify-between gap-3 mb-1">
-                      <p className="text-sm font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors break-words">
+                      <p className="text-sm font-semibold text-black dark:text-white group-hover:text-[#2D6A4F] transition-colors break-words">
                         {ini.title}
                       </p>
                       {typeof ini.score === "number" && (
@@ -559,7 +559,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                       {ini.match_reason}
                     </p>
                   ) : (
-                    <p className="text-xs text-foreground mb-2 line-clamp-1">{ini.problem}</p>
+                    <p className="text-xs text-black dark:text-white mb-2 line-clamp-1">{ini.problem}</p>
                   )}
 
                   <div className="mt-auto pt-2 flex items-center gap-2 flex-wrap">
@@ -611,9 +611,9 @@ export default function FunderHome({ profile }: { profile: any }) {
           </div>
 
           {!partnershipEligible ? (
-            <div className="rounded-xl border border-dashed border-border bg-card p-6 text-center flex flex-col items-center justify-center min-h-[220px]">
+            <div className="rounded-xl border border-dashed border-border bg-white dark:bg-card p-6 text-center flex flex-col items-center justify-center min-h-[220px]">
               <Building2 className="w-6 h-6 text-muted-foreground/20 mb-3" />
-              <p className="text-xs font-medium text-foreground mb-1">Locked for now</p>
+              <p className="text-xs font-medium text-black dark:text-white mb-1">Locked for now</p>
               <p className="text-xs text-muted-foreground">
                 Unlocks at 80% mandate completion — you're at {mandateScore}%.
               </p>
@@ -621,11 +621,11 @@ export default function FunderHome({ profile }: { profile: any }) {
           ) : loadingPartnerships ? (
             <div className="space-y-2">
               {[1, 2].map(i => (
-                <div key={i} className="h-16 rounded-xl border border-border bg-card animate-pulse" />
+                <div key={i} className="h-16 rounded-xl border border-border bg-white dark:bg-card animate-pulse" />
               ))}
             </div>
           ) : partnershipMatches.length === 0 ? (
-            <div className="rounded-xl border border-border bg-card p-5 text-center">
+            <div className="rounded-xl border border-border bg-white dark:bg-card p-5 text-center">
               <p className="text-xs text-muted-foreground">No partnership matches yet.</p>
             </div>
           ) : (
@@ -633,8 +633,8 @@ export default function FunderHome({ profile }: { profile: any }) {
               {partnershipMatches.map((m: any) => (
                 <button key={m.matched_org_id} type="button"
                   onClick={() => navigate(`/dashboard/partnerships?org=${m.org?.id ?? ""}`)}
-                  className="w-full text-left rounded-xl border border-border bg-card px-4 py-3 hover:border-[#2D6A4F]/30 transition-colors group flex flex-col min-h-[220px]">
-                  <p className="text-sm font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors break-words mb-1">
+                  className="w-full text-left rounded-xl border border-border bg-white dark:bg-card px-4 py-3 hover:border-[#2D6A4F]/30 transition-colors group flex flex-col min-h-[220px]">
+                  <p className="text-sm font-semibold text-black dark:text-white group-hover:text-[#2D6A4F] transition-colors break-words mb-1">
                     {m.org?.organisation_name ?? "Organisation"}
                   </p>
                   <p className="text-xs text-muted-foreground break-words mb-2">
@@ -664,7 +664,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-foreground mb-2">{m.key_synergy ?? m.rationale}</p>
+                    <p className="text-sm text-black dark:text-white mb-2">{m.key_synergy ?? m.rationale}</p>
                   )}
 
                   <div className="mt-auto pt-2 flex items-center gap-2 flex-wrap">

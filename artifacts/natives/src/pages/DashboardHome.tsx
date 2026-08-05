@@ -74,13 +74,13 @@ function MetricCard({ label, value, sub, onClick, accent, showSkeleton }: {
 
   return (
     <button type="button" onClick={onClick}
-      className="text-left rounded-xl border bg-card px-4 py-4 hover:border-[#2D6A4F]/40 transition-colors group card-interactive"
+      className="text-left rounded-xl border bg-white dark:bg-card px-4 py-4 hover:border-[#2D6A4F]/40 transition-colors group card-interactive"
       style={{ borderColor: accent ? "#C45C26" : undefined }}>
       <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">{label}</p>
       {isLoading ? (
         <div className="skeleton h-9 w-12 mb-1" />
       ) : (
-        <p className="text-3xl font-bold text-foreground tracking-tight group-hover:text-[#2D6A4F] transition-colors">
+        <p className="text-3xl font-bold text-black dark:text-white tracking-tight group-hover:text-[#2D6A4F] transition-colors">
           {animated}
         </p>
       )}
@@ -154,7 +154,7 @@ function GettingStarted({
       <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
          Get started
        </h3>
-      <div className="rounded-2xl border border-border bg-card overflow-hidden">
+      <div className="rounded-2xl border border-border bg-white dark:bg-card overflow-hidden">
         {tasks.map((task, i) => (
           <div key={task.id}
             className={`flex items-start gap-4 px-5 py-4 ${
@@ -167,7 +167,7 @@ function GettingStarted({
               }
             </div>
             <div className="flex-1 min-w-0">
-              <p className={`text-sm font-medium ${task.done ? "text-muted-foreground line-through" : "text-foreground"}`}>
+              <p className={`text-sm font-medium ${task.done ? "text-muted-foreground line-through" : "text-black dark:text-white"}`}>
                 {task.label}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">{task.sub}</p>            
@@ -233,7 +233,7 @@ function MissedMatchesForYou({ userSectors }: { userSectors: string[] }) {
       {loading ? (
         <div className="space-y-3">
           {[1, 2].map(i => (
-            <div key={i} className="h-20 rounded-xl border border-border bg-card animate-pulse" />
+            <div key={i} className="h-20 rounded-xl border border-border bg-white dark:bg-card animate-pulse" />
           ))}
         </div>
       ) : (
@@ -241,9 +241,9 @@ function MissedMatchesForYou({ userSectors }: { userSectors: string[] }) {
           {matches.map((ini: any) => (
             <button key={ini.id} type="button"
               onClick={() => navigate(`/dashboard/marketplace?initiative=${ini.id}`)}
-              className="w-full text-left rounded-xl border border-border bg-card px-5 py-3.5 hover:border-[#2D6A4F]/30 transition-colors group flex items-center justify-between gap-4">
+              className="w-full text-left rounded-xl border border-border bg-white dark:bg-card px-5 py-3.5 hover:border-[#2D6A4F]/30 transition-colors group flex items-center justify-between gap-4">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground group-hover:text-[#2D6A4F] transition-colors truncate">
+                <p className="text-sm font-medium text-black dark:text-white group-hover:text-[#2D6A4F] transition-colors truncate">
                   {ini.title}
                 </p>
                 <div className="flex items-center gap-1.5 mt-1 flex-wrap">
@@ -285,7 +285,7 @@ function MyInitiativesMini({ initiatives }: { initiatives: InitiativeRow[] }) {
           return (
             <button key={ini.id} type="button"
               onClick={() => navigate("/dashboard/portfolio")}
-              className="w-full text-left rounded-xl border border-border bg-card px-5 py-3.5 hover:border-[#2D6A4F]/30 transition-colors group flex items-center justify-between gap-4">
+              className="w-full text-left rounded-xl border border-border bg-white dark:bg-card px-5 py-3.5 hover:border-[#2D6A4F]/30 transition-colors group flex items-center justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.dot }} />
@@ -293,7 +293,7 @@ function MyInitiativesMini({ initiatives }: { initiatives: InitiativeRow[] }) {
                   <span className="text-xs text-muted-foreground">·</span>
                   <span className="text-xs text-muted-foreground">{ini.eois} EOI{ini.eois !== 1 ? "s" : ""}</span>
                 </div>
-                <p className="text-sm font-medium text-foreground group-hover:text-[#2D6A4F] transition-colors truncate">
+                <p className="text-sm font-medium text-black dark:text-white group-hover:text-[#2D6A4F] transition-colors truncate">
                   {ini.title}
                 </p>
               </div>
@@ -520,7 +520,7 @@ export default function DashboardHome() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">{greeting}</p>
-            <h2 className="text-2xl font-bold text-foreground tracking-tight">{firstName}.</h2>
+            <h2 className="text-2xl font-bold text-black dark:text-white tracking-tight">{firstName}.</h2>
             {!loadingPersonal && (
               <p className="text-muted-foreground mt-1 text-sm">{getStatusLine()}</p>
             )}
