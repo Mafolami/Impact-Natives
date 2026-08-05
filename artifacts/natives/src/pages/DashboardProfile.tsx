@@ -302,28 +302,21 @@ function DeliveryStatsCard({ orgId }: { orgId: string | null }) {
   const inProgress = stats.total - stats.resolved;
 
   return (
-    <div className="pt-2 border-t border-border">
-      <div className="flex items-center justify-between mb-2">
+    <div>
+      <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1.5">
-          <p className="text-xs text-black dark:text-white">Delivery (platform-tracked, not editable here)</p>
-          <span className="relative inline-flex group shrink-0">
-            <span className="w-3.5 h-3.5 rounded-full border border-muted-foreground/50 text-foreground text-[9px] leading-[13px] font-bold inline-flex items-center justify-center cursor-default"
-              aria-label="What does this mean?">
-              i
-            </span>
-            <span className="pointer-events-none absolute left-0 bottom-full mb-1.5 w-64 rounded-lg border border-border bg-white dark:bg-card px-2.5 py-1.5 text-xs text-foreground opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-md">
-              {PILLAR_INFO.delivery}
-            </span>
-          </span>
+          <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Delivery</p>
+          <InfoTooltip text={PILLAR_INFO.delivery} />
         </div>
-        {hasEnoughData && <p className="text-xs font-bold text-foreground">{rate}%</p>}
+        {hasEnoughData && <p className="text-xl font-bold text-black dark:text-white">{rate}%</p>}
       </div>
+      <p className="text-xs text-black dark:text-white opacity-60 mb-6">Platform-tracked, not editable here.</p>
       {hasEnoughData ? (
         <>
           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
             <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${rate}%` }} />
           </div>
-          <p className="text-xs text-black dark:text-white mt-1.5">
+          <p className="text-sm text-black dark:text-white mt-3">
             {stats.completed} of {stats.resolved} relationship{stats.resolved !== 1 ? "s" : ""} completed
             {[
               stats.stalled > 0 ? `${stats.stalled} stalled` : null,
@@ -339,9 +332,9 @@ function DeliveryStatsCard({ orgId }: { orgId: string | null }) {
           </p>
         </>
       ) : stats.total === 0 ? (
-        <p className="text-xs text-black dark:text-white">No tracked delivery history yet.</p>
+        <p className="text-sm text-black dark:text-white">No tracked delivery history yet.</p>
       ) : (
-        <p className="text-xs text-black dark:text-white">
+        <p className="text-sm text-black dark:text-white">
           {stats.total} active relationship{stats.total !== 1 ? "s" : ""}, no completed outcomes yet.
         </p>
       )}
@@ -691,6 +684,152 @@ export default function DashboardProfile() {
   const [ddLegalComplianceDeclaration, setDdLegalComplianceDeclaration] = useState(false);
   const [ddEvidence, setDdEvidence]                   = useState<Record<string, any>>({});
   const [ddModalKey, setDdModalKey]                   = useState<string | null>(null);
+  async function saveDdItem(key: string, answers: Record<string, any>, setter: (v: boolean) => void) {
+    const updatedEvidence = { ...ddEvidence, [key]: answers };
+    setDdEvidence(updatedEvidence);
+    setter(true);
+    setDdModalKey(null);
+    if (!user) return;
+    try {
+      const fields: Record<string, any> = { dd_evidence: updatedEvidence };
+      fields[`dd_${key}`] = true;
+      await saveOrgFields(user.id, fields);
+    } catch (err: any) {
+      alert(`Couldn't save: ${err.message}`);
+    }
+  }
+  async function markDdItemIncomplete(key: string, setter: (v: boolean) => void) {
+    if (!confirm("Mark this item as not complete? You'll need to re-verify it later.")) return;
+    setter(false);
+    if (!user) return;
+    try {
+      const fields: Record<string, any> = {};
+      fields[`dd_${key}`] = false;
+      await saveOrgFields(user.id, fields);
+    } catch (err: any) {
+      alert(`Couldn't save: ${err.message}`);
+    }
+  }
+
+  // ── Track Record pane: display-card / edit-modal state ───────────────────
+  const [editingTrackRecordOpen, setEditingTrackRecordOpen] = useState(false);
+  const [trackRecordSaving, setTrackRecordSaving] = useState(false);
+  const [draftTotalBeneficiaries, setDraftTotalBeneficiaries] = useState("");
+  const [draftJobsCreated, setDraftJobsCreated] = useState("");
+  const [draftFemalePct, setDraftFemalePct] = useState("");
+  const [draftYouthPct, setDraftYouthPct] = useState("");
+  const [draftYearsOfOperation, setDraftYearsOfOperation] = useState("");
+  const [draftGrantsCount, setDraftGrantsCount] = useState("");
+  const [draftGrantsTotalValue, setDraftGrantsTotalValue] = useState("");
+  const [draftGrantsOnTimePct, setDraftGrantsOnTimePct] = useState("");
+  const [draftPreviousFunders, setDraftPreviousFunders] = useState<string[]>([]);
+  const [draftFunderInput, setDraftFunderInput] = useState("");
+  const [draftThirdPartyEvaluations, setDraftThirdPartyEvaluations] = useState(false);
+  function openTrackRecordModal() {
+    setDraftTotalBeneficiaries(totalBeneficiaries);
+    setDraftJobsCreated(jobsCreated);
+    setDraftFemalePct(femalePct);
+    setDraftYouthPct(youthPct);
+    setDraftYearsOfOperation(yearsOfOperation);
+    setDraftGrantsCount(grantsCount);
+    setDraftGrantsTotalValue(grantsTotalValue);
+    setDraftGrantsOnTimePct(grantsOnTimePct);
+    setDraftPreviousFunders(previousFunders);
+    setDraftFunderInput("");
+    setDraftThirdPartyEvaluations(thirdPartyEvaluations);
+    setEditingTrackRecordOpen(true);
+  }
+  async function saveTrackRecordSection() {
+    if (!user) return;
+    setTrackRecordSaving(true);
+    try {
+      await saveOrgFields(user.id, {
+        total_beneficiaries_reached: draftTotalBeneficiaries ? parseInt(draftTotalBeneficiaries) : null,
+        jobs_created: draftJobsCreated ? parseInt(draftJobsCreated) : null,
+        female_beneficiaries_pct: draftFemalePct ? parseInt(draftFemalePct) : null,
+        youth_beneficiaries_pct: draftYouthPct ? parseInt(draftYouthPct) : null,
+        years_of_operation: draftYearsOfOperation ? parseInt(draftYearsOfOperation) : null,
+        grants_received_count: draftGrantsCount ? parseInt(draftGrantsCount) : null,
+        grants_total_value_usd: draftGrantsTotalValue ? parseFloat(draftGrantsTotalValue) : null,
+        grants_delivered_on_time_pct: draftGrantsOnTimePct ? parseInt(draftGrantsOnTimePct) : null,
+        previous_funders: draftPreviousFunders.length > 0 ? draftPreviousFunders : null,
+        third_party_evaluations: draftThirdPartyEvaluations,
+      });
+      setTotalBeneficiaries(draftTotalBeneficiaries);
+      setJobsCreated(draftJobsCreated);
+      setFemalePct(draftFemalePct);
+      setYouthPct(draftYouthPct);
+      setYearsOfOperation(draftYearsOfOperation);
+      setGrantsCount(draftGrantsCount);
+      setGrantsTotalValue(draftGrantsTotalValue);
+      setGrantsOnTimePct(draftGrantsOnTimePct);
+      setPreviousFunders(draftPreviousFunders);
+      setThirdPartyEvaluations(draftThirdPartyEvaluations);
+      await refreshProfile();
+      setEditingTrackRecordOpen(false);
+    } catch (err: any) {
+      alert(`Couldn't save: ${err.message}`);
+    }
+    setTrackRecordSaving(false);
+  }
+
+  // ── Mandate pane: display-card / edit-modal state ─────────────────────────
+  const [editingMandateOpen, setEditingMandateOpen] = useState(false);
+  const [mandateSaving, setMandateSaving] = useState(false);
+  const [draftInvestmentThesis, setDraftInvestmentThesis] = useState("");
+  const [draftGrantRangeMin, setDraftGrantRangeMin] = useState("");
+  const [draftGrantRangeMax, setDraftGrantRangeMax] = useState("");
+  const [draftGrantCurrency, setDraftGrantCurrency] = useState("USD");
+  const draftGrantRangeInvalid = !!(draftGrantRangeMin && draftGrantRangeMax && Number(draftGrantRangeMax) < Number(draftGrantRangeMin));
+  const [draftFundingInstruments, setDraftFundingInstruments] = useState<string[]>([]);
+  const [draftMandateSectors, setDraftMandateSectors] = useState<string[]>([]);
+  const [draftMandateSdgs, setDraftMandateSdgs] = useState<string[]>([]);
+  const [draftStagePreference, setDraftStagePreference] = useState<string[]>([]);
+  function openMandateModal() {
+    setDraftInvestmentThesis(investmentThesis);
+    setDraftGrantRangeMin(grantRangeMin);
+    setDraftGrantRangeMax(grantRangeMax);
+    setDraftGrantCurrency(grantCurrency);
+    setDraftFundingInstruments(fundingInstruments);
+    setDraftMandateSectors(mandateSectors);
+    setDraftMandateSdgs(mandateSdgs);
+    setDraftStagePreference(stagePreference);
+    setDraftGeographicFocus(geographicFocus);
+    setDraftGeographicInput("");
+    setEditingMandateOpen(true);
+  }
+  async function saveMandateSection() {
+    if (!user) return;
+    if (draftGrantRangeInvalid) { alert("Max must be greater than or equal to Min."); return; }
+    setMandateSaving(true);
+    try {
+      await saveOrgFields(user.id, {
+        investment_thesis: draftInvestmentThesis || null,
+        grant_range_min: draftGrantRangeMin ? parseFloat(draftGrantRangeMin) : null,
+        grant_range_max: draftGrantRangeMax ? parseFloat(draftGrantRangeMax) : null,
+        grant_currency: draftGrantCurrency || null,
+        funding_instruments: draftFundingInstruments.length > 0 ? draftFundingInstruments : null,
+        mandate_sectors: draftMandateSectors.length > 0 ? draftMandateSectors : null,
+        mandate_sdgs: draftMandateSdgs.length > 0 ? draftMandateSdgs : null,
+        stage_preference: draftStagePreference.length > 0 ? draftStagePreference : null,
+        geographic_focus: draftGeographicFocus.length > 0 ? draftGeographicFocus : null,
+      });
+      setInvestmentThesis(draftInvestmentThesis);
+      setGrantRangeMin(draftGrantRangeMin);
+      setGrantRangeMax(draftGrantRangeMax);
+      setGrantCurrency(draftGrantCurrency);
+      setFundingInstruments(draftFundingInstruments);
+      setMandateSectors(draftMandateSectors);
+      setMandateSdgs(draftMandateSdgs);
+      setStagePreference(draftStagePreference);
+      setGeographicFocus(draftGeographicFocus);
+      await refreshProfile();
+      setEditingMandateOpen(false);
+    } catch (err: any) {
+      alert(`Couldn't save: ${err.message}`);
+    }
+    setMandateSaving(false);
+  }
 
   // ── Mandate / CSR shared fields ───────────────────────────────────────────
   const [grantRangeMin, setGrantRangeMin]             = useState("");
@@ -1805,65 +1944,73 @@ export default function DashboardProfile() {
 
               {/* ── DD READINESS PANE ── */}
               {activePane === "dd" && isImplementer && (
-                <div className="space-y-8">
-                  <PaneHeader title="Due diligence readiness"
-                    subtitle="Signal to funders that you are investment-ready. Checking an item asks for a few quick details, which appear as a tooltip on your profile once matched."
-                    info={PILLAR_INFO.ddReadiness} />
-                  <div className="space-y-4">
-                    {[
-                      { key: "financial_model", label: "Financial model available", sub: "A current financial model or projections document", state: ddFinancialModel, set: setDdFinancialModel },
-                      { key: "audited_accounts", label: "Audited accounts on file", sub: "Most recent audited financial statements", state: ddAuditedAccounts, set: setDdAuditedAccounts },
-                      { key: "governance_doc", label: "Governance documentation", sub: "Board structure, org chart, or governance policy", state: ddGovernanceDoc, set: setDdGovernanceDoc },
-                      { key: "esg_assessment", label: "ESG self-assessment completed", sub: "Environmental, social and governance baseline assessment", state: ddEsgAssessment, set: setDdEsgAssessment },
-                      { key: "impact_framework", label: "Impact measurement framework", sub: "Theory of change, IRIS+ alignment, or outcome tracking methodology", state: ddImpactFramework, set: setDdImpactFramework },
-                      { key: "safeguarding_policy", label: "Safeguarding policy", sub: "Child protection / protection from sexual exploitation and abuse policy", state: ddSafeguardingPolicy, set: setDdSafeguardingPolicy },
-                      { key: "legal_registration", label: "Legal registration / tax-exempt status", sub: "Registered legal entity with valid tax status", state: ddLegalRegistration, set: setDdLegalRegistration },
-                      { key: "legal_compliance_declaration", label: "Legal & compliance declaration", sub: "No blacklisting, pending disputes, or undisclosed conflicts", state: ddLegalComplianceDeclaration, set: setDdLegalComplianceDeclaration },
-                    ].map(item => item.state ? (
-                      <div key={item.key}
-                        className="w-full px-4 py-3 rounded-xl border border-[#2D6A4F] bg-[rgba(45,106,79,0.12)] flex items-start gap-3">
-                        <button type="button" onClick={() => setDdModalKey(item.key)}
-                          className="w-4 h-4 rounded border border-[#2D6A4F] bg-[#2D6A4F] flex items-center justify-center shrink-0 mt-0.5"
-                          title="Review or edit">
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
-                        </button>
-                        <button type="button" onClick={() => setDdModalKey(item.key)} className="flex-1 min-w-0 text-left">
-                          <p className="text-sm font-medium text-[#2D6A4F]">{item.label}</p>
-                          <p className="text-xs text-black dark:text-white mt-0.5">{item.sub}</p>
-                        </button>
-                        <button type="button"
-                          onClick={() => { if (confirm("Mark this item as not complete? You'll need to re-verify it later.")) item.set(false); }}
-                          className="text-muted-foreground hover:text-red-500 transition-colors shrink-0 mt-0.5"
-                          title="Mark as not complete">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                        </button>
-                      </div>
-                    ) : (
-                      <button key={item.key} type="button" onClick={() => setDdModalKey(item.key)}
-                        className="w-full text-left px-4 py-3 rounded-xl border border-border hover:border-foreground/20 transition-colors flex items-start gap-3">
-                        <div className="w-4 h-4 rounded border border-border shrink-0 mt-0.5" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground">{item.label}</p>
-                          <p className="text-xs text-black dark:text-white mt-0.5">{item.sub}</p>
+                <SectionCardGroup>
+                  <div className="px-8 sm:px-12 py-10">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Due diligence readiness</p>
+                      <InfoTooltip text={PILLAR_INFO.ddReadiness} />
+                    </div>
+                    <p className="text-xs text-black dark:text-white opacity-60 mb-6">
+                      Signal to funders that you are investment-ready. Checking an item asks for a few quick details, which appear as a tooltip on your profile once matched.
+                    </p>
+                    <div className="space-y-3">
+                      {[
+                        { key: "financial_model", label: "Financial model available", sub: "A current financial model or projections document", state: ddFinancialModel, set: setDdFinancialModel },
+                        { key: "audited_accounts", label: "Audited accounts on file", sub: "Most recent audited financial statements", state: ddAuditedAccounts, set: setDdAuditedAccounts },
+                        { key: "governance_doc", label: "Governance documentation", sub: "Board structure, org chart, or governance policy", state: ddGovernanceDoc, set: setDdGovernanceDoc },
+                        { key: "esg_assessment", label: "ESG self-assessment completed", sub: "Environmental, social and governance baseline assessment", state: ddEsgAssessment, set: setDdEsgAssessment },
+                        { key: "impact_framework", label: "Impact measurement framework", sub: "Theory of change, IRIS+ alignment, or outcome tracking methodology", state: ddImpactFramework, set: setDdImpactFramework },
+                        { key: "safeguarding_policy", label: "Safeguarding policy", sub: "Child protection / protection from sexual exploitation and abuse policy", state: ddSafeguardingPolicy, set: setDdSafeguardingPolicy },
+                        { key: "legal_registration", label: "Legal registration / tax-exempt status", sub: "Registered legal entity with valid tax status", state: ddLegalRegistration, set: setDdLegalRegistration },
+                        { key: "legal_compliance_declaration", label: "Legal & compliance declaration", sub: "No blacklisting, pending disputes, or undisclosed conflicts", state: ddLegalComplianceDeclaration, set: setDdLegalComplianceDeclaration },
+                      ].map(item => item.state ? (
+                        <div key={item.key}
+                          className="w-full px-4 py-3 rounded-xl border border-black dark:border-white flex items-start gap-3">
+                          <button type="button" onClick={() => setDdModalKey(item.key)}
+                            className="w-4 h-4 rounded border border-black dark:border-white flex items-center justify-center shrink-0 mt-0.5"
+                            title="Review or edit">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-black dark:text-white"><polyline points="20 6 9 17 4 12" /></svg>
+                          </button>
+                          <button type="button" onClick={() => setDdModalKey(item.key)} className="flex-1 min-w-0 text-left">
+                            <p className="text-sm font-medium text-black dark:text-white">{item.label}</p>
+                            <p className="text-xs text-black dark:text-white opacity-60 mt-0.5">{item.sub}</p>
+                          </button>
+                          <button type="button"
+                            onClick={() => markDdItemIncomplete(item.key, item.set)}
+                            className="text-muted-foreground hover:text-red-500 transition-colors shrink-0 mt-0.5"
+                            title="Mark as not complete">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                          </button>
                         </div>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="pt-2 border-t border-border">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs text-black dark:text-white">DD Readiness score</p>
-                      <p className="text-xs font-bold text-foreground">
-                        {Math.round(([ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework, ddSafeguardingPolicy, ddLegalRegistration, ddLegalComplianceDeclaration].filter(Boolean).length / 8) * 100)}%
-                      </p>
+                      ) : (
+                        <button key={item.key} type="button" onClick={() => setDdModalKey(item.key)}
+                          className="w-full text-left px-4 py-3 rounded-xl border border-border hover:border-foreground/20 transition-colors flex items-start gap-3">
+                          <div className="w-4 h-4 rounded border border-border shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-black dark:text-white">{item.label}</p>
+                            <p className="text-xs text-black dark:text-white opacity-60 mt-0.5">{item.sub}</p>
+                          </div>
+                        </button>
+                      ))}
                     </div>
-                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500"
-                        style={{ width: `${Math.round(([ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework, ddSafeguardingPolicy, ddLegalRegistration, ddLegalComplianceDeclaration].filter(Boolean).length / 8) * 100)}%` }} />
+                    <div className="pt-6 border-t border-border mt-6">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs text-black dark:text-white">DD Readiness score</p>
+                        <p className="text-xs font-bold text-black dark:text-white">
+                          {Math.round(([ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework, ddSafeguardingPolicy, ddLegalRegistration, ddLegalComplianceDeclaration].filter(Boolean).length / 8) * 100)}%
+                        </p>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500"
+                          style={{ width: `${Math.round(([ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework, ddSafeguardingPolicy, ddLegalRegistration, ddLegalComplianceDeclaration].filter(Boolean).length / 8) * 100)}%` }} />
+                      </div>
                     </div>
                   </div>
-                  <DeliveryStatsCard orgId={orgId} />
-                  <SaveBar />
-                </div>
+
+                  <div className="px-8 sm:px-12 py-10">
+                    <DeliveryStatsCard orgId={orgId} />
+                  </div>
+                </SectionCardGroup>
               )}
 
               {ddModalKey && (() => {
@@ -1885,222 +2032,331 @@ export default function DashboardProfile() {
                     orgId={orgId ?? ""}
                     userId={user?.id ?? ""}
                     onClose={() => setDdModalKey(null)}
-                    onSave={(answers) => {
-                      setDdEvidence(prev => ({ ...prev, [ddModalKey]: answers }));
-                      setterMap[ddModalKey](true);
-                      setDdModalKey(null);
-                    }}
+                    onSave={(answers) => saveDdItem(ddModalKey, answers, setterMap[ddModalKey])}
                   />
                 );
               })()}
 
               {/* ── TRACK RECORD PANE ── */}
               {activePane === "track" && isImplementer && (
-                <div className="space-y-8">
-                  <PaneHeader title="Impact & track record" subtitle="Help funders and corporates quickly understand your reach and credibility. All fields optional."
-                    info={PILLAR_INFO.trackRecord} />
+                <SectionCardGroup>
+                  <SectionCard title="Impact & track record" onEdit={openTrackRecordModal}>
+                    <DisplayField label="Cumulative reach">
+                      {(totalBeneficiaries || jobsCreated || femalePct || youthPct || yearsOfOperation) ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
+                          {totalBeneficiaries && (
+                            <div>
+                              <p className="text-xs text-black dark:text-white opacity-60 mb-0.5">Beneficiaries reached</p>
+                              <p className="text-sm font-semibold text-black dark:text-white">{Number(totalBeneficiaries).toLocaleString()}</p>
+                            </div>
+                          )}
+                          {jobsCreated && (
+                            <div>
+                              <p className="text-xs text-black dark:text-white opacity-60 mb-0.5">Jobs created</p>
+                              <p className="text-sm font-semibold text-black dark:text-white">{Number(jobsCreated).toLocaleString()}</p>
+                            </div>
+                          )}
+                          {yearsOfOperation && (
+                            <div>
+                              <p className="text-xs text-black dark:text-white opacity-60 mb-0.5">Years operating</p>
+                              <p className="text-sm font-semibold text-black dark:text-white">{yearsOfOperation}</p>
+                            </div>
+                          )}
+                          {femalePct && (
+                            <div>
+                              <p className="text-xs text-black dark:text-white opacity-60 mb-0.5">Female beneficiaries</p>
+                              <p className="text-sm font-semibold text-black dark:text-white">{femalePct}%</p>
+                            </div>
+                          )}
+                          {youthPct && (
+                            <div>
+                              <p className="text-xs text-black dark:text-white opacity-60 mb-0.5">Youth beneficiaries</p>
+                              <p className="text-sm font-semibold text-black dark:text-white">{youthPct}%</p>
+                            </div>
+                          )}
+                        </div>
+                      ) : <EmptyValue />}
+                    </DisplayField>
 
+                    <DisplayField label="Track record">
+                      {(grantsCount || grantsTotalValue || grantsOnTimePct) ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
+                          {grantsCount && (
+                            <div>
+                              <p className="text-xs text-black dark:text-white opacity-60 mb-0.5">Grants received</p>
+                              <p className="text-sm font-semibold text-black dark:text-white">{grantsCount}</p>
+                            </div>
+                          )}
+                          {grantsTotalValue && (
+                            <div>
+                              <p className="text-xs text-black dark:text-white opacity-60 mb-0.5">Total grant value</p>
+                              <p className="text-sm font-semibold text-black dark:text-white">${Number(grantsTotalValue).toLocaleString()}</p>
+                            </div>
+                          )}
+                          {grantsOnTimePct && (
+                            <div>
+                              <p className="text-xs text-black dark:text-white opacity-60 mb-0.5">Delivered on time</p>
+                              <p className="text-sm font-semibold text-black dark:text-white">{grantsOnTimePct}%</p>
+                            </div>
+                          )}
+                        </div>
+                      ) : <EmptyValue />}
+                    </DisplayField>
+
+                    <DisplayField label="Previous funders">
+                      {previousFunders.length > 0
+                        ? <div className="flex flex-wrap gap-2">{previousFunders.map(f => <FlatTag key={f}>{f}</FlatTag>)}</div>
+                        : <EmptyValue />}
+                    </DisplayField>
+
+                    <DisplayField label="Third-party evaluations">
+                      {thirdPartyEvaluations
+                        ? <p className="text-sm text-black dark:text-white">✓ Independent audits, impact assessments, or evaluations conducted by external parties</p>
+                        : <EmptyValue />}
+                    </DisplayField>
+                  </SectionCard>
+                </SectionCardGroup>
+              )}
+
+              {editingTrackRecordOpen && (
+                <EditModal title="Edit impact & track record" onClose={() => setEditingTrackRecordOpen(false)} onSave={saveTrackRecordSection} saving={trackRecordSaving}>
                   <div>
                     <p className="text-xs font-semibold text-black dark:text-white uppercase tracking-wider mb-3">Cumulative reach</p>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label className="text-sm font-medium">Total beneficiaries reached</Label>
-                        <Input value={totalBeneficiaries} onChange={e => setTotalBeneficiaries(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 12400" />
+                        <Input value={draftTotalBeneficiaries} onChange={e => setDraftTotalBeneficiaries(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 12400" />
                       </div>
                       <div>
                         <Label className="text-sm font-medium">Jobs created</Label>
-                        <Input value={jobsCreated} onChange={e => setJobsCreated(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 340" />
+                        <Input value={draftJobsCreated} onChange={e => setDraftJobsCreated(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 340" />
                       </div>
                       <div>
                         <Label className="text-sm font-medium">Female beneficiaries %</Label>
-                        <Input value={femalePct} onChange={e => setFemalePct(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 62" />
+                        <Input value={draftFemalePct} onChange={e => setDraftFemalePct(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 62" />
                       </div>
                       <div>
                         <Label className="text-sm font-medium">Youth beneficiaries %</Label>
-                        <Input value={youthPct} onChange={e => setYouthPct(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 45" />
+                        <Input value={draftYouthPct} onChange={e => setDraftYouthPct(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 45" />
                       </div>
                       <div>
                         <Label className="text-sm font-medium">Years of operation</Label>
-                        <Input value={yearsOfOperation} onChange={e => setYearsOfOperation(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 7" />
+                        <Input value={draftYearsOfOperation} onChange={e => setDraftYearsOfOperation(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 7" />
                       </div>
                     </div>
                   </div>
 
-                  <div className="pt-6 border-t border-border">
+                  <div className="pt-4 border-t border-border">
                     <p className="text-xs font-semibold text-black dark:text-white uppercase tracking-wider mb-3">Track record</p>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label className="text-sm font-medium">Grants/contracts received (count)</Label>
-                        <Input value={grantsCount} onChange={e => setGrantsCount(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 8" />
+                        <Input value={draftGrantsCount} onChange={e => setDraftGrantsCount(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 8" />
                       </div>
                       <div>
                         <Label className="text-sm font-medium">Total grant value (USD)</Label>
-                        <Input value={grantsTotalValue} onChange={e => setGrantsTotalValue(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 2400000" />
+                        <Input value={draftGrantsTotalValue} onChange={e => setDraftGrantsTotalValue(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 2400000" />
                       </div>
                       <div>
                         <Label className="text-sm font-medium">Delivered on time %</Label>
-                        <Input value={grantsOnTimePct} onChange={e => setGrantsOnTimePct(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 90" />
+                        <Input value={draftGrantsOnTimePct} onChange={e => setDraftGrantsOnTimePct(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 90" />
                       </div>
                     </div>
                   </div>
 
-                  <div className="pt-6 border-t border-border">
+                  <div className="pt-4 border-t border-border">
                     <Label className="text-sm font-medium">Previous funders / grant-makers</Label>
-                    <p className="text-xs text-black dark:text-white mt-0.5 mb-2">Names only — e.g. USAID, Ford Foundation, FCDO</p>
+                    <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">Names only — e.g. USAID, Ford Foundation, FCDO</p>
                     <div className="flex gap-2">
-                      <Input value={funderInput} onChange={e => setFunderInput(e.target.value)}
+                      <Input value={draftFunderInput} onChange={e => setDraftFunderInput(e.target.value)}
                         onKeyDown={e => {
                           if (e.key === "Enter") {
                             e.preventDefault();
-                            const v = funderInput.trim();
-                            if (v && !previousFunders.includes(v)) setPreviousFunders(p => [...p, v]);
-                            setFunderInput("");
+                            const v = draftFunderInput.trim();
+                            if (v && !draftPreviousFunders.includes(v)) setDraftPreviousFunders(p => [...p, v]);
+                            setDraftFunderInput("");
                           }
                         }}
                         className="h-10 flex-1" placeholder="Type funder name and press Enter" />
                       <button type="button"
                         onClick={() => {
-                          const v = funderInput.trim();
-                          if (v && !previousFunders.includes(v)) setPreviousFunders(p => [...p, v]);
-                          setFunderInput("");
+                          const v = draftFunderInput.trim();
+                          if (v && !draftPreviousFunders.includes(v)) setDraftPreviousFunders(p => [...p, v]);
+                          setDraftFunderInput("");
                         }}
-                        className="h-10 px-3 rounded-lg border border-border text-sm text-black dark:text-white hover:text-foreground hover:border-foreground/30 transition-colors shrink-0">
+                        className="h-10 px-3 rounded-lg border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
                         Add
                       </button>
                     </div>
-                    {previousFunders.length > 0 && (
+                    {draftPreviousFunders.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-2">
-                        {previousFunders.map(f => (
+                        {draftPreviousFunders.map(f => (
                           <span key={f} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-black dark:text-white">
                             {f}
-                            <button type="button" onClick={() => setPreviousFunders(p => p.filter(x => x !== f))} className="hover:opacity-70 ml-0.5">×</button>
+                            <button type="button" onClick={() => setDraftPreviousFunders(p => p.filter(x => x !== f))} className="hover:opacity-70 ml-0.5">×</button>
                           </span>
                         ))}
                       </div>
                     )}
                   </div>
 
-                  <div className="pt-6 border-t border-border">
-                    <button type="button" onClick={() => setThirdPartyEvaluations(v => !v)}
-                      className={`w-full text-left px-4 py-3 rounded-xl border transition-colors flex items-start gap-3 ${
-                        thirdPartyEvaluations ? "border-[#2D6A4F] bg-[rgba(45,106,79,0.12)]" : "border-border hover:border-foreground/20"
-                      }`}>
-                      <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
-                        thirdPartyEvaluations ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-border"
-                      }`}>
-                        {thirdPartyEvaluations && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
-                      </div>
-                      <div>
-                        <p className={`text-sm font-medium ${thirdPartyEvaluations ? "text-[#2D6A4F]" : "text-foreground"}`}>Third-party evaluations available</p>
-                        <p className="text-xs text-black dark:text-white mt-0.5">Independent audits, impact assessments, or evaluations conducted by external parties</p>
-                      </div>
-                    </button>
+                  <div className="pt-4 border-t border-border">
+                    <ModalCheckbox checked={draftThirdPartyEvaluations} onChange={() => setDraftThirdPartyEvaluations(v => !v)}
+                      label="Third-party evaluations available" sub="Independent audits, impact assessments, or evaluations conducted by external parties" />
                   </div>
-                  <SaveBar />
-                </div>
+                </EditModal>
               )}
 
               {/* ── MANDATE PANE (funders) ── */}
               {activePane === "mandate" && isFunder && (
-                <div className="space-y-8">
-                  <PaneHeader title="Investment thesis" />
+                <SectionCardGroup>
+                  <SectionCard title="Investment thesis" onEdit={openMandateModal}>
+                    <DisplayField label="Investment focus">
+                      {investmentThesis ? <p className="text-sm text-black dark:text-white leading-relaxed">{investmentThesis}</p> : <EmptyValue />}
+                    </DisplayField>
+                  </SectionCard>
+
+                  <SectionCard title="Mandate criteria" onEdit={openMandateModal}>
+                    <DisplayField label="Grant / investment range">
+                      {(grantRangeMin || grantRangeMax) ? (
+                        <p className="text-sm text-black dark:text-white">
+                          {grantCurrency} {grantRangeMin ? Number(grantRangeMin).toLocaleString() : "—"} – {grantRangeMax ? Number(grantRangeMax).toLocaleString() : "—"}
+                        </p>
+                      ) : <EmptyValue />}
+                    </DisplayField>
+                    <DisplayField label="Funding instruments">
+                      {fundingInstruments.length > 0
+                        ? <div className="flex flex-wrap gap-2">{fundingInstruments.map(f => <FlatTag key={f}>{f}</FlatTag>)}</div>
+                        : <EmptyValue />}
+                    </DisplayField>
+                    <DisplayField label="Sector focus">
+                      {mandateSectors.length > 0
+                        ? <div className="flex flex-wrap gap-2">{mandateSectors.map(s => <FlatTag key={s}>{s}</FlatTag>)}</div>
+                        : <EmptyValue />}
+                    </DisplayField>
+                    <DisplayField label="SDG priorities">
+                      {mandateSdgs.length > 0
+                        ? <div className="flex flex-wrap gap-2">{mandateSdgs.map(s => <FlatTag key={s}>{s}</FlatTag>)}</div>
+                        : <EmptyValue />}
+                    </DisplayField>
+                    <DisplayField label="Stage preference">
+                      {stagePreference.length > 0
+                        ? <div className="flex flex-wrap gap-2">{stagePreference.map(s => <FlatTag key={s}>{s}</FlatTag>)}</div>
+                        : <EmptyValue />}
+                    </DisplayField>
+                    <DisplayField label="Geographic focus">
+                      {geographicFocus.length > 0
+                        ? <div className="flex flex-wrap gap-2">{geographicFocus.map(g => <FlatTag key={g}>{g}</FlatTag>)}</div>
+                        : <EmptyValue />}
+                    </DisplayField>
+                  </SectionCard>
+                </SectionCardGroup>
+              )}
+
+              {editingMandateOpen && (
+                <EditModal title="Edit mandate" onClose={() => setEditingMandateOpen(false)} onSave={saveMandateSection} saving={mandateSaving}>
                   <div>
                     <Label className="text-sm font-medium">Describe your investment focus</Label>
-                    <Textarea value={investmentThesis} onChange={e => setInvestmentThesis(e.target.value)} className="mt-1 resize-none" rows={4}
+                    <Textarea value={draftInvestmentThesis} onChange={e => setDraftInvestmentThesis(e.target.value)} className="mt-1 resize-none" rows={4}
                       placeholder="e.g. We back early-stage climate adaptation initiatives in Sub-Saharan Africa, with a focus on smallholder agriculture and water security. We deploy grants of $50K–$500K and prioritise organisations with community-validated models..." />
-                    <p className="text-xs text-black dark:text-white mt-1.5">Shown on your directory profile. Helps implementers, startups, and ecosystem actors understand your focus before reaching out. Also used by the AI to improve initiative matching.</p>
+                    <p className="text-xs text-black dark:text-white opacity-60 mt-1.5">Shown on your directory profile. Helps implementers, startups, and ecosystem actors understand your focus before reaching out. Also used by the AI to improve initiative matching.</p>
                   </div>
 
-                  <div className="pt-6 border-t border-border space-y-6">
-                    <PaneHeader title="Mandate criteria" subtitle="Used for AI matching. Not shown publicly." />
-
-                    <div>
-                      <Label className="text-sm font-medium">Grant / investment range</Label>
-                      <div className="flex gap-2 items-center mt-1">
-                        <select value={grantCurrency} onChange={e => setGrantCurrency(e.target.value)}
-                          className="h-10 rounded-lg border border-border bg-background px-2 text-sm w-[80px] shrink-0 focus:outline-none focus:ring-2 focus:ring-primary/20">
-                          {["USD", "GBP", "EUR", "NGN", "KES", "GHS", "ZAR"].map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                        <Input value={grantRangeMin} onChange={e => setGrantRangeMin(e.target.value.replace(/[^0-9]/g, ""))} className="h-10 flex-1" placeholder="Min" />
-                        <span className="text-black dark:text-white shrink-0 text-sm">–</span>
-                        <Input value={grantRangeMax} onChange={e => setGrantRangeMax(e.target.value.replace(/[^0-9]/g, ""))}
-                          className={`h-10 flex-1 ${grantRangeInvalid ? "border-red-400 focus-visible:ring-red-300" : ""}`}
-                          placeholder="Max" />
-                      </div>
-                      {grantRangeInvalid && (
-                        <p className="text-xs text-red-500 mt-1.5">Max must be greater than or equal to Min.</p>
-                      )}
+                  <div className="pt-4 border-t border-border">
+                    <Label className="text-sm font-medium">Grant / investment range</Label>
+                    <div className="flex gap-2 items-center mt-1">
+                      <select value={draftGrantCurrency} onChange={e => setDraftGrantCurrency(e.target.value)}
+                        className="h-10 rounded-lg border border-border bg-background px-2 text-sm w-[80px] shrink-0 focus:outline-none focus:ring-2 focus:ring-primary/20">
+                        {["USD", "GBP", "EUR", "NGN", "KES", "GHS", "ZAR"].map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                      <Input value={draftGrantRangeMin} onChange={e => setDraftGrantRangeMin(e.target.value.replace(/[^0-9]/g, ""))} className="h-10 flex-1" placeholder="Min" />
+                      <span className="text-black dark:text-white shrink-0 text-sm">–</span>
+                      <Input value={draftGrantRangeMax} onChange={e => setDraftGrantRangeMax(e.target.value.replace(/[^0-9]/g, ""))}
+                        className={`h-10 flex-1 ${draftGrantRangeInvalid ? "border-red-400 focus-visible:ring-red-300" : ""}`}
+                        placeholder="Max" />
                     </div>
+                    {draftGrantRangeInvalid && (
+                      <p className="text-xs text-red-500 mt-1.5">Max must be greater than or equal to Min.</p>
+                    )}
+                  </div>
 
-                    <div>
-                      <Label className="text-sm font-medium">Funding instruments</Label>
-                      <ChipPicker options={FUNDING_INSTRUMENTS} selected={fundingInstruments} onChange={setFundingInstruments} />
-                      <p className="text-xs text-black dark:text-white mt-1.5"></p>
+                  <div className="pt-4 border-t border-border">
+                    <Label className="text-sm font-medium">Funding instruments</Label>
+                    <div className="mt-2 space-y-1">
+                      {FUNDING_INSTRUMENTS.map(f => (
+                        <ModalCheckbox key={f} checked={draftFundingInstruments.includes(f)} label={f}
+                          onChange={() => setDraftFundingInstruments(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f])} />
+                      ))}
                     </div>
+                  </div>
 
-                    <div>
-                      <Label className="text-sm font-medium">Sector focus</Label>
-                      <ChipPicker options={SECTOR_OPTIONS} selected={mandateSectors} onChange={setMandateSectors} />
-                      <p className="text-xs text-black dark:text-white mt-1.5">Sectors your mandate targets. Used for AI matching, separate from the sectors shown on your public profile.</p>
+                  <div className="pt-4 border-t border-border">
+                    <Label className="text-sm font-medium">Sector focus</Label>
+                    <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">Sectors your mandate targets. Separate from the sectors shown on your public profile.</p>
+                    <div className="space-y-1 max-h-56 overflow-y-auto">
+                      {SECTOR_OPTIONS.map(s => (
+                        <ModalCheckbox key={s} checked={draftMandateSectors.includes(s)} label={s}
+                          onChange={() => setDraftMandateSectors(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])} />
+                      ))}
                     </div>
+                  </div>
 
-                    <div>
-                      <Label className="text-sm font-medium">SDG priorities</Label>
-                      <ChipPicker options={SDG_OPTIONS} selected={mandateSdgs} onChange={setMandateSdgs} />
+                  <div className="pt-4 border-t border-border">
+                    <Label className="text-sm font-medium">SDG priorities</Label>
+                    <div className="space-y-1 max-h-56 overflow-y-auto">
+                      {SDG_OPTIONS.map(s => (
+                        <ModalCheckbox key={s} checked={draftMandateSdgs.includes(s)} label={s}
+                          onChange={() => setDraftMandateSdgs(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])} />
+                      ))}
                     </div>
+                  </div>
 
-
-                    <div>
-                      <Label className="text-sm font-medium">Stage preference</Label>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {["Concept / Early stage", "Pilot / Proof of concept", "Growth / Scaling", "Mature / Established", "Core / Unrestricted"].map(s => (
-                          <button key={s} type="button"
-                            onClick={() => setStagePreference(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])}
-                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${stagePreference.includes(s) ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-black dark:text-white hover:border-foreground/30"}`}>
-                            {s}
-                          </button>
-                        ))}
-                      </div>
+                  <div className="pt-4 border-t border-border">
+                    <Label className="text-sm font-medium">Stage preference</Label>
+                    <div className="mt-2 space-y-1">
+                      {["Concept / Early stage", "Pilot / Proof of concept", "Growth / Scaling", "Mature / Established", "Core / Unrestricted"].map(s => (
+                        <ModalCheckbox key={s} checked={draftStagePreference.includes(s)} label={s}
+                          onChange={() => setDraftStagePreference(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])} />
+                      ))}
                     </div>
+                  </div>
 
-                    <div>
-                      <Label className="text-sm font-medium">Geographic focus</Label>
-                      <div className="flex gap-2 mt-1">
-                        <Input value={geographicInput} onChange={e => setGeographicInput(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              const v = geographicInput.trim();
-                              if (v && !geographicFocus.includes(v)) setGeographicFocus(p => [...p, v]);
-                              setGeographicInput("");
-                            }
-                          }}
-                          className="h-10 flex-1" placeholder="e.g. West Africa, Kenya" />
-                        <button type="button"
-                          onClick={() => {
-                            const v = geographicInput.trim();
-                            if (v && !geographicFocus.includes(v)) setGeographicFocus(p => [...p, v]);
-                            setGeographicInput("");
-                          }}
-                          className="h-10 px-3 rounded-lg border border-border text-sm text-black dark:text-white hover:text-foreground hover:border-foreground/30 transition-colors shrink-0">
-                          Add
-                        </button>
-                      </div>
-                      {geographicFocus.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {geographicFocus.map(g => (
-                            <span key={g} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-black dark:text-white">
+                  <div className="pt-4 border-t border-border">
+                    <Label className="text-sm font-medium">Geographic focus</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input value={draftGeographicInput} onChange={e => setDraftGeographicInput(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            const v = draftGeographicInput.trim();
+                            if (v && !draftGeographicFocus.includes(v)) setDraftGeographicFocus(p => [...p, v]);
+                            setDraftGeographicInput("");
+                          }
+                        }}
+                        className="h-10 flex-1" placeholder="e.g. West Africa, Kenya" />
+                      <button type="button"
+                        onClick={() => {
+                          const v = draftGeographicInput.trim();
+                          if (v && !draftGeographicFocus.includes(v)) setDraftGeographicFocus(p => [...p, v]);
+                          setDraftGeographicInput("");
+                        }}
+                        className="h-10 px-3 rounded-lg border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
+                        Add
+                      </button>
+                    </div>
+                    {draftGeographicFocus.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {draftGeographicFocus.map(g => (
+                          <span key={g} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-black dark:text-white">
                             {g}
-                            <button type="button" onClick={() => setGeographicFocus(p => p.filter(x => x !== g))} className="hover:opacity-70 ml-0.5">×</button>
+                            <button type="button" onClick={() => setDraftGeographicFocus(p => p.filter(x => x !== g))} className="hover:opacity-70 ml-0.5">×</button>
                           </span>
                         ))}
                       </div>
                     )}
                   </div>
-                </div>
-                <SaveBar />
-              </div>
-            )}
+                </EditModal>
+              )}
             
             {/* ── CSR & ESG PANE (corporates/tech/public sector) ── */}
             {activePane === "csr" && isCorporate && (
@@ -2299,45 +2555,47 @@ export default function DashboardProfile() {
 
               {/* ── VERIFICATION PANE ── */}
               {activePane === "verification" && isOrg && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <PaneHeader title="Verification" />
-                    {profile?.is_verified && (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-[#2D6A4F]/10 text-[#2D6A4F]">
-                        <ShieldCheck className="w-3.5 h-3.5" /> Verified
-                      </span>
+                <SectionCardGroup>
+                  <div className="px-8 sm:px-12 py-10">
+                    <div className="flex items-center justify-between mb-6">
+                      <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Verification</p>
+                      {profile?.is_verified && (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-[#2D6A4F]/10 text-[#2D6A4F]">
+                          <ShieldCheck className="w-3.5 h-3.5" /> Verified
+                        </span>
+                      )}
+                    </div>
+
+                    {profile?.is_verified ? (
+                      <p className="text-sm text-black dark:text-white">
+                        Your organisation is verified. No further action is required for now. A badge appears on your profile, listings, and activity across the platform.
+                      </p>
+                    ) : profile?.verification_requested ? (
+                      <div className="flex items-start gap-3">
+                        <ShieldCheck className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Verification pending</p>
+                          <p className="text-sm text-black dark:text-white mt-0.5">Your documents are under review.</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Not verified</p>
+                          <p className="text-sm text-black dark:text-white mt-0.5">
+                            Verified organisations get a badge on all activity, priority placement in the partner directory, and a credibility multiplier on Impact Points.
+                          </p>
+                        </div>
+                        <Link href="/verify">
+                          <Button className="shrink-0 rounded-full px-5 text-sm text-white hover:brightness-110 transition-all border-0"
+                            style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
+                            Get verified
+                          </Button>
+                        </Link>
+                      </div>
                     )}
                   </div>
-
-                  {profile?.is_verified ? (
-                    <p className="text-sm text-black dark:text-white">
-                      Your organisation is verified. No further action is required for now. A badge appears on your profile, listings, and activity across the platform.
-                    </p>
-                  ) : profile?.verification_requested ? (
-                    <div className="flex items-start gap-3">
-                      <ShieldCheck className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium text-foreground">Verification pending</p>
-                        <p className="text-sm text-black dark:text-white mt-0.5">Your documents are under review.</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">Not verified</p>
-                        <p className="text-sm text-black dark:text-white mt-0.5">
-                          Verified organisations get a badge on all activity, priority placement in the partner directory, and a credibility multiplier on Impact Points.
-                        </p>
-                      </div>
-                      <Link href="/verify">
-                        <Button className="shrink-0 rounded-full px-5 text-sm text-white hover:brightness-110 transition-all border-0"
-                          style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
-                          Get verified
-                        </Button>
-                      </Link>
-                    </div>
-                  )}
-                </div>
+                </SectionCardGroup>
               )}
 
             </div>
