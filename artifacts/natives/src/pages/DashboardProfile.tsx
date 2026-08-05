@@ -181,7 +181,7 @@ async function saveProfileFields(userId: string, fields: Record<string, any>) {
 // used throughout DashboardNatives -- NOT individually bordered boxes.
 function SectionCardGroup({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-white dark:bg-card w-[calc(100%+3rem)] -mx-6 divide-y-[6px] divide-[#FAF6F0] dark:divide-black">
+    <div className="bg-white dark:bg-card w-[calc(100%+3rem)] -mx-6 -mt-10 divide-y-[6px] divide-[#FAF6F0] dark:divide-black">
       {children}
     </div>
   );
