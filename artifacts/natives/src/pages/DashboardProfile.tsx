@@ -1370,7 +1370,7 @@ export default function DashboardProfile() {
               mobile, unchanged there. */}
           <div className="md:w-[200px] shrink-0 border-x border-border bg-muted/20 md:fixed md:top-[96px] md:min-h-[calc(100vh-96px)]"
             style={paneNavLeft !== null ? { left: paneNavLeft } : undefined}>
-            <div className="flex md:flex-col overflow-x-auto md:overflow-visible p-2 md:pt-[68px] gap-1 scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
+            <div className="flex md:flex-col overflow-x-auto md:overflow-visible p-2 md:pt-[28px] gap-1 scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
               {panes.map(p => (
                 <button key={p.key} type="button" onClick={() => setActivePane(p.key)}
                   className={`text-left px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap md:whitespace-normal transition-all shrink-0 ${
@@ -2350,7 +2350,7 @@ export default function DashboardProfile() {
           quirks can drag it along with page scroll. */}
       <div className="space-y-4 md:flex md:flex-col md:min-h-[calc(100vh-120px)] md:fixed md:top-[96px] md:right-6 md:w-[280px]">
 
-        <div className="rounded-b-2xl border-x border-b border-border bg-white dark:bg-card p-5 md:pt-[68px] space-y-4">
+        <div className="rounded-b-2xl border-x border-b border-border bg-white dark:bg-card p-5 md:pt-[28px] space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Profile strength</p>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
