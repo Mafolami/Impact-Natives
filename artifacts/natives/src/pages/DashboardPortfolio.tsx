@@ -379,7 +379,7 @@ function InitiativeDetail({ initiative, onBack, onRequestEdit }: { initiative: I
       {initiative.detail_content && initiative.detail_content !== "<p></p>" && (
         <div className="rounded-xl border border-border bg-card px-5 py-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Full description</p>
-          <div className="prose prose-sm max-w-none text-foreground"
+          <div className="prose prose-sm dark:prose-invert max-w-none text-foreground"
             dangerouslySetInnerHTML={{ __html: initiative.detail_content }} />
         </div>
       )}
@@ -794,6 +794,7 @@ export default function DashboardInitiatives() {
         onBack={() => navigate("/dashboard/portfolio")}
         backLabel="Back to portfolio"
         viewerOrg={viewerOrg}
+        variant="page"
       />
     );
   }
