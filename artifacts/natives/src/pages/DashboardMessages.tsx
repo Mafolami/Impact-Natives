@@ -494,8 +494,8 @@ export default function DashboardMessages() {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-black dark:text-white truncate">{title}</p>
-          {subtitle && <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
-          {preview && <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{preview}</p>}
+          {subtitle && <p className="text-xs text-black dark:text-white mt-0.5 truncate">{subtitle}</p>}
+          {preview && <p className="text-xs text-black dark:text-white mt-1 line-clamp-1">{preview}</p>}
         </div>
         {status && (
           <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 mt-0.5"
@@ -520,7 +520,7 @@ export default function DashboardMessages() {
         <div className="rounded-2xl border border-border bg-white dark:bg-card p-12 text-center">
           <Clock className="w-8 h-8 text-muted-foreground/40 mx-auto mb-4" />
           <p className="text-black dark:text-white font-medium mb-2">No messages yet.</p>
-          <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
+          <p className="text-sm text-black dark:text-white mb-6 max-w-sm mx-auto">
             When you or others express interest in initiatives, conversations will appear here.
           </p>
           <Link href="/dashboard/marketplace">
@@ -568,9 +568,9 @@ export default function DashboardMessages() {
               {partnershipVisible.length > 0 && (
                 <section>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Conversations — {partnershipVisible.length}</h3>
+                    <h3 className="text-xs font-semibold uppercase tracking-widest text-black dark:text-white">Conversations — {partnershipVisible.length}</h3>
                     <Link href="/dashboard/portfolio?tab=partners"
-                      className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:underline underline-offset-2">
+                      className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-black dark:text-white hover:underline underline-offset-2">
                       Confirmed partnerships
                       <ExternalLink className="w-2.5 h-2.5" />
                     </Link>
@@ -591,7 +591,7 @@ export default function DashboardMessages() {
               )}
               {partnershipArchived.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Archived — {partnershipArchived.length}</h3>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black dark:text-white mb-2">Archived — {partnershipArchived.length}</h3>
                   <div className="rounded-2xl border border-border bg-white dark:bg-card overflow-hidden opacity-60">
                     {partnershipArchived.map((convo, i) => (
                       <Row key={convo.id} last={i === partnershipArchived.length - 1}
@@ -607,7 +607,7 @@ export default function DashboardMessages() {
               {partnershipVisible.length === 0 && partnershipArchived.length === 0 && (
                 <div className="rounded-2xl border border-border bg-white dark:bg-card p-10 text-center">
                   <Handshake className="w-6 h-6 text-muted-foreground/40 mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">No partnership conversations yet.</p>
+                  <p className="text-sm text-black dark:text-white">No partnership conversations yet.</p>
                 </div>
               )}
             </div>
@@ -618,7 +618,7 @@ export default function DashboardMessages() {
             <div className="space-y-6">
               {pendingEOIs.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black dark:text-white mb-2">
                     Awaiting review — {pendingEOIs.length}
                   </h3>
                   <div className="space-y-2">
@@ -635,25 +635,25 @@ export default function DashboardMessages() {
                                 {eoi.expresser_name} expressed {eoi.partnership_type ? rolePartnerPhrase(eoi.partnership_type) : ""} interest
                               </p>
                               {eoi.expresser_verified && (
-                                <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+                                <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium text-black dark:text-white">
                                   <ShieldCheck className="w-3 h-3" />
                                   Verified
                                 </span>
                               )}
                               {eoi.expresser_id && (
                                 <Link href={`/dashboard/natives?user=${eoi.expresser_id}&tab=organisations`}
-                                  className="text-[10px] text-muted-foreground hover:text-foreground transition-colors shrink-0 underline underline-offset-2">
+                                  className="text-[10px] text-black dark:text-white hover:text-[#2D6A4F] transition-colors shrink-0 underline underline-offset-2">
                                   View profile
                                 </Link>
                               )}
                             </div>
-                            <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(eoi.created_at)}</span>
+                            <span className="text-[11px] text-black dark:text-white shrink-0">{timeAgo(eoi.created_at)}</span>
                           </div>
-                          <p className="text-xs text-muted-foreground mb-1">
+                          <p className="text-xs text-black dark:text-white mb-1">
                             <span className="text-foreground/70">{eoi.initiative_title}</span>
                           </p>
                           {eoi.esg_adoption && (
-                            <div className="flex items-center gap-1.5 flex-wrap mt-1 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1.5 flex-wrap mt-1 text-xs text-black dark:text-white">
                               <span>ESG/CSR adoption</span>
                             </div>
                           )}
@@ -681,7 +681,7 @@ export default function DashboardMessages() {
 
               {initiativeEnquiries.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Enquiries — {initiativeEnquiries.length}</h3>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black dark:text-white mb-2">Enquiries — {initiativeEnquiries.length}</h3>
                   <div className="rounded-2xl border border-border bg-white dark:bg-card overflow-hidden">
                     {initiativeEnquiries.map((convo, i) => (
                       <Row key={convo.id} last={i === initiativeEnquiries.length - 1}
@@ -698,7 +698,7 @@ export default function DashboardMessages() {
 
               {initiativeActive.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Conversations — {initiativeActive.length}</h3>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black dark:text-white mb-2">Conversations — {initiativeActive.length}</h3>
                   <div className="rounded-2xl border border-border bg-white dark:bg-card overflow-hidden">
                     {initiativeActive.map((convo, i) => (
                       <Row key={convo.id} last={i === initiativeActive.length - 1}
@@ -716,7 +716,7 @@ export default function DashboardMessages() {
 
               {pendingOutbound.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Sent ({pendingOutbound.length})</h3>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black dark:text-white mb-2">Sent ({pendingOutbound.length})</h3>
                   <div className="rounded-2xl border border-border bg-white dark:bg-card overflow-hidden">
                     {pendingOutbound.map((eoi, i) => (
                       <Row key={eoi.eoi_id} last={i === pendingOutbound.length - 1}
@@ -743,7 +743,7 @@ export default function DashboardMessages() {
 
               {isFunder && initiativeArchived.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Archived — {initiativeArchived.length}</h3>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black dark:text-white mb-2">Archived — {initiativeArchived.length}</h3>
                   <div className="rounded-2xl border border-border bg-white dark:bg-card overflow-hidden opacity-60">
                     {initiativeArchived.map((convo, i) => (
                       <Row key={convo.id} last={i === initiativeArchived.length - 1}
@@ -760,7 +760,7 @@ export default function DashboardMessages() {
               {pendingEOIs.length === 0 && initiativeEnquiries.length === 0 && initiativeActive.length === 0 && pendingOutbound.length === 0 && (
                 <div className="rounded-2xl border border-border bg-white dark:bg-card p-10 text-center">
                   <Lightbulb className="w-6 h-6 text-muted-foreground/40 mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">No initiative conversations yet.</p>
+                  <p className="text-sm text-black dark:text-white">No initiative conversations yet.</p>
                 </div>
               )}
             </div>
@@ -921,7 +921,7 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-background rounded-2xl border border-border w-full max-w-sm shadow-xl p-6 space-y-4">
             <h3 className="text-base font-semibold text-foreground">Accept Partnership</h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-black dark:text-white">
               Select the role for <span className="font-medium text-foreground">{conversation.other_user_name}</span>.
               They'll be asked to confirm.
             </p>
@@ -957,7 +957,7 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-background rounded-2xl border border-border w-full max-w-sm shadow-xl p-6 space-y-4">
             <h3 className="text-base font-semibold text-foreground">Reject Partnership</h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-black dark:text-white">
               This will notify {conversation.other_user_name} that you're not taking the partnership forward, and close this conversation.
             </p>
             <div className="flex gap-2 pt-2">
@@ -1468,7 +1468,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
           </button>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-black dark:text-white truncate">{conversation.other_user_name}</p>
-            <p className="text-xs text-muted-foreground truncate">Re: {conversation.initiative_title}</p>
+            <p className="text-xs text-black dark:text-white truncate">Re: {conversation.initiative_title}</p>
           </div>
         </div>
 
@@ -1561,7 +1561,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
             <h3 className="text-base font-semibold text-foreground">
               Propose {conversation.other_user_name} as partner
             </h3>
-            <p className="text-sm text-muted-foreground">Select the role they'll play in this initiative. They'll be asked to confirm before it counts as a partnership.</p>
+            <p className="text-sm text-black dark:text-white">Select the role they'll play in this initiative. They'll be asked to confirm before it counts as a partnership.</p>
             <div className="flex flex-wrap gap-2">
               {initiativePartnerships.map(p => (
                 <button key={p} type="button" onClick={() => setConfirmRole(p)}
@@ -1577,7 +1577,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
             <label className="flex items-start gap-2.5 cursor-pointer">
               <input type="checkbox" checked={publicOnFeed} onChange={e => setPublicOnFeed(e.target.checked)}
                 className="mt-0.5 accent-[#2D6A4F]" />
-              <span className="text-xs text-muted-foreground leading-relaxed">
+              <span className="text-xs text-black dark:text-white leading-relaxed">
                 Show this partnership on the activity feed
               </span>
             </label>
@@ -1602,7 +1602,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
             <Loader2 className="w-4 h-4 text-[#2D6A4F] animate-spin" />
           </div>
         ) : messages.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-10">No messages yet. Say hello.</p>
+          <p className="text-sm text-black dark:text-white text-center py-10">No messages yet. Say hello.</p>
         ) : (
           messages.map(msg => {
             const isMe = msg.sender_id === currentUserId;
@@ -1632,7 +1632,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
           <p className="text-sm font-medium text-foreground">
           Partner proposal: <span className="text-[#2D6A4F]">{rolePartnerPhrase(proposedRole)}</span> on "{conversation.initiative_title}"
           </p>
-          <p className="text-xs text-muted-foreground">Do you confirm this partnership?</p>
+          <p className="text-xs text-black dark:text-white">Do you confirm this partnership?</p>
           <div className="flex gap-2">
             <button type="button" onClick={confirmProposedPartner} disabled={respondingToProposal}
               className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-xs font-medium disabled:opacity-40 transition-colors">
@@ -1651,7 +1651,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
           <p className="text-sm font-medium text-foreground">
             Partnership proposed: <span className="text-[#2D6A4F]">{pendingConfirmation.partnership_type}</span>
           </p>
-          <p className="text-xs text-muted-foreground">Do you confirm this partnership?</p>
+          <p className="text-xs text-black dark:text-white">Do you confirm this partnership?</p>
           <div className="flex gap-2">
             <button type="button" onClick={confirmPartnershipFromOtherSide} disabled={confirmingPartnership}
               className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-xs font-medium disabled:opacity-40 transition-colors">
@@ -1668,7 +1668,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
       {/* Input */}
       {conversation.conversation_type !== "partnership" && (confirmedRole || declinedRole) ? (
         <div className="pt-4 border-t border-border">
-          <p className="text-xs text-muted-foreground text-center py-2">
+          <p className="text-xs text-black dark:text-white text-center py-2">
             {confirmedRole
               ? "Partnership confirmed. This is a first step, not a finished deal. Conversation closed."
               : "Partnership proposal declined. Conversation closed."}
@@ -1676,7 +1676,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
         </div>
       ) : conversation.conversation_type === "partnership" && partnershipResolved ? (
         <div className="pt-4 border-t border-border">
-          <p className="text-xs text-muted-foreground text-center py-2">
+          <p className="text-xs text-black dark:text-white text-center py-2">
             {partnershipResolved === "confirmed"
               ? "Partnership intent confirmed by both sides. This is a first step, not a finished deal. Conversation closed."
               : "Partnership declined. Conversation closed."}
@@ -1684,7 +1684,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
         </div>
       ) : convStatus === "pending_acceptance" && isOwner ? (
         <div className="pt-4 border-t border-border space-y-2">
-          <p className="text-xs text-muted-foreground text-center">
+          <p className="text-xs text-black dark:text-white text-center">
          {conversation.other_user_name} wants to connect. Open the conversation to start chatting, or decline.
        </p>
           <div className="flex gap-2">
@@ -1723,13 +1723,13 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
 
       ) : convStatus === "pending_acceptance" && !isOwner ? (
         <div className="pt-4 border-t border-border">
-          <p className="text-xs text-muted-foreground text-center py-2">
+          <p className="text-xs text-black dark:text-white text-center py-2">
          Waiting for {conversation.other_user_name} to open this conversation.
        </p>
         </div>
       ) : isRejected ? (
         <div className="pt-4 border-t border-border space-y-2">
-          <p className="text-xs text-muted-foreground text-center py-2">This conversation has been closed.</p>
+          <p className="text-xs text-black dark:text-white text-center py-2">This conversation has been closed.</p>
           {isOwner && conversation.conversation_type === "partnership" && (
             <button type="button" onClick={reopenConversation}
               className="w-full h-9 rounded-full border border-[#2D6A4F]/30 text-[#2D6A4F] text-xs font-semibold hover:bg-[#2D6A4F]/5 transition-colors">
@@ -1739,7 +1739,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
         </div>
       ) : funderClosed ? (
         <div className="pt-4 border-t border-border flex items-center justify-between gap-3">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-black dark:text-white">
          {isFunder ? "This conversation is archived. Reopen to send messages." : "The funder has paused this conversation."}
        </p>
           {isFunder && (

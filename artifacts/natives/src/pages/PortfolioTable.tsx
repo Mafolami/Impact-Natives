@@ -153,7 +153,7 @@ function TimelineModal({ row, onClose }: { row: PortfolioRow; onClose: () => voi
       <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-sm p-6 space-y-4" onClick={e => e.stopPropagation()}>
         <div>
           <h3 className="text-lg font-bold text-black dark:text-white">Timeline</h3>
-          <p className="text-sm text-muted-foreground mt-0.5">{row.title} — {row.organisation}</p>
+          <p className="text-sm text-black dark:text-white mt-0.5">{row.title} — {row.organisation}</p>
         </div>
         <div>
           {row.timeline.map((stage, i) => {
@@ -165,10 +165,10 @@ function TimelineModal({ row, onClose }: { row: PortfolioRow; onClose: () => voi
                 <div className="w-3.5 h-3.5 rounded-full bg-[#2D6A4F] shrink-0 mt-1 relative z-10 border-2 border-card" />
                 <div className="flex-1 min-w-0 -mt-0.5">
                   <p className="text-sm font-medium text-black dark:text-white">{stage.label}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-black dark:text-white mt-0.5">
                     {new Date(stage.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                     {prev && (
-                      <span className="text-muted-foreground/70"> · {formatDuration(prev.date, stage.date)} after {prev.label.toLowerCase()}</span>
+                      <span className="text-black/70 dark:text-white/70"> · {formatDuration(prev.date, stage.date)} after {prev.label.toLowerCase()}</span>
                     )}
                   </p>
                 </div>
@@ -202,21 +202,21 @@ function NotesModal({ row, onClose }: { row: PortfolioRow; onClose: () => void }
       <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-md p-6 space-y-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div>
           <h3 className="text-lg font-bold text-black dark:text-white">Outcome history</h3>
-          <p className="text-sm text-muted-foreground mt-0.5">{row.title} — {row.organisation}</p>
+          <p className="text-sm text-black dark:text-white mt-0.5">{row.title} — {row.organisation}</p>
         </div>
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="w-4 h-4 text-[#2D6A4F] animate-spin" />
           </div>
         ) : history.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No notes recorded yet.</p>
+          <p className="text-sm text-black dark:text-white">No notes recorded yet.</p>
         ) : (
           <div className="space-y-3">
             {history.map(entry => (
               <div key={entry.id} className="rounded-xl border border-border bg-muted/30 p-3.5 space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <OutcomePill status={entry.status} />
-                  <span className="text-xs text-muted-foreground">{formatDate(entry.recorded_at)}</span>
+                  <span className="text-xs text-black dark:text-white">{formatDate(entry.recorded_at)}</span>
                 </div>
                 {entry.outcome_summary && (
                   <p className="text-sm text-black dark:text-white leading-relaxed whitespace-pre-wrap">{entry.outcome_summary}</p>
@@ -335,11 +335,11 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
               {isInitiative ? "Initiative partner" : "Org partnership"}
             </span>
           </div>
-          <p className="text-sm text-muted-foreground">{row.title} — {row.organisation}</p>
+          <p className="text-sm text-black dark:text-white">{row.title} — {row.organisation}</p>
         </div>
 
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Status</label>
+          <label className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1.5 block">Status</label>
           <select value={status} onChange={e => setStatus(e.target.value as PortfolioOutcome["status"])}
             className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground">
             <option value="not_started">Not started</option>
@@ -354,7 +354,7 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
             generic Started/Completed pair shown regardless of relevance. */}
         {status === "in_progress" && (
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Started</label>
+            <label className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1.5 block">Started</label>
             <input type="date" value={startedAt} onChange={e => setStartedAt(e.target.value)}
               className={`w-full h-9 px-3 rounded-lg border bg-background text-sm text-foreground ${
                 attemptedInvalidSave && !startedAt ? "border-red-400" : "border-border"
@@ -365,14 +365,14 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
         {status === "completed" && (
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Started</label>
+              <label className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1.5 block">Started</label>
               <input type="date" value={startedAt} onChange={e => setStartedAt(e.target.value)}
                 className={`w-full h-9 px-3 rounded-lg border bg-background text-sm text-foreground ${
                   attemptedInvalidSave && !startedAt ? "border-red-400" : "border-border"
                 }`} />
             </div>
             <div>
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Completed</label>
+              <label className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1.5 block">Completed</label>
               <input type="date" value={completedAt} onChange={e => setCompletedAt(e.target.value)}
                 className={`w-full h-9 px-3 rounded-lg border bg-background text-sm text-foreground ${
                   attemptedInvalidSave && !completedAt ? "border-red-400" : "border-border"
@@ -385,7 +385,7 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
           <div className="space-y-3">
             <div>
               <label className={`text-xs font-semibold uppercase tracking-wider mb-1.5 block ${
-                attemptedInvalidSave && everStarted === null ? "text-red-500" : "text-muted-foreground"
+                attemptedInvalidSave && everStarted === null ? "text-red-500" : "text-black dark:text-white"
               }`}>
                 Did this ever start?
               </label>
@@ -412,14 +412,14 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
             {everStarted === true && (
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Started</label>
+                  <label className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1.5 block">Started</label>
                   <input type="date" value={startedAt} onChange={e => setStartedAt(e.target.value)}
                     className={`w-full h-9 px-3 rounded-lg border bg-background text-sm text-foreground ${
                       attemptedInvalidSave && !startedAt ? "border-red-400" : "border-border"
                     }`} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1.5 block">
                     {status === "stalled" ? "Stalled" : "Fell through"}
                   </label>
                   <input type="date" value={status === "stalled" ? stalledAt : fellThroughAt}
@@ -433,7 +433,7 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
 
             {everStarted === false && (
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">
+                <label className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1.5 block">
                   {status === "stalled" ? "Stalled" : "Fell through"}
                 </label>
                 <input type="date" value={status === "stalled" ? stalledAt : fellThroughAt}
@@ -473,7 +473,7 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
         )}
 
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">What happened</label>
+          <label className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1.5 block">What happened</label>
           <textarea value={summary} onChange={e => setSummary(e.target.value)} rows={3}
             placeholder="What was delivered, or what's blocking progress..."
             className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground resize-none" />
@@ -633,7 +633,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
 
   const SortHeader = ({ label, sortK }: { label: string; sortK: SortKey }) => (
     <button type="button" onClick={() => toggleSort(sortK)}
-      className="flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap">
+      className="flex items-center gap-1 text-xs font-semibold text-black dark:text-white hover:text-[#2D6A4F] transition-colors whitespace-nowrap">
       {label}
       <ArrowUpDown className={`w-3 h-3 ${sortKey === sortK ? "text-[#2D6A4F]" : "opacity-40"}`} />
     </button>
@@ -671,7 +671,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
             <option key={s} value={s}>{s === "all" ? "All statuses" : s}</option>
           ))}
         </select>
-        <span className="text-xs text-muted-foreground ml-auto whitespace-nowrap">
+        <span className="text-xs text-black dark:text-white ml-auto whitespace-nowrap">
           {filteredSorted.length} of {rows.length}
         </span>
       </div>
@@ -680,7 +680,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
       {filteredSorted.length === 0 ? (
         <div className="rounded-2xl border border-border bg-white dark:bg-card p-12 text-center">
           <p className="text-black dark:text-white font-medium mb-1">No matching rows.</p>
-          <p className="text-sm text-muted-foreground">Try clearing filters.</p>
+          <p className="text-sm text-black dark:text-white">Try clearing filters.</p>
         </div>
       ) : (
         <div className="rounded-xl border border-border bg-white dark:bg-card overflow-x-auto">
@@ -690,13 +690,13 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
                 <th className="text-left px-4 py-3 min-w-[280px]"><SortHeader label="Title" sortK="title" /></th>
                 <th className="text-left px-4 py-3"><SortHeader label="Organisation" sortK="organisation" /></th>
                 <th className="text-left px-4 py-3"><SortHeader label="Type" sortK="type" /></th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">Support Type</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">Direction</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap"># EOIs</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">Contact</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-black dark:text-white whitespace-nowrap">Support Type</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-black dark:text-white whitespace-nowrap">Direction</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-black dark:text-white whitespace-nowrap"># EOIs</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-black dark:text-white whitespace-nowrap">Contact</th>
                 <th className="text-left px-4 py-3"><SortHeader label="Status" sortK="status" /></th>
                 <th className="text-left px-4 py-3"><SortHeader label="Date" sortK="date" /></th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap">Actions</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-black dark:text-white whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -723,7 +723,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
                     )}
                   </td>
                   <td className="px-4 py-3 text-sm text-black dark:text-white whitespace-nowrap">{row.type}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{row.supportType ?? "—"}</td>
+                  <td className="px-4 py-3 text-xs text-black dark:text-white whitespace-nowrap">{row.supportType ?? "—"}</td>
                   <td className="px-4 py-3"><DirectionPill direction={row.direction} /></td>
                   <td className="px-4 py-3 text-sm text-black dark:text-white">{row.eoiCount ?? "—"}</td>
                   <td className="px-4 py-3">
@@ -731,7 +731,7 @@ export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => 
                       <a href={`mailto:${row.contactEmail}`} className="text-xs text-[#2D6A4F] hover:underline whitespace-nowrap">
                         {row.contactEmail}
                       </a>
-                    ) : <span className="text-xs text-muted-foreground">—</span>}
+                    ) : <span className="text-xs text-black dark:text-white">—</span>}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1 items-start">

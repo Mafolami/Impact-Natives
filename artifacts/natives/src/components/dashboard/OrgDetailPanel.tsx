@@ -133,7 +133,7 @@ const LEGAL_TYPE_LABELS: Record<string, string> = {
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground mb-3">
+    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-black dark:text-white mb-3">
       {children}
     </p>
   );
@@ -142,7 +142,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 function BentoCell({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
     <div className="rounded-xl p-3.5 bg-muted border border-border">
-      <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">{label}</p>
+      <p className="text-[9px] font-black uppercase tracking-widest text-black dark:text-white mb-1">{label}</p>
       <p className={`text-sm font-bold leading-snug ${accent ? "text-[#2D6A4F]" : "text-foreground"}`}>{value}</p>
     </div>
   );
@@ -219,7 +219,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         </div>
         <div>
           <p className="text-sm font-bold text-foreground mb-1">Select a listing</p>
-          <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">Click any organisation from the list to view their full partnership profile.</p>
+          <p className="text-xs text-black dark:text-white max-w-xs leading-relaxed">Click any organisation from the list to view their full partnership profile.</p>
         </div>
       </div>
     );
@@ -244,7 +244,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
       <div className="space-y-6">
         {backLabel && (
           <button type="button" onClick={onBack}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-[#C45C26] transition-colors">
             <ArrowLeft className="w-3.5 h-3.5" /> {backLabel}
           </button>
         )}
@@ -280,7 +280,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
               )}
             </div>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <span className="text-xs text-muted-foreground capitalize">
+              <span className="text-xs text-black dark:text-white capitalize">
                 {orgTypeLabel(org.organisation_type)}
                 {countries.length > 0 && ` · ${countries.join(", ")}`}
               </span>
@@ -322,7 +322,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
             )}
             {org.partnership_success_definition && (
               <div className="rounded-xl px-5 py-4 bg-muted border border-border border-l-[3px] border-l-[#2D6A4F]">
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Success in 12 months</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white mb-2">Success in 12 months</p>
                 <p className="text-sm text-foreground leading-relaxed italic">"{org.partnership_success_definition}"</p>
               </div>
             )}
@@ -354,7 +354,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
             </div>
 
             {fitLoading && (
-              <p className="text-xs text-muted-foreground">Analysing compatibility with your organisation profile...</p>
+              <p className="text-xs text-black dark:text-white">Analysing compatibility with your organisation profile...</p>
             )}
 
             {fit && !fitLoading && (
@@ -423,7 +423,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                 org.partnership_physically_present !== null && org.partnership_physically_present !== undefined && { label: "Physical presence", value: org.partnership_physically_present ? "On the ground" : "Remote" },
               ].filter(Boolean).map((row: any) => (
                 <div key={row.label} className="flex items-start justify-between gap-6 py-2.5 border-b border-border last:border-b-0">
-                  <span className="text-xs text-muted-foreground shrink-0">{row.label}</span>
+                  <span className="text-xs text-black dark:text-white shrink-0">{row.label}</span>
                   <span className="text-xs font-semibold text-foreground text-right capitalize">{row.value}</span>
                 </div>
               ))}
@@ -466,7 +466,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
             <div className="h-full rounded-full transition-all" style={{ width: `${(score / 5) * 100}%`, background: score > 2 ? "#2D6A4F" : "#C45C26" }} />
           </div>
           {score === 0 ? (
-            <p className="text-xs text-muted-foreground">No documents confirmed ready yet.</p>
+            <p className="text-xs text-black dark:text-white">No documents confirmed ready yet.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {ddDocs.filter(({ key }) => org[key as keyof OrgRow] as boolean).map(({ label }) => (
@@ -500,19 +500,19 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {org.partnership_theory_of_change && (
                 <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Approach to change</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Approach to change</p>
                   <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_theory_of_change}</p>
                 </div>
               )}
               {org.partnership_prior_attempts && (
                 <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Previous attempts</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Previous attempts</p>
                   <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_prior_attempts}</p>
                 </div>
               )}
               {org.partnership_constraints && (
                 <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Constraints</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Constraints</p>
                   <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_constraints}</p>
                 </div>
               )}
@@ -572,7 +572,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                 {openingMsg && !msgEditing && (
                   <div className="rounded-xl p-4 space-y-2 bg-muted border border-border">
                     <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">AI-drafted opening message</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">AI-drafted opening message</p>
                       <button type="button" onClick={() => setMsgEditing(true)}
                         className="text-[10px] font-semibold text-muted-foreground hover:text-foreground underline underline-offset-2">
                         Edit
@@ -584,7 +584,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                 {msgEditing && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Edit opening message</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Edit opening message</p>
                       <button type="button" onClick={() => setMsgEditing(false)}
                         className="text-[10px] font-semibold text-muted-foreground hover:text-foreground underline underline-offset-2">
                         Done
@@ -625,7 +625,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         {backLabel && (
           <div className="flex justify-between mb-4">
             <button type="button" onClick={onBack}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-[#C45C26] transition-colors">
               <ArrowLeft className="w-3.5 h-3.5" /> {backLabel}
             </button>
           </div>
@@ -660,7 +660,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
               </span>
             )}
           </div>
-          <p className="text-sm text-muted-foreground capitalize">
+          <p className="text-sm text-black dark:text-white capitalize">
               {orgTypeLabel(org.organisation_type)}
               {countries.length > 0 && ` · ${countries.join(", ")}`}
             </p>
@@ -706,7 +706,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
             )}
             {org.partnership_success_definition && (
               <div className="rounded-xl px-5 py-4 bg-muted border border-border border-l-[3px] border-l-[#2D6A4F]">
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Success in 12 months</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white mb-2">Success in 12 months</p>
                 <p className="text-sm text-foreground leading-relaxed italic">"{org.partnership_success_definition}"</p>
               </div>
             )}          </div>
@@ -737,7 +737,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
             </div>
 
             {fitLoading && (
-              <p className="text-xs text-muted-foreground">Analysing compatibility with your organisation profile...</p>
+              <p className="text-xs text-black dark:text-white">Analysing compatibility with your organisation profile...</p>
             )}
 
             {fit && !fitLoading && (
@@ -806,7 +806,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                 org.partnership_physically_present !== null && org.partnership_physically_present !== undefined && { label: "Physical presence", value: org.partnership_physically_present ? "On the ground" : "Remote" },
               ].filter(Boolean).map((row: any) => (
                 <div key={row.label} className="flex items-start justify-between gap-6 py-2.5 border-b border-border">
-                  <span className="text-xs text-muted-foreground shrink-0">{row.label}</span>
+                  <span className="text-xs text-black dark:text-white shrink-0">{row.label}</span>
                   <span className="text-xs font-semibold text-foreground text-right capitalize">{row.value}</span>
                 </div>
               ))}
@@ -849,7 +849,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
             <div className="h-full rounded-full transition-all" style={{ width: `${(score / 5) * 100}%`, background: score > 2 ? "#2D6A4F" : "#C45C26" }} />
           </div>
           {score === 0 ? (
-            <p className="text-xs text-muted-foreground">No documents confirmed ready yet.</p>
+            <p className="text-xs text-black dark:text-white">No documents confirmed ready yet.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {ddDocs.filter(({ key }) => org[key as keyof OrgRow] as boolean).map(({ label }) => (
@@ -883,19 +883,19 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
             <div className="grid grid-cols-3 gap-3">
               {org.partnership_theory_of_change && (
                 <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Approach to change</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Approach to change</p>
                   <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_theory_of_change}</p>
                 </div>
               )}
               {org.partnership_prior_attempts && (
                 <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Previous attempts</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Previous attempts</p>
                   <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_prior_attempts}</p>
                 </div>
               )}
               {org.partnership_constraints && (
                 <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Constraints</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Constraints</p>
                   <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_constraints}</p>
                 </div>
               )}
@@ -959,7 +959,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                 {openingMsg && !msgEditing && (
                   <div className="rounded-xl p-4 space-y-2 bg-muted border border-border">
                     <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">AI-drafted opening message</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">AI-drafted opening message</p>
                       <button type="button" onClick={() => setMsgEditing(true)}
                         className="text-[10px] font-semibold text-muted-foreground hover:text-foreground underline underline-offset-2">
                         Edit
@@ -970,7 +970,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                 {msgEditing && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Edit opening message</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Edit opening message</p>
                       <button type="button" onClick={() => setMsgEditing(false)}
                         className="text-[10px] font-semibold text-muted-foreground hover:text-foreground underline underline-offset-2">
                         Done
