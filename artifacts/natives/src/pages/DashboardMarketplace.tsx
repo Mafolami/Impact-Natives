@@ -196,11 +196,12 @@ function ShareButton({ initiativeId, title, size = "sm" }: { initiativeId: strin
   }`;
   const triggerIcon = copied ? <Check className={iconDim} /> : <Share2 className={iconDim} />;
 
-  // On devices with a native share sheet (mobile), skip the popover and go
-  // straight there -- it already offers the OS's own app list. The popover
-  // with named platform buttons is for desktop, where there's no native
-  // equivalent.
-  if ("share" in navigator && /Mobi|Android/i.test(navigator.userAgent)) {
+  // Use the OS's native share sheet wherever it's available -- mobile and
+  // any desktop browser that supports it (e.g. Edge, some macOS Chrome/Safari
+  // configs). It already lists every app the user has installed. The custom
+  // popover below is only the fallback for browsers with no navigator.share
+  // at all.
+  if ("share" in navigator) {
     return (
       <button type="button" onClick={handleNativeShare} title={copied ? "Link copied" : "Share"} className={triggerButtonClass}>
         {triggerIcon}
@@ -215,28 +216,25 @@ function ShareButton({ initiativeId, title, size = "sm" }: { initiativeId: strin
           {triggerIcon}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-48 p-1.5" onClick={e => e.stopPropagation()}>
-        <button type="button" onClick={e => openShareIntent(e, whatsappHref)}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-foreground hover:bg-muted transition-colors">
-          <FaWhatsapp className="w-4 h-4 shrink-0 text-[#25D366]" />
-          WhatsApp
-        </button>
-        <button type="button" onClick={e => openShareIntent(e, xHref)}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-foreground hover:bg-muted transition-colors">
-          <FaXTwitter className="w-4 h-4 shrink-0" />
-          X
-        </button>
-        <button type="button" onClick={e => openShareIntent(e, linkedinHref)}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-foreground hover:bg-muted transition-colors">
-          <FaLinkedin className="w-4 h-4 shrink-0 text-[#0A66C2]" />
-          LinkedIn
-        </button>
-        <div className="h-px bg-border my-1" />
-        <button type="button" onClick={handleCopy}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-foreground hover:bg-muted transition-colors">
-          {copied ? <Check className="w-4 h-4 shrink-0 text-[#2D6A4F]" /> : <Share2 className="w-4 h-4 shrink-0" />}
-          {copied ? "Copied" : "Copy link"}
-        </button>
+      <PopoverContent align="end" className="w-auto p-1.5" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-center gap-2 p-1">
+          <button type="button" onClick={e => openShareIntent(e, whatsappHref)} title="Share to WhatsApp"
+            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
+            <FaWhatsapp className="w-4 h-4 shrink-0 text-[#25D366]" />
+          </button>
+          <button type="button" onClick={e => openShareIntent(e, xHref)} title="Share to X"
+            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
+            <FaXTwitter className="w-4 h-4 shrink-0" />
+          </button>
+          <button type="button" onClick={e => openShareIntent(e, linkedinHref)} title="Share to LinkedIn"
+            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
+            <FaLinkedin className="w-4 h-4 shrink-0 text-[#0A66C2]" />
+          </button>
+          <button type="button" onClick={handleCopy} title={copied ? "Copied" : "Copy link"}
+            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
+            {copied ? <Check className="w-4 h-4 shrink-0 text-[#2D6A4F]" /> : <Share2 className="w-4 h-4 shrink-0" />}
+          </button>
+        </div>
       </PopoverContent>
     </Popover>
   );
@@ -490,13 +488,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
       className="w-full text-left rounded-2xl border border-border bg-white dark:bg-card hover:border-[#452A1D]/50 dark:hover:border-[#C45C26] hover:shadow-md transition-all duration-200 group p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
       {/* Left half — identity */}
       <div className="min-w-0 flex flex-col">
-        <div className="flex items-center gap-1.5 flex-wrap mb-3">
-          {ini.submitter_is_verified && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full"
-              style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
-              <VerifiedBadge />
-            </span>
-          )}
+      <div className="flex items-center gap-1.5 flex-wrap mb-3">
           {ini.status === "closed" && (
             <span className="text-[11px] font-medium text-black dark:text-white bg-muted px-2.5 py-0.5 rounded-full">
               Partnership formed
@@ -509,7 +501,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
           )}
         </div>
 
-        <h3 className="text-xl font-bold text-foreground group-hover:text-[#2D6A4F] transition-colors leading-snug">
+        <h3 className="text-xl font-bold text-foreground group-hover:text-[#2D6A4F] dark:group-hover:text-[#C45C26] transition-colors leading-snug">
           {ini.title}
         </h3>
         {(ini.submitter_org || ini.submitter_name) && (
@@ -520,9 +512,10 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
                 : `/dashboard/natives?tab=individual&user=${ini.user_id}`
             }
             onClick={e => e.stopPropagation()}
-            className="flex items-center gap-1.5 text-sm font-bold text-black dark:text-white mt-1.5 hover:text-[#2D6A4F] hover:underline underline-offset-2 transition-colors">
+            className="flex items-center gap-1.5 text-sm font-bold text-black dark:text-white mt-1.5 hover:underline underline-offset-2 transition-colors">
             <Building2 className="w-3.5 h-3.5 shrink-0" />
             {ini.submitter_user_type === "organisation" ? ini.submitter_org : ini.submitter_name}
+            {ini.submitter_is_verified && <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-[#2D6A4F]" />}
           </a>
         )}
 
@@ -559,12 +552,16 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
                   +{ini.sectors.length - 2}
                 </span>
               )}
-              {ini.esg_alignment && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full"
-                  style={{ background: "rgba(46,125,50,0.12)", color: "#2e7d32" }}>
-                  <Leaf className="w-2.5 h-2.5" />ESG/CSR
-                </span>
-              )}
+            </div>
+          )}
+
+          {ini.esg_alignment && (
+            <div className="flex items-center gap-2">
+              <Leaf className="w-3.5 h-3.5 shrink-0 text-[#2e7d32]" />
+              <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full"
+                style={{ background: "rgba(46,125,50,0.12)", color: "#2e7d32" }}>
+                ESG/CSR
+              </span>
             </div>
           )}
 
