@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { supabase } from "@/lib/supabase";
-import { Loader2, CheckCircle2, X, SlidersHorizontal, Search, Leaf, Zap, MessageSquare, ShieldCheck, Bookmark, ThumbsDown, RotateCcw, AlertTriangle, Share2, Check, Building2, Wallet, Handshake } from "lucide-react";
+import { Loader2, CheckCircle2, X, SlidersHorizontal, Search, Leaf, Zap, MessageSquare, ShieldCheck, Bookmark, ThumbsDown, RotateCcw, AlertTriangle, Share2, Check, Building2, Wallet, Handshake, FileCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { FileText, Sparkles } from "lucide-react";
 import { useLocation } from "wouter";
@@ -28,6 +28,7 @@ interface InitiativeRow {
   esg_alignment?: boolean | null;
   // new fields
   submitter_is_verified?: boolean;
+  submitter_dd_score?: number | null;
   submitter_org_type?: string | null;
   submitter_name?: string | null;
   submitter_user_type?: string | null;
@@ -574,6 +575,13 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
             </div>
           )}
 
+          {ini.submitter_dd_score != null && (
+            <div className="flex items-center gap-2 text-sm text-black dark:text-white">
+              <FileCheck className="w-3.5 h-3.5 shrink-0" />
+              DD Readiness: {ini.submitter_dd_score}%
+            </div>
+          )}
+
           {partnershipLabels.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap">
               <Handshake className="w-3.5 h-3.5 shrink-0 text-black dark:text-white" />
@@ -732,12 +740,22 @@ export default function DashboardMarketplace() {
        const orgTypeMap   = new Map((profiles ?? []).map((p: any) => [p.id, p.org_type ?? p.user_type]));        const nameMap      = new Map((profiles ?? []).map((p: any) => [p.id, p.full_name]));
         const userTypeMap  = new Map((profiles ?? []).map((p: any) => [p.id, p.user_type]));
 
+        const { data: ddOrgs } = await supabase
+          .from("organizations")
+          .select("user_id,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration")
+          .in("user_id", userIds);
+        const ddScoreMap = new Map((ddOrgs ?? []).map((o: any) => {
+          const items = [o.dd_financial_model, o.dd_audited_accounts, o.dd_governance_doc, o.dd_esg_assessment, o.dd_impact_framework, o.dd_environmental_policy, o.dd_safeguarding_policy, o.dd_legal_registration, o.dd_legal_compliance_declaration];
+          return [o.user_id, Math.round((items.filter(Boolean).length / items.length) * 100)];
+        }));
+
         const enriched = (data as any[]).map(ini => ({
           ...ini,
           submitter_is_verified: verifiedMap.get(ini.user_id) ?? false,
           submitter_org_type:    orgTypeMap.get(ini.user_id) ?? null,
           submitter_name:        nameMap.get(ini.user_id) ?? null,
           submitter_user_type:   userTypeMap.get(ini.user_id) ?? null,
+          submitter_dd_score:    ddScoreMap.get(ini.user_id) ?? null,
         }));
 
         setInitiatives(enriched as InitiativeRow[]);

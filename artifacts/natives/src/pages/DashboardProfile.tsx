@@ -408,11 +408,12 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
   }
 
   function isQuestionMissing(q: typeof item.questions[number]): boolean {
+    if (q.showIf && answers[q.showIf.key] !== q.showIf.equals) return false;
     if (q.required === false) return false;
     const val = answers[q.key];
     if (q.type === "yesno") {
       if (val !== true && val !== false) return true;
-      if (q.followUpIfYes && val === true && !answers[q.followUpIfYes.key]) return true;
+      if (q.followUpIfYes && q.followUpIfYes.required !== false && val === true && !answers[q.followUpIfYes.key]) return true;
       return false;
     }
     if (!val) return true;
@@ -435,6 +436,7 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
           <p className="text-sm text-black dark:text-white mt-0.5">{item.sub}</p>
         </div>
         {item.questions.map(q => {
+          if (q.showIf && answers[q.showIf.key] !== q.showIf.equals) return null;
           const missing = attemptedInvalidSave && isQuestionMissing(q);
           const flagClass = missing ? "border-red-400" : "border-border";
           return (
@@ -486,7 +488,7 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
                   <input value={answers[q.followUpIfYes.key] ?? ""} onChange={e => setAnswer(q.followUpIfYes!.key, e.target.value)}
                     placeholder={q.followUpIfYes.label}
                     className={`w-full h-9 px-3 mt-2 rounded-lg border bg-background text-sm text-foreground ${
-                      attemptedInvalidSave && !answers[q.followUpIfYes.key] ? "border-red-400" : "border-border"
+                      attemptedInvalidSave && q.followUpIfYes.required !== false && !answers[q.followUpIfYes.key] ? "border-red-400" : "border-border"
                     }`} />
                 )}
               </>

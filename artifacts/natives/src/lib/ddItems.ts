@@ -7,10 +7,10 @@
 import { COUNTRIES } from "@/lib/countries";
 
 export type DDQuestion =
-  | { key: string; label: string; type: "text"; required?: boolean }
-  | { key: string; label: string; type: "date"; required?: boolean }
-  | { key: string; label: string; type: "select"; options: string[]; required?: boolean }
-  | { key: string; label: string; type: "yesno"; required?: boolean; followUpIfYes?: { key: string; label: string } };
+  | { key: string; label: string; type: "text"; required?: boolean; showIf?: { key: string; equals: boolean } }
+  | { key: string; label: string; type: "date"; required?: boolean; showIf?: { key: string; equals: boolean } }
+  | { key: string; label: string; type: "select"; options: string[]; required?: boolean; showIf?: { key: string; equals: boolean } }
+  | { key: string; label: string; type: "yesno"; required?: boolean; showIf?: { key: string; equals: boolean }; followUpIfYes?: { key: string; label: string; required?: boolean } };
 
 export interface DDItemDef {
   key: string;
@@ -104,7 +104,7 @@ export const DD_ITEMS: DDItemDef[] = [
       sub: "Energy, travel, and waste practices for fieldwork and operations",
       questions: [
         { key: "hasWrittenPolicy", label: "Written environmental policy in place?", type: "yesno" },
-        { key: "areasCovered", label: "Areas covered", type: "select", options: ["Field travel / transport", "Office energy use", "Waste / paper reduction", "Multiple areas", "Other"] },
+        { key: "areasCovered", label: "Areas covered", type: "select", options: ["Field travel / transport", "Office energy use", "Waste / paper reduction", "Multiple areas", "Other"], showIf: { key: "hasWrittenPolicy", equals: true } },
         { key: "notes", label: "Anything else worth noting?", type: "text", required: false },
       ],
     },
