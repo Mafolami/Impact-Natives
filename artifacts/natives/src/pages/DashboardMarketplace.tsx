@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { supabase } from "@/lib/supabase";
-import { Loader2, CheckCircle2, X, SlidersHorizontal, Search, Leaf, Zap, MessageSquare, ShieldCheck, Bookmark, ThumbsDown, RotateCcw, AlertTriangle } from "lucide-react";
+import { Loader2, CheckCircle2, X, SlidersHorizontal, Search, Leaf, Zap, MessageSquare, ShieldCheck, Bookmark, ThumbsDown, RotateCcw, AlertTriangle, Share2, Check } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { FileText, Sparkles } from "lucide-react";
 import { useLocation } from "wouter";
@@ -145,6 +145,39 @@ function budgetMatches(budget: string | null | undefined, filter: string): boole
 // header. Save writes to saved_initiatives (the same table backing the "Saved"
 // filter toggle), Pass writes to funder_decisions. Independent tables, so the
 // two actions can never silently overwrite each other.
+// Native share sheet where supported (mobile), clipboard-copy fallback
+// elsewhere (desktop). Matches DecisionIcons' sizing props so it drops
+// into the same icon row.
+function ShareButton({ initiativeId, title, size = "sm" }: { initiativeId: string; title: string; size?: "sm" | "md" }) {
+  const [copied, setCopied] = useState(false);
+  const dim = size === "md" ? "h-9 w-9" : "h-8 w-8";
+  const iconDim = size === "md" ? "w-4 h-4" : "w-3.5 h-3.5";
+
+  async function handleShare(e: React.MouseEvent) {
+    e.stopPropagation();
+    const url = `${window.location.origin}/dashboard/marketplace/${initiativeId}`;
+    if (navigator.share) {
+      try { await navigator.share({ title, url }); } catch { /* user cancelled */ }
+      return;
+    }
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  }
+
+  return (
+    <button type="button" onClick={handleShare}
+      title={copied ? "Link copied" : "Share"}
+      className={`${dim} rounded-full flex items-center justify-center border transition-colors ${
+        copied
+          ? "border-[#2D6A4F]/30 bg-[rgba(45,106,79,0.12)] text-[#2D6A4F]"
+          : "border-border text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] hover:bg-[#2D6A4F]/5"
+      }`}>
+      {copied ? <Check className={iconDim} /> : <Share2 className={iconDim} />}
+    </button>
+  );
+}
+
 function DecisionIcons({
   saved, passed, passReason, onToggleSave, onConfirmPass, onUndoPass, size = "sm",
 }: {
@@ -386,10 +419,10 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
 }) {
   return (
     <button type="button" onClick={onClick}
-      className="w-full text-left rounded-2xl border border-border bg-card hover:border-[#452A1D]/50 hover:shadow-md transition-all duration-200 group p-6 flex flex-col gap-4">
-      {/* Top row */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex flex-wrap gap-1.5">
+      className="w-full text-left rounded-2xl border border-border bg-card hover:border-[#452A1D]/50 hover:shadow-md transition-all duration-200 group p-6 grid grid-cols-1 sm:grid-cols-[minmax(0,260px)_minmax(0,1fr)] gap-6">
+      {/* Left column — identity */}
+      <div className="min-w-0">
+        <div className="flex flex-wrap gap-1.5 mb-3">
           {ini.sectors?.slice(0, 2).map(s => (
             <span key={s} className="text-[11px] font-medium px-2.5 py-0.5 rounded-full"
               style={{ background: "rgba(196,92,38,0.12)", color: "#C45C26" }}>
@@ -408,36 +441,8 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <DecisionIcons
-            saved={saved} passed={passed} passReason={passReason}
-            onToggleSave={() => onToggleSave(ini.id, saved)}
-            onConfirmPass={(reason) => onConfirmPass(ini.id, reason)}
-            onUndoPass={() => onUndoPass(ini.id)}
-            size="sm"
-          />
-          {ini.submitter_is_verified && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full"
-              style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
-              <VerifiedBadge />
-            </span>
-          )}
-          {ini.status === "closed" && (
-            <span className="text-[11px] font-medium text-black dark:text-white bg-muted px-2.5 py-0.5 rounded-full">
-              Partnership formed
-            </span>
-          )}
-          {expressed && ini.status !== "closed" && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#2D6A4F] bg-[rgba(45,106,79,0.12)] px-2.5 py-0.5 rounded-full">
-              <CheckCircle2 className="w-3 h-3" />Expressed
-            </span>
-          )}
-        </div>
-      </div>
 
-      {/* Title */}
-      <div>
-        <h3 className="font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors leading-snug">
+        <h3 className="text-xl font-bold text-foreground group-hover:text-[#2D6A4F] transition-colors leading-snug">
           {ini.title}
         </h3>
         {(ini.submitter_org || ini.submitter_name) && (
@@ -448,23 +453,15 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
                 : `/dashboard/natives?tab=individual&user=${ini.user_id}`
             }
             onClick={e => e.stopPropagation()}
-            className="text-xs text-black dark:text-white mt-0.5 hover:text-[#2D6A4F] hover:underline underline-offset-2 transition-colors inline-block">            
+            className="text-sm font-bold text-black dark:text-white mt-1 hover:text-[#2D6A4F] hover:underline underline-offset-2 transition-colors inline-block">
             {ini.submitter_user_type === "organisation" ? ini.submitter_org : ini.submitter_name}
           </a>
         )}
-      </div>
 
-      {ini.problem && (
-        <p className="text-[13px] text-foreground leading-relaxed line-clamp-2">{ini.problem}</p>
-      )}
-
-      {/* Footer — pt-3 instead of pt-1 so it reads as its own zone rather
-          than crowding straight into the description above it */}
-      <div className="flex items-center justify-between mt-auto pt-3 border-t border-border">
-        <div className="flex items-center gap-3 text-xs text-black dark:text-white">
+        <div className="flex flex-col gap-1.5 mt-4 text-sm text-black dark:text-white">
           {ini.locations?.[0] && (
-            <span className="flex items-center gap-1">
-              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <span className="flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 22s-8-4.5-8-11.8A8 8 0 0112 2a8 8 0 018 8.2c0 7.3-8 11.8-8 11.8z"/>
                 <circle cx="12" cy="10" r="3"/>
               </svg>
@@ -473,25 +470,66 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
           )}
           {ini.budget && <span>{ini.budget}</span>}
         </div>
-        <span className="text-xs text-black dark:text-white font-medium">
-          {ini.eois} EOI{ini.eois !== 1 ? "s" : ""}
-        </span>
       </div>
 
-      {ini.partnerships && ini.partnerships.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 pt-1">
-          {ini.partnerships.slice(0, 3).map(p => (
-            <span key={p} className="text-[11px] px-2 py-0.5 rounded-full border border-border text-black dark:text-white capitalize">
-              {PARTNERSHIP_OPTIONS.find(o => o.value === p)?.label ?? p}
-            </span>
-          ))}
-          {(ini.partnerships?.length ?? 0) > 3 && (
-            <span className="text-[11px] px-2 py-0.5 rounded-full border border-border text-black dark:text-white">
-              +{(ini.partnerships?.length ?? 0) - 3} more
-            </span>
-          )}
+      {/* Right column — description, footer, decisions */}
+      <div className="min-w-0 flex flex-col sm:border-l sm:border-border sm:pl-6">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {ini.submitter_is_verified && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full"
+                style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
+                <VerifiedBadge />
+              </span>
+            )}
+            {ini.status === "closed" && (
+              <span className="text-[11px] font-medium text-black dark:text-white bg-muted px-2.5 py-0.5 rounded-full">
+                Partnership formed
+              </span>
+            )}
+            {expressed && ini.status !== "closed" && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#2D6A4F] bg-[rgba(45,106,79,0.12)] px-2.5 py-0.5 rounded-full">
+                <CheckCircle2 className="w-3 h-3" />Expressed
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <ShareButton initiativeId={ini.id} title={ini.title} size="sm" />
+            <DecisionIcons
+              saved={saved} passed={passed} passReason={passReason}
+              onToggleSave={() => onToggleSave(ini.id, saved)}
+              onConfirmPass={(reason) => onConfirmPass(ini.id, reason)}
+              onUndoPass={() => onUndoPass(ini.id)}
+              size="sm"
+            />
+          </div>
         </div>
-      )}
+
+        {ini.problem && (
+          <p className="text-sm text-foreground leading-relaxed">{ini.problem}</p>
+        )}
+
+        {ini.partnerships && ini.partnerships.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {ini.partnerships.slice(0, 3).map(p => (
+              <span key={p} className="text-[11px] px-2 py-0.5 rounded-full border border-border text-black dark:text-white capitalize">
+                {PARTNERSHIP_OPTIONS.find(o => o.value === p)?.label ?? p}
+              </span>
+            ))}
+            {(ini.partnerships?.length ?? 0) > 3 && (
+              <span className="text-[11px] px-2 py-0.5 rounded-full border border-border text-black dark:text-white">
+                +{(ini.partnerships?.length ?? 0) - 3} more
+              </span>
+            )}
+          </div>
+        )}
+
+        <div className="flex items-center justify-end mt-auto pt-3">
+          <span className="text-sm font-bold text-black dark:text-white">
+            {ini.eois} EOI{ini.eois !== 1 ? "s" : ""}
+          </span>
+        </div>
+      </div>
     </button>
   );
 }
@@ -822,7 +860,7 @@ export default function DashboardMarketplace() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {filtered.map(ini => (
             <InitiativeCard key={ini.id} ini={ini}
               saved={savedIds.has(ini.id)}
@@ -1458,8 +1496,9 @@ function MarketplaceDetail({
               </span>
             )}
           </div>
-          {!isOwnInitiative && (
-            <div className="bg-white/95 rounded-full p-1 shadow-sm shrink-0">
+          <div className="bg-white/95 rounded-full p-1 shadow-sm shrink-0 flex items-center gap-1">
+            <ShareButton initiativeId={initiative.id} title={initiative.title} size="md" />
+            {!isOwnInitiative && (
               <DecisionIcons
                 saved={saved} passed={passed} passReason={passReason}
                 onToggleSave={onToggleSave}
@@ -1467,8 +1506,8 @@ function MarketplaceDetail({
                 onUndoPass={onUndoPass}
                 size="md"
               />
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         <div>
