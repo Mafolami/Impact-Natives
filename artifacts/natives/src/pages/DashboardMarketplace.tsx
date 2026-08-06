@@ -164,11 +164,8 @@ function ShareButton({ initiativeId, title, size = "sm" }: { initiativeId: strin
 
   async function handleNativeShare(e: React.MouseEvent) {
     e.stopPropagation();
-    if ("share" in navigator) {
-      try { await navigator.share({ text: combined }); } catch { /* user cancelled */ }
-      return;
-    }
-    await handleCopy(e);
+    setOpen(false);
+    try { await navigator.share({ text: combined }); } catch { /* user cancelled */ }
   }
 
   async function handleCopy(e: React.MouseEvent) {
@@ -196,18 +193,7 @@ function ShareButton({ initiativeId, title, size = "sm" }: { initiativeId: strin
   }`;
   const triggerIcon = copied ? <Check className={iconDim} /> : <Share2 className={iconDim} />;
 
-  // Use the OS's native share sheet wherever it's available -- mobile and
-  // any desktop browser that supports it (e.g. Edge, some macOS Chrome/Safari
-  // configs). It already lists every app the user has installed. The custom
-  // popover below is only the fallback for browsers with no navigator.share
-  // at all.
-  if ("share" in navigator) {
-    return (
-      <button type="button" onClick={handleNativeShare} title={copied ? "Link copied" : "Share"} className={triggerButtonClass}>
-        {triggerIcon}
-      </button>
-    );
-  }
+  const hasNativeShare = "share" in navigator;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -230,6 +216,12 @@ function ShareButton({ initiativeId, title, size = "sm" }: { initiativeId: strin
             className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
             <FaLinkedin className="w-4 h-4 shrink-0 text-[#0A66C2]" />
           </button>
+          {hasNativeShare && (
+            <button type="button" onClick={handleNativeShare} title="More options"
+              className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
+              <Share2 className="w-4 h-4 shrink-0" />
+            </button>
+          )}
           <button type="button" onClick={handleCopy} title={copied ? "Copied" : "Copy link"}
             className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
             {copied ? <Check className="w-4 h-4 shrink-0 text-[#2D6A4F]" /> : <Share2 className="w-4 h-4 shrink-0" />}
