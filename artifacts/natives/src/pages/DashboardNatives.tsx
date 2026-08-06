@@ -981,6 +981,17 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
     setEsgReportLoading(false);
   }
 
+  function sanitizeForPdf(text: string | null | undefined): string {
+    if (!text) return "";
+    return text
+      .replace(/[\u2018\u2019\u201A\u201B]/g, "'")
+      .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
+      .replace(/[\u2010\u2011\u2012\u2013\u2014\u2015]/g, "-")
+      .replace(/\u2026/g, "...")
+      .replace(/[\u00A0\u2000-\u200B\u202F\u205F\u3000]/g, " ")
+      .replace(/[^\x00-\x7E]/g, "");
+  }
+
   function downloadEsgReportPdf() {
     if (!esgReport) return;
     const doc = new jsPDF({ unit: "pt", format: "a4", floatPrecision: 2 });
@@ -1037,10 +1048,11 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
     doc.text("ESG Snapshot", margin, y);
     y += 22;
 
+    const safeOrgName = sanitizeForPdf(org.organisation_name) || "Organisation";
     doc.setFont("helvetica", "normal");
     doc.setFontSize(12);
     doc.setTextColor(...BLACK);
-    doc.text(org.organisation_name ?? "Organisation", margin, y);
+    doc.text(safeOrgName, margin, y);
     y += 16;
 
     const generatedAt = new Date().toLocaleString("en-GB", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -1051,7 +1063,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
     y += 20;
 
     // Disclaimer block, boxed so it can't be visually skipped
-    const disclaimerText = `This snapshot summarises what ${org.organisation_name ?? "this organisation"} has disclosed on Impact Natives. It is not an independent audit or third-party verification. DD Readiness ${esgReport.dd_readiness_score}% complete. ${esgReport.delivery_has_data ? `Delivery: ${esgReport.delivery_rate}% of tracked relationships completed.` : "No completed delivery outcomes tracked yet."} Figures reflect this organisation's profile as of the generation date above and may change.`;
+    const disclaimerText = sanitizeForPdf(`This snapshot summarises what ${safeOrgName} has disclosed on Impact Natives. It is not an independent audit or third-party verification. DD Readiness ${esgReport.dd_readiness_score}% complete. ${esgReport.delivery_has_data ? `Delivery: ${esgReport.delivery_rate}% of tracked relationships completed.` : "No completed delivery outcomes tracked yet."} Figures reflect this organisation's profile as of the generation date above and may change.`);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     const disclaimerLines = doc.splitTextToSize(disclaimerText, contentWidth - 20);
@@ -1067,24 +1079,24 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
     y += disclaimerHeight + 22;
 
     writeSectionHeader("Environmental");
-    writeParagraph(esgReport.environmental || "Not provided.", { gap: 18 });
+    writeParagraph(sanitizeForPdf(esgReport.environmental) || "Not provided.", { gap: 18 });
 
     writeSectionHeader("Social");
-    writeParagraph(esgReport.social || "Not provided.", { gap: 18 });
+    writeParagraph(sanitizeForPdf(esgReport.social) || "Not provided.", { gap: 18 });
 
     writeSectionHeader("Governance");
-    writeParagraph(esgReport.governance || "Not provided.", { gap: 18 });
+    writeParagraph(sanitizeForPdf(esgReport.governance) || "Not provided.", { gap: 18 });
 
     if (esgReport.data_gaps?.length > 0) {
       writeSectionHeader("Data gaps");
       esgReport.data_gaps.forEach((gap: string) => {
-        writeParagraph(`•  ${gap}`, { gap: 4, size: 10 });
+        writeParagraph(`•  ${sanitizeForPdf(gap)}`, { gap: 4, size: 10 });
       });
       y += 10;
     }
 
     writeSectionHeader("Summary");
-    writeParagraph(esgReport.summary || "", { gap: 8 });
+    writeParagraph(sanitizeForPdf(esgReport.summary), { gap: 8 });
 
     // Footer disclaimer on every page
     const pageCount = doc.getNumberOfPages();
