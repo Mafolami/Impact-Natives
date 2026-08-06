@@ -184,7 +184,7 @@ function DraftCard({
                 style={{ background: "#f5ede8", color: "#C45C26" }}>{s}</span>
             ))}
             {initiative.locations?.[0] && (
-              <span className="text-[10px] text-muted-foreground">{initiative.locations[0]}</span>
+              <span className="text-[10px] text-black dark:text-white">{initiative.locations[0]}</span>
             )}
           </div>
         </div>
@@ -212,7 +212,7 @@ function DraftCard({
         <div className="px-5 pb-5 space-y-4 border-t border-border pt-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground block mb-1">
+              <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-black dark:text-white block mb-1">
                 Stage
               </label>
               <select
@@ -228,7 +228,7 @@ function DraftCard({
               </select>
             </div>
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground block mb-1">
+              <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-black dark:text-white block mb-1">
                 Budget
               </label>
               <input
@@ -242,7 +242,7 @@ function DraftCard({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground block mb-1">
+              <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-black dark:text-white block mb-1">
                 Target beneficiaries (optional)
               </label>
               <input
@@ -254,7 +254,7 @@ function DraftCard({
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground block mb-1">
+              <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-black dark:text-white block mb-1">
                 Duration (optional)
               </label>
               <select
@@ -289,7 +289,7 @@ function DraftCard({
           </div>
 
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground block mb-1">
+            <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-black dark:text-white block mb-1">
               Problem statement
             </label>
             <textarea
@@ -301,7 +301,7 @@ function DraftCard({
           </div>
 
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground block mb-1">
+            <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-black dark:text-white block mb-1">
               Expected outcome
             </label>
             <textarea
@@ -313,7 +313,7 @@ function DraftCard({
           </div>
 
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground block mb-1">
+            <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-black dark:text-white block mb-1">
               Specific ask
             </label>
             <textarea
@@ -326,7 +326,7 @@ function DraftCard({
           </div>
 
           <div>
-            <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground block mb-2">
+            <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-black dark:text-white block mb-2">
               Partnership types needed
             </label>
             <div className="flex flex-wrap gap-2">
@@ -344,7 +344,7 @@ function DraftCard({
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground block">
+            <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-black dark:text-white block">
               Full description (optional)
             </label>
             <button
@@ -436,7 +436,7 @@ export function DraftInitiativesPane({
   if (drafts.length === 0) return (
     <div className="rounded-2xl border border-dashed border-border p-12 text-center">
       <p className="text-foreground font-medium mb-2">No draft initiatives yet.</p>
-      <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+      <p className="text-sm text-black dark:text-white max-w-sm mx-auto">
         Generate a strategy or upload one, then push pillars here to review and publish.
       </p>
     </div>
@@ -444,7 +444,7 @@ export function DraftInitiativesPane({
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-black dark:text-white">
         {drafts.length} draft{drafts.length !== 1 ? "s" : ""} — review, edit, then publish to the marketplace.
       </p>
       {drafts.map(d => (

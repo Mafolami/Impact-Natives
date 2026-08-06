@@ -223,10 +223,10 @@ export function UploadStrategyPane({
     <div className="space-y-6">
       {!parsed && (
         <>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-black dark:text-white">
             Upload your existing sustainability or CSR strategy document. AI will extract the key initiatives and convert them into partner-ready listings.
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-black dark:text-white">
             For best results, upload a DOCX file. PDF extraction is limited to text-based PDFs only. Documents are truncated at 8,000 characters — long documents may lose content from later pages.
           </p>
 
@@ -249,8 +249,8 @@ export function UploadStrategyPane({
             {uploading ? (
               <div className="flex flex-col items-center gap-3">
                 <Loader2 className="w-8 h-8 text-[#2D6A4F] animate-spin" />
-                <p className="text-sm text-muted-foreground">Reading your document...</p>
-                <p className="text-xs text-muted-foreground">This takes 10–20 seconds</p>
+                <p className="text-sm text-black dark:text-white">Reading your document...</p>
+                <p className="text-xs text-black dark:text-white">This takes 10–20 seconds</p>
               </div>
             ) : fileName ? (
               <div className="flex flex-col items-center gap-2">
@@ -267,7 +267,7 @@ export function UploadStrategyPane({
                 <Upload className="w-8 h-8 text-muted-foreground/40" />
                 <div>
                   <p className="text-sm font-medium text-foreground">Drop your file here or click to browse</p>
-                  <p className="text-xs text-muted-foreground mt-1">PDF or DOCX · Up to 10MB</p>
+                  <p className="text-xs text-black dark:text-white mt-1">PDF or DOCX · Up to 10MB</p>
                 </div>
               </div>
             )}
@@ -294,25 +294,25 @@ export function UploadStrategyPane({
           <div className="rounded-xl border border-border bg-card p-5 space-y-3">
             {parsed.organisation_name && (
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Organisation</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-black dark:text-white">Organisation</p>
                 <p className="text-sm text-foreground mt-0.5">{parsed.organisation_name}</p>
               </div>
             )}
             {parsed.description && (
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">CSR focus</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-black dark:text-white">CSR focus</p>
                 <p className="text-sm text-foreground mt-0.5 leading-relaxed">{parsed.description}</p>
               </div>
             )}
             {parsed.csr_budget_range && (
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Budget range</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-black dark:text-white">Budget range</p>
                 <p className="text-sm text-foreground mt-0.5">{parsed.csr_budget_range}</p>
               </div>
             )}
             {parsed.esg_frameworks && parsed.esg_frameworks.length > 0 && (
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">ESG frameworks</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-black dark:text-white">ESG frameworks</p>
                 <div className="flex flex-wrap gap-1.5 mt-1">
                   {parsed.esg_frameworks.map(f => (
                     <span key={f} className="text-xs px-2.5 py-0.5 rounded-full"
@@ -323,7 +323,7 @@ export function UploadStrategyPane({
             )}
             {parsed.sdg_tags && parsed.sdg_tags.length > 0 && (
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">SDGs</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-black dark:text-white">SDGs</p>
                 <div className="flex flex-wrap gap-1.5 mt-1">
                   {parsed.sdg_tags.map(s => (
                     <span key={s} className="text-xs px-2.5 py-0.5 rounded-full"
@@ -378,7 +378,7 @@ export function UploadStrategyPane({
 
           {!executiveSummary && (
             <div className="rounded-xl border border-dashed border-[#2D6A4F]/30 p-5 text-center space-y-3">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-black dark:text-white">
                 Pillars confirmed. Generate your executive summary when ready.
               </p>
               {summaryError && <p className="text-xs text-red-600">{summaryError}</p>}
@@ -411,7 +411,7 @@ export function UploadStrategyPane({
               ] as { key: keyof ExecutiveSummary; label: string }[]).map(({ key, label }) =>
                 executiveSummary[key] ? (
                   <div key={key}>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground mb-1">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-black dark:text-white mb-1">
                       {label}
                     </p>
                     <p className="text-sm text-foreground leading-relaxed">
@@ -450,7 +450,7 @@ export function UploadStrategyPane({
                   </div>
                 )}
                 {pillar.compliance_note && (
-                  <p className="text-xs italic text-muted-foreground">{pillar.compliance_note}</p>
+                  <p className="text-xs italic text-black dark:text-white">{pillar.compliance_note}</p>
                 )}
               </dl>
 
