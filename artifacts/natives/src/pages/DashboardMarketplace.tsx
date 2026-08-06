@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { supabase } from "@/lib/supabase";
-import { Loader2, CheckCircle2, X, SlidersHorizontal, Search, Leaf, Zap, MessageSquare, ShieldCheck, Bookmark, ThumbsDown, RotateCcw, AlertTriangle, Share2, Check } from "lucide-react";
+import { Loader2, CheckCircle2, X, SlidersHorizontal, Search, Leaf, Zap, MessageSquare, ShieldCheck, Bookmark, ThumbsDown, RotateCcw, AlertTriangle, Share2, Check, Building2, Wallet, Handshake } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { FileText, Sparkles } from "lucide-react";
 import { useLocation } from "wouter";
@@ -156,11 +156,12 @@ function ShareButton({ initiativeId, title, size = "sm" }: { initiativeId: strin
   async function handleShare(e: React.MouseEvent) {
     e.stopPropagation();
     const url = `${window.location.origin}/dashboard/marketplace/${initiativeId}`;
+    const text = `Check out this initiative on Impact Natives: ${title}. Sign up to explore partnership opportunities like this one.`;
     if (navigator.share) {
-      try { await navigator.share({ title, url }); } catch { /* user cancelled */ }
+      try { await navigator.share({ title, text, url }); } catch { /* user cancelled */ }
       return;
     }
-    await navigator.clipboard.writeText(url);
+    await navigator.clipboard.writeText(`${text}\n${url}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 1800);
   }
@@ -171,7 +172,7 @@ function ShareButton({ initiativeId, title, size = "sm" }: { initiativeId: strin
       className={`${dim} rounded-full flex items-center justify-center border transition-colors ${
         copied
           ? "border-[#2D6A4F]/30 bg-[rgba(45,106,79,0.12)] text-[#2D6A4F]"
-          : "border-border text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] hover:bg-[#2D6A4F]/5"
+          : "border-border text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] hover:bg-[#2D6A4F]/5 dark:hover:border-[#C45C26] dark:hover:text-[#C45C26] dark:hover:bg-[#C45C26]/10"
       }`}>
       {copied ? <Check className={iconDim} /> : <Share2 className={iconDim} />}
     </button>
@@ -204,7 +205,7 @@ function DecisionIcons({
         className={`${dim} rounded-full flex items-center justify-center border transition-colors ${
           saved
             ? "border-[#2D6A4F]/30 bg-[rgba(45,106,79,0.12)] text-[#2D6A4F]"
-            : "border-border text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] hover:bg-[#2D6A4F]/5"
+            : "border-border text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] hover:bg-[#2D6A4F]/5 dark:hover:border-[#C45C26] dark:hover:text-[#C45C26] dark:hover:bg-[#C45C26]/10"
         }`}>
         <Bookmark className={iconDim} fill={saved ? "currentColor" : "none"} />
       </button>
@@ -348,7 +349,7 @@ function FilterPanel({
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5 space-y-5">
+    <div className="p-5 space-y-5">
       <div className="flex items-center justify-between">
         <p className="text-sm font-bold text-foreground">Filters</p>
         {activeCount > 0 && (
@@ -417,27 +418,30 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
   onConfirmPass: (id: string, reason: string) => void;
   onUndoPass: (id: string) => void;
 }) {
+  const partnershipLabels = (ini.partnerships ?? []).slice(0, 3)
+    .map(p => PARTNERSHIP_OPTIONS.find(o => o.value === p)?.label ?? p);
+  const extraPartnerships = (ini.partnerships?.length ?? 0) - 3;
+
   return (
     <button type="button" onClick={onClick}
-      className="w-full text-left rounded-2xl border border-border bg-card hover:border-[#452A1D]/50 hover:shadow-md transition-all duration-200 group p-6 grid grid-cols-1 sm:grid-cols-[minmax(0,260px)_minmax(0,1fr)] gap-6">
-      {/* Left column — identity */}
-      <div className="min-w-0">
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {ini.sectors?.slice(0, 2).map(s => (
-            <span key={s} className="text-[11px] font-medium px-2.5 py-0.5 rounded-full"
-              style={{ background: "rgba(196,92,38,0.12)", color: "#C45C26" }}>
-              {s}
-            </span>
-          ))}
-          {(ini.sectors?.length ?? 0) > 2 && (
-            <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-muted text-black dark:text-white">
-              +{(ini.sectors?.length ?? 0) - 2}
+      className="w-full text-left rounded-2xl border border-border bg-white dark:bg-card hover:border-[#452A1D]/50 dark:hover:border-[#C45C26] hover:shadow-md transition-all duration-200 group p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
+      {/* Left half — identity */}
+      <div className="min-w-0 flex flex-col">
+        <div className="flex items-center gap-1.5 flex-wrap mb-3">
+          {ini.submitter_is_verified && (
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full"
+              style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
+              <VerifiedBadge />
             </span>
           )}
-          {ini.esg_alignment && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full"
-              style={{ background: "rgba(46,125,50,0.12)", color: "#2e7d32" }}>
-              <Leaf className="w-2.5 h-2.5" />ESG/CSR
+          {ini.status === "closed" && (
+            <span className="text-[11px] font-medium text-black dark:text-white bg-muted px-2.5 py-0.5 rounded-full">
+              Partnership formed
+            </span>
+          )}
+          {expressed && ini.status !== "closed" && (
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#2D6A4F] bg-[rgba(45,106,79,0.12)] px-2.5 py-0.5 rounded-full">
+              <CheckCircle2 className="w-3 h-3" />Expressed
             </span>
           )}
         </div>
@@ -453,78 +457,89 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
                 : `/dashboard/natives?tab=individual&user=${ini.user_id}`
             }
             onClick={e => e.stopPropagation()}
-            className="text-sm font-bold text-black dark:text-white mt-1 hover:text-[#2D6A4F] hover:underline underline-offset-2 transition-colors inline-block">
+            className="flex items-center gap-1.5 text-sm font-bold text-black dark:text-white mt-1.5 hover:text-[#2D6A4F] hover:underline underline-offset-2 transition-colors">
+            <Building2 className="w-3.5 h-3.5 shrink-0" />
             {ini.submitter_user_type === "organisation" ? ini.submitter_org : ini.submitter_name}
           </a>
         )}
 
-        <div className="flex flex-col gap-1.5 mt-4 text-sm text-black dark:text-white">
+        <div className="flex items-center gap-1.5 shrink-0 mt-auto pt-4">
+          <ShareButton initiativeId={ini.id} title={ini.title} size="sm" />
+          <DecisionIcons
+            saved={saved} passed={passed} passReason={passReason}
+            onToggleSave={() => onToggleSave(ini.id, saved)}
+            onConfirmPass={(reason) => onConfirmPass(ini.id, reason)}
+            onUndoPass={() => onUndoPass(ini.id)}
+            size="sm"
+          />
+        </div>
+      </div>
+
+      {/* Right half — description + all tags, each type on its own row */}
+      <div className="min-w-0 flex flex-col sm:border-l sm:border-border sm:pl-6">
+        {ini.problem && (
+          <p className="text-base text-foreground leading-relaxed">{ini.problem}</p>
+        )}
+
+        <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-border">
+          {ini.sectors && ini.sectors.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <Zap className="w-3.5 h-3.5 shrink-0 text-[#C45C26]" />
+              {ini.sectors.slice(0, 2).map(s => (
+                <span key={s} className="text-[11px] font-medium px-2.5 py-0.5 rounded-full"
+                  style={{ background: "rgba(196,92,38,0.12)", color: "#C45C26" }}>
+                  {s}
+                </span>
+              ))}
+              {ini.sectors.length > 2 && (
+                <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-muted text-black dark:text-white">
+                  +{ini.sectors.length - 2}
+                </span>
+              )}
+              {ini.esg_alignment && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full"
+                  style={{ background: "rgba(46,125,50,0.12)", color: "#2e7d32" }}>
+                  <Leaf className="w-2.5 h-2.5" />ESG/CSR
+                </span>
+              )}
+            </div>
+          )}
+
           {ini.locations?.[0] && (
-            <span className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2 text-sm text-black dark:text-white">
               <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 22s-8-4.5-8-11.8A8 8 0 0112 2a8 8 0 018 8.2c0 7.3-8 11.8-8 11.8z"/>
                 <circle cx="12" cy="10" r="3"/>
               </svg>
               {ini.locations.slice(0, 2).join(", ")}
-            </span>
+            </div>
           )}
-          {ini.budget && <span>{ini.budget}</span>}
-        </div>
-      </div>
 
-      {/* Right column — description, footer, decisions */}
-      <div className="min-w-0 flex flex-col sm:border-l sm:border-border sm:pl-6">
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {ini.submitter_is_verified && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full"
-                style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
-                <VerifiedBadge />
-              </span>
-            )}
-            {ini.status === "closed" && (
-              <span className="text-[11px] font-medium text-black dark:text-white bg-muted px-2.5 py-0.5 rounded-full">
-                Partnership formed
-              </span>
-            )}
-            {expressed && ini.status !== "closed" && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#2D6A4F] bg-[rgba(45,106,79,0.12)] px-2.5 py-0.5 rounded-full">
-                <CheckCircle2 className="w-3 h-3" />Expressed
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <ShareButton initiativeId={ini.id} title={ini.title} size="sm" />
-            <DecisionIcons
-              saved={saved} passed={passed} passReason={passReason}
-              onToggleSave={() => onToggleSave(ini.id, saved)}
-              onConfirmPass={(reason) => onConfirmPass(ini.id, reason)}
-              onUndoPass={() => onUndoPass(ini.id)}
-              size="sm"
-            />
-          </div>
+          {ini.budget && (
+            <div className="flex items-center gap-2 text-sm text-black dark:text-white">
+              <Wallet className="w-3.5 h-3.5 shrink-0" />
+              {ini.budget}
+            </div>
+          )}
+
+          {partnershipLabels.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <Handshake className="w-3.5 h-3.5 shrink-0 text-black dark:text-white" />
+              {partnershipLabels.map(label => (
+                <span key={label} className="text-[11px] px-2 py-0.5 rounded-full border border-border text-black dark:text-white capitalize">
+                  {label}
+                </span>
+              ))}
+              {extraPartnerships > 0 && (
+                <span className="text-[11px] px-2 py-0.5 rounded-full border border-border text-black dark:text-white">
+                  +{extraPartnerships} more
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
-        {ini.problem && (
-          <p className="text-sm text-foreground leading-relaxed">{ini.problem}</p>
-        )}
-
-        {ini.partnerships && ini.partnerships.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-3">
-            {ini.partnerships.slice(0, 3).map(p => (
-              <span key={p} className="text-[11px] px-2 py-0.5 rounded-full border border-border text-black dark:text-white capitalize">
-                {PARTNERSHIP_OPTIONS.find(o => o.value === p)?.label ?? p}
-              </span>
-            ))}
-            {(ini.partnerships?.length ?? 0) > 3 && (
-              <span className="text-[11px] px-2 py-0.5 rounded-full border border-border text-black dark:text-white">
-                +{(ini.partnerships?.length ?? 0) - 3} more
-              </span>
-            )}
-          </div>
-        )}
-
-        <div className="flex items-center justify-end mt-auto pt-3">
+        <div className="flex items-center justify-end mt-auto pt-4">
           <span className="text-sm font-bold text-black dark:text-white">
             {ini.eois} EOI{ini.eois !== 1 ? "s" : ""}
           </span>
@@ -762,20 +777,34 @@ export default function DashboardMarketplace() {
             </button>
           )}
         </div>
-        <button type="button" onClick={() => setShowFilters(v => !v)}
-          className={`h-10 px-4 rounded-lg border text-sm flex items-center gap-2 transition-colors shrink-0 ${
-            showFilters || activeFilterCount > 0
-              ? "border-[#2D6A4F] text-[#2D6A4F] bg-[rgba(45,106,79,0.12)]"
-              : "border-border text-muted-foreground hover:border-foreground/30"
-          }`}>
-          <SlidersHorizontal className="w-4 h-4" />
-          Filters
-          {activeFilterCount > 0 && (
-            <span className="w-4 h-4 rounded-full bg-[#2D6A4F] text-white text-[10px] flex items-center justify-center font-bold">
-              {activeFilterCount}
-            </span>
-          )}
-        </button>
+        <Popover open={showFilters} onOpenChange={setShowFilters}>
+          <PopoverTrigger asChild>
+            <button type="button"
+              className={`h-10 px-4 rounded-lg border text-sm flex items-center gap-2 transition-colors shrink-0 ${
+                showFilters || activeFilterCount > 0
+                  ? "border-[#2D6A4F] text-[#2D6A4F] bg-[rgba(45,106,79,0.12)]"
+                  : "border-border text-muted-foreground hover:border-foreground/30"
+              }`}>
+              <SlidersHorizontal className="w-4 h-4" />
+              Filters
+              {activeFilterCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-[#2D6A4F] text-white text-[10px] flex items-center justify-center font-bold">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-80 p-0 max-h-[70vh] overflow-y-auto">
+            <FilterPanel
+              sectors={sectors} setSectors={setSectors}
+              locations={locations} setLocations={setLocations}
+              budgets={budgets} setBudgets={setBudgets}
+              partnerships={partnerships} setPartnerships={setPartnerships}
+              onClear={clearFilters} activeCount={activeFilterCount}
+              sectorOptions={dynamicSectors} locationOptions={dynamicLocations}
+            />
+          </PopoverContent>
+        </Popover>
         <button type="button" onClick={() => setShowSaved(v => !v)}
           className={`h-10 px-4 rounded-lg border text-sm flex items-center gap-2 transition-colors shrink-0 ${
             showSaved
@@ -804,17 +833,6 @@ export default function DashboardMarketplace() {
           )}
         </button>
       </div>
-
-      {showFilters && (
-        <FilterPanel
-          sectors={sectors} setSectors={setSectors}
-          locations={locations} setLocations={setLocations}
-          budgets={budgets} setBudgets={setBudgets}
-          partnerships={partnerships} setPartnerships={setPartnerships}
-          onClear={clearFilters} activeCount={activeFilterCount}
-          sectorOptions={dynamicSectors} locationOptions={dynamicLocations}
-        />
-      )}
 
       {activeFilterCount > 0 && !showFilters && (
         <div className="flex flex-wrap gap-2 items-center">
