@@ -10,6 +10,7 @@ import { SECTOR_OPTIONS } from "@/lib/sectors";
 import { DD_ITEMS, DDItemDef, DD_SENSITIVE_EVIDENCE_KEYS, DDDocument, PILLAR_INFO } from "@/lib/ddItems";
 import { hasLiveRelationshipWith } from "@/lib/relationshipAccess";
 import mammoth from "mammoth";
+import { jsPDF } from "jspdf";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -980,6 +981,121 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
     setEsgReportLoading(false);
   }
 
+  function downloadEsgReportPdf() {
+    if (!esgReport) return;
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 48;
+    const contentWidth = pageWidth - margin * 2;
+    let y = margin;
+
+    const FOREST_GREEN: [number, number, number] = [45, 106, 79];
+    const TERRACOTTA: [number, number, number] = [196, 92, 38];
+    const BLACK: [number, number, number] = [17, 17, 17];
+    const GREY: [number, number, number] = [90, 90, 90];
+
+    function ensureSpace(neededHeight: number) {
+      if (y + neededHeight > pageHeight - margin) {
+        doc.addPage();
+        y = margin;
+      }
+    }
+
+    function writeParagraph(text: string, opts: { size?: number; color?: [number, number, number]; bold?: boolean; gap?: number; italic?: boolean } = {}) {
+      const size = opts.size ?? 10.5;
+      const color = opts.color ?? BLACK;
+      doc.setFont("helvetica", opts.bold ? "bold" : opts.italic ? "italic" : "normal");
+      doc.setFontSize(size);
+      doc.setTextColor(...color);
+      const lines = doc.splitTextToSize(text, contentWidth);
+      const lineHeight = size * 1.35;
+      ensureSpace(lines.length * lineHeight);
+      doc.text(lines, margin, y);
+      y += lines.length * lineHeight + (opts.gap ?? 8);
+    }
+
+    function writeSectionHeader(text: string) {
+      ensureSpace(24);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(...FOREST_GREEN);
+      doc.text(text.toUpperCase(), margin, y);
+      y += 6;
+      doc.setDrawColor(...FOREST_GREEN);
+      doc.setLineWidth(0.75);
+      doc.line(margin, y, margin + 36, y);
+      y += 14;
+    }
+
+    // Header
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(...FOREST_GREEN);
+    doc.text("ESG Snapshot", margin, y);
+    y += 22;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(12);
+    doc.setTextColor(...BLACK);
+    doc.text(org.organisation_name ?? "Organisation", margin, y);
+    y += 16;
+
+    const generatedAt = new Date().toLocaleString("en-GB", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(9);
+    doc.setTextColor(...GREY);
+    doc.text(`Generated on ${generatedAt} via Impact Natives`, margin, y);
+    y += 20;
+
+    // Disclaimer block, boxed so it can't be visually skipped
+    const disclaimerText = `This snapshot summarises what ${org.organisation_name ?? "this organisation"} has disclosed on Impact Natives. It is not an independent audit or third-party verification. DD Readiness ${esgReport.dd_readiness_score}% complete. ${esgReport.delivery_has_data ? `Delivery: ${esgReport.delivery_rate}% of tracked relationships completed.` : "No completed delivery outcomes tracked yet."} Figures reflect this organisation's profile as of the generation date above and may change.`;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    const disclaimerLines = doc.splitTextToSize(disclaimerText, contentWidth - 20);
+    const disclaimerHeight = disclaimerLines.length * 12.5 + 16;
+    ensureSpace(disclaimerHeight);
+    doc.setFillColor(245, 240, 232);
+    doc.roundedRect(margin, y, contentWidth, disclaimerHeight, 4, 4, "F");
+    doc.setTextColor(...GREY);
+    doc.text(disclaimerLines, margin + 10, y + 16);
+    y += disclaimerHeight + 22;
+
+    writeSectionHeader("Environmental");
+    writeParagraph(esgReport.environmental || "Not provided.", { gap: 18 });
+
+    writeSectionHeader("Social");
+    writeParagraph(esgReport.social || "Not provided.", { gap: 18 });
+
+    writeSectionHeader("Governance");
+    writeParagraph(esgReport.governance || "Not provided.", { gap: 18 });
+
+    if (esgReport.data_gaps?.length > 0) {
+      writeSectionHeader("Data gaps");
+      esgReport.data_gaps.forEach((gap: string) => {
+        writeParagraph(`•  ${gap}`, { gap: 4, size: 10 });
+      });
+      y += 10;
+    }
+
+    writeSectionHeader("Summary");
+    writeParagraph(esgReport.summary || "", { gap: 8 });
+
+    // Footer disclaimer on every page
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(7.5);
+      doc.setTextColor(...GREY);
+      doc.text("Impact Natives — self-disclosed data, not an independent audit", margin, pageHeight - 24);
+      doc.text(`${i} / ${pageCount}`, pageWidth - margin - 24, pageHeight - 24);
+    }
+
+    const safeName = (org.organisation_name ?? "organisation").replace(/[^a-z0-9]+/gi, "_").toLowerCase();
+    doc.save(`esg-snapshot-${safeName}.pdf`);
+  }
+
   const ddItemsArr = [org.dd_financial_model, org.dd_audited_accounts, org.dd_governance_doc, org.dd_esg_assessment, org.dd_impact_framework, org.dd_environmental_policy, org.dd_safeguarding_policy, org.dd_legal_registration, org.dd_legal_compliance_declaration];
   const ddScore = Math.round((ddItemsArr.filter(Boolean).length / ddItemsArr.length) * 100);
   const ddStateMap: Record<string, boolean | undefined> = {
@@ -1424,10 +1540,16 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
               <div className="pt-3 border-t border-border">
                 <p className="text-sm text-black dark:text-white leading-relaxed">{esgReport.summary}</p>
               </div>
-              <button type="button" onClick={() => setEsgReport(null)}
-                className="w-full h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Close
-              </button>
+              <div className="flex gap-2">
+                <button type="button" onClick={downloadEsgReportPdf}
+                  className="flex-1 h-9 rounded-full bg-[#2D6A4F] text-white text-sm font-medium hover:opacity-90 transition-opacity">
+                  Download PDF
+                </button>
+                <button type="button" onClick={() => setEsgReport(null)}
+                  className="flex-1 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         )}
