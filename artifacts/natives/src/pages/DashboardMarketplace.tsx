@@ -8,6 +8,7 @@ import { FileText, Sparkles } from "lucide-react";
 import { useLocation } from "wouter";
 import CreateInitiativeModalDashboard from "./CreateInitiativeModalDashboard";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { FaWhatsapp, FaXTwitter, FaLinkedin } from "react-icons/fa6";
 
 interface InitiativeRow {
   id: string;
@@ -150,36 +151,94 @@ function budgetMatches(budget: string | null | undefined, filter: string): boole
 // into the same icon row.
 function ShareButton({ initiativeId, title, size = "sm" }: { initiativeId: string; title: string; size?: "sm" | "md" }) {
   const [copied, setCopied] = useState(false);
+  const [open, setOpen] = useState(false);
   const dim = size === "md" ? "h-9 w-9" : "h-8 w-8";
   const iconDim = size === "md" ? "w-4 h-4" : "w-3.5 h-3.5";
 
-  async function handleShare(e: React.MouseEvent) {
+  const url = `${window.location.origin}/dashboard/marketplace/${initiativeId}`;
+  const message = `Check out this initiative on Impact Natives: ${title}. Sign up to explore partnership opportunities like this one.`;
+  // Message and link kept as one combined string everywhere -- iOS's native
+  // share sheet silently drops a separate `text` field whenever `title` is
+  // also passed, so `title` is never sent to navigator.share at all.
+  const combined = `${message}\n${url}`;
+
+  async function handleNativeShare(e: React.MouseEvent) {
     e.stopPropagation();
-    const url = `${window.location.origin}/dashboard/marketplace/${initiativeId}`;
-    // iOS's native share sheet silently drops the `text` field whenever a
-    // separate `url` field is also present -- a long-standing platform bug
-    // (still open as of iOS 16). Folding the link into `text` itself is the
-    // documented workaround and works correctly on Android too.
-    const text = `Check out this initiative on Impact Natives: ${title}. Sign up to explore partnership opportunities like this one.\n${url}`;
-    if (navigator.share) {
-      try { await navigator.share({ title, text }); } catch { /* user cancelled */ }
+    if ("share" in navigator) {
+      try { await navigator.share({ text: combined }); } catch { /* user cancelled */ }
       return;
     }
-    await navigator.clipboard.writeText(text);
+    await handleCopy(e);
+  }
+
+  async function handleCopy(e: React.MouseEvent) {
+    e.stopPropagation();
+    await navigator.clipboard.writeText(combined);
     setCopied(true);
+    setOpen(false);
     setTimeout(() => setCopied(false), 1800);
   }
 
+  function openShareIntent(e: React.MouseEvent, href: string) {
+    e.stopPropagation();
+    window.open(href, "_blank", "noopener,noreferrer");
+    setOpen(false);
+  }
+
+  const whatsappHref = `https://wa.me/?text=${encodeURIComponent(combined)}`;
+  const xHref = `https://x.com/intent/tweet?text=${encodeURIComponent(message)}&url=${encodeURIComponent(url)}`;
+  const linkedinHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
+
+  const triggerButtonClass = `${dim} rounded-full flex items-center justify-center border transition-colors ${
+    copied
+      ? "border-[#2D6A4F]/30 bg-[rgba(45,106,79,0.12)] text-[#2D6A4F]"
+      : "border-border text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] hover:bg-[#2D6A4F]/5 dark:hover:border-[#C45C26] dark:hover:text-[#C45C26] dark:hover:bg-[#C45C26]/10"
+  }`;
+  const triggerIcon = copied ? <Check className={iconDim} /> : <Share2 className={iconDim} />;
+
+  // On devices with a native share sheet (mobile), skip the popover and go
+  // straight there -- it already offers the OS's own app list. The popover
+  // with named platform buttons is for desktop, where there's no native
+  // equivalent.
+  if ("share" in navigator && /Mobi|Android/i.test(navigator.userAgent)) {
+    return (
+      <button type="button" onClick={handleNativeShare} title={copied ? "Link copied" : "Share"} className={triggerButtonClass}>
+        {triggerIcon}
+      </button>
+    );
+  }
+
   return (
-    <button type="button" onClick={handleShare}
-      title={copied ? "Link copied" : "Share"}
-      className={`${dim} rounded-full flex items-center justify-center border transition-colors ${
-        copied
-          ? "border-[#2D6A4F]/30 bg-[rgba(45,106,79,0.12)] text-[#2D6A4F]"
-          : "border-border text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] hover:bg-[#2D6A4F]/5 dark:hover:border-[#C45C26] dark:hover:text-[#C45C26] dark:hover:bg-[#C45C26]/10"
-      }`}>
-      {copied ? <Check className={iconDim} /> : <Share2 className={iconDim} />}
-    </button>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" onClick={e => e.stopPropagation()} title={copied ? "Link copied" : "Share"} className={triggerButtonClass}>
+          {triggerIcon}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-48 p-1.5" onClick={e => e.stopPropagation()}>
+        <button type="button" onClick={e => openShareIntent(e, whatsappHref)}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-foreground hover:bg-muted transition-colors">
+          <FaWhatsapp className="w-4 h-4 shrink-0 text-[#25D366]" />
+          WhatsApp
+        </button>
+        <button type="button" onClick={e => openShareIntent(e, xHref)}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-foreground hover:bg-muted transition-colors">
+          <FaXTwitter className="w-4 h-4 shrink-0" />
+          X
+        </button>
+        <button type="button" onClick={e => openShareIntent(e, linkedinHref)}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-foreground hover:bg-muted transition-colors">
+          <FaLinkedin className="w-4 h-4 shrink-0 text-[#0A66C2]" />
+          LinkedIn
+        </button>
+        <div className="h-px bg-border my-1" />
+        <button type="button" onClick={handleCopy}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-foreground hover:bg-muted transition-colors">
+          {copied ? <Check className="w-4 h-4 shrink-0 text-[#2D6A4F]" /> : <Share2 className="w-4 h-4 shrink-0" />}
+          {copied ? "Copied" : "Copy link"}
+        </button>
+      </PopoverContent>
+    </Popover>
   );
 }
 
