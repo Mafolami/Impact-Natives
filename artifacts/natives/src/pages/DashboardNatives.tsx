@@ -741,10 +741,14 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, onClo
               : q.type === "date" && raw ? new Date(raw).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
               : raw;
             if (!display) return null;
+            const followUp = q.type === "yesno" && q.followUpIfYes && raw === true ? evidence[q.followUpIfYes.key] : null;
             return (
               <div key={q.key}>
                 <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">{q.label}</p>
                 <p className="text-sm text-foreground mt-0.5">{display}</p>
+                {followUp && (
+                  <p className="text-sm text-black dark:text-white mt-1 italic">{followUp}</p>
+                )}
               </div>
             );
           })}
