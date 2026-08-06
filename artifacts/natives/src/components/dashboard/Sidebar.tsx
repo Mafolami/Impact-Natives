@@ -27,13 +27,13 @@ const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
   {
     label: "Work",
     items: [
-      { label: "Marketplace", href: "/dashboard/marketplace", icon: Compass, corporateOnly: false },
-      { label: "Natives", href: "/dashboard/natives", icon: Globe, corporateOnly: false },
       { label: "Strategy", href: "/dashboard/strategy", icon: Sparkles, corporateOnly: true },
-      { label: "Portfolio", href: "/dashboard/portfolio", icon: Lightbulb, corporateOnly: false },
-      { label: "Labs", href: "/dashboard/labs", icon: FlaskConical, corporateOnly: false },
+      { label: "Marketplace", href: "/dashboard/marketplace", icon: Compass, corporateOnly: false },
       { label: "Partnerships", href: "/dashboard/partnerships", icon: Handshake, corporateOnly: false },
+      { label: "Portfolio", href: "/dashboard/portfolio", icon: Lightbulb, corporateOnly: false },
       { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, corporateOnly: false },
+      { label: "Labs", href: "/dashboard/labs", icon: FlaskConical, corporateOnly: false },
+      { label: "Natives", href: "/dashboard/natives", icon: Globe, corporateOnly: false },
     ],
   },
   {
