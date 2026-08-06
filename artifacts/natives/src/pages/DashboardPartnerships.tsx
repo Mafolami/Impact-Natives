@@ -110,6 +110,7 @@ export default function DashboardPartnerships() {
   }, []);
   const [selectedOrg, setSelectedOrg]         = useState<OrgRow | null>(null);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
+  const [deepLinkMissing, setDeepLinkMissing] = useState(false);
   const { viewerOrg, savedOrgs, sentInterests, sendingInterest, toggleSave, expressInterest } = useOrgActions(user?.id);
 
   useEffect(() => { if (user) loadAll(); }, [user]);
@@ -123,8 +124,15 @@ export default function DashboardPartnerships() {
     if (data) {
       setOrgs(data as OrgRow[]);
       const deepLinked = autoOpenOrgId ? (data as OrgRow[]).find(o => o.id === autoOpenOrgId) : null;
-      if (deepLinked) setSelectedOrg(deepLinked);
-      else if (data.length > 0) setSelectedOrg(data[0] as OrgRow);
+      if (deepLinked) {
+        setSelectedOrg(deepLinked);
+      } else if (autoOpenOrgId) {
+        // A specific org was requested via ?org= but isn't published/partnership-listed right now.
+        // Don't silently substitute a different org — flag it instead.
+        setDeepLinkMissing(true);
+      } else if (data.length > 0) {
+        setSelectedOrg(data[0] as OrgRow);
+      }
     }
     setLoading(false);
   }
@@ -302,6 +310,15 @@ export default function DashboardPartnerships() {
             </button>
           )}
         </div>
+
+        {deepLinkMissing && (
+          <div className="shrink-0 px-5 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-900 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between gap-2">
+            <span>The listing you followed a link to isn't currently available — it may be unpublished or no longer partnership-listed.</span>
+            <button type="button" onClick={() => setDeepLinkMissing(false)} className="shrink-0 hover:opacity-70 font-medium">
+              Dismiss
+            </button>
+          </div>
+        )}
 
         {/* Split layout */}
         {loading ? (
