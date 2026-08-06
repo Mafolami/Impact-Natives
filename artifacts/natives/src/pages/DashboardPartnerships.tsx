@@ -60,14 +60,14 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave }: {
       </div>
 
       {/* Location */}
-      <p className="text-[11px] text-muted-foreground capitalize mb-3">
+      <p className="text-[11px] text-black dark:text-white capitalize mb-3">
         {countries.length > 0 ? countries.join(", ") : orgTypeLabel(org.organisation_type)}
       </p>
 
       {/* Seeking snippet -- partnership_sought is far more reliably
           populated than partnership_title, which is often null */}
       {(org.partnership_sought || normalizeArr(org.needs).length > 0) && (
-        <p className="text-xs text-muted-foreground leading-snug line-clamp-2">
+        <p className="text-xs text-black dark:text-white leading-snug line-clamp-2">
           Seeking {org.partnership_sought || normalizeArr(org.needs).join(", ")}
         </p>
       )}
@@ -313,7 +313,7 @@ export default function DashboardPartnerships() {
             <Handshake className="w-7 h-7 text-muted-foreground/50" />
             <div>
               <p className="text-sm font-bold text-foreground mb-1">{orgs.length === 0 ? "No listings yet" : "No results"}</p>
-              <p className="text-xs text-muted-foreground">{orgs.length === 0 ? "Be the first to list your organisation." : "Try a different search or filter."}</p>
+              <p className="text-xs text-black dark:text-white">{orgs.length === 0 ? "Be the first to list your organisation." : "Try a different search or filter."}</p>
             </div>
           </div>
         ) : (

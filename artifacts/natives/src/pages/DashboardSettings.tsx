@@ -202,29 +202,29 @@ export default function DashboardSettings() {
       {/* ── Account ── */}
       {tab === "account" && (
         <div className="space-y-4">
-          <div className="rounded-xl border border-border bg-card divide-y divide-border">
+          <div className="rounded-xl border border-border bg-white dark:bg-card divide-y divide-border">
             <div className="px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Account information</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Account information</p>
               <div className="space-y-3">
                 <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Full name</p>
+                  <p className="text-xs text-black dark:text-white mb-0.5">Full name</p>
                   <p className="text-sm font-medium text-foreground">{profile?.full_name || "—"}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Email</p>
+                  <p className="text-xs text-black dark:text-white mb-0.5">Email</p>
                   <p className="text-sm font-medium text-foreground">{user?.email}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Email cannot be changed.</p>
+                  <p className="text-xs text-black dark:text-white mt-0.5">Email cannot be changed.</p>
                 </div>
               </div>
             </div>
 
             <div className="px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Password</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Password</p>
               {pwSent ? (
                 <p className="text-sm text-[#2D6A4F]">Reset link sent — check your email.</p>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-black dark:text-white">
                     We'll send a password reset link to <span className="text-foreground">{user?.email}</span>.
                   </p>
                   {pwError && <p className="text-xs text-red-500">{pwError}</p>}
@@ -239,8 +239,8 @@ export default function DashboardSettings() {
             </div>
 
             <div className="px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Profile</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1">Profile</p>
+              <p className="text-sm text-black dark:text-white">
                 To update your photo, bio, or org details,{" "}
                 <a href="/dashboard/profile" className="text-[#2D6A4F] hover:underline underline-offset-2">
                   visit your profile page
@@ -249,16 +249,16 @@ export default function DashboardSettings() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-card divide-y divide-border">
+          <div className="rounded-xl border border-border bg-white dark:bg-card divide-y divide-border">
             <div className="px-5 py-4 flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-foreground">Appearance</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Switch between light and dark mode</p>
+                <p className="text-xs text-black dark:text-white mt-0.5">Switch between light and dark mode</p>
               </div>
               <ThemeToggle />
             </div>
             <div className="px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Session</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Session</p>
               <Button type="button" variant="outline"
                 className="rounded-full px-5 text-sm h-9"
                 onClick={signOut}>
@@ -271,9 +271,9 @@ export default function DashboardSettings() {
 
       {/* ── Privacy ── */}
       {tab === "privacy" && (
-        <div className="rounded-xl border border-border bg-card divide-y divide-border">
+        <div className="rounded-xl border border-border bg-white dark:bg-card divide-y divide-border">
           <div className="px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Visibility</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-4">Visibility</p>
             <div className="space-y-3">
               {[
                 { value: "public", label: "Public", sub: "Your activity appears on the Impact Natives feed" },
@@ -287,7 +287,7 @@ export default function DashboardSettings() {
                       : "border-border hover:border-foreground/20"
                   }`}>
                   <p className="text-sm font-medium text-foreground">{opt.label}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{opt.sub}</p>
+                  <p className="text-xs text-black dark:text-white mt-0.5">{opt.sub}</p>
                 </button>
               ))}
             </div>
@@ -295,7 +295,7 @@ export default function DashboardSettings() {
 
           {profile?.user_type === "organisation" && (
             <div className="px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Individual profile</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Individual profile</p>
               <button type="button"
                 onClick={() => setShowIndividualProfile(v => !v)}
                 className={`w-full flex items-start gap-3 text-left px-4 py-3.5 rounded-xl border transition-colors ${
@@ -310,7 +310,7 @@ export default function DashboardSettings() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-foreground">Also show me as an individual</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Your personal profile will also appear in the Natives directory under Individuals, tagged with your organisation.</p>
+                  <p className="text-xs text-black dark:text-white mt-0.5">Your personal profile will also appear in the Natives directory under Individuals, tagged with your organisation.</p>
                 </div>
               </button>
             </div>
@@ -329,15 +329,15 @@ export default function DashboardSettings() {
 
       {/* ── Notifications ── */}
       {tab === "notifications" && (
-        <div className="rounded-xl border border-border bg-card divide-y divide-border">
+        <div className="rounded-xl border border-border bg-white dark:bg-card divide-y divide-border">
           <div className="px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">In-app notifications</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-4">In-app notifications</p>
             <div className="space-y-4">
               {NOTIFICATION_LABELS.map(({ key, label, sub }) => (
                 <div key={key} className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-sm font-medium text-foreground">{label}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>
+                    <p className="text-xs text-black dark:text-white mt-0.5">{sub}</p>
                   </div>
                   <button type="button"
                     onClick={() => setNotifPrefs((p) => ({ ...p, [key]: !p[key] }))}
@@ -444,22 +444,22 @@ export default function DashboardSettings() {
 
     {/* Right column */}
     <div className="space-y-4" style={{top: "10rem" }}>
-      <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="rounded-2xl border border-border bg-white dark:bg-card p-5 space-y-4">
+        <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">
           {currentHelp.title}
         </p>
         <div className="space-y-3">
           {currentHelp.items.map((item, i) => (
             <div key={i} className="flex items-start gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F] shrink-0 mt-1.5" />
-              <p className="text-xs text-muted-foreground leading-relaxed">{item}</p>
+              <p className="text-xs text-black dark:text-white leading-relaxed">{item}</p>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-5 space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Quick links</p>
+      <div className="rounded-2xl border border-border bg-white dark:bg-card p-5 space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Quick links</p>
         <a href="/dashboard/profile" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
           <span className="w-1 h-1 rounded-full bg-[#C45C26] shrink-0" />
           Edit your profile

@@ -189,20 +189,20 @@ export default function DashboardNatives() {
             </div>
 
             <select value={sectorFilter} onChange={e => setSectorFilter(e.target.value)}
-              className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
+              className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
               <option value="">Sector</option>
               {SECTOR_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
 
             <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)}
-              className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
+              className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
               <option value="">Country</option>
               {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
 
             {tab === "organisation" && (
               <select value={orgTypeFilter} onChange={e => setOrgTypeFilter(e.target.value)}
-                className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
+                className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
                 <option value="">Type</option>
                 <option value="ngo_non_profit">NGO / Non-Profit</option>
                 <option value="social_enterprise">Social Enterprise</option>
@@ -660,7 +660,7 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, onClo
     const isDocx = ext === "docx";
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setPreview(null)}>
-        <div className="bg-card rounded-2xl border border-border w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border shrink-0">
             <button type="button" onClick={() => setPreview(null)}
               className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5 shrink-0">
@@ -682,12 +682,12 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, onClo
               <iframe src={preview.url} title={preview.fileName} className="w-full h-[75vh] border-0" />
             ) : isDocx ? (
               docxLoading ? (
-                <div className="p-8 flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="p-8 flex items-center gap-2 text-sm text-black dark:text-white">
                   <Loader2 className="w-4 h-4 animate-spin" /> Loading preview...
                 </div>
               ) : docxError || !docxHtml ? (
                 <div className="p-8 text-center space-y-2">
-                  <p className="text-sm text-muted-foreground">Couldn't render a preview for this file.</p>
+                  <p className="text-sm text-black dark:text-white">Couldn't render a preview for this file.</p>
                   <a href={preview.url} download={preview.fileName}
                     className="text-sm text-[#2D6A4F] hover:underline underline-offset-2 font-medium">
                     Download {preview.fileName}
@@ -703,7 +703,7 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, onClo
               )
             ) : (
               <div className="p-8 text-center space-y-2">
-                <p className="text-sm text-muted-foreground">Preview isn't available for this file type.</p>
+                <p className="text-sm text-black dark:text-white">Preview isn't available for this file type.</p>
                 <a href={preview.url} download={preview.fileName}
                   className="text-sm text-[#2D6A4F] hover:underline underline-offset-2 font-medium">
                   Download {preview.fileName}
@@ -718,10 +718,10 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, onClo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="bg-card rounded-2xl border border-border w-full max-w-sm p-6 space-y-3" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-sm p-6 space-y-3" onClick={e => e.stopPropagation()}>
         <div>
           <h3 className="text-lg font-bold text-foreground">{item.label}</h3>
-          <p className="text-sm text-muted-foreground mt-0.5">{item.sub}</p>
+          <p className="text-sm text-black dark:text-white mt-0.5">{item.sub}</p>
         </div>
         <div className="space-y-3">
           {item.questions.map(q => {
@@ -729,8 +729,8 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, onClo
             if (isSensitive && !canSeeSensitive) {
               return (
                 <div key={q.key}>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{q.label}</p>
-                  <p className="text-sm text-muted-foreground italic mt-0.5">Visible once you're in an active conversation</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">{q.label}</p>
+                  <p className="text-sm text-black dark:text-white italic mt-0.5">Visible once you're in an active conversation</p>
                 </div>
               );
             }
@@ -742,7 +742,7 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, onClo
             if (!display) return null;
             return (
               <div key={q.key}>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{q.label}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">{q.label}</p>
                 <p className="text-sm text-foreground mt-0.5">{display}</p>
               </div>
             );
@@ -750,7 +750,7 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, onClo
         </div>
         {documents.length > 0 && (
           <div className="pt-3 border-t border-border space-y-1.5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Supporting documents</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Supporting documents</p>
             {documents.map(doc => (
               <button key={doc.id} type="button" onClick={() => handleView(doc)} disabled={openingDocId === doc.id}
                 className="w-full flex items-center justify-between gap-2 text-left text-sm text-foreground hover:underline underline-offset-2 disabled:opacity-50">
@@ -1419,10 +1419,10 @@ function EmptyState({ icon, title, subtitle }: {
   icon: React.ReactNode; title: string; subtitle: string;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-12 text-center">
+    <div className="rounded-2xl border border-border bg-white dark:bg-card p-12 text-center">
       <div className="flex justify-center mb-4">{icon}</div>
       <p className="text-foreground font-medium mb-2">{title}</p>
-      <p className="text-sm text-muted-foreground max-w-sm mx-auto">{subtitle}</p>
+      <p className="text-sm text-black dark:text-white max-w-sm mx-auto">{subtitle}</p>
     </div>
   );
 }
