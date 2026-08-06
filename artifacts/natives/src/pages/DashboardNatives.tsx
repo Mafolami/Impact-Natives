@@ -920,7 +920,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
   }, [org.id]);
 
   const ddItemsArr = [org.dd_financial_model, org.dd_audited_accounts, org.dd_governance_doc, org.dd_esg_assessment, org.dd_impact_framework, org.dd_environmental_policy, org.dd_safeguarding_policy, org.dd_legal_registration, org.dd_legal_compliance_declaration];
-  const ddScore = Math.round((ddItemsArr.filter(Boolean).length / 9) * 100);
+  const ddScore = Math.round((ddItemsArr.filter(Boolean).length / ddItemsArr.length) * 100);
   const ddStateMap: Record<string, boolean | undefined> = {
     financial_model: org.dd_financial_model,
     audited_accounts: org.dd_audited_accounts,

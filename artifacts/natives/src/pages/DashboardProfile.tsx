@@ -1421,7 +1421,8 @@ export default function DashboardProfile() {
   // fields (grants count/value, previous funders, etc.) are collected but
   // not currently read by any AI function, so they're left out rather than
   // padding the score with fields that don't inform anything.
-  const ddReadinessFraction = [ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework, ddSafeguardingPolicy, ddLegalRegistration, ddLegalComplianceDeclaration].filter(Boolean).length / 8;
+  const ddReadinessItems = [ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework, ddEnvironmentalPolicy, ddSafeguardingPolicy, ddLegalRegistration, ddLegalComplianceDeclaration];
+  const ddReadinessFraction = ddReadinessItems.filter(Boolean).length / ddReadinessItems.length;
   const orgTypeStrengthItems: number[] = isFunder
     ? [investmentThesis ? 1 : 0]
     : isImplementer
@@ -2001,12 +2002,12 @@ export default function DashboardProfile() {
                       <div className="flex items-center justify-between mb-2">
                         <p className="text-xs text-black dark:text-white">DD Readiness score</p>
                         <p className="text-xs font-bold text-black dark:text-white">
-                          {Math.round(([ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework, ddEnvironmentalPolicy, ddSafeguardingPolicy, ddLegalRegistration, ddLegalComplianceDeclaration].filter(Boolean).length / 9) * 100)}%
+                          {Math.round((ddReadinessItems.filter(Boolean).length / ddReadinessItems.length) * 100)}%
                         </p>
                       </div>
                       <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                         <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500"
-                          style={{ width: `${Math.round(([ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework, ddEnvironmentalPolicy, ddSafeguardingPolicy, ddLegalRegistration, ddLegalComplianceDeclaration].filter(Boolean).length / 9) * 100)}%` }} />
+                          style={{ width: `${Math.round((ddReadinessItems.filter(Boolean).length / ddReadinessItems.length) * 100)}%` }} />
                       </div>
                     </div>
                   </div>
@@ -2648,7 +2649,7 @@ export default function DashboardProfile() {
                 { label: "Investment thesis", done: !!investmentThesis },
               ] : []),
               ...(isImplementer ? [
-                { label: `DD readiness (${Math.round(ddReadinessFraction * 8)}/8)`, done: ddReadinessFraction === 1, partial: ddReadinessFraction > 0 && ddReadinessFraction < 1 },
+                { label: `DD readiness (${Math.round(ddReadinessFraction * ddReadinessItems.length)}/${ddReadinessItems.length})`, done: ddReadinessFraction === 1, partial: ddReadinessFraction > 0 && ddReadinessFraction < 1 },
                 { label: "Beneficiaries reached", done: totalBeneficiaries !== "" },
               ] : []),
               ...(isOrg ? [{ label: "Verified organisation", done: !!profile?.is_verified }] : []),

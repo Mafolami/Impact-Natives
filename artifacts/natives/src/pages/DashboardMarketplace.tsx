@@ -1080,6 +1080,10 @@ function MarketplaceDetail({
       .then(({ data }) => { if (data) setInitiativeOrgDd(data); });
   }, [initiative.user_id]);
 
+  const initiativeDdItems = initiativeOrgDd
+    ? [initiativeOrgDd.dd_financial_model, initiativeOrgDd.dd_audited_accounts, initiativeOrgDd.dd_governance_doc, initiativeOrgDd.dd_esg_assessment, initiativeOrgDd.dd_impact_framework, initiativeOrgDd.dd_environmental_policy, initiativeOrgDd.dd_safeguarding_policy, initiativeOrgDd.dd_legal_registration, initiativeOrgDd.dd_legal_compliance_declaration]
+    : [];
+
   async function submitQuestion() {
     if (!question.trim() || !user?.id || !initiative.user_id) return;
     setQuestionSubmitting(true);
@@ -1203,7 +1207,7 @@ function MarketplaceDetail({
             legal_registration: initiativeOrgDd.dd_legal_registration,
             legal_compliance_declaration: initiativeOrgDd.dd_legal_compliance_declaration,
             score: Math.round(
-              ([initiativeOrgDd.dd_financial_model, initiativeOrgDd.dd_audited_accounts, initiativeOrgDd.dd_governance_doc, initiativeOrgDd.dd_esg_assessment, initiativeOrgDd.dd_impact_framework, initiativeOrgDd.dd_environmental_policy, initiativeOrgDd.dd_safeguarding_policy, initiativeOrgDd.dd_legal_registration, initiativeOrgDd.dd_legal_compliance_declaration].filter(Boolean).length / 9) * 100
+              (initiativeDdItems.filter(Boolean).length / initiativeDdItems.length) * 100
             ),
           } : null,
         }),
@@ -1241,7 +1245,7 @@ function MarketplaceDetail({
             legal_registration: initiativeOrgDd.dd_legal_registration,
             legal_compliance_declaration: initiativeOrgDd.dd_legal_compliance_declaration,
             score: Math.round(
-              ([initiativeOrgDd.dd_financial_model, initiativeOrgDd.dd_audited_accounts, initiativeOrgDd.dd_governance_doc, initiativeOrgDd.dd_esg_assessment, initiativeOrgDd.dd_impact_framework, initiativeOrgDd.dd_environmental_policy, initiativeOrgDd.dd_safeguarding_policy, initiativeOrgDd.dd_legal_registration, initiativeOrgDd.dd_legal_compliance_declaration].filter(Boolean).length / 9) * 100
+              (initiativeDdItems.filter(Boolean).length / initiativeDdItems.length) * 100
             ),
           } : null,
         }),
