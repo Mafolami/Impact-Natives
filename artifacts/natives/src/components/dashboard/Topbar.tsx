@@ -6,6 +6,7 @@ import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard":               "Home",
@@ -28,8 +29,6 @@ const PAGE_SUBTITLES: Record<string, string> = {
   "/dashboard/labs": "Innovation Labs you've commissioned or are involved in.",
   "/dashboard/natives": "Browse individuals and organisations in the ecosystem.",
   "/dashboard/settings": "Manage your account and preferences.",
-  "/dashboard/marketplace": "Published initiatives open for partnership and collaboration.",
-  "/dashboard/partnerships": "Discover organisations seeking partnership, collaboration, and sponsorship.",
 };
 
 const SUMMARY_ONLY_TYPES = ["monthly_activity_digest"];
@@ -166,11 +165,11 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
             {title}
           </h1>
         </div>
-        {subtitle && <p className="text-sm text-black dark:text-white pl-3.5">{subtitle}</p>}
+        {subtitle && <p className="text-xs text-black dark:text-white pl-3.5">{subtitle}</p>}
       </div>
 
       <div className="flex items-center gap-3">
-        
+        <ThemeToggle />
 
         {/* Notifications bell */}
         <div className="relative" ref={panelRef}>
