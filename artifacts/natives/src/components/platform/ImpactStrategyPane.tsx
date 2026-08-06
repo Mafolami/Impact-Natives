@@ -340,7 +340,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
                 </option>
               ))}
             </select>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-black dark:text-white mt-1">
               Strategy Builder currently supports Technology/FinTech and Telecommunications only.
               Other sectors are on the roadmap.
             </p>
@@ -356,7 +356,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
               value={form.operating_country}
               onChange={(e) => setForm({ ...form, operating_country: e.target.value })}
             />
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-black dark:text-white mt-1">
               Regulatory compliance mapping is currently verified for Nigeria only. Other
               countries will still generate a strategy, flagged as compliance-pending.
             </p>
@@ -428,7 +428,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
           </div>
           {!executiveSummary && (
             <div className="rounded-xl border border-dashed border-[#2D6A4F]/30 p-5 text-center space-y-3">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-black dark:text-white">
                 Pillars confirmed. Generate your executive summary when ready.
               </p>
               {summaryError && <p className="text-xs text-red-600">{summaryError}</p>}
@@ -445,7 +445,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
           )}
 
           {executiveSummary && (
-            <div className="rounded-xl border border-border bg-card p-5 space-y-4 mb-2">
+            <div className="rounded-xl border border-border bg-white dark:bg-card p-5 space-y-4 mb-2">
               <p className="text-[10px] font-black uppercase tracking-widest"
                 style={{ color: "#2D6A4F" }}>Executive Summary</p>
 
@@ -461,7 +461,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
               ] as { key: keyof ExecutiveSummary; label: string }[]).map(({ key, label }) =>
                 executiveSummary[key] ? (
                   <div key={key}>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground mb-1">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-black dark:text-white mb-1">
                       {label}
                     </p>
                     <p className="text-sm text-foreground leading-relaxed">
@@ -511,7 +511,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
                   </div>
                 )}
                 {pillar.compliance_note && (
-                  <p className="text-xs italic text-muted-foreground">{pillar.compliance_note}</p>
+                  <p className="text-xs italic text-black dark:text-white">{pillar.compliance_note}</p>
                 )}
               </dl>
 
@@ -543,7 +543,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
               <div className="flex items-center gap-2.5">
                 <div className="w-2 h-2 rounded-full bg-[#2D6A4F]" style={{ boxShadow: "0 0 6px rgba(45,106,79,0.6)" }} />
                 <p className="text-sm font-semibold text-foreground">Strategy Advisor</p>
-                <span className="text-xs text-muted-foreground">— refine your pillars conversationally</span>
+                <span className="text-xs text-black dark:text-white">— refine your pillars conversationally</span>
               </div>
               <div className="flex items-center gap-1">
                 {previousPillars && (
@@ -652,7 +652,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
                           <div key={i} className="rounded-lg px-3 py-2 text-sm"
                             style={{ background: "rgba(45,106,79,0.07)", borderLeft: "3px solid rgba(45,106,79,0.4)" }}>
                             <p className="font-semibold text-foreground text-xs mb-0.5">{c.pillar_name}</p>
-                            <p className="text-muted-foreground text-xs leading-relaxed">{c.what_changes}</p>
+                            <p className="text-black dark:text-white text-xs leading-relaxed">{c.what_changes}</p>
                           </div>
                         ))}
                       </div>

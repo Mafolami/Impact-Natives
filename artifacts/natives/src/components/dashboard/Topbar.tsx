@@ -18,6 +18,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/dashboard/messages":      "Messages",
   "/dashboard/profile":       "Profile",
   "/dashboard/settings":      "Settings",
+  "/dashboard/strategy":      "Strategy",
 };
 // Optional second line under the page title. Pages without an entry here
 // just get the title alone -- the header's height stays the same either
@@ -29,6 +30,9 @@ const PAGE_SUBTITLES: Record<string, string> = {
   "/dashboard/labs": "Innovation Labs you've commissioned or are involved in.",
   "/dashboard/natives": "Browse individuals and organisations in the ecosystem.",
   "/dashboard/settings": "Manage your account and preferences.",
+  "/dashboard/marketplace": "Published initiatives open for partnership and collaboration.",
+  "/dashboard/partnerships": "Discover organisations seeking partnership, collaboration, and sponsorship.",
+  "/dashboard/strategy": "Build or upload your social impact strategy, then push pillars to the marketplace as partner requests.",
 };
 
 const SUMMARY_ONLY_TYPES = ["monthly_activity_digest"];
@@ -165,7 +169,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
             {title}
           </h1>
         </div>
-        {subtitle && <p className="text-xs text-black dark:text-white pl-3.5">{subtitle}</p>}
+        {subtitle && <p className="text-sm text-black dark:text-white pl-3.5">{subtitle}</p>}
       </div>
 
       <div className="flex items-center gap-3">
