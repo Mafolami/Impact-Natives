@@ -12,22 +12,37 @@ import { cn } from "@/lib/utils";
 
 type NavItem = { label: string; href: string; icon: any; corporateOnly: boolean };
 
-// Flat list, ordered by actual usage pattern (not alphabetically): Home is
-// the entry point, then Discover-type items (browsing what others
-// listed), My Work (things this account builds or manages), Connect (the
-// relationship layer), then Account (profile/settings) last. No section
-// headers/dividers -- just one continuous list in that order.
-const NAV_ITEMS: NavItem[] = [
-  { label: "Home", href: "/dashboard", icon: Home, corporateOnly: false },
-  { label: "Marketplace", href: "/dashboard/marketplace", icon: Compass, corporateOnly: false },
-  { label: "Natives", href: "/dashboard/natives", icon: Globe, corporateOnly: false },
-  { label: "Strategy", href: "/dashboard/strategy", icon: Sparkles, corporateOnly: true },
-  { label: "Portfolio", href: "/dashboard/portfolio", icon: Lightbulb, corporateOnly: false },
-  { label: "Labs", href: "/dashboard/labs", icon: FlaskConical, corporateOnly: false },
-  { label: "Partnerships", href: "/dashboard/partnerships", icon: Handshake, corporateOnly: false },
-  { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, corporateOnly: false },
-  { label: "Profile", href: "/dashboard/profile", icon: User, corporateOnly: false },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings, corporateOnly: false },
+// Three sections: Home stands alone (label: null renders no header text --
+// it's the one place people return to constantly and doesn't need a
+// label). Work covers everything browsed or built. Account is
+// identity/settings, last. No accent colour per section -- just a plain
+// label, kept subtle with spacing rather than colour.
+const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
+  {
+    label: null,
+    items: [
+      { label: "Home", href: "/dashboard", icon: Home, corporateOnly: false },
+    ],
+  },
+  {
+    label: "Work",
+    items: [
+      { label: "Marketplace", href: "/dashboard/marketplace", icon: Compass, corporateOnly: false },
+      { label: "Natives", href: "/dashboard/natives", icon: Globe, corporateOnly: false },
+      { label: "Strategy", href: "/dashboard/strategy", icon: Sparkles, corporateOnly: true },
+      { label: "Portfolio", href: "/dashboard/portfolio", icon: Lightbulb, corporateOnly: false },
+      { label: "Labs", href: "/dashboard/labs", icon: FlaskConical, corporateOnly: false },
+      { label: "Partnerships", href: "/dashboard/partnerships", icon: Handshake, corporateOnly: false },
+      { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, corporateOnly: false },
+    ],
+  },
+  {
+    label: "Account",
+    items: [
+      { label: "Profile", href: "/dashboard/profile", icon: User, corporateOnly: false },
+      { label: "Settings", href: "/dashboard/settings", icon: Settings, corporateOnly: false },
+    ],
+  },
 ];
 
 interface SidebarProps {
@@ -42,7 +57,9 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
   const [unreadMessages, setUnreadMessages] = useState(0);
 
   const isCorporate = ["corporation", "technology_company", "public_sector"].includes(profile?.org_type ?? "");
-  const visibleItems = NAV_ITEMS.filter(item => !item.corporateOnly || isCorporate);
+  const visibleSections = NAV_SECTIONS
+    .map(section => ({ ...section, items: section.items.filter(item => !item.corporateOnly || isCorporate) }))
+    .filter(section => section.items.length > 0);
 
   useEffect(() => {
     if (!profile) return;
@@ -204,45 +221,54 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
         .sidebar-nav-scroll { scrollbar-width: thin; scrollbar-color: rgba(242,230,216,0.25) transparent; }
       `}</style>
       <nav className="sidebar-nav-scroll flex-1 overflow-y-auto py-4 px-2 pr-1">
-        <ul className="space-y-0.5">
-          {visibleItems.map(({ label, href, icon: Icon }) => {
-            const isMessages = href === "/dashboard/messages";
-            const showBadge  = isMessages && unreadMessages > 0;
-            return (
-              <li key={href}>
-                <Link href={href}>
-                  <span
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors cursor-pointer w-full",
-                      collapsed && "justify-center px-2",
-                      isActive(href)
-                        ? "bg-[#F2E6D8] text-[#452A1D]"
-                        : "text-[#F2E6D8] hover:bg-white/10"
-                    )}
-                    title={collapsed ? label : undefined}
-                  >
-                    <span className="relative">
-                      <Icon className="w-4 h-4 shrink-0" />
-                      {showBadge && collapsed && (
-                        <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500" />
-                      )}
-                    </span>
-                    {!collapsed && (
-                      <>
-                        <span className="flex-1">{label}</span>
-                        {showBadge && (
-                          <span className="text-[10px] font-bold rounded-full min-w-[1rem] h-4 px-1 flex items-center justify-center" style={{ background: "#ef4444", color: "#ffffff" }}>
-                            {unreadMessages > 9 ? "9+" : unreadMessages}
-                          </span>
+        {visibleSections.map((section, sectionIndex) => (
+          <div key={section.label ?? "home"} className={sectionIndex > 0 ? "mt-4" : ""}>
+            {section.label && !collapsed && (
+              <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-[#F2E6D8]">
+                {section.label}
+              </p>
+            )}
+            <ul className="space-y-0.5">
+              {section.items.map(({ label, href, icon: Icon }) => {
+                const isMessages = href === "/dashboard/messages";
+                const showBadge  = isMessages && unreadMessages > 0;
+                return (
+                  <li key={href}>
+                    <Link href={href}>
+                      <span
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors cursor-pointer w-full",
+                          collapsed && "justify-center px-2",
+                          isActive(href)
+                            ? "bg-[#F2E6D8] text-[#452A1D]"
+                            : "text-[#F2E6D8] hover:bg-white/10"
                         )}
-                      </>
-                    )}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+                        title={collapsed ? label : undefined}
+                      >
+                        <span className="relative">
+                          <Icon className="w-4 h-4 shrink-0" />
+                          {showBadge && collapsed && (
+                            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500" />
+                          )}
+                        </span>
+                        {!collapsed && (
+                          <>
+                            <span className="flex-1">{label}</span>
+                            {showBadge && (
+                              <span className="text-[10px] font-bold rounded-full min-w-[1rem] h-4 px-1 flex items-center justify-center" style={{ background: "#ef4444", color: "#ffffff" }}>
+                                {unreadMessages > 9 ? "9+" : unreadMessages}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </nav>
 
       {/* Bottom — deliberately a solid, darker tone distinct from the nav's
