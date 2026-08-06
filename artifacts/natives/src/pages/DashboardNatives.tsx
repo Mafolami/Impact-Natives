@@ -1008,10 +1008,12 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
       doc.setFont("helvetica", opts.bold ? "bold" : opts.italic ? "italic" : "normal");
       doc.setFontSize(size);
       doc.setTextColor(...color);
-      const lines = doc.splitTextToSize(text, contentWidth);
+      const lines: string[] = doc.splitTextToSize(text, contentWidth);
       const lineHeight = size * 1.35;
       ensureSpace(lines.length * lineHeight);
-      doc.text(lines, margin, y);
+      lines.forEach((line, i) => {
+        doc.text(line, margin, y + i * lineHeight);
+      });
       y += lines.length * lineHeight + (opts.gap ?? 8);
     }
 
@@ -1058,7 +1060,10 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
     doc.setFillColor(245, 240, 232);
     doc.roundedRect(margin, y, contentWidth, disclaimerHeight, 4, 4, "F");
     doc.setTextColor(...GREY);
-    doc.text(disclaimerLines, margin + 10, y + 16);
+    const disclaimerLineHeight = 12.5;
+    disclaimerLines.forEach((line: string, i: number) => {
+      doc.text(line, margin + 10, y + 16 + i * disclaimerLineHeight);
+    });
     y += disclaimerHeight + 22;
 
     writeSectionHeader("Environmental");
