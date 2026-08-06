@@ -156,12 +156,16 @@ function ShareButton({ initiativeId, title, size = "sm" }: { initiativeId: strin
   async function handleShare(e: React.MouseEvent) {
     e.stopPropagation();
     const url = `${window.location.origin}/dashboard/marketplace/${initiativeId}`;
-    const text = `Check out this initiative on Impact Natives: ${title}. Sign up to explore partnership opportunities like this one.`;
+    // iOS's native share sheet silently drops the `text` field whenever a
+    // separate `url` field is also present -- a long-standing platform bug
+    // (still open as of iOS 16). Folding the link into `text` itself is the
+    // documented workaround and works correctly on Android too.
+    const text = `Check out this initiative on Impact Natives: ${title}. Sign up to explore partnership opportunities like this one.\n${url}`;
     if (navigator.share) {
-      try { await navigator.share({ title, text, url }); } catch { /* user cancelled */ }
+      try { await navigator.share({ title, text }); } catch { /* user cancelled */ }
       return;
     }
-    await navigator.clipboard.writeText(`${text}\n${url}`);
+    await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 1800);
   }
