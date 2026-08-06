@@ -502,7 +502,7 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
   );
 }
 
-export function PortfolioTable({ onOpenOwnListing }: { onOpenOwnListing?: () => void }) {
+export function PortfolioTable() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const [rows, setRows] = useState<PortfolioRow[]>([]);

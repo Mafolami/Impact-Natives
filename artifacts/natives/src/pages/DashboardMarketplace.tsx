@@ -1075,7 +1075,7 @@ function MarketplaceDetail({
   useEffect(() => {
     if (!initiative.user_id) return;
     supabase.from("organizations")
-      .select("dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration")
+      .select("dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration")
       .eq("user_id", initiative.user_id).single()
       .then(({ data }) => { if (data) setInitiativeOrgDd(data); });
   }, [initiative.user_id]);
@@ -1198,11 +1198,12 @@ function MarketplaceDetail({
             governance_doc: initiativeOrgDd.dd_governance_doc,
             esg_assessment: initiativeOrgDd.dd_esg_assessment,
             impact_framework: initiativeOrgDd.dd_impact_framework,
+            environmental_policy: initiativeOrgDd.dd_environmental_policy,
             safeguarding_policy: initiativeOrgDd.dd_safeguarding_policy,
             legal_registration: initiativeOrgDd.dd_legal_registration,
             legal_compliance_declaration: initiativeOrgDd.dd_legal_compliance_declaration,
             score: Math.round(
-              ([initiativeOrgDd.dd_financial_model, initiativeOrgDd.dd_audited_accounts, initiativeOrgDd.dd_governance_doc, initiativeOrgDd.dd_esg_assessment, initiativeOrgDd.dd_impact_framework, initiativeOrgDd.dd_safeguarding_policy, initiativeOrgDd.dd_legal_registration, initiativeOrgDd.dd_legal_compliance_declaration].filter(Boolean).length / 8) * 100
+              ([initiativeOrgDd.dd_financial_model, initiativeOrgDd.dd_audited_accounts, initiativeOrgDd.dd_governance_doc, initiativeOrgDd.dd_esg_assessment, initiativeOrgDd.dd_impact_framework, initiativeOrgDd.dd_environmental_policy, initiativeOrgDd.dd_safeguarding_policy, initiativeOrgDd.dd_legal_registration, initiativeOrgDd.dd_legal_compliance_declaration].filter(Boolean).length / 9) * 100
             ),
           } : null,
         }),
@@ -1235,11 +1236,12 @@ function MarketplaceDetail({
             governance_doc: initiativeOrgDd.dd_governance_doc,
             esg_assessment: initiativeOrgDd.dd_esg_assessment,
             impact_framework: initiativeOrgDd.dd_impact_framework,
+            environmental_policy: initiativeOrgDd.dd_environmental_policy,
             safeguarding_policy: initiativeOrgDd.dd_safeguarding_policy,
             legal_registration: initiativeOrgDd.dd_legal_registration,
             legal_compliance_declaration: initiativeOrgDd.dd_legal_compliance_declaration,
             score: Math.round(
-              ([initiativeOrgDd.dd_financial_model, initiativeOrgDd.dd_audited_accounts, initiativeOrgDd.dd_governance_doc, initiativeOrgDd.dd_esg_assessment, initiativeOrgDd.dd_impact_framework, initiativeOrgDd.dd_safeguarding_policy, initiativeOrgDd.dd_legal_registration, initiativeOrgDd.dd_legal_compliance_declaration].filter(Boolean).length / 8) * 100
+              ([initiativeOrgDd.dd_financial_model, initiativeOrgDd.dd_audited_accounts, initiativeOrgDd.dd_governance_doc, initiativeOrgDd.dd_esg_assessment, initiativeOrgDd.dd_impact_framework, initiativeOrgDd.dd_environmental_policy, initiativeOrgDd.dd_safeguarding_policy, initiativeOrgDd.dd_legal_registration, initiativeOrgDd.dd_legal_compliance_declaration].filter(Boolean).length / 9) * 100
             ),
           } : null,
         }),

@@ -99,6 +99,16 @@ export const DD_ITEMS: DDItemDef[] = [
       ],
     },
     {
+      key: "environmental_policy",
+      label: "Environmental policy",
+      sub: "Energy, travel, and waste practices for fieldwork and operations",
+      questions: [
+        { key: "hasWrittenPolicy", label: "Written environmental policy in place?", type: "yesno" },
+        { key: "areasCovered", label: "Areas covered", type: "select", options: ["Field travel / transport", "Office energy use", "Waste / paper reduction", "Multiple areas", "Other"] },
+        { key: "notes", label: "Anything else worth noting?", type: "text", required: false },
+      ],
+    },
+    {
       key: "safeguarding_policy",
       label: "Safeguarding policy",
       sub: "Child protection / protection from sexual exploitation and abuse policy",

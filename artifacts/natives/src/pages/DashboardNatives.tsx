@@ -48,6 +48,7 @@ interface OrgRow {
   dd_governance_doc?: boolean;
   dd_esg_assessment?: boolean;
   dd_impact_framework?: boolean;
+  dd_environmental_policy?: boolean;
   dd_safeguarding_policy?: boolean;
   dd_legal_registration?: boolean;
   dd_legal_compliance_declaration?: boolean;
@@ -465,7 +466,7 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
       setLoading(true);
       const { data: orgData, error } = await supabase
         .from("organizations")
-        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status,investment_thesis,stage_preference,geographic_focus,impact_strategy")        
+        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status,investment_thesis,stage_preference,geographic_focus,impact_strategy")        
         .eq("status", "published")
         .order("organisation_name", { ascending: true });
 
@@ -918,14 +919,15 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
       .then(({ data }) => { if (data?.[0]) setDeliveryStats(data[0]); });
   }, [org.id]);
 
-  const ddItemsArr = [org.dd_financial_model, org.dd_audited_accounts, org.dd_governance_doc, org.dd_esg_assessment, org.dd_impact_framework, org.dd_safeguarding_policy, org.dd_legal_registration, org.dd_legal_compliance_declaration];
-  const ddScore = Math.round((ddItemsArr.filter(Boolean).length / 8) * 100);
+  const ddItemsArr = [org.dd_financial_model, org.dd_audited_accounts, org.dd_governance_doc, org.dd_esg_assessment, org.dd_impact_framework, org.dd_environmental_policy, org.dd_safeguarding_policy, org.dd_legal_registration, org.dd_legal_compliance_declaration];
+  const ddScore = Math.round((ddItemsArr.filter(Boolean).length / 9) * 100);
   const ddStateMap: Record<string, boolean | undefined> = {
     financial_model: org.dd_financial_model,
     audited_accounts: org.dd_audited_accounts,
     governance_doc: org.dd_governance_doc,
     esg_assessment: org.dd_esg_assessment,
     impact_framework: org.dd_impact_framework,
+    environmental_policy: org.dd_environmental_policy,
     safeguarding_policy: org.dd_safeguarding_policy,
     legal_registration: org.dd_legal_registration,
     legal_compliance_declaration: org.dd_legal_compliance_declaration,

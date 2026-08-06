@@ -679,6 +679,7 @@ export default function DashboardProfile() {
   const [ddGovernanceDoc, setDdGovernanceDoc]         = useState(false);
   const [ddEsgAssessment, setDdEsgAssessment]         = useState(false);
   const [ddImpactFramework, setDdImpactFramework]     = useState(false);
+  const [ddEnvironmentalPolicy, setDdEnvironmentalPolicy] = useState(false);
   const [ddSafeguardingPolicy, setDdSafeguardingPolicy] = useState(false);
   const [ddLegalRegistration, setDdLegalRegistration] = useState(false);
   const [ddLegalComplianceDeclaration, setDdLegalComplianceDeclaration] = useState(false);
@@ -1096,7 +1097,7 @@ export default function DashboardProfile() {
   useEffect(() => {
     if (!user) return;
     supabase.from("organizations")
-     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")      .eq("user_id", user.id).maybeSingle()
+     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")      .eq("user_id", user.id).maybeSingle()
       .then(({ data }) => {
         if (!data) return;
         setOrgId(data.id ?? null);
@@ -1126,6 +1127,7 @@ export default function DashboardProfile() {
         setDdGovernanceDoc(data.dd_governance_doc ?? false);
         setDdEsgAssessment(data.dd_esg_assessment ?? false);
         setDdImpactFramework(data.dd_impact_framework ?? false);
+        setDdEnvironmentalPolicy(data.dd_environmental_policy ?? false);
         setDdSafeguardingPolicy(data.dd_safeguarding_policy ?? false);
         setDdLegalRegistration(data.dd_legal_registration ?? false);
         setDdLegalComplianceDeclaration(data.dd_legal_compliance_declaration ?? false);
@@ -1360,6 +1362,7 @@ export default function DashboardProfile() {
           dd_governance_doc: ddGovernanceDoc,
           dd_esg_assessment: ddEsgAssessment,
           dd_impact_framework: ddImpactFramework,
+          dd_environmental_policy: ddEnvironmentalPolicy,
           dd_safeguarding_policy: ddSafeguardingPolicy,
           dd_legal_registration: ddLegalRegistration,
           dd_legal_compliance_declaration: ddLegalComplianceDeclaration,
@@ -1383,7 +1386,7 @@ export default function DashboardProfile() {
 
     if (user && profile?.user_type === "organisation") {
       const { data } = await supabase.from("organizations")
-        .select("logo_url,description,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")
+        .select("logo_url,description,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")
         .eq("user_id", user.id).maybeSingle();
       if (data) {
         if (data.previous_funders) setPreviousFunders(data.previous_funders);
@@ -1960,6 +1963,7 @@ export default function DashboardProfile() {
                         { key: "governance_doc", label: "Governance documentation", sub: "Board structure, org chart, or governance policy", state: ddGovernanceDoc, set: setDdGovernanceDoc },
                         { key: "esg_assessment", label: "ESG self-assessment completed", sub: "Environmental, social and governance baseline assessment", state: ddEsgAssessment, set: setDdEsgAssessment },
                         { key: "impact_framework", label: "Impact measurement framework", sub: "Theory of change, IRIS+ alignment, or outcome tracking methodology", state: ddImpactFramework, set: setDdImpactFramework },
+                        { key: "environmental_policy", label: "Environmental policy", sub: "Energy, travel, and waste practices for fieldwork and operations", state: ddEnvironmentalPolicy, set: setDdEnvironmentalPolicy },
                         { key: "safeguarding_policy", label: "Safeguarding policy", sub: "Child protection / protection from sexual exploitation and abuse policy", state: ddSafeguardingPolicy, set: setDdSafeguardingPolicy },
                         { key: "legal_registration", label: "Legal registration / tax-exempt status", sub: "Registered legal entity with valid tax status", state: ddLegalRegistration, set: setDdLegalRegistration },
                         { key: "legal_compliance_declaration", label: "Legal & compliance declaration", sub: "No blacklisting, pending disputes, or undisclosed conflicts", state: ddLegalComplianceDeclaration, set: setDdLegalComplianceDeclaration },
@@ -1997,12 +2001,12 @@ export default function DashboardProfile() {
                       <div className="flex items-center justify-between mb-2">
                         <p className="text-xs text-black dark:text-white">DD Readiness score</p>
                         <p className="text-xs font-bold text-black dark:text-white">
-                          {Math.round(([ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework, ddSafeguardingPolicy, ddLegalRegistration, ddLegalComplianceDeclaration].filter(Boolean).length / 8) * 100)}%
+                          {Math.round(([ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework, ddEnvironmentalPolicy, ddSafeguardingPolicy, ddLegalRegistration, ddLegalComplianceDeclaration].filter(Boolean).length / 9) * 100)}%
                         </p>
                       </div>
                       <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                         <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500"
-                          style={{ width: `${Math.round(([ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework, ddSafeguardingPolicy, ddLegalRegistration, ddLegalComplianceDeclaration].filter(Boolean).length / 8) * 100)}%` }} />
+                          style={{ width: `${Math.round(([ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework, ddEnvironmentalPolicy, ddSafeguardingPolicy, ddLegalRegistration, ddLegalComplianceDeclaration].filter(Boolean).length / 9) * 100)}%` }} />
                       </div>
                     </div>
                   </div>
@@ -2021,6 +2025,7 @@ export default function DashboardProfile() {
                   governance_doc: setDdGovernanceDoc,
                   esg_assessment: setDdEsgAssessment,
                   impact_framework: setDdImpactFramework,
+                  environmental_policy: setDdEnvironmentalPolicy,
                   safeguarding_policy: setDdSafeguardingPolicy,
                   legal_registration: setDdLegalRegistration,
                   legal_compliance_declaration: setDdLegalComplianceDeclaration,

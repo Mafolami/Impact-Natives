@@ -37,7 +37,7 @@ function FeedCard({ event, currentUserId }: { event: FeedEvent; currentUserId?: 
   if (event.type === "initiative") {
     return (
       <Link href={`/dashboard/marketplace/${event.initiative_id}`}>
-        <div className="group flex items-start gap-4 px-5 py-4 rounded-2xl border border-border bg-card hover:border-[#2D6A4F]/40 hover:bg-card/80 transition-all cursor-pointer">
+        <div className="group flex items-start gap-4 px-5 py-4 rounded-2xl border border-border bg-white dark:bg-card hover:border-[#2D6A4F]/40 hover:bg-card/80 transition-all cursor-pointer">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
             style={{ background: "rgba(45,106,79,0.12)" }}>
             <Lightbulb className="w-4 h-4 text-[#2D6A4F]" />
@@ -47,7 +47,7 @@ function FeedCard({ event, currentUserId }: { event: FeedEvent; currentUserId?: 
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#2D6A4F]">New Initiative</span>
               <span className="text-[10px] text-muted-foreground">{timeAgo(event.created_at)}</span>
             </div>
-            <p className="text-sm font-semibold text-foreground group-hover:text-[#2D6A4F] transition-colors leading-snug">
+            <p className="text-sm font-semibold text-black dark:text-white group-hover:text-[#2D6A4F] transition-colors leading-snug">
               {event.initiative_title}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
@@ -73,7 +73,7 @@ function FeedCard({ event, currentUserId }: { event: FeedEvent; currentUserId?: 
   if (event.type === "partnership") {
     return (
       <Link href={`/dashboard/marketplace/${event.initiative_id}`}>
-        <div className="group flex items-start gap-4 px-5 py-4 rounded-2xl border border-border bg-card hover:border-[#C45C26]/40 hover:bg-card/80 transition-all cursor-pointer">
+        <div className="group flex items-start gap-4 px-5 py-4 rounded-2xl border border-border bg-white dark:bg-card hover:border-[#C45C26]/40 hover:bg-card/80 transition-all cursor-pointer">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
             style={{ background: "rgba(196,92,38,0.10)" }}>
             <Handshake className="w-4 h-4 text-[#C45C26]" />
@@ -83,7 +83,7 @@ function FeedCard({ event, currentUserId }: { event: FeedEvent; currentUserId?: 
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#C45C26]">Partnership</span>
               <span className="text-[10px] text-muted-foreground">{timeAgo(event.created_at)}</span>
             </div>
-            <p className="text-sm font-semibold text-foreground group-hover:text-[#C45C26] transition-colors leading-snug">
+            <p className="text-sm font-semibold text-black dark:text-white group-hover:text-[#C45C26] transition-colors leading-snug">
               {event.partner_name} joined as {event.partner_role} partner
             </p>
             <p className="text-xs text-muted-foreground mt-1">{event.initiative_title}</p>
@@ -97,7 +97,7 @@ function FeedCard({ event, currentUserId }: { event: FeedEvent; currentUserId?: 
   if (event.type === "member") {
     return (
       <Link href={`/dashboard/natives?user=${event.member_id}`}>
-        <div className="group flex items-start gap-4 px-5 py-4 rounded-2xl border border-border bg-card hover:border-border/80 hover:bg-card/80 transition-all cursor-pointer">
+        <div className="group flex items-start gap-4 px-5 py-4 rounded-2xl border border-border bg-white dark:bg-card hover:border-border/80 hover:bg-card/80 transition-all cursor-pointer">
           <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center shrink-0 mt-0.5">
             <Users className="w-4 h-4 text-muted-foreground" />
           </div>
@@ -106,7 +106,7 @@ function FeedCard({ event, currentUserId }: { event: FeedEvent; currentUserId?: 
               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">New Member</span>
               <span className="text-[10px] text-muted-foreground">{timeAgo(event.created_at)}</span>
             </div>
-            <p className="text-sm font-semibold text-foreground group-hover:text-foreground/80 transition-colors leading-snug">
+            <p className="text-sm font-semibold text-black dark:text-white group-hover:text-foreground/80 transition-colors leading-snug">
               {event.member_name} joined Impact Natives
             </p>
             {(event.member_role_title || event.member_org) && (
@@ -236,7 +236,7 @@ export default function DashboardFeed() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Rss className="w-4 h-4 text-[#2D6A4F]" />
-            <h2 className="text-xl font-bold text-foreground tracking-tight">Feed</h2>
+            <h2 className="text-xl font-bold text-black dark:text-white tracking-tight">Feed</h2>
           </div>
           <p className="text-sm text-muted-foreground">
             {isPersonalised
@@ -272,13 +272,13 @@ export default function DashboardFeed() {
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4, 5].map(i => (
-            <div key={i} className="h-20 rounded-2xl border border-border bg-card animate-pulse" />
+            <div key={i} className="h-20 rounded-2xl border border-border bg-white dark:bg-card animate-pulse" />
           ))}
         </div>
       ) : events.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-card p-10 text-center">
+        <div className="rounded-2xl border border-border bg-white dark:bg-card p-10 text-center">
           <Rss className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-sm font-medium text-foreground mb-1">Nothing here yet.</p>
+          <p className="text-sm font-medium text-black dark:text-white mb-1">Nothing here yet.</p>
           <p className="text-xs text-muted-foreground">
             As organisations post initiatives and confirm partnerships, they'll appear here.
           </p>

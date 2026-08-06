@@ -732,17 +732,6 @@ export default function DashboardInitiatives() {
   }
 
   // Navigates to your own partnership listing. Deliberately does NOT rely
-  // on <Link href="/dashboard/portfolio?..."> -- that's the same route
-  // we're already on, and the deep-link effect that reads tab/view params
-  // only runs once on initial mount, so a same-route query-string change
-  // alone does nothing visible. Updating the URL AND flipping local state
-  // directly is what actually works.
-  function goToOwnListing() {
-    navigate("/dashboard/portfolio?tab=partnerships&view=requested");
-    setViewMode("tabs");
-    setTopTab("partnerships");
-  }
-
   // Handle deep links
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
@@ -850,7 +839,7 @@ export default function DashboardInitiatives() {
         </div>
 
         {viewMode === "table" ? (
-          <PortfolioTable onOpenOwnListing={goToOwnListing} />
+           <PortfolioTable />
         ) : (
           <>
         {/* Top-level tabs — segmented control */}
