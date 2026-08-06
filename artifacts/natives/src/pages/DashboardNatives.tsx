@@ -999,6 +999,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
   const deliveryRate = hasDelivery ? Math.round((deliveryStats!.completed / deliveryStats!.resolved) * 100) : null;
   const deliveryInProgress = deliveryStats ? deliveryStats.total - deliveryStats.resolved : 0;
 
+  const isImplementerOrg = !["philanthropic_foundation", "venture_capital", "corporation", "technology_company", "public_sector"].includes(org.organisation_type ?? "");
   const showCsrEsg = ["corporation", "technology_company"].includes(org.organisation_type ?? "") &&
     !!(org.csr_focus_statement || org.inkind_support?.length || org.esg_frameworks?.length || org.tech_support_available?.length);
 
@@ -1376,22 +1377,25 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
           </div>
         )}
 
-        <div className="px-8 sm:px-12 py-10">
-          <button type="button" onClick={generateEsgReport} disabled={esgReportLoading}
-            className="w-full sm:w-auto px-5 h-10 rounded-full border border-border text-sm font-medium text-black dark:text-white hover:border-[#2D6A4F] transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-            {esgReportLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            {esgReportLoading ? "Generating snapshot..." : "Generate ESG & Governance Snapshot"}
-          </button>
-          {esgReportError && (
-            <p className="text-sm text-red-500 mt-2">Couldn't generate the snapshot. Try again.</p>
-          )}
-        </div>
+        {isImplementerOrg && (
+          <div className="px-8 sm:px-12 py-10">
+            <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5] mb-3">ESG Snapshot</p>
+            <button type="button" onClick={generateEsgReport} disabled={esgReportLoading}
+              className="px-3.5 h-8 rounded-lg border border-border/70 text-xs font-medium text-black/70 dark:text-white/70 hover:border-[#2D6A4F] hover:text-black dark:hover:text-white transition-colors disabled:opacity-50 inline-flex items-center gap-1.5">
+              {esgReportLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+              {esgReportLoading ? "Generating..." : "Generate snapshot"}
+            </button>
+            {esgReportError && (
+              <p className="text-sm text-red-500 mt-2">Couldn't generate the snapshot. Try again.</p>
+            )}
+          </div>
+        )}
 
         {esgReport && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setEsgReport(null)}>
             <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-lg p-6 space-y-4 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <div>
-                <h3 className="text-lg font-bold text-black dark:text-white">ESG & Governance Snapshot</h3>
+                <h3 className="text-lg font-bold text-black dark:text-white">ESG Snapshot</h3>
                 <p className="text-sm text-black dark:text-white mt-1">{esgReport.headline}</p>
               </div>
               <p className="text-xs text-black dark:text-white opacity-70">
