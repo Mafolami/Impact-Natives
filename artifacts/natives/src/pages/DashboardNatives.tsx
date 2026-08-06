@@ -804,6 +804,9 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
   const [canSeeSensitive, setCanSeeSensitive] = useState(false);
   const [docsByItem, setDocsByItem]       = useState<Record<string, DDDocument[]>>({});
   const [deliveryStats, setDeliveryStats] = useState<{ completed: number; stalled: number; fell_through: number; resolved: number; total: number } | null>(null);
+  const [esgReport, setEsgReport] = useState<Record<string, any> | null>(null);
+  const [esgReportLoading, setEsgReportLoading] = useState(false);
+  const [esgReportError, setEsgReportError] = useState(false);
 
   useEffect(() => {
     if (!user || user.id === org.user_id) { setCanSeeSensitive(true); return; }
@@ -922,6 +925,60 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
     supabase.rpc("get_org_delivery_stats", { target_org_id: org.id })
       .then(({ data }) => { if (data?.[0]) setDeliveryStats(data[0]); });
   }, [org.id]);
+
+  async function generateEsgReport() {
+    setEsgReportLoading(true);
+    setEsgReportError(false);
+    try {
+      const legalEvidence = org.dd_evidence?.legal_compliance_declaration ?? {};
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-esg-report`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token ?? ""}` },
+        body: JSON.stringify({
+          org: {
+            organisation_name: org.organisation_name,
+            organisation_type: org.organisation_type,
+            sector: org.sector,
+            country: org.country,
+          },
+          dd_readiness: {
+            financial_model: org.dd_financial_model,
+            audited_accounts: org.dd_audited_accounts,
+            governance_doc: org.dd_governance_doc,
+            esg_assessment: org.dd_esg_assessment,
+            impact_framework: org.dd_impact_framework,
+            environmental_policy: org.dd_environmental_policy,
+            safeguarding_policy: org.dd_safeguarding_policy,
+            legal_registration: org.dd_legal_registration,
+            legal_compliance_declaration: org.dd_legal_compliance_declaration,
+            has_blacklisting: legalEvidence.hasBlacklisting ?? null,
+            has_pending_disputes: legalEvidence.hasPendingDisputes ?? null,
+            has_conflicts: legalEvidence.conflictsToDisclose ?? null,
+          },
+          delivery: deliveryStats,
+          track_record: {
+            total_beneficiaries_reached: org.total_beneficiaries_reached,
+            jobs_created: org.jobs_created,
+            female_beneficiaries_pct: org.female_beneficiaries_pct,
+            youth_beneficiaries_pct: org.youth_beneficiaries_pct,
+            years_of_operation: org.years_of_operation,
+            grants_received_count: org.grants_received_count,
+            grants_total_value_usd: org.grants_total_value_usd,
+            grants_delivered_on_time_pct: org.grants_delivered_on_time_pct,
+            previous_funders: org.previous_funders,
+            third_party_evaluations: org.third_party_evaluations,
+          },
+        }),
+      });
+      const result = await res.json();
+      if (result.data) setEsgReport(result.data);
+      else setEsgReportError(true);
+    } catch {
+      setEsgReportError(true);
+    }
+    setEsgReportLoading(false);
+  }
 
   const ddItemsArr = [org.dd_financial_model, org.dd_audited_accounts, org.dd_governance_doc, org.dd_esg_assessment, org.dd_impact_framework, org.dd_environmental_policy, org.dd_safeguarding_policy, org.dd_legal_registration, org.dd_legal_compliance_declaration];
   const ddScore = Math.round((ddItemsArr.filter(Boolean).length / ddItemsArr.length) * 100);
@@ -1316,6 +1373,58 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                   : `${deliveryStats.total} active relationship${deliveryStats.total !== 1 ? "s" : ""}, no completed outcomes yet.`}
               </p>
             )}
+          </div>
+        )}
+
+        <div className="px-8 sm:px-12 py-10">
+          <button type="button" onClick={generateEsgReport} disabled={esgReportLoading}
+            className="w-full sm:w-auto px-5 h-10 rounded-full border border-border text-sm font-medium text-black dark:text-white hover:border-[#2D6A4F] transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+            {esgReportLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            {esgReportLoading ? "Generating snapshot..." : "Generate ESG & Governance Snapshot"}
+          </button>
+          {esgReportError && (
+            <p className="text-sm text-red-500 mt-2">Couldn't generate the snapshot. Try again.</p>
+          )}
+        </div>
+
+        {esgReport && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setEsgReport(null)}>
+            <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-lg p-6 space-y-4 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div>
+                <h3 className="text-lg font-bold text-black dark:text-white">ESG & Governance Snapshot</h3>
+                <p className="text-sm text-black dark:text-white mt-1">{esgReport.headline}</p>
+              </div>
+              <p className="text-xs text-black dark:text-white opacity-70">
+                A summary of what {org.organisation_name} has disclosed on this platform — not an independent audit. DD Readiness {esgReport.dd_readiness_score}% complete. {esgReport.delivery_has_data ? `Delivery: ${esgReport.delivery_rate}% of tracked relationships completed.` : "No completed delivery outcomes tracked yet."}
+              </p>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1">Environmental</p>
+                <p className="text-sm text-black dark:text-white leading-relaxed">{esgReport.environmental}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1">Social</p>
+                <p className="text-sm text-black dark:text-white leading-relaxed">{esgReport.social}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1">Governance</p>
+                <p className="text-sm text-black dark:text-white leading-relaxed">{esgReport.governance}</p>
+              </div>
+              {esgReport.data_gaps?.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1">Data gaps</p>
+                  <ul className="text-sm text-black dark:text-white leading-relaxed list-disc pl-4 space-y-0.5">
+                    {esgReport.data_gaps.map((g: string, i: number) => <li key={i}>{g}</li>)}
+                  </ul>
+                </div>
+              )}
+              <div className="pt-3 border-t border-border">
+                <p className="text-sm text-black dark:text-white leading-relaxed">{esgReport.summary}</p>
+              </div>
+              <button type="button" onClick={() => setEsgReport(null)}
+                className="w-full h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
+                Close
+              </button>
+            </div>
           </div>
         )}
 
