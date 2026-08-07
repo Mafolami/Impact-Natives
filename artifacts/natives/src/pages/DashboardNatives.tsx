@@ -814,6 +814,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
     setEsgReport(null);
     setEsgReportLoading(false);
     setEsgReportError(false);
+    window.scrollTo(0, 0);
   }, [org.id]);
 
   useEffect(() => {
