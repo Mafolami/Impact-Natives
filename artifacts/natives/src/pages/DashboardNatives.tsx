@@ -1082,7 +1082,6 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                   <TrustBadge tier={computeTrustTier(ddScore, org.dd_evidence).tier} withTooltip />
                   <span className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] ml-auto">{ddScore}%</span>
                 </div>
-                <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mt-1">Self-attested, not verified by Impact Natives</p>
                 <div className="h-[3px] bg-muted rounded-full mt-2.5">
                   <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${ddScore}%` }} />
                 </div>
@@ -1117,7 +1116,6 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                   <TrustBadge tier={computeTrustTier(fddScore, org.dd_evidence).tier} withTooltip />
                   <span className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] ml-auto">{fddScore}%</span>
                 </div>
-                <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mt-1">Self-attested, not verified by Impact Natives</p>
                 <div className="h-[3px] bg-muted rounded-full mt-2.5">
                   <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${fddScore}%` }} />
                 </div>
