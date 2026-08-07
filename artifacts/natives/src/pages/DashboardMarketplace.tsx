@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { supabase } from "@/lib/supabase";
 import { Loader2, CheckCircle2, X, SlidersHorizontal, Search, Leaf, Zap, MessageSquare, ShieldCheck, Bookmark, ThumbsDown, RotateCcw, AlertTriangle, Share2, Check, Building2, Wallet, Handshake, FileCheck } from "lucide-react";
+import { computeTrustTier } from "@/lib/ddItems";
+import { TrustBadge } from "@/components/ui/TrustBadge";
 import { useAuth } from "@/context/AuthContext";
 import { FileText, Sparkles } from "lucide-react";
 import { useLocation } from "wouter";
@@ -29,6 +31,7 @@ interface InitiativeRow {
   // new fields
   submitter_is_verified?: boolean;
   submitter_dd_score?: number | null;
+  submitter_trust_tier?: "gold" | "silver" | "bronze" | "flagged" | null;
   submitter_org_type?: string | null;
   submitter_name?: string | null;
   submitter_user_type?: string | null;
@@ -579,6 +582,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
             <div className="flex items-center gap-2 text-sm text-black dark:text-white">
               <FileCheck className="w-3.5 h-3.5 shrink-0" />
               DD Readiness: {ini.submitter_dd_score}%
+              {ini.submitter_trust_tier && <TrustBadge tier={ini.submitter_trust_tier} />}
             </div>
           )}
 
@@ -742,11 +746,16 @@ export default function DashboardMarketplace() {
 
         const { data: ddOrgs } = await supabase
           .from("organizations")
-          .select("user_id,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration")
+          .select("user_id,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence")
           .in("user_id", userIds);
         const ddScoreMap = new Map((ddOrgs ?? []).map((o: any) => {
           const items = [o.dd_financial_model, o.dd_audited_accounts, o.dd_governance_doc, o.dd_esg_assessment, o.dd_impact_framework, o.dd_environmental_policy, o.dd_safeguarding_policy, o.dd_legal_registration, o.dd_legal_compliance_declaration];
           return [o.user_id, Math.round((items.filter(Boolean).length / items.length) * 100)];
+        }));
+        const ddTierMap = new Map((ddOrgs ?? []).map((o: any) => {
+          const items = [o.dd_financial_model, o.dd_audited_accounts, o.dd_governance_doc, o.dd_esg_assessment, o.dd_impact_framework, o.dd_environmental_policy, o.dd_safeguarding_policy, o.dd_legal_registration, o.dd_legal_compliance_declaration];
+          const score = Math.round((items.filter(Boolean).length / items.length) * 100);
+          return [o.user_id, computeTrustTier(score, o.dd_evidence).tier];
         }));
 
         const enriched = (data as any[]).map(ini => ({
@@ -756,6 +765,7 @@ export default function DashboardMarketplace() {
           submitter_name:        nameMap.get(ini.user_id) ?? null,
           submitter_user_type:   userTypeMap.get(ini.user_id) ?? null,
           submitter_dd_score:    ddScoreMap.get(ini.user_id) ?? null,
+          submitter_trust_tier:  ddTierMap.get(ini.user_id) ?? null,
         }));
 
         setInitiatives(enriched as InitiativeRow[]);
@@ -1093,7 +1103,7 @@ function MarketplaceDetail({
   useEffect(() => {
     if (!initiative.user_id) return;
     supabase.from("organizations")
-      .select("dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration")
+      .select("dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence")
       .eq("user_id", initiative.user_id).single()
       .then(({ data }) => { if (data) setInitiativeOrgDd(data); });
   }, [initiative.user_id]);
@@ -1101,6 +1111,12 @@ function MarketplaceDetail({
   const initiativeDdItems = initiativeOrgDd
     ? [initiativeOrgDd.dd_financial_model, initiativeOrgDd.dd_audited_accounts, initiativeOrgDd.dd_governance_doc, initiativeOrgDd.dd_esg_assessment, initiativeOrgDd.dd_impact_framework, initiativeOrgDd.dd_environmental_policy, initiativeOrgDd.dd_safeguarding_policy, initiativeOrgDd.dd_legal_registration, initiativeOrgDd.dd_legal_compliance_declaration]
     : [];
+  const initiativeDdScore = initiativeOrgDd
+    ? Math.round((initiativeDdItems.filter(Boolean).length / initiativeDdItems.length) * 100)
+    : null;
+  const initiativeTrustTier = initiativeOrgDd
+    ? computeTrustTier(initiativeDdScore ?? 0, initiativeOrgDd.dd_evidence).tier
+    : null;
 
   async function submitQuestion() {
     if (!question.trim() || !user?.id || !initiative.user_id) return;
@@ -1623,6 +1639,8 @@ function MarketplaceDetail({
             )}
             <span>{initiative.eois} expression{initiative.eois !== 1 ? "s" : ""} of interest</span>
             <span>{new Date(initiative.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
+            {initiativeDdScore != null && <span>DD Readiness: {initiativeDdScore}%</span>}
+            {initiativeTrustTier && <TrustBadge tier={initiativeTrustTier} />}
           </div>
         </div>
 

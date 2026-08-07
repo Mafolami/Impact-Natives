@@ -5,9 +5,10 @@ import { useAuth } from "@/context/AuthContext";
 import { Loader2, Search, Users, Sparkles, RefreshCw } from "lucide-react";
 import { UserAvatar, avatarColor, initials } from "@/components/ui/UserAvatar";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
+import { TrustBadge } from "@/components/ui/TrustBadge";
 import { COUNTRIES } from "@/lib/countries";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
-import { DD_ITEMS, DDItemDef, DD_SENSITIVE_EVIDENCE_KEYS, DDDocument, PILLAR_INFO } from "@/lib/ddItems";
+import { DD_ITEMS, DDItemDef, DD_SENSITIVE_EVIDENCE_KEYS, DDDocument, PILLAR_INFO, computeTrustTier } from "@/lib/ddItems";
 import { hasLiveRelationshipWith } from "@/lib/relationshipAccess";
 import mammoth from "mammoth";
 import { EsgSnapshotSection } from "@/components/dashboard/EsgSnapshotSection";
@@ -1038,6 +1039,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                 <div className="flex items-center gap-1.5">
                   <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5]">DD readiness</p>
                   <InfoTooltip text={PILLAR_INFO.ddReadiness} />
+                  <TrustBadge tier={computeTrustTier(ddScore, org.dd_evidence).tier} withTooltip />
                   <span className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] ml-auto">{ddScore}%</span>
                 </div>
                 <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mt-1">Self-attested, not verified by Impact Natives</p>

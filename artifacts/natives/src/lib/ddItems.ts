@@ -47,6 +47,25 @@ export const PILLAR_INFO = {
   trackRecord: "Numbers and history the organisation has entered about its own past work. Not verified by Impact Natives.",
 } as const;
 
+export type TrustTier = "gold" | "silver" | "bronze" | "flagged" | null;
+
+export interface TrustTierResult {
+  tier: TrustTier;
+  label: string;
+  hasRedFlag: boolean;
+}
+
+export function computeTrustTier(ddScore: number, ddEvidence: Record<string, any> | null | undefined): TrustTierResult {
+  const legal = ddEvidence?.legal_compliance_declaration ?? {};
+  const hasRedFlag = Boolean(legal.hasBlacklisting) || Boolean(legal.hasPendingDisputes);
+
+  if (hasRedFlag) return { tier: "flagged", label: "Flagged", hasRedFlag: true };
+  if (ddScore >= 90) return { tier: "gold", label: "Gold", hasRedFlag: false };
+  if (ddScore >= 60) return { tier: "silver", label: "Silver", hasRedFlag: false };
+  if (ddScore >= 30) return { tier: "bronze", label: "Bronze", hasRedFlag: false };
+  return { tier: null, label: "", hasRedFlag: false };
+}
+
 export const DD_ITEMS: DDItemDef[] = [
     {
       key: "financial_model",

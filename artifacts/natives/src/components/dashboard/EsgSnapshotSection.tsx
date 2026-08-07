@@ -13,6 +13,8 @@ import { Loader2 } from "lucide-react";
 import { jsPDF } from "jspdf";
 import { supabase } from "@/lib/supabase";
 import { BRICOLAGE_GROTESQUE_BOLD_BASE64 } from "@/lib/fonts/bricolageGrotesqueBold";
+import { computeTrustTier } from "@/lib/ddItems";
+import { TrustBadge } from "@/components/ui/TrustBadge";
 
 export interface EsgSnapshotOrgInput {
   id: string;
@@ -206,7 +208,11 @@ export function EsgSnapshotSection({ org }: { org: EsgSnapshotOrgInput }) {
     doc.text(`Generated on ${generatedAt} via Impact Natives`, margin, y);
     y += 20;
 
-    const disclaimerText = sanitizeForPdf(`This snapshot summarises what ${safeOrgName} has disclosed on Impact Natives. It is not an independent audit or third-party verification. DD Readiness ${esgReport.dd_readiness_score}% complete. ${esgReport.delivery_has_data ? `Delivery: ${esgReport.delivery_rate}% of tracked relationships completed.` : "No completed delivery outcomes tracked yet."} Figures reflect this organisation's profile as of the generation date above and may change.`);
+    const trustTierResult = computeTrustTier(esgReport.dd_readiness_score, org.dd_evidence);
+    const trustTierLine = trustTierResult.tier
+      ? ` Trust tier: ${trustTierResult.label}.`
+      : "";
+    const disclaimerText = sanitizeForPdf(`This snapshot summarises what ${safeOrgName} has disclosed on Impact Natives. It is not an independent audit or third-party verification. DD Readiness ${esgReport.dd_readiness_score}% complete.${trustTierLine} ${esgReport.delivery_has_data ? `Delivery: ${esgReport.delivery_rate}% of tracked relationships completed.` : "No completed delivery outcomes tracked yet."} Figures reflect this organisation's profile as of the generation date above and may change.`);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     const disclaimerLines = doc.splitTextToSize(disclaimerText, contentWidth - 20);
@@ -273,7 +279,10 @@ export function EsgSnapshotSection({ org }: { org: EsgSnapshotOrgInput }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setEsgReport(null)}>
           <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-lg p-6 space-y-4 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div>
-              <h3 className="text-lg font-bold text-black dark:text-white">ESG Snapshot</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold text-black dark:text-white">ESG Snapshot</h3>
+                <TrustBadge tier={computeTrustTier(esgReport.dd_readiness_score, org.dd_evidence).tier} withTooltip />
+              </div>
               <p className="text-sm text-black dark:text-white mt-1">{esgReport.headline}</p>
             </div>
             <p className="text-xs text-black dark:text-white opacity-70">
