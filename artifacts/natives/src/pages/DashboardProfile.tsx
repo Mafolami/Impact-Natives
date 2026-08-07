@@ -11,6 +11,7 @@ import { UserAvatar } from "@/components/ui/UserAvatar";
 import { COUNTRIES } from "@/lib/countries";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
 import { DD_ITEMS, DDItemDef, DDDocument, PILLAR_INFO } from "@/lib/ddItems";
+import { EsgSnapshotSection } from "@/components/dashboard/EsgSnapshotSection";
 
 
 const ORG_TYPE_OPTIONS = [
@@ -2017,6 +2018,36 @@ export default function DashboardProfile() {
                   <div className="px-8 sm:px-12 py-10">
                     <DeliveryStatsCard orgId={orgId} />
                   </div>
+
+                  {orgId && (
+                    <EsgSnapshotSection org={{
+                      id: orgId,
+                      organisation_name: orgName,
+                      organisation_type: orgTypeNow,
+                      sector: sectors,
+                      country: country,
+                      dd_financial_model: ddFinancialModel,
+                      dd_audited_accounts: ddAuditedAccounts,
+                      dd_governance_doc: ddGovernanceDoc,
+                      dd_esg_assessment: ddEsgAssessment,
+                      dd_impact_framework: ddImpactFramework,
+                      dd_environmental_policy: ddEnvironmentalPolicy,
+                      dd_safeguarding_policy: ddSafeguardingPolicy,
+                      dd_legal_registration: ddLegalRegistration,
+                      dd_legal_compliance_declaration: ddLegalComplianceDeclaration,
+                      dd_evidence: ddEvidence,
+                      total_beneficiaries_reached: totalBeneficiaries,
+                      jobs_created: jobsCreated,
+                      female_beneficiaries_pct: femalePct,
+                      youth_beneficiaries_pct: youthPct,
+                      years_of_operation: yearsOfOperation,
+                      grants_received_count: grantsCount,
+                      grants_total_value_usd: grantsTotalValue,
+                      grants_delivered_on_time_pct: grantsOnTimePct,
+                      previous_funders: previousFunders,
+                      third_party_evaluations: thirdPartyEvaluations,
+                    }} />
+                  )}
                 </SectionCardGroup>
               )}
 
