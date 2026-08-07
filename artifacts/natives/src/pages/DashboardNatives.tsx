@@ -11,6 +11,7 @@ import { DD_ITEMS, DDItemDef, DD_SENSITIVE_EVIDENCE_KEYS, DDDocument, PILLAR_INF
 import { hasLiveRelationshipWith } from "@/lib/relationshipAccess";
 import mammoth from "mammoth";
 import { jsPDF } from "jspdf";
+import { BRICOLAGE_GROTESQUE_BOLD_BASE64 } from "@/lib/fonts/bricolageGrotesqueBold";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -995,6 +996,8 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
   function downloadEsgReportPdf() {
     if (!esgReport) return;
     const doc = new jsPDF({ unit: "pt", format: "a4", floatPrecision: 2 });
+    doc.addFileToVFS("BricolageGrotesque-Bold.ttf", BRICOLAGE_GROTESQUE_BOLD_BASE64);
+    doc.addFont("BricolageGrotesque-Bold.ttf", "Bricolage", "bold");
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 48;
@@ -1030,7 +1033,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
 
     function writeSectionHeader(text: string) {
       ensureSpace(24);
-      doc.setFont("helvetica", "bold");
+      doc.setFont("Bricolage", "bold");
       doc.setFontSize(11);
       doc.setTextColor(...FOREST_GREEN);
       doc.text(text.toUpperCase(), margin, y);
@@ -1042,7 +1045,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
     }
 
     // Header
-    doc.setFont("helvetica", "bold");
+    doc.setFont("Bricolage", "bold");
     doc.setFontSize(18);
     doc.setTextColor(...FOREST_GREEN);
     doc.text("ESG Snapshot", margin, y);
