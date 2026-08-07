@@ -168,8 +168,8 @@ export default function VerifyOrganisation() {
             </div>
           </div>
           <div>
-            <h2 className="text-2xl font-semibold text-foreground">Documents submitted</h2>
-            <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">
+            <h2 className="text-[25.5px] font-semibold text-black">Documents submitted</h2>
+            <p className="text-[15.5px] text-black mt-2 max-w-sm mx-auto">
               The team will review your submission within 48 hours. You'll be notified once verified.
             </p>
           </div>
@@ -197,17 +197,17 @@ export default function VerifyOrganisation() {
               <ShieldCheck className="w-8 h-8 text-[#2D6A4F]" />
             </div>
           </div>
-          <h1 className="text-2xl font-semibold text-foreground">Verify your organisation</h1>
-          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+          <h1 className="text-[25.5px] font-semibold text-black">Verify your organisation</h1>
+          <p className="text-[15.5px] text-black max-w-sm mx-auto">
             Enter your registration details and upload supporting documents. Takes less than 48 hours to review.
           </p>
         </div>
 
-        <div className="bg-card rounded-2xl border border-border shadow-sm p-6 space-y-6">
+        <div className="bg-white rounded-2xl border border-border shadow-sm p-6 space-y-6">
 
           {/* Registration details */}
           <div className="space-y-3">
-            <p className="text-sm font-medium text-foreground">Registration type</p>
+            <p className="text-[15.5px] font-medium text-black">Registration type</p>
             <div className="flex gap-2">
               {([
                 { value: "RC", label: "Company (RC)" },
@@ -218,10 +218,10 @@ export default function VerifyOrganisation() {
                   key={value}
                   type="button"
                   onClick={() => { setRegistrationType(value); setIsDnfbpSector(null); }}
-                  className={`flex-1 text-xs px-3 py-2 rounded-lg border transition-colors ${
+                  className={`flex-1 text-[13.5px] px-3 py-2 rounded-lg border transition-colors ${
                     registrationType === value
                       ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
-                      : "border-border text-muted-foreground hover:border-[#2D6A4F]/40"
+                      : "border-border text-black hover:border-[#2D6A4F]/40"
                   }`}
                 >
                   {label}
@@ -250,7 +250,7 @@ export default function VerifyOrganisation() {
                 DNFIs). Conditional for RC/BN via a DNFBP-sector follow-up. */}
             {registrationType === "IT" && (
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[13.5px] text-black">
                   NGOs are required under Nigerian law to register with SCUML. This is mandatory.
                 </p>
                 <Input
@@ -264,17 +264,17 @@ export default function VerifyOrganisation() {
 
             {(registrationType === "RC" || registrationType === "BN") && (
               <div className="space-y-2">
-                <p className="text-xs text-foreground">
+                <p className="text-[13.5px] text-black">
                   Does your organisation operate in a regulated sector (real estate, consulting, legal services, dealers in precious goods, etc.)?
                 </p>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => setIsDnfbpSector(true)}
-                    className={`flex-1 text-xs px-3 py-2 rounded-lg border transition-colors ${
+                    className={`flex-1 text-[13.5px] px-3 py-2 rounded-lg border transition-colors ${
                       isDnfbpSector === true
                         ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
-                        : "border-border text-muted-foreground hover:border-[#2D6A4F]/40"
+                        : "border-border text-black hover:border-[#2D6A4F]/40"
                     }`}
                   >
                     Yes
@@ -282,10 +282,10 @@ export default function VerifyOrganisation() {
                   <button
                     type="button"
                     onClick={() => setIsDnfbpSector(false)}
-                    className={`flex-1 text-xs px-3 py-2 rounded-lg border transition-colors ${
+                    className={`flex-1 text-[13.5px] px-3 py-2 rounded-lg border transition-colors ${
                       isDnfbpSector === false
                         ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
-                        : "border-border text-muted-foreground hover:border-[#2D6A4F]/40"
+                        : "border-border text-black hover:border-[#2D6A4F]/40"
                     }`}
                   >
                     No
@@ -306,7 +306,7 @@ export default function VerifyOrganisation() {
           </div>
 
           {/* Divider */}
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="flex items-center gap-3 text-[13.5px] text-black">
             <div className="flex-1 border-t border-border" />
             Supporting document
             <div className="flex-1 border-t border-border" />
@@ -315,10 +315,10 @@ export default function VerifyOrganisation() {
           {/* File upload */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-foreground">Upload files</p>
-              <span className="text-xs text-muted-foreground">Max 5 MB total</span>
+              <p className="text-[15.5px] font-medium text-black">Upload files</p>
+              <span className="text-[13.5px] text-black">Max 5 MB total</span>
             </div>
-            <label className="flex items-center justify-center gap-2 cursor-pointer rounded-xl border border-dashed border-border px-4 py-4 text-sm text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-foreground transition-colors">
+            <label className="flex items-center justify-center gap-2 cursor-pointer rounded-xl border border-dashed border-border px-4 py-4 text-[15.5px] text-black hover:border-[#2D6A4F]/40 hover:text-black transition-colors">
               <span>+ Add file</span>
               <input
                 type="file"
@@ -331,10 +331,10 @@ export default function VerifyOrganisation() {
             {uploadedFiles.length > 0 && (
               <div className="space-y-2">
                 {uploadedFiles.map((f, i) => (
-                  <div key={i} className="flex items-center justify-between text-xs border border-border rounded-lg px-3 py-2 bg-muted/30">
+                  <div key={i} className="flex items-center justify-between text-[13.5px] border border-border rounded-lg px-3 py-2 bg-white">
                     <div className="flex flex-col gap-0.5 min-w-0">
-                      <span className="font-medium text-foreground truncate">{f.name}</span>
-                      <span className="text-muted-foreground">{(f.size / 1024).toFixed(0)} KB</span>
+                      <span className="font-medium text-black truncate">{f.name}</span>
+                      <span className="text-black">{(f.size / 1024).toFixed(0)} KB</span>
                     </div>
                     <button
                       type="button"
@@ -358,7 +358,7 @@ export default function VerifyOrganisation() {
 
           {/* Link input */}
           <div className="space-y-3">
-            <p className="text-sm font-medium text-foreground">Paste a link</p>
+            <p className="text-[15.5px] font-medium text-black">Paste a link</p>
             <Input
               placeholder="https://docs.example.com/registration"
               value={docLink}
@@ -387,14 +387,14 @@ export default function VerifyOrganisation() {
           {/* Added links */}
           {docLinks.length > 0 && (
             <div className="space-y-2 border-t border-border pt-4">
-              <p className="text-sm font-medium text-foreground">Added links</p>
+              <p className="text-[15.5px] font-medium text-black">Added links</p>
               {docLinks.map((l, i) => {
                 const parsed = JSON.parse(l);
                 return (
-                  <div key={i} className="flex items-center justify-between text-xs border border-border rounded-lg px-3 py-2 bg-muted/30">
+                  <div key={i} className="flex items-center justify-between text-[13.5px] border border-border rounded-lg px-3 py-2 bg-white">
                     <div className="flex flex-col gap-0.5 min-w-0">
-                      <span className="font-medium text-foreground truncate">{parsed.name}</span>
-                      <span className="text-muted-foreground truncate">{parsed.file_url}</span>
+                      <span className="font-medium text-black truncate">{parsed.name}</span>
+                      <span className="text-black truncate">{parsed.file_url}</span>
                     </div>
                     <button
                       type="button"
@@ -435,7 +435,7 @@ export default function VerifyOrganisation() {
           </Button>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground">
+        <p className="text-center text-[13.5px] text-black">
           Accepted formats: PDF, DOC, DOCX, PNG, JPG. Max 5 MB total.
         </p>
       </div>
