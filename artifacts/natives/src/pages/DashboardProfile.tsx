@@ -508,8 +508,8 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
                       className={`w-full h-9 px-3 mt-2 rounded-lg border bg-background text-sm text-foreground ${
                         attemptedInvalidSave && isQuestionMissing(q) ? "border-red-400" : "border-border"
                       }`} />
-                    {(q.key === "hasBlacklisting" || q.key === "hasPendingDisputes") && (
-                      <p className={`text-[11px] mt-1 ${String(answers[q.followUpIfYes.key] ?? "").trim().length < 20 ? "text-red-500" : "text-black dark:text-white"}`}>
+                    {(q.key === "hasBlacklisting" || q.key === "hasPendingDisputes") && String(answers[q.followUpIfYes.key] ?? "").trim().length < 20 && (
+                      <p className="text-[11px] mt-1 text-red-500">
                         {String(answers[q.followUpIfYes.key] ?? "").trim().length}/20 characters minimum
                       </p>
                     )}

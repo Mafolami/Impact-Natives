@@ -152,8 +152,8 @@ export const DD_ITEMS: DDItemDef[] = [
       label: "Legal & compliance declaration",
       sub: "Blacklisting, pending disputes, and undisclosed conflicts",
       questions: [
-        { key: "hasBlacklisting", label: "Do you have any current blacklisting by any government or regulatory agency?", type: "yesno", followUpIfYes: { key: "blacklistingDetail", label: "Please briefly describe (optional)", required: false } },
-        { key: "hasPendingDisputes", label: "Do you have any pending legal disputes, investigations, or allegations?", type: "yesno", followUpIfYes: { key: "pendingDisputesDetail", label: "Please briefly describe (optional)", required: false } },
+        { key: "hasBlacklisting", label: "Do you have any current blacklisting by any government or regulatory agency?", type: "yesno", followUpIfYes: { key: "blacklistingDetail", label: "Please describe — required if Yes, minimum 20 characters", required: false } },
+        { key: "hasPendingDisputes", label: "Do you have any pending legal disputes, investigations, or allegations?", type: "yesno", followUpIfYes: { key: "pendingDisputesDetail", label: "Please describe — required if Yes, minimum 20 characters", required: false } },
         { key: "conflictsToDisclose", label: "Any related-party conflicts with funders or partners to disclose?", type: "yesno", followUpIfYes: { key: "conflictsDetail", label: "Please briefly describe (optional)", required: false } },
       ],
     },
