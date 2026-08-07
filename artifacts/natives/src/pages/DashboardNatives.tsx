@@ -803,8 +803,16 @@ function InfoTooltip({ text }: { text: string }) {
 // ── Org Detail ────────────────────────────────────────────────────────────────
 
 function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const isVerified = org.verification_status === "verified";
+  // Disclosure detail (blacklisting/dispute text) is gated by the VIEWER's own
+  // track, not the org being viewed — funders/corporates get the explanation,
+  // everyone else sees the badge only. The org always sees its own detail.
+  const viewerIsFunder = ["philanthropic_foundation", "venture_capital"].includes(profile?.org_type ?? "");
+  const viewerIsCorporate = ["corporation", "technology_company", "public_sector"].includes(profile?.org_type ?? "");
+  const isOwnProfile = !!user?.id && user.id === org.user_id;
+  const canSeeDisclosureDetail = isOwnProfile || viewerIsFunder || viewerIsCorporate;
+  const legalEvidence = org.dd_evidence?.legal_compliance_declaration ?? {};
   const sectors    = normalizeArr(org.sector);
   const countries  = normalizeArr(org.country);
   const color      = avatarColor(org.id);
@@ -1063,6 +1071,16 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                   <TrustBadge tier={computeTrustTier(ddScore, org.dd_evidence).tier} withTooltip />
                   <span className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] ml-auto">{ddScore}%</span>
                 </div>
+                {canSeeDisclosureDetail && (legalEvidence.blacklistingDetail || legalEvidence.pendingDisputesDetail) && (
+                  <div className="mt-2 border border-red-500/20 rounded-lg p-3 bg-red-500/5">
+                    {legalEvidence.blacklistingDetail && (
+                      <p className="text-xs text-[#111111] dark:text-[#F5F5F5]"><span className="font-semibold">Blacklisting disclosed:</span> {legalEvidence.blacklistingDetail}</p>
+                    )}
+                    {legalEvidence.pendingDisputesDetail && (
+                      <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mt-1"><span className="font-semibold">Pending disputes disclosed:</span> {legalEvidence.pendingDisputesDetail}</p>
+                    )}
+                  </div>
+                )}
                 <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mt-1">Self-attested, not verified by Impact Natives</p>
                 <div className="h-[3px] bg-muted rounded-full mt-2.5">
                   <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${ddScore}%` }} />
@@ -1098,6 +1116,16 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                   <TrustBadge tier={computeTrustTier(fddScore, org.dd_evidence).tier} withTooltip />
                   <span className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] ml-auto">{fddScore}%</span>
                 </div>
+                {canSeeDisclosureDetail && (legalEvidence.blacklistingDetail || legalEvidence.pendingDisputesDetail) && (
+                  <div className="mt-2 border border-red-500/20 rounded-lg p-3 bg-red-500/5">
+                    {legalEvidence.blacklistingDetail && (
+                      <p className="text-xs text-[#111111] dark:text-[#F5F5F5]"><span className="font-semibold">Blacklisting disclosed:</span> {legalEvidence.blacklistingDetail}</p>
+                    )}
+                    {legalEvidence.pendingDisputesDetail && (
+                      <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mt-1"><span className="font-semibold">Pending disputes disclosed:</span> {legalEvidence.pendingDisputesDetail}</p>
+                    )}
+                  </div>
+                )}
                 <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mt-1">Self-attested, not verified by Impact Natives</p>
                 <div className="h-[3px] bg-muted rounded-full mt-2.5">
                   <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${fddScore}%` }} />

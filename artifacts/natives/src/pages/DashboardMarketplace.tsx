@@ -1642,6 +1642,20 @@ function MarketplaceDetail({
             {initiativeDdScore != null && <span>DD Readiness: {initiativeDdScore}%</span>}
             {initiativeTrustTier && <TrustBadge tier={initiativeTrustTier} />}
           </div>
+          {(isFunder || isCorporate) && (() => {
+            const legalEvidence = initiativeOrgDd?.dd_evidence?.legal_compliance_declaration ?? {};
+            if (!legalEvidence.blacklistingDetail && !legalEvidence.pendingDisputesDetail) return null;
+            return (
+              <div className="mt-2 border border-red-500/20 rounded-lg p-3 bg-red-500/5">
+                {legalEvidence.blacklistingDetail && (
+                  <p className="text-xs text-white/80"><span className="font-semibold">Blacklisting disclosed:</span> {legalEvidence.blacklistingDetail}</p>
+                )}
+                {legalEvidence.pendingDisputesDetail && (
+                  <p className="text-xs text-white/80 mt-1"><span className="font-semibold">Pending disputes disclosed:</span> {legalEvidence.pendingDisputesDetail}</p>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Meta grid — deliberately unchanged: light bg-background tiles
