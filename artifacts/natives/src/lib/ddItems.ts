@@ -158,3 +158,72 @@ export const DD_ITEMS: DDItemDef[] = [
       ],
     },
   ];
+
+// Parallel DD checklist for funders and corporates. Deliberately smaller
+// than DD_ITEMS (6 items vs. 9) -- funders have weaker built-in incentive
+// to complete self-disclosure forms than implementers do, and most
+// implementer orgs on the platform haven't finished the existing 9-item
+// checklist yet. Heavier verification items (proof of funds, third-party
+// audits, implementer references/endorsements) were deliberately left out
+// of v1 -- real future candidates once there's an endorsement system and
+// this checklist is actually seeing completion.
+export const FUNDER_DD_ITEMS: DDItemDef[] = [
+    {
+      key: "disbursement_track_record",
+      label: "Fund disbursement track record",
+      sub: "Grants or commitments made and how reliably they were paid out",
+      questions: [
+        { key: "totalCommitted", label: "Total grants/commitments made to date (approx.)", type: "text" },
+        { key: "onTimePct", label: "Disbursed on time", type: "select", options: ["Under 50%", "50-75%", "75-90%", "Over 90%", "Not tracked"] },
+        { key: "notes", label: "Anything else worth noting?", type: "text", required: false },
+      ],
+    },
+    {
+      key: "decision_transparency",
+      label: "Decision-making transparency",
+      sub: "How partnership/funding decisions are made and communicated",
+      questions: [
+        { key: "hasStatedTimeline", label: "Published/stated decision timeline for applicants?", type: "yesno" },
+        { key: "decisionProcess", label: "Decision process", type: "select", options: ["Single reviewer", "Committee review", "Board approval required", "Other"] },
+        { key: "notes", label: "Anything else worth noting?", type: "text", required: false },
+      ],
+    },
+    {
+      key: "conflict_disclosure",
+      label: "Conflict of interest disclosure",
+      sub: "Related-party ties to funded organisations or board members",
+      questions: [
+        { key: "hasConflicts", label: "Do you have any related-party conflicts with organisations you fund or partner with?", type: "yesno", followUpIfYes: { key: "conflictsDetail", label: "Please briefly describe (optional)", required: false } },
+      ],
+    },
+    {
+      key: "governance_doc",
+      label: "Governance documentation",
+      sub: "Audited accounts and board structure",
+      questions: [
+        { key: "hasAuditedAccounts", label: "Audited accounts available?", type: "yesno" },
+        { key: "hasBoardStructure", label: "Board/investment committee structure documented?", type: "yesno" },
+        { key: "notes", label: "Anything else worth noting?", type: "text", required: false },
+      ],
+    },
+    {
+      key: "esg_framework",
+      label: "ESG framework followed",
+      sub: "Framework used to assess your own funding/investment decisions",
+      questions: [
+        { key: "usesFramework", label: "Do you use an established ESG framework?", type: "yesno" },
+        { key: "frameworkName", label: "Framework used", type: "select", options: ["GRI", "SASB", "IRIS+", "B Corp", "Internal framework", "Other"], showIf: { key: "usesFramework", equals: true } },
+        { key: "notes", label: "Anything else worth noting?", type: "text", required: false },
+      ],
+    },
+    {
+      key: "legal_registration",
+      label: "Legal registration / tax-exempt status",
+      sub: "Registration and tax status of the funding entity",
+      questions: [
+        { key: "registrationNumber", label: "Registration number", type: "text" },
+        { key: "country", label: "Country", type: "select", options: COUNTRIES },
+        { key: "registeringBody", label: "Registering body", type: "text" },
+      ],
+    },
+  ];
