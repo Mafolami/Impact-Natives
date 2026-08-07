@@ -478,7 +478,10 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
                     }`}>
                     Yes
                   </button>
-                  <button type="button" onClick={() => setAnswer(q.key, false)}
+                  <button type="button" onClick={() => {
+                      setAnswer(q.key, false);
+                      if (q.followUpIfYes) setAnswer(q.followUpIfYes.key, "");
+                    }}
                     className={`flex-1 h-9 rounded-lg border text-sm font-medium transition-colors ${
                       answers[q.key] === false ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : `${flagClass} text-black dark:text-white hover:border-[#2D6A4F]`
                     }`}>
