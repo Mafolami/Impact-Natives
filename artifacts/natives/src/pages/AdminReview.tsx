@@ -1187,6 +1187,11 @@ type VerificationProfile = {
   org_sdgs?: string[] | null
   org_sectors?: string[] | null
   org_country?: string | null
+  org_registration_type?: string | null
+  org_registration_number?: string | null
+  org_tin?: string | null
+  org_scuml_number?: string | null
+  org_is_dnfbp_sector?: boolean | null
 }
 
 type VerificationDoc = {
@@ -1249,19 +1254,24 @@ if (profileList.length > 0) {
   const userIds = profileList.map(p => p.id);
   const { data: orgData } = await supabase
     .from("organizations")
-    .select("user_id,description,needs,offers,sdgs,sector,country")
+    .select("user_id,description,needs,offers,sdgs,sector,country,registration_type,registration_number,tin,scuml_number,is_dnfbp_sector")
     .in("user_id", userIds);
   const orgMap = new Map((orgData ?? []).map((o: any) => [o.user_id, o]));
   enriched = profileList.map(p => {
     const org = orgMap.get(p.id);
     return {
       ...p,
-      org_description: org?.description ?? null,
-      org_needs:       org?.needs       ?? null,
-      org_offers:      org?.offers      ?? null,
-      org_sdgs:        org?.sdgs        ?? null,
-      org_sectors:     normalizeArr(org?.sector),
-      org_country:     Array.isArray(org?.country) ? org.country[0] : org?.country ?? null,
+      org_description:          org?.description ?? null,
+      org_needs:                org?.needs       ?? null,
+      org_offers:                org?.offers      ?? null,
+      org_sdgs:                  org?.sdgs        ?? null,
+      org_sectors:                normalizeArr(org?.sector),
+      org_country:                Array.isArray(org?.country) ? org.country[0] : org?.country ?? null,
+      org_registration_type:      org?.registration_type ?? null,
+      org_registration_number:    org?.registration_number ?? null,
+      org_tin:                    org?.tin ?? null,
+      org_scuml_number:           org?.scuml_number ?? null,
+      org_is_dnfbp_sector:        org?.is_dnfbp_sector ?? null,
     };
   });
 }
@@ -1402,6 +1412,51 @@ setProfiles(enriched);
                     </span>
                   )}
                 </div>
+
+                {/* Statutory registration — cross-check against CAC's public search
+                    portal (search.cac.gov.ng) before approving. No live API call yet;
+                    this is manual verification with structured numbers instead of a
+                    blind document. */}
+                {profile.org_registration_type && (
+                  <div className="mb-4 grid grid-cols-2 gap-3 text-xs border border-white/10 rounded-lg p-3 bg-white/3">
+                    <div>
+                      <p className="text-white/40 uppercase tracking-wide mb-1">Registration type</p>
+                      <p className="text-white/80">
+                        {profile.org_registration_type === "RC" && "Company (RC)"}
+                        {profile.org_registration_type === "BN" && "Business Name (BN)"}
+                        {profile.org_registration_type === "IT" && "Incorporated Trustees (IT)"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-white/40 uppercase tracking-wide mb-1">Registration number</p>
+                      <p className="text-white/80">{profile.org_registration_number ?? "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-white/40 uppercase tracking-wide mb-1">TIN</p>
+                      <p className="text-white/80">{profile.org_tin ?? "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-white/40 uppercase tracking-wide mb-1">SCUML number</p>
+                      <p className="text-white/80">
+                        {profile.org_scuml_number ?? (
+                          profile.org_registration_type === "IT"
+                            ? "Missing — mandatory for NGOs"
+                            : "Not provided"
+                        )}
+                      </p>
+                    </div>
+                    <div className="col-span-2">
+                      <a
+                        href={`https://search.cac.gov.ng/`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#6fcf97] hover:underline"
+                      >
+                        Cross-check on CAC public search →
+                      </a>
+                    </div>
+                  </div>
+                )}
 
                 {/* Org profile data */}
                 {(profile.org_description || profile.org_needs?.length || profile.org_offers?.length || profile.org_sdgs?.length) && (

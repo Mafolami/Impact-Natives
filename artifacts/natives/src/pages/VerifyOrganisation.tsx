@@ -18,7 +18,23 @@ export default function VerifyOrganisation() {
   const [submitted, setSubmitted]           = useState(false);
   const [linkError, setLinkError]           = useState("");
 
+  const [registrationType, setRegistrationType]     = useState<"RC" | "BN" | "IT" | "">("");
+  const [registrationNumber, setRegistrationNumber] = useState("");
+  const [tin, setTin]                                = useState("");
+  const [isDnfbpSector, setIsDnfbpSector]            = useState<boolean | null>(null);
+  const [scumlNumber, setScumlNumber]                = useState("");
+  const [regError, setRegError]                      = useState("");
+
+  // SCUML is mandatory for IT (NGOs are DNFIs under the Money Laundering
+  // Prohibition Act), conditional for RC/BN based on the DNFBP follow-up.
+  const scumlRequired = registrationType === "IT" || (registrationType !== "" && isDnfbpSector === true);
+
   const hasDocuments = uploadedFiles.length > 0 || docLinks.length > 0;
+  const hasRegistrationInfo =
+    registrationType !== "" &&
+    registrationNumber.trim() !== "" &&
+    tin.trim() !== "" &&
+    (!scumlRequired || scumlNumber.trim() !== "");
 
   function handleFileAdd(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files || []);
@@ -54,9 +70,30 @@ export default function VerifyOrganisation() {
 
   async function handleSubmit() {
     if (!user || !profile) return;
-    if (!hasDocuments) return;
+    if (!hasDocuments || !hasRegistrationInfo) return;
 
+    setRegError("");
     setSubmitting(true);
+
+    // Save structured registration data to the org record before touching documents,
+    // so a document-upload failure never leaves the numbers unsaved.
+    const { error: regUpdateError } = await supabase
+      .from("organizations")
+      .update({
+        registration_type: registrationType,
+        registration_number: registrationNumber.trim(),
+        tin: tin.trim(),
+        is_dnfbp_sector: registrationType === "IT" ? null : isDnfbpSector,
+        scuml_number: scumlRequired ? scumlNumber.trim() : null,
+      })
+      .eq("user_id", user.id);
+
+    if (regUpdateError) {
+      setRegError(`Failed to save registration details: ${regUpdateError.message}`);
+      setSubmitting(false);
+      return;
+    }
+
     const rows: any[] = [];
 
     // Upload files to Supabase Storage
@@ -162,11 +199,118 @@ export default function VerifyOrganisation() {
           </div>
           <h1 className="text-2xl font-semibold text-foreground">Verify your organisation</h1>
           <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-            Upload your registration document or paste a link. Takes less than 48 hours to review.
+            Enter your registration details and upload supporting documents. Takes less than 48 hours to review.
           </p>
         </div>
 
         <div className="bg-card rounded-2xl border border-border shadow-sm p-6 space-y-6">
+
+          {/* Registration details */}
+          <div className="space-y-3">
+            <p className="text-sm font-medium text-foreground">Registration type</p>
+            <div className="flex gap-2">
+              {([
+                { value: "RC", label: "Company (RC)" },
+                { value: "BN", label: "Business Name (BN)" },
+                { value: "IT", label: "Incorporated Trustees (IT)" },
+              ] as const).map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => { setRegistrationType(value); setIsDnfbpSector(null); }}
+                  className={`flex-1 text-xs px-3 py-2 rounded-lg border transition-colors ${
+                    registrationType === value
+                      ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
+                      : "border-border text-muted-foreground hover:border-[#2D6A4F]/40"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {registrationType !== "" && (
+              <>
+                <Input
+                  placeholder={registrationType === "IT" ? "IT Number" : `${registrationType} Number`}
+                  value={registrationNumber}
+                  onChange={(e) => { setRegistrationNumber(e.target.value); setRegError(""); }}
+                  className="h-10"
+                />
+                <Input
+                  placeholder="Tax Identification Number (TIN)"
+                  value={tin}
+                  onChange={(e) => { setTin(e.target.value); setRegError(""); }}
+                  className="h-10"
+                />
+              </>
+            )}
+
+            {/* SCUML: mandatory for IT (NGOs are legally required to register as
+                DNFIs). Conditional for RC/BN via a DNFBP-sector follow-up. */}
+            {registrationType === "IT" && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  NGOs are required under Nigerian law to register with SCUML. This is mandatory.
+                </p>
+                <Input
+                  placeholder="SCUML Certificate Number"
+                  value={scumlNumber}
+                  onChange={(e) => { setScumlNumber(e.target.value); setRegError(""); }}
+                  className="h-10"
+                />
+              </div>
+            )}
+
+            {(registrationType === "RC" || registrationType === "BN") && (
+              <div className="space-y-2">
+                <p className="text-xs text-foreground">
+                  Does your organisation operate in a regulated sector (real estate, consulting, legal services, dealers in precious goods, etc.)?
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsDnfbpSector(true)}
+                    className={`flex-1 text-xs px-3 py-2 rounded-lg border transition-colors ${
+                      isDnfbpSector === true
+                        ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
+                        : "border-border text-muted-foreground hover:border-[#2D6A4F]/40"
+                    }`}
+                  >
+                    Yes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsDnfbpSector(false)}
+                    className={`flex-1 text-xs px-3 py-2 rounded-lg border transition-colors ${
+                      isDnfbpSector === false
+                        ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
+                        : "border-border text-muted-foreground hover:border-[#2D6A4F]/40"
+                    }`}
+                  >
+                    No
+                  </button>
+                </div>
+                {isDnfbpSector === true && (
+                  <Input
+                    placeholder="SCUML Certificate Number"
+                    value={scumlNumber}
+                    onChange={(e) => { setScumlNumber(e.target.value); setRegError(""); }}
+                    className="h-10"
+                  />
+                )}
+              </div>
+            )}
+
+            {regError && <p className="text-xs text-destructive">{regError}</p>}
+          </div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex-1 border-t border-border" />
+            Supporting document
+            <div className="flex-1 border-t border-border" />
+          </div>
 
           {/* File upload */}
           <div className="space-y-3">
@@ -277,7 +421,7 @@ export default function VerifyOrganisation() {
           </button>
           <Button
             onClick={handleSubmit}
-            disabled={!hasDocuments || submitting}
+            disabled={!hasDocuments || !hasRegistrationInfo || submitting}
             className="bg-[#2D6A4F] hover:bg-[#245c43] text-white px-6"
           >
             {submitting ? (
