@@ -410,8 +410,21 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
 
   function isQuestionMissing(q: typeof item.questions[number]): boolean {
     if (q.showIf && answers[q.showIf.key] !== q.showIf.equals) return false;
-    if (q.required === false) return false;
     const val = answers[q.key];
+    // Blacklisting/pending-disputes disclosures require 20+ characters of
+    // detail when answered Yes — a real answer is required to save at all,
+    // not just optional context. Scoped to these two keys specifically;
+    // every other yesno+followUp question in the app keeps its normal
+    // required:false behaviour untouched.
+    if (q.key === "hasBlacklisting" || q.key === "hasPendingDisputes") {
+      if (val !== true && val !== false) return true;
+      if (val === true && q.type === "yesno" && q.followUpIfYes) {
+        const detail = String(answers[q.followUpIfYes.key] ?? "").trim();
+        if (detail.length < 20) return true;
+      }
+      return false;
+    }
+    if (q.required === false) return false;
     if (q.type === "yesno") {
       if (val !== true && val !== false) return true;
       if (q.followUpIfYes && q.followUpIfYes.required !== false && val === true && !answers[q.followUpIfYes.key]) return true;
@@ -489,11 +502,18 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
                   </button>
                 </div>
                 {q.followUpIfYes && answers[q.key] === true && (
-                  <input value={answers[q.followUpIfYes.key] ?? ""} onChange={e => setAnswer(q.followUpIfYes!.key, e.target.value)}
-                    placeholder={q.followUpIfYes.label}
-                    className={`w-full h-9 px-3 mt-2 rounded-lg border bg-background text-sm text-foreground ${
-                      attemptedInvalidSave && q.followUpIfYes.required !== false && !answers[q.followUpIfYes.key] ? "border-red-400" : "border-border"
-                    }`} />
+                  <>
+                    <input value={answers[q.followUpIfYes.key] ?? ""} onChange={e => setAnswer(q.followUpIfYes!.key, e.target.value)}
+                      placeholder={q.followUpIfYes.label}
+                      className={`w-full h-9 px-3 mt-2 rounded-lg border bg-background text-sm text-foreground ${
+                        attemptedInvalidSave && isQuestionMissing(q) ? "border-red-400" : "border-border"
+                      }`} />
+                    {(q.key === "hasBlacklisting" || q.key === "hasPendingDisputes") && (
+                      <p className={`text-[11px] mt-1 ${String(answers[q.followUpIfYes.key] ?? "").trim().length < 20 ? "text-red-500" : "text-black dark:text-white"}`}>
+                        {String(answers[q.followUpIfYes.key] ?? "").trim().length}/20 characters minimum
+                      </p>
+                    )}
+                  </>
                 )}
               </>
             )}

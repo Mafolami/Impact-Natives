@@ -769,9 +769,6 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, canSe
                 {followUp && !withholdDisclosureDetail && (
                   <p className="text-sm text-black dark:text-white mt-1 italic">{followUp}</p>
                 )}
-                {followUp && withholdDisclosureDetail && (
-                  <p className="text-sm text-black dark:text-white mt-1 italic">Detail visible to funders and corporate partners</p>
-                )}
               </div>
             );
           })}
