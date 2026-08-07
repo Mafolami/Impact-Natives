@@ -123,6 +123,7 @@ export default function VerifyOrganisation() {
         tin: tin.trim(),
         is_dnfbp_sector: registrationType === "IT" ? null : isDnfbpSector,
         scuml_number: scumlRequired ? scumlNumber.trim() : null,
+        verification_status: "pending",
       })
       .eq("user_id", user.id);
 

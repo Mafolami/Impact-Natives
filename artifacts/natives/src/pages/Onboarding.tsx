@@ -693,7 +693,11 @@ export default function Onboarding() {
         stage_preference:  stagePreference.length > 0 ? stagePreference : null,
         partner_type_preference: partnerTypePreference.length > 0 ? partnerTypePreference : null,
         status:            "published",
-        verification_status: requestVerify ? "pending" : "not_requested",
+        // Set at actual document submission (VerifyOrganisation.tsx), not here —
+        // choosing "start verification" at onboarding doesn't mean documents or
+        // registration data exist yet. Setting "pending" prematurely left orgs
+        // stuck in a ghost pending state whenever they skipped the /verify form.
+        verification_status: "not_requested",
         created_at:        new Date().toISOString(),
         updated_at:        new Date().toISOString(),
       });
