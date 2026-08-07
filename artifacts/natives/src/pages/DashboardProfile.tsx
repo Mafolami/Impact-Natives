@@ -1452,11 +1452,14 @@ export default function DashboardProfile() {
   const ddReadinessItems = [ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework, ddEnvironmentalPolicy, ddSafeguardingPolicy, ddLegalRegistration, ddLegalComplianceDeclaration];
   const fddReadinessItems = [fddDisbursementTrackRecord, fddDecisionTransparency, fddConflictDisclosure, fddGovernanceDoc, fddEsgFramework, fddLegalRegistration];
   const ddReadinessFraction = ddReadinessItems.filter(Boolean).length / ddReadinessItems.length;
+  const fddReadinessFraction = fddReadinessItems.filter(Boolean).length / fddReadinessItems.length;
   const orgTypeStrengthItems: number[] = isFunder
-    ? [investmentThesis ? 1 : 0]
+    ? [investmentThesis ? 1 : 0, fddReadinessFraction]
     : isImplementer
     ? [ddReadinessFraction, totalBeneficiaries !== "" ? 1 : 0]
-    : []; // corporate: every AI-consumed field is already in the base 7 org items below via completeness parity — nothing to add
+    : isCorporate
+    ? [fddReadinessFraction] // corporate's other AI-consumed fields (CSR focus, budget, ESG frameworks) are already in the base 7 org items via completeness parity — fddReadinessFraction is the one genuinely new signal since the funder/corporate DD checklist was added
+    : [];
   // linkedinUrl belongs to the contact person for org accounts (set only
   // on the Contact Details pane, which the Online Presence pane doesn't
   // even render for isOrg — `{!isOrg && (...)}` excludes it there). It is
@@ -2781,12 +2784,19 @@ export default function DashboardProfile() {
               // specific fields confirmed, by reading generate-deal-memo and
               // match-orgs-for-partnership directly, to actually feed AI
               // decisions — not a general "more fields = better" pass.
+              // fdd readiness added to both funder and corporate once the
+              // funder/corporate DD checklist existed to reference — it's
+              // a genuinely new signal, not covered by any base item.
               ...(isFunder ? [
                 { label: "Investment thesis", done: !!investmentThesis },
+                { label: `DD readiness (${Math.round(fddReadinessFraction * fddReadinessItems.length)}/${fddReadinessItems.length})`, done: fddReadinessFraction === 1, partial: fddReadinessFraction > 0 && fddReadinessFraction < 1 },
               ] : []),
               ...(isImplementer ? [
                 { label: `DD readiness (${Math.round(ddReadinessFraction * ddReadinessItems.length)}/${ddReadinessItems.length})`, done: ddReadinessFraction === 1, partial: ddReadinessFraction > 0 && ddReadinessFraction < 1 },
                 { label: "Beneficiaries reached", done: totalBeneficiaries !== "" },
+              ] : []),
+              ...(isCorporate ? [
+                { label: `DD readiness (${Math.round(fddReadinessFraction * fddReadinessItems.length)}/${fddReadinessItems.length})`, done: fddReadinessFraction === 1, partial: fddReadinessFraction > 0 && fddReadinessFraction < 1 },
               ] : []),
               ...(isOrg ? [{ label: "Verified organisation", done: !!profile?.is_verified }] : []),
             ].map((item: any) => (
