@@ -8,7 +8,7 @@ import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { TrustBadge } from "@/components/ui/TrustBadge";
 import { COUNTRIES } from "@/lib/countries";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
-import { DD_ITEMS, DDItemDef, DD_SENSITIVE_EVIDENCE_KEYS, DDDocument, PILLAR_INFO, computeTrustTier } from "@/lib/ddItems";
+import { DD_ITEMS, FUNDER_DD_ITEMS, DDItemDef, DD_SENSITIVE_EVIDENCE_KEYS, DDDocument, PILLAR_INFO, computeTrustTier } from "@/lib/ddItems";
 import { hasLiveRelationshipWith } from "@/lib/relationshipAccess";
 import mammoth from "mammoth";
 import { EsgSnapshotSection } from "@/components/dashboard/EsgSnapshotSection";
@@ -54,6 +54,12 @@ interface OrgRow {
   dd_safeguarding_policy?: boolean;
   dd_legal_registration?: boolean;
   dd_legal_compliance_declaration?: boolean;
+  fdd_disbursement_track_record?: boolean;
+  fdd_decision_transparency?: boolean;
+  fdd_conflict_disclosure?: boolean;
+  fdd_governance_doc?: boolean;
+  fdd_esg_framework?: boolean;
+  fdd_legal_registration?: boolean;
   dd_evidence?: Record<string, any>;
   needs?: string[];
   offers?: string[];
@@ -468,7 +474,7 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
       setLoading(true);
       const { data: orgData, error } = await supabase
         .from("organizations")
-        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status,investment_thesis,stage_preference,geographic_focus,impact_strategy")        
+        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status,investment_thesis,stage_preference,geographic_focus,impact_strategy")        
         .eq("status", "published")
         .order("organisation_name", { ascending: true });
 
@@ -944,6 +950,17 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
     legal_compliance_declaration: org.dd_legal_compliance_declaration,
   };
 
+  const fddItemsArr = [org.fdd_disbursement_track_record, org.fdd_decision_transparency, org.fdd_conflict_disclosure, org.fdd_governance_doc, org.fdd_esg_framework, org.fdd_legal_registration];
+  const fddScore = Math.round((fddItemsArr.filter(Boolean).length / fddItemsArr.length) * 100);
+  const fddStateMap: Record<string, boolean | undefined> = {
+    disbursement_track_record: org.fdd_disbursement_track_record,
+    decision_transparency: org.fdd_decision_transparency,
+    conflict_disclosure: org.fdd_conflict_disclosure,
+    governance_doc: org.fdd_governance_doc,
+    esg_framework: org.fdd_esg_framework,
+    legal_registration: org.fdd_legal_registration,
+  };
+
   const hasTrackRecord = !!(org.total_beneficiaries_reached || org.jobs_created || org.grants_received_count || org.years_of_operation);
   const hasDelivery = !!(deliveryStats && deliveryStats.resolved >= 1);
   const deliveryRate = hasDelivery ? Math.round((deliveryStats!.completed / deliveryStats!.resolved) * 100) : null;
@@ -1049,6 +1066,41 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                 <div className="flex flex-wrap gap-2 mt-3">
                   {DD_ITEMS.map(item => {
                     const done = ddStateMap[item.key];
+                    const hasEvidence = done && org.dd_evidence?.[item.key];
+                    return (
+                      <button key={item.key} type="button"
+                        disabled={!hasEvidence}
+                        onClick={() => hasEvidence && setDdViewingKey(item.key)}
+                        className="text-[11px] px-2.5 py-1 rounded-md border transition-colors"
+                        style={{
+                          borderColor: done ? "#2D6A4F40" : "#E5E7EB",
+                          color: done ? "#2D6A4F" : "#9ca3af",
+                          background: done ? "#eaf5ee" : "transparent",
+                          cursor: hasEvidence ? "pointer" : "default",
+                        }}>
+                        {done ? "✓" : "·"} {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {fddScore > 0 && (
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5]">DD readiness</p>
+                  <InfoTooltip text={PILLAR_INFO.ddReadiness} />
+                  <TrustBadge tier={computeTrustTier(fddScore, org.dd_evidence).tier} withTooltip />
+                  <span className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] ml-auto">{fddScore}%</span>
+                </div>
+                <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mt-1">Self-attested, not verified by Impact Natives</p>
+                <div className="h-[3px] bg-muted rounded-full mt-2.5">
+                  <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${fddScore}%` }} />
+                </div>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {FUNDER_DD_ITEMS.map(item => {
+                    const done = fddStateMap[item.key];
                     const hasEvidence = done && org.dd_evidence?.[item.key];
                     return (
                       <button key={item.key} type="button"
@@ -1273,7 +1325,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
         </div>
 
         {ddViewingKey && (() => {
-          const item = DD_ITEMS.find(i => i.key === ddViewingKey);
+          const item = DD_ITEMS.find(i => i.key === ddViewingKey) ?? FUNDER_DD_ITEMS.find(i => i.key === ddViewingKey);
           if (!item) return null;
           return (
             <DDEvidenceViewModal
