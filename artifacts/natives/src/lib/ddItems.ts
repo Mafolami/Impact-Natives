@@ -173,8 +173,9 @@ export const FUNDER_DD_ITEMS: DDItemDef[] = [
       label: "Fund disbursement track record",
       sub: "Grants or commitments made and how reliably they were paid out",
       questions: [
-        { key: "totalCommitted", label: "Total grants/commitments made to date (approx.)", type: "text" },
-        { key: "onTimePct", label: "Disbursed on time", type: "select", options: ["Under 50%", "50-75%", "75-90%", "Over 90%", "Not tracked"] },
+        { key: "hasCommitments", label: "Have you made any grants or commitments yet?", type: "yesno" },
+        { key: "totalCommitted", label: "Total grants/commitments made to date (approx.)", type: "select", options: ["Under $50,000", "$50,000 - $250,000", "$250,000 - $1,000,000", "$1,000,000 - $5,000,000", "Over $5,000,000"], showIf: { key: "hasCommitments", equals: true } },
+        { key: "onTimePct", label: "Disbursed on time", type: "select", options: ["Under 50%", "50-75%", "75-90%", "Over 90%", "Not tracked"], showIf: { key: "hasCommitments", equals: true } },
         { key: "notes", label: "Anything else worth noting?", type: "text", required: false },
       ],
     },
@@ -184,7 +185,7 @@ export const FUNDER_DD_ITEMS: DDItemDef[] = [
       sub: "How partnership/funding decisions are made and communicated",
       questions: [
         { key: "hasStatedTimeline", label: "Published/stated decision timeline for applicants?", type: "yesno" },
-        { key: "decisionProcess", label: "Decision process", type: "select", options: ["Single reviewer", "Committee review", "Board approval required", "Other"] },
+        { key: "decisionProcess", label: "Decision process", type: "select", options: ["Single reviewer", "Committee review", "Board approval required", "Other"], showIf: { key: "hasStatedTimeline", equals: true } },
         { key: "notes", label: "Anything else worth noting?", type: "text", required: false },
       ],
     },
