@@ -180,11 +180,15 @@ export default function VerifyOrganisation() {
       return;
     }
 
-    // Mark verification as requested and onboarding complete on profile
+    // Mark verification as requested and onboarding complete on profile.
+    // Clear any prior rejection reason so a resubmission doesn't keep showing
+    // stale feedback from the last rejected attempt.
     await supabase
       .from("profiles")
       .update({
         verification_requested: true,
+        verification_rejection_reason: null,
+        verification_rejected_at: null,
         onboarding_completed: true,
         updated_at: new Date().toISOString(),
       })

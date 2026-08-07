@@ -28,6 +28,8 @@ import {
     verification_requested: boolean | null;
     user_type: string | null;
     is_verified: boolean | null;
+    verification_rejection_reason: string | null;
+    verification_rejected_at: string | null;
     is_admin: boolean | null;
     investment_thesis: string | null;
     login_count: number | null;

@@ -2723,6 +2723,24 @@ export default function DashboardProfile() {
                           <p className="text-sm text-black dark:text-white mt-0.5">Your documents are under review.</p>
                         </div>
                       </div>
+                    ) : profile?.verification_rejection_reason ? (
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-sm font-medium text-red-600 dark:text-red-400">Verification not approved</p>
+                          <p className="text-sm text-black dark:text-white mt-1">
+                            {profile.verification_rejection_reason}
+                          </p>
+                          <p className="text-sm text-black dark:text-white mt-2">
+                            Fix the issue above and resubmit — most rejections are resolved on the second try.
+                          </p>
+                        </div>
+                        <Link href="/verify">
+                          <Button className="shrink-0 rounded-full px-5 text-sm text-white hover:brightness-110 transition-all border-0"
+                            style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
+                            Fix & resubmit
+                          </Button>
+                        </Link>
+                      </div>
                     ) : (
                       <div className="flex items-start justify-between gap-4">
                         <div>
@@ -2820,6 +2838,8 @@ export default function DashboardProfile() {
             {!profile?.is_verified && (
               profile?.verification_requested ? (
                 <p className="text-xs text-black dark:text-white opacity-50 cursor-not-allowed">Verification pending review</p>
+              ) : profile?.verification_rejection_reason ? (
+                <a href="/verify" className="text-xs text-red-500 hover:underline underline-offset-2">Not approved — fix & resubmit</a>
               ) : (
                 <a href="/verify" className="text-xs text-[#2D6A4F] hover:underline underline-offset-2">Apply for verification</a>
               )

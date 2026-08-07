@@ -1179,6 +1179,8 @@ type VerificationProfile = {
   user_type: string | null
   verification_requested: boolean
   is_verified: boolean
+  verification_rejection_reason: string | null
+  verification_rejected_at: string | null
   created_at: string
   // joined from organizations
   org_description?: string | null
@@ -1209,6 +1211,8 @@ function VerificationPanel({ initialFilter }: { initialFilter?: 'pending' | 'ver
   const [docs, setDocs]           = useState<Record<string, VerificationDoc[]>>({})
   const [loading, setLoading]     = useState(true)
   const [filter, setFilter]       = useState<'pending' | 'verified' | 'rejected'>(initialFilter ?? 'pending')
+  const [rejectingId, setRejectingId]   = useState<string | null>(null)
+  const [rejectReason, setRejectReason] = useState('')
 
   useEffect(() => { fetchProfiles() }, [filter])
 
@@ -1232,7 +1236,7 @@ function VerificationPanel({ initialFilter }: { initialFilter?: 'pending' | 'ver
 
     let query = supabase
       .from('profiles')
-      .select('id, full_name, email, org_name, role_title, org_type, user_type, verification_requested, is_verified, created_at')
+      .select('id, full_name, email, org_name, role_title, org_type, user_type, verification_requested, is_verified, verification_rejection_reason, verification_rejected_at, created_at')
       .order('created_at', { ascending: false })
 
     if (filter === 'pending') {
@@ -1240,9 +1244,11 @@ function VerificationPanel({ initialFilter }: { initialFilter?: 'pending' | 'ver
     } else if (filter === 'verified') {
       query = query.eq('is_verified', true)
     } else {
-      // rejected = verification_requested false and is_verified false
-      // we track this by absence — show profiles where both are false and had docs submitted
-      query = query.eq('verification_requested', false).eq('is_verified', false)
+      // Rejected specifically means a reason was recorded — distinct from a
+      // profile that simply never applied, which also has both booleans false
+      // but no reason. Filtering on the reason fixes a pre-existing bug where
+      // never-applied profiles used to appear in the Rejected tab.
+      query = query.eq('is_verified', false).not('verification_rejection_reason', 'is', null)
     }
 
     const { data, error } = await query
@@ -1302,7 +1308,12 @@ setProfiles(enriched);
   async function approve(profileId: string) {
     const { error } = await supabase
       .from('profiles')
-      .update({ is_verified: true, updated_at: new Date().toISOString() })
+      .update({
+        is_verified: true,
+        verification_rejection_reason: null,
+        verification_rejected_at: null,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', profileId)
     if (error) { alert(`Failed to approve profile: ${error.message}`); return; }
   
@@ -1326,10 +1337,17 @@ setProfiles(enriched);
     setProfiles((prev) => prev.filter((p) => p.id !== profileId))
   }
 
-  async function reject(profileId: string) {
+  async function reject(profileId: string, reason: string) {
+    if (!reason.trim()) { alert('Please provide a reason before rejecting.'); return; }
+
     const { error } = await supabase
       .from('profiles')
-      .update({ verification_requested: false, updated_at: new Date().toISOString() })
+      .update({
+        verification_requested: false,
+        verification_rejection_reason: reason.trim(),
+        verification_rejected_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', profileId)
     if (error) { alert(`Failed to reject: ${error.message}`); return; }
 
@@ -1339,6 +1357,16 @@ setProfiles(enriched);
       .update({ verification_status: 'not_verified' })
       .eq('user_id', profileId)
 
+    await supabase.from('notifications').insert({
+      user_id: profileId,
+      type:    'verification_rejected',
+      title:   'Verification not approved',
+      body:    `Your verification request wasn't approved. Reason: ${reason.trim()}`,
+      link:    '/verify',
+    })
+
+    setRejectingId(null)
+    setRejectReason('')
     setProfiles((prev) => prev.filter((p) => p.id !== profileId))
   }
 
@@ -1390,7 +1418,7 @@ setProfiles(enriched);
                       {' · Submitted '}{fmt(profile.created_at)}
                     </p>
                   </div>
-                  {filter === 'pending' && (
+                  {filter === 'pending' && rejectingId !== profile.id && (
                     <div className="flex gap-2 shrink-0">
                       <button
                         onClick={() => approve(profile.id)}
@@ -1399,7 +1427,7 @@ setProfiles(enriched);
                         Approve
                       </button>
                       <button
-                        onClick={() => reject(profile.id)}
+                        onClick={() => { setRejectingId(profile.id); setRejectReason('') }}
                         className="px-4 py-1.5 rounded-full text-sm border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-colors"
                       >
                         Reject
@@ -1411,7 +1439,42 @@ setProfiles(enriched);
                       Verified
                     </span>
                   )}
+                  {filter === 'rejected' && profile.verification_rejection_reason && (
+                    <span className="text-xs px-3 py-1 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
+                      Rejected
+                    </span>
+                  )}
                 </div>
+
+                {filter === 'pending' && rejectingId === profile.id && (
+                  <div className="mt-3 border border-red-500/30 rounded-lg p-3 bg-red-500/5 space-y-2">
+                    <p className="text-xs text-white/60">
+                      Reason for rejection — this is shown to the org so they know what to fix.
+                    </p>
+                    <textarea
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      rows={2}
+                      autoFocus
+                      placeholder="e.g. The uploaded document doesn't match the registration number provided."
+                      className="w-full text-sm rounded-lg border border-white/10 bg-white/5 text-white px-3 py-2 focus:outline-none focus:border-red-500/40"
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={() => { setRejectingId(null); setRejectReason('') }}
+                        className="px-3 py-1.5 rounded-full text-xs border border-white/20 text-white/60 hover:border-white/40 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => reject(profile.id, rejectReason)}
+                        className="px-3 py-1.5 rounded-full text-xs bg-red-500/80 hover:bg-red-500 text-white transition-colors"
+                      >
+                        Confirm rejection
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Statutory registration — cross-check against CAC's public search
                     portal (search.cac.gov.ng) before approving. No live API call yet;
@@ -1502,6 +1565,16 @@ setProfiles(enriched);
                     doc_names:   profileDocs.map(d => d.name),
                   }}
                 />
+
+                {filter === 'rejected' && profile.verification_rejection_reason && (
+                  <div className="mb-4 border border-red-500/20 rounded-lg p-3 bg-red-500/5">
+                    <p className="text-white/40 text-xs uppercase tracking-wide mb-1">Rejection reason</p>
+                    <p className="text-white/80 text-sm leading-relaxed">{profile.verification_rejection_reason}</p>
+                    {profile.verification_rejected_at && (
+                      <p className="text-white/30 text-xs mt-1">Rejected {fmt(profile.verification_rejected_at)}</p>
+                    )}
+                  </div>
+                )}
 
                 {/* Documents */}
                 {profileDocs.length > 0 ? (
