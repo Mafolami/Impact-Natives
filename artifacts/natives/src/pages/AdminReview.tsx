@@ -42,7 +42,7 @@ type Org = {
   created_at: string
 }
 
-type TabSection = 'overview' | 'initiatives' | 'organizations' | 'partner_requests' | 'verification' | 'lab_requests' | 'users' | 'contact'
+type TabSection = 'overview' | 'initiatives' | 'organizations' | 'partner_requests' | 'verification' | 'flagged_orgs' | 'lab_requests' | 'users' | 'contact'
 type InitiativeFilter = 'pending' | 'published' | 'rejected'
 type OrgView = 'pending' | 'published' | 'rejected' | 'match_results'
 
@@ -52,6 +52,7 @@ const NAV_SECTIONS: { value: TabSection; label: string }[] = [
   { value: 'initiatives',      label: 'Initiatives' },
   { value: 'organizations',    label: 'Get Matched' },
   { value: 'verification',     label: 'Verification' },
+  { value: 'flagged_orgs',     label: 'Flagged Orgs' },
   { value: 'lab_requests',     label: 'Lab Requests' },
   { value: 'users',            label: 'Users' },
   { value: 'partner_requests', label: 'Partner With Natives' },
@@ -64,6 +65,7 @@ const SECTION_DESCRIPTIONS: Record<TabSection, string> = {
   organizations: 'Organisations seeking partners through the Find a Partner flow, plus the AI match results computed for them.',
   partner_requests: 'Institutional partnership requests submitted via the Partner With Natives page. These are requests to collaborate with Impact Natives directly.',
   verification: 'Organisations and individuals requesting verified status. Review their documents before approving.',
+  flagged_orgs: 'Organisations that disclosed a blacklisting or pending legal dispute in their DD checklist. Review for severity, record context, and decide on directory visibility.',
   lab_requests: 'Innovation Lab proposals from the Commission a Lab page. Move through stages as you engage each client.',
   users: 'All registered accounts. Manage access, admin rights, and account status.',
   contact: 'Messages submitted via the Contact Us form. No approval needed — for your awareness and response.',
@@ -244,6 +246,7 @@ export default function AdminReview() {
         {section === 'verification' && (
           <VerificationPanel initialFilter={navTarget?.section === 'verification' ? (navTarget.filter as any) : undefined} />
         )}
+        {section === 'flagged_orgs' && <FlaggedOrgsPanel />}
         {section === 'lab_requests' && (
           <LabRequestsPanel initialFilter={navTarget?.section === 'lab_requests' ? (navTarget.filter as string) : undefined} />
         )}
@@ -1602,6 +1605,180 @@ setProfiles(enriched);
   )
 }
 
+
+// ─── Flagged Orgs Panel ───────────────────────────────────────────────────────
+type FlaggedOrg = {
+  id: string
+  organisation_name: string
+  email: string | null
+  user_id: string | null
+  created_at: string
+  dd_evidence: Record<string, any> | null
+  flagged_review_status: string
+  flagged_review_notes: string | null
+  flagged_reviewed_at: string | null
+  flagged_review_due: string | null
+  flagged_visibility_hold: boolean
+}
+
+const SEVERITY_OPTIONS = [
+  { value: 'unreviewed', label: 'Unreviewed',      accent: 'border-white/20 text-white/50' },
+  { value: 'minor',      label: 'Minor — keep visible', accent: 'border-amber-500/40 text-amber-400' },
+  { value: 'serious',    label: 'Serious — hold visibility', accent: 'border-red-500/40 text-red-400' },
+  { value: 'cleared',    label: 'Cleared — resolved', accent: 'border-[#2D6A4F]/40 text-[#6fcf97]' },
+] as const
+
+function FlaggedOrgsPanel() {
+  const [orgs, setOrgs]       = useState<FlaggedOrg[]>([])
+  const [loading, setLoading] = useState(true)
+  const [notesDraft, setNotesDraft] = useState<Record<string, string>>({})
+  const [dueDraft, setDueDraft]     = useState<Record<string, string>>({})
+
+  useEffect(() => { fetchFlagged() }, [])
+
+  async function fetchFlagged() {
+    setLoading(true)
+    // Mirrors computeTrustTier's flag trigger exactly (ddItems.ts) — a red flag
+    // is hasBlacklisting OR hasPendingDisputes in the legal_compliance_declaration
+    // DD item. Kept as a direct read of the same jsonb rather than a separate
+    // stored flag, so this list can never drift from what the Trust Badge shows.
+    const { data, error } = await supabase
+      .from('organizations')
+      .select('id, organisation_name, email, user_id, created_at, dd_evidence, flagged_review_status, flagged_review_notes, flagged_reviewed_at, flagged_review_due, flagged_visibility_hold')
+      .or('dd_evidence->legal_compliance_declaration->>hasBlacklisting.eq.true,dd_evidence->legal_compliance_declaration->>hasPendingDisputes.eq.true')
+      .order('created_at', { ascending: false })
+
+    if (error) { console.error(error); setOrgs([]); setLoading(false); return }
+    setOrgs(data ?? [])
+    setLoading(false)
+  }
+
+  async function saveReview(org: FlaggedOrg, status: string) {
+    const notes = notesDraft[org.id] ?? org.flagged_review_notes ?? ''
+    const due   = dueDraft[org.id] ?? (org.flagged_review_due ? org.flagged_review_due.slice(0, 10) : '')
+
+    const { error } = await supabase
+      .from('organizations')
+      .update({
+        flagged_review_status: status,
+        flagged_review_notes: notes.trim() || null,
+        flagged_reviewed_at: new Date().toISOString(),
+        flagged_review_due: due ? new Date(due).toISOString() : null,
+        flagged_visibility_hold: status === 'serious',
+      })
+      .eq('id', org.id)
+
+    if (error) { alert(`Failed to save: ${error.message}`); return }
+    await fetchFlagged()
+  }
+
+  function daysUntil(dateStr: string | null): number | null {
+    if (!dateStr) return null
+    return Math.ceil((new Date(dateStr).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+  }
+
+  return (
+    <div>
+      {loading ? (
+        <p className="text-white/40">Loading...</p>
+      ) : orgs.length === 0 ? (
+        <p className="text-white/40">No organisations currently flagged. This list mirrors the Trust Badge's flag trigger — blacklisting or pending disputes disclosed in the DD checklist.</p>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {orgs.map((org) => {
+            const legal = org.dd_evidence?.legal_compliance_declaration ?? {}
+            const due = daysUntil(org.flagged_review_due)
+            return (
+              <div key={org.id} className="border border-red-500/20 rounded-xl p-6 bg-white/5">
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div>
+                    <h2 className="text-lg font-semibold">{org.organisation_name}</h2>
+                    <p className="text-white/50 text-sm mt-0.5">{org.email}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {due !== null && (
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full border ${due < 0 ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-white/5 text-white/40 border-white/10'}`}>
+                        {due < 0 ? `Re-review overdue by ${Math.abs(due)}d` : `Re-review in ${due}d`}
+                      </span>
+                    )}
+                    {org.flagged_visibility_hold && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
+                        Withheld from directory
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* What was actually disclosed */}
+                <div className="grid grid-cols-2 gap-3 text-xs mb-4 border border-white/10 rounded-lg p-3 bg-white/3">
+                  {legal.hasBlacklisting && (
+                    <div>
+                      <p className="text-white/40 uppercase tracking-wide mb-1">Blacklisting disclosed</p>
+                      <p className="text-white/80">{legal.blacklistingDetail || 'No further detail provided.'}</p>
+                    </div>
+                  )}
+                  {legal.hasPendingDisputes && (
+                    <div>
+                      <p className="text-white/40 uppercase tracking-wide mb-1">Pending disputes disclosed</p>
+                      <p className="text-white/80">{legal.pendingDisputesDetail || 'No further detail provided.'}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Current status */}
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs text-white/40">Status:</span>
+                  <span className={`text-xs px-2.5 py-0.5 rounded-full border ${SEVERITY_OPTIONS.find(s => s.value === org.flagged_review_status)?.accent ?? 'border-white/20 text-white/50'}`}>
+                    {SEVERITY_OPTIONS.find(s => s.value === org.flagged_review_status)?.label ?? 'Unreviewed'}
+                  </span>
+                  {org.flagged_reviewed_at && (
+                    <span className="text-xs text-white/30">Reviewed {fmt(org.flagged_reviewed_at)}</span>
+                  )}
+                </div>
+
+                {/* Review notes */}
+                <div className="mb-3">
+                  <p className="text-white/40 text-xs uppercase tracking-wide mb-1">Review notes — document what you learned when you reached out</p>
+                  <textarea
+                    value={notesDraft[org.id] ?? org.flagged_review_notes ?? ''}
+                    onChange={(e) => setNotesDraft((prev) => ({ ...prev, [org.id]: e.target.value }))}
+                    rows={2}
+                    placeholder="e.g. Called the org — the dispute is a settled vendor invoice disagreement, no ongoing risk."
+                    className="w-full text-sm rounded-lg border border-white/10 bg-white/5 text-white px-3 py-2 focus:outline-none focus:border-white/30"
+                  />
+                </div>
+
+                {/* Re-review due date */}
+                <div className="mb-4">
+                  <p className="text-white/40 text-xs uppercase tracking-wide mb-1">Re-review due</p>
+                  <input
+                    type="date"
+                    value={dueDraft[org.id] ?? (org.flagged_review_due ? org.flagged_review_due.slice(0, 10) : '')}
+                    onChange={(e) => setDueDraft((prev) => ({ ...prev, [org.id]: e.target.value }))}
+                    className="text-sm rounded-lg border border-white/10 bg-white/5 text-white px-3 py-1.5 focus:outline-none focus:border-white/30"
+                  />
+                </div>
+
+                {/* Severity actions */}
+                <div className="flex flex-wrap gap-2">
+                  {SEVERITY_OPTIONS.filter(s => s.value !== 'unreviewed').map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => saveReview(org, opt.value)}
+                      className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${opt.accent} hover:bg-white/5`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function ContactSubmissionsPanel() {
   const [submissions, setSubmissions] = useState<ContactSubmission[]>([])
