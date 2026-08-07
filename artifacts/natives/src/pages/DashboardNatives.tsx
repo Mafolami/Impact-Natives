@@ -625,8 +625,8 @@ function NativesOrgCard({ org, onClick }: { org: OrgRow; onClick: () => void }) 
 
 // ── DD evidence viewer (read-only, for visitors to another org's profile) ──
 
-function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, onClose }: {
-  item: DDItemDef; evidence: Record<string, any>; documents: DDDocument[]; canSeeSensitive: boolean; onClose: () => void;
+function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, canSeeDisclosureDetail, onClose }: {
+  item: DDItemDef; evidence: Record<string, any>; documents: DDDocument[]; canSeeSensitive: boolean; canSeeDisclosureDetail: boolean; onClose: () => void;
 }) {
   const [openingDocId, setOpeningDocId] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ url: string; fileName: string } | null>(null);
@@ -754,12 +754,23 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, onClo
               : raw;
             if (!display) return null;
             const followUp = q.type === "yesno" && q.followUpIfYes && raw === true ? evidence[q.followUpIfYes.key] : null;
+            // Disclosure detail (blacklisting/pending-dispute text) is gated to
+            // funder/corporate viewers + self-view, same rule as the inline
+            // summary on the profile overview — deliberately independent of
+            // canSeeSensitive/DD_SENSITIVE_EVIDENCE_KEYS, which governs a
+            // different field (registrationNumber) under a different rule
+            // (active-conversation gating) that this must not disturb.
+            const isDisclosureDetailKey = q.key === "hasBlacklisting" || q.key === "hasPendingDisputes";
+            const withholdDisclosureDetail = isDisclosureDetailKey && !canSeeDisclosureDetail;
             return (
               <div key={q.key}>
                 <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">{q.label}</p>
                 <p className="text-sm text-foreground mt-0.5">{display}</p>
-                {followUp && (
+                {followUp && !withholdDisclosureDetail && (
                   <p className="text-sm text-black dark:text-white mt-1 italic">{followUp}</p>
+                )}
+                {followUp && withholdDisclosureDetail && (
+                  <p className="text-sm text-black dark:text-white mt-1 italic">Detail visible to funders and corporate partners</p>
                 )}
               </div>
             );
@@ -1071,16 +1082,6 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                   <TrustBadge tier={computeTrustTier(ddScore, org.dd_evidence).tier} withTooltip />
                   <span className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] ml-auto">{ddScore}%</span>
                 </div>
-                {canSeeDisclosureDetail && (legalEvidence.blacklistingDetail || legalEvidence.pendingDisputesDetail) && (
-                  <div className="mt-2 border border-red-500/20 rounded-lg p-3 bg-red-500/5">
-                    {legalEvidence.blacklistingDetail && (
-                      <p className="text-xs text-[#111111] dark:text-[#F5F5F5]"><span className="font-semibold">Blacklisting disclosed:</span> {legalEvidence.blacklistingDetail}</p>
-                    )}
-                    {legalEvidence.pendingDisputesDetail && (
-                      <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mt-1"><span className="font-semibold">Pending disputes disclosed:</span> {legalEvidence.pendingDisputesDetail}</p>
-                    )}
-                  </div>
-                )}
                 <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mt-1">Self-attested, not verified by Impact Natives</p>
                 <div className="h-[3px] bg-muted rounded-full mt-2.5">
                   <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${ddScore}%` }} />
@@ -1116,16 +1117,6 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                   <TrustBadge tier={computeTrustTier(fddScore, org.dd_evidence).tier} withTooltip />
                   <span className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] ml-auto">{fddScore}%</span>
                 </div>
-                {canSeeDisclosureDetail && (legalEvidence.blacklistingDetail || legalEvidence.pendingDisputesDetail) && (
-                  <div className="mt-2 border border-red-500/20 rounded-lg p-3 bg-red-500/5">
-                    {legalEvidence.blacklistingDetail && (
-                      <p className="text-xs text-[#111111] dark:text-[#F5F5F5]"><span className="font-semibold">Blacklisting disclosed:</span> {legalEvidence.blacklistingDetail}</p>
-                    )}
-                    {legalEvidence.pendingDisputesDetail && (
-                      <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mt-1"><span className="font-semibold">Pending disputes disclosed:</span> {legalEvidence.pendingDisputesDetail}</p>
-                    )}
-                  </div>
-                )}
                 <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mt-1">Self-attested, not verified by Impact Natives</p>
                 <div className="h-[3px] bg-muted rounded-full mt-2.5">
                   <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${fddScore}%` }} />
@@ -1365,6 +1356,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
               evidence={org.dd_evidence?.[ddViewingKey] ?? {}}
               documents={docsByItem[ddViewingKey] ?? []}
               canSeeSensitive={canSeeSensitive}
+              canSeeDisclosureDetail={canSeeDisclosureDetail}
               onClose={() => setDdViewingKey(null)}
             />
           );
