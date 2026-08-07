@@ -448,6 +448,11 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
         <div>
           <h3 className="text-lg font-bold text-foreground">{item.label}</h3>
           <p className="text-sm text-black dark:text-white mt-0.5">{item.sub}</p>
+          {item.key === "legal_compliance_declaration" && (
+            <p className="text-xs text-black dark:text-white mt-2 border border-border rounded-lg px-3 py-2 bg-muted/30">
+              If you disclose a blacklisting or pending dispute, funders and corporate partners considering a partnership with you will see the detail you provide — other organisations won't. Give a real, specific answer rather than a placeholder; vague or missing detail will block saving.
+            </p>
+          )}
         </div>
         {item.questions.map(q => {
           if (q.showIf && answers[q.showIf.key] !== q.showIf.equals) return null;
