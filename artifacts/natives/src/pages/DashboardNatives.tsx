@@ -811,6 +811,12 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
   const [esgReportError, setEsgReportError] = useState(false);
 
   useEffect(() => {
+    setEsgReport(null);
+    setEsgReportLoading(false);
+    setEsgReportError(false);
+  }, [org.id]);
+
+  useEffect(() => {
     if (!user || user.id === org.user_id) { setCanSeeSensitive(true); return; }
     supabase.from("organizations").select("id").eq("user_id", user.id).maybeSingle()
       .then(({ data: myOrg }) => {
