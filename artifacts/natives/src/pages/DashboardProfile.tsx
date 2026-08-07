@@ -10,7 +10,7 @@ import { Loader2, CheckCircle2, ShieldCheck, Camera, ArrowRight, Building2, Tras
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { COUNTRIES } from "@/lib/countries";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
-import { DD_ITEMS, DDItemDef, DDDocument, PILLAR_INFO } from "@/lib/ddItems";
+import { DD_ITEMS, FUNDER_DD_ITEMS, DDItemDef, DDDocument, PILLAR_INFO } from "@/lib/ddItems";
 import { EsgSnapshotSection } from "@/components/dashboard/EsgSnapshotSection";
 
 
@@ -284,7 +284,7 @@ function EditModal({ title, onClose, onSave, saving, children }: { title: string
 
 type PaneKey =
   | "basic" | "organisation" | "focus" | "presence"
-  | "dd" | "track" | "mandate" | "csr" | "verification";
+  | "dd" | "fdd" | "track" | "mandate" | "csr" | "verification";
 
 interface PaneDef { key: PaneKey; label: string; }
 
@@ -608,6 +608,7 @@ export default function DashboardProfile() {
         { key: "focus",        label: "Focus Areas" },
         { key: "presence",     label: "Online Presence" },
         ...(isImplementer ? [{ key: "dd" as PaneKey, label: "DD Readiness" }] : []),
+        ...((isFunder || isCorporate) ? [{ key: "fdd" as PaneKey, label: "DD Readiness" }] : []),
         ...(isImplementer ? [{ key: "track" as PaneKey, label: "Track Record" }] : []),
         ...(isFunder ? [{ key: "mandate" as PaneKey, label: "Mandate" }] : []),
         ...(isCorporate ? [{ key: "csr" as PaneKey, label: "CSR & ESG" }] : []),
@@ -691,7 +692,16 @@ export default function DashboardProfile() {
   const [ddLegalComplianceDeclaration, setDdLegalComplianceDeclaration] = useState(false);
   const [ddEvidence, setDdEvidence]                   = useState<Record<string, any>>({});
   const [ddModalKey, setDdModalKey]                   = useState<string | null>(null);
-  async function saveDdItem(key: string, answers: Record<string, any>, setter: (v: boolean) => void) {
+
+  // ── Funder/corporate DD readiness (parallel, smaller checklist) ────────────
+  const [fddDisbursementTrackRecord, setFddDisbursementTrackRecord] = useState(false);
+  const [fddDecisionTransparency, setFddDecisionTransparency]       = useState(false);
+  const [fddConflictDisclosure, setFddConflictDisclosure]           = useState(false);
+  const [fddGovernanceDoc, setFddGovernanceDoc]                     = useState(false);
+  const [fddEsgFramework, setFddEsgFramework]                       = useState(false);
+  const [fddLegalRegistration, setFddLegalRegistration]             = useState(false);
+
+  async function saveDdItem(key: string, answers: Record<string, any>, setter: (v: boolean) => void, prefix: string = "dd") {
     const updatedEvidence = { ...ddEvidence, [key]: answers };
     setDdEvidence(updatedEvidence);
     setter(true);
@@ -699,19 +709,19 @@ export default function DashboardProfile() {
     if (!user) return;
     try {
       const fields: Record<string, any> = { dd_evidence: updatedEvidence };
-      fields[`dd_${key}`] = true;
+      fields[`${prefix}_${key}`] = true;
       await saveOrgFields(user.id, fields);
     } catch (err: any) {
       alert(`Couldn't save: ${err.message}`);
     }
   }
-  async function markDdItemIncomplete(key: string, setter: (v: boolean) => void) {
+  async function markDdItemIncomplete(key: string, setter: (v: boolean) => void, prefix: string = "dd") {
     if (!confirm("Mark this item as not complete? You'll need to re-verify it later.")) return;
     setter(false);
     if (!user) return;
     try {
       const fields: Record<string, any> = {};
-      fields[`dd_${key}`] = false;
+      fields[`${prefix}_${key}`] = false;
       await saveOrgFields(user.id, fields);
     } catch (err: any) {
       alert(`Couldn't save: ${err.message}`);
@@ -1103,7 +1113,7 @@ export default function DashboardProfile() {
   useEffect(() => {
     if (!user) return;
     supabase.from("organizations")
-     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")      .eq("user_id", user.id).maybeSingle()
+     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")      .eq("user_id", user.id).maybeSingle()
       .then(({ data }) => {
         if (!data) return;
         setOrgId(data.id ?? null);
@@ -1137,6 +1147,12 @@ export default function DashboardProfile() {
         setDdSafeguardingPolicy(data.dd_safeguarding_policy ?? false);
         setDdLegalRegistration(data.dd_legal_registration ?? false);
         setDdLegalComplianceDeclaration(data.dd_legal_compliance_declaration ?? false);
+        setFddDisbursementTrackRecord(data.fdd_disbursement_track_record ?? false);
+        setFddDecisionTransparency(data.fdd_decision_transparency ?? false);
+        setFddConflictDisclosure(data.fdd_conflict_disclosure ?? false);
+        setFddGovernanceDoc(data.fdd_governance_doc ?? false);
+        setFddEsgFramework(data.fdd_esg_framework ?? false);
+        setFddLegalRegistration(data.fdd_legal_registration ?? false);
         setDdEvidence(data.dd_evidence ?? {});
         if (data.total_beneficiaries_reached) setTotalBeneficiaries(String(data.total_beneficiaries_reached));
         if (data.jobs_created) setJobsCreated(String(data.jobs_created));
@@ -1373,6 +1389,12 @@ export default function DashboardProfile() {
           dd_legal_registration: ddLegalRegistration,
           dd_legal_compliance_declaration: ddLegalComplianceDeclaration,
           dd_evidence: ddEvidence,
+          fdd_disbursement_track_record: fddDisbursementTrackRecord,
+          fdd_decision_transparency: fddDecisionTransparency,
+          fdd_conflict_disclosure: fddConflictDisclosure,
+          fdd_governance_doc: fddGovernanceDoc,
+          fdd_esg_framework: fddEsgFramework,
+          fdd_legal_registration: fddLegalRegistration,
           total_beneficiaries_reached: totalBeneficiaries ? parseInt(totalBeneficiaries) : null,
           jobs_created: jobsCreated ? parseInt(jobsCreated) : null,
           female_beneficiaries_pct: femalePct ? parseInt(femalePct) : null,
@@ -1392,7 +1414,7 @@ export default function DashboardProfile() {
 
     if (user && profile?.user_type === "organisation") {
       const { data } = await supabase.from("organizations")
-        .select("logo_url,description,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")
+        .select("logo_url,description,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")
         .eq("user_id", user.id).maybeSingle();
       if (data) {
         if (data.previous_funders) setPreviousFunders(data.previous_funders);
@@ -1428,6 +1450,7 @@ export default function DashboardProfile() {
   // not currently read by any AI function, so they're left out rather than
   // padding the score with fields that don't inform anything.
   const ddReadinessItems = [ddFinancialModel, ddAuditedAccounts, ddGovernanceDoc, ddEsgAssessment, ddImpactFramework, ddEnvironmentalPolicy, ddSafeguardingPolicy, ddLegalRegistration, ddLegalComplianceDeclaration];
+  const fddReadinessItems = [fddDisbursementTrackRecord, fddDecisionTransparency, fddConflictDisclosure, fddGovernanceDoc, fddEsgFramework, fddLegalRegistration];
   const ddReadinessFraction = ddReadinessItems.filter(Boolean).length / ddReadinessItems.length;
   const orgTypeStrengthItems: number[] = isFunder
     ? [investmentThesis ? 1 : 0]
@@ -2054,9 +2077,76 @@ export default function DashboardProfile() {
                 </SectionCardGroup>
               )}
 
-              {ddModalKey && (() => {
-                const item = DD_ITEMS.find(i => i.key === ddModalKey)!;
-                const setterMap: Record<string, (v: boolean) => void> = {
+              {activePane === "fdd" && (isFunder || isCorporate) && (
+                <SectionCardGroup>
+                  <div className="px-8 sm:px-12 py-10">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Due diligence readiness</p>
+                      <InfoTooltip text={PILLAR_INFO.ddReadiness} />
+                    </div>
+                    <p className="text-xs text-black dark:text-white opacity-60 mb-6">
+                      Signal to implementers that you are a transparent, trustworthy partner. Checking an item asks for a few quick details, which appear as a tooltip on your profile once matched.
+                    </p>
+                    <div className="space-y-3">
+                      {[
+                        { key: "disbursement_track_record", label: "Fund disbursement track record", sub: "Grants or commitments made and how reliably they were paid out", state: fddDisbursementTrackRecord, set: setFddDisbursementTrackRecord },
+                        { key: "decision_transparency", label: "Decision-making transparency", sub: "How partnership/funding decisions are made and communicated", state: fddDecisionTransparency, set: setFddDecisionTransparency },
+                        { key: "conflict_disclosure", label: "Conflict of interest disclosure", sub: "Related-party ties to funded organisations or board members", state: fddConflictDisclosure, set: setFddConflictDisclosure },
+                        { key: "governance_doc", label: "Governance documentation", sub: "Audited accounts and board structure", state: fddGovernanceDoc, set: setFddGovernanceDoc },
+                        { key: "esg_framework", label: "ESG framework followed", sub: "Framework used to assess your own funding/investment decisions", state: fddEsgFramework, set: setFddEsgFramework },
+                        { key: "legal_registration", label: "Legal registration / tax-exempt status", sub: "Registration and tax status of the funding entity", state: fddLegalRegistration, set: setFddLegalRegistration },
+                      ].map(item => item.state ? (
+                        <div key={item.key}
+                          className="w-full px-4 py-3 rounded-xl border border-black dark:border-white flex items-start gap-3">
+                          <button type="button" onClick={() => setDdModalKey(item.key)}
+                            className="w-4 h-4 rounded border border-black dark:border-white flex items-center justify-center shrink-0 mt-0.5"
+                            title="Review or edit">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-black dark:text-white"><polyline points="20 6 9 17 4 12" /></svg>
+                          </button>
+                          <button type="button" onClick={() => setDdModalKey(item.key)} className="flex-1 min-w-0 text-left">
+                            <p className="text-sm font-medium text-black dark:text-white">{item.label}</p>
+                            <p className="text-xs text-black dark:text-white opacity-60 mt-0.5">{item.sub}</p>
+                          </button>
+                          <button type="button"
+                            onClick={() => markDdItemIncomplete(item.key, item.set, "fdd")}
+                            className="text-muted-foreground hover:text-red-500 transition-colors shrink-0 mt-0.5"
+                            title="Mark as not complete">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                          </button>
+                        </div>
+                      ) : (
+                        <button key={item.key} type="button" onClick={() => setDdModalKey(item.key)}
+                          className="w-full text-left px-4 py-3 rounded-xl border border-border hover:border-foreground/20 transition-colors flex items-start gap-3">
+                          <div className="w-4 h-4 rounded border border-border shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-black dark:text-white">{item.label}</p>
+                            <p className="text-xs text-black dark:text-white opacity-60 mt-0.5">{item.sub}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="pt-6 border-t border-border mt-6">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs text-black dark:text-white">DD Readiness score</p>
+                        <p className="text-xs font-bold text-black dark:text-white">
+                          {Math.round((fddReadinessItems.filter(Boolean).length / fddReadinessItems.length) * 100)}%
+                        </p>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500"
+                          style={{ width: `${Math.round((fddReadinessItems.filter(Boolean).length / fddReadinessItems.length) * 100)}%` }} />
+                      </div>
+                    </div>
+                  </div>
+                </SectionCardGroup>
+              )}
+
+{ddModalKey && (() => {
+                const isFunderItem = FUNDER_DD_ITEMS.some(i => i.key === ddModalKey);
+                const item = isFunderItem
+                  ? FUNDER_DD_ITEMS.find(i => i.key === ddModalKey)!
+                  : DD_ITEMS.find(i => i.key === ddModalKey)!;
+                const implementerSetterMap: Record<string, (v: boolean) => void> = {
                   financial_model: setDdFinancialModel,
                   audited_accounts: setDdAuditedAccounts,
                   governance_doc: setDdGovernanceDoc,
@@ -2067,6 +2157,16 @@ export default function DashboardProfile() {
                   legal_registration: setDdLegalRegistration,
                   legal_compliance_declaration: setDdLegalComplianceDeclaration,
                 };
+                const funderSetterMap: Record<string, (v: boolean) => void> = {
+                  disbursement_track_record: setFddDisbursementTrackRecord,
+                  decision_transparency: setFddDecisionTransparency,
+                  conflict_disclosure: setFddConflictDisclosure,
+                  governance_doc: setFddGovernanceDoc,
+                  esg_framework: setFddEsgFramework,
+                  legal_registration: setFddLegalRegistration,
+                };
+                const setterMap = isFunderItem ? funderSetterMap : implementerSetterMap;
+                const prefix = isFunderItem ? "fdd" : "dd";
                 return (
                   <DDEvidenceModal
                     item={item}
@@ -2074,7 +2174,7 @@ export default function DashboardProfile() {
                     orgId={orgId ?? ""}
                     userId={user?.id ?? ""}
                     onClose={() => setDdModalKey(null)}
-                    onSave={(answers) => saveDdItem(ddModalKey, answers, setterMap[ddModalKey])}
+                    onSave={(answers) => saveDdItem(ddModalKey, answers, setterMap[ddModalKey], prefix)}
                   />
                 );
               })()}
