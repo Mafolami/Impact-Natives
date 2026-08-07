@@ -24,6 +24,40 @@ export default function VerifyOrganisation() {
   const [isDnfbpSector, setIsDnfbpSector]            = useState<boolean | null>(null);
   const [scumlNumber, setScumlNumber]                = useState("");
   const [regError, setRegError]                      = useState("");
+  const [regNumberFieldError, setRegNumberFieldError] = useState("");
+  const [tinFieldError, setTinFieldError]             = useState("");
+  const [scumlFieldError, setScumlFieldError]         = useState("");
+
+  // CAC registry numbers vary in digit count across registration eras (4–10 digits
+  // seen in practice), so this checks "numeric only" rather than a fixed length.
+  function validateRegistrationNumber(type: "RC" | "BN" | "IT" | "", value: string): string {
+    if (!value.trim()) return "";
+    const stripped = value.trim().toUpperCase().replace(new RegExp(`^${type}[\\s-]*`), "").replace(/[\s-]/g, "");
+    if (!/^\d{2,10}$/.test(stripped)) {
+      return `Enter numbers only (e.g. ${type}1234567) — no letters or symbols.`;
+    }
+    return "";
+  }
+
+  // TIN is strictly numeric, 10 to 15 digits.
+  function validateTin(value: string): string {
+    if (!value.trim()) return "";
+    const v = value.trim();
+    if (!/^\d{10,15}$/.test(v)) {
+      return "TIN must be digits only, 10 to 15 digits long.";
+    }
+    return "";
+  }
+
+  // SCUML certificate number: "SC" followed by 9 digits (e.g. SC123456789).
+  function validateScuml(value: string): string {
+    if (!value.trim()) return "";
+    const stripped = value.trim().toUpperCase().replace(/[\s-]/g, "");
+    if (!/^SC\d{9}$/.test(stripped)) {
+      return "SCUML number should be SC followed by 9 digits (e.g. SC123456789).";
+    }
+    return "";
+  }
 
   // SCUML is mandatory for IT (NGOs are DNFIs under the Money Laundering
   // Prohibition Act), conditional for RC/BN based on the DNFBP follow-up.
@@ -34,7 +68,10 @@ export default function VerifyOrganisation() {
     registrationType !== "" &&
     registrationNumber.trim() !== "" &&
     tin.trim() !== "" &&
-    (!scumlRequired || scumlNumber.trim() !== "");
+    (!scumlRequired || scumlNumber.trim() !== "") &&
+    !validateRegistrationNumber(registrationType, registrationNumber) &&
+    !validateTin(tin) &&
+    (!scumlRequired || !validateScuml(scumlNumber));
 
   function handleFileAdd(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files || []);
@@ -234,15 +271,19 @@ export default function VerifyOrganisation() {
                 <Input
                   placeholder={registrationType === "IT" ? "IT Number" : `${registrationType} Number`}
                   value={registrationNumber}
-                  onChange={(e) => { setRegistrationNumber(e.target.value); setRegError(""); }}
+                  onChange={(e) => { setRegistrationNumber(e.target.value); setRegError(""); setRegNumberFieldError(""); }}
+                  onBlur={() => setRegNumberFieldError(validateRegistrationNumber(registrationType, registrationNumber))}
                   className="h-10"
                 />
+                {regNumberFieldError && <p className="text-[13.5px] text-destructive">{regNumberFieldError}</p>}
                 <Input
-                  placeholder="Tax Identification Number (TIN)"
+                  placeholder="TIN (10–15 digits)"
                   value={tin}
-                  onChange={(e) => { setTin(e.target.value); setRegError(""); }}
+                  onChange={(e) => { setTin(e.target.value); setRegError(""); setTinFieldError(""); }}
+                  onBlur={() => setTinFieldError(validateTin(tin))}
                   className="h-10"
                 />
+                {tinFieldError && <p className="text-[13.5px] text-destructive">{tinFieldError}</p>}
               </>
             )}
 
@@ -254,11 +295,13 @@ export default function VerifyOrganisation() {
                   NGOs are required under Nigerian law to register with SCUML. This is mandatory.
                 </p>
                 <Input
-                  placeholder="SCUML Certificate Number"
+                  placeholder="SCUML Number (e.g. SC123456789)"
                   value={scumlNumber}
-                  onChange={(e) => { setScumlNumber(e.target.value); setRegError(""); }}
+                  onChange={(e) => { setScumlNumber(e.target.value); setRegError(""); setScumlFieldError(""); }}
+                  onBlur={() => setScumlFieldError(validateScuml(scumlNumber))}
                   className="h-10"
                 />
+                {scumlFieldError && <p className="text-[13.5px] text-destructive">{scumlFieldError}</p>}
               </div>
             )}
 
@@ -292,12 +335,16 @@ export default function VerifyOrganisation() {
                   </button>
                 </div>
                 {isDnfbpSector === true && (
-                  <Input
-                    placeholder="SCUML Certificate Number"
-                    value={scumlNumber}
-                    onChange={(e) => { setScumlNumber(e.target.value); setRegError(""); }}
-                    className="h-10"
-                  />
+                  <>
+                    <Input
+                      placeholder="SCUML Number (e.g. SC123456789)"
+                      value={scumlNumber}
+                      onChange={(e) => { setScumlNumber(e.target.value); setRegError(""); setScumlFieldError(""); }}
+                      onBlur={() => setScumlFieldError(validateScuml(scumlNumber))}
+                      className="h-10"
+                    />
+                    {scumlFieldError && <p className="text-[13.5px] text-destructive">{scumlFieldError}</p>}
+                  </>
                 )}
               </div>
             )}
