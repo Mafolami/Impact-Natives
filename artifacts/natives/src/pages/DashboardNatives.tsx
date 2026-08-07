@@ -41,6 +41,7 @@ interface OrgRow {
   verification_status: string;
   user_id: string;
   contact_name?: string;
+  flagged_visibility_hold?: boolean | null;
   description?: string;
   investment_thesis?: string | null;
   stage_preference?: string[] | null;
@@ -474,7 +475,7 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
       setLoading(true);
       const { data: orgData, error } = await supabase
         .from("organizations")
-        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status,investment_thesis,stage_preference,geographic_focus,impact_strategy")        
+        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status,investment_thesis,stage_preference,geographic_focus,impact_strategy,flagged_visibility_hold")        
         .eq("status", "published")
         .order("organisation_name", { ascending: true });
 
@@ -508,6 +509,9 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
     if (countryFilter && !countries.includes(countryFilter)) return false;
     if (orgTypeFilter && o.organisation_type !== orgTypeFilter) return false;
     if (verifiedOnly && o.verification_status !== "verified") return false;
+    // Serious-severity flagged orgs are withheld from the public directory
+    // until resolved — set via admin's Flagged Orgs review, not automatic.
+    if (o.flagged_visibility_hold) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return (
