@@ -209,23 +209,45 @@ export function EsgSnapshotSection({ org }: { org: EsgSnapshotOrgInput }) {
     y += 20;
 
     const trustTierResult = computeTrustTier(esgReport.dd_readiness_score, org.dd_evidence);
-    const trustTierLine = trustTierResult.tier
-      ? ` Trust tier: ${trustTierResult.label}.`
-      : "";
-    const disclaimerText = sanitizeForPdf(`This snapshot summarises what ${safeOrgName} has disclosed on Impact Natives. It is not an independent audit or third-party verification. DD Readiness ${esgReport.dd_readiness_score}% complete.${trustTierLine} ${esgReport.delivery_has_data ? `Delivery: ${esgReport.delivery_rate}% of tracked relationships completed.` : "No completed delivery outcomes tracked yet."} Figures reflect this organisation's profile as of the generation date above and may change.`);
+    const deliveryLine = esgReport.delivery_has_data
+      ? `Delivery: ${esgReport.delivery_rate}% completed`
+      : "Delivery: not yet tracked";
+    const statLines = [
+      `DD Readiness: ${esgReport.dd_readiness_score}%`,
+      trustTierResult.tier ? `Trust tier: ${trustTierResult.label}` : null,
+      deliveryLine,
+    ].filter(Boolean) as string[];
+
+    const captionText = sanitizeForPdf(`A summary of what ${safeOrgName} has disclosed on this platform — not an independent audit or third-party verification. Figures reflect this organisation's profile as of the generation date above and may change.`);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    const disclaimerLines = doc.splitTextToSize(disclaimerText, contentWidth - 20);
-    const disclaimerHeight = disclaimerLines.length * 12.5 + 16;
-    ensureSpace(disclaimerHeight);
+    const captionLines = doc.splitTextToSize(captionText, contentWidth - 20);
+
+    const statLineHeight = 14;
+    const captionLineHeight = 12;
+    const boxHeight = 12 + statLines.length * statLineHeight + 8 + captionLines.length * captionLineHeight + 10;
+    ensureSpace(boxHeight);
     doc.setFillColor(245, 240, 232);
-    doc.roundedRect(margin, y, contentWidth, disclaimerHeight, 4, 4, "F");
-    doc.setTextColor(...GREY);
-    const disclaimerLineHeight = 12.5;
-    disclaimerLines.forEach((line: string, i: number) => {
-      doc.text(line, margin + 10, y + 16 + i * disclaimerLineHeight);
+    doc.roundedRect(margin, y, contentWidth, boxHeight, 4, 4, "F");
+
+    let statY = y + 16;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...BLACK);
+    statLines.forEach((line) => {
+      doc.text(line, margin + 10, statY);
+      statY += statLineHeight;
     });
-    y += disclaimerHeight + 22;
+
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...GREY);
+    const captionLineHeight2 = 12;
+    captionLines.forEach((line: string, i: number) => {
+      doc.text(line, margin + 10, statY + 6 + i * captionLineHeight2);
+    });
+
+    y += boxHeight + 22;
 
     writeSectionHeader("Environmental");
     writeParagraph(sanitizeForPdf(esgReport.environmental) || "Not provided.", { gap: 18 });
@@ -285,8 +307,16 @@ export function EsgSnapshotSection({ org }: { org: EsgSnapshotOrgInput }) {
               </div>
               <p className="text-sm text-black dark:text-white mt-1">{esgReport.headline}</p>
             </div>
+            <div className="flex flex-wrap gap-2">
+              <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-muted text-black dark:text-white">
+                DD Readiness: {esgReport.dd_readiness_score}%
+              </span>
+              <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-muted text-black dark:text-white">
+                {esgReport.delivery_has_data ? `Delivery: ${esgReport.delivery_rate}% completed` : "Delivery: not yet tracked"}
+              </span>
+            </div>
             <p className="text-xs text-black dark:text-white opacity-70">
-              A summary of what {org.organisation_name} has disclosed on this platform — not an independent audit. DD Readiness {esgReport.dd_readiness_score}% complete. {esgReport.delivery_has_data ? `Delivery: ${esgReport.delivery_rate}% of tracked relationships completed.` : "No completed delivery outcomes tracked yet."}
+              A summary of what {org.organisation_name} has disclosed on this platform — not an independent audit.
             </p>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1">Environmental</p>
