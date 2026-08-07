@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ShieldCheck, Loader2, CheckCircle2, ArrowRight } from "lucide-react";
 
 export default function VerifyOrganisation() {
@@ -268,22 +269,28 @@ export default function VerifyOrganisation() {
 
             {registrationType !== "" && (
               <>
-                <Input
-                  placeholder={registrationType === "IT" ? "IT Number" : `${registrationType} Number`}
-                  value={registrationNumber}
-                  onChange={(e) => { setRegistrationNumber(e.target.value); setRegError(""); setRegNumberFieldError(""); }}
-                  onBlur={() => setRegNumberFieldError(validateRegistrationNumber(registrationType, registrationNumber))}
-                  className="h-10"
-                />
-                {regNumberFieldError && <p className="text-[13.5px] text-destructive">{regNumberFieldError}</p>}
-                <Input
-                  placeholder="TIN (10–15 digits)"
-                  value={tin}
-                  onChange={(e) => { setTin(e.target.value); setRegError(""); setTinFieldError(""); }}
-                  onBlur={() => setTinFieldError(validateTin(tin))}
-                  className="h-10"
-                />
-                {tinFieldError && <p className="text-[13.5px] text-destructive">{tinFieldError}</p>}
+                <div>
+                  <Label className="text-[13.5px] font-medium text-black">
+                    {registrationType === "IT" ? "IT Number" : `${registrationType} Number`}
+                  </Label>
+                  <Input
+                    value={registrationNumber}
+                    onChange={(e) => { setRegistrationNumber(e.target.value); setRegError(""); setRegNumberFieldError(""); }}
+                    onBlur={() => setRegNumberFieldError(validateRegistrationNumber(registrationType, registrationNumber))}
+                    className="h-10 mt-1 text-black"
+                  />
+                  {regNumberFieldError && <p className="text-[13.5px] text-destructive mt-1">{regNumberFieldError}</p>}
+                </div>
+                <div>
+                  <Label className="text-[13.5px] font-medium text-black">Tax Identification Number (TIN)</Label>
+                  <Input
+                    value={tin}
+                    onChange={(e) => { setTin(e.target.value); setRegError(""); setTinFieldError(""); }}
+                    onBlur={() => setTinFieldError(validateTin(tin))}
+                    className="h-10 mt-1 text-black"
+                  />
+                  {tinFieldError && <p className="text-[13.5px] text-destructive mt-1">{tinFieldError}</p>}
+                </div>
               </>
             )}
 
@@ -294,14 +301,16 @@ export default function VerifyOrganisation() {
                 <p className="text-[13.5px] text-black">
                   NGOs are required under Nigerian law to register with SCUML. This is mandatory.
                 </p>
-                <Input
-                  placeholder="SCUML Number (e.g. SC123456789)"
-                  value={scumlNumber}
-                  onChange={(e) => { setScumlNumber(e.target.value); setRegError(""); setScumlFieldError(""); }}
-                  onBlur={() => setScumlFieldError(validateScuml(scumlNumber))}
-                  className="h-10"
-                />
-                {scumlFieldError && <p className="text-[13.5px] text-destructive">{scumlFieldError}</p>}
+                <div>
+                  <Label className="text-[13.5px] font-medium text-black">SCUML Number</Label>
+                  <Input
+                    value={scumlNumber}
+                    onChange={(e) => { setScumlNumber(e.target.value); setRegError(""); setScumlFieldError(""); }}
+                    onBlur={() => setScumlFieldError(validateScuml(scumlNumber))}
+                    className="h-10 mt-1 text-black"
+                  />
+                  {scumlFieldError && <p className="text-[13.5px] text-destructive mt-1">{scumlFieldError}</p>}
+                </div>
               </div>
             )}
 
@@ -335,16 +344,16 @@ export default function VerifyOrganisation() {
                   </button>
                 </div>
                 {isDnfbpSector === true && (
-                  <>
+                  <div>
+                    <Label className="text-[13.5px] font-medium text-black">SCUML Number</Label>
                     <Input
-                      placeholder="SCUML Number (e.g. SC123456789)"
                       value={scumlNumber}
                       onChange={(e) => { setScumlNumber(e.target.value); setRegError(""); setScumlFieldError(""); }}
                       onBlur={() => setScumlFieldError(validateScuml(scumlNumber))}
-                      className="h-10"
+                      className="h-10 mt-1 text-black"
                     />
-                    {scumlFieldError && <p className="text-[13.5px] text-destructive">{scumlFieldError}</p>}
-                  </>
+                    {scumlFieldError && <p className="text-[13.5px] text-destructive mt-1">{scumlFieldError}</p>}
+                  </div>
                 )}
               </div>
             )}
