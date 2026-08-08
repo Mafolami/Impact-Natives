@@ -225,27 +225,37 @@ export async function fetchOutcomeHistory(outcomeId: string): Promise<PortfolioO
 export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]> {
   const rows: PortfolioRow[] = [];
 
-  const { data: myOrg } = await supabase
-    .from("organizations")
-    .select("id, organisation_name, partnership_sought, partnership_title, partnership_listed, partnership_formed, needs, email, updated_at")
-    .eq("user_id", userId)
-    .maybeSingle();
+  // myOrg, myInitiatives, and myEois are independent of each other -- each
+  // only needs userId, not any other query's result -- so they now run
+  // concurrently instead of strictly sequentially. This was the main cause
+  // of slow loads: several genuinely independent query chains were running
+  // one after another with no real data dependency forcing that order.
+  const [{ data: myOrg }, { data: myInitiatives }, { data: myEois }] = await Promise.all([
+    supabase
+      .from("organizations")
+      .select("id, organisation_name, partnership_sought, partnership_title, partnership_listed, partnership_formed, needs, email, updated_at")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    supabase
+      .from("initiative_requests")
+      .select("id, title, status, eois, created_at")
+      .eq("user_id", userId)
+      .not("status", "eq", "draft"),
+    supabase
+      .from("expressions_of_interest")
+      .select("id, initiative_id, partnership_type, created_at, conversation_id")
+      .eq("user_id", userId),
+  ]);
 
   const myOrgName = myOrg?.organisation_name ?? "You";
   const myProfileHref = `/dashboard/natives?tab=organisation&user=${userId}`;
 
   // ── 1. My own initiative listings ──────────────────────────────────────
-  const { data: myInitiatives } = await supabase
-    .from("initiative_requests")
-    .select("id, title, status, eois, created_at")
-    .eq("user_id", userId)
-    .not("status", "eq", "draft");
-
   for (const ini of myInitiatives ?? []) {
     rows.push({
       id: `ini-mine-${ini.id}`,
       title: ini.title,
-      titleHref: `/dashboard/portfolio/${ini.id}`,
+      titleHref: `/dashboard/portfolio/exchanges/${ini.id}`,
       organisation: myOrgName,
       organisationHref: myProfileHref,
       type: "Initiative",
@@ -262,13 +272,15 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
     });
   }
 
-  // ── 2. Outbound EOIs -- interest I expressed in others' initiatives ────
-  const { data: myEois } = await supabase
-    .from("expressions_of_interest")
-    .select("id, initiative_id, partnership_type, created_at, conversation_id")
-    .eq("user_id", userId);
+  // The three blocks below each depend on exactly one of the three fetches
+  // above (myEois / myInitiatives / myOrg) but not on each other, so they
+  // now run concurrently as well. Internal logic within each block is
+  // unchanged -- only the top-level control flow moved from sequential
+  // awaits to concurrent closures.
 
-  if (myEois?.length) {
+  // ── 2. Outbound EOIs -- interest I expressed in others' initiatives ────
+  async function loadOutboundEoiDetail() {
+    if (!myEois?.length) return;
     const initIds = [...new Set(myEois.map(e => e.initiative_id))];
     const { data: inits } = await supabase
       .from("initiative_requests")
@@ -319,69 +331,71 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
   }
 
   // ── 3. Inbound EOIs -- others' interest in MY initiatives ──────────────
-  if (myInitiatives?.length) {
+  async function loadInboundEois() {
+    if (!myInitiatives?.length) return;
     const myInitIds = myInitiatives.map(i => i.id);
     const { data: inboundEois } = await supabase
       .from("expressions_of_interest")
       .select("id, initiative_id, user_id, partnership_type, created_at, conversation_id")
       .in("initiative_id", myInitIds);
 
-    if (inboundEois?.length) {
-      const expresserUserIds = [...new Set(inboundEois.map(e => e.user_id))];
-      const { data: expresserOrgs } = await supabase
-        .from("organizations")
-        .select("id, user_id, organisation_name, email")
-        .in("user_id", expresserUserIds);
-      const expresserOrgMap = new Map((expresserOrgs ?? []).map(o => [o.user_id, o]));
+    if (!inboundEois?.length) return;
 
-      const { data: expresserProfiles } = await supabase
-        .from("profiles")
-        .select("id, email, phone")
-        .in("id", expresserUserIds);
-      const expresserProfileMap = new Map((expresserProfiles ?? []).map(p => [p.id, p]));
+    const expresserUserIds = [...new Set(inboundEois.map(e => e.user_id))];
+    const { data: expresserOrgs } = await supabase
+      .from("organizations")
+      .select("id, user_id, organisation_name, email")
+      .in("user_id", expresserUserIds);
+    const expresserOrgMap = new Map((expresserOrgs ?? []).map(o => [o.user_id, o]));
 
-      const initMap = new Map(myInitiatives.map(i => [i.id, i]));
+    const { data: expresserProfiles } = await supabase
+      .from("profiles")
+      .select("id, email, phone")
+      .in("id", expresserUserIds);
+    const expresserProfileMap = new Map((expresserProfiles ?? []).map(p => [p.id, p]));
 
-      const convIds2 = inboundEois.map(e => e.conversation_id).filter((v): v is string => Boolean(v));
-      const { data: convs2 } = convIds2.length
-        ? await supabase.from("conversations").select("id, status, updated_at, opened_at, confirmed_at").in("id", convIds2)
-        : { data: [] };
-      const convMap2 = new Map((convs2 ?? []).map(c => [c.id, c]));
+    const initMap = new Map(myInitiatives.map(i => [i.id, i]));
 
-      for (const eoi of inboundEois) {
-        const ini = initMap.get(eoi.initiative_id);
-        const org = expresserOrgMap.get(eoi.user_id);
-        const profile = expresserProfileMap.get(eoi.user_id);
-        const conv = eoi.conversation_id ? convMap2.get(eoi.conversation_id) : undefined;
-        const status = deriveEoiStatus(conv?.status);
-        rows.push({
-          id: `ini-eoi-in-${eoi.id}`,
-          title: ini?.title ?? "Initiative",
-          titleHref: ini ? `/dashboard/portfolio/${ini.id}` : null,
-          organisation: org?.organisation_name ?? "Unknown",
-          organisationHref: `/dashboard/natives?tab=organisation&user=${eoi.user_id}`,
-          type: "Initiative",
-          supportType: eoi.partnership_type ? (EOI_SUPPORT_TYPE_LABELS[eoi.partnership_type] ?? eoi.partnership_type) : null,
-          direction: "Inbound",
-          eoiCount: null,
-          contactEmail: status === "Partner confirmed" ? (profile?.email ?? org?.email ?? null) : null,
-          contactPhone: status === "Partner confirmed" ? (profile?.phone ?? null) : null,
-          status,
-          date: conv?.updated_at ?? eoi.created_at,
-          outcome: null,
-          timeline: [
-            { label: "Interest expressed", date: eoi.created_at },
-            ...(conv?.opened_at ? [{ label: "In conversation", date: conv.opened_at }] : []),
-            ...(conv?.confirmed_at ? [{ label: "Confirmed", date: conv.confirmed_at }] : []),
-          ],
-          raw: { kind: "initiative_eoi", initiativeId: eoi.initiative_id, eoiId: eoi.id, conversationId: eoi.conversation_id, partnerUserId: eoi.user_id },
-        });
-      }
+    const convIds2 = inboundEois.map(e => e.conversation_id).filter((v): v is string => Boolean(v));
+    const { data: convs2 } = convIds2.length
+      ? await supabase.from("conversations").select("id, status, updated_at, opened_at, confirmed_at").in("id", convIds2)
+      : { data: [] };
+    const convMap2 = new Map((convs2 ?? []).map(c => [c.id, c]));
+
+    for (const eoi of inboundEois) {
+      const ini = initMap.get(eoi.initiative_id);
+      const org = expresserOrgMap.get(eoi.user_id);
+      const profile = expresserProfileMap.get(eoi.user_id);
+      const conv = eoi.conversation_id ? convMap2.get(eoi.conversation_id) : undefined;
+      const status = deriveEoiStatus(conv?.status);
+      rows.push({
+        id: `ini-eoi-in-${eoi.id}`,
+        title: ini?.title ?? "Initiative",
+        titleHref: ini ? `/dashboard/portfolio/exchanges/${ini.id}` : null,
+        organisation: org?.organisation_name ?? "Unknown",
+        organisationHref: `/dashboard/natives?tab=organisation&user=${eoi.user_id}`,
+        type: "Initiative",
+        supportType: eoi.partnership_type ? (EOI_SUPPORT_TYPE_LABELS[eoi.partnership_type] ?? eoi.partnership_type) : null,
+        direction: "Inbound",
+        eoiCount: null,
+        contactEmail: status === "Partner confirmed" ? (profile?.email ?? org?.email ?? null) : null,
+        contactPhone: status === "Partner confirmed" ? (profile?.phone ?? null) : null,
+        status,
+        date: conv?.updated_at ?? eoi.created_at,
+        outcome: null,
+        timeline: [
+          { label: "Interest expressed", date: eoi.created_at },
+          ...(conv?.opened_at ? [{ label: "In conversation", date: conv.opened_at }] : []),
+          ...(conv?.confirmed_at ? [{ label: "Confirmed", date: conv.confirmed_at }] : []),
+        ],
+        raw: { kind: "initiative_eoi", initiativeId: eoi.initiative_id, eoiId: eoi.id, conversationId: eoi.conversation_id, partnerUserId: eoi.user_id },
+      });
     }
   }
 
-  // ── 4. Partnership connections, both directions ─────────────────────────
-  if (myOrg?.id) {
+  // ── 4. Partnership connections, both directions, + 5. my own listing ───
+  async function loadPartnershipConnections() {
+    if (!myOrg?.id) return;
     const [{ data: sent }, { data: received }] = await Promise.all([
       supabase.from("partnership_connections")
         .select("id, receiver_org_id, status, partnership_type, partnership_title, created_at, updated_at, accepted_at, formed_at, declined_at")
@@ -408,7 +422,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
       rows.push({
         id: `partner-out-${conn.id}`,
         title: resolvePartnershipTitle(counterpart, conn.partnership_title),
-        titleHref: counterpart ? `/dashboard/portfolio/partner/${counterpart.id}` : null,
+        titleHref: counterpart ? `/dashboard/portfolio/exchanges/partner/${counterpart.id}` : null,
         organisation: counterpart?.organisation_name ?? "Unknown",
         organisationHref: counterpart?.user_id ? `/dashboard/natives?tab=organisation&user=${counterpart.user_id}` : null,
         type: "Partnership",
@@ -431,7 +445,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
       rows.push({
         id: `partner-in-${conn.id}`,
         title: resolvePartnershipTitle(counterpart, conn.partnership_title),
-        titleHref: counterpart ? `/dashboard/portfolio/partner/${counterpart.id}` : null,
+        titleHref: counterpart ? `/dashboard/portfolio/exchanges/partner/${counterpart.id}` : null,
         organisation: counterpart?.organisation_name ?? "Unknown",
         organisationHref: counterpart?.user_id ? `/dashboard/natives?tab=organisation&user=${counterpart.user_id}` : null,
         type: "Partnership",
@@ -454,7 +468,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
       rows.push({
         id: `partner-mine-${myOrg.id}`,
         title: resolvePartnershipTitle(myOrg, myOrg.partnership_title),
-        titleHref: `/dashboard/portfolio/partner/${myOrg.id}`,
+        titleHref: `/dashboard/portfolio/exchanges/partner/${myOrg.id}`,
         organisation: myOrgName,
         organisationHref: myProfileHref,
         type: "Partnership",
@@ -471,6 +485,8 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
       });
     }
   }
+
+  await Promise.all([loadOutboundEoiDetail(), loadInboundEois(), loadPartnershipConnections()]);
 
   // ── 6. Attach outcome tracking to confirmed/formed relationships only ──
   const initiativeOutcomeKeys = rows.filter(

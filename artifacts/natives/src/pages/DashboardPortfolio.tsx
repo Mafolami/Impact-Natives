@@ -811,7 +811,7 @@ export default function DashboardInitiatives() {
         alreadySent={sentInterests.has(selectedPartnerOrg.id)}
         sending={sendingInterest === selectedPartnerOrg.id}
         onExpressInterest={e => expressInterest(selectedPartnerOrg, e)}
-        onBack={() => navigate("/dashboard/portfolio")}
+        onBack={() => navigate("/dashboard/portfolio/exchanges")}
         backLabel="Back to portfolio"
         viewerOrg={viewerOrg}
         variant="page"
