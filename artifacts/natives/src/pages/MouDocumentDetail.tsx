@@ -8,7 +8,9 @@ import SignaturePad from "@/components/dashboard/SignaturePad";
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SectionVariant { toggle_value: string | boolean | null; body: string }
 interface TemplateSection { id: string; title: string; toggle_key: string | null; variants: SectionVariant[] }
-interface MouTemplate { id: string; name: string; sections: TemplateSection[] }
+interface TemplateToggleOption { value: string | boolean; label?: string }
+interface TemplateToggle { key: string; label: string; type: "select" | "binary"; options: TemplateToggleOption[] }
+interface MouTemplate { id: string; name: string; sections: TemplateSection[]; toggles: TemplateToggle[] }
 interface FieldFlag {
   id: string;
   field_key: string;
@@ -132,7 +134,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     setInitiative((initRes as any)?.data ?? null);
 
     if (docRow.source_type === "template" && docRow.template_id) {
-      const { data: tpl } = await supabase.from("mou_templates").select("id, name, sections").eq("id", docRow.template_id).maybeSingle();
+      const { data: tpl } = await supabase.from("mou_templates").select("id, name, sections, toggles").eq("id", docRow.template_id).maybeSingle();
       setTemplate(tpl as MouTemplate);
     }
 
@@ -384,7 +386,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
             onChange={(e) => {
               if (e.target.value === "__other__") {
                 setCustomFieldMode((prev) => ({ ...prev, [key]: true }));
-                setFieldValues((prev) => ({ ...prev, [key]: "" }));
               } else {
                 setFieldValues((prev) => ({ ...prev, [key]: e.target.value }));
               }
@@ -396,17 +397,18 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
             <option value="__other__">Other (type your own)</option>
           </select>
         ) : (
-          <div className="flex gap-2">
+          <div className="space-y-2">
             <input
               type={numeric ? "number" : "text"}
               value={value}
               onChange={(e) => setFieldValues((prev) => ({ ...prev, [key]: e.target.value }))}
-              className="flex-1 h-10 px-3 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F]/50"
+              placeholder="Type your own..."
+              className="w-full h-10 px-3 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F]/50"
             />
             <button type="button"
-              onClick={() => { setCustomFieldMode((prev) => ({ ...prev, [key]: false })); setFieldValues((prev) => ({ ...prev, [key]: "" })); }}
-              className="text-sm text-black dark:text-white hover:underline underline-offset-2 shrink-0">
-              Choose from list
+              onClick={() => setCustomFieldMode((prev) => ({ ...prev, [key]: false }))}
+              className="text-sm px-3 py-1 rounded-full border border-border text-black dark:text-white hover:border-[#2D6A4F]/50 transition-colors">
+              Choose from list instead
             </button>
           </div>
         )}
@@ -451,8 +453,14 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   // a single stored string (e.g. "5,000 NGN") since the template only has
   // one {{financial_amount}} placeholder to substitute.
   function parseFinancialAmount(raw: string): { amount: string; currency: string } {
-    const match = raw.match(/^([\d,]+(?:\.\d+)?)\s*([A-Za-z]{3})?$/);
+    const trimmed = raw.trim();
+    const match = trimmed.match(/^([\d,]+(?:\.\d+)?)\s*([A-Za-z]{3})?$/);
     if (match) return { amount: match[1].replace(/,/g, ""), currency: (match[2] || "NGN").toUpperCase() };
+    // No amount typed yet -- if a currency was already chosen, the stored
+    // value is just the bare currency code so the select doesn't silently
+    // reset to NGN while the amount box is still empty.
+    const currencyOnly = trimmed.match(/^([A-Za-z]{3})$/);
+    if (currencyOnly) return { amount: "", currency: currencyOnly[1].toUpperCase() };
     return { amount: "", currency: "NGN" };
   }
   function renderFinancialAmountField() {
@@ -462,7 +470,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     const { amount, currency } = parseFinancialAmount(rawValue);
     function update(newAmount: string, newCurrency: string) {
       const cleanAmount = newAmount.replace(/[^\d.]/g, "");
-      const combined = cleanAmount ? `${Number(cleanAmount).toLocaleString()} ${newCurrency}` : "";
+      const combined = cleanAmount ? `${Number(cleanAmount).toLocaleString()} ${newCurrency}` : newCurrency;
       setFieldValues((prev) => ({ ...prev, [key]: combined }));
     }
     return (
@@ -592,9 +600,18 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     }).eq("id", doc.id);
     setSaving(false);
   }
+  async function saveToggleSelection(key: string, value: string | boolean) {
+    if (!doc) return;
+    const updated = { ...(doc.toggle_selections ?? {}), [key]: value };
+    await supabase.from("mou_documents").update({
+      toggle_selections: updated, updated_at: new Date().toISOString(),
+    }).eq("id", doc.id);
+    setDoc({ ...doc, toggle_selections: updated } as MouDoc);
+  }
   async function completeOrgADetails() {
     if (!doc || !orgB) return;
     if (missingFieldLabels.length > 0 || dateValidationErrors.length > 0) return;
+    if (!doc.signature_org_a_path) return;
     setSaving(true);
     const updates = {
       field_values: fieldValues,
@@ -638,11 +655,21 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   }
   async function resolveFlag(flagId: string) {
     if (!doc) return;
+    const flag = (doc.field_flags ?? []).find((f) => f.id === flagId);
     const updatedFlags = (doc.field_flags ?? []).map((f) => (f.id === flagId ? { ...f, resolved: true } : f));
     await supabase.from("mou_documents").update({
       field_flags: updatedFlags, updated_at: new Date().toISOString(),
     }).eq("id", doc.id);
     setDoc({ ...doc, field_flags: updatedFlags } as MouDoc);
+    if (flag) {
+      await supabase.rpc("send_mou_notification", {
+        p_document_id: doc.id,
+        p_type: "mou_flag_resolved",
+        p_title: "A flagged detail was addressed",
+        p_body: `${orgA?.organisation_name ?? "The other party"} resolved your flag on "${humanizeFieldLabel(flag.field_key)}": ${flag.note}`,
+        p_link: `/dashboard/portfolio/mou`,
+      });
+    }
   }
 
   async function saveCustomContent() {
@@ -1054,6 +1081,10 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const hasUnresolvedFlags = (doc.field_flags ?? []).some((f) => !f.resolved);
   const orgADetailsEditable = isViewerOrgA && (!doc.details_completed_by_org_a || hasUnresolvedFlags);
   const orgBCanFillTheirPart = doc.details_completed_by_org_a && !hasUnresolvedFlags;
+  // Toggles change the actual clause text, so once either party has signed
+  // anything, changing them would silently alter what was already agreed
+  // to and signed -- same reasoning as the preview-text lock.
+  const togglesEditable = isViewerOrgA && !doc.signature_org_a_path && !doc.signature_org_b_path;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
@@ -1081,13 +1112,66 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           {/* Template: fillable fields */}
           {doc.source_type === "template" && (
             <>
+              {template && template.toggles && template.toggles.length > 0 && (
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-base font-semibold text-black dark:text-white">Agreement terms</p>
+                    <p className="text-sm text-black dark:text-white">
+                      {togglesEditable
+                        ? "These control which clauses appear in the document. Locked once either party signs."
+                        : "Set at document creation. Locked because a signature exists on this document."}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border p-4 space-y-4">
+                    {template.toggles.map((t) => {
+                      const currentValue = doc.toggle_selections?.[t.key];
+                      return (
+                        <div key={t.key}>
+                          <p className="text-sm font-medium text-black dark:text-white mb-2">{t.label}</p>
+                          {t.type === "select" ? (
+                            <div className="flex flex-wrap gap-2">
+                              {t.options.map((opt) => (
+                                <button key={String(opt.value)} type="button"
+                                  disabled={!togglesEditable}
+                                  onClick={() => saveToggleSelection(t.key, opt.value)}
+                                  className={`text-sm px-3 py-1.5 rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
+                                    currentValue === opt.value
+                                      ? "border-[#2D6A4F] bg-[#2D6A4F]/8 text-black dark:text-white font-medium"
+                                      : "border-border text-black dark:text-white hover:border-[#2D6A4F]/40"
+                                  }`}>
+                                  {opt.label ?? String(opt.value)}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="flex gap-2">
+                              {[{ v: true, l: "Yes" }, { v: false, l: "No" }].map((opt) => (
+                                <button key={String(opt.v)} type="button"
+                                  disabled={!togglesEditable}
+                                  onClick={() => saveToggleSelection(t.key, opt.v)}
+                                  className={`px-4 py-1.5 rounded-full border text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
+                                    currentValue === opt.v
+                                      ? "border-[#2D6A4F] bg-[#2D6A4F]/8 text-black dark:text-white"
+                                      : "border-border text-black dark:text-white hover:border-[#2D6A4F]/40"
+                                  }`}>
+                                  {opt.l}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               {allFieldKeys.length > 0 && (
                 <div className="space-y-5">
                   <div>
                     <p className="text-base font-semibold text-black dark:text-white">Fill in the details</p>
                     <p className="text-sm text-black dark:text-white">
                       {isViewerOrgA
-                        ? "Complete your organisation's details and the shared agreement details below. Once submitted, we'll notify the other party to review."
+                        ? "Complete your organisation's details and the shared agreement details below, then sign. Once you submit, we'll notify the other party to review."
                         : doc.details_completed_by_org_a
                         ? "Review the details below. Flag anything that needs clarifying before filling in your own details."
                         : `Waiting for ${orgA?.organisation_name ?? "the other party"} to complete their details.`}
@@ -1126,13 +1210,10 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                     </div>
                   )}
 
-                  {isViewerOrgA && (
-                    <button type="button" onClick={completeOrgADetails}
-                      disabled={saving || missingFieldLabels.length > 0 || dateValidationErrors.length > 0 || (doc.details_completed_by_org_a && !hasUnresolvedFlags)}
-                      className="text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed">
-                      {doc.details_completed_by_org_a
-                        ? (hasUnresolvedFlags ? "Resubmit after resolving flags" : "Details submitted")
-                        : (saving ? "Submitting..." : `Submit details and notify ${orgB?.organisation_name ?? "partner"}`)}
+                  {isViewerOrgA && orgADetailsEditable && (
+                    <button type="button" onClick={saveFieldValues} disabled={saving}
+                      className="text-sm text-black dark:text-white hover:underline underline-offset-2 disabled:opacity-60">
+                      {saving ? "Saving..." : "Save progress"}
                     </button>
                   )}
 
@@ -1261,14 +1342,9 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                 <p className="text-sm text-amber-800">{noticePeriodWarning}</p>
               </div>
             )}
-            {doc.status === "draft" && iAmCreator && missingFieldLabels.length === 0 && dateValidationErrors.length === 0 && (
-              <button type="button" onClick={markSent} disabled={saving}
-                className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3 text-base font-medium transition-colors disabled:opacity-60">
-                <Send className="w-4 h-4" /> Mark as sent
-              </button>
-            )}
+            
 
-            {doc.status !== "draft" && doc.source_type === "uploaded_pdf" && (
+            {doc.source_type === "uploaded_pdf" && (
               <div className="space-y-2">
                 <p className="text-sm text-black dark:text-white">
                   This document was uploaded, so Impact Natives cannot place a signature onto it directly — sign it outside the platform, then upload each signed copy here.
@@ -1295,7 +1371,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               </div>
             )}
 
-            {doc.status !== "draft" && doc.source_type !== "uploaded_pdf" && missingFieldLabels.length === 0 && dateValidationErrors.length === 0 &&
+            {doc.source_type !== "uploaded_pdf" && missingFieldLabels.length === 0 && dateValidationErrors.length === 0 &&
               (doc.source_type !== "template" || !isViewerOrgB || orgBCanFillTheirPart) && (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1384,6 +1460,15 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
             )}
           </div>
 
+          {isViewerOrgA && doc.source_type === "template" && doc.signature_org_a_path && missingFieldLabels.length === 0 && dateValidationErrors.length === 0 && (
+              <button type="button" onClick={completeOrgADetails}
+                disabled={saving || (doc.details_completed_by_org_a && !hasUnresolvedFlags)}
+                className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3 text-base font-medium transition-colors disabled:opacity-60">
+                {doc.details_completed_by_org_a
+                  ? (hasUnresolvedFlags ? "Resubmit after resolving flags" : "Details submitted")
+                  : (saving ? "Submitting..." : `Submit — notify ${orgB?.organisation_name ?? "partner"}`)}
+              </button>
+            )}
           {/* Export */}
           {doc.source_type !== "uploaded_pdf" && (
             <div className="space-y-2">
