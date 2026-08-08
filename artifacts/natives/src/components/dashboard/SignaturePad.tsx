@@ -2,11 +2,12 @@ import { useRef, useState, useEffect } from "react";
 import { Eraser, Upload } from "lucide-react";
 
 interface Props {
-  onCapture: (dataUrl: string) => void;
+  onConfirm: (dataUrl: string) => void;
   disabled?: boolean;
+  confirming?: boolean;
 }
 
-export default function SignaturePad({ onCapture, disabled }: Props) {
+export default function SignaturePad({ onConfirm, disabled, confirming }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawing = useRef(false);
   const [mode, setMode] = useState<"draw" | "upload">("draw");
@@ -72,17 +73,18 @@ export default function SignaturePad({ onCapture, disabled }: Props) {
   function confirmDrawn() {
     const canvas = canvasRef.current;
     if (!canvas || !hasSignature) return;
-    onCapture(canvas.toDataURL("image/png"));
+    onConfirm(canvas.toDataURL("image/png"));
   }
 
   function handleUpload(file: File) {
     const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      setUploadPreview(dataUrl);
-      onCapture(dataUrl);
-    };
+    reader.onload = () => setUploadPreview(reader.result as string);
     reader.readAsDataURL(file);
+  }
+
+  function confirmUploaded() {
+    if (!uploadPreview) return;
+    onConfirm(uploadPreview);
   }
 
   return (
@@ -107,7 +109,7 @@ export default function SignaturePad({ onCapture, disabled }: Props) {
             ref={canvasRef}
             width={500}
             height={160}
-            className="w-full rounded-lg touch-none bg-white"
+            className="w-full border border-border rounded-lg touch-none bg-white"
             onPointerDown={startDraw}
             onPointerMove={draw}
             onPointerUp={endDraw}
@@ -118,9 +120,9 @@ export default function SignaturePad({ onCapture, disabled }: Props) {
               className="flex items-center gap-1.5 text-sm text-black hover:opacity-70 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">
               <Eraser className="w-3.5 h-3.5" /> Clear
             </button>
-            <button type="button" onClick={confirmDrawn} disabled={disabled || !hasSignature}
+            <button type="button" onClick={confirmDrawn} disabled={disabled || !hasSignature || confirming}
               className="ml-auto text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#2D6A4F]">
-              Use this signature
+              {confirming ? "Saving..." : "Confirm signature"}
             </button>
           </div>
         </div>
@@ -133,7 +135,13 @@ export default function SignaturePad({ onCapture, disabled }: Props) {
               onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); }} />
           </label>
           {uploadPreview && (
-            <img src={uploadPreview} alt="Signature preview" className="h-20 rounded-lg bg-white p-2" />
+            <div className="space-y-2">
+              <img src={uploadPreview} alt="Signature preview" className="h-20 rounded-lg bg-white p-2" />
+              <button type="button" onClick={confirmUploaded} disabled={disabled || confirming}
+                className="text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                {confirming ? "Saving..." : "Confirm signature"}
+              </button>
+            </div>
           )}
         </div>
       )}

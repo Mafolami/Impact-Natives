@@ -36,6 +36,7 @@ interface MouDoc {
   signature_org_b_path: string | null;
   signed_at_org_a: string | null;
   signed_at_org_b: string | null;
+  final_document_path: string | null;
   created_by: string;
 }
 
@@ -74,7 +75,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const [signatureBUrl, setSignatureBUrl] = useState<string | null>(null);
   const [signatureAImg, setSignatureAImg] = useState<HTMLImageElement | null>(null);
   const [signatureBImg, setSignatureBImg] = useState<HTMLImageElement | null>(null);
-  const [capturedSignature, setCapturedSignature] = useState<string | null>(null);
   const [signing, setSigning] = useState(false);
   const [redrawingSignature, setRedrawingSignature] = useState(false);
 
@@ -311,15 +311,14 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     return new Blob([array], { type: mime });
   }
 
-  async function confirmSignature() {
-    if (!doc || !orgA || !orgB || !capturedSignature) return;
+  async function confirmSignature(dataUrl: string) {
+    if (!doc || !orgA || !orgB) return;
     setSigning(true);
     const myOrgId = orgA.user_id === myUserId ? orgA.id : orgB.user_id === myUserId ? orgB.id : null;
     if (!myOrgId) { setSigning(false); return; }
-
     const path = `signatures/${doc.id}/${myOrgId}-${Date.now()}.png`;
     const { error: uploadError } = await supabase.storage
-      .from("mou-documents").upload(path, dataUrlToBlob(capturedSignature));
+      .from("mou-documents").upload(path, dataUrlToBlob(dataUrl));
     if (uploadError) { setSigning(false); return; }
 
     const isOrgA = myOrgId === doc.org_a_id;
@@ -334,12 +333,47 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       updates.signed_at_org_b = new Date().toISOString();
     }
     const otherAlreadySigned = isOrgA ? !!doc.signature_org_b_path : !!doc.signature_org_a_path;
-    updates.status = otherAlreadySigned ? "fully_executed" : (doc.status === "draft" ? "sent" : doc.status);
-
+    const nowFullyExecuted = otherAlreadySigned;
+    updates.status = nowFullyExecuted ? "fully_executed" : (doc.status === "draft" ? "sent" : doc.status);
     await supabase.from("mou_documents").update(updates).eq("id", doc.id);
-    setDoc({ ...doc, ...updates } as MouDoc);
-    setCapturedSignature(null);
+    const updatedDoc = { ...doc, ...updates } as MouDoc;
+    setDoc(updatedDoc);
+
+    const otherOrgName = isOrgA ? orgB.organisation_name : orgA.organisation_name;
+    if (nowFullyExecuted) {
+      // Both signatures are in -- generate the one canonical PDF now,
+      // while both signature images are already loaded in this session,
+      // rather than leaving it to whoever next happens to click Export.
+      const pdf = buildPdf();
+      if (pdf) {
+        const finalPath = `final/${doc.id}/executed.pdf`;
+        const pdfBlob = pdf.output("blob");
+        const { error: finalUploadError } = await supabase.storage
+          .from("mou-documents").upload(finalPath, pdfBlob, { upsert: true });
+        if (!finalUploadError) {
+          await supabase.from("mou_documents").update({ final_document_path: finalPath }).eq("id", doc.id);
+          updatedDoc.final_document_path = finalPath;
+          setDoc(updatedDoc);
+        }
+      }
+      await supabase.rpc("notify_mou_fully_executed", {
+        p_document_id: doc.id,
+        p_title: "MoU fully executed",
+        p_body: `Your MoU with ${otherOrgName} has been signed by both parties.`,
+        p_link: `/dashboard/portfolio/mou`,
+      });
+    } else {
+      await supabase.rpc("send_mou_notification", {
+        p_document_id: doc.id,
+        p_type: "mou_awaiting_signature",
+        p_title: "MoU awaiting your signature",
+        p_body: `${otherOrgName} has signed your MoU. It's ready for your signature.`,
+        p_link: `/dashboard/portfolio/mou`,
+      });
+    }
+
     setSigning(false);
+    setRedrawingSignature(false);
     load({ silent: true });
   }
   async function clearMySignature() {
@@ -400,8 +434,8 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       .replace(/[^\x00-\x7E]/g, "");
   }
 
-  function exportPdf() {
-    if (!doc || !orgA || !orgB) return;
+  function buildPdf(): jsPDF | null {
+    if (!doc || !orgA || !orgB) return null;
     const pdf = new jsPDF({ unit: "pt", format: "a4", floatPrecision: 2 });
     pdf.addFileToVFS("BricolageGrotesque-Bold.ttf", BRICOLAGE_GROTESQUE_BOLD_BASE64);
     pdf.addFont("BricolageGrotesque-Bold.ttf", "Bricolage", "bold");
@@ -512,6 +546,11 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       pdf.text(`${i} / ${pageCount}`, pageWidth - margin - 24, pageHeight - 24);
     }
 
+    return pdf;
+  }
+  function exportPdf() {
+    const pdf = buildPdf();
+    if (!pdf || !orgA || !orgB) return;
     pdf.save(`MoU-${sanitizeForPdf(orgA.organisation_name)}-${sanitizeForPdf(orgB.organisation_name)}.pdf`);
   }
 
@@ -687,7 +726,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                     <p className="text-sm font-medium text-black dark:text-white mb-1">{orgA?.organisation_name}</p>
                     {signatureAUrl ? (
                       <div className="rounded-lg p-2 bg-white">
-                        <img src={signatureAUrl} alt="Signature" className="h-14" />
+                        <img src={signatureAUrl} alt="Signature" className="h-28" />
                         <p className="text-sm text-black dark:text-white mt-1">
                           Signed {doc.signed_at_org_a ? new Date(doc.signed_at_org_a).toLocaleDateString("en-GB") : ""}
                         </p>
@@ -700,7 +739,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                     <p className="text-sm font-medium text-black dark:text-white mb-1">{orgB?.organisation_name}</p>
                     {signatureBUrl ? (
                       <div className="rounded-lg p-2 bg-white">
-                        <img src={signatureBUrl} alt="Signature" className="h-14" />
+                        <img src={signatureBUrl} alt="Signature" className="h-28" />
                         <p className="text-sm text-black dark:text-white mt-1">
                           Signed {doc.signed_at_org_b ? new Date(doc.signed_at_org_b).toLocaleDateString("en-GB") : ""}
                         </p>
@@ -719,22 +758,16 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                     <div className="border-t border-border pt-4 space-y-3">
                       {showPad ? (
                         <>
-                          <p className="text-base font-semibold text-black dark:text-white">Sign this document</p>
-                          <SignaturePad onCapture={setCapturedSignature} disabled={signing} />
-                          {capturedSignature && (
-                            <div className="flex gap-2">
-                              <button type="button" onClick={async () => { await confirmSignature(); setRedrawingSignature(false); }} disabled={signing}
-                                className="flex-1 flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3 text-base font-medium transition-colors disabled:opacity-60">
-                                {signing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirm signature"}
+                          <div className="flex items-center justify-between">
+                            <p className="text-base font-semibold text-black dark:text-white">Sign this document</p>
+                            {redrawingSignature && (
+                              <button type="button" onClick={() => setRedrawingSignature(false)} disabled={signing}
+                                className="text-sm text-black dark:text-white hover:underline underline-offset-2 disabled:opacity-60">
+                                Cancel
                               </button>
-                              {redrawingSignature && (
-                                <button type="button" onClick={() => { setRedrawingSignature(false); setCapturedSignature(null); }} disabled={signing}
-                                  className="px-4 py-3 rounded-full border border-border text-base font-medium text-black dark:text-white transition-colors disabled:opacity-60">
-                                  Cancel
-                                </button>
-                              )}
-                            </div>
-                          )}
+                            )}
+                          </div>
+                          <SignaturePad onConfirm={confirmSignature} disabled={signing} confirming={signing} />
                         </>
                       ) : (
                         <div className="flex items-center gap-4">
@@ -757,10 +790,17 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
 
           {/* Export */}
           {doc.source_type !== "uploaded_pdf" && (
-            <button type="button" onClick={exportPdf}
-              className="w-full flex items-center justify-center gap-2 border border-border rounded-full py-3 text-base font-medium text-black dark:text-white hover:border-[#2D6A4F]/50 transition-colors">
-              <Download className="w-4 h-4" /> Export as PDF
-            </button>
+            <div className="space-y-2">
+              {doc.final_document_path && (
+                <p className="text-sm text-black dark:text-white">
+                  This MoU is fully executed. Exporting now gives you the final signed copy both parties hold.
+                </p>
+              )}
+              <button type="button" onClick={exportPdf}
+                className="w-full flex items-center justify-center gap-2 border border-border rounded-full py-3 text-base font-medium text-black dark:text-white hover:border-[#2D6A4F]/50 transition-colors">
+                <Download className="w-4 h-4" /> Export as PDF
+              </button>
+            </div>
           )}
         </div>
       </div>
