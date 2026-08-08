@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { jsPDF } from "jspdf";
 import { BRICOLAGE_GROTESQUE_BOLD_BASE64 } from "@/lib/fonts/bricolageGrotesqueBold";
 import { X, Loader2, Download, Upload, CheckCircle2, Send } from "lucide-react";
-import SignaturePad from "./SignaturePad";
+import SignaturePad from "@/components/dashboard/SignaturePad";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SectionVariant { toggle_value: string | boolean | null; body: string }

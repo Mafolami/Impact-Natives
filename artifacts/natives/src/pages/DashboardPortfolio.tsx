@@ -9,7 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import { ArrowLeft, ArrowRight, Download, Loader2, Users, UserCheck, Pencil, CheckCircle2, Check, X, LayoutList, Table2 } from "lucide-react";import { Link, useLocation } from "wouter";
 import CreateInitiativeModalDashboard from "./CreateInitiativeModalDashboard";
 import EditInitiativeModalDashboard from "./EditInitiativeModalDashboard";
-import CreateMouModal from "./CreateMouModal";
+import ActionsDropdown from "@/components/dashboard/ActionsDropdown";
 import MouDocumentDetail from "./MouDocumentDetail";
 import { useRoute } from "wouter";
 import { PartnershipTab } from "./PartnershipTab";
@@ -309,7 +309,7 @@ function InitiativeDetail({ initiative, onBack, onRequestEdit }: { initiative: I
     <div className="space-y-6">
       <button type="button" onClick={onBack}
         className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-[#C45C26] transition-colors">
-        <ArrowLeft className="w-3.5 h-3.5" /> Back to portfolio
+        <ArrowLeft className="w-3.5 h-3.5" /> Back
       </button>
 
       <div className="flex items-start justify-between gap-4">
@@ -659,10 +659,9 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
                     </td>
                     <td className="px-5 py-3 text-xs text-black dark:text-white whitespace-nowrap">{timeAgo(p.confirmed_at)}</td>
                     <td className="px-5 py-3">
-                      <Link href={`/dashboard/portfolio/mou?newForUserId=${p.user_id}&partnerName=${encodeURIComponent(p.name)}&initiativeId=${card.initiative_id}&initiativeTitle=${encodeURIComponent(card.initiative_title)}`}
-                        className="text-sm text-black dark:text-white hover:underline underline-offset-2 whitespace-nowrap">
-                        MoU
-                      </Link>
+                      <ActionsDropdown actions={[
+                        { label: "MoU", href: `/dashboard/portfolio/mou?newForUserId=${p.user_id}&partnerName=${encodeURIComponent(p.name)}&initiativeId=${card.initiative_id}&initiativeTitle=${encodeURIComponent(card.initiative_title)}` },
+                      ]} />
                     </td>
                   </tr>
                 )))}
@@ -697,10 +696,9 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
                       <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{background:"rgba(45,106,79,0.12)",color:"#2D6A4F"}}>{partnershipLabel(row.role)}</span>
                     </td>
                     <td className="px-5 py-3">
-                      <Link href={`/dashboard/portfolio/mou?newForUserId=${row.creator_user_id}&partnerName=${encodeURIComponent(row.creator_name)}&initiativeId=${row.initiative_id}&initiativeTitle=${encodeURIComponent(row.initiative_title)}`}
-                        className="text-sm text-black dark:text-white hover:underline underline-offset-2 whitespace-nowrap">
-                        MoU
-                      </Link>
+                      <ActionsDropdown actions={[
+                        { label: "MoU", href: `/dashboard/portfolio/mou?newForUserId=${row.creator_user_id}&partnerName=${encodeURIComponent(row.creator_name)}&initiativeId=${row.initiative_id}&initiativeTitle=${encodeURIComponent(row.initiative_title)}` },
+                      ]} />
                     </td>
                   </tr>
                 ))}
@@ -812,7 +810,7 @@ export default function DashboardInitiatives() {
         sending={sendingInterest === selectedPartnerOrg.id}
         onExpressInterest={e => expressInterest(selectedPartnerOrg, e)}
         onBack={() => navigate("/dashboard/portfolio/exchanges")}
-        backLabel="Back to portfolio"
+        backLabel="Back"
         viewerOrg={viewerOrg}
         variant="page"
       />
