@@ -105,16 +105,18 @@ export default function SignaturePad({ onConfirm, disabled, confirming }: Props)
       </div>
       {mode === "draw" ? (
         <div className="space-y-2">
-          <canvas
-            ref={canvasRef}
-            width={500}
-            height={160}
-            className="w-full border border-border rounded-lg touch-none bg-white"
-            onPointerDown={startDraw}
-            onPointerMove={draw}
-            onPointerUp={endDraw}
-            onPointerLeave={endDraw}
-          />
+          <div className="w-full border border-border rounded-lg bg-white px-4 py-2">
+            <canvas
+              ref={canvasRef}
+              width={500}
+              height={160}
+              className="w-full touch-none"
+              onPointerDown={startDraw}
+              onPointerMove={draw}
+              onPointerUp={endDraw}
+              onPointerLeave={endDraw}
+            />
+          </div>
           <div className="flex gap-2">
             <button type="button" onClick={clearCanvas} disabled={disabled}
               className="flex items-center gap-1.5 text-sm text-black hover:opacity-70 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">

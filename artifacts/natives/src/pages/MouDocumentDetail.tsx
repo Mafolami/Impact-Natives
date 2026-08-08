@@ -37,6 +37,8 @@ interface MouDoc {
   signed_at_org_a: string | null;
   signed_at_org_b: string | null;
   final_document_path: string | null;
+  signature_locked_org_a: boolean;
+  signature_locked_org_b: boolean;
   created_by: string;
 }
 
@@ -376,11 +378,27 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     setRedrawingSignature(false);
     load({ silent: true });
   }
+  async function finishMySignature() {
+    if (!doc || !orgA || !orgB) return;
+    const myOrgId = orgA.user_id === myUserId ? orgA.id : orgB.user_id === myUserId ? orgB.id : null;
+    if (!myOrgId) return;
+    const isOrgA = myOrgId === doc.org_a_id;
+    const mySigPath = isOrgA ? doc.signature_org_a_path : doc.signature_org_b_path;
+    if (!mySigPath) return; // can't finish before signing
+    const updates = isOrgA
+      ? { signature_locked_org_a: true, updated_at: new Date().toISOString() }
+      : { signature_locked_org_b: true, updated_at: new Date().toISOString() };
+    await supabase.from("mou_documents").update(updates).eq("id", doc.id);
+    setDoc({ ...doc, ...updates } as MouDoc);
+  }
   async function clearMySignature() {
     if (!doc || !orgA || !orgB) return;
     const myOrgId = orgA.user_id === myUserId ? orgA.id : orgB.user_id === myUserId ? orgB.id : null;
     if (!myOrgId) return;
     const isOrgA = myOrgId === doc.org_a_id;
+    // Guard the action itself, not just the button -- a locked signature
+    // must be unclearable even if the UI somehow still shows the control.
+    if (isOrgA ? doc.signature_locked_org_a : doc.signature_locked_org_b) return;
     const updates: Partial<MouDoc> & Record<string, any> = { updated_at: new Date().toISOString() };
     if (isOrgA) {
       updates.signature_org_a_path = null;
@@ -725,7 +743,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                   <div>
                     <p className="text-sm font-medium text-black dark:text-white mb-1">{orgA?.organisation_name}</p>
                     {signatureAUrl ? (
-                      <div className="rounded-lg p-2 bg-white">
+                      <div className="rounded-lg p-2 bg-white flex justify-start">
                         <img src={signatureAUrl} alt="Signature" className="h-28" />
                         <p className="text-sm text-black dark:text-white mt-1">
                           Signed {doc.signed_at_org_a ? new Date(doc.signed_at_org_a).toLocaleDateString("en-GB") : ""}
@@ -738,7 +756,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                   <div>
                     <p className="text-sm font-medium text-black dark:text-white mb-1">{orgB?.organisation_name}</p>
                     {signatureBUrl ? (
-                      <div className="rounded-lg p-2 bg-white">
+                      <div className="rounded-lg p-2 bg-white flex justify-start">
                         <img src={signatureBUrl} alt="Signature" className="h-28" />
                         <p className="text-sm text-black dark:text-white mt-1">
                           Signed {doc.signed_at_org_b ? new Date(doc.signed_at_org_b).toLocaleDateString("en-GB") : ""}
@@ -753,7 +771,17 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                 {orgA && orgB && (orgA.user_id === myUserId || orgB.user_id === myUserId) && (() => {
                   const isOrgA = orgA.user_id === myUserId;
                   const mySigUrl = isOrgA ? signatureAUrl : signatureBUrl;
-                  const showPad = !mySigUrl || redrawingSignature;
+                  const myLocked = isOrgA ? doc.signature_locked_org_a : doc.signature_locked_org_b;
+                  const showPad = !myLocked && (!mySigUrl || redrawingSignature);
+                  if (myLocked) {
+                    return (
+                      <div className="border-t border-border pt-4">
+                        <p className="text-sm text-black dark:text-white">
+                          You have finalized your signature on this document. It can no longer be changed.
+                        </p>
+                      </div>
+                    );
+                  }
                   return (
                     <div className="border-t border-border pt-4 space-y-3">
                       {showPad ? (
@@ -770,15 +798,24 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                           <SignaturePad onConfirm={confirmSignature} disabled={signing} confirming={signing} />
                         </>
                       ) : (
-                        <div className="flex items-center gap-4">
-                          <button type="button" onClick={() => setRedrawingSignature(true)}
-                            className="text-sm text-black dark:text-white hover:underline underline-offset-2">
-                            Change signature
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-4">
+                            <button type="button" onClick={() => setRedrawingSignature(true)}
+                              className="text-sm text-black dark:text-white hover:underline underline-offset-2">
+                              Change signature
+                            </button>
+                            <button type="button" onClick={clearMySignature}
+                              className="text-sm text-black dark:text-white hover:underline underline-offset-2">
+                              Clear signature
+                            </button>
+                          </div>
+                          <button type="button" onClick={finishMySignature}
+                            className="text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium transition-colors">
+                            Finish — lock this signature
                           </button>
-                          <button type="button" onClick={clearMySignature}
-                            className="text-sm text-black dark:text-white hover:underline underline-offset-2">
-                            Clear signature
-                          </button>
+                          <p className="text-sm text-black/60 dark:text-white/60">
+                            Once you finish, you won't be able to change or clear your signature again.
+                          </p>
                         </div>
                       )}
                     </div>
