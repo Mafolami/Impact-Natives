@@ -76,13 +76,14 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const [signatureBImg, setSignatureBImg] = useState<HTMLImageElement | null>(null);
   const [capturedSignature, setCapturedSignature] = useState<string | null>(null);
   const [signing, setSigning] = useState(false);
+  const [redrawingSignature, setRedrawingSignature] = useState(false);
 
   useEffect(() => { load(); }, [documentId]);
 
-  async function load() {
-    setLoading(true);
+  async function load(opts: { silent?: boolean } = {}) {
+    if (!opts.silent) setLoading(true);
     const { data: docRow } = await supabase.from("mou_documents").select("*").eq("id", documentId).maybeSingle();
-    if (!docRow) { setLoading(false); return; }
+    if (!docRow) { if (!opts.silent) setLoading(false); return; }
     setDoc(docRow as MouDoc);
     setFieldValues((docRow.field_values as Record<string, string>) ?? {});
     setCustomContent(docRow.custom_content ?? "");
@@ -113,13 +114,16 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     if (docRow.signature_org_a_path) {
       const { data } = await supabase.storage.from("mou-documents").createSignedUrl(docRow.signature_org_a_path, 3600);
       if (data?.signedUrl) setSignatureAUrl(data.signedUrl);
+    } else {
+      setSignatureAUrl(null);
     }
     if (docRow.signature_org_b_path) {
       const { data } = await supabase.storage.from("mou-documents").createSignedUrl(docRow.signature_org_b_path, 3600);
       if (data?.signedUrl) setSignatureBUrl(data.signedUrl);
+    } else {
+      setSignatureBUrl(null);
     }
-
-    setLoading(false);
+    if (!opts.silent) setLoading(false);
   }
 
   // Preload signature images as actual <img> elements ahead of time so
@@ -144,16 +148,33 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
 
   // Known field_keys mapped to real platform data — anything not in this map
   // stays blank for manual entry rather than guessed at.
+  function titleCase(text: string): string {
+    return text.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  }
   const autofill = useMemo((): Record<string, string> => {
     if (!orgA || !orgB) return {};
-    const countryOf = (c: string | string[] | null) => Array.isArray(c) ? c[0] ?? "" : c ?? "";
+    // organizations.country is a JSON-encoded array string for multi-select
+    // country fields (e.g. '["Nigeria","United Kingdom"]'), not a real JS
+    // array -- Array.isArray() on it was always false, so the raw string
+    // rendered straight into the field.
+    const countryOf = (c: string | string[] | null): string => {
+      if (!c) return "";
+      if (Array.isArray(c)) return c[0] ?? "";
+      try {
+        const parsed = JSON.parse(c);
+        if (Array.isArray(parsed)) return parsed[0] ?? "";
+      } catch {
+        // not JSON -- c is already a plain country string
+      }
+      return c;
+    };
     return {
       org_a_name: orgA.organisation_name ?? "",
       org_b_name: orgB.organisation_name ?? "",
       org_a_country: countryOf(orgA.country),
       org_b_country: countryOf(orgB.country),
-      org_a_entity_type: orgA.organisation_type?.replace(/_/g, " ") ?? "",
-      org_b_entity_type: orgB.organisation_type?.replace(/_/g, " ") ?? "",
+      org_a_entity_type: orgA.organisation_type ? titleCase(orgA.organisation_type.replace(/_/g, " ")) : "",
+      org_b_entity_type: orgB.organisation_type ? titleCase(orgB.organisation_type.replace(/_/g, " ")) : "",
       project_name: initiative?.title ?? "",
       project_description: initiative?.problem ?? "",
       financial_amount: orgA.partnership_budget ?? orgB.partnership_budget ?? "",
@@ -192,6 +213,16 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     });
     return { orgAKeys, orgBKeys, otherKeys };
   }, [allFieldKeys]);
+  // Force start_date/end_date to the front of the grid so they always land
+  // in the same row as each other, regardless of where they appear in the
+  // template's placeholder order.
+  const orderedOtherKeys = useMemo(() => {
+    const keys = [...groupedFieldKeys.otherKeys];
+    const priority = ["start_date", "end_date"];
+    const front = priority.filter((k) => keys.includes(k));
+    const rest = keys.filter((k) => !priority.includes(k));
+    return [...front, ...rest];
+  }, [groupedFieldKeys.otherKeys]);
   function humanizeFieldLabel(key: string): string {
     const stripped = key.replace(/^org_[ab]_/, "");
     const words = stripped.replace(/_/g, " ");
@@ -207,10 +238,27 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   function renderCompiledText(body: string): string {
     return body.replace(/\{\{(\w+)\}\}/g, (_, key) => resolvedValue(key) || `[${key}]`);
   }
+  function isDescriptionField(key: string): boolean {
+    return key.endsWith("_description");
+  }
   function renderFieldInput(key: string) {
     const manualValue = fieldValues[key];
-    const isPrefilled = !manualValue && !!autofill[key];
     const value = manualValue ?? autofill[key] ?? "";
+    if (isDescriptionField(key)) {
+      return (
+        <div key={key} className="sm:col-span-2">
+          <label className="text-sm font-medium text-black dark:text-white block mb-1">
+            {humanizeFieldLabel(key)}
+          </label>
+          <textarea
+            value={value}
+            onChange={(e) => setFieldValues((prev) => ({ ...prev, [key]: e.target.value }))}
+            rows={4}
+            className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white leading-relaxed focus:outline-none focus:border-[#2D6A4F]/50 resize-y"
+          />
+        </div>
+      );
+    }
     return (
       <div key={key}>
         <label className="text-sm font-medium text-black dark:text-white block mb-1">
@@ -222,9 +270,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           onChange={(e) => setFieldValues((prev) => ({ ...prev, [key]: e.target.value }))}
           className="w-full h-10 px-3 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F]/50"
         />
-        {isPrefilled && (
-          <p className="text-sm text-black/60 dark:text-white/60 mt-1">Prefilled from profile — check it's correct</p>
-        )}
       </div>
     );
   }
@@ -295,9 +340,32 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     setDoc({ ...doc, ...updates } as MouDoc);
     setCapturedSignature(null);
     setSigning(false);
-    load();
+    load({ silent: true });
   }
-
+  async function clearMySignature() {
+    if (!doc || !orgA || !orgB) return;
+    const myOrgId = orgA.user_id === myUserId ? orgA.id : orgB.user_id === myUserId ? orgB.id : null;
+    if (!myOrgId) return;
+    const isOrgA = myOrgId === doc.org_a_id;
+    const updates: Partial<MouDoc> & Record<string, any> = { updated_at: new Date().toISOString() };
+    if (isOrgA) {
+      updates.signature_org_a_path = null;
+      updates.signed_at_org_a = null;
+    } else {
+      updates.signature_org_b_path = null;
+      updates.signed_at_org_b = null;
+    }
+    // Clearing a signature means the document is no longer signed by that
+    // party, so step the status back down if it had advanced past "sent".
+    if (doc.status === "fully_executed") {
+      updates.status = isOrgA ? "signed_by_org_b" : "signed_by_org_a";
+    } else if ((doc.status === "signed_by_org_a" && isOrgA) || (doc.status === "signed_by_org_b" && !isOrgA)) {
+      updates.status = "sent";
+    }
+    await supabase.from("mou_documents").update(updates).eq("id", doc.id);
+    setDoc({ ...doc, ...updates } as MouDoc);
+    if (isOrgA) setSignatureAUrl(null); else setSignatureBUrl(null);
+  }
   async function uploadSignedCopy(file: File) {
     if (!doc || !orgA || !orgB) return;
     setUploadingSigned(true);
@@ -512,13 +580,13 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                       </div>
                     </div>
                   )}
-                  {groupedFieldKeys.otherKeys.length > 0 && (
+                  {orderedOtherKeys.length > 0 && (
                     <div className="rounded-xl border border-border p-4 space-y-3">
                       <p className="text-sm font-semibold text-[#2D6A4F] uppercase tracking-wide">
                         Agreement details
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {groupedFieldKeys.otherKeys.map((key) => renderFieldInput(key))}
+                        {orderedOtherKeys.map((key) => renderFieldInput(key))}
                       </div>
                     </div>
                   )}
@@ -643,18 +711,46 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                   </div>
                 </div>
 
-                {orgA && orgB && (orgA.user_id === myUserId ? !signatureAUrl : orgB.user_id === myUserId ? !signatureBUrl : false) && (
-                  <div className="border-t border-border pt-4 space-y-3">
-                    <p className="text-base font-semibold text-black dark:text-white">Sign this document</p>
-                    <SignaturePad onCapture={setCapturedSignature} disabled={signing} />
-                    {capturedSignature && (
-                      <button type="button" onClick={confirmSignature} disabled={signing}
-                        className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3 text-base font-medium transition-colors disabled:opacity-60">
-                        {signing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirm signature"}
-                      </button>
-                    )}
-                  </div>
-                )}
+                {orgA && orgB && (orgA.user_id === myUserId || orgB.user_id === myUserId) && (() => {
+                  const isOrgA = orgA.user_id === myUserId;
+                  const mySigUrl = isOrgA ? signatureAUrl : signatureBUrl;
+                  const showPad = !mySigUrl || redrawingSignature;
+                  return (
+                    <div className="border-t border-border pt-4 space-y-3">
+                      {showPad ? (
+                        <>
+                          <p className="text-base font-semibold text-black dark:text-white">Sign this document</p>
+                          <SignaturePad onCapture={setCapturedSignature} disabled={signing} />
+                          {capturedSignature && (
+                            <div className="flex gap-2">
+                              <button type="button" onClick={async () => { await confirmSignature(); setRedrawingSignature(false); }} disabled={signing}
+                                className="flex-1 flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3 text-base font-medium transition-colors disabled:opacity-60">
+                                {signing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirm signature"}
+                              </button>
+                              {redrawingSignature && (
+                                <button type="button" onClick={() => { setRedrawingSignature(false); setCapturedSignature(null); }} disabled={signing}
+                                  className="px-4 py-3 rounded-full border border-border text-base font-medium text-black dark:text-white transition-colors disabled:opacity-60">
+                                  Cancel
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="flex items-center gap-4">
+                          <button type="button" onClick={() => setRedrawingSignature(true)}
+                            className="text-sm text-black dark:text-white hover:underline underline-offset-2">
+                            Change signature
+                          </button>
+                          <button type="button" onClick={clearMySignature}
+                            className="text-sm text-black dark:text-white hover:underline underline-offset-2">
+                            Clear signature
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
