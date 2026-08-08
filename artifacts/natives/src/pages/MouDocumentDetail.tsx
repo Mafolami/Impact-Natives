@@ -9,6 +9,14 @@ import SignaturePad from "@/components/dashboard/SignaturePad";
 interface SectionVariant { toggle_value: string | boolean | null; body: string }
 interface TemplateSection { id: string; title: string; toggle_key: string | null; variants: SectionVariant[] }
 interface MouTemplate { id: string; name: string; sections: TemplateSection[] }
+interface FieldFlag {
+  id: string;
+  field_key: string;
+  note: string;
+  raised_by: "org_a" | "org_b";
+  resolved: boolean;
+  created_at: string;
+}
 
 interface OrgFull {
   id: string;
@@ -40,6 +48,9 @@ interface MouDoc {
   signature_locked_org_a: boolean;
   signature_locked_org_b: boolean;
   edited_sections: { id: string; title: string; body: string }[] | null;
+  details_completed_by_org_a: boolean;
+  details_completed_at_org_a: string | null;
+  field_flags: FieldFlag[];
   created_by: string;
 }
 
@@ -80,7 +91,10 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const [signatureBImg, setSignatureBImg] = useState<HTMLImageElement | null>(null);
   const [signing, setSigning] = useState(false);
   const [redrawingSignature, setRedrawingSignature] = useState(false);
-
+  const [openFlagField, setOpenFlagField] = useState<string | null>(null);
+  const [flagNote, setFlagNote] = useState("");
+  const isViewerOrgA = orgA?.user_id === myUserId;
+  const isViewerOrgB = orgB?.user_id === myUserId;
   useEffect(() => { load(); }, [documentId]);
 
   async function load(opts: { silent?: boolean } = {}) {
@@ -194,7 +208,10 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           : s.variants[0];
         return variant ? { id: s.id, title: s.title, body: variant.body } : null;
       })
-      .filter((s): s is { id: string; title: string; body: string } => s !== null);
+      // "signatures" is flat placeholder text ("Signature: __ Name: __")
+      // from the template -- fully superseded by the real signature block
+      // (actual captured images, names, titles, dates) rendered separately.
+      .filter((s): s is { id: string; title: string; body: string } => s !== null && s.id !== "signatures");
   }, [doc, template]);
 
   const allFieldKeys = useMemo(() => {
@@ -237,15 +254,34 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   function resolvedValue(key: string): string {
     return fieldValues[key] || autofill[key] || "";
   }
-  // Fields the template actually requires filled before the document can be
-  // sent or signed. Only applies to template docs -- custom text and
-  // uploaded PDFs have no placeholder fields to check.
+  // Scoped to whichever party is actually looking -- Org A is never told
+  // to fill Org B's fields, and vice versa.
   const missingFieldLabels = useMemo(() => {
     if (doc?.source_type !== "template") return [];
-    return allFieldKeys
+    const myKeys = isViewerOrgA
+      ? [...groupedFieldKeys.orgAKeys, ...orderedOtherKeys]
+      : isViewerOrgB
+      ? groupedFieldKeys.orgBKeys
+      : allFieldKeys;
+    return myKeys
       .filter((k) => !(fieldValues[k] || autofill[k] || "").trim())
       .map((k) => humanizeFieldLabel(k));
-  }, [allFieldKeys, fieldValues, autofill, doc?.source_type]);
+  }, [allFieldKeys, groupedFieldKeys, orderedOtherKeys, fieldValues, autofill, doc?.source_type, isViewerOrgA, isViewerOrgB]);
+  function parseFieldDate(v: string): Date | null {
+    if (!v) return null;
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const dateValidationErrors = useMemo(() => {
+    const errors: string[] = [];
+    const agreementDate = parseFieldDate(resolvedValue("agreement_date"));
+    const startDate = parseFieldDate(resolvedValue("start_date"));
+    const endDate = parseFieldDate(resolvedValue("end_date"));
+    if (startDate && endDate && startDate > endDate) errors.push("Start date cannot be later than end date.");
+    if (agreementDate && startDate && agreementDate > startDate) errors.push("Agreement date cannot be later than start date.");
+    if (agreementDate && endDate && agreementDate > endDate) errors.push("Agreement date cannot be later than end date.");
+    return errors;
+  }, [fieldValues, autofill]);
   // Base text per section: the frozen edited_sections snapshot once one
   // exists, otherwise the live template + field-value recompute. Overrides
   // layer unsaved in-progress typing on top of whichever base is active.
@@ -281,12 +317,30 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   function isDescriptionField(key: string): boolean {
     return key.endsWith("_description");
   }
-  function renderFieldInput(key: string) {
+  function fieldDateError(key: string): string | null {
+    if (key === "start_date" && dateValidationErrors.some((e) => e.includes("Start date"))) return "Cannot be later than end date.";
+    if (key === "agreement_date" && dateValidationErrors.some((e) => e.includes("Agreement date"))) return "Cannot be later than start or end date.";
+    return null;
+  }
+  function renderFieldInput(key: string, readOnly: boolean = false) {
     const manualValue = fieldValues[key];
     const value = manualValue ?? autofill[key] ?? "";
+    const dateError = isDateField(key) ? fieldDateError(key) : null;
+    if (readOnly) {
+      return (
+        <div key={key}>
+          <label className="text-sm font-medium text-black dark:text-white block mb-1">
+            {humanizeFieldLabel(key)}
+          </label>
+          <p className="text-base text-black dark:text-white bg-muted/20 rounded-lg px-3 py-2 min-h-[2.5rem] whitespace-pre-line">
+            {value || "—"}
+          </p>
+        </div>
+      );
+    }
     if (isDescriptionField(key)) {
       return (
-        <div key={key} className="sm:col-span-2">
+        <div key={key}>
           <label className="text-sm font-medium text-black dark:text-white block mb-1">
             {humanizeFieldLabel(key)}
           </label>
@@ -308,8 +362,51 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           type={isDateField(key) ? "date" : "text"}
           value={value}
           onChange={(e) => setFieldValues((prev) => ({ ...prev, [key]: e.target.value }))}
-          className="w-full h-10 px-3 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F]/50"
+          className={`w-full h-10 px-3 rounded-lg border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none ${
+            dateError ? "border-red-500" : "border-border focus:border-[#2D6A4F]/50"
+          }`}
         />
+        {dateError && <p className="text-sm text-red-600 mt-1">{dateError}</p>}
+      </div>
+    );
+  }
+  function renderFlagsForField(key: string) {
+    const flags = (doc?.field_flags ?? []).filter((f) => f.field_key === key);
+    return (
+      <div className="mt-1 space-y-1">
+        {flags.map((f) => (
+          <div key={f.id} className={`text-sm rounded-md px-2 py-1 ${f.resolved ? "bg-muted/20 text-black/60 dark:text-white/60" : "bg-amber-50 text-amber-800 border border-amber-200"}`}>
+            <span>{f.note}</span>
+            {!f.resolved && isViewerOrgA && (
+              <button type="button" onClick={() => resolveFlag(f.id)} className="ml-2 underline underline-offset-2">
+                Mark resolved
+              </button>
+            )}
+            {f.resolved && <span className="ml-2 italic">Resolved</span>}
+          </div>
+        ))}
+        {isViewerOrgB && doc?.details_completed_by_org_a && (
+          openFlagField === key ? (
+            <div className="flex gap-2 items-start">
+              <input value={flagNote} onChange={(e) => setFlagNote(e.target.value)}
+                placeholder="What needs clarifying?"
+                className="flex-1 h-9 px-2 rounded-lg border border-border bg-white dark:bg-card text-sm text-black dark:text-white focus:outline-none focus:border-[#2D6A4F]/50" />
+              <button type="button" onClick={async () => { await raiseFlag(key, flagNote); setFlagNote(""); setOpenFlagField(null); }}
+                className="text-sm px-3 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium">
+                Send
+              </button>
+              <button type="button" onClick={() => { setOpenFlagField(null); setFlagNote(""); }}
+                className="text-sm text-black dark:text-white hover:underline underline-offset-2">
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => setOpenFlagField(key)}
+              className="text-sm text-black dark:text-white hover:underline underline-offset-2">
+              Flag this
+            </button>
+          )
+        )}
       </div>
     );
   }
@@ -323,6 +420,58 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       field_values: fieldValues, updated_at: new Date().toISOString(),
     }).eq("id", doc.id);
     setSaving(false);
+  }
+  async function completeOrgADetails() {
+    if (!doc || !orgB) return;
+    if (missingFieldLabels.length > 0 || dateValidationErrors.length > 0) return;
+    setSaving(true);
+    const updates = {
+      field_values: fieldValues,
+      details_completed_by_org_a: true,
+      details_completed_at_org_a: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    await supabase.from("mou_documents").update(updates).eq("id", doc.id);
+    setDoc({ ...doc, ...updates } as MouDoc);
+    setSaving(false);
+    await supabase.rpc("send_mou_notification", {
+      p_document_id: doc.id,
+      p_type: "mou_details_ready",
+      p_title: "MoU details ready for your review",
+      p_body: `${orgA?.organisation_name ?? "The other party"} has completed their MoU details. Review and flag anything before filling your part.`,
+      p_link: `/dashboard/portfolio/mou`,
+    });
+  }
+  async function raiseFlag(fieldKey: string, note: string) {
+    if (!doc || !note.trim()) return;
+    const newFlag: FieldFlag = {
+      id: `${Date.now()}-${fieldKey}`,
+      field_key: fieldKey,
+      note: note.trim(),
+      raised_by: "org_b",
+      resolved: false,
+      created_at: new Date().toISOString(),
+    };
+    const updatedFlags = [...(doc.field_flags ?? []), newFlag];
+    await supabase.from("mou_documents").update({
+      field_flags: updatedFlags, updated_at: new Date().toISOString(),
+    }).eq("id", doc.id);
+    setDoc({ ...doc, field_flags: updatedFlags } as MouDoc);
+    await supabase.rpc("send_mou_notification", {
+      p_document_id: doc.id,
+      p_type: "mou_field_flagged",
+      p_title: "A detail was flagged on your MoU",
+      p_body: `${orgB?.organisation_name ?? "The other party"} flagged "${humanizeFieldLabel(fieldKey)}": ${note.trim()}`,
+      p_link: `/dashboard/portfolio/mou`,
+    });
+  }
+  async function resolveFlag(flagId: string) {
+    if (!doc) return;
+    const updatedFlags = (doc.field_flags ?? []).map((f) => (f.id === flagId ? { ...f, resolved: true } : f));
+    await supabase.from("mou_documents").update({
+      field_flags: updatedFlags, updated_at: new Date().toISOString(),
+    }).eq("id", doc.id);
+    setDoc({ ...doc, field_flags: updatedFlags } as MouDoc);
   }
 
   async function saveCustomContent() {
@@ -519,18 +668,50 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       lines.forEach((line, i) => pdf.text(line, margin, y + i * lineHeight));
       y += lines.length * lineHeight + (opts.gap ?? 14);
     }
-
     function writeSectionHeader(text: string) {
-      ensureSpace(24);
+      ensureSpace(20);
       pdf.setFont("Bricolage", "bold");
       pdf.setFontSize(11);
       pdf.setTextColor(...FOREST_GREEN);
       pdf.text(text.toUpperCase(), margin, y);
+      y += 18;
+    }
+    // Renders "- " / "* " bullet lines and "1. " numbered lines with a
+    // proper hanging indent instead of every clause reading as one dense
+    // wrapped paragraph. Non-list lines fall through to writeParagraph.
+    function writeSectionBody(text: string) {
+      const lines = text.split(/\n+/).filter((l) => l.trim().length > 0);
+      const bulletRegex = /^[-*]\s+(.*)/;
+      const numberRegex = /^(\d+)[.)]\s+(.*)/;
+      lines.forEach((line) => {
+        const bulletMatch = line.match(bulletRegex);
+        const numberMatch = line.match(numberRegex);
+        const lineHeight = 10.5 * 1.4;
+        if (bulletMatch) {
+          const indent = 14;
+          const wrapped: string[] = pdf.splitTextToSize(bulletMatch[1], contentWidth - indent);
+          ensureSpace(wrapped.length * lineHeight);
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(10.5);
+          pdf.setTextColor(...BLACK);
+          pdf.text("•", margin, y);
+          wrapped.forEach((wl, i) => pdf.text(wl, margin + indent, y + i * lineHeight));
+          y += wrapped.length * lineHeight + 4;
+        } else if (numberMatch) {
+          const indent = 18;
+          const wrapped: string[] = pdf.splitTextToSize(numberMatch[2], contentWidth - indent);
+          ensureSpace(wrapped.length * lineHeight);
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(10.5);
+          pdf.setTextColor(...BLACK);
+          pdf.text(`${numberMatch[1]}.`, margin, y);
+          wrapped.forEach((wl, i) => pdf.text(wl, margin + indent, y + i * lineHeight));
+          y += wrapped.length * lineHeight + 4;
+        } else {
+          writeParagraph(line, { gap: 8 });
+        }
+      });
       y += 6;
-      pdf.setDrawColor(...FOREST_GREEN);
-      pdf.setLineWidth(0.75);
-      pdf.line(margin, y, margin + 36, y);
-      y += 14;
     }
 
     pdf.setFont("Bricolage", "bold");
@@ -550,47 +731,59 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     } else {
       displaySections.forEach((s) => {
         writeSectionHeader(s.title);
-        writeParagraph(sanitizeForPdf(s.body));
+        writeSectionBody(sanitizeForPdf(s.body));
       });
     }
 
-    // Signature block — composites the actual captured signature images at
-    // fixed coordinates. This only works because Impact Natives controls
-    // this document's layout end to end; an uploaded external PDF's layout
-    // is unknown, so that path keeps the sign-externally-and-upload-back
-    // flow instead of attempting to composite onto it.
-    ensureSpace(120);
+    // Signature block -- composites the actual captured signature images at
+    // fixed coordinates, with the real signatory name/title/date printed
+    // underneath instead of blank underscore lines. This only works
+    // because Impact Natives controls this document's layout end to end;
+    // an uploaded external PDF's layout is unknown, so that path keeps the
+    // sign-externally-and-upload-back flow instead of compositing onto it.
+    ensureSpace(160);
     writeSectionHeader("Signatures");
-    const sigWidth = 140;
-    const sigHeight = 45;
+    const sigWidth = 150;
+    const sigHeight = 50;
     const colGap = 40;
     const colWidth = (contentWidth - colGap) / 2;
-    const sigY = y;
-
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(10);
-    pdf.setTextColor(...BLACK);
-    pdf.text(sanitizeForPdf(orgA.organisation_name), margin, sigY);
-    pdf.text(sanitizeForPdf(orgB.organisation_name), margin + colWidth + colGap, sigY);
-
-    if (signatureAImg) {
-      pdf.addImage(signatureAImg, "PNG", margin, sigY + 8, sigWidth, sigHeight);
-    } else {
-      pdf.setDrawColor(...BLACK);
-      pdf.line(margin, sigY + 8 + sigHeight, margin + sigWidth, sigY + 8 + sigHeight);
+    const blockTop = y;
+    function writeSignatureColumn(
+      x: number, orgName: string, sigImg: HTMLImageElement | null,
+      signatoryName: string, signatoryTitle: string, signedAt: string | null
+    ) {
+      let cy = blockTop;
+      pdf.setFont("Bricolage", "bold");
+      pdf.setFontSize(10);
+      pdf.setTextColor(...FOREST_GREEN);
+      pdf.text(`FOR ${sanitizeForPdf(orgName).toUpperCase()}`, x, cy);
+      cy += 14;
+      if (sigImg) {
+        pdf.addImage(sigImg, "PNG", x, cy, sigWidth, sigHeight);
+      } else {
+        pdf.setDrawColor(200, 200, 200);
+        pdf.setLineWidth(0.5);
+        pdf.line(x, cy + sigHeight - 4, x + sigWidth, cy + sigHeight - 4);
+      }
+      cy += sigHeight + 4;
+      pdf.setDrawColor(220, 220, 220);
+      pdf.setLineWidth(0.5);
+      pdf.line(x, cy, x + colWidth, cy);
+      cy += 14;
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9.5);
+      pdf.setTextColor(...BLACK);
+      pdf.text(`Name: ${sanitizeForPdf(signatoryName) || "________________"}`, x, cy);
+      cy += 14;
+      pdf.text(`Title: ${sanitizeForPdf(signatoryTitle) || "________________"}`, x, cy);
+      cy += 14;
+      pdf.text(`Date: ${signedAt ? new Date(signedAt).toLocaleDateString("en-GB") : "________________"}`, x, cy);
     }
-    if (signatureBImg) {
-      pdf.addImage(signatureBImg, "PNG", margin + colWidth + colGap, sigY + 8, sigWidth, sigHeight);
-    } else {
-      pdf.setDrawColor(...BLACK);
-      pdf.line(margin + colWidth + colGap, sigY + 8 + sigHeight, margin + colWidth + colGap + sigWidth, sigY + 8 + sigHeight);
-    }
-    y = sigY + 8 + sigHeight + 14;
-
-    pdf.setFontSize(8.5);
-    pdf.text(doc.signed_at_org_a ? `Signed ${new Date(doc.signed_at_org_a).toLocaleDateString("en-GB")}` : "Not yet signed", margin, y);
-    pdf.text(doc.signed_at_org_b ? `Signed ${new Date(doc.signed_at_org_b).toLocaleDateString("en-GB")}` : "Not yet signed", margin + colWidth + colGap, y);
-    y += 20;
+    writeSignatureColumn(margin, orgA.organisation_name, signatureAImg,
+      resolvedValue("org_a_signatory_name"), resolvedValue("org_a_signatory_title"), doc.signed_at_org_a);
+    writeSignatureColumn(margin + colWidth + colGap, orgB.organisation_name, signatureBImg,
+      resolvedValue("org_b_signatory_name"), resolvedValue("org_b_signatory_title"), doc.signed_at_org_b);
+    y = blockTop + 14 + sigHeight + 4 + 14 + 14 + 14 + 10;
 
     const pageCount = pdf.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
@@ -598,7 +791,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(8);
       pdf.setTextColor(120, 120, 120);
-      pdf.text("Generated via Impact Natives — review before signing", margin, pageHeight - 24);
+      pdf.text("Generated via Impact Natives", margin, pageHeight - 24);
       pdf.text(`${i} / ${pageCount}`, pageWidth - margin - 24, pageHeight - 24);
     }
 
@@ -620,6 +813,9 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
 
   const statusInfo = STATUS_LABEL[doc.status];
   const iAmCreator = myUserId === doc.created_by;
+  const hasUnresolvedFlags = (doc.field_flags ?? []).some((f) => !f.resolved);
+  const orgADetailsEditable = isViewerOrgA && (!doc.details_completed_by_org_a || hasUnresolvedFlags);
+  const orgBCanFillTheirPart = doc.details_completed_by_org_a && !hasUnresolvedFlags;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
@@ -652,43 +848,90 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                   <div>
                     <p className="text-base font-semibold text-black dark:text-white">Fill in the details</p>
                     <p className="text-sm text-black dark:text-white">
-                      Some fields are pre-filled from your profiles. Review and complete the rest.
+                      {isViewerOrgA
+                        ? "Complete your organisation's details and the shared agreement details below. Once submitted, we'll notify the other party to review."
+                        : doc.details_completed_by_org_a
+                        ? "Review the details below. Flag anything that needs clarifying before filling in your own details."
+                        : `Waiting for ${orgA?.organisation_name ?? "the other party"} to complete their details.`}
                     </p>
                   </div>
-                  {groupedFieldKeys.orgAKeys.length > 0 && (
+
+                  {groupedFieldKeys.orgAKeys.length > 0 && (isViewerOrgA || doc.details_completed_by_org_a) && (
                     <div className="rounded-xl border border-border p-4 space-y-3">
                       <p className="text-sm font-semibold text-[#2D6A4F] uppercase tracking-wide">
                         {orgA?.organisation_name || "Your organisation"}
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {groupedFieldKeys.orgAKeys.map((key) => renderFieldInput(key))}
+                        {groupedFieldKeys.orgAKeys.map((key) => (
+                          <div key={key} className={isDescriptionField(key) ? "sm:col-span-2" : ""}>
+                            {renderFieldInput(key, isViewerOrgB ? true : !orgADetailsEditable)}
+                            {(isViewerOrgA || isViewerOrgB) && renderFlagsForField(key)}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
-                  {groupedFieldKeys.orgBKeys.length > 0 && (
-                    <div className="rounded-xl border border-border p-4 space-y-3">
-                      <p className="text-sm font-semibold text-[#2D6A4F] uppercase tracking-wide">
-                        {orgB?.organisation_name || "Partner organisation"}
-                      </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {groupedFieldKeys.orgBKeys.map((key) => renderFieldInput(key))}
-                      </div>
-                    </div>
-                  )}
-                  {orderedOtherKeys.length > 0 && (
+
+                  {orderedOtherKeys.length > 0 && (isViewerOrgA || doc.details_completed_by_org_a) && (
                     <div className="rounded-xl border border-border p-4 space-y-3">
                       <p className="text-sm font-semibold text-[#2D6A4F] uppercase tracking-wide">
                         Agreement details
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {orderedOtherKeys.map((key) => renderFieldInput(key))}
+                        {orderedOtherKeys.map((key) => (
+                          <div key={key} className={isDescriptionField(key) ? "sm:col-span-2" : ""}>
+                            {renderFieldInput(key, isViewerOrgB ? true : !orgADetailsEditable)}
+                            {(isViewerOrgA || isViewerOrgB) && renderFlagsForField(key)}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
-                  <button type="button" onClick={saveFieldValues} disabled={saving}
-                    className="text-sm text-black dark:text-white hover:underline underline-offset-2 disabled:opacity-60">
-                    {saving ? "Saving..." : "Save field values"}
-                  </button>
+
+                  {isViewerOrgA && (
+                    <button type="button" onClick={completeOrgADetails}
+                      disabled={saving || missingFieldLabels.length > 0 || dateValidationErrors.length > 0 || (doc.details_completed_by_org_a && !hasUnresolvedFlags)}
+                      className="text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed">
+                      {doc.details_completed_by_org_a
+                        ? (hasUnresolvedFlags ? "Resubmit after resolving flags" : "Details submitted")
+                        : (saving ? "Submitting..." : `Submit details — notify ${orgB?.organisation_name ?? "partner"}`)}
+                    </button>
+                  )}
+
+                  {groupedFieldKeys.orgBKeys.length > 0 && (
+                    <div className="rounded-xl border border-border p-4 space-y-3">
+                      <p className="text-sm font-semibold text-[#2D6A4F] uppercase tracking-wide">
+                        {orgB?.organisation_name || "Partner organisation"}
+                      </p>
+                      {isViewerOrgA ? (
+                        <p className="text-sm text-black dark:text-white">
+                          {orgB?.organisation_name || "The other party"} will complete this after your details are submitted.
+                        </p>
+                      ) : !doc.details_completed_by_org_a ? (
+                        <p className="text-sm text-black dark:text-white">
+                          Available once {orgA?.organisation_name ?? "the other party"} submits their details.
+                        </p>
+                      ) : hasUnresolvedFlags ? (
+                        <p className="text-sm text-black dark:text-white">
+                          Resolve open flags above before filling in your details.
+                        </p>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {groupedFieldKeys.orgBKeys.map((key) => (
+                              <div key={key} className={isDescriptionField(key) ? "sm:col-span-2" : ""}>
+                                {renderFieldInput(key)}
+                              </div>
+                            ))}
+                          </div>
+                          <button type="button" onClick={saveFieldValues} disabled={saving}
+                            className="text-sm text-black dark:text-white hover:underline underline-offset-2 disabled:opacity-60">
+                            {saving ? "Saving..." : "Save field values"}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -763,13 +1006,19 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           <div className="space-y-3 border-t border-border pt-5">
             <p className="text-base font-semibold text-black dark:text-white">Send & sign</p>
 
-            {missingFieldLabels.length > 0 && (
+            {missingFieldLabels.length > 0 && (doc.source_type !== "template" || !isViewerOrgB || orgBCanFillTheirPart) && (
               <div className="rounded-xl border border-border bg-muted/20 p-4">
                 <p className="text-sm font-medium text-black dark:text-white mb-1">Complete these fields before sending or signing:</p>
                 <p className="text-sm text-black dark:text-white">{missingFieldLabels.join(", ")}</p>
               </div>
             )}
-            {doc.status === "draft" && iAmCreator && missingFieldLabels.length === 0 && (
+            {dateValidationErrors.length > 0 && (
+              <div className="rounded-xl border border-red-300 bg-red-50 p-4">
+                <p className="text-sm font-medium text-red-800 mb-1">Fix these dates before sending or signing:</p>
+                {dateValidationErrors.map((e, i) => <p key={i} className="text-sm text-red-800">{e}</p>)}
+              </div>
+            )}
+            {doc.status === "draft" && iAmCreator && missingFieldLabels.length === 0 && dateValidationErrors.length === 0 && (
               <button type="button" onClick={markSent} disabled={saving}
                 className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3 text-base font-medium transition-colors disabled:opacity-60">
                 <Send className="w-4 h-4" /> Mark as sent
@@ -803,7 +1052,8 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               </div>
             )}
 
-            {doc.status !== "draft" && doc.source_type !== "uploaded_pdf" && missingFieldLabels.length === 0 && (
+            {doc.status !== "draft" && doc.source_type !== "uploaded_pdf" && missingFieldLabels.length === 0 && dateValidationErrors.length === 0 &&
+              (doc.source_type !== "template" || !isViewerOrgB || orgBCanFillTheirPart) && (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
