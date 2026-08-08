@@ -14,7 +14,6 @@ import MouDocumentDetail from "./MouDocumentDetail";
 import { useRoute } from "wouter";
 import { PartnershipTab } from "./PartnershipTab";
 import { PortfolioTable } from "./PortfolioTable";
-import MouTab from "./MouTab";
 import { normalizeArr } from "@/lib/normalizeArr";
 import { OrgDetailPanel, type OrgRow } from "@/components/dashboard/OrgDetailPanel";
 import { useOrgActions } from "@/hooks/useOrgActions";
@@ -660,7 +659,7 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
                     </td>
                     <td className="px-5 py-3 text-xs text-black dark:text-white whitespace-nowrap">{timeAgo(p.confirmed_at)}</td>
                     <td className="px-5 py-3">
-                      <Link href={`/dashboard/portfolio?tab=mou&newForUserId=${p.user_id}&partnerName=${encodeURIComponent(p.name)}&initiativeId=${card.initiative_id}&initiativeTitle=${encodeURIComponent(card.initiative_title)}`}
+                      <Link href={`/dashboard/portfolio/mou?newForUserId=${p.user_id}&partnerName=${encodeURIComponent(p.name)}&initiativeId=${card.initiative_id}&initiativeTitle=${encodeURIComponent(card.initiative_title)}`}
                         className="text-sm text-black dark:text-white hover:underline underline-offset-2 whitespace-nowrap">
                         MoU
                       </Link>
@@ -698,7 +697,7 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
                       <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{background:"rgba(45,106,79,0.12)",color:"#2D6A4F"}}>{partnershipLabel(row.role)}</span>
                     </td>
                     <td className="px-5 py-3">
-                      <Link href={`/dashboard/portfolio?tab=mou&newForUserId=${row.creator_user_id}&partnerName=${encodeURIComponent(row.creator_name)}&initiativeId=${row.initiative_id}&initiativeTitle=${encodeURIComponent(row.initiative_title)}`}
+                      <Link href={`/dashboard/portfolio/mou?newForUserId=${row.creator_user_id}&partnerName=${encodeURIComponent(row.creator_name)}&initiativeId=${row.initiative_id}&initiativeTitle=${encodeURIComponent(row.initiative_title)}`}
                         className="text-sm text-black dark:text-white hover:underline underline-offset-2 whitespace-nowrap">
                         MoU
                       </Link>
@@ -725,7 +724,7 @@ export default function DashboardInitiatives() {
   const [selected, setSelected]       = useState<InitiativeRow | null>(null);
 
   // Top-level tabs
-  const [topTab, setTopTab] = useState<"initiatives" | "partnerships" | "mou">("initiatives");
+  const [topTab, setTopTab] = useState<"initiatives" | "partnerships">("initiatives");
   // Initiative sub-tabs
   const [initSubTab, setInitSubTab] = useState<"created" | "expressed" | "confirmed">("created");
   // Tabs vs unified spreadsheet-table view. Uses "mode" as the query param
@@ -733,11 +732,21 @@ export default function DashboardInitiatives() {
   // param (?view=requested/inbound/outbound/confirmed).
   const [viewMode, setViewMode] = useState<"tabs" | "table">("table");
 
-  const [, params] = useRoute("/dashboard/portfolio/:id");
+  const [, params] = useRoute("/dashboard/portfolio/exchanges/:id");
   const routeId = params?.id;
 
-  const [, partnerParams] = useRoute("/dashboard/portfolio/partner/:orgId");
+  const [, partnerParams] = useRoute("/dashboard/portfolio/exchanges/partner/:orgId");
   const partnerOrgId = partnerParams?.orgId;
+
+  // Anyone landing on the bare route (old bookmarks, external links) gets
+  // sent to Exchanges — this page no longer renders standalone content at
+  // /dashboard/portfolio itself now that MoU lives at its own sibling route.
+  const [, navigateWouter] = useLocation();
+  useEffect(() => {
+    if (window.location.pathname === "/dashboard/portfolio") {
+      navigateWouter("/dashboard/portfolio/exchanges" + window.location.search);
+    }
+  }, []);
   const [selectedPartnerOrg, setSelectedPartnerOrg] = useState<OrgRow | null>(null);
   const { viewerOrg, savedOrgs, sentInterests, sendingInterest, toggleSave, expressInterest } = useOrgActions(user?.id);
 
@@ -760,7 +769,6 @@ export default function DashboardInitiatives() {
     if (p.get("tab") === "partners") { setTopTab("initiatives"); setInitSubTab("confirmed"); setViewMode("tabs"); }
     if (p.get("tab") === "expressed") { setTopTab("initiatives"); setInitSubTab("expressed"); setViewMode("tabs"); }
     if (p.get("tab") === "partnerships") { setTopTab("partnerships"); setViewMode("tabs"); }
-    if (p.get("tab") === "mou") { setTopTab("mou"); setViewMode("tabs"); }
     if (p.get("mode") === "table") setViewMode("table");
   }, []);
 
@@ -870,7 +878,6 @@ export default function DashboardInitiatives() {
           {[
             { key: "initiatives"  as const, label: "Initiatives" },
             { key: "partnerships" as const, label: "Partnerships" },
-            { key: "mou"          as const, label: "MoU" },
           ].map(({ key, label }) => (
             <button key={key} type="button" onClick={() => setTopTab(key)}
               className={`h-9 px-6 rounded-lg text-sm font-semibold transition-all ${
@@ -1008,11 +1015,6 @@ export default function DashboardInitiatives() {
         {/* ── Partnerships tab ── */}
         {topTab === "partnerships" && (
           <PartnershipTab />
-        )}
-
-        {/* ── MoU tab ── */}
-        {topTab === "mou" && user && (
-          <MouTab userId={user.id} />
         )}
           </>
         )}

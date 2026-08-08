@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 import { Loader2, FileText, Plus, X } from "lucide-react";
 import CreateMouModal from "./CreateMouModal";
 import MouDocumentDetail from "./MouDocumentDetail";
@@ -37,7 +38,9 @@ const STATUS_LABEL: Record<string, string> = {
   fully_executed: "Fully executed",
 };
 
-export default function MouTab({ userId }: { userId: string }) {
+export default function MouTab() {
+  const { user } = useAuth();
+  const userId = user?.id;
   const [location] = useLocation();
   const [loading, setLoading] = useState(true);
   const [myOrgId, setMyOrgId] = useState<string | null>(null);
@@ -52,9 +55,9 @@ export default function MouTab({ userId }: { userId: string }) {
     partnerUserId?: string; partnerOrgId?: string; partnerName: string; initiativeId: string | null; initiativeTitle: string;
   } | null>(null);
 
-  useEffect(() => { load(); }, [userId]);
+  useEffect(() => { if (userId) load(); }, [userId]);
 
-  // Arriving from another tab's "MoU" button — e.g. ?newFor=<partnerOrgId>&partnerName=...
+  // Arriving from another tab's "MoU" button — e.g. ?newForOrgId=... or ?newForUserId=...
   useEffect(() => {
     const params = new URLSearchParams(location.includes("?") ? location.split("?")[1] : "");
     const newForOrgId = params.get("newForOrgId");
@@ -71,6 +74,7 @@ export default function MouTab({ userId }: { userId: string }) {
   }, [location]);
 
   async function load() {
+    if (!userId) return;
     setLoading(true);
     const { data: myOrg } = await supabase.from("organizations").select("id").eq("user_id", userId).maybeSingle();
     if (!myOrg) { setLoading(false); return; }
@@ -97,7 +101,7 @@ export default function MouTab({ userId }: { userId: string }) {
   async function openPicker() {
     setShowPicker(true);
     setLoadingOptions(true);
-    if (!myOrgId) { setLoadingOptions(false); return; }
+    if (!myOrgId || !userId) { setLoadingOptions(false); return; }
 
     // Combines both partnership models on the platform — initiative-based
     // confirmed EOI partners, and direct org-to-org formed connections —
@@ -151,7 +155,7 @@ export default function MouTab({ userId }: { userId: string }) {
     return orgMap[otherId];
   }
 
-  if (loading) {
+  if (loading || !userId) {
     return (
       <div className="flex items-center justify-center py-16">
         <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
@@ -160,11 +164,15 @@ export default function MouTab({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-black dark:text-white">
-          Every MoU across your confirmed partnerships and initiatives, in one place.
+    <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6">
+      <div>
+        <h1 className="text-xl font-bold text-black dark:text-white">MoUs</h1>
+        <p className="text-sm text-black dark:text-white mt-0.5">
+          Memorandums of understanding across your confirmed partnerships and initiatives.
         </p>
+      </div>
+    <div className="space-y-4">
+      <div className="flex justify-end">
         <button type="button" onClick={openPicker}
           className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium transition-colors shrink-0">
           <Plus className="w-4 h-4" /> New MoU
@@ -262,6 +270,7 @@ export default function MouTab({ userId }: { userId: string }) {
       {openDocId && (
         <MouDocumentDetail documentId={openDocId} myUserId={userId} onClose={() => { setOpenDocId(null); load(); }} />
       )}
+    </div>
     </div>
   );
 }

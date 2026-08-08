@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { jsPDF } from "jspdf";
 import { BRICOLAGE_GROTESQUE_BOLD_BASE64 } from "@/lib/fonts/bricolageGrotesqueBold";
 import { X, Loader2, Download, Upload, CheckCircle2, Send } from "lucide-react";
+import SignaturePad from "./SignaturePad";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SectionVariant { toggle_value: string | boolean | null; body: string }
@@ -31,6 +32,10 @@ interface MouDoc {
   rendered_file_path: string | null;
   status: "draft" | "sent" | "signed_by_org_a" | "signed_by_org_b" | "fully_executed";
   signed_files: Record<string, string> | null;
+  signature_org_a_path: string | null;
+  signature_org_b_path: string | null;
+  signed_at_org_a: string | null;
+  signed_at_org_b: string | null;
   created_by: string;
 }
 
@@ -65,6 +70,12 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const [saving, setSaving] = useState(false);
   const [uploadingSigned, setUploadingSigned] = useState(false);
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
+  const [signatureAUrl, setSignatureAUrl] = useState<string | null>(null);
+  const [signatureBUrl, setSignatureBUrl] = useState<string | null>(null);
+  const [signatureAImg, setSignatureAImg] = useState<HTMLImageElement | null>(null);
+  const [signatureBImg, setSignatureBImg] = useState<HTMLImageElement | null>(null);
+  const [capturedSignature, setCapturedSignature] = useState<string | null>(null);
+  const [signing, setSigning] = useState(false);
 
   useEffect(() => { load(); }, [documentId]);
 
@@ -99,8 +110,37 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       setUploadedFileUrl(signedUrlData?.signedUrl ?? null);
     }
 
+    if (docRow.signature_org_a_path) {
+      const { data } = await supabase.storage.from("mou-documents").createSignedUrl(docRow.signature_org_a_path, 3600);
+      if (data?.signedUrl) setSignatureAUrl(data.signedUrl);
+    }
+    if (docRow.signature_org_b_path) {
+      const { data } = await supabase.storage.from("mou-documents").createSignedUrl(docRow.signature_org_b_path, 3600);
+      if (data?.signedUrl) setSignatureBUrl(data.signedUrl);
+    }
+
     setLoading(false);
   }
+
+  // Preload signature images as actual <img> elements ahead of time so
+  // exportPdf() can composite them synchronously via doc.addImage() --
+  // jsPDF needs a loaded image, not just a URL string.
+  useEffect(() => {
+    if (signatureAUrl) {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => setSignatureAImg(img);
+      img.src = signatureAUrl;
+    }
+  }, [signatureAUrl]);
+  useEffect(() => {
+    if (signatureBUrl) {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => setSignatureBImg(img);
+      img.src = signatureBUrl;
+    }
+  }, [signatureBUrl]);
 
   // Known field_keys mapped to real platform data — anything not in this map
   // stays blank for manual entry rather than guessed at.
@@ -171,6 +211,47 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     await supabase.from("mou_documents").update({ status: "sent", updated_at: new Date().toISOString() }).eq("id", doc.id);
     setDoc({ ...doc, status: "sent" });
     setSaving(false);
+  }
+
+  function dataUrlToBlob(dataUrl: string): Blob {
+    const [header, base64] = dataUrl.split(",");
+    const mime = header.match(/:(.*?);/)?.[1] ?? "image/png";
+    const bytes = atob(base64);
+    const array = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) array[i] = bytes.charCodeAt(i);
+    return new Blob([array], { type: mime });
+  }
+
+  async function confirmSignature() {
+    if (!doc || !orgA || !orgB || !capturedSignature) return;
+    setSigning(true);
+    const myOrgId = orgA.user_id === myUserId ? orgA.id : orgB.user_id === myUserId ? orgB.id : null;
+    if (!myOrgId) { setSigning(false); return; }
+
+    const path = `signatures/${doc.id}/${myOrgId}-${Date.now()}.png`;
+    const { error: uploadError } = await supabase.storage
+      .from("mou-documents").upload(path, dataUrlToBlob(capturedSignature));
+    if (uploadError) { setSigning(false); return; }
+
+    const isOrgA = myOrgId === doc.org_a_id;
+    const updates: Partial<MouDoc> & Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (isOrgA) {
+      updates.signature_org_a_path = path;
+      updates.signed_at_org_a = new Date().toISOString();
+    } else {
+      updates.signature_org_b_path = path;
+      updates.signed_at_org_b = new Date().toISOString();
+    }
+    const otherAlreadySigned = isOrgA ? !!doc.signature_org_b_path : !!doc.signature_org_a_path;
+    updates.status = otherAlreadySigned ? "fully_executed" : (doc.status === "draft" ? "sent" : doc.status);
+
+    await supabase.from("mou_documents").update(updates).eq("id", doc.id);
+    setDoc({ ...doc, ...updates } as MouDoc);
+    setCapturedSignature(null);
+    setSigning(false);
+    load();
   }
 
   async function uploadSignedCopy(file: File) {
@@ -271,6 +352,44 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       });
     }
 
+    // Signature block — composites the actual captured signature images at
+    // fixed coordinates. This only works because Impact Natives controls
+    // this document's layout end to end; an uploaded external PDF's layout
+    // is unknown, so that path keeps the sign-externally-and-upload-back
+    // flow instead of attempting to composite onto it.
+    ensureSpace(120);
+    writeSectionHeader("Signatures");
+    const sigWidth = 140;
+    const sigHeight = 45;
+    const colGap = 40;
+    const colWidth = (contentWidth - colGap) / 2;
+    const sigY = y;
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(10);
+    pdf.setTextColor(...BLACK);
+    pdf.text(sanitizeForPdf(orgA.organisation_name), margin, sigY);
+    pdf.text(sanitizeForPdf(orgB.organisation_name), margin + colWidth + colGap, sigY);
+
+    if (signatureAImg) {
+      pdf.addImage(signatureAImg, "PNG", margin, sigY + 8, sigWidth, sigHeight);
+    } else {
+      pdf.setDrawColor(...BLACK);
+      pdf.line(margin, sigY + 8 + sigHeight, margin + sigWidth, sigY + 8 + sigHeight);
+    }
+    if (signatureBImg) {
+      pdf.addImage(signatureBImg, "PNG", margin + colWidth + colGap, sigY + 8, sigWidth, sigHeight);
+    } else {
+      pdf.setDrawColor(...BLACK);
+      pdf.line(margin + colWidth + colGap, sigY + 8 + sigHeight, margin + colWidth + colGap + sigWidth, sigY + 8 + sigHeight);
+    }
+    y = sigY + 8 + sigHeight + 14;
+
+    pdf.setFontSize(8.5);
+    pdf.text(doc.signed_at_org_a ? `Signed ${new Date(doc.signed_at_org_a).toLocaleDateString("en-GB")}` : "Not yet signed", margin, y);
+    pdf.text(doc.signed_at_org_b ? `Signed ${new Date(doc.signed_at_org_b).toLocaleDateString("en-GB")}` : "Not yet signed", margin + colWidth + colGap, y);
+    y += 20;
+
     const pageCount = pdf.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       pdf.setPage(i);
@@ -306,7 +425,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
             <h2 className="text-lg font-bold text-black dark:text-white">
               MoU — {orgA?.organisation_name} & {orgB?.organisation_name}
             </h2>
-            <span className="inline-flex items-center gap-1.5 mt-1 text-sm font-medium" style={{ color: statusInfo.color }}>
+            <span className="inline-flex items-center gap-1.5 mt-1 text-sm font-medium text-black dark:text-white">
               <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusInfo.color }} />
               {statusInfo.label}
             </span>
@@ -342,7 +461,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                     ))}
                   </div>
                   <button type="button" onClick={saveFieldValues} disabled={saving}
-                    className="text-sm text-[#2D6A4F] hover:underline underline-offset-2 disabled:opacity-60">
+                    className="text-sm text-black dark:text-white hover:underline underline-offset-2 disabled:opacity-60">
                     {saving ? "Saving..." : "Save field values"}
                   </button>
                 </div>
@@ -352,7 +471,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                 <p className="text-base font-semibold text-black dark:text-white">Document preview</p>
                 {compiledSections.map((s) => (
                   <div key={s.id}>
-                    <p className="text-sm font-semibold uppercase tracking-wide text-[#2D6A4F] mb-1">{s.title}</p>
+                    <p className="text-sm font-semibold uppercase tracking-wide text-black dark:text-white mb-1">{s.title}</p>
                     <p className="text-base text-black dark:text-white leading-relaxed whitespace-pre-line">
                       {renderCompiledText(s.body)}
                     </p>
@@ -384,7 +503,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               <p className="text-base font-semibold text-black dark:text-white">Uploaded document</p>
               {uploadedFileUrl ? (
                 <a href={uploadedFileUrl} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-[#2D6A4F] hover:underline underline-offset-2 text-base">
+                  className="inline-flex items-center gap-2 text-black dark:text-white hover:underline underline-offset-2 text-base">
                   <Download className="w-4 h-4" /> View original document
                 </a>
               ) : (
@@ -404,10 +523,10 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               </button>
             )}
 
-            {doc.status !== "draft" && (
+            {doc.status !== "draft" && doc.source_type === "uploaded_pdf" && (
               <div className="space-y-2">
                 <p className="text-sm text-black dark:text-white">
-                  Once both parties have signed outside the platform, upload each signed copy here.
+                  This document was uploaded, so Impact Natives cannot place a signature onto it directly — sign it outside the platform, then upload each signed copy here.
                 </p>
                 <label className="flex items-center justify-center gap-2 cursor-pointer rounded-xl border border-dashed border-border px-4 py-4 text-base text-black dark:text-white hover:border-[#2D6A4F]/40 transition-colors">
                   {uploadingSigned ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
@@ -417,17 +536,63 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadSignedCopy(f); }} />
                 </label>
                 <div className="flex items-center gap-4 text-sm">
-                  <span className={`flex items-center gap-1.5 ${doc.signed_files?.[doc.org_a_id] ? "text-[#2D6A4F]" : "text-black dark:text-white"}`}>
+                  <span className="flex items-center gap-1.5 text-black dark:text-white">
                     {doc.signed_files?.[doc.org_a_id] && <CheckCircle2 className="w-4 h-4" />}
                     {orgA?.organisation_name}: {doc.signed_files?.[doc.org_a_id] ? "Signed copy uploaded" : "Awaiting upload"}
                   </span>
                 </div>
                 <div className="flex items-center gap-4 text-sm">
-                  <span className={`flex items-center gap-1.5 ${doc.signed_files?.[doc.org_b_id] ? "text-[#2D6A4F]" : "text-black dark:text-white"}`}>
+                  <span className="flex items-center gap-1.5 text-black dark:text-white">
                     {doc.signed_files?.[doc.org_b_id] && <CheckCircle2 className="w-4 h-4" />}
                     {orgB?.organisation_name}: {doc.signed_files?.[doc.org_b_id] ? "Signed copy uploaded" : "Awaiting upload"}
                   </span>
                 </div>
+              </div>
+            )}
+
+            {doc.status !== "draft" && doc.source_type !== "uploaded_pdf" && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-black dark:text-white mb-1">{orgA?.organisation_name}</p>
+                    {signatureAUrl ? (
+                      <div className="border border-border rounded-lg p-2 bg-white">
+                        <img src={signatureAUrl} alt="Signature" className="h-14" />
+                        <p className="text-sm text-black dark:text-white mt-1">
+                          Signed {doc.signed_at_org_a ? new Date(doc.signed_at_org_a).toLocaleDateString("en-GB") : ""}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-black dark:text-white">Not yet signed</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-black dark:text-white mb-1">{orgB?.organisation_name}</p>
+                    {signatureBUrl ? (
+                      <div className="border border-border rounded-lg p-2 bg-white">
+                        <img src={signatureBUrl} alt="Signature" className="h-14" />
+                        <p className="text-sm text-black dark:text-white mt-1">
+                          Signed {doc.signed_at_org_b ? new Date(doc.signed_at_org_b).toLocaleDateString("en-GB") : ""}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-black dark:text-white">Not yet signed</p>
+                    )}
+                  </div>
+                </div>
+
+                {orgA && orgB && (orgA.user_id === myUserId ? !signatureAUrl : orgB.user_id === myUserId ? !signatureBUrl : false) && (
+                  <div className="border-t border-border pt-4 space-y-3">
+                    <p className="text-base font-semibold text-black dark:text-white">Sign this document</p>
+                    <SignaturePad onCapture={setCapturedSignature} disabled={signing} />
+                    {capturedSignature && (
+                      <button type="button" onClick={confirmSignature} disabled={signing}
+                        className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3 text-base font-medium transition-colors disabled:opacity-60">
+                        {signing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirm signature"}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>

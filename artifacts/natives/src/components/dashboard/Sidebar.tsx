@@ -5,12 +5,12 @@ import { useAuth } from "@/context/AuthContext";
 import {
   Home, Handshake, Lightbulb, FlaskConical, Compass,
   MessageSquare, User, Settings, LogOut, ShieldCheck,
-  ChevronLeft, ChevronRight, Globe, Sparkles,
+  ChevronLeft, ChevronRight, ChevronDown, Globe, Sparkles, FileText,
 } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { cn } from "@/lib/utils";
 
-type NavItem = { label: string; href: string; icon: any; corporateOnly: boolean };
+type NavItem = { label: string; href?: string; icon: any; corporateOnly: boolean; children?: NavItem[] };
 
 // Three sections: Home stands alone (label: null renders no header text --
 // it's the one place people return to constantly and doesn't need a
@@ -30,7 +30,13 @@ const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
       { label: "Strategy", href: "/dashboard/strategy", icon: Sparkles, corporateOnly: true },
       { label: "Marketplace", href: "/dashboard/marketplace", icon: Compass, corporateOnly: false },
       { label: "Partnerships", href: "/dashboard/partnerships", icon: Handshake, corporateOnly: false },
-      { label: "Portfolio", href: "/dashboard/portfolio", icon: Lightbulb, corporateOnly: false },
+      {
+        label: "Portfolio", icon: Lightbulb, corporateOnly: false,
+        children: [
+          { label: "Exchanges", href: "/dashboard/portfolio/exchanges", icon: Lightbulb, corporateOnly: false },
+          { label: "MoUs",      href: "/dashboard/portfolio/mou",       icon: FileText,  corporateOnly: false },
+        ],
+      },
       { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, corporateOnly: false },
       { label: "Labs", href: "/dashboard/labs", icon: FlaskConical, corporateOnly: false },
       { label: "Natives", href: "/dashboard/natives", icon: Globe, corporateOnly: false },
@@ -55,8 +61,22 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
   console.log("Sidebar profile:", profile?.user_type, profile?.org_name, profile?.full_name);
   const [collapsed, setCollapsed] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
 
-  const isCorporate = ["corporation", "technology_company", "public_sector"].includes(profile?.org_type ?? "");
+  useEffect(() => {
+    setExpandedParents((prev) => {
+      const next = new Set(prev);
+      for (const section of NAV_SECTIONS) {
+        for (const item of section.items) {
+          if (item.children?.some((c) => c.href && location.startsWith(c.href))) {
+            next.add(item.label);
+          }
+        }
+      }
+      return next;
+    });
+  }, [location]);
+const isCorporate = ["corporation", "technology_company", "public_sector"].includes(profile?.org_type ?? "");
   const visibleSections = NAV_SECTIONS
     .map(section => ({ ...section, items: section.items.filter(item => !item.corporateOnly || isCorporate) }))
     .filter(section => section.items.length > 0);
@@ -229,17 +249,71 @@ export default function Sidebar({ onCollapse }: SidebarProps) {
               </p>
             )}
             <ul className="space-y-0.5">
-              {section.items.map(({ label, href, icon: Icon }) => {
+              {section.items.map((item) => {
+                const { label, href, icon: Icon, children } = item;
                 const isMessages = href === "/dashboard/messages";
                 const showBadge  = isMessages && unreadMessages > 0;
+
+                if (children) {
+                  const isExpanded = expandedParents.has(label);
+                  const anyChildActive = children.some((c) => c.href && isActive(c.href));
+                  return (
+                    <li key={label}>
+                      <button type="button"
+                        onClick={() => {
+                          if (collapsed) { setCollapsed(false); onCollapse?.(false); }
+                          setExpandedParents((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(label)) next.delete(label); else next.add(label);
+                            return next;
+                          });
+                        }}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors cursor-pointer w-full text-left",
+                          collapsed && "justify-center px-2",
+                          anyChildActive ? "text-[#F2E6D8]" : "text-[#F2E6D8] hover:bg-white/10"
+                        )}
+                        title={collapsed ? label : undefined}
+                      >
+                        <Icon className="w-4 h-4 shrink-0" />
+                        {!collapsed && (
+                          <>
+                            <span className="flex-1">{label}</span>
+                            <ChevronDown className={cn("w-3.5 h-3.5 transition-transform shrink-0", isExpanded && "rotate-180")} />
+                          </>
+                        )}
+                      </button>
+                      {!collapsed && isExpanded && (
+                        <ul className="mt-0.5 ml-4 pl-3 border-l border-white/10 space-y-0.5">
+                          {children.map((child) => (
+                            <li key={child.href}>
+                              <Link href={child.href!}>
+                                <span className={cn(
+                                  "flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors cursor-pointer w-full",
+                                  isActive(child.href!)
+                                    ? "bg-[#F2E6D8] text-[#452A1D]"
+                                    : "text-[#F2E6D8] hover:bg-white/10"
+                                )}>
+                                  <child.icon className="w-3.5 h-3.5 shrink-0" />
+                                  <span className="flex-1">{child.label}</span>
+                                </span>
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  );
+                }
+
                 return (
                   <li key={href}>
-                    <Link href={href}>
+                    <Link href={href!}>
                       <span
                         className={cn(
                           "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors cursor-pointer w-full",
                           collapsed && "justify-center px-2",
-                          isActive(href)
+                          isActive(href!)
                             ? "bg-[#F2E6D8] text-[#452A1D]"
                             : "text-[#F2E6D8] hover:bg-white/10"
                         )}

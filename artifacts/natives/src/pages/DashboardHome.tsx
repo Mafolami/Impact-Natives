@@ -274,7 +274,7 @@ function MyInitiativesMini({ initiatives }: { initiatives: InitiativeRow[] }) {
       <h3 className="text-xs font-semibold uppercase tracking-widest text-black dark:text-white">
          Your initiatives
        </h3>
-        <button type="button" onClick={() => navigate("/dashboard/portfolio")}
+        <button type="button" onClick={() => navigate("/dashboard/portfolio/exchanges")}
           className="text-xs text-[#2D6A4F] hover:underline underline-offset-2 transition-colors">
           View all →
         </button>
@@ -284,7 +284,7 @@ function MyInitiativesMini({ initiatives }: { initiatives: InitiativeRow[] }) {
           const s = STATUS_MAP[ini.status] ?? { label: ini.status, dot: "#6b7280" };
           return (
             <button key={ini.id} type="button"
-              onClick={() => navigate("/dashboard/portfolio")}
+              onClick={() => navigate("/dashboard/portfolio/exchanges")}
               className="w-full text-left rounded-xl border border-border bg-white dark:bg-card px-5 py-3.5 hover:border-[#2D6A4F]/30 transition-colors group flex items-center justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
@@ -537,7 +537,7 @@ export default function DashboardHome() {
             sub={allMyInits.filter(i => i.status === "published").length > 0
               ? `${allMyInits.filter(i => i.status === "published").length} live`
               : "none live yet"}
-            onClick={() => navigate("/dashboard/portfolio")}
+            onClick={() => navigate("/dashboard/portfolio/exchanges")}
             accent={false}
             showSkeleton={showSkeleton}
           />

@@ -43,6 +43,7 @@ const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 const DashboardHome = lazy(() => import("@/pages/DashboardHome"));
 const DashboardPartnerships = lazy(() => import("@/pages/DashboardPartnerships"));
 const DashboardPortfolio = lazy(() => import("@/pages/DashboardPortfolio"));
+const MouTab = lazy(() => import("@/pages/MouTab"));
 const DashboardLabs = lazy(() => import("@/pages/DashboardLabs"));
 const DashboardMarketplace = lazy(() => import("@/pages/DashboardMarketplace"));
 const DashboardMessages = lazy(() => import("@/pages/DashboardMessages"));
@@ -140,8 +141,10 @@ if (isAdmin) {
           }>
             <Switch>
               <Route path="/dashboard/partnerships"><DashboardPartnerships /></Route>
-              <Route path="/dashboard/portfolio/partner/:orgId"><DashboardPortfolio /></Route>
-              <Route path="/dashboard/portfolio/:id"><DashboardPortfolio /></Route>
+              <Route path="/dashboard/portfolio/mou"><MouTab /></Route>
+              <Route path="/dashboard/portfolio/exchanges/partner/:orgId"><DashboardPortfolio /></Route>
+              <Route path="/dashboard/portfolio/exchanges/:id"><DashboardPortfolio /></Route>
+              <Route path="/dashboard/portfolio/exchanges"><DashboardPortfolio /></Route>
               <Route path="/dashboard/portfolio"><DashboardPortfolio /></Route>
               <Route path="/dashboard/labs"><DashboardLabs /></Route>
               <Route path="/dashboard/marketplace/:id"><DashboardMarketplace /></Route>
