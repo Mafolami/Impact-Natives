@@ -107,7 +107,7 @@ export default function SignaturePad({ onCapture, disabled }: Props) {
             ref={canvasRef}
             width={500}
             height={160}
-            className="w-full border border-border rounded-lg touch-none bg-white"
+            className="w-full rounded-lg touch-none bg-white"
             onPointerDown={startDraw}
             onPointerMove={draw}
             onPointerUp={endDraw}
@@ -133,7 +133,7 @@ export default function SignaturePad({ onCapture, disabled }: Props) {
               onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); }} />
           </label>
           {uploadPreview && (
-            <img src={uploadPreview} alt="Signature preview" className="h-20 border border-border rounded-lg bg-white p-2" />
+            <img src={uploadPreview} alt="Signature preview" className="h-20 rounded-lg bg-white p-2" />
           )}
         </div>
       )}
