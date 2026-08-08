@@ -74,16 +74,16 @@ function fieldKeysIn(text: string): string[] {
 }
 const CURRENCY_OPTIONS = ["NGN", "USD", "GBP", "EUR", "KES", "GHS", "ZAR"];
 const PAYMENT_SCHEDULE_OPTIONS = [
-  "100% upfront",
-  "50% upfront, 50% on completion",
-  "Monthly instalments",
-  "Quarterly instalments",
+  "100% upfront, within 5 business days of signing",
+  "50% upfront on signing, 50% on completion",
+  "Monthly instalments for the duration of the partnership",
+  "Quarterly instalments for the duration of the partnership",
   "Upon delivery of agreed milestones",
-  "Annually",
+  "Annually, for the duration of the partnership",
 ];
 const REPORTING_FREQUENCY_OPTIONS = ["Weekly", "Monthly", "Quarterly", "Bi-annually", "Annually", "Ad hoc / as needed"];
-const NOTICE_DAYS_OPTIONS = ["7", "14", "30", "60", "90"];
-const GOVERNING_JURISDICTION_OPTIONS = ["Nigeria", "United Kingdom", "Ghana", "Kenya", "South Africa"];
+const NOTICE_DAYS_OPTIONS = ["3", "7", "14", "30", "60", "90"];
+const GOVERNING_JURISDICTION_OPTIONS = ["Federal Republic of Nigeria", "Lagos State, Nigeria", "United Kingdom", "Ghana", "Kenya", "South Africa"];
 
 export default function MouDocumentDetail({ documentId, myUserId, onClose }: Props) {
   const [loading, setLoading] = useState(true);
@@ -214,18 +214,32 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const compiledSections = useMemo(() => {
     if (!doc || !template) return [];
     const selections = doc.toggle_selections ?? {};
+    const startVal = fieldValues["start_date"] || autofill["start_date"] || "";
+    const endVal = fieldValues["end_date"] || autofill["end_date"] || "";
+    const start = startVal ? new Date(startVal) : null;
+    const end = endVal ? new Date(endVal) : null;
+    const durationDays = start && end && !isNaN(start.getTime()) && !isNaN(end.getTime())
+      ? Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+      : null;
+    // Projects under a month don't have room for a recurring cadence like
+    // "bi-weekly" -- for those, the reporting clause drops the periodic
+    // fallback entirely rather than offering a cadence that literally
+    // can't complete inside the project window.
+    const shortProject = durationDays !== null && durationDays >= 0 && durationDays < 30;
     return template.sections
       .map((s) => {
         const variant = s.toggle_key
           ? s.variants.find((v) => v.toggle_value === selections[s.toggle_key!])
           : s.variants[0];
-        return variant ? { id: s.id, title: s.title, body: variant.body } : null;
+        if (!variant) return null;
+        let body = variant.body;
+        if (s.id === "reporting" && shortProject) {
+          body = "{{org_a_name}} will provide {{org_b_name}} with an impact report covering agreed metrics within {{reporting_days}} days of project completion.";
+        }
+        return { id: s.id, title: s.title, body };
       })
-      // "signatures" is flat placeholder text ("Signature: __ Name: __")
-      // from the template -- fully superseded by the real signature block
-      // (actual captured images, names, titles, dates) rendered separately.
       .filter((s): s is { id: string; title: string; body: string } => s !== null && s.id !== "signatures");
-  }, [doc, template]);
+  }, [doc, template, fieldValues, autofill]);
 
   const allFieldKeys = useMemo(() => {
     const keys = new Set<string>();
@@ -294,6 +308,23 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     if (agreementDate && startDate && agreementDate > startDate) errors.push("Agreement date cannot be later than start date.");
     if (agreementDate && endDate && agreementDate > endDate) errors.push("Agreement date cannot be later than end date.");
     return errors;
+  }, [fieldValues, autofill]);
+  // Non-blocking, unlike dateValidationErrors -- a long notice period on a
+  // short project is a judgment call, not something that should stop
+  // someone from signing.
+  const noticePeriodWarning = useMemo(() => {
+    const startVal = fieldValues["start_date"] || autofill["start_date"] || "";
+    const endVal = fieldValues["end_date"] || autofill["end_date"] || "";
+    const noticeVal = fieldValues["notice_days"] || autofill["notice_days"] || "";
+    const start = startVal ? new Date(startVal) : null;
+    const end = endVal ? new Date(endVal) : null;
+    const notice = parseInt(noticeVal, 10);
+    if (!start || !end || isNaN(start.getTime()) || isNaN(end.getTime()) || isNaN(notice)) return null;
+    const durationDays = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    if (durationDays > 0 && notice >= durationDays) {
+      return `Your notice period (${notice} days) is close to or longer than the project itself (${durationDays} days) -- a shorter notice period may be more workable here.`;
+    }
+    return null;
   }, [fieldValues, autofill]);
   // Base text per section: the frozen edited_sections snapshot once one
   // exists, otherwise the live template + field-value recompute. Overrides
@@ -808,12 +839,14 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       lines.forEach((line, i) => pdf.text(line, margin, y + i * lineHeight));
       y += lines.length * lineHeight + (opts.gap ?? 14);
     }
-    function writeSectionHeader(text: string) {
+    let sectionCounter = 0;
+    function writeSectionHeader(text: string, numbered: boolean = true) {
+      if (numbered) sectionCounter += 1;
       ensureSpace(20);
       pdf.setFont("Bricolage", "bold");
       pdf.setFontSize(11);
       pdf.setTextColor(...FOREST_GREEN);
-      pdf.text(text.toUpperCase(), margin, y);
+      pdf.text(numbered ? `SECTION ${sectionCounter}: ${text.toUpperCase()}` : text.toUpperCase(), margin, y);
       y += 18;
     }
     // Renders "- " / "* " bullet lines and "1. " numbered lines with a
@@ -882,7 +915,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     // an uploaded external PDF's layout is unknown, so that path keeps the
     // sign-externally-and-upload-back flow instead of compositing onto it.
     ensureSpace(160);
-    writeSectionHeader("Signatures");
+    writeSectionHeader("Signatures", false);
     const sigWidth = 150;
     const sigHeight = 50;
     const colGap = 40;
@@ -1156,6 +1189,11 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               <div className="rounded-xl border border-red-300 bg-red-50 p-4">
                 <p className="text-sm font-medium text-red-800 mb-1">Fix these dates before sending or signing:</p>
                 {dateValidationErrors.map((e, i) => <p key={i} className="text-sm text-red-800">{e}</p>)}
+              </div>
+            )}
+            {noticePeriodWarning && (
+              <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
+                <p className="text-sm text-amber-800">{noticePeriodWarning}</p>
               </div>
             )}
             {doc.status === "draft" && iAmCreator && missingFieldLabels.length === 0 && dateValidationErrors.length === 0 && (
