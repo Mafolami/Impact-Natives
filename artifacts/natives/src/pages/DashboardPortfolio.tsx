@@ -10,6 +10,7 @@ import { ArrowLeft, ArrowRight, Download, Loader2, Users, UserCheck, Pencil, Che
 import CreateInitiativeModalDashboard from "./CreateInitiativeModalDashboard";
 import EditInitiativeModalDashboard from "./EditInitiativeModalDashboard";
 import CreateMouModal from "./CreateMouModal";
+import MouDocumentDetail from "./MouDocumentDetail";
 import { useRoute } from "wouter";
 import { PartnershipTab } from "./PartnershipTab";
 import { PortfolioTable } from "./PortfolioTable";
@@ -104,6 +105,14 @@ const PARTNERSHIP_OPTIONS = [
   { value: "lead",        label: "Project Lead" },
   { value: "other",       label: "Other" },
 ];
+
+const STATUS_LABEL_SHORT: Record<string, string> = {
+  draft: "Draft",
+  sent: "Sent",
+  signed_by_org_a: "Partly signed",
+  signed_by_org_b: "Partly signed",
+  fully_executed: "Executed",
+};
 
 function partnershipLabel(value: string) {
   return PARTNERSHIP_OPTIONS.find(o => o.value === value)?.label ?? value;
@@ -539,8 +548,49 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
   const [mouTarget, setMouTarget] = useState<{
     partnerUserId: string; partnerName: string; initiativeId: string | null; initiativeTitle: string;
   } | null>(null);
+  const [myOrgId, setMyOrgId] = useState<string | null>(null);
+  const [partnerOrgIds, setPartnerOrgIds] = useState<Record<string, string>>({}); // user_id -> org_id
+  const [mouDocs, setMouDocs] = useState<{ id: string; org_a_id: string; org_b_id: string; status: string; source_type: string }[]>([]);
+  const [openDocId, setOpenDocId] = useState<string | null>(null);
 
   useEffect(() => { loadPartners(); }, [userId]);
+  useEffect(() => { loadMouContext(); }, [userId, creatorConfirmed, expresserConfirmed]);
+
+  async function loadMouContext() {
+    const partnerUserIds = [
+      ...creatorConfirmed.flatMap((c) => c.partners.map((p) => p.user_id)),
+      ...expresserConfirmed.map((r) => r.creator_user_id),
+    ];
+    if (partnerUserIds.length === 0 && !myOrgId) return;
+
+    const { data: orgRows } = await supabase
+      .from("organizations")
+      .select("id, user_id")
+      .in("user_id", [userId, ...new Set(partnerUserIds)]);
+
+    const mine = (orgRows ?? []).find((o: any) => o.user_id === userId);
+    if (mine) setMyOrgId(mine.id);
+    const map: Record<string, string> = {};
+    (orgRows ?? []).forEach((o: any) => { if (o.user_id !== userId) map[o.user_id] = o.id; });
+    setPartnerOrgIds(map);
+
+    if (mine) {
+      const { data: docs } = await supabase
+        .from("mou_documents")
+        .select("id, org_a_id, org_b_id, status, source_type")
+        .or(`org_a_id.eq.${mine.id},org_b_id.eq.${mine.id}`);
+      setMouDocs(docs ?? []);
+    }
+  }
+
+  function docsWithPartner(partnerUserId: string) {
+    const partnerOrgId = partnerOrgIds[partnerUserId];
+    if (!myOrgId || !partnerOrgId) return [];
+    return mouDocs.filter((d) =>
+      (d.org_a_id === myOrgId && d.org_b_id === partnerOrgId) ||
+      (d.org_a_id === partnerOrgId && d.org_b_id === myOrgId)
+    );
+  }
 
   async function loadPartners() {
     setLoading(true);
@@ -654,14 +704,22 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
                     </td>
                     <td className="px-5 py-3 text-xs text-black dark:text-white whitespace-nowrap">{timeAgo(p.confirmed_at)}</td>
                     <td className="px-5 py-3">
-                      <button type="button"
-                        onClick={() => setMouTarget({
-                          partnerUserId: p.user_id, partnerName: p.name,
-                          initiativeId: card.initiative_id, initiativeTitle: card.initiative_title,
-                        })}
-                        className="text-sm text-[#2D6A4F] hover:underline underline-offset-2 whitespace-nowrap">
-                        Create MoU
-                      </button>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {docsWithPartner(p.user_id).map((d) => (
+                          <button key={d.id} type="button" onClick={() => setOpenDocId(d.id)}
+                            className="text-xs px-2.5 py-1 rounded-full border border-[#2D6A4F]/30 text-[#2D6A4F] hover:bg-[#2D6A4F]/10 transition-colors whitespace-nowrap">
+                            {STATUS_LABEL_SHORT[d.status] ?? d.status}
+                          </button>
+                        ))}
+                        <button type="button"
+                          onClick={() => setMouTarget({
+                            partnerUserId: p.user_id, partnerName: p.name,
+                            initiativeId: card.initiative_id, initiativeTitle: card.initiative_title,
+                          })}
+                          className="text-sm text-[#2D6A4F] hover:underline underline-offset-2 whitespace-nowrap">
+                          + New MoU
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )))}
@@ -696,14 +754,22 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
                       <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{background:"rgba(45,106,79,0.12)",color:"#2D6A4F"}}>{partnershipLabel(row.role)}</span>
                     </td>
                     <td className="px-5 py-3">
-                      <button type="button"
-                        onClick={() => setMouTarget({
-                          partnerUserId: row.creator_user_id, partnerName: row.creator_name,
-                          initiativeId: row.initiative_id, initiativeTitle: row.initiative_title,
-                        })}
-                        className="text-sm text-[#2D6A4F] hover:underline underline-offset-2 whitespace-nowrap">
-                        Create MoU
-                      </button>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {docsWithPartner(row.creator_user_id).map((d) => (
+                          <button key={d.id} type="button" onClick={() => setOpenDocId(d.id)}
+                            className="text-xs px-2.5 py-1 rounded-full border border-[#2D6A4F]/30 text-[#2D6A4F] hover:bg-[#2D6A4F]/10 transition-colors whitespace-nowrap">
+                            {STATUS_LABEL_SHORT[d.status] ?? d.status}
+                          </button>
+                        ))}
+                        <button type="button"
+                          onClick={() => setMouTarget({
+                            partnerUserId: row.creator_user_id, partnerName: row.creator_name,
+                            initiativeId: row.initiative_id, initiativeTitle: row.initiative_title,
+                          })}
+                          className="text-sm text-[#2D6A4F] hover:underline underline-offset-2 whitespace-nowrap">
+                          + New MoU
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -719,7 +785,14 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
           partnerName={mouTarget.partnerName}
           initiativeId={mouTarget.initiativeId}
           initiativeTitle={mouTarget.initiativeTitle}
-          onClose={() => setMouTarget(null)}
+          onClose={() => { setMouTarget(null); loadMouContext(); }}
+        />
+      )}
+      {openDocId && (
+        <MouDocumentDetail
+          documentId={openDocId}
+          myUserId={userId}
+          onClose={() => { setOpenDocId(null); loadMouContext(); }}
         />
       )}
     </div>
