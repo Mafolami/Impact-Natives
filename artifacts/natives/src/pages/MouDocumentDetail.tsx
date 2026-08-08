@@ -72,6 +72,18 @@ function fieldKeysIn(text: string): string[] {
   const matches = text.match(/\{\{(\w+)\}\}/g) ?? [];
   return matches.map((m) => m.slice(2, -2));
 }
+const CURRENCY_OPTIONS = ["NGN", "USD", "GBP", "EUR", "KES", "GHS", "ZAR"];
+const PAYMENT_SCHEDULE_OPTIONS = [
+  "100% upfront",
+  "50% upfront, 50% on completion",
+  "Monthly instalments",
+  "Quarterly instalments",
+  "Upon delivery of agreed milestones",
+  "Annually",
+];
+const REPORTING_FREQUENCY_OPTIONS = ["Weekly", "Monthly", "Quarterly", "Bi-annually", "Annually", "Ad hoc / as needed"];
+const NOTICE_DAYS_OPTIONS = ["7", "14", "30", "60", "90"];
+const GOVERNING_JURISDICTION_OPTIONS = ["Nigeria", "United Kingdom", "Ghana", "Kenya", "South Africa"];
 
 export default function MouDocumentDetail({ documentId, myUserId, onClose }: Props) {
   const [loading, setLoading] = useState(true);
@@ -93,6 +105,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const [redrawingSignature, setRedrawingSignature] = useState(false);
   const [openFlagField, setOpenFlagField] = useState<string | null>(null);
   const [flagNote, setFlagNote] = useState("");
+  const [customFieldMode, setCustomFieldMode] = useState<Record<string, boolean>>({});
   const isViewerOrgA = orgA?.user_id === myUserId;
   const isViewerOrgB = orgB?.user_id === myUserId;
   useEffect(() => { load(); }, [documentId]);
@@ -322,6 +335,127 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     if (key === "agreement_date" && dateValidationErrors.some((e) => e.includes("Agreement date"))) return "Cannot be later than start or end date.";
     return null;
   }
+  // Preset-options field with a free-text escape hatch. Used for
+  // payment_schedule, reporting_frequency, notice_days, governing_jurisdiction.
+  function renderComboField(key: string, options: string[], numeric: boolean = false) {
+    const manualValue = fieldValues[key];
+    const value = manualValue ?? autofill[key] ?? "";
+    const valueInOptions = options.includes(value);
+    const isCustom = customFieldMode[key] ?? (!!value && !valueInOptions);
+    return (
+      <div key={key}>
+        <label className="text-sm font-medium text-black dark:text-white block mb-1">
+          {humanizeFieldLabel(key)}
+        </label>
+        {!isCustom ? (
+          <select
+            value={valueInOptions ? value : ""}
+            onChange={(e) => {
+              if (e.target.value === "__other__") {
+                setCustomFieldMode((prev) => ({ ...prev, [key]: true }));
+                setFieldValues((prev) => ({ ...prev, [key]: "" }));
+              } else {
+                setFieldValues((prev) => ({ ...prev, [key]: e.target.value }));
+              }
+            }}
+            className="w-full h-10 px-3 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F]/50"
+          >
+            <option value="" disabled>Select...</option>
+            {options.map((o) => <option key={o} value={o}>{o}</option>)}
+            <option value="__other__">Other (type your own)</option>
+          </select>
+        ) : (
+          <div className="flex gap-2">
+            <input
+              type={numeric ? "number" : "text"}
+              value={value}
+              onChange={(e) => setFieldValues((prev) => ({ ...prev, [key]: e.target.value }))}
+              className="flex-1 h-10 px-3 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F]/50"
+            />
+            <button type="button"
+              onClick={() => { setCustomFieldMode((prev) => ({ ...prev, [key]: false })); setFieldValues((prev) => ({ ...prev, [key]: "" })); }}
+              className="text-sm text-black dark:text-white hover:underline underline-offset-2 shrink-0">
+              Choose from list
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+  // Typeable number input with +/- stepper buttons, for reporting_days.
+  function renderNumberStepperField(key: string) {
+    const manualValue = fieldValues[key];
+    const value = manualValue ?? autofill[key] ?? "";
+    function step(delta: number) {
+      const current = parseInt(value, 10);
+      const next = Math.max(0, (isNaN(current) ? 0 : current) + delta);
+      setFieldValues((prev) => ({ ...prev, [key]: String(next) }));
+    }
+    return (
+      <div key={key}>
+        <label className="text-sm font-medium text-black dark:text-white block mb-1">
+          {humanizeFieldLabel(key)}
+        </label>
+        <div className="flex items-center gap-1">
+          <button type="button" onClick={() => step(-1)}
+            className="w-9 h-10 rounded-lg border border-border text-black dark:text-white text-lg font-medium hover:border-[#2D6A4F]/50">
+            −
+          </button>
+          <input
+            type="number"
+            min={0}
+            value={value}
+            onChange={(e) => setFieldValues((prev) => ({ ...prev, [key]: e.target.value }))}
+            className="flex-1 h-10 px-3 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white text-center focus:outline-none focus:border-[#2D6A4F]/50"
+          />
+          <button type="button" onClick={() => step(1)}
+            className="w-9 h-10 rounded-lg border border-border text-black dark:text-white text-lg font-medium hover:border-[#2D6A4F]/50">
+            +
+          </button>
+        </div>
+      </div>
+    );
+  }
+  // Numeric-only amount input paired with a currency select, combined into
+  // a single stored string (e.g. "5,000 NGN") since the template only has
+  // one {{financial_amount}} placeholder to substitute.
+  function parseFinancialAmount(raw: string): { amount: string; currency: string } {
+    const match = raw.match(/^([\d,]+(?:\.\d+)?)\s*([A-Za-z]{3})?$/);
+    if (match) return { amount: match[1].replace(/,/g, ""), currency: (match[2] || "NGN").toUpperCase() };
+    return { amount: "", currency: "NGN" };
+  }
+  function renderFinancialAmountField() {
+    const key = "financial_amount";
+    const manualValue = fieldValues[key];
+    const rawValue = manualValue ?? autofill[key] ?? "";
+    const { amount, currency } = parseFinancialAmount(rawValue);
+    function update(newAmount: string, newCurrency: string) {
+      const cleanAmount = newAmount.replace(/[^\d.]/g, "");
+      const combined = cleanAmount ? `${Number(cleanAmount).toLocaleString()} ${newCurrency}` : "";
+      setFieldValues((prev) => ({ ...prev, [key]: combined }));
+    }
+    return (
+      <div key={key}>
+        <label className="text-sm font-medium text-black dark:text-white block mb-1">
+          {humanizeFieldLabel(key)}
+        </label>
+        <div className="flex gap-2">
+          <select value={currency} onChange={(e) => update(amount, e.target.value)}
+            className="w-24 h-10 px-2 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F]/50">
+            {CURRENCY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={amount}
+            onChange={(e) => update(e.target.value, currency)}
+            placeholder="0"
+            className="flex-1 h-10 px-3 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F]/50"
+          />
+        </div>
+      </div>
+    );
+  }
   function renderFieldInput(key: string, readOnly: boolean = false) {
     const manualValue = fieldValues[key];
     const value = manualValue ?? autofill[key] ?? "";
@@ -338,6 +472,12 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
         </div>
       );
     }
+    if (key === "financial_amount") return renderFinancialAmountField();
+    if (key === "payment_schedule") return renderComboField(key, PAYMENT_SCHEDULE_OPTIONS);
+    if (key === "reporting_days") return renderNumberStepperField(key);
+    if (key === "reporting_frequency") return renderComboField(key, REPORTING_FREQUENCY_OPTIONS);
+    if (key === "notice_days") return renderComboField(key, NOTICE_DAYS_OPTIONS, true);
+    if (key === "governing_jurisdiction") return renderComboField(key, GOVERNING_JURISDICTION_OPTIONS);
     if (isDescriptionField(key)) {
       return (
         <div key={key}>
@@ -894,7 +1034,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                       className="text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed">
                       {doc.details_completed_by_org_a
                         ? (hasUnresolvedFlags ? "Resubmit after resolving flags" : "Details submitted")
-                        : (saving ? "Submitting..." : `Submit details — notify ${orgB?.organisation_name ?? "partner"}`)}
+                        : (saving ? "Submitting..." : `Submit details and notify ${orgB?.organisation_name ?? "partner"}`)}
                     </button>
                   )}
 
@@ -1127,7 +1267,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                           </div>
                           <button type="button" onClick={finishMySignature}
                             className="text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium transition-colors">
-                            Finish — lock this signature
+                            Finish
                           </button>
                           <p className="text-sm text-black/60 dark:text-white/60">
                             Once you finish, you won't be able to change or clear your signature again.
