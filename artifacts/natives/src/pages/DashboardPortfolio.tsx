@@ -9,6 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import { ArrowLeft, ArrowRight, Download, Loader2, Users, UserCheck, Pencil, CheckCircle2, Check, X, LayoutList, Table2 } from "lucide-react";import { Link, useLocation } from "wouter";
 import CreateInitiativeModalDashboard from "./CreateInitiativeModalDashboard";
 import EditInitiativeModalDashboard from "./EditInitiativeModalDashboard";
+import CreateMouModal from "./CreateMouModal";
 import { useRoute } from "wouter";
 import { PartnershipTab } from "./PartnershipTab";
 import { PortfolioTable } from "./PortfolioTable";
@@ -535,6 +536,9 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
   const [loading, setLoading]                       = useState(true);
   const [creatorConfirmed, setCreatorConfirmed]     = useState<CreatorConfirmedInitiative[]>([]);
   const [expresserConfirmed, setExpresserConfirmed] = useState<ExpresserConfirmedRow[]>([]);
+  const [mouTarget, setMouTarget] = useState<{
+    partnerUserId: string; partnerName: string; initiativeId: string | null; initiativeTitle: string;
+  } | null>(null);
 
   useEffect(() => { loadPartners(); }, [userId]);
 
@@ -626,7 +630,7 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
-                  {["Name","Initiative","Role","Contact","Confirmed"].map(h => (
+                  {["Name","Initiative","Role","Contact","Confirmed",""].map(h => (
                     <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-black dark:text-white">{h}</th>
                   ))}
                 </tr>
@@ -649,6 +653,16 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
                       </div>
                     </td>
                     <td className="px-5 py-3 text-xs text-black dark:text-white whitespace-nowrap">{timeAgo(p.confirmed_at)}</td>
+                    <td className="px-5 py-3">
+                      <button type="button"
+                        onClick={() => setMouTarget({
+                          partnerUserId: p.user_id, partnerName: p.name,
+                          initiativeId: card.initiative_id, initiativeTitle: card.initiative_title,
+                        })}
+                        className="text-sm text-[#2D6A4F] hover:underline underline-offset-2 whitespace-nowrap">
+                        Create MoU
+                      </button>
+                    </td>
                   </tr>
                 )))}
               </tbody>
@@ -664,7 +678,7 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
-                  {["Creator","Initiative","Your role"].map(h => (
+                  {["Creator","Initiative","Your role",""].map(h => (
                     <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-black dark:text-white">{h}</th>
                   ))}
                 </tr>
@@ -681,12 +695,32 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
                     <td className="px-5 py-3">
                       <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{background:"rgba(45,106,79,0.12)",color:"#2D6A4F"}}>{partnershipLabel(row.role)}</span>
                     </td>
+                    <td className="px-5 py-3">
+                      <button type="button"
+                        onClick={() => setMouTarget({
+                          partnerUserId: row.creator_user_id, partnerName: row.creator_name,
+                          initiativeId: row.initiative_id, initiativeTitle: row.initiative_title,
+                        })}
+                        className="text-sm text-[#2D6A4F] hover:underline underline-offset-2 whitespace-nowrap">
+                        Create MoU
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </div>
+      )}
+      {mouTarget && (
+        <CreateMouModal
+          myUserId={userId}
+          partnerUserId={mouTarget.partnerUserId}
+          partnerName={mouTarget.partnerName}
+          initiativeId={mouTarget.initiativeId}
+          initiativeTitle={mouTarget.initiativeTitle}
+          onClose={() => setMouTarget(null)}
+        />
       )}
     </div>
   );
