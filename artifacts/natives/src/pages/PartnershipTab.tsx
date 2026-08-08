@@ -5,6 +5,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import CreateMouModal from "./CreateMouModal";
+import MouDocumentDetail from "./MouDocumentDetail";
 import { useLocation } from "wouter";
 import {
   Loader2, Handshake, ArrowUpRight, ArrowDownLeft,
@@ -149,6 +151,25 @@ export function PartnershipTab() {
   const [acceptModal, setAcceptModal] = useState<ConnectionRow | null>(null);
   const [partnershipType, setPartnershipType] = useState("");
   const [accepting, setAccepting]     = useState(false);
+  const [mouDocs, setMouDocs] = useState<{ id: string; org_a_id: string; org_b_id: string; initiative_id: string | null; status: string }[]>([]);
+  const [mouTarget, setMouTarget] = useState<{ partnerOrgId: string; partnerName: string } | null>(null);
+  const [openDocId, setOpenDocId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!myOrgId) return;
+    supabase.from("mou_documents")
+      .select("id, org_a_id, org_b_id, initiative_id, status")
+      .or(`org_a_id.eq.${myOrgId},org_b_id.eq.${myOrgId}`)
+      .then(({ data }) => setMouDocs(data ?? []));
+  }, [myOrgId]);
+
+  function docsWithOrg(partnerOrgId: string) {
+    if (!myOrgId) return [];
+    return mouDocs.filter((d) =>
+      (d.org_a_id === myOrgId && d.org_b_id === partnerOrgId) ||
+      (d.org_a_id === partnerOrgId && d.org_b_id === myOrgId)
+    );
+  }
 
   useEffect(() => {
     if (user) load();
@@ -593,7 +614,7 @@ export function PartnershipTab() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-border bg-muted/30">
-                          {["Name", "Role", "Contact", "Confirmed"].map(h => (
+                          {["Name", "Role", "Contact", "Confirmed", ""].map(h => (
                             <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground">{h}</th>
                           ))}
                         </tr>
@@ -639,6 +660,23 @@ export function PartnershipTab() {
                               </td>
                               <td className="px-5 py-3 text-xs text-muted-foreground whitespace-nowrap">
                                 {timeAgo(conn.updated_at)}
+                              </td>
+                              <td className="px-5 py-3">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {org?.id && docsWithOrg(org.id).map((d) => (
+                                    <button key={d.id} type="button" onClick={() => setOpenDocId(d.id)}
+                                      className="text-xs px-2.5 py-1 rounded-full border border-[#2D6A4F]/30 text-[#2D6A4F] hover:bg-[#2D6A4F]/10 transition-colors whitespace-nowrap">
+                                      {d.status === "draft" ? "Draft" : d.status === "sent" ? "Sent" : d.status === "fully_executed" ? "Executed" : "Partly signed"}
+                                    </button>
+                                  ))}
+                                  {org?.id && (
+                                    <button type="button"
+                                      onClick={() => setMouTarget({ partnerOrgId: org.id, partnerName: org.organisation_name ?? "Partner" })}
+                                      className="text-xs text-[#2D6A4F] hover:underline underline-offset-2 whitespace-nowrap">
+                                      + New MoU
+                                    </button>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           );
@@ -693,6 +731,19 @@ export function PartnershipTab() {
             </div>
           </div>
         </div>
+      )}
+      {mouTarget && user && (
+        <CreateMouModal
+          myUserId={user.id}
+          partnerOrgId={mouTarget.partnerOrgId}
+          partnerName={mouTarget.partnerName}
+          initiativeId={null}
+          initiativeTitle={myListing?.partnership_title ?? ""}
+          onClose={() => { setMouTarget(null); if (myOrgId) supabase.from("mou_documents").select("id, org_a_id, org_b_id, initiative_id, status").or(`org_a_id.eq.${myOrgId},org_b_id.eq.${myOrgId}`).then(({ data }) => setMouDocs(data ?? [])); }}
+        />
+      )}
+      {openDocId && user && (
+        <MouDocumentDetail documentId={openDocId} myUserId={user.id} onClose={() => setOpenDocId(null)} />
       )}
     </div>
   );

@@ -21,6 +21,8 @@ import {
   updateConnectionStatus, markPartnershipFormed, unlistPartnership, relistPartnership,
 } from "@/lib/partnershipActions";
 import { FindPartnerModalDashboard } from "./FindPartnerModalDashboard";
+import CreateMouModal from "./CreateMouModal";
+import MouDocumentDetail from "./MouDocumentDetail";
 
 type SortKey = "title" | "organisation" | "type" | "status" | "date";
 type SortDir = "asc" | "desc";
@@ -518,6 +520,66 @@ export function PortfolioTable() {
   const [outcomeEditingRow, setOutcomeEditingRow] = useState<PortfolioRow | null>(null);
   const [timelineRow, setTimelineRow] = useState<PortfolioRow | null>(null);
   const [notesRow, setNotesRow] = useState<PortfolioRow | null>(null);
+  const [myOrgId, setMyOrgId] = useState<string | null>(null);
+  const [mouDocs, setMouDocs] = useState<{ id: string; org_a_id: string; org_b_id: string; initiative_id: string | null; status: string }[]>([]);
+  const [mouTarget, setMouTarget] = useState<{
+    partnerUserId?: string; partnerOrgId?: string; partnerName: string; initiativeId: string | null; initiativeTitle: string;
+  } | null>(null);
+  const [openDocId, setOpenDocId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("organizations").select("id").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => setMyOrgId(data?.id ?? null));
+  }, [user]);
+
+  useEffect(() => {
+    if (!myOrgId) return;
+    refreshMouDocs();
+  }, [myOrgId]);
+
+  function refreshMouDocs() {
+    if (!myOrgId) return;
+    supabase.from("mou_documents")
+      .select("id, org_a_id, org_b_id, initiative_id, status")
+      .or(`org_a_id.eq.${myOrgId},org_b_id.eq.${myOrgId}`)
+      .then(({ data }) => setMouDocs(data ?? []));
+  }
+
+  // initiative_eoi rows match by initiative_id (precise even if the same two
+  // orgs share several initiatives); partnership_connection rows match by
+  // the counterpart org id, since there's no initiative involved at all.
+  function docsForRow(row: PortfolioRow): typeof mouDocs {
+    if (!myOrgId) return [];
+    const raw = row.raw;
+    if (raw.kind === "initiative_eoi") {
+      const initiativeId = raw.initiativeId;
+      return mouDocs.filter((d) => d.initiative_id === initiativeId);
+    }
+    if (raw.kind === "partnership_connection" && raw.orgId) {
+      const partnerOrgId = raw.orgId;
+      return mouDocs.filter((d) =>
+        (d.org_a_id === myOrgId && d.org_b_id === partnerOrgId) ||
+        (d.org_a_id === partnerOrgId && d.org_b_id === myOrgId)
+      );
+    }
+    return [];
+  }
+
+  function openMouTargetFor(row: PortfolioRow) {
+    const raw = row.raw;
+    if (raw.kind === "initiative_eoi") {
+      setMouTarget({
+        partnerUserId: raw.partnerUserId, partnerName: row.organisation,
+        initiativeId: raw.initiativeId, initiativeTitle: row.title,
+      });
+    } else if (raw.kind === "partnership_connection" && raw.orgId) {
+      setMouTarget({
+        partnerOrgId: raw.orgId, partnerName: row.organisation,
+        initiativeId: null, initiativeTitle: "",
+      });
+    }
+  }
 
   async function load(showLoader = true) {
     if (!user) return;
@@ -810,6 +872,20 @@ export function PortfolioTable() {
                         Update outcome
                       </button>
                     )}
+                    {isOutcomeEligible(row) && (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {docsForRow(row).map((d) => (
+                          <button key={d.id} type="button" onClick={() => setOpenDocId(d.id)}
+                            className="text-xs px-2.5 py-1 rounded-full border border-[#2D6A4F]/30 text-[#2D6A4F] hover:bg-[#2D6A4F]/10 transition-colors whitespace-nowrap">
+                            MoU: {d.status === "draft" ? "Draft" : d.status === "sent" ? "Sent" : d.status === "fully_executed" ? "Executed" : "Partly signed"}
+                          </button>
+                        ))}
+                        <button type="button" onClick={() => openMouTargetFor(row)}
+                          className="text-xs px-2.5 py-1 rounded-full border border-border text-muted-foreground hover:text-[#2D6A4F] hover:border-[#2D6A4F]/40 transition-colors whitespace-nowrap">
+                          + MoU
+                        </button>
+                      </div>
+                    )}
                     </div>
                   </td>
                 </tr>
@@ -817,6 +893,21 @@ export function PortfolioTable() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {mouTarget && user && (
+        <CreateMouModal
+          myUserId={user.id}
+          partnerUserId={mouTarget.partnerUserId}
+          partnerOrgId={mouTarget.partnerOrgId}
+          partnerName={mouTarget.partnerName}
+          initiativeId={mouTarget.initiativeId}
+          initiativeTitle={mouTarget.initiativeTitle}
+          onClose={() => { setMouTarget(null); refreshMouDocs(); }}
+        />
+      )}
+      {openDocId && user && (
+        <MouDocumentDetail documentId={openDocId} myUserId={user.id} onClose={() => { setOpenDocId(null); refreshMouDocs(); }} />
       )}
 
       <FindPartnerModalDashboard

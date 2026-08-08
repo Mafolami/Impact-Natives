@@ -28,7 +28,8 @@ interface OrgLite {
 
 interface Props {
   myUserId: string;
-  partnerUserId: string;
+  partnerUserId?: string;
+  partnerOrgId?: string;
   partnerName: string;
   initiativeId: string | null;
   initiativeTitle: string;
@@ -36,7 +37,7 @@ interface Props {
 }
 
 export default function CreateMouModal({
-  myUserId, partnerUserId, partnerName, initiativeId, initiativeTitle, onClose,
+  myUserId, partnerUserId, partnerOrgId, partnerName, initiativeId, initiativeTitle, onClose,
 }: Props) {
   const [loadingOrgs, setLoadingOrgs] = useState(true);
   const [myOrg, setMyOrg] = useState<OrgLite | null>(null);
@@ -58,33 +59,43 @@ export default function CreateMouModal({
 
   async function loadOrgs() {
     setLoadingOrgs(true);
-    const { data } = await supabase
-      .from("organizations")
-      .select("id, organisation_name, user_id")
-      .in("user_id", [myUserId, partnerUserId]);
-    const mine = (data ?? []).find((o: any) => o.user_id === myUserId) ?? null;
-    const theirs = (data ?? []).find((o: any) => o.user_id === partnerUserId) ?? null;
-    setMyOrg(mine);
-    setPartnerOrg(theirs);
+    const { data: mineData } = await supabase
+      .from("organizations").select("id, organisation_name").eq("user_id", myUserId).maybeSingle();
+    setMyOrg(mineData ?? null);
+
+    if (partnerOrgId) {
+      const { data: theirsData } = await supabase
+        .from("organizations").select("id, organisation_name").eq("id", partnerOrgId).maybeSingle();
+      setPartnerOrg(theirsData ?? null);
+    } else if (partnerUserId) {
+      const { data: theirsData } = await supabase
+        .from("organizations").select("id, organisation_name").eq("user_id", partnerUserId).maybeSingle();
+      setPartnerOrg(theirsData ?? null);
+    }
     setLoadingOrgs(false);
   }
 
   async function chooseTemplate() {
     setPath("template");
     setLoadingTemplate(true);
-    const { data } = await supabase
+    setError("");
+    const { data, error: fetchError } = await supabase
       .from("mou_templates")
       .select("id, name, toggles")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (data) {
+    if (fetchError) {
+      setError(fetchError.message);
+    } else if (data) {
       setTemplate(data as MouTemplate);
       const defaults: Record<string, string | boolean> = {};
       (data.toggles as TemplateToggle[]).forEach((t) => {
         defaults[t.key] = t.type === "binary" ? true : (t.options[0]?.value ?? "");
       });
       setToggleValues(defaults);
+    } else {
+      setError("No MoU template found.");
     }
     setLoadingTemplate(false);
   }
@@ -198,10 +209,20 @@ export default function CreateMouModal({
   }
 
   function renderTemplateStep() {
-    if (loadingTemplate || !template) {
+    if (loadingTemplate) {
       return (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
+        </div>
+      );
+    }
+    if (!template) {
+      return (
+        <div className="py-8 text-center space-y-2">
+          <p className="text-sm text-destructive">{error || "Could not load the template."}</p>
+          <button type="button" onClick={chooseTemplate} className="text-sm text-[#2D6A4F] hover:underline underline-offset-2">
+            Try again
+          </button>
         </div>
       );
     }
