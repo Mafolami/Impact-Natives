@@ -39,6 +39,7 @@ interface MouDoc {
   final_document_path: string | null;
   signature_locked_org_a: boolean;
   signature_locked_org_b: boolean;
+  edited_sections: { id: string; title: string; body: string }[] | null;
   created_by: string;
 }
 
@@ -235,6 +236,43 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   }
   function resolvedValue(key: string): string {
     return fieldValues[key] || autofill[key] || "";
+  }
+  // Fields the template actually requires filled before the document can be
+  // sent or signed. Only applies to template docs -- custom text and
+  // uploaded PDFs have no placeholder fields to check.
+  const missingFieldLabels = useMemo(() => {
+    if (doc?.source_type !== "template") return [];
+    return allFieldKeys
+      .filter((k) => !(fieldValues[k] || autofill[k] || "").trim())
+      .map((k) => humanizeFieldLabel(k));
+  }, [allFieldKeys, fieldValues, autofill, doc?.source_type]);
+  // Base text per section: the frozen edited_sections snapshot once one
+  // exists, otherwise the live template + field-value recompute. Overrides
+  // layer unsaved in-progress typing on top of whichever base is active.
+  const [sectionOverrides, setSectionOverrides] = useState<Record<string, string>>({});
+  const [savingSections, setSavingSections] = useState(false);
+  const baseSections = useMemo(() => {
+    if (doc?.edited_sections) return doc.edited_sections;
+    return compiledSections.map((s) => ({ id: s.id, title: s.title, body: renderCompiledText(s.body) }));
+  }, [doc?.edited_sections, compiledSections, fieldValues, autofill]);
+  const displaySections = useMemo(
+    () => baseSections.map((s) => ({ ...s, body: sectionOverrides[s.id] ?? s.body })),
+    [baseSections, sectionOverrides]
+  );
+  const previewLocked = !!doc?.signature_org_a_path || !!doc?.signature_org_b_path;
+  function handleSectionEdit(sectionId: string, value: string) {
+    setSectionOverrides((prev) => ({ ...prev, [sectionId]: value }));
+  }
+  async function savePreviewEdits() {
+    if (!doc) return;
+    setSavingSections(true);
+    const snapshot = displaySections;
+    await supabase.from("mou_documents").update({
+      edited_sections: snapshot, updated_at: new Date().toISOString(),
+    }).eq("id", doc.id);
+    setDoc({ ...doc, edited_sections: snapshot } as MouDoc);
+    setSectionOverrides({});
+    setSavingSections(false);
   }
 
   function renderCompiledText(body: string): string {
@@ -510,9 +548,9 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     if (doc.source_type === "custom") {
       writeParagraph(sanitizeForPdf(customContent) || "No content added yet.");
     } else {
-      compiledSections.forEach((s) => {
+      displaySections.forEach((s) => {
         writeSectionHeader(s.title);
-        writeParagraph(sanitizeForPdf(renderCompiledText(s.body)));
+        writeParagraph(sanitizeForPdf(s.body));
       });
     }
 
@@ -655,15 +693,37 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               )}
 
               <div className="space-y-4 border-t border-border pt-5">
-                <p className="text-base font-semibold text-black dark:text-white">Document preview</p>
-                {compiledSections.map((s) => (
+                <div>
+                  <p className="text-base font-semibold text-black dark:text-white">Document preview</p>
+                  <p className="text-sm text-black dark:text-white">
+                    {previewLocked
+                      ? "This text is locked because a signature has been added."
+                      : "Edit any clause directly — erase what doesn't apply, adjust wording as needed."}
+                  </p>
+                </div>
+                {displaySections.map((s) => (
                   <div key={s.id}>
                     <p className="text-sm font-semibold uppercase tracking-wide text-black dark:text-white mb-1">{s.title}</p>
-                    <p className="text-base text-black dark:text-white leading-relaxed whitespace-pre-line">
-                      {renderCompiledText(s.body)}
-                    </p>
+                    {previewLocked ? (
+                      <p className="text-base text-black dark:text-white leading-relaxed whitespace-pre-line">
+                        {s.body}
+                      </p>
+                    ) : (
+                      <textarea
+                        value={s.body}
+                        onChange={(e) => handleSectionEdit(s.id, e.target.value)}
+                        rows={Math.max(3, Math.ceil(s.body.length / 80))}
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white leading-relaxed focus:outline-none focus:border-[#2D6A4F]/50 resize-y"
+                      />
+                    )}
                   </div>
                 ))}
+                {!previewLocked && Object.keys(sectionOverrides).length > 0 && (
+                  <button type="button" onClick={savePreviewEdits} disabled={savingSections}
+                    className="text-sm text-black dark:text-white hover:underline underline-offset-2 disabled:opacity-60">
+                    {savingSections ? "Saving..." : "Save document edits"}
+                  </button>
+                )}
               </div>
             </>
           )}
@@ -703,7 +763,13 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           <div className="space-y-3 border-t border-border pt-5">
             <p className="text-base font-semibold text-black dark:text-white">Send & sign</p>
 
-            {doc.status === "draft" && iAmCreator && (
+            {missingFieldLabels.length > 0 && (
+              <div className="rounded-xl border border-border bg-muted/20 p-4">
+                <p className="text-sm font-medium text-black dark:text-white mb-1">Complete these fields before sending or signing:</p>
+                <p className="text-sm text-black dark:text-white">{missingFieldLabels.join(", ")}</p>
+              </div>
+            )}
+            {doc.status === "draft" && iAmCreator && missingFieldLabels.length === 0 && (
               <button type="button" onClick={markSent} disabled={saving}
                 className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3 text-base font-medium transition-colors disabled:opacity-60">
                 <Send className="w-4 h-4" /> Mark as sent
@@ -737,7 +803,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               </div>
             )}
 
-            {doc.status !== "draft" && doc.source_type !== "uploaded_pdf" && (
+            {doc.status !== "draft" && doc.source_type !== "uploaded_pdf" && missingFieldLabels.length === 0 && (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
