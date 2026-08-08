@@ -820,17 +820,18 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     const margin = 48;
     const contentWidth = pageWidth - margin * 2;
     let y = margin;
-
     const FOREST_GREEN: [number, number, number] = [45, 106, 79];
     const BLACK: [number, number, number] = [17, 17, 17];
-
+    const RULE_GREY: [number, number, number] = [170, 170, 170];
+    // Times is the classic formal/legal document serif -- more legible and
+    // appropriately formal for a signed agreement than the brand's display
+    // sans (Bricolage), which stays reserved for in-app UI, not this document.
     function ensureSpace(neededHeight: number) {
       if (y + neededHeight > pageHeight - margin) { pdf.addPage(); y = margin; }
     }
-
     function writeParagraph(text: string, opts: { size?: number; bold?: boolean; gap?: number } = {}) {
       const size = opts.size ?? 10.5;
-      pdf.setFont("helvetica", opts.bold ? "bold" : "normal");
+      pdf.setFont("times", opts.bold ? "bold" : "normal");
       pdf.setFontSize(size);
       pdf.setTextColor(...BLACK);
       const lines: string[] = pdf.splitTextToSize(text, contentWidth);
@@ -843,42 +844,50 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     function writeSectionHeader(text: string, numbered: boolean = true) {
       if (numbered) sectionCounter += 1;
       ensureSpace(20);
-      pdf.setFont("Bricolage", "bold");
+      pdf.setFont("times", "bold");
       pdf.setFontSize(11);
       pdf.setTextColor(...FOREST_GREEN);
       pdf.text(numbered ? `SECTION ${sectionCounter}: ${text.toUpperCase()}` : text.toUpperCase(), margin, y);
       y += 18;
     }
-    // Renders "- " / "* " bullet lines and "1. " numbered lines with a
-    // proper hanging indent instead of every clause reading as one dense
-    // wrapped paragraph. Non-list lines fall through to writeParagraph.
+    function writeDivider() {
+      ensureSpace(16);
+      pdf.setDrawColor(...RULE_GREY);
+      pdf.setLineWidth(0.75);
+      pdf.line(margin, y, margin + contentWidth, y);
+      y += 16;
+    }
+    // Bullet/numbered lines are indented inward from the body margin
+    // (bullet glyph at margin+18, wrapped text at margin+36) to match
+    // Word's default list-indent convention, rather than sitting flush
+    // with ordinary paragraph text.
     function writeSectionBody(text: string) {
       const lines = text.split(/\n+/).filter((l) => l.trim().length > 0);
       const bulletRegex = /^[-*]\s+(.*)/;
       const numberRegex = /^(\d+)[.)]\s+(.*)/;
+      const bulletX = margin + 18;
+      const textX = margin + 36;
       lines.forEach((line) => {
         const bulletMatch = line.match(bulletRegex);
         const numberMatch = line.match(numberRegex);
         const lineHeight = 10.5 * 1.4;
         if (bulletMatch) {
-          const indent = 14;
-          const wrapped: string[] = pdf.splitTextToSize(bulletMatch[1], contentWidth - indent);
+          const wrapped: string[] = pdf.splitTextToSize(bulletMatch[1], contentWidth - (textX - margin));
           ensureSpace(wrapped.length * lineHeight);
-          pdf.setFont("helvetica", "normal");
+          pdf.setFont("times", "normal");
           pdf.setFontSize(10.5);
           pdf.setTextColor(...BLACK);
-          pdf.text("•", margin, y);
-          wrapped.forEach((wl, i) => pdf.text(wl, margin + indent, y + i * lineHeight));
+          pdf.text("•", bulletX, y);
+          wrapped.forEach((wl, i) => pdf.text(wl, textX, y + i * lineHeight));
           y += wrapped.length * lineHeight + 4;
         } else if (numberMatch) {
-          const indent = 18;
-          const wrapped: string[] = pdf.splitTextToSize(numberMatch[2], contentWidth - indent);
+          const wrapped: string[] = pdf.splitTextToSize(numberMatch[2], contentWidth - (textX - margin));
           ensureSpace(wrapped.length * lineHeight);
-          pdf.setFont("helvetica", "normal");
+          pdf.setFont("times", "normal");
           pdf.setFontSize(10.5);
           pdf.setTextColor(...BLACK);
-          pdf.text(`${numberMatch[1]}.`, margin, y);
-          wrapped.forEach((wl, i) => pdf.text(wl, margin + indent, y + i * lineHeight));
+          pdf.text(`${numberMatch[1]}.`, bulletX, y);
+          wrapped.forEach((wl, i) => pdf.text(wl, textX, y + i * lineHeight));
           y += wrapped.length * lineHeight + 4;
         } else {
           writeParagraph(line, { gap: 8 });
@@ -886,35 +895,91 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       });
       y += 6;
     }
-
-    pdf.setFont("Bricolage", "bold");
-    pdf.setFontSize(18);
+    // Parties block: a fixed, hand-laid-out structure (numbered org blocks
+    // with indented sub-fields, "AND" between them) rather than wrapped
+    // paragraph text -- this level of layout control isn't something the
+    // generic placeholder-substitution pipeline can produce. Skipped in
+    // favour of the generic renderer if the person has hand-edited this
+    // section via the document preview, so their edits are never silently
+    // discarded.
+    function writePartiesBlock() {
+      const agreementDate = resolvedValue("agreement_date") || "[Agreement Date]";
+      writeParagraph(`This Agreement is entered into on ${sanitizeForPdf(agreementDate)}, by and between:`, { gap: 16 });
+      function writeParty(index: number, prefix: "a" | "b") {
+        const name = resolvedValue(`org_${prefix}_name`) || `[Org ${prefix.toUpperCase()} Name]`;
+        const entityType = resolvedValue(`org_${prefix}_entity_type`) || "[Entity Type]";
+        const country = resolvedValue(`org_${prefix}_country`) || "[Country]";
+        const address = resolvedValue(`org_${prefix}_address`) || "[Address]";
+        const signatoryName = resolvedValue(`org_${prefix}_signatory_name`) || "[Signatory Name]";
+        const signatoryTitle = resolvedValue(`org_${prefix}_signatory_title`) || "[Signatory Title]";
+        const contact = resolvedValue(`org_${prefix}_contact`) || "[Contact]";
+        const numberIndent = 18;
+        const fieldIndent = 22;
+        ensureSpace(16);
+        pdf.setFont("times", "bold");
+        pdf.setFontSize(11);
+        pdf.setTextColor(...BLACK);
+        pdf.text(`${index}.`, margin, y);
+        pdf.text(sanitizeForPdf(name).toUpperCase(), margin + numberIndent, y);
+        y += 16;
+        const fields = [
+          `Entity Type: A ${sanitizeForPdf(entityType)} registered in ${sanitizeForPdf(country)}.`,
+          `Address: ${sanitizeForPdf(address)}`,
+          `Represented by: ${sanitizeForPdf(signatoryName)}, ${sanitizeForPdf(signatoryTitle)}`,
+          `Contact: ${sanitizeForPdf(contact)}`,
+        ];
+        pdf.setFont("times", "normal");
+        pdf.setFontSize(10.5);
+        fields.forEach((line) => {
+          const wrapped: string[] = pdf.splitTextToSize(line, contentWidth - fieldIndent);
+          const lineHeight = 10.5 * 1.4;
+          ensureSpace(wrapped.length * lineHeight);
+          wrapped.forEach((wl, i) => pdf.text(wl, margin + fieldIndent, y + i * lineHeight));
+          y += wrapped.length * lineHeight + 2;
+        });
+        y += 8;
+      }
+      writeParty(1, "a");
+      ensureSpace(24);
+      pdf.setFont("times", "italic");
+      pdf.setFontSize(10.5);
+      pdf.setTextColor(...BLACK);
+      pdf.text("AND", margin, y);
+      y += 20;
+      writeParty(2, "b");
+      y += 4;
+    }
+    // Document header -- centered, formal title block.
+    pdf.setFont("times", "bold");
+    pdf.setFontSize(20);
     pdf.setTextColor(...FOREST_GREEN);
-    pdf.text("Memorandum of Understanding", margin, y);
-    y += 24;
-
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(11);
+    pdf.text("MEMORANDUM OF UNDERSTANDING", pageWidth / 2, y, { align: "center" });
+    y += 26;
+    pdf.setFont("times", "italic");
+    pdf.setFontSize(11.5);
     pdf.setTextColor(...BLACK);
-    pdf.text(sanitizeForPdf(`${orgA.organisation_name} & ${orgB.organisation_name}`), margin, y);
-    y += 24;
-
+    pdf.text(sanitizeForPdf(`${orgA.organisation_name} and ${orgB.organisation_name}`), pageWidth / 2, y, { align: "center" });
+    y += 30;
     if (doc.source_type === "custom") {
       writeParagraph(sanitizeForPdf(customContent) || "No content added yet.");
     } else {
       displaySections.forEach((s) => {
-        writeSectionHeader(s.title);
-        writeSectionBody(sanitizeForPdf(s.body));
+        if (s.id === "parties" && !doc.edited_sections) {
+          writePartiesBlock();
+          writeDivider();
+        } else {
+          writeSectionHeader(s.title);
+          writeSectionBody(sanitizeForPdf(s.body));
+        }
       });
     }
-
     // Signature block -- composites the actual captured signature images at
-    // fixed coordinates, with the real signatory name/title/date printed
-    // underneath instead of blank underscore lines. This only works
-    // because Impact Natives controls this document's layout end to end;
-    // an uploaded external PDF's layout is unknown, so that path keeps the
-    // sign-externally-and-upload-back flow instead of compositing onto it.
-    ensureSpace(160);
+    // fixed coordinates. This only works because Impact Natives controls
+    // this document's layout end to end; an uploaded external PDF's layout
+    // is unknown, so that path keeps the sign-externally-and-upload-back
+    // flow instead of compositing onto it.
+    ensureSpace(180);
+    writeDivider();
     writeSectionHeader("Signatures", false);
     const sigWidth = 150;
     const sigHeight = 50;
@@ -926,48 +991,48 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       signatoryName: string, signatoryTitle: string, signedAt: string | null
     ) {
       let cy = blockTop;
-      pdf.setFont("Bricolage", "bold");
-      pdf.setFontSize(10);
-      pdf.setTextColor(...FOREST_GREEN);
-      pdf.text(`FOR ${sanitizeForPdf(orgName).toUpperCase()}`, x, cy);
-      cy += 14;
+      pdf.setFont("times", "bold");
+      pdf.setFontSize(10.5);
+      pdf.setTextColor(...BLACK);
+      pdf.text(`For ${sanitizeForPdf(orgName)}:`, x, cy);
+      cy += 18;
       if (sigImg) {
-        pdf.addImage(sigImg, "PNG", x, cy, sigWidth, sigHeight);
+        pdf.addImage(sigImg, "PNG", x, cy - 12, sigWidth, sigHeight);
+        cy += sigHeight - 8;
       } else {
-        pdf.setDrawColor(200, 200, 200);
+        pdf.setDrawColor(...BLACK);
         pdf.setLineWidth(0.5);
-        pdf.line(x, cy + sigHeight - 4, x + sigWidth, cy + sigHeight - 4);
+        pdf.line(x, cy + 20, x + colWidth, cy + 20);
+        cy += 24;
       }
-      cy += sigHeight + 4;
-      pdf.setDrawColor(220, 220, 220);
+      pdf.setFont("times", "normal");
+      pdf.setFontSize(10);
+      pdf.setTextColor(...BLACK);
+      const nameLine = signatoryName && signatoryTitle
+        ? `${sanitizeForPdf(signatoryName)}, ${sanitizeForPdf(signatoryTitle)}`
+        : "[Name], [Title]";
+      pdf.text(nameLine, x, cy);
+      cy += 22;
+      pdf.setDrawColor(...BLACK);
       pdf.setLineWidth(0.5);
       pdf.line(x, cy, x + colWidth, cy);
-      cy += 14;
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(9.5);
-      pdf.setTextColor(...BLACK);
-      pdf.text(`Name: ${sanitizeForPdf(signatoryName) || "________________"}`, x, cy);
-      cy += 14;
-      pdf.text(`Title: ${sanitizeForPdf(signatoryTitle) || "________________"}`, x, cy);
-      cy += 14;
-      pdf.text(`Date: ${signedAt ? new Date(signedAt).toLocaleDateString("en-GB") : "________________"}`, x, cy);
+      cy += 16;
+      pdf.text(signedAt ? new Date(signedAt).toLocaleDateString("en-GB") : "Date", x, cy);
     }
     writeSignatureColumn(margin, orgA.organisation_name, signatureAImg,
       resolvedValue("org_a_signatory_name"), resolvedValue("org_a_signatory_title"), doc.signed_at_org_a);
     writeSignatureColumn(margin + colWidth + colGap, orgB.organisation_name, signatureBImg,
       resolvedValue("org_b_signatory_name"), resolvedValue("org_b_signatory_title"), doc.signed_at_org_b);
-    y = blockTop + 14 + sigHeight + 4 + 14 + 14 + 14 + 10;
-
+    y = blockTop + 18 + 24 + 22 + 16 + 10;
     const pageCount = pdf.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       pdf.setPage(i);
-      pdf.setFont("helvetica", "normal");
+      pdf.setFont("times", "normal");
       pdf.setFontSize(8);
       pdf.setTextColor(120, 120, 120);
       pdf.text("Generated via Impact Natives", margin, pageHeight - 24);
       pdf.text(`${i} / ${pageCount}`, pageWidth - margin - 24, pageHeight - 24);
     }
-
     return pdf;
   }
   function exportPdf() {
