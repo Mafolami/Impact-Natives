@@ -50,14 +50,14 @@ function FeedCard({ event, currentUserId }: { event: FeedEvent; currentUserId?: 
             <p className="text-sm font-semibold text-black dark:text-white group-hover:text-[#2D6A4F] transition-colors leading-snug">
               {event.initiative_title}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-black dark:text-white mt-1">
               {event.creator_id === currentUserId ? "You" : event.creator_name}
               {event.creator_org ? ` · ${event.creator_org}` : ""}
             </p>
             {event.initiative_sectors && event.initiative_sectors.length > 0 && (
               <div className="flex gap-1.5 flex-wrap mt-2">
                 {event.initiative_sectors.slice(0, 2).map(s => (
-                  <span key={s} className="text-[10px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">
+                  <span key={s} className="text-[10px] px-2 py-0.5 rounded-full border border-border text-black dark:text-white">
                     {s}
                   </span>
                 ))}
@@ -86,7 +86,7 @@ function FeedCard({ event, currentUserId }: { event: FeedEvent; currentUserId?: 
             <p className="text-sm font-semibold text-black dark:text-white group-hover:text-[#C45C26] transition-colors leading-snug">
               {event.partner_name} joined as {event.partner_role} partner
             </p>
-            <p className="text-xs text-muted-foreground mt-1">{event.initiative_title}</p>
+            <p className="text-xs text-black dark:text-white mt-1">{event.initiative_title}</p>
           </div>
           <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-[#C45C26] shrink-0 mt-1 transition-colors" />
         </div>
@@ -110,7 +110,7 @@ function FeedCard({ event, currentUserId }: { event: FeedEvent; currentUserId?: 
               {event.member_name} joined Impact Natives
             </p>
             {(event.member_role_title || event.member_org) && (
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-black dark:text-white mt-1">
                 {[event.member_role_title, event.member_org].filter(Boolean).join(" · ")}
               </p>
             )}
@@ -246,7 +246,7 @@ export default function DashboardFeed() {
         </div>
         <Link href="/dashboard/profile">
           <button type="button"
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors border border-border rounded-full px-3 py-1.5">
+            className="flex items-center gap-1.5 text-xs text-black dark:text-white hover:text-foreground transition-colors border border-border rounded-full px-3 py-1.5">
             <Settings2 className="w-3 h-3" />
             Personalise
           </button>
@@ -256,7 +256,7 @@ export default function DashboardFeed() {
       {/* Sector prompt */}
       {!isPersonalised && (
         <div className="rounded-xl border border-dashed border-[#2D6A4F]/30 bg-[#2D6A4F]/5 px-4 py-3 flex items-center justify-between gap-4">
-          <p className="text-xs text-muted-foreground leading-relaxed">
+          <p className="text-xs text-black dark:text-white leading-relaxed">
             Set your sectors to get a personalised feed filtered to what matters to you.
           </p>
           <Link href="/dashboard/profile">
@@ -279,7 +279,7 @@ export default function DashboardFeed() {
         <div className="rounded-2xl border border-border bg-white dark:bg-card p-10 text-center">
           <Rss className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
           <p className="text-sm font-medium text-black dark:text-white mb-1">Nothing here yet.</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-black dark:text-white">
             As organisations post initiatives and confirm partnerships, they'll appear here.
           </p>
         </div>
