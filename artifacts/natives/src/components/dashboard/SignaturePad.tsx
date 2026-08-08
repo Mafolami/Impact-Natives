@@ -9,9 +9,13 @@ interface Props {
 export default function SignaturePad({ onCapture, disabled }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawing = useRef(false);
-  const hasDrawn = useRef(false);
   const [mode, setMode] = useState<"draw" | "upload">("draw");
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+  // Was a ref before — refs don't trigger re-renders, so the "Use this
+  // signature" button's disabled state never reflected whether anything
+  // had actually been drawn. Now real state, so the button correctly
+  // stays disabled until a stroke exists.
+  const [hasSignature, setHasSignature] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -49,7 +53,7 @@ export default function SignaturePad({ onCapture, disabled }: Props) {
     const { x, y } = pointerPos(e);
     ctx.lineTo(x, y);
     ctx.stroke();
-    hasDrawn.current = true;
+    setHasSignature((prev) => (prev ? prev : true));
   }
 
   function endDraw() {
@@ -62,12 +66,12 @@ export default function SignaturePad({ onCapture, disabled }: Props) {
     const ctx = canvas.getContext("2d")!;
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    hasDrawn.current = false;
+    setHasSignature(false);
   }
 
   function confirmDrawn() {
     const canvas = canvasRef.current;
-    if (!canvas || !hasDrawn.current) return;
+    if (!canvas || !hasSignature) return;
     onCapture(canvas.toDataURL("image/png"));
   }
 
@@ -97,7 +101,6 @@ export default function SignaturePad({ onCapture, disabled }: Props) {
           Upload image
         </button>
       </div>
-
       {mode === "draw" ? (
         <div className="space-y-2">
           <canvas
@@ -112,11 +115,11 @@ export default function SignaturePad({ onCapture, disabled }: Props) {
           />
           <div className="flex gap-2">
             <button type="button" onClick={clearCanvas} disabled={disabled}
-              className="flex items-center gap-1.5 text-sm text-black hover:opacity-70 transition-opacity">
+              className="flex items-center gap-1.5 text-sm text-black hover:opacity-70 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">
               <Eraser className="w-3.5 h-3.5" /> Clear
             </button>
-            <button type="button" onClick={confirmDrawn} disabled={disabled}
-              className="ml-auto text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium transition-colors">
+            <button type="button" onClick={confirmDrawn} disabled={disabled || !hasSignature}
+              className="ml-auto text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#2D6A4F]">
               Use this signature
             </button>
           </div>

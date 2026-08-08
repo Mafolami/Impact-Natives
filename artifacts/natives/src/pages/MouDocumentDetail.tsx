@@ -178,7 +178,28 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     compiledSections.forEach((s) => fieldKeysIn(s.body).forEach((k) => keys.add(k)));
     return Array.from(keys);
   }, [compiledSections]);
-
+  // Group fields by party so the form reads as three sections instead of
+  // one flat list, and strip the org_a_/org_b_ prefix from the in-section
+  // label -- the section header already names the party.
+  const groupedFieldKeys = useMemo(() => {
+    const orgAKeys: string[] = [];
+    const orgBKeys: string[] = [];
+    const otherKeys: string[] = [];
+    allFieldKeys.forEach((key) => {
+      if (key.startsWith("org_a_")) orgAKeys.push(key);
+      else if (key.startsWith("org_b_")) orgBKeys.push(key);
+      else otherKeys.push(key);
+    });
+    return { orgAKeys, orgBKeys, otherKeys };
+  }, [allFieldKeys]);
+  function humanizeFieldLabel(key: string): string {
+    const stripped = key.replace(/^org_[ab]_/, "");
+    const words = stripped.replace(/_/g, " ");
+    return words.charAt(0).toUpperCase() + words.slice(1);
+  }
+  function isDateField(key: string): boolean {
+    return key.endsWith("_date");
+  }
   function resolvedValue(key: string): string {
     return fieldValues[key] || autofill[key] || "";
   }
@@ -186,6 +207,29 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   function renderCompiledText(body: string): string {
     return body.replace(/\{\{(\w+)\}\}/g, (_, key) => resolvedValue(key) || `[${key}]`);
   }
+  function renderFieldInput(key: string) {
+    const manualValue = fieldValues[key];
+    const isPrefilled = !manualValue && !!autofill[key];
+    const value = manualValue ?? autofill[key] ?? "";
+    return (
+      <div key={key}>
+        <label className="text-sm font-medium text-black dark:text-white block mb-1">
+          {humanizeFieldLabel(key)}
+        </label>
+        <input
+          type={isDateField(key) ? "date" : "text"}
+          value={value}
+          onChange={(e) => setFieldValues((prev) => ({ ...prev, [key]: e.target.value }))}
+          className="w-full h-10 px-3 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F]/50"
+        />
+        {isPrefilled && (
+          <p className="text-sm text-black/60 dark:text-white/60 mt-1">Prefilled from profile — check it's correct</p>
+        )}
+      </div>
+    );
+  }
+
+  
 
   async function saveFieldValues() {
     if (!doc) return;
@@ -441,25 +485,43 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           {doc.source_type === "template" && (
             <>
               {allFieldKeys.length > 0 && (
-                <div className="space-y-3">
-                  <p className="text-base font-semibold text-black dark:text-white">Fill in the details</p>
-                  <p className="text-sm text-black dark:text-white">
-                    Some fields are pre-filled from your profiles. Review and complete the rest.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {allFieldKeys.map((key) => (
-                      <div key={key}>
-                        <label className="text-sm font-medium text-black dark:text-white block mb-1">
-                          {key.replace(/_/g, " ")}
-                        </label>
-                        <input
-                          value={fieldValues[key] ?? autofill[key] ?? ""}
-                          onChange={(e) => setFieldValues((prev) => ({ ...prev, [key]: e.target.value }))}
-                          className="w-full h-10 px-3 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F]/50"
-                        />
-                      </div>
-                    ))}
+                <div className="space-y-5">
+                  <div>
+                    <p className="text-base font-semibold text-black dark:text-white">Fill in the details</p>
+                    <p className="text-sm text-black dark:text-white">
+                      Some fields are pre-filled from your profiles. Review and complete the rest.
+                    </p>
                   </div>
+                  {groupedFieldKeys.orgAKeys.length > 0 && (
+                    <div className="rounded-xl border border-border p-4 space-y-3">
+                      <p className="text-sm font-semibold text-[#2D6A4F] uppercase tracking-wide">
+                        {orgA?.organisation_name || "Your organisation"}
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {groupedFieldKeys.orgAKeys.map((key) => renderFieldInput(key))}
+                      </div>
+                    </div>
+                  )}
+                  {groupedFieldKeys.orgBKeys.length > 0 && (
+                    <div className="rounded-xl border border-border p-4 space-y-3">
+                      <p className="text-sm font-semibold text-[#2D6A4F] uppercase tracking-wide">
+                        {orgB?.organisation_name || "Partner organisation"}
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {groupedFieldKeys.orgBKeys.map((key) => renderFieldInput(key))}
+                      </div>
+                    </div>
+                  )}
+                  {groupedFieldKeys.otherKeys.length > 0 && (
+                    <div className="rounded-xl border border-border p-4 space-y-3">
+                      <p className="text-sm font-semibold text-[#2D6A4F] uppercase tracking-wide">
+                        Agreement details
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {groupedFieldKeys.otherKeys.map((key) => renderFieldInput(key))}
+                      </div>
+                    </div>
+                  )}
                   <button type="button" onClick={saveFieldValues} disabled={saving}
                     className="text-sm text-black dark:text-white hover:underline underline-offset-2 disabled:opacity-60">
                     {saving ? "Saving..." : "Save field values"}
