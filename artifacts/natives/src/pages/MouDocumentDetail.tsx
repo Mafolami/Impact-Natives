@@ -809,7 +809,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                   <div>
                     <p className="text-sm font-medium text-black dark:text-white mb-1">{orgA?.organisation_name}</p>
                     {signatureAUrl ? (
-                      <div className="rounded-lg p-2 bg-white flex justify-start">
+                      <div className="rounded-lg bg-white pl-4 pr-3 py-3">
                         <img src={signatureAUrl} alt="Signature" className="h-28" />
                         <p className="text-sm text-black dark:text-white mt-1">
                           Signed {doc.signed_at_org_a ? new Date(doc.signed_at_org_a).toLocaleDateString("en-GB") : ""}
@@ -822,7 +822,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                   <div>
                     <p className="text-sm font-medium text-black dark:text-white mb-1">{orgB?.organisation_name}</p>
                     {signatureBUrl ? (
-                      <div className="rounded-lg p-2 bg-white flex justify-start">
+                      <div className="rounded-lg bg-white pl-4 pr-3 py-3">
                         <img src={signatureBUrl} alt="Signature" className="h-28" />
                         <p className="text-sm text-black dark:text-white mt-1">
                           Signed {doc.signed_at_org_b ? new Date(doc.signed_at_org_b).toLocaleDateString("en-GB") : ""}
