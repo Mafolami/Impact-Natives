@@ -40,7 +40,7 @@ interface MouDoc {
   field_values: Record<string, string> | null;
   custom_content: string | null;
   rendered_file_path: string | null;
-  status: "draft" | "sent" | "signed_by_org_a" | "signed_by_org_b" | "fully_executed";
+  status: "draft" | "sent" | "signed_by_org_a" | "signed_by_org_b" | "pending_org_a_final_review" | "fully_executed";
   signed_files: Record<string, string> | null;
   signature_org_a_path: string | null;
   signature_org_b_path: string | null;
@@ -67,6 +67,7 @@ const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   sent: { label: "Sent — awaiting signatures", color: "#C45C26" },
   signed_by_org_a: { label: "Signed by one party", color: "#2D6A4F" },
   signed_by_org_b: { label: "Signed by one party", color: "#2D6A4F" },
+  pending_org_a_final_review: { label: "Awaiting final review", color: "#C45C26" },
   fully_executed: { label: "Fully executed", color: "#2D6A4F" },
 };
 
@@ -108,6 +109,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const [openFlagField, setOpenFlagField] = useState<string | null>(null);
   const [flagNote, setFlagNote] = useState("");
   const [customFieldMode, setCustomFieldMode] = useState<Record<string, boolean>>({});
+  const [finalizing, setFinalizing] = useState(false);
   const isViewerOrgA = orgA?.user_id === myUserId;
   const isViewerOrgB = orgB?.user_id === myUserId;
   useEffect(() => { load(); }, [documentId]);
@@ -549,28 +551,31 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       </div>
     );
   }
-  function renderFlagsForField(key: string) {
+  function renderFlagsForField(key: string, opts: { canRaise: boolean; raiserRole: "org_a" | "org_b" }) {
     const flags = (doc?.field_flags ?? []).filter((f) => f.field_key === key);
     return (
       <div className="mt-1 space-y-1">
-        {flags.map((f) => (
-          <div key={f.id} className={`text-sm rounded-md px-2 py-1 ${f.resolved ? "bg-muted/20 text-black/60 dark:text-white/60" : "bg-amber-50 text-amber-800 border border-amber-200"}`}>
-            <span>{f.note}</span>
-            {!f.resolved && isViewerOrgA && (
-              <button type="button" onClick={() => resolveFlag(f.id)} className="ml-2 underline underline-offset-2">
-                Mark resolved
-              </button>
-            )}
-            {f.resolved && <span className="ml-2 italic">Resolved</span>}
-          </div>
-        ))}
-        {isViewerOrgB && doc?.details_completed_by_org_a && (
+        {flags.map((f) => {
+          const iCanResolve = !f.resolved && ((f.raised_by === "org_b" && isViewerOrgA) || (f.raised_by === "org_a" && isViewerOrgB));
+          return (
+            <div key={f.id} className={`text-sm rounded-md px-2 py-1 ${f.resolved ? "bg-muted/20 text-black/60 dark:text-white/60" : "bg-amber-50 text-amber-800 border border-amber-200"}`}>
+              <span>{f.note}</span>
+              {iCanResolve && (
+                <button type="button" onClick={() => resolveFlag(f.id)} className="ml-2 underline underline-offset-2">
+                  Mark resolved
+                </button>
+              )}
+              {f.resolved && <span className="ml-2 italic">Resolved</span>}
+            </div>
+          );
+        })}
+        {opts.canRaise && (
           openFlagField === key ? (
             <div className="flex gap-2 items-start">
               <input value={flagNote} onChange={(e) => setFlagNote(e.target.value)}
                 placeholder="What needs clarifying?"
                 className="flex-1 h-9 px-2 rounded-lg border border-border bg-white dark:bg-card text-sm text-black dark:text-white focus:outline-none focus:border-[#2D6A4F]/50" />
-              <button type="button" onClick={async () => { await raiseFlag(key, flagNote); setFlagNote(""); setOpenFlagField(null); }}
+              <button type="button" onClick={async () => { await raiseFlag(key, flagNote, opts.raiserRole); setFlagNote(""); setOpenFlagField(null); }}
                 className="text-sm px-3 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium">
                 Send
               </button>
@@ -630,13 +635,13 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       p_link: `/dashboard/portfolio/mou`,
     });
   }
-  async function raiseFlag(fieldKey: string, note: string) {
+  async function raiseFlag(fieldKey: string, note: string, raiserRole: "org_a" | "org_b") {
     if (!doc || !note.trim()) return;
     const newFlag: FieldFlag = {
       id: `${Date.now()}-${fieldKey}`,
       field_key: fieldKey,
       note: note.trim(),
-      raised_by: "org_b",
+      raised_by: raiserRole,
       resolved: false,
       created_at: new Date().toISOString(),
     };
@@ -645,11 +650,12 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       field_flags: updatedFlags, updated_at: new Date().toISOString(),
     }).eq("id", doc.id);
     setDoc({ ...doc, field_flags: updatedFlags } as MouDoc);
+    const raiserName = raiserRole === "org_a" ? orgA?.organisation_name : orgB?.organisation_name;
     await supabase.rpc("send_mou_notification", {
       p_document_id: doc.id,
       p_type: "mou_field_flagged",
       p_title: "A detail was flagged on your MoU",
-      p_body: `${orgB?.organisation_name ?? "The other party"} flagged "${humanizeFieldLabel(fieldKey)}": ${note.trim()}`,
+      p_body: `${raiserName ?? "The other party"} flagged "${humanizeFieldLabel(fieldKey)}": ${note.trim()}`,
       p_link: `/dashboard/portfolio/mou`,
     });
   }
@@ -662,11 +668,12 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     }).eq("id", doc.id);
     setDoc({ ...doc, field_flags: updatedFlags } as MouDoc);
     if (flag) {
+      const resolverName = flag.raised_by === "org_b" ? orgA?.organisation_name : orgB?.organisation_name;
       await supabase.rpc("send_mou_notification", {
         p_document_id: doc.id,
         p_type: "mou_flag_resolved",
         p_title: "A flagged detail was addressed",
-        p_body: `${orgA?.organisation_name ?? "The other party"} resolved your flag on "${humanizeFieldLabel(flag.field_key)}": ${flag.note}`,
+        p_body: `${resolverName ?? "The other party"} resolved your flag on "${humanizeFieldLabel(flag.field_key)}": ${flag.note}`,
         p_link: `/dashboard/portfolio/mou`,
       });
     }
@@ -719,45 +726,23 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       updates.signature_org_b_path = path;
       updates.signed_at_org_b = new Date().toISOString();
     }
-    const otherAlreadySigned = isOrgA ? !!doc.signature_org_b_path : !!doc.signature_org_a_path;
-    const nowFullyExecuted = otherAlreadySigned;
-    updates.status = nowFullyExecuted ? "fully_executed" : (doc.status === "draft" ? "sent" : doc.status);
+    // Signing no longer auto-executes the document on its own -- Org B's
+    // signature only unlocks their "submit for final review" step, and
+    // Org A's own later signature was always just the first-phase sign.
+    // Full execution now only happens via the explicit finalizeDocument()
+    // action Org A takes after reviewing Org B's submitted section.
+    updates.status = doc.status === "draft" ? "sent" : doc.status;
     await supabase.from("mou_documents").update(updates).eq("id", doc.id);
     const updatedDoc = { ...doc, ...updates } as MouDoc;
     setDoc(updatedDoc);
-
     const otherOrgName = isOrgA ? orgB.organisation_name : orgA.organisation_name;
-    if (nowFullyExecuted) {
-      // Both signatures are in -- generate the one canonical PDF now,
-      // while both signature images are already loaded in this session,
-      // rather than leaving it to whoever next happens to click Export.
-      const pdf = buildPdf();
-      if (pdf) {
-        const finalPath = `final/${doc.id}/executed.pdf`;
-        const pdfBlob = pdf.output("blob");
-        const { error: finalUploadError } = await supabase.storage
-          .from("mou-documents").upload(finalPath, pdfBlob, { upsert: true });
-        if (!finalUploadError) {
-          await supabase.from("mou_documents").update({ final_document_path: finalPath }).eq("id", doc.id);
-          updatedDoc.final_document_path = finalPath;
-          setDoc(updatedDoc);
-        }
-      }
-      await supabase.rpc("notify_mou_fully_executed", {
-        p_document_id: doc.id,
-        p_title: "MoU fully executed",
-        p_body: `Your MoU with ${otherOrgName} has been signed by both parties.`,
-        p_link: `/dashboard/portfolio/mou`,
-      });
-    } else {
-      await supabase.rpc("send_mou_notification", {
-        p_document_id: doc.id,
-        p_type: "mou_awaiting_signature",
-        p_title: "MoU awaiting your signature",
-        p_body: `${otherOrgName} has signed your MoU. It's ready for your signature.`,
-        p_link: `/dashboard/portfolio/mou`,
-      });
-    }
+    await supabase.rpc("send_mou_notification", {
+      p_document_id: doc.id,
+      p_type: "mou_awaiting_signature",
+      p_title: "MoU awaiting your signature",
+      p_body: `${otherOrgName} has signed your MoU. It's ready for your signature.`,
+      p_link: `/dashboard/portfolio/mou`,
+    });
 
     setSigning(false);
     setRedrawingSignature(false);
@@ -770,11 +755,60 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     const isOrgA = myOrgId === doc.org_a_id;
     const mySigPath = isOrgA ? doc.signature_org_a_path : doc.signature_org_b_path;
     if (!mySigPath) return; // can't finish before signing
-    const updates = isOrgA
-      ? { signature_locked_org_a: true, updated_at: new Date().toISOString() }
-      : { signature_locked_org_b: true, updated_at: new Date().toISOString() };
-    await supabase.from("mou_documents").update(updates).eq("id", doc.id);
+    if (isOrgA) {
+      const updates = { signature_locked_org_a: true, updated_at: new Date().toISOString() };
+      await supabase.from("mou_documents").update(updates).eq("id", doc.id);
+      setDoc({ ...doc, ...updates } as MouDoc);
+      return;
+    }
+    // Org B: lock the signature server-side AND hand the document off to
+    // Org A for final review, instead of finishing the document outright.
+    const { error } = await supabase.rpc("finish_org_b_and_request_review", { p_document_id: doc.id });
+    if (error) return;
+    const updates = { signature_locked_org_b: true, status: "pending_org_a_final_review" as MouDoc["status"], updated_at: new Date().toISOString() };
     setDoc({ ...doc, ...updates } as MouDoc);
+    await supabase.rpc("send_mou_notification", {
+      p_document_id: doc.id,
+      p_type: "mou_pending_final_review",
+      p_title: "MoU ready for your final review",
+      p_body: `${orgB.organisation_name} has completed and signed their section. Review their details and finalize when ready.`,
+      p_link: `/dashboard/portfolio/mou`,
+    });
+    load({ silent: true });
+  }
+
+  // Org A's terminal action -- only reachable once Org B has submitted and
+  // signed, and only once every flag Org A raised on Org B's section has
+  // been resolved. This is now the sole path to "fully_executed".
+  async function finalizeDocument() {
+    if (!doc || !orgA || !orgB) return;
+    if (doc.status !== "pending_org_a_final_review") return;
+    const stillUnresolved = (doc.field_flags ?? []).some((f) => !f.resolved && f.raised_by === "org_a");
+    if (stillUnresolved) return;
+    setFinalizing(true);
+    const { error } = await supabase.rpc("finalize_mou_document", { p_document_id: doc.id });
+    if (error) { setFinalizing(false); return; }
+    const pdf = buildPdf();
+    let finalPath: string | null = null;
+    if (pdf) {
+      finalPath = `final/${doc.id}/executed.pdf`;
+      const pdfBlob = pdf.output("blob");
+      const { error: finalUploadError } = await supabase.storage
+        .from("mou-documents").upload(finalPath, pdfBlob, { upsert: true });
+      if (finalUploadError) finalPath = null;
+      else await supabase.from("mou_documents").update({ final_document_path: finalPath }).eq("id", doc.id);
+    }
+    const updates: Partial<MouDoc> & Record<string, any> = { status: "fully_executed", updated_at: new Date().toISOString() };
+    if (finalPath) updates.final_document_path = finalPath;
+    setDoc({ ...doc, ...updates } as MouDoc);
+    await supabase.rpc("notify_mou_fully_executed", {
+      p_document_id: doc.id,
+      p_title: "MoU fully executed",
+      p_body: `Your MoU with ${orgB.organisation_name} has been finalized and is now fully executed.`,
+      p_link: `/dashboard/portfolio/mou`,
+    });
+    setFinalizing(false);
+    load({ silent: true });
   }
   async function clearMySignature() {
     if (!doc || !orgA || !orgB) return;
@@ -1078,9 +1112,13 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
 
   const statusInfo = STATUS_LABEL[doc.status];
   const iAmCreator = myUserId === doc.created_by;
-  const hasUnresolvedFlags = (doc.field_flags ?? []).some((f) => !f.resolved);
-  const orgADetailsEditable = isViewerOrgA && (!doc.details_completed_by_org_a || hasUnresolvedFlags);
-  const orgBCanFillTheirPart = doc.details_completed_by_org_a && !hasUnresolvedFlags;
+  const hasUnresolvedOrgBFlags = (doc.field_flags ?? []).some((f) => !f.resolved && f.raised_by === "org_b");
+  const hasUnresolvedOrgAFlags = (doc.field_flags ?? []).some((f) => !f.resolved && f.raised_by === "org_a");
+  const orgADetailsEditable = isViewerOrgA && (!doc.details_completed_by_org_a || hasUnresolvedOrgBFlags);
+  const orgBCanFillTheirPart = doc.details_completed_by_org_a && !hasUnresolvedOrgBFlags;
+  const orgBSubmittedForReview = doc.status === "pending_org_a_final_review" || doc.status === "fully_executed";
+  const orgBFieldsEditable = isViewerOrgB && (!orgBSubmittedForReview || hasUnresolvedOrgAFlags);
+  const exportDisabledForOrgB = isViewerOrgB && doc.status === "pending_org_a_final_review";
   // Toggles change the actual clause text, so once either party has signed
   // anything, changing them would silently alter what was already agreed
   // to and signed -- same reasoning as the preview-text lock.
@@ -1129,35 +1167,33 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                         <div key={t.key}>
                           <p className="text-sm font-medium text-black dark:text-white mb-2">{t.label}</p>
                           {t.type === "select" ? (
-                            <div className="flex flex-wrap gap-2">
+                            <select
+                              value={currentValue !== undefined && currentValue !== null ? String(currentValue) : ""}
+                              disabled={!togglesEditable}
+                              onChange={(e) => {
+                                const opt = t.options.find((o) => String(o.value) === e.target.value);
+                                if (opt) saveToggleSelection(t.key, opt.value);
+                              }}
+                              className="w-full h-10 px-3 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F]/50 disabled:cursor-not-allowed disabled:opacity-70"
+                            >
+                              <option value="" disabled>Select...</option>
                               {t.options.map((opt) => (
-                                <button key={String(opt.value)} type="button"
-                                  disabled={!togglesEditable}
-                                  onClick={() => saveToggleSelection(t.key, opt.value)}
-                                  className={`text-sm px-3 py-1.5 rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
-                                    currentValue === opt.value
-                                      ? "border-[#2D6A4F] bg-[#2D6A4F]/8 text-black dark:text-white font-medium"
-                                      : "border-border text-black dark:text-white hover:border-[#2D6A4F]/40"
-                                  }`}>
+                                <option key={String(opt.value)} value={String(opt.value)}>
                                   {opt.label ?? String(opt.value)}
-                                </button>
+                                </option>
                               ))}
-                            </div>
+                            </select>
                           ) : (
-                            <div className="flex gap-2">
-                              {[{ v: true, l: "Yes" }, { v: false, l: "No" }].map((opt) => (
-                                <button key={String(opt.v)} type="button"
-                                  disabled={!togglesEditable}
-                                  onClick={() => saveToggleSelection(t.key, opt.v)}
-                                  className={`px-4 py-1.5 rounded-full border text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
-                                    currentValue === opt.v
-                                      ? "border-[#2D6A4F] bg-[#2D6A4F]/8 text-black dark:text-white"
-                                      : "border-border text-black dark:text-white hover:border-[#2D6A4F]/40"
-                                  }`}>
-                                  {opt.l}
-                                </button>
-                              ))}
-                            </div>
+                            <select
+                              value={currentValue === true ? "true" : currentValue === false ? "false" : ""}
+                              disabled={!togglesEditable}
+                              onChange={(e) => saveToggleSelection(t.key, e.target.value === "true")}
+                              className="w-full h-10 px-3 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F]/50 disabled:cursor-not-allowed disabled:opacity-70"
+                            >
+                              <option value="" disabled>Select...</option>
+                              <option value="true">Yes</option>
+                              <option value="false">No</option>
+                            </select>
                           )}
                         </div>
                       );
@@ -1187,7 +1223,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                         {groupedFieldKeys.orgAKeys.map((key) => (
                           <div key={key} className={isDescriptionField(key) ? "sm:col-span-2" : ""}>
                             {renderFieldInput(key, isViewerOrgB ? true : !orgADetailsEditable)}
-                            {(isViewerOrgA || isViewerOrgB) && renderFlagsForField(key)}
+                            {(isViewerOrgA || isViewerOrgB) && renderFlagsForField(key, { canRaise: isViewerOrgB && !!doc?.details_completed_by_org_a, raiserRole: "org_b" })}
                           </div>
                         ))}
                       </div>
@@ -1203,7 +1239,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                         {orderedOtherKeys.map((key) => (
                           <div key={key} className={isDescriptionField(key) ? "sm:col-span-2" : ""}>
                             {renderFieldInput(key, isViewerOrgB ? true : !orgADetailsEditable)}
-                            {(isViewerOrgA || isViewerOrgB) && renderFlagsForField(key)}
+                            {(isViewerOrgA || isViewerOrgB) && renderFlagsForField(key, { canRaise: isViewerOrgB && !!doc?.details_completed_by_org_a, raiserRole: "org_b" })}
                           </div>
                         ))}
                       </div>
@@ -1222,15 +1258,15 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                       <p className="text-sm font-semibold text-[#2D6A4F] uppercase tracking-wide">
                         {orgB?.organisation_name || "Partner organisation"}
                       </p>
-                      {isViewerOrgA ? (
+                      {isViewerOrgA && !orgBSubmittedForReview ? (
                         <p className="text-sm text-black dark:text-white">
                           {orgB?.organisation_name || "The other party"} will complete this after your details are submitted.
                         </p>
-                      ) : !doc.details_completed_by_org_a ? (
+                      ) : isViewerOrgB && !doc.details_completed_by_org_a ? (
                         <p className="text-sm text-black dark:text-white">
                           Available once {orgA?.organisation_name ?? "the other party"} submits their details.
                         </p>
-                      ) : hasUnresolvedFlags ? (
+                      ) : isViewerOrgB && hasUnresolvedOrgBFlags ? (
                         <p className="text-sm text-black dark:text-white">
                           Resolve open flags above before filling in your details.
                         </p>
@@ -1239,14 +1275,18 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {groupedFieldKeys.orgBKeys.map((key) => (
                               <div key={key} className={isDescriptionField(key) ? "sm:col-span-2" : ""}>
-                                {renderFieldInput(key)}
+                                {renderFieldInput(key, isViewerOrgA ? true : !orgBFieldsEditable)}
+                                {orgBSubmittedForReview && (isViewerOrgA || isViewerOrgB) &&
+                                  renderFlagsForField(key, { canRaise: isViewerOrgA && doc.status === "pending_org_a_final_review", raiserRole: "org_a" })}
                               </div>
                             ))}
                           </div>
-                          <button type="button" onClick={saveFieldValues} disabled={saving}
-                            className="text-sm text-black dark:text-white hover:underline underline-offset-2 disabled:opacity-60">
-                            {saving ? "Saving..." : "Save field values"}
-                          </button>
+                          {orgBFieldsEditable && (
+                            <button type="button" onClick={saveFieldValues} disabled={saving}
+                              className="text-sm text-black dark:text-white hover:underline underline-offset-2 disabled:opacity-60">
+                              {saving ? "Saving..." : "Save field values"}
+                            </button>
+                          )}
                         </>
                       )}
                     </div>
@@ -1446,10 +1486,12 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                           </div>
                           <button type="button" onClick={finishMySignature}
                             className="text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium transition-colors">
-                            Finish
+                            {isOrgA ? "Finish" : `Submit for ${orgA?.organisation_name ?? "final"} review`}
                           </button>
                           <p className="text-sm text-black/60 dark:text-white/60">
-                            Once you finish, you won't be able to change or clear your signature again.
+                            {isOrgA
+                              ? "Once you finish, you won't be able to change or clear your signature again."
+                              : `Once you submit, you won't be able to change or clear your signature again. ${orgA?.organisation_name ?? "The other party"} will do a final review before the MoU is fully executed.`}
                           </p>
                         </div>
                       )}
@@ -1462,13 +1504,27 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
 
           {isViewerOrgA && doc.source_type === "template" && doc.signature_org_a_path && missingFieldLabels.length === 0 && dateValidationErrors.length === 0 && (
               <button type="button" onClick={completeOrgADetails}
-                disabled={saving || (doc.details_completed_by_org_a && !hasUnresolvedFlags)}
-                className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3 text-base font-medium transition-colors disabled:opacity-60">
+              disabled={saving || (doc.details_completed_by_org_a && !hasUnresolvedOrgBFlags)}
+              className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3 text-base font-medium transition-colors disabled:opacity-60">
                 {doc.details_completed_by_org_a
-                  ? (hasUnresolvedFlags ? "Resubmit after resolving flags" : "Details submitted")
+                  ? (hasUnresolvedOrgBFlags ? "Resubmit after resolving flags" : "Details submitted")
                   : (saving ? "Submitting..." : `Submit — notify ${orgB?.organisation_name ?? "partner"}`)}
               </button>
             )}
+          {isViewerOrgA && doc.status === "pending_org_a_final_review" && (
+            <div className="space-y-2">
+              {hasUnresolvedOrgAFlags && (
+                <p className="text-sm text-black dark:text-white">
+                  Waiting for {orgB?.organisation_name ?? "the other party"} to resolve the flags you raised before you can finalize.
+                </p>
+              )}
+              <button type="button" onClick={finalizeDocument}
+                disabled={finalizing || hasUnresolvedOrgAFlags}
+                className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3 text-base font-medium transition-colors disabled:opacity-60">
+                {finalizing ? "Finalizing..." : "Finish Finally — fully execute this MoU"}
+              </button>
+            </div>
+          )}
           {/* Export */}
           {doc.source_type !== "uploaded_pdf" && (
             <div className="space-y-2">
@@ -1477,8 +1533,13 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                   This MoU is fully executed. Exporting now gives you the final signed copy both parties hold.
                 </p>
               )}
-              <button type="button" onClick={exportPdf}
-                className="w-full flex items-center justify-center gap-2 border border-border rounded-full py-3 text-base font-medium text-black dark:text-white hover:border-[#2D6A4F]/50 transition-colors">
+              {exportDisabledForOrgB && (
+                <p className="text-sm text-black dark:text-white">
+                  Export will be available once {orgA?.organisation_name ?? "the other party"} finalizes the document.
+                </p>
+              )}
+              <button type="button" onClick={exportPdf} disabled={exportDisabledForOrgB}
+                className="w-full flex items-center justify-center gap-2 border border-border rounded-full py-3 text-base font-medium text-black dark:text-white hover:border-[#2D6A4F]/50 transition-colors disabled:cursor-not-allowed disabled:opacity-60">
                 <Download className="w-4 h-4" /> Export as PDF
               </button>
             </div>
