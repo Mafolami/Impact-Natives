@@ -53,6 +53,7 @@ interface MouDoc {
   details_completed_by_org_a: boolean;
   details_completed_at_org_a: string | null;
   field_flags: FieldFlag[];
+  org_b_finalization_confirmed: boolean;
   created_by: string;
 }
 
@@ -110,6 +111,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const [flagNote, setFlagNote] = useState("");
   const [customFieldMode, setCustomFieldMode] = useState<Record<string, boolean>>({});
   const [finalizing, setFinalizing] = useState(false);
+  const [confirmingFinalization, setConfirmingFinalization] = useState(false);
   const isViewerOrgA = orgA?.user_id === myUserId;
   const isViewerOrgB = orgB?.user_id === myUserId;
   useEffect(() => { load(); }, [documentId]);
@@ -646,10 +648,16 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       created_at: new Date().toISOString(),
     };
     const updatedFlags = [...(doc.field_flags ?? []), newFlag];
-    await supabase.from("mou_documents").update({
+    // A new Org A flag means the document has changed since any earlier
+    // Org B "no objection" confirmation -- that confirmation no longer
+    // covers what's actually in front of Org A now, so it's invalidated
+    // and Org B will need to confirm again once this flag is resolved.
+    const flagUpdates: Partial<MouDoc> & Record<string, any> = {
       field_flags: updatedFlags, updated_at: new Date().toISOString(),
-    }).eq("id", doc.id);
-    setDoc({ ...doc, field_flags: updatedFlags } as MouDoc);
+    };
+    if (raiserRole === "org_a") flagUpdates.org_b_finalization_confirmed = false;
+    await supabase.from("mou_documents").update(flagUpdates).eq("id", doc.id);
+    setDoc({ ...doc, ...flagUpdates } as MouDoc);
     const raiserName = raiserRole === "org_a" ? orgA?.organisation_name : orgB?.organisation_name;
     await supabase.rpc("send_mou_notification", {
       p_document_id: doc.id,
@@ -809,6 +817,29 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     });
     setFinalizing(false);
     load({ silent: true });
+  }
+
+  // Org B's "no objection" gate for binding MoUs -- required before Org A
+  // can finalize when agreement_type is binding, so Org A never has
+  // unilateral sign-off power over a binding commitment.
+  async function confirmFinalization() {
+    if (!doc || !orgA || !orgB) return;
+    if (doc.status !== "pending_org_a_final_review") return;
+    const stillUnresolved = (doc.field_flags ?? []).some((f) => !f.resolved && f.raised_by === "org_a");
+    if (stillUnresolved) return;
+    setConfirmingFinalization(true);
+    const { error } = await supabase.rpc("confirm_finalization", { p_document_id: doc.id });
+    setConfirmingFinalization(false);
+    if (error) return;
+    const updates = { org_b_finalization_confirmed: true, updated_at: new Date().toISOString() };
+    setDoc({ ...doc, ...updates } as MouDoc);
+    await supabase.rpc("send_mou_notification", {
+      p_document_id: doc.id,
+      p_type: "mou_finalization_confirmed",
+      p_title: "Counterparty confirmed — ready to finalize",
+      p_body: `${orgB.organisation_name} has confirmed no objection. You can now finalize this MoU.`,
+      p_link: `/dashboard/portfolio/mou`,
+    });
   }
   async function clearMySignature() {
     if (!doc || !orgA || !orgB) return;
@@ -1119,6 +1150,11 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const orgBSubmittedForReview = doc.status === "pending_org_a_final_review" || doc.status === "fully_executed";
   const orgBFieldsEditable = isViewerOrgB && (!orgBSubmittedForReview || hasUnresolvedOrgAFlags);
   const exportDisabledForOrgB = isViewerOrgB && doc.status === "pending_org_a_final_review";
+  const isBindingMou = doc.toggle_selections?.["agreement_type"] === "binding";
+  const orgBConfirmationPending = isBindingMou && !doc.org_b_finalization_confirmed;
+  const orgBCanConfirmFinalization =
+    isViewerOrgB && doc.status === "pending_org_a_final_review" && !hasUnresolvedOrgAFlags && orgBConfirmationPending;
+  const finalizeBlockedOnOrgBConfirmation = doc.status === "pending_org_a_final_review" && !hasUnresolvedOrgAFlags && orgBConfirmationPending;
   // Toggles change the actual clause text, so once either party has signed
   // anything, changing them would silently alter what was already agreed
   // to and signed -- same reasoning as the preview-text lock.
@@ -1518,12 +1554,34 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                   Waiting for {orgB?.organisation_name ?? "the other party"} to resolve the flags you raised before you can finalize.
                 </p>
               )}
+              {!hasUnresolvedOrgAFlags && finalizeBlockedOnOrgBConfirmation && (
+                <p className="text-sm text-black dark:text-white">
+                  This MoU includes binding commitments. Waiting for {orgB?.organisation_name ?? "the other party"} to confirm they have no objection before you can finalize.
+                </p>
+              )}
               <button type="button" onClick={finalizeDocument}
-                disabled={finalizing || hasUnresolvedOrgAFlags}
+                disabled={finalizing || hasUnresolvedOrgAFlags || finalizeBlockedOnOrgBConfirmation}
                 className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3 text-base font-medium transition-colors disabled:opacity-60">
                 {finalizing ? "Finalizing..." : "Finish Finally — fully execute this MoU"}
               </button>
             </div>
+          )}
+          {orgBCanConfirmFinalization && (
+            <div className="space-y-2">
+              <p className="text-sm text-black dark:text-white">
+                This MoU includes binding commitments. Confirm you have no objection before {orgA?.organisation_name ?? "the other party"} can finalize it.
+              </p>
+              <button type="button" onClick={confirmFinalization}
+                disabled={confirmingFinalization}
+                className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3 text-base font-medium transition-colors disabled:opacity-60">
+                {confirmingFinalization ? "Confirming..." : "Confirm — no objection to finalizing"}
+              </button>
+            </div>
+          )}
+          {isViewerOrgB && doc.status === "pending_org_a_final_review" && !hasUnresolvedOrgAFlags && isBindingMou && doc.org_b_finalization_confirmed && (
+            <p className="text-sm text-black dark:text-white">
+              You've confirmed no objection. Waiting for {orgA?.organisation_name ?? "the other party"} to finalize.
+            </p>
           )}
           {/* Export */}
           {doc.source_type !== "uploaded_pdf" && (
