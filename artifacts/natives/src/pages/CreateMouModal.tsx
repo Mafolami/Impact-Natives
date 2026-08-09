@@ -57,36 +57,41 @@ export default function CreateMouModal({
   const [checkingExisting, setCheckingExisting] = useState(true);
   const [existingDocId, setExistingDocId] = useState<string | null>(null);
   useEffect(() => {
-    loadOrgs();
-    checkExisting();
+    init();
   }, []);
-  async function checkExisting() {
-    if (!initiativeId) { setCheckingExisting(false); return; }
-    setCheckingExisting(true);
-    const { data } = await supabase
-      .from("mou_documents").select("id").eq("initiative_id", initiativeId).maybeSingle();
-    setExistingDocId(data?.id ?? null);
-    setCheckingExisting(false);
-  }
-
-  async function loadOrgs() {
+  async function init() {
     setLoadingOrgs(true);
+    setCheckingExisting(true);
     const { data: mineData } = await supabase
       .from("organizations").select("id, organisation_name").eq("user_id", myUserId).maybeSingle();
     setMyOrg(mineData ?? null);
-
+    let theirs: OrgLite | null = null;
     if (partnerOrgId) {
       const { data: theirsData } = await supabase
         .from("organizations").select("id, organisation_name").eq("id", partnerOrgId).maybeSingle();
-      setPartnerOrg(theirsData ?? null);
+      theirs = theirsData ?? null;
     } else if (partnerUserId) {
       const { data: theirsData } = await supabase
         .from("organizations").select("id, organisation_name").eq("user_id", partnerUserId).maybeSingle();
-      setPartnerOrg(theirsData ?? null);
+      theirs = theirsData ?? null;
     }
+    setPartnerOrg(theirs);
     setLoadingOrgs(false);
+    // Scoped to this specific initiative + partner pairing -- an
+    // initiative can have multiple confirmed partners, each entitled to
+    // their own MoU, so checking initiative_id alone would wrongly block
+    // the second partner from ever starting theirs.
+    if (initiativeId && mineData && theirs) {
+      const { data } = await supabase
+        .from("mou_documents").select("id")
+        .eq("initiative_id", initiativeId)
+        .or(`and(org_a_id.eq.${mineData.id},org_b_id.eq.${theirs.id}),and(org_a_id.eq.${theirs.id},org_b_id.eq.${mineData.id})`)
+        .maybeSingle();
+      setExistingDocId(data?.id ?? null);
+    }
+    setCheckingExisting(false);
   }
-
+  
   async function chooseTemplate() {
     setPath("template");
     setLoadingTemplate(true);

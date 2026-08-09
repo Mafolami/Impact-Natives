@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2, FileText, Plus, X } from "lucide-react";
+import { Loader2, FileText, PenLine, Upload, Plus, X, ArrowRight } from "lucide-react";
 import CreateMouModal from "./CreateMouModal";
 import MouDocumentDetail from "./MouDocumentDetail";
 
@@ -30,12 +30,18 @@ interface PartnerOption {
   initiativeTitle: string;
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  draft: "Draft",
-  sent: "Sent — awaiting signatures",
-  signed_by_org_a: "Partly signed",
-  signed_by_org_b: "Partly signed",
-  fully_executed: "Fully executed",
+const STATUS_META: Record<string, { label: string; color: string }> = {
+  draft: { label: "Draft", color: "#C45C26" },
+  sent: { label: "Sent — awaiting signatures", color: "#C45C26" },
+  signed_by_org_a: { label: "Partly signed", color: "#2D6A4F" },
+  signed_by_org_b: { label: "Partly signed", color: "#2D6A4F" },
+  pending_org_a_final_review: { label: "Awaiting final review", color: "#C45C26" },
+  fully_executed: { label: "Fully executed", color: "#2D6A4F" },
+};
+const SOURCE_META: Record<string, { label: string; icon: typeof FileText }> = {
+  template: { label: "Template", icon: FileText },
+  custom: { label: "Custom", icon: PenLine },
+  uploaded_pdf: { label: "Uploaded", icon: Upload },
 };
 
 export default function MouTab() {
@@ -47,6 +53,7 @@ export default function MouTab() {
   const [docs, setDocs] = useState<MouDocRow[]>([]);
   const [orgMap, setOrgMap] = useState<Record<string, OrgLite>>({});
   const [openDocId, setOpenDocId] = useState<string | null>(null);
+  const [initiativeTitleMap, setInitiativeTitleMap] = useState<Record<string, string>>({});
 
   const [showPicker, setShowPicker] = useState(false);
   const [partnerOptions, setPartnerOptions] = useState<PartnerOption[]>([]);
@@ -86,16 +93,22 @@ export default function MouTab() {
       .or(`org_a_id.eq.${myOrg.id},org_b_id.eq.${myOrg.id}`)
       .order("updated_at", { ascending: false });
 
-    const orgIds = [...new Set((docRows ?? []).flatMap((d) => [d.org_a_id, d.org_b_id]))];
-    if (orgIds.length > 0) {
-      const { data: orgs } = await supabase.from("organizations").select("id, organisation_name, user_id").in("id", orgIds);
-      const map: Record<string, OrgLite> = {};
-      (orgs ?? []).forEach((o: any) => { map[o.id] = o; });
-      setOrgMap(map);
-    }
-
-    setDocs(docRows ?? []);
-    setLoading(false);
+      const orgIds = [...new Set((docRows ?? []).flatMap((d) => [d.org_a_id, d.org_b_id]))];
+      if (orgIds.length > 0) {
+        const { data: orgs } = await supabase.from("organizations").select("id, organisation_name, user_id").in("id", orgIds);
+        const map: Record<string, OrgLite> = {};
+        (orgs ?? []).forEach((o: any) => { map[o.id] = o; });
+        setOrgMap(map);
+      }
+      const initIds = [...new Set((docRows ?? []).map((d) => d.initiative_id).filter((x): x is string => !!x))];
+      if (initIds.length > 0) {
+        const { data: inits } = await supabase.from("initiative_requests").select("id, title").in("id", initIds);
+        const titleMap: Record<string, string> = {};
+        (inits ?? []).forEach((i: any) => { titleMap[i.id] = i.title; });
+        setInitiativeTitleMap(titleMap);
+      }
+      setDocs(docRows ?? []);
+      setLoading(false);
   }
 
   async function openPicker() {
@@ -171,14 +184,33 @@ export default function MouTab() {
           Memorandums of understanding across your confirmed partnerships and initiatives.
         </p>
       </div>
-    <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="space-y-5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex gap-4 text-sm">
+          <div>
+            <p className="text-lg font-bold text-black dark:text-white leading-none">{docs.length}</p>
+            <p className="text-xs text-black dark:text-white mt-1">Total</p>
+          </div>
+          <div className="w-px bg-border" />
+          <div>
+            <p className="text-lg font-bold text-black dark:text-white leading-none">
+              {docs.filter((d) => d.status !== "draft" && d.status !== "fully_executed").length}
+            </p>
+            <p className="text-xs text-black dark:text-white mt-1">In progress</p>
+          </div>
+          <div className="w-px bg-border" />
+          <div>
+            <p className="text-lg font-bold text-black dark:text-white leading-none">
+              {docs.filter((d) => d.status === "fully_executed").length}
+            </p>
+            <p className="text-xs text-black dark:text-white mt-1">Fully executed</p>
+          </div>
+        </div>
         <button type="button" onClick={openPicker}
           className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium transition-colors shrink-0">
           <Plus className="w-4 h-4" /> New MoU
         </button>
       </div>
-
       {docs.length === 0 ? (
         <div className="rounded-2xl border border-border bg-white dark:bg-card p-12 text-center">
           <FileText className="w-8 h-8 text-black dark:text-white mx-auto mb-4" />
@@ -188,32 +220,43 @@ export default function MouTab() {
           </p>
         </div>
       ) : (
-        <div className="rounded-xl border border-border bg-white dark:bg-card overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/30">
-                {["Partner", "Type", "Status", "Updated"].map((h) => (
-                  <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-black dark:text-white">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {docs.map((d) => (
-                <tr key={d.id} className="cursor-pointer hover:bg-muted/20" onClick={() => setOpenDocId(d.id)}>
-                  <td className="px-5 py-3 text-base font-medium text-black dark:text-white">
-                    {otherOrg(d)?.organisation_name ?? "Unknown"}
-                  </td>
-                  <td className="px-5 py-3 text-sm text-black dark:text-white capitalize">
-                    {d.source_type === "uploaded_pdf" ? "Uploaded" : d.source_type}
-                  </td>
-                  <td className="px-5 py-3 text-sm text-black dark:text-white">{STATUS_LABEL[d.status] ?? d.status}</td>
-                  <td className="px-5 py-3 text-sm text-black dark:text-white whitespace-nowrap">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {docs.map((d) => {
+            const meta = STATUS_META[d.status] ?? { label: d.status, color: "#C45C26" };
+            const sourceMeta = SOURCE_META[d.source_type] ?? { label: d.source_type, icon: FileText };
+            const SourceIcon = sourceMeta.icon;
+            const title = d.initiative_id ? initiativeTitleMap[d.initiative_id] : null;
+            return (
+              <button key={d.id} type="button" onClick={() => setOpenDocId(d.id)}
+                className="text-left rounded-2xl border border-border bg-white dark:bg-card p-5 hover:border-[#2D6A4F]/50 transition-colors flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="mt-0.5 p-2 rounded-lg bg-[#2D6A4F]/10 shrink-0">
+                      <SourceIcon className="w-4 h-4 text-[#2D6A4F]" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-base font-semibold text-black dark:text-white truncate">
+                        {otherOrg(d)?.organisation_name ?? "Unknown organisation"}
+                      </p>
+                      <p className="text-sm text-black dark:text-white mt-0.5 truncate">
+                        {title || sourceMeta.label}
+                      </p>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-black/40 dark:text-white/40 shrink-0 mt-1" />
+                </div>
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
+                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-black dark:text-white">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: meta.color }} />
+                    {meta.label}
+                  </span>
+                  <span className="text-xs text-black dark:text-white whitespace-nowrap">
                     {new Date(d.updated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -265,6 +308,14 @@ export default function MouTab() {
           initiativeId={mouTarget.initiativeId}
           initiativeTitle={mouTarget.initiativeTitle}
           onClose={() => { setMouTarget(null); load(); }}
+          onOpenDocument={(documentId) => {
+            // Goes straight into the new (or pre-existing) draft instead of
+            // dropping back to the list -- the list still gets refreshed in
+            // the background so it's accurate whenever they do return to it.
+            setMouTarget(null);
+            setOpenDocId(documentId);
+            load();
+          }}
         />
       )}
       {openDocId && (
