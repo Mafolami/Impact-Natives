@@ -34,28 +34,40 @@ interface Props {
   initiativeId: string | null;
   initiativeTitle: string;
   onClose: () => void;
+  // Navigates straight into the created (or pre-existing) draft instead of
+  // showing a "Draft saved, click Done" screen the person has to dismiss.
+  onOpenDocument: (documentId: string) => void;
 }
-
 export default function CreateMouModal({
-  myUserId, partnerUserId, partnerOrgId, partnerName, initiativeId, initiativeTitle, onClose,
+  myUserId, partnerUserId, partnerOrgId, partnerName, initiativeId, initiativeTitle, onClose, onOpenDocument,
 }: Props) {
   const [loadingOrgs, setLoadingOrgs] = useState(true);
   const [myOrg, setMyOrg] = useState<OrgLite | null>(null);
   const [partnerOrg, setPartnerOrg] = useState<OrgLite | null>(null);
-
   const [path, setPath] = useState<Path>(null);
   const [template, setTemplate] = useState<MouTemplate | null>(null);
   const [loadingTemplate, setLoadingTemplate] = useState(false);
   const [toggleValues, setToggleValues] = useState<Record<string, string | boolean>>({});
-
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
-  const [done, setDone] = useState(false);
   const [error, setError] = useState("");
-
+  // Only one MoU is allowed per initiative -- if one already exists,
+  // creation is skipped entirely and the person is routed straight into
+  // the existing document instead of hitting a duplicate-key error.
+  const [checkingExisting, setCheckingExisting] = useState(true);
+  const [existingDocId, setExistingDocId] = useState<string | null>(null);
   useEffect(() => {
     loadOrgs();
+    checkExisting();
   }, []);
+  async function checkExisting() {
+    if (!initiativeId) { setCheckingExisting(false); return; }
+    setCheckingExisting(true);
+    const { data } = await supabase
+      .from("mou_documents").select("id").eq("initiative_id", initiativeId).maybeSingle();
+    setExistingDocId(data?.id ?? null);
+    setCheckingExisting(false);
+  }
 
   async function loadOrgs() {
     setLoadingOrgs(true);
@@ -104,7 +116,7 @@ export default function CreateMouModal({
     if (!myOrg || !partnerOrg) return;
     setSaving(true);
     setError("");
-    const { error: insertError } = await supabase.from("mou_documents").insert({
+    const { data: inserted, error: insertError } = await supabase.from("mou_documents").insert({
       org_a_id: myOrg.id,
       org_b_id: partnerOrg.id,
       initiative_id: initiativeId,
@@ -114,29 +126,27 @@ export default function CreateMouModal({
       field_values: {},
       status: "draft",
       created_by: myUserId,
-    });
+    }).select("id").single();
     setSaving(false);
     if (insertError) { setError(insertError.message); return; }
-    setDone(true);
+    if (inserted) onOpenDocument(inserted.id);
   }
-
   async function saveCustomDoc() {
     if (!myOrg || !partnerOrg) return;
     setSaving(true);
     setError("");
-    const { error: insertError } = await supabase.from("mou_documents").insert({
+    const { data: inserted, error: insertError } = await supabase.from("mou_documents").insert({
       org_a_id: myOrg.id,
       org_b_id: partnerOrg.id,
       initiative_id: initiativeId,
       source_type: "custom",
       status: "draft",
       created_by: myUserId,
-    });
+    }).select("id").single();
     setSaving(false);
     if (insertError) { setError(insertError.message); return; }
-    setDone(true);
+    if (inserted) onOpenDocument(inserted.id);
   }
-
   async function saveUploadDoc() {
     if (!myOrg || !partnerOrg || !uploadFile) return;
     setSaving(true);
@@ -147,7 +157,7 @@ export default function CreateMouModal({
       .upload(path, uploadFile);
     if (uploadError) { setSaving(false); setError(uploadError.message); return; }
 
-    const { error: insertError } = await supabase.from("mou_documents").insert({
+    const { data: inserted, error: insertError } = await supabase.from("mou_documents").insert({
       org_a_id: myOrg.id,
       org_b_id: partnerOrg.id,
       initiative_id: initiativeId,
@@ -155,12 +165,11 @@ export default function CreateMouModal({
       rendered_file_path: path,
       status: "draft",
       created_by: myUserId,
-    });
+    }).select("id").single();
     setSaving(false);
     if (insertError) { setError(insertError.message); return; }
-    setDone(true);
+    if (inserted) onOpenDocument(inserted.id);
   }
-
   function renderPathPicker() {
     return (
       <div className="space-y-3">
@@ -310,17 +319,17 @@ export default function CreateMouModal({
     );
   }
 
-  function renderDone() {
+  function renderExisting() {
     return (
       <div className="text-center py-6 space-y-3">
         <CheckCircle2 className="w-10 h-10 text-[#2D6A4F] mx-auto" />
-        <p className="text-base font-semibold text-black dark:text-white">Draft saved</p>
+        <p className="text-base font-semibold text-black dark:text-white">An MoU already exists</p>
         <p className="text-sm text-black dark:text-white max-w-xs mx-auto">
-          Your MoU draft has been created. You can find it alongside this partnership to continue editing, share it with {partnerName}, and track signatures.
+          {partnerName} or your team has already started an MoU for {initiativeTitle || "this partnership"}. Only one MoU can exist per partnership.
         </p>
-        <button type="button" onClick={onClose}
+        <button type="button" onClick={() => existingDocId && onOpenDocument(existingDocId)}
           className="mt-2 px-6 py-2.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
-          Done
+          Open existing MoU
         </button>
       </div>
     );
@@ -333,13 +342,13 @@ export default function CreateMouModal({
         onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
-            {path && !done && (
+            {path && !existingDocId && (
               <button type="button" onClick={() => setPath(null)} className="text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
                 <ArrowLeft className="w-4 h-4" />
               </button>
             )}
             <h2 className="text-lg font-bold text-black dark:text-white">
-              {done ? "Draft created" : "Create MoU"}
+              {existingDocId ? "MoU already exists" : "Create MoU"}
             </h2>
           </div>
           <button type="button" onClick={onClose} className="text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
@@ -347,11 +356,11 @@ export default function CreateMouModal({
           </button>
         </div>
         <div className="px-6 py-5 overflow-y-auto">
-          {loadingOrgs ? (
+          {loadingOrgs || checkingExisting ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
             </div>
-          ) : done ? renderDone()
+          ) : existingDocId ? renderExisting()
             : path === "template" ? renderTemplateStep()
             : path === "custom" ? renderCustomStep()
             : path === "upload" ? renderUploadStep()

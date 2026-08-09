@@ -743,14 +743,29 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     await supabase.from("mou_documents").update(updates).eq("id", doc.id);
     const updatedDoc = { ...doc, ...updates } as MouDoc;
     setDoc(updatedDoc);
+    const myName = isOrgA ? orgA.organisation_name : orgB.organisation_name;
     const otherOrgName = isOrgA ? orgB.organisation_name : orgA.organisation_name;
-    await supabase.rpc("send_mou_notification", {
-      p_document_id: doc.id,
-      p_type: "mou_awaiting_signature",
-      p_title: "MoU awaiting your signature",
-      p_body: `${otherOrgName} has signed your MoU. It's ready for your signature.`,
-      p_link: `/dashboard/portfolio/mou`,
-    });
+    const otherAlreadySigned = isOrgA ? !!doc.signature_org_b_path : !!doc.signature_org_a_path;
+    // Only tell the other party "it's ready for your signature" if they
+    // actually haven't signed yet -- if they already signed (and possibly
+    // locked), that copy falsely implies they need to act again.
+    if (otherAlreadySigned) {
+      await supabase.rpc("send_mou_notification", {
+        p_document_id: doc.id,
+        p_type: "mou_counterparty_signed",
+        p_title: "Your MoU counterparty has signed",
+        p_body: `${myName} has signed the MoU.`,
+        p_link: `/dashboard/portfolio/mou`,
+      });
+    } else {
+      await supabase.rpc("send_mou_notification", {
+        p_document_id: doc.id,
+        p_type: "mou_awaiting_signature",
+        p_title: "MoU awaiting your signature",
+        p_body: `${myName} has signed your MoU. It's ready for your signature.`,
+        p_link: `/dashboard/portfolio/mou`,
+      });
+    }
 
     setSigning(false);
     setRedrawingSignature(false);

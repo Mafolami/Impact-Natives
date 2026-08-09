@@ -92,13 +92,13 @@ export default function SignaturePad({ onConfirm, disabled, confirming }: Props)
       <div className="flex gap-2">
         <button type="button" onClick={() => setMode("draw")}
           className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
-            mode === "draw" ? "border-black text-black font-medium" : "border-border text-black"
+            mode === "draw" ? "border-black dark:border-white text-black dark:text-white font-medium" : "border-border text-black dark:text-white"
           }`}>
           Draw signature
         </button>
         <button type="button" onClick={() => setMode("upload")}
           className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
-            mode === "upload" ? "border-black text-black font-medium" : "border-border text-black"
+            mode === "upload" ? "border-black dark:border-white text-black dark:text-white font-medium" : "border-border text-black dark:text-white"
           }`}>
           Upload image
         </button>
@@ -119,7 +119,7 @@ export default function SignaturePad({ onConfirm, disabled, confirming }: Props)
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={clearCanvas} disabled={disabled}
-              className="flex items-center gap-1.5 text-sm text-black hover:opacity-70 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">
+              className="flex items-center gap-1.5 text-sm text-black dark:text-white hover:opacity-70 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">
               <Eraser className="w-3.5 h-3.5" /> Clear
             </button>
             <button type="button" onClick={confirmDrawn} disabled={disabled || !hasSignature || confirming}
@@ -130,7 +130,7 @@ export default function SignaturePad({ onConfirm, disabled, confirming }: Props)
         </div>
       ) : (
         <div className="space-y-2">
-          <label className="flex items-center justify-center gap-2 cursor-pointer rounded-xl border border-dashed border-border px-4 py-6 text-base text-black hover:border-[#2D6A4F]/40 transition-colors">
+          <label className="flex items-center justify-center gap-2 cursor-pointer rounded-xl border border-dashed border-border px-4 py-6 text-base text-black dark:text-white hover:border-[#2D6A4F]/40 transition-colors">
             <Upload className="w-4 h-4" />
             {uploadPreview ? "Change image" : "Choose a signature image"}
             <input type="file" accept="image/png,image/jpeg" className="hidden"
