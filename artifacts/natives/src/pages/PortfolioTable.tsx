@@ -528,6 +528,16 @@ export function PortfolioTable() {
     const raw = row.raw;
     const base = "/dashboard/portfolio/mou";
     if (raw.kind === "initiative_eoi") {
+      // Only Inbound: the viewer is the initiative creator (org_a) only
+      // when the row is Inbound -- Outbound means the viewer expressed
+      // interest in someone ELSE's initiative and can never create this
+      // MoU themselves, same rule already enforced for connections below
+      // and at the database level. partnerUserId intentionally stays the
+      // viewer's own id on Outbound rows (it's also used as the outcome-
+      // matching join key elsewhere in this file), so it's never a valid
+      // MoU target for that direction regardless -- gating on direction
+      // is the actual fix, not the field's value.
+      if (row.direction !== "Inbound") return null;
       return `${base}?newForUserId=${raw.partnerUserId}&partnerName=${encodeURIComponent(row.organisation)}&initiativeId=${raw.initiativeId}&initiativeTitle=${encodeURIComponent(row.title)}`;
     }
    if (raw.kind === "partnership_connection" && raw.orgId) {
