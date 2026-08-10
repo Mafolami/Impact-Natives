@@ -704,12 +704,12 @@ export function PortfolioTable() {
             <thead>
               <tr className="border-b border-border bg-muted/30">
                 <th className="text-left px-4 py-3 min-w-[280px]"><SortHeader label="Title" sortK="title" /></th>
-                <th className="text-left px-4 py-3"><SortHeader label="Organisation" sortK="organisation" /></th>
                 <th className="text-left px-4 py-3"><SortHeader label="Type" sortK="type" /></th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-black dark:text-white whitespace-nowrap">Support Type</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-black dark:text-white whitespace-nowrap">Direction</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-black dark:text-white whitespace-nowrap"># EOIs</th>
+                <th className="text-left px-4 py-3 min-w-[180px]"><SortHeader label="Organisation" sortK="organisation" /></th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-black dark:text-white whitespace-nowrap">Support Type</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-black dark:text-white whitespace-nowrap">Contact</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-black dark:text-white whitespace-nowrap"># EOIs</th>
                 <th className="text-left px-4 py-3"><SortHeader label="Status" sortK="status" /></th>
                 <th className="text-left px-4 py-3"><SortHeader label="Date" sortK="date" /></th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-black dark:text-white whitespace-nowrap">Actions</th>
