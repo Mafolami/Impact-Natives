@@ -397,8 +397,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   // ability to flag/comment -- direct editing of clauses or free-text
   // content is Org A's job alone, independent of whether a signature has
   // locked things yet.
-  const canEditDocumentContent = isViewerOrgA && !previewLocked;
-  function handleSectionEdit(sectionId: string, value: string) {
+  const canEditDocumentContent = isViewerOrgA && !previewLocked && doc?.status !== "fully_executed";  function handleSectionEdit(sectionId: string, value: string) {
     setSectionOverrides((prev) => ({ ...prev, [sectionId]: value }));
   }
   async function savePreviewEdits() {
@@ -622,11 +621,11 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
 
   function renderFlagsForField(key: string, opts: { canRaise: boolean; raiserRole: "org_a" | "org_b" }) {
     const flags = (doc?.field_flags ?? []).filter((f) => f.field_key === key);
+    const locked = doc?.status === "fully_executed";
     return (
       <div className="mt-1 space-y-1">
         {flags.map((f) => {
-          const iCanResolve = !f.resolved && ((f.raised_by === "org_b" && isViewerOrgA) || (f.raised_by === "org_a" && isViewerOrgB));
-          return (
+          const iCanResolve = !locked && !f.resolved && ((f.raised_by === "org_b" && isViewerOrgA) || (f.raised_by === "org_a" && isViewerOrgB));          return (
             <div key={f.id} className={`text-sm rounded-md px-2 py-1 ${f.resolved ? "bg-muted/20 text-black dark:text-white" : "bg-amber-50 text-amber-800 border border-amber-200"}`}>
               <span>{f.note}</span>
               {iCanResolve && (
@@ -638,7 +637,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
             </div>
           );
         })}
-        {opts.canRaise && (
+        {opts.canRaise && !locked && (
           openFlagField === key ? (
             <div className="flex gap-2 items-start">
               <input value={flagNote} onChange={(e) => setFlagNote(e.target.value)}
@@ -1375,10 +1374,10 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const iAmCreator = myUserId === doc.created_by;
   const hasUnresolvedOrgBFlags = (doc.field_flags ?? []).some((f) => !f.resolved && f.raised_by === "org_b");
   const hasUnresolvedOrgAFlags = (doc.field_flags ?? []).some((f) => !f.resolved && f.raised_by === "org_a");
-  const orgADetailsEditable = isViewerOrgA && (!doc.details_completed_by_org_a || hasUnresolvedOrgBFlags);
+  const orgADetailsEditable = isViewerOrgA && doc.status !== "fully_executed" && (!doc.details_completed_by_org_a || hasUnresolvedOrgBFlags);
   const orgBCanFillTheirPart = doc.details_completed_by_org_a && !hasUnresolvedOrgBFlags;
   const orgBSubmittedForReview = doc.status === "pending_org_a_final_review" || doc.status === "fully_executed";
-  const orgBFieldsEditable = isViewerOrgB && (!orgBSubmittedForReview || hasUnresolvedOrgAFlags);
+  const orgBFieldsEditable = isViewerOrgB && doc.status !== "fully_executed" && (!orgBSubmittedForReview || hasUnresolvedOrgAFlags);
   const exportDisabledForOrgB = isViewerOrgB && doc.status === "pending_org_a_final_review";
   const isBindingMou = doc.toggle_selections?.["agreement_type"] === "binding";
   const orgBConfirmationPending = isBindingMou && !doc.org_b_finalization_confirmed;
@@ -1388,8 +1387,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   // Toggles change the actual clause text, so once either party has signed
   // anything, changing them would silently alter what was already agreed
   // to and signed -- same reasoning as the preview-text lock.
-  const togglesEditable = isViewerOrgA && !doc.signature_org_a_path && !doc.signature_org_b_path;
-  // Same underlying condition as previewLocked/togglesEditable -- once any
+  const togglesEditable = isViewerOrgA && doc.status !== "fully_executed" && !doc.signature_org_a_path && !doc.signature_org_b_path;  // Same underlying condition as previewLocked/togglesEditable -- once any
   // signature exists, content is frozen. Void & Reset is the only way back,
   // and it's unavailable once the document is fully executed.
   const canVoidAndReopen = previewLocked && doc.status !== "fully_executed";
@@ -1849,7 +1847,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                 {orgA && orgB && (orgA.user_id === myUserId || orgB.user_id === myUserId) && (() => {
                   const isOrgA = orgA.user_id === myUserId;
                   const mySigUrl = isOrgA ? signatureAUrl : signatureBUrl;
-                  const myLocked = isOrgA ? doc.signature_locked_org_a : doc.signature_locked_org_b;
+                  const myLocked = doc.status === "fully_executed" || (isOrgA ? doc.signature_locked_org_a : doc.signature_locked_org_b);
                   const showPad = !myLocked && (!mySigUrl || redrawingSignature);
                   if (myLocked) {
                     return (
