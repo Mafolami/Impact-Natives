@@ -115,6 +115,8 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const [finalizing, setFinalizing] = useState(false);
   const [confirmingFinalization, setConfirmingFinalization] = useState(false);
   const [confirmingPartnershipStatus, setConfirmingPartnershipStatus] = useState(false);
+  const [showVoidConfirm, setShowVoidConfirm] = useState(false);
+  const [voiding, setVoiding] = useState(false);
   const isViewerOrgA = orgA?.user_id === myUserId;
   const isViewerOrgB = orgB?.user_id === myUserId;
   useEffect(() => { load(); }, [documentId]);
@@ -913,6 +915,34 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     setDoc({ ...doc, ...updates } as MouDoc);
     if (isOrgA) setSignatureAUrl(null); else setSignatureBUrl(null);
   }
+  // Unified void-and-reopen action for any post-signature-lock edit --
+  // covers custom_content (which previously had no lock at all), template
+  // toggles, and the compiled preview text (which were already locked but
+  // had no way back once frozen). Clears both signatures, unlocks both
+  // parties, resets Org A's submitted-details state, and invalidates any
+  // binding-MoU "no objection" confirmation -- same invalidation the flag
+  // system already applies, just triggered by a bigger action. Steps
+  // status back to draft so the whole flow restarts cleanly. Blocked once
+  // fully executed -- that stays final.
+  async function voidAndReopen() {
+    if (!doc) return;
+    setVoiding(true);
+    const { error } = await supabase.rpc("void_and_reopen_mou", { p_document_id: doc.id });
+    if (error) { setVoiding(false); return; }
+    const voidingPartyName = isViewerOrgA ? orgA?.organisation_name : orgB?.organisation_name;
+    await supabase.rpc("send_mou_notification", {
+      p_document_id: doc.id,
+      p_type: "mou_voided_reopened",
+      p_title: "MoU reopened for editing",
+      p_body: `${voidingPartyName ?? "The other party"} reopened this MoU for changes. Both signatures have been cleared and will need to be added again.`,
+      p_link: `/dashboard/portfolio/mou`,
+    });
+    setVoiding(false);
+    setShowVoidConfirm(false);
+    setSignatureAUrl(null);
+    setSignatureBUrl(null);
+    load({ silent: true });
+  }
   async function uploadSignedCopy(file: File) {
     if (!doc || !orgA || !orgB) return;
     setUploadingSigned(true);
@@ -1204,6 +1234,10 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   // anything, changing them would silently alter what was already agreed
   // to and signed -- same reasoning as the preview-text lock.
   const togglesEditable = isViewerOrgA && !doc.signature_org_a_path && !doc.signature_org_b_path;
+  // Same underlying condition as previewLocked/togglesEditable -- once any
+  // signature exists, content is frozen. Void & Reset is the only way back,
+  // and it's unavailable once the document is fully executed.
+  const canVoidAndReopen = previewLocked && doc.status !== "fully_executed";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
@@ -1240,6 +1274,12 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                         ? "These control which clauses appear in the document. Locked once either party signs."
                         : "Set at document creation. Locked because a signature exists on this document."}
                     </p>
+                    {canVoidAndReopen && (
+                      <button type="button" onClick={() => setShowVoidConfirm(true)}
+                        className="text-sm text-red-600 hover:underline underline-offset-2">
+                        Need to change these? Void signatures and reopen
+                      </button>
+                    )}
                   </div>
                   <div className="rounded-xl border border-border p-4 space-y-4">
                     {template.toggles.map((t) => {
@@ -1383,6 +1423,12 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                       ? "This text is locked because a signature has been added."
                       : "Edit any clause directly — erase what doesn't apply, adjust wording as needed."}
                   </p>
+                  {canVoidAndReopen && (
+                    <button type="button" onClick={() => setShowVoidConfirm(true)}
+                      className="text-sm text-red-600 hover:underline underline-offset-2">
+                      Need to change this? Void signatures and reopen
+                    </button>
+                  )}
                 </div>
                 {displaySections.map((s) => (
                   <div key={s.id}>
@@ -1415,14 +1461,31 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           {doc.source_type === "custom" && (
             <div className="space-y-3">
               <p className="text-base font-semibold text-black dark:text-white">Document text</p>
-              <textarea
-                value={customContent}
-                onChange={(e) => setCustomContent(e.target.value)}
-                onBlur={saveCustomContent}
-                rows={16}
-                placeholder="Write the full text of your agreement here..."
-                className="w-full px-4 py-3 rounded-xl border border-border bg-white dark:bg-card text-base text-black dark:text-white leading-relaxed focus:outline-none focus:border-[#2D6A4F]/50 resize-y"
-              />
+              {previewLocked && (
+                <p className="text-sm text-black dark:text-white">
+                  This text is locked because a signature has been added.
+                </p>
+              )}
+              {previewLocked ? (
+                <p className="w-full px-4 py-3 rounded-xl border border-border bg-white dark:bg-card text-base text-black dark:text-white leading-relaxed whitespace-pre-line">
+                  {customContent}
+                </p>
+              ) : (
+                <textarea
+                  value={customContent}
+                  onChange={(e) => setCustomContent(e.target.value)}
+                  onBlur={saveCustomContent}
+                  rows={16}
+                  placeholder="Write the full text of your agreement here..."
+                  className="w-full px-4 py-3 rounded-xl border border-border bg-white dark:bg-card text-base text-black dark:text-white leading-relaxed focus:outline-none focus:border-[#2D6A4F]/50 resize-y"
+                />
+              )}
+              {canVoidAndReopen && (
+                <button type="button" onClick={() => setShowVoidConfirm(true)}
+                  className="text-sm text-red-600 hover:underline underline-offset-2">
+                  Need to change this? Void signatures and reopen
+                </button>
+              )}
               {saving && <p className="text-sm text-black dark:text-white">Saving...</p>}
             </div>
           )}
@@ -1666,6 +1729,26 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           )}
         </div>
       </div>
+      {showVoidConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowVoidConfirm(false)}>
+          <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-sm shadow-xl p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <p className="text-base font-bold text-black dark:text-white">Reopen this MoU for editing?</p>
+            <p className="text-sm text-black dark:text-white leading-relaxed">
+              This clears both parties' signatures and any binding-MoU confirmation, reopens every field for editing, and notifies {(isViewerOrgA ? orgB?.organisation_name : orgA?.organisation_name) ?? "the other party"}. This cannot be undone — both sides will need to review and sign again.
+            </p>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setShowVoidConfirm(false)}
+                className="flex-1 h-10 rounded-full border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors">
+                Cancel
+              </button>
+              <button type="button" onClick={voidAndReopen} disabled={voiding}
+                className="flex-1 h-10 rounded-full bg-red-600 hover:bg-red-700 text-white text-sm font-medium disabled:opacity-60 transition-colors">
+                {voiding ? "Reopening..." : "Yes, reopen"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
