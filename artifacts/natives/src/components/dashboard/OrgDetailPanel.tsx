@@ -157,12 +157,13 @@ function Section({ children, className = "" }: { children: React.ReactNode; clas
 
 // ─── Main panel ─────────────────────────────────────────────────────────────────
 
-export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, onExpressInterest, onBack, backLabel, viewerOrg, variant = "panel", mouExecuted = false }: {
+export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, onExpressInterest, onBack, backLabel, viewerOrg, viewerOrgLoading, variant = "panel", mouExecuted = false }: {
   org: OrgRow | null; isSaved: boolean; onToggleSave: (e: React.MouseEvent) => void;
   isOrg: boolean; alreadySent: boolean; sending: boolean;
   onExpressInterest: (e: React.MouseEvent) => void; onBack: () => void;
   backLabel?: string;
   viewerOrg: OrgRow | null;
+  viewerOrgLoading: boolean;
   variant?: "panel" | "page";
   mouExecuted?: boolean;
 }) {
@@ -556,7 +557,11 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
           </a>
         )}
 
-        {org.user_id === viewerOrg?.user_id ? (
+        {viewerOrgLoading ? (
+          <div className="rounded-xl border border-border bg-card px-5 py-4">
+            <span className="text-xs font-semibold text-black/40 dark:text-white/40">Loading...</span>
+          </div>
+        ) : org.user_id === viewerOrg?.user_id ? (
           <div className="rounded-xl border border-border bg-card px-5 py-4">
             <span className="text-xs font-semibold text-[#2D6A4F]">Your listing</span>
           </div>
@@ -947,12 +952,15 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
           </div>
         )}
 
-        {org.user_id === viewerOrg?.user_id ? (
+        {viewerOrgLoading ? (
+          <div className="px-8 py-4 border-t border-border">
+            <span className="text-xs font-semibold text-black/40 dark:text-white/40">Loading...</span>
+          </div>
+        ) : org.user_id === viewerOrg?.user_id ? (
           <div className="px-8 py-4 border-t border-border">
             <span className="text-xs font-semibold text-[#2D6A4F]">Your listing</span>
           </div>
-        ) : org.partnership_formed ? (
-          <div className="px-8 py-6 sticky bottom-0 bg-background border-t border-border">
+        ) : org.partnership_formed ? (          <div className="px-8 py-6 sticky bottom-0 bg-background border-t border-border">
             <div className="flex items-center gap-2.5 px-4 py-3.5 rounded-xl"
               style={{ background: "rgba(29,78,216,0.1)", border: "1px solid rgba(29,78,216,0.3)" }}>
               <CheckCircle2 className="w-4 h-4 shrink-0 text-[#1D4ED8]" />

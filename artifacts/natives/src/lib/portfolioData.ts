@@ -442,9 +442,12 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
     for (const conn of received ?? []) {
       const counterpart = counterpartMap.get(conn.sender_org_id);
       const status = PARTNERSHIP_STATUS_MAP[conn.status] ?? conn.status;
+      const title = myOrg.partnership_sought
+        ? resolvePartnershipTitle(myOrg, myOrg.partnership_title)
+        : resolvePartnershipTitle(counterpart, conn.partnership_title);
       rows.push({
         id: `partner-in-${conn.id}`,
-        title: resolvePartnershipTitle(counterpart, conn.partnership_title),
+        title,
         titleHref: counterpart ? `/dashboard/portfolio/exchanges/partner/${counterpart.id}` : null,
         organisation: counterpart?.organisation_name ?? "Unknown",
         organisationHref: counterpart?.user_id ? `/dashboard/natives?tab=organisation&user=${counterpart.user_id}` : null,

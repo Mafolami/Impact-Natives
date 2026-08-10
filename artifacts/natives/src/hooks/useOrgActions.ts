@@ -16,6 +16,7 @@ const VIEWER_ORG_SELECT =
 
 export function useOrgActions(userId: string | null | undefined) {
   const [viewerOrg, setViewerOrg] = useState<OrgRow | null>(null);
+  const [viewerOrgLoading, setViewerOrgLoading] = useState(true);
   const [currentUserOrgId, setCurrentUserOrgId] = useState<string | null>(null);
   const [savedOrgs, setSavedOrgs] = useState<Set<string>>(new Set());
   const [sentInterests, setSentInterests] = useState<Set<string>>(new Set());
@@ -32,18 +33,26 @@ export function useOrgActions(userId: string | null | undefined) {
       supabase.from("partnership_connections").select("receiver_org_id").eq("sender_user_id", userId!),
     ]);
 
-    if (savedRes.data) setSavedOrgs(new Set(savedRes.data.map((r: any) => r.organization_id)));
-    if (myOrgRes.data) {
-      setCurrentUserOrgId(myOrgRes.data.id);
-      setViewerOrg(myOrgRes.data as OrgRow);
-    }
-    if (connRes.data && myOrgRes.data) {
-      setSentInterests(new Set(connRes.data.filter((r: any) => r.receiver_org_id !== myOrgRes.data!.id).map((r: any) => r.receiver_org_id)));
-    } else if (connRes.data) {
-      setSentInterests(new Set(connRes.data.map((r: any) => r.receiver_org_id)));
-    }
-  }
+    // The supabase client isn't bound to generated Database types (see
+    // lib/supabase.ts), so a non-literal select string like
+    // VIEWER_ORG_SELECT resolves to postgrest-js's GenericStringError
+    // fallback instead of a real row shape. Cast once through unknown
+    // (TS's own suggested escape hatch) right here, so every access
+    // below works off one correctly-typed value instead of each site
+    // needing its own unsafe cast.
+    const myOrg = myOrgRes.data as unknown as OrgRow | null;
 
+    if (savedRes.data) setSavedOrgs(new Set(savedRes.data.map((r: any) => r.organization_id)));
+    if (myOrg) {
+      setCurrentUserOrgId(myOrg.id);
+      setViewerOrg(myOrg);
+    }
+    if (connRes.data) {
+      const myOrgId = myOrg?.id;
+      setSentInterests(new Set(connRes.data.filter((r: any) => r.receiver_org_id !== myOrgId).map((r: any) => r.receiver_org_id)));
+    }
+    setViewerOrgLoading(false);
+  }
   async function toggleSave(orgId: string, e: React.MouseEvent) {
     e.stopPropagation();
     if (!userId) return;
@@ -65,10 +74,10 @@ export function useOrgActions(userId: string | null | undefined) {
       if (!data) { alert("You need an organisation profile to express interest."); return; }
       senderOrgId = data.id; setCurrentUserOrgId(data.id);
     }
+    if (senderOrgId === org.id) return;
     setSendingInterest(org.id);
     try {
-      const { error } = await supabase.from("partnership_connections").insert({
-        sender_org_id: senderOrgId, receiver_org_id: org.id,
+      const { error } = await supabase.from("partnership_connections").insert({        sender_org_id: senderOrgId, receiver_org_id: org.id,
         sender_user_id: userId, source: "browse", status: "pending",
       });
       if (error && !error.message.includes("unique")) throw error;
@@ -109,6 +118,7 @@ export function useOrgActions(userId: string | null | undefined) {
 
   return {
     viewerOrg,
+    viewerOrgLoading,
     currentUserOrgId,
     savedOrgs,
     sentInterests,

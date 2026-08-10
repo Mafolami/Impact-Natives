@@ -122,7 +122,7 @@ export default function DashboardPartnerships() {
   // This lives on partnership_connections (per relationship), not on the
   // org row itself, so it's a separate lookup rather than a selected column.
   const [mouExecutedOrgIds, setMouExecutedOrgIds] = useState<Set<string>>(new Set());
-  const { viewerOrg, savedOrgs, sentInterests, sendingInterest, toggleSave, expressInterest } = useOrgActions(user?.id);
+  const { viewerOrg, viewerOrgLoading, savedOrgs, sentInterests, sendingInterest, toggleSave, expressInterest } = useOrgActions(user?.id);
 
   useEffect(() => { if (user) loadAll(); }, [user]);
 
@@ -386,6 +386,7 @@ export default function DashboardPartnerships() {
                 onExpressInterest={e => selectedOrg && expressInterest(selectedOrg, e)}
                 onBack={() => setMobileDetailOpen(false)}
                 viewerOrg={viewerOrg}
+                viewerOrgLoading={viewerOrgLoading}                
                 mouExecuted={selectedOrg ? mouExecutedOrgIds.has(selectedOrg.id) : false}
               />
             </div>

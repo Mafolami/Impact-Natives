@@ -778,7 +778,7 @@ export default function DashboardInitiatives() {
   }, []);
   const [selectedPartnerOrg, setSelectedPartnerOrg] = useState<OrgRow | null>(null);
   const [partnerOrgMouExecuted, setPartnerOrgMouExecuted] = useState(false);
-  const { viewerOrg, savedOrgs, sentInterests, sendingInterest, toggleSave, expressInterest } = useOrgActions(user?.id);
+  const { viewerOrg, viewerOrgLoading, savedOrgs, sentInterests, sendingInterest, toggleSave, expressInterest } = useOrgActions(user?.id);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [closingId, setClosingId] = useState<string | null>(null);
@@ -850,6 +850,7 @@ export default function DashboardInitiatives() {
         onBack={() => navigate("/dashboard/portfolio/exchanges")}
         backLabel="Back"
         viewerOrg={viewerOrg}
+        viewerOrgLoading={viewerOrgLoading}
         variant="page"
         mouExecuted={partnerOrgMouExecuted}
       />
