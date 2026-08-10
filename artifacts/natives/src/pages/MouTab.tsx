@@ -68,37 +68,37 @@ function computeStageCompletion(d: MouDocRow): boolean[] {
   completed.push(d.partnership_status_confirmed);
   return completed;
 }
-// Condensed version of the detail page's stage tracker -- same underlying
-// logic (signature locks, details_completed_by_org_a, binding confirmation,
-// partnership write-back), reduced to a single accurate next-action line
-// instead of the full stage list, since the card only has room for one.
-// Replaces the old raw-status label, which said "Sent" for almost the
-// entire lifecycle regardless of what was actually happening.
-function nextActionLabel(d: MouDocRow, orgAName: string, orgBName: string): { text: string; done: boolean } {
+// Full stage list, same order and logic as the detail page's tracker --
+// this now lives on the list item itself rather than the document form,
+// so it needs real labels (not just completion booleans) to render.
+function computeStages(d: MouDocRow, orgAName: string, orgBName: string): { key: string; label: string; completed: boolean }[] {
   const flags = d.field_flags ?? [];
   const hasUnresolvedOrgBFlags = flags.some((f) => !f.resolved && f.raised_by === "org_b");
-  const hasUnresolvedOrgAFlags = flags.some((f) => !f.resolved && f.raised_by === "org_a");
   const isBindingMou = d.toggle_selections?.["agreement_type"] === "binding";
   const orgBSubmittedForReview = d.status === "pending_org_a_final_review" || d.status === "fully_executed";
-
-  if (d.status === "fully_executed") {
-    return d.partnership_status_confirmed
-      ? { text: "Fully executed", done: true }
-      : { text: `${orgAName} to mark partnership as executed`, done: true };
-  }
+  const stages: { key: string; label: string; completed: boolean }[] = [];
   if (d.source_type === "template") {
-    if (!(d.details_completed_by_org_a && !hasUnresolvedOrgBFlags)) return { text: `Waiting on ${orgAName} to fill details and sign`, done: false };
-    if (!orgBSubmittedForReview) return { text: `Waiting on ${orgBName} to review and sign`, done: false };
+    stages.push({ key: "org_a_prepare", label: `${orgAName} fills in details and signs`, completed: d.details_completed_by_org_a && !hasUnresolvedOrgBFlags });
+    stages.push({ key: "org_b_review", label: `${orgBName} reviews, fills in their details, and signs`, completed: orgBSubmittedForReview });
   } else if (d.source_type === "uploaded_pdf") {
-    if (!d.signed_files?.[d.org_a_id]) return { text: `Waiting on ${orgAName} to upload signed copy`, done: false };
-    if (!d.signed_files?.[d.org_b_id]) return { text: `Waiting on ${orgBName} to upload signed copy`, done: false };
+    stages.push({ key: "org_a_sign", label: `${orgAName} uploads their signed copy`, completed: !!d.signed_files?.[d.org_a_id] });
+    stages.push({ key: "org_b_sign", label: `${orgBName} uploads their signed copy`, completed: !!d.signed_files?.[d.org_b_id] });
   } else {
-    if (!d.signature_locked_org_a) return { text: `Waiting on ${orgAName} to sign`, done: false };
-    if (!d.signature_locked_org_b) return { text: `Waiting on ${orgBName} to sign`, done: false };
+    stages.push({ key: "org_a_sign", label: `${orgAName} signs`, completed: d.signature_locked_org_a });
+    stages.push({ key: "org_b_sign", label: `${orgBName} signs`, completed: d.signature_locked_org_b });
   }
-  if (hasUnresolvedOrgAFlags) return { text: `Waiting on ${orgAName} to resolve flags`, done: false };
-  if (isBindingMou && !d.org_b_finalization_confirmed) return { text: `Waiting on ${orgBName} to confirm no objection`, done: false };
-  return { text: `Waiting on ${orgAName} to finalize`, done: false };
+  if (isBindingMou) {
+    stages.push({ key: "org_b_confirm", label: `${orgBName} confirms no objection (binding agreement)`, completed: d.org_b_finalization_confirmed });
+  }
+  stages.push({ key: "org_a_finalize", label: `${orgAName} finalizes — fully executes the MoU`, completed: d.status === "fully_executed" });
+  stages.push({ key: "mark_partnership", label: `${orgAName} marks the partnership as executed`, completed: d.partnership_status_confirmed });
+  return stages;
+}
+function nextActionLabel(d: MouDocRow, orgAName: string, orgBName: string): { text: string; done: boolean } {
+  const stages = computeStages(d, orgAName, orgBName);
+  const current = stages.find((s) => !s.completed);
+  if (!current) return { text: "Fully executed", done: true };
+  return { text: `Next: ${current.label}`, done: d.status === "fully_executed" };
 }
 
 export default function MouTab() {
@@ -242,14 +242,12 @@ export default function MouTab() {
   // list -- so opening a document replaces this view entirely.
   if (openDocId) {
     return (
-      <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6">
-        <MouDocumentDetail documentId={openDocId} myUserId={userId} onClose={() => { setOpenDocId(null); load(); }} />
-      </div>
+      <MouDocumentDetail documentId={openDocId} myUserId={userId} onClose={() => { setOpenDocId(null); load(); }} />
     );
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6">
+    <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">MoUs</h1>
@@ -291,24 +289,24 @@ export default function MouTab() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-4">
           {docs.map((d) => {
             const sourceMeta = SOURCE_META[d.source_type] ?? { label: d.source_type, icon: FileText };
             const SourceIcon = sourceMeta.icon;
             const title = d.initiative_id ? initiativeTitleMap[d.initiative_id] : null;
-            const otherOrgName = otherOrg(d)?.organisation_name ?? "Unknown organisation";
-            const isMyOrgA = d.org_a_id === myOrgId;
-            const myOrgName = "You";
+            const orgAName = orgMap[d.org_a_id]?.organisation_name ?? "Org A";
+            const orgBName = orgMap[d.org_b_id]?.organisation_name ?? "Org B";
+            const stages = computeStages(d, orgAName, orgBName);
             const meta = d.status === "draft"
               ? { label: "Draft", color: "#C45C26" }
               : (() => {
-                  const { text, done } = nextActionLabel(d, isMyOrgA ? myOrgName : otherOrgName, isMyOrgA ? otherOrgName : myOrgName);
+                  const { text, done } = nextActionLabel(d, orgAName, orgBName);
                   return { label: text, color: done ? "#2D6A4F" : "#C45C26" };
                 })();
             return (
               <button key={d.id} type="button" onClick={() => setOpenDocId(d.id)}
-                className="text-left rounded-2xl border border-border bg-white dark:bg-card p-5 hover:border-[#2D6A4F]/50 transition-colors flex flex-col gap-3">
-                <div className="flex items-start justify-between gap-3">
+                className="w-full text-left rounded-2xl border border-border bg-white dark:bg-card p-6 hover:border-[#2D6A4F]/50 transition-colors flex flex-col gap-5">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="flex items-start gap-3 min-w-0">
                     <div className="mt-0.5 p-2 rounded-lg bg-[#2D6A4F]/10 shrink-0">
                       <SourceIcon className="w-4 h-4 text-[#2D6A4F]" />
@@ -322,10 +320,7 @@ export default function MouTab() {
                       </p>
                     </div>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-black/40 dark:text-white/40 shrink-0 mt-1" />
-                </div>
-                <div className="pt-3 border-t border-border space-y-2.5">
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 shrink-0">
                     <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full"
                       style={{ background: meta.color === "#2D6A4F" ? "rgba(45,106,79,0.12)" : "rgba(196,92,38,0.12)", color: meta.color }}>
                       {meta.label}
@@ -333,15 +328,35 @@ export default function MouTab() {
                     <span className="text-xs text-black dark:text-white whitespace-nowrap">
                       {new Date(d.updated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                     </span>
+                    <ArrowRight className="w-4 h-4 text-black/40 dark:text-white/40 shrink-0" />
                   </div>
-                  {d.status !== "draft" && (
-                    <div className="flex items-center gap-1">
-                      {computeStageCompletion(d).map((done, i) => (
-                        <span key={i} className={`h-1.5 flex-1 rounded-full ${done ? "bg-[#2D6A4F]" : "bg-border"}`} />
+                </div>
+                {d.status !== "draft" && (
+                  <div className="pt-4 border-t border-border">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-black dark:text-white mb-3">Signing progress</p>
+                    <div className="flex items-start">
+                      {stages.map((s, i) => (
+                        <div key={s.key} className="flex items-center flex-1 last:flex-none">
+                          <div className="flex flex-col items-center text-center gap-1.5 w-32 shrink-0">
+                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
+                              s.completed ? "bg-[#2D6A4F]" : "border-2 border-border bg-white dark:bg-card"
+                            }`}>
+                              {s.completed && (
+                                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              )}
+                            </div>
+                            <p className={`text-[11px] leading-snug ${s.completed ? "text-black dark:text-white" : "text-black/40 dark:text-white/40"}`}>
+                              {s.label}
+                            </p>
+                          </div>
+                          {i < stages.length - 1 && <div className="flex-1 h-px bg-border mt-[9px] mx-1" />}
+                        </div>
                       ))}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </button>
             );
           })}
