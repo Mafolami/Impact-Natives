@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { supabase } from "@/lib/supabase";
-import { Loader2, CheckCircle2, X, SlidersHorizontal, Search, Leaf, Zap, MessageSquare, ShieldCheck, Bookmark, ThumbsDown, RotateCcw, AlertTriangle, Share2, Check, Building2, Wallet, Handshake, FileCheck } from "lucide-react";
+import { Loader2, CheckCircle2, X, SlidersHorizontal, Search, Leaf, Zap, MessageSquare, ShieldCheck, Bookmark, ThumbsDown, RotateCcw, AlertTriangle, Share2, Check, Building2, Wallet, Handshake, FileCheck, Award } from "lucide-react";
 import { computeTrustTier } from "@/lib/ddItems";
 import { TrustBadge } from "@/components/ui/TrustBadge";
 import { useAuth } from "@/context/AuthContext";
@@ -37,6 +37,10 @@ interface InitiativeRow {
   submitter_user_type?: string | null;
   specific_ask?: string | null;
   stage?: string | null;
+  // Only status is read from each entry -- other partner fields (name,
+  // user_id, etc.) aren't needed here, so the type stays minimal rather
+  // than duplicating the full confirmed_partners shape.
+  confirmed_partners?: { status?: string }[] | null;
 }
 
 // REPLACE WITH:
@@ -490,6 +494,12 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
               Partnership formed
             </span>
           )}
+          {(ini.confirmed_partners ?? []).some(p => p.status === "mou_executed") && (
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full"
+              style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
+              <Award className="w-3 h-3" />MoU Executed
+            </span>
+          )}
           {expressed && ini.status !== "closed" && (
             <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#2D6A4F] bg-[rgba(45,106,79,0.12)] px-2.5 py-0.5 rounded-full">
               <CheckCircle2 className="w-3 h-3" />Expressed
@@ -731,7 +741,7 @@ export default function DashboardMarketplace() {
     async function load() {
       const { data } = await supabase
         .from("initiative_requests")
-        .select("id,title,sectors,locations,status,eois,created_at,problem,outcome,partnerships,budget,tags,submitter_org,user_id,esg_alignment,specific_ask,stage")
+        .select("id,title,sectors,locations,status,eois,created_at,problem,outcome,partnerships,budget,tags,submitter_org,user_id,esg_alignment,specific_ask,stage,confirmed_partners")
         .in("status", ["published", "closed"])
         .order("created_at", { ascending: false });
 
@@ -1598,6 +1608,12 @@ function MarketplaceDetail({
               <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full"
                 style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
                 <VerifiedBadge />              </span>
+            )}
+            {(initiative.confirmed_partners ?? []).some(p => p.status === "mou_executed") && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full"
+                style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
+                <Award className="w-3 h-3" />MoU Executed
+              </span>
             )}
             {qualityCfg && (
               <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full"

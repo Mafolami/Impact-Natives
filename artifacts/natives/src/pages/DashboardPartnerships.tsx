@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 import { supabase } from "@/lib/supabase";
-import { Handshake, Loader2, Search, CheckCircle2, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import { Handshake, Loader2, Search, CheckCircle2, ShieldCheck, SlidersHorizontal, Award } from "lucide-react";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
 import { FindPartnerModalDashboard } from "./FindPartnerModalDashboard";
 import { useAuth } from "@/context/AuthContext";
@@ -27,9 +27,10 @@ function normalizeArr(val: string | string[] | null | undefined): string[] {
 }
 
 // ─── Compact list card ────────────────────────────────────────────────────────
-function ListCard({ org, selected, onClick, isSaved, onToggleSave }: {
+function ListCard({ org, selected, onClick, isSaved, onToggleSave, mouExecuted }: {
   org: OrgRow; selected: boolean; onClick: () => void;
   isSaved: boolean; onToggleSave: (e: React.MouseEvent) => void;
+  mouExecuted: boolean;
 }) {
   const isVerified = org.verification_status === "verified";
   const countries = normalizeArr(org.country);
@@ -79,6 +80,12 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave }: {
             <CheckCircle2 className="w-2.5 h-2.5" />Partnership formed
           </span>
         )}
+        {mouExecuted && (
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
+            style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F", border: "1px solid rgba(45,106,79,0.3)" }}>
+            <Award className="w-2.5 h-2.5" />MoU Executed
+          </span>
+        )}
       </div>
     </div>
   );}
@@ -111,6 +118,10 @@ export default function DashboardPartnerships() {
   const [selectedOrg, setSelectedOrg]         = useState<OrgRow | null>(null);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [deepLinkMissing, setDeepLinkMissing] = useState(false);
+  // Which listed orgs have at least one direct-connection MoU fully executed.
+  // This lives on partnership_connections (per relationship), not on the
+  // org row itself, so it's a separate lookup rather than a selected column.
+  const [mouExecutedOrgIds, setMouExecutedOrgIds] = useState<Set<string>>(new Set());
   const { viewerOrg, savedOrgs, sentInterests, sendingInterest, toggleSave, expressInterest } = useOrgActions(user?.id);
 
   useEffect(() => { if (user) loadAll(); }, [user]);
@@ -132,6 +143,22 @@ export default function DashboardPartnerships() {
         setDeepLinkMissing(true);
       } else if (data.length > 0) {
         setSelectedOrg(data[0] as OrgRow);
+      }
+
+      const orgIds = (data as OrgRow[]).map(o => o.id);
+      if (orgIds.length > 0) {
+        const { data: executedConns } = await supabase
+          .from("partnership_connections")
+          .select("sender_org_id, receiver_org_id")
+          .eq("status", "formed")
+          .not("mou_executed_at", "is", null)
+          .or(`sender_org_id.in.(${orgIds.join(",")}),receiver_org_id.in.(${orgIds.join(",")})`);
+        const executedIds = new Set<string>();
+        (executedConns ?? []).forEach((c: any) => {
+          if (orgIds.includes(c.sender_org_id)) executedIds.add(c.sender_org_id);
+          if (orgIds.includes(c.receiver_org_id)) executedIds.add(c.receiver_org_id);
+        });
+        setMouExecutedOrgIds(executedIds);
       }
     }
     setLoading(false);
@@ -342,6 +369,7 @@ export default function DashboardPartnerships() {
                   onClick={() => { setSelectedOrg(org); setMobileDetailOpen(true); }}
                   isSaved={savedOrgs.has(org.id)}
                   onToggleSave={e => toggleSave(org.id, e)}
+                  mouExecuted={mouExecutedOrgIds.has(org.id)}
                 />
               ))}
             </div>
