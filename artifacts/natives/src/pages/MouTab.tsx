@@ -180,10 +180,11 @@ export default function MouTab() {
     // confirmed EOI partners, and direct org-to-org formed connections —
     // into one picker, rather than requiring the person to already be on
     // one of the three source pages to start an MoU.
-    const [{ data: myInits }, { data: inboundFormed }, { data: outboundFormed }] = await Promise.all([
+    const [{ data: myInits }, { data: inboundFormed }, { data: outboundFormed }, { data: myOrgListing }] = await Promise.all([
       supabase.from("initiative_requests").select("id, title, confirmed_partners").eq("user_id", userId).not("confirmed_partners", "is", null),
       supabase.from("partnership_connections").select("id, sender_org_id, partnership_title").eq("receiver_org_id", myOrgId).eq("status", "formed"),
       supabase.from("partnership_connections").select("id, receiver_org_id, partnership_title").eq("sender_org_id", myOrgId).eq("status", "formed"),
+      supabase.from("organizations").select("partnership_sought").eq("id", myOrgId).maybeSingle(),
     ]);
 
     const options: PartnerOption[] = [];
@@ -204,20 +205,22 @@ export default function MouTab() {
       ...(outboundFormed ?? []).map((c: any) => c.receiver_org_id),
     ];
     if (connOrgIds.length > 0) {
-      const { data: connOrgs } = await supabase.from("organizations").select("id, organisation_name, user_id").in("id", connOrgIds);
+      const { data: connOrgs } = await supabase.from("organizations").select("id, organisation_name, user_id, partnership_sought").in("id", connOrgIds);
       const connOrgMap = new Map((connOrgs ?? []).map((o: any) => [o.id, o]));
       for (const c of inboundFormed ?? []) {
         const org = connOrgMap.get(c.sender_org_id);
         if (org && !seenOrgIds.has(org.id)) {
           seenOrgIds.add(org.id);
-          options.push({ orgId: org.id, userId: org.user_id, name: org.organisation_name, initiativeId: null, initiativeTitle: c.partnership_title ?? "", connectionId: c.id });
+          const subtitle = myOrgListing?.partnership_sought || c.partnership_title || "Direct partnership";
+          options.push({ orgId: org.id, userId: org.user_id, name: org.organisation_name, initiativeId: null, initiativeTitle: subtitle, connectionId: c.id });
         }
       }
       for (const c of outboundFormed ?? []) {
         const org = connOrgMap.get(c.receiver_org_id);
         if (org && !seenOrgIds.has(org.id)) {
           seenOrgIds.add(org.id);
-          options.push({ orgId: org.id, userId: org.user_id, name: org.organisation_name, initiativeId: null, initiativeTitle: c.partnership_title ?? "", connectionId: c.id });
+          const subtitle = org.partnership_sought || c.partnership_title || "Direct partnership";
+          options.push({ orgId: org.id, userId: org.user_id, name: org.organisation_name, initiativeId: null, initiativeTitle: subtitle, connectionId: c.id });
         }
       }
     }
