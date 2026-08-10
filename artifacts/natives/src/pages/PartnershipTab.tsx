@@ -645,7 +645,7 @@ export function PartnershipTab() {
                               <td className="px-5 py-3">
                                 {org?.id && (
                                   <ActionsDropdown actions={[
-                                    { label: "MoU", href: `/dashboard/portfolio/mou?newForOrgId=${org.id}&partnerName=${encodeURIComponent(org.organisation_name ?? "Partner")}&initiativeTitle=${encodeURIComponent(myListing?.partnership_title ?? "")}` },
+                                    { label: "MoU", href: `/dashboard/portfolio/mou?newForOrgId=${org.id}&partnerName=${encodeURIComponent(org.organisation_name ?? "Partner")}&initiativeTitle=${encodeURIComponent(myListing?.partnership_title ?? "")}&connectionId=${conn.id}` },
                                   ]} />
                                 )}
                               </td>

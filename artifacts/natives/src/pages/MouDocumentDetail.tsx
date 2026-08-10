@@ -28,6 +28,7 @@ interface OrgFull {
   country: string | string[] | null;
   organisation_type: string | null;
   partnership_budget?: string | null;
+  partnership_sought?: string | null;
 }
 
 interface MouDoc {
@@ -35,6 +36,7 @@ interface MouDoc {
   org_a_id: string;
   org_b_id: string;
   initiative_id: string | null;
+  connection_id: string | null;
   source_type: "template" | "custom" | "uploaded_pdf";
   template_id: string | null;
   toggle_selections: Record<string, string | boolean> | null;
@@ -99,6 +101,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const [orgA, setOrgA] = useState<OrgFull | null>(null);
   const [orgB, setOrgB] = useState<OrgFull | null>(null);
   const [initiative, setInitiative] = useState<{ title: string; problem: string | null } | null>(null);
+  const [connectionListingOrgId, setConnectionListingOrgId] = useState<string | null>(null);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [customContent, setCustomContent] = useState("");
   const [saving, setSaving] = useState(false);
@@ -135,11 +138,14 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     setFieldValues((docRow.field_values as Record<string, string>) ?? {});
     setCustomContent(docRow.custom_content ?? "");
 
-    const [{ data: orgRows }, initRes] = await Promise.all([
-      supabase.from("organizations").select("id, user_id, organisation_name, country, organisation_type, partnership_budget")
+    const [{ data: orgRows }, initRes, connRes] = await Promise.all([
+      supabase.from("organizations").select("id, user_id, organisation_name, country, organisation_type, partnership_budget, partnership_sought")
         .in("id", [docRow.org_a_id, docRow.org_b_id]),
       docRow.initiative_id
         ? supabase.from("initiative_requests").select("title, problem").eq("id", docRow.initiative_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      docRow.connection_id
+        ? supabase.from("partnership_connections").select("receiver_org_id").eq("id", docRow.connection_id).maybeSingle()
         : Promise.resolve({ data: null }),
     ]);
     const a = (orgRows ?? []).find((o: any) => o.id === docRow.org_a_id) ?? null;
@@ -147,6 +153,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     setOrgA(a);
     setOrgB(b);
     setInitiative((initRes as any)?.data ?? null);
+    setConnectionListingOrgId((connRes as any)?.data?.receiver_org_id ?? null);
 
     if (docRow.source_type === "template" && docRow.template_id) {
       const { data: tpl } = await supabase.from("mou_templates").select("id, name, sections, toggles").eq("id", docRow.template_id).maybeSingle();
@@ -215,6 +222,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       }
       return c;
     };
+    const connectionListingOrg = connectionListingOrgId === orgA.id ? orgA : connectionListingOrgId === orgB.id ? orgB : null;
     return {
       org_a_name: orgA.organisation_name ?? "",
       org_b_name: orgB.organisation_name ?? "",
@@ -222,11 +230,11 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       org_b_country: countryOf(orgB.country),
       org_a_entity_type: orgA.organisation_type ? titleCase(orgA.organisation_type.replace(/_/g, " ")) : "",
       org_b_entity_type: orgB.organisation_type ? titleCase(orgB.organisation_type.replace(/_/g, " ")) : "",
-      project_name: initiative?.title ?? "",
+      project_name: initiative?.title || connectionListingOrg?.partnership_sought || "",
       project_description: initiative?.problem ?? "",
       financial_amount: orgA.partnership_budget ?? orgB.partnership_budget ?? "",
     };
-  }, [orgA, orgB, initiative]);
+  }, [orgA, orgB, initiative, connectionListingOrgId]);
 
   const compiledSections = useMemo(() => {
     if (!doc || !template) return [];

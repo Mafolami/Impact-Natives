@@ -63,6 +63,12 @@ export default function CreateMouModal({
   // just gives a clear message instead of letting them hit a raw RLS
   // error after clicking through the whole picker.
   const [notInitiativeCreator, setNotInitiativeCreator] = useState(false);
+  // Same rule as notInitiativeCreator, for direct partnerships: the
+  // listing owner (receiver on the formed connection -- Express Interest
+  // can only ever target an org that has a listing) is the only one who
+  // may start the MoU. The database enforces this on insert too; this
+  // just gives a clear message instead of a raw RLS error.
+  const [notListingOwner, setNotListingOwner] = useState(false);
   useEffect(() => {
     init();
   }, []);
@@ -88,6 +94,14 @@ export default function CreateMouModal({
       const { data: ini } = await supabase.from("initiative_requests").select("user_id").eq("id", initiativeId).maybeSingle();
       if (ini && ini.user_id !== myUserId) {
         setNotInitiativeCreator(true);
+        setCheckingExisting(false);
+        return;
+      }
+    }
+    if (connectionId) {
+      const { data: conn } = await supabase.from("partnership_connections").select("receiver_org_id").eq("id", connectionId).maybeSingle();
+      if (conn && mineData && conn.receiver_org_id !== mineData.id) {
+        setNotListingOwner(true);
         setCheckingExisting(false);
         return;
       }
@@ -378,8 +392,19 @@ export default function CreateMouModal({
     );
   }
 
-  function renderExisting() {
+  function renderNotListingOwner() {
     return (
+      <div className="text-center py-6 space-y-3">
+        <X className="w-10 h-10 text-red-600 mx-auto" />
+        <p className="text-base font-semibold text-black dark:text-white">Only the listing owner can start this MoU</p>
+        <p className="text-sm text-black dark:text-white max-w-xs mx-auto">
+          You expressed interest in {partnerName || "this organisation"}'s listing, so only {partnerName || "they"} can start the MoU here — not the other way round.
+        </p>
+      </div>
+    );
+  }
+
+  function renderExisting() {    return (
       <div className="text-center py-6 space-y-3">
         <CheckCircle2 className="w-10 h-10 text-[#2D6A4F] mx-auto" />
         <p className="text-base font-semibold text-black dark:text-white">An MoU already exists</p>
@@ -401,13 +426,13 @@ export default function CreateMouModal({
         onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
-            {path && !existingDocId && !notInitiativeCreator && (
+            {path && !existingDocId && !notInitiativeCreator && !notListingOwner && (
               <button type="button" onClick={() => setPath(null)} className="text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
                 <ArrowLeft className="w-4 h-4" />
               </button>
             )}
             <h2 className="text-lg font-bold text-black dark:text-white">
-              {notInitiativeCreator ? "Not available" : existingDocId ? "MoU already exists" : "Create MoU"}
+              {notInitiativeCreator || notListingOwner ? "Not available" : existingDocId ? "MoU already exists" : "Create MoU"}
             </h2>
           </div>
           <button type="button" onClick={onClose} className="text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
@@ -420,6 +445,7 @@ export default function CreateMouModal({
               <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
             </div>
           ) : notInitiativeCreator ? renderNotCreator()
+            : notListingOwner ? renderNotListingOwner()
             : existingDocId ? renderExisting()
             : path === "template" ? renderTemplateStep()
             : path === "custom" ? renderCustomStep()

@@ -529,8 +529,14 @@ export function PortfolioTable() {
     if (raw.kind === "initiative_eoi") {
       return `${base}?newForUserId=${raw.partnerUserId}&partnerName=${encodeURIComponent(row.organisation)}&initiativeId=${raw.initiativeId}&initiativeTitle=${encodeURIComponent(row.title)}`;
     }
-    if (raw.kind === "partnership_connection" && raw.orgId) {
-      return `${base}?newForOrgId=${raw.orgId}&partnerName=${encodeURIComponent(row.organisation)}`;
+   if (raw.kind === "partnership_connection" && raw.orgId) {
+      // Only Inbound: the viewer is the listing owner (receiver on the
+      // connection) only when the row is Inbound. Outbound means they
+      // expressed interest in someone ELSE's listing, and can never
+      // create this MoU -- same rule enforced at the database level, so
+      // showing the link here would just lead to a blocked screen.
+      if (row.direction !== "Inbound") return null;
+      return `${base}?newForOrgId=${raw.orgId}&partnerName=${encodeURIComponent(row.organisation)}&connectionId=${raw.connectionId}`;
     }
     return null;
   }
