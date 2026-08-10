@@ -248,13 +248,7 @@ export default function MouTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">MoUs</h1>
-          <p className="text-sm text-black dark:text-white mt-1 max-w-md">
-            Memorandums of understanding across your confirmed partnerships and initiatives.
-          </p>
-        </div>
+      <div className="flex items-center justify-end">
         <button type="button" onClick={openPicker}
           className="flex items-center gap-1.5 h-10 px-5 rounded-full text-white text-sm font-bold transition-all hover:brightness-110 active:scale-[0.98] shrink-0"
           style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
