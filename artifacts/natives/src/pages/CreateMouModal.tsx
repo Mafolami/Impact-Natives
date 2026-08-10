@@ -236,6 +236,14 @@ export default function CreateMouModal({
     );
   }
 
+  // Financial and Hybrid support types imply a real financial commitment,
+  // which contradicts "non-binding" -- rather than showing both and
+  // relying on disclaimer copy, the invalid options are removed from the
+  // picker entirely once Agreement type is set to non-binding.
+  function visibleToggleOptions(t: TemplateToggle): TemplateToggleOption[] {
+    if (t.key !== "support_type" || toggleValues["agreement_type"] !== "non_binding") return t.options;
+    return t.options.filter((o) => o.value !== "financial" && o.value !== "hybrid");
+  }
   function renderTemplateStep() {
     if (loadingTemplate) {
       return (
@@ -264,9 +272,15 @@ export default function CreateMouModal({
             <p className="text-base font-medium text-black dark:text-white mb-2">{t.label}</p>
             {t.type === "select" ? (
               <div className="flex flex-col gap-2">
-                {t.options.map((opt) => (
+                {visibleToggleOptions(t).map((opt) => (
                   <button key={String(opt.value)} type="button"
-                    onClick={() => setToggleValues((prev) => ({ ...prev, [t.key]: opt.value }))}
+                    onClick={() => setToggleValues((prev) => {
+                      const next = { ...prev, [t.key]: opt.value };
+                      if (t.key === "agreement_type" && opt.value === "non_binding" && (next.support_type === "financial" || next.support_type === "hybrid")) {
+                        next.support_type = "in_kind";
+                      }
+                      return next;
+                    })}
                     className={`text-left px-4 py-3 rounded-xl border text-sm transition-colors ${
                       toggleValues[t.key] === opt.value
                         ? "border-[#2D6A4F] bg-[#2D6A4F]/8 text-black dark:text-white font-medium"

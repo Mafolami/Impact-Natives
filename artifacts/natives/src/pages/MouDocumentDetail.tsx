@@ -279,6 +279,15 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     const rest = keys.filter((k) => !priority.includes(k));
     return [...front, ...rest];
   }, [groupedFieldKeys.otherKeys]);
+  // Financial and Hybrid support types imply a real financial commitment,
+  // which contradicts "non-binding" -- rather than showing both and
+  // relying on disclaimer copy, the invalid options are removed from the
+  // picker entirely once Agreement type is set to non-binding. Mirrors
+  // the same helper in CreateMouModal.tsx.
+  function visibleToggleOptions(t: TemplateToggle): TemplateToggleOption[] {
+    if (t.key !== "support_type" || doc?.toggle_selections?.["agreement_type"] !== "non_binding") return t.options;
+    return t.options.filter((o) => o.value !== "financial" && o.value !== "hybrid");
+  }
   function humanizeFieldLabel(key: string): string {
     const stripped = key.replace(/^org_[ab]_/, "");
     const words = stripped.replace(/_/g, " ");
@@ -613,6 +622,9 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   async function saveToggleSelection(key: string, value: string | boolean) {
     if (!doc) return;
     const updated = { ...(doc.toggle_selections ?? {}), [key]: value };
+    if (key === "agreement_type" && value === "non_binding" && (updated.support_type === "financial" || updated.support_type === "hybrid")) {
+      updated.support_type = "in_kind";
+    }
     await supabase.from("mou_documents").update({
       toggle_selections: updated, updated_at: new Date().toISOString(),
     }).eq("id", doc.id);
@@ -1246,7 +1258,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                               className="w-full h-10 px-3 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F]/50 disabled:cursor-not-allowed disabled:opacity-70"
                             >
                               <option value="" disabled>Select...</option>
-                              {t.options.map((opt) => (
+                              {visibleToggleOptions(t).map((opt) => (
                                 <option key={String(opt.value)} value={String(opt.value)}>
                                   {opt.label ?? String(opt.value)}
                                 </option>
