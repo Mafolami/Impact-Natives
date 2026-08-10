@@ -346,6 +346,26 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     }
     return null;
   }, [fieldValues, autofill]);
+  // Non-blocking, like noticePeriodWarning -- a governing jurisdiction
+  // that doesn't match either party's country is often intentional
+  // (a neutral third jurisdiction), so this flags rather than prevents.
+  // Only fires for custom-typed values; anything picked from the preset
+  // list is already a real jurisdiction and skipped.
+  const jurisdictionWarning = useMemo(() => {
+    const jurisdictionVal = (fieldValues["governing_jurisdiction"] || autofill["governing_jurisdiction"] || "").trim();
+    if (!jurisdictionVal || GOVERNING_JURISDICTION_OPTIONS.includes(jurisdictionVal)) return null;
+    const orgACountry = resolvedValue("org_a_country");
+    const orgBCountry = resolvedValue("org_b_country");
+    const jv = jurisdictionVal.toLowerCase();
+    const matches = (country: string) => {
+      if (!country) return false;
+      const c = country.toLowerCase();
+      return jv.includes(c) || c.includes(jv);
+    };
+    if (matches(orgACountry) || matches(orgBCountry)) return null;
+    const partiesNote = [orgACountry, orgBCountry].filter(Boolean).join(" / ") || "either party's country";
+    return `"${jurisdictionVal}" doesn't match ${partiesNote} -- double check this is the jurisdiction you intend.`;
+  }, [fieldValues, autofill]);
   // Base text per section: the frozen edited_sections snapshot once one
   // exists, otherwise the live template + field-value recompute. Overrides
   // layer unsaved in-progress typing on top of whichever base is active.
@@ -1524,6 +1544,11 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
             {noticePeriodWarning && (
               <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
                 <p className="text-sm text-amber-800">{noticePeriodWarning}</p>
+              </div>
+            )}
+            {jurisdictionWarning && (
+              <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
+                <p className="text-sm text-amber-800">{jurisdictionWarning}</p>
               </div>
             )}
             
