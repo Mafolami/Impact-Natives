@@ -54,6 +54,8 @@ interface MouDoc {
   details_completed_at_org_a: string | null;
   field_flags: FieldFlag[];
   org_b_finalization_confirmed: boolean;
+  partnership_status_confirmed: boolean;
+  partnership_status_confirmed_at: string | null;
   created_by: string;
 }
 
@@ -112,6 +114,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const [customFieldMode, setCustomFieldMode] = useState<Record<string, boolean>>({});
   const [finalizing, setFinalizing] = useState(false);
   const [confirmingFinalization, setConfirmingFinalization] = useState(false);
+  const [confirmingPartnershipStatus, setConfirmingPartnershipStatus] = useState(false);
   const isViewerOrgA = orgA?.user_id === myUserId;
   const isViewerOrgB = orgB?.user_id === myUserId;
   useEffect(() => { load(); }, [documentId]);
@@ -832,6 +835,21 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     });
     setFinalizing(false);
     load({ silent: true });
+  }
+
+  // Org A's deliberate follow-on step after execution -- separate from
+  // finalizeDocument() by design, so writing the executed MoU back into
+  // the initiative or partnership connection is never automatic. Org A
+  // has to actively choose to mark it, and it can only fire once.
+  async function confirmPartnershipStatus() {
+    if (!doc || !orgA || !orgB) return;
+    if (doc.status !== "fully_executed" || doc.partnership_status_confirmed) return;
+    setConfirmingPartnershipStatus(true);
+    const { error } = await supabase.rpc("confirm_partnership_status", { p_document_id: doc.id });
+    setConfirmingPartnershipStatus(false);
+    if (error) return;
+    const updates = { partnership_status_confirmed: true, partnership_status_confirmed_at: new Date().toISOString() };
+    setDoc({ ...doc, ...updates } as MouDoc);
   }
 
   // Org B's "no objection" gate for binding MoUs -- required before Org A
@@ -1596,6 +1614,23 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           {isViewerOrgB && doc.status === "pending_org_a_final_review" && !hasUnresolvedOrgAFlags && isBindingMou && doc.org_b_finalization_confirmed && (
             <p className="text-sm text-black dark:text-white">
               You've confirmed no objection. Waiting for {orgA?.organisation_name ?? "the other party"} to finalize.
+            </p>
+          )}
+          {isViewerOrgA && doc.status === "fully_executed" && !doc.partnership_status_confirmed && (
+            <div className="space-y-2">
+              <p className="text-sm text-black dark:text-white">
+                This MoU is fully executed. Mark the {doc.initiative_id ? "initiative" : "partnership"} as executed so it's reflected wherever this relationship is shown.
+              </p>
+              <button type="button" onClick={confirmPartnershipStatus}
+                disabled={confirmingPartnershipStatus}
+                className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3 text-base font-medium transition-colors disabled:opacity-60">
+                {confirmingPartnershipStatus ? "Marking..." : "Mark partnership as executed"}
+              </button>
+            </div>
+          )}
+          {doc.status === "fully_executed" && doc.partnership_status_confirmed && (
+            <p className="text-sm text-black dark:text-white">
+              Partnership status updated{doc.partnership_status_confirmed_at ? ` on ${new Date(doc.partnership_status_confirmed_at).toLocaleDateString("en-GB")}` : ""}.
             </p>
           )}
           {/* Export */}
