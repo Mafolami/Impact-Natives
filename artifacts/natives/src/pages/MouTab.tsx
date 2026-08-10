@@ -132,7 +132,10 @@ export default function MouTab() {
     const seenOrgIds = new Set<string>();
 
     for (const ini of myInits ?? []) {
-      const confirmed = ((ini.confirmed_partners as any[]) ?? []).filter((p) => (p.status ?? "confirmed") === "confirmed");
+      // "mou_executed" is a further stage past "confirmed", not a
+      // rejection -- excluding it here would hide the partner-picker
+      // option the moment their MoU actually finishes executing.
+      const confirmed = ((ini.confirmed_partners as any[]) ?? []).filter((p) => (p.status ?? "confirmed") === "confirmed" || p.status === "mou_executed");
       for (const p of confirmed) {
         options.push({ orgId: "", userId: p.user_id, name: p.name, initiativeId: ini.id, initiativeTitle: ini.title, connectionId: null });
       }

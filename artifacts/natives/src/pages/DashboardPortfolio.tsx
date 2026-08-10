@@ -1,4 +1,4 @@
-// ─── DashboardInitiatives.tsx (Portfolio) ─────────────────────────────────────
+// ─── DashboardPortfolio.tsx (Portfolio) ─────────────────────────────────────
 // Two top-level tabs: Initiatives | Partnerships
 // Under Initiatives: Created | Interests Expressed | Confirmed
 // Under Partnerships: delegates to PartnershipTab component
@@ -6,7 +6,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { ArrowLeft, ArrowRight, Download, Loader2, Users, UserCheck, Pencil, CheckCircle2, Check, X, LayoutList, Table2 } from "lucide-react";import { Link, useLocation } from "wouter";
+import { ArrowLeft, ArrowRight, Download, Loader2, Users, UserCheck, Pencil, CheckCircle2, Check, X, LayoutList, Table2, Award } from "lucide-react";import { Link, useLocation } from "wouter";
 import CreateInitiativeModalDashboard from "./CreateInitiativeModalDashboard";
 import EditInitiativeModalDashboard from "./EditInitiativeModalDashboard";
 import ActionsDropdown from "@/components/dashboard/ActionsDropdown";
@@ -26,7 +26,7 @@ interface ConfirmedPartner {
   role: string;
   profile_link: string;
   confirmed_at: string;
-  status?: "pending" | "confirmed" | "declined";
+  status?: "pending" | "confirmed" | "declined" | "mou_executed";
 }
 
 interface InitiativeRow {
@@ -70,6 +70,7 @@ interface CreatorConfirmedInitiative {
     user_id: string;
     name: string;
     role: string;
+    status: string;
     email: string;
     phone: string | null;
     linkedin: string | null;
@@ -83,6 +84,7 @@ interface ExpresserConfirmedRow {
   creator_user_id: string;
   creator_name: string;
   role: string;
+  status: string;
   confirmed_at: string;
 }
 
@@ -116,6 +118,14 @@ const STATUS_LABEL_SHORT: Record<string, string> = {
 
 function partnershipLabel(value: string) {
   return PARTNERSHIP_OPTIONS.find(o => o.value === value)?.label ?? value;
+}
+// "mou_executed" is a further stage past "confirmed", not a rejection --
+// a partner whose MoU has been executed must still count as an active
+// confirmed partner everywhere this status is checked, or they silently
+// disappear from every confirmed-partners view the moment their MoU closes.
+function isActiveConfirmedStatus(status: string | undefined): boolean {
+  const s = status ?? "confirmed";
+  return s === "confirmed" || s === "mou_executed";
 }
 function rolePartnerPhrase(value: string): string {
   const label = partnershipLabel(value);
@@ -394,14 +404,21 @@ function InitiativeDetail({ initiative, onBack, onRequestEdit }: { initiative: I
         </div>
       )}
 
-      {initiative.confirmed_partners && initiative.confirmed_partners.filter(p => (p.status ?? "confirmed") === "confirmed").length > 0 && (
+      {initiative.confirmed_partners && initiative.confirmed_partners.filter(p => isActiveConfirmedStatus(p.status)).length > 0 && (
         <div className="rounded-xl border border-[#2D6A4F]/30 bg-[rgba(45,106,79,0.12)] px-5 py-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-[#2D6A4F] mb-3">Confirmed Partners</p>
           <div className="flex flex-col gap-2">
-            {initiative.confirmed_partners.filter(p => (p.status ?? "confirmed") === "confirmed").map(p => (
+            {initiative.confirmed_partners.filter(p => isActiveConfirmedStatus(p.status)).map(p => (
               <div key={p.user_id} className="flex items-center justify-between gap-3">
                 <a href={p.profile_link} className="text-sm font-medium text-foreground hover:text-[#2D6A4F] transition-colors">{p.name}</a>
-                <span className="text-xs px-2.5 py-0.5 rounded-full capitalize" style={{ background: "rgba(6,95,70,0.12)", color: "#065f46" }}>{p.role}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs px-2.5 py-0.5 rounded-full capitalize" style={{ background: "rgba(6,95,70,0.12)", color: "#065f46" }}>{p.role}</span>
+                  {p.status === "mou_executed" && (
+                    <span className="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full" style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
+                      <Award className="w-3 h-3" />MoU Executed
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -560,7 +577,7 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
       .filter((init: any) => init.user_id === userId && Array.isArray(init.confirmed_partners))
       .map((init: any) => ({
         ...init,
-        confirmed_partners: (init.confirmed_partners as any[]).filter((p: any) => (p.status ?? "confirmed") === "confirmed"),
+        confirmed_partners: (init.confirmed_partners as any[]).filter((p: any) => isActiveConfirmedStatus(p.status)),
       }))
       .filter((init: any) => init.confirmed_partners.length > 0);
     if (myInitsWithConfirmed.length > 0) {
@@ -572,7 +589,7 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
         initiative_title: init.title,
         partners: (init.confirmed_partners as any[]).map((p: any) => {
           const profile = profileMap.get(p.user_id);
-          return { user_id: p.user_id, name: p.name ?? profile?.full_name ?? "Unknown", role: p.role, email: profile?.email ?? "", phone: profile?.phone ?? null, linkedin: profile?.linkedin_url ?? null, confirmed_at: p.confirmed_at };
+          return { user_id: p.user_id, name: p.name ?? profile?.full_name ?? "Unknown", role: p.role, status: p.status ?? "confirmed", email: profile?.email ?? "", phone: profile?.phone ?? null, linkedin: profile?.linkedin_url ?? null, confirmed_at: p.confirmed_at };
         }),
       })));
     } else {
@@ -581,7 +598,7 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
 
     const relevant = allInits.filter((init: any) => {
       if (init.user_id === userId) return false;
-      return ((init.confirmed_partners as any[]) ?? []).some((p: any) => p.user_id === userId && (p.status ?? "confirmed") === "confirmed");
+      return ((init.confirmed_partners as any[]) ?? []).some((p: any) => p.user_id === userId && isActiveConfirmedStatus(p.status));
     });
     if (relevant.length > 0) {
       const ownerIds = [...new Set(relevant.map((i: any) => i.user_id).filter(Boolean))];
@@ -589,9 +606,9 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
       const ownerMap = new Map((ownerProfiles ?? []).map((p: any) => [p.id, p]));
       setExpresserConfirmed(relevant.map((init: any) => {
         const partners = (init.confirmed_partners as any[]) ?? [];
-        const myEntry  = partners.find((p: any) => p.user_id === userId && (p.status ?? "confirmed") === "confirmed");
+        const myEntry  = partners.find((p: any) => p.user_id === userId && isActiveConfirmedStatus(p.status));
         const owner    = ownerMap.get(init.user_id);
-        return { initiative_id: init.id, initiative_title: init.title, creator_user_id: init.user_id, creator_name: owner?.full_name ?? "Unknown", role: myEntry?.role ?? "", confirmed_at: myEntry?.confirmed_at ?? "" };
+        return { initiative_id: init.id, initiative_title: init.title, creator_user_id: init.user_id, creator_name: owner?.full_name ?? "Unknown", role: myEntry?.role ?? "", status: myEntry?.status ?? "confirmed", confirmed_at: myEntry?.confirmed_at ?? "" };
       }));
     } else {
       setExpresserConfirmed([]);
@@ -648,7 +665,14 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
                     </td>
                     <td className="px-5 py-3 text-xs text-black dark:text-white">{card.initiative_title}</td>
                     <td className="px-5 py-3">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{background:"rgba(45,106,79,0.12)",color:"#2D6A4F"}}>{partnershipLabel(p.role)}</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{background:"rgba(45,106,79,0.12)",color:"#2D6A4F"}}>{partnershipLabel(p.role)}</span>
+                        {p.status === "mou_executed" && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{background:"rgba(45,106,79,0.12)",color:"#2D6A4F"}}>
+                            <Award className="w-2.5 h-2.5" />MoU Executed
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex flex-wrap gap-3">
@@ -693,7 +717,14 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
                       <Link href={`/dashboard/marketplace?initiative=${row.initiative_id}`} className="text-sm text-foreground hover:text-[#2D6A4F] transition-colors hover:underline underline-offset-2">{row.initiative_title}</Link>
                     </td>
                     <td className="px-5 py-3">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{background:"rgba(45,106,79,0.12)",color:"#2D6A4F"}}>{partnershipLabel(row.role)}</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{background:"rgba(45,106,79,0.12)",color:"#2D6A4F"}}>{partnershipLabel(row.role)}</span>
+                        {row.status === "mou_executed" && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{background:"rgba(45,106,79,0.12)",color:"#2D6A4F"}}>
+                            <Award className="w-2.5 h-2.5" />MoU Executed
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-5 py-3">
                       <ActionsDropdown actions={[
@@ -746,6 +777,7 @@ export default function DashboardInitiatives() {
     }
   }, []);
   const [selectedPartnerOrg, setSelectedPartnerOrg] = useState<OrgRow | null>(null);
+  const [partnerOrgMouExecuted, setPartnerOrgMouExecuted] = useState(false);
   const { viewerOrg, savedOrgs, sentInterests, sendingInterest, toggleSave, expressInterest } = useOrgActions(user?.id);
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -791,12 +823,18 @@ export default function DashboardInitiatives() {
   }, [routeId, initiatives]);
 
   useEffect(() => {
-    if (!partnerOrgId) { setSelectedPartnerOrg(null); return; }
+    if (!partnerOrgId) { setSelectedPartnerOrg(null); setPartnerOrgMouExecuted(false); return; }
     supabase.from("organizations")
       .select("id,organisation_name,description,sector,country,organisation_type,website,email,needs,offers,sdgs,partnership_sought,partnership_title,verification_status,status,user_id,partnership_listed,partnership_formed,partnership_stage,partnership_duration,partnership_budget,partnership_decision_timeline,partnership_success_definition,partnership_funding_status,partnership_exclusivity,partnership_working_style,partnership_financial_transfer,partnership_reporting,partnership_ip_ownership,partnership_legal_type,partnership_team_capacity,partnership_contact_seniority,partnership_geo_specificity,partnership_theory_of_change,partnership_prior_attempts,partnership_constraints,partnership_dd_financial_model,partnership_dd_audited_accounts,partnership_dd_safeguarding_policy,partnership_dd_data_policy,partnership_dd_governance_doc,partnership_prior_experience,partnership_prior_experience_detail,partnership_physically_present")
       .eq("id", partnerOrgId)
       .maybeSingle()
       .then(({ data }) => { if (data) setSelectedPartnerOrg(data as OrgRow); });
+    supabase.from("partnership_connections")
+      .select("mou_executed_at")
+      .eq("status", "formed")
+      .not("mou_executed_at", "is", null)
+      .or(`sender_org_id.eq.${partnerOrgId},receiver_org_id.eq.${partnerOrgId}`)
+      .then(({ data }) => { setPartnerOrgMouExecuted((data ?? []).length > 0); });
   }, [partnerOrgId]);
 
   if (selectedPartnerOrg) {
@@ -813,6 +851,7 @@ export default function DashboardInitiatives() {
         backLabel="Back"
         viewerOrg={viewerOrg}
         variant="page"
+        mouExecuted={partnerOrgMouExecuted}
       />
     );
   }
