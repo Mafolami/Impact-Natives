@@ -28,6 +28,7 @@ interface PartnerOption {
   name: string;
   initiativeId: string | null;
   initiativeTitle: string;
+  connectionId: string | null;
 }
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
@@ -59,7 +60,7 @@ export default function MouTab() {
   const [partnerOptions, setPartnerOptions] = useState<PartnerOption[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [mouTarget, setMouTarget] = useState<{
-    partnerUserId?: string; partnerOrgId?: string; partnerName: string; initiativeId: string | null; initiativeTitle: string;
+    partnerUserId?: string; partnerOrgId?: string; partnerName: string; initiativeId: string | null; initiativeTitle: string; connectionId: string | null;
   } | null>(null);
 
   useEffect(() => { if (userId) load(); }, [userId]);
@@ -76,6 +77,7 @@ export default function MouTab() {
         partnerName: params.get("partnerName") ?? "Partner",
         initiativeId: params.get("initiativeId"),
         initiativeTitle: params.get("initiativeTitle") ?? "",
+        connectionId: params.get("connectionId"),
       });
     }
   }, [location]);
@@ -132,7 +134,7 @@ export default function MouTab() {
     for (const ini of myInits ?? []) {
       const confirmed = ((ini.confirmed_partners as any[]) ?? []).filter((p) => (p.status ?? "confirmed") === "confirmed");
       for (const p of confirmed) {
-        options.push({ orgId: "", userId: p.user_id, name: p.name, initiativeId: ini.id, initiativeTitle: ini.title });
+        options.push({ orgId: "", userId: p.user_id, name: p.name, initiativeId: ini.id, initiativeTitle: ini.title, connectionId: null });
       }
     }
 
@@ -147,14 +149,14 @@ export default function MouTab() {
         const org = connOrgMap.get(c.sender_org_id);
         if (org && !seenOrgIds.has(org.id)) {
           seenOrgIds.add(org.id);
-          options.push({ orgId: org.id, userId: org.user_id, name: org.organisation_name, initiativeId: null, initiativeTitle: c.partnership_title ?? "" });
+          options.push({ orgId: org.id, userId: org.user_id, name: org.organisation_name, initiativeId: null, initiativeTitle: c.partnership_title ?? "", connectionId: c.id });
         }
       }
       for (const c of outboundFormed ?? []) {
         const org = connOrgMap.get(c.receiver_org_id);
         if (org && !seenOrgIds.has(org.id)) {
           seenOrgIds.add(org.id);
-          options.push({ orgId: org.id, userId: org.user_id, name: org.organisation_name, initiativeId: null, initiativeTitle: c.partnership_title ?? "" });
+          options.push({ orgId: org.id, userId: org.user_id, name: org.organisation_name, initiativeId: null, initiativeTitle: c.partnership_title ?? "", connectionId: c.id });
         }
       }
     }
@@ -285,6 +287,7 @@ export default function MouTab() {
                       setMouTarget({
                         partnerUserId: opt.userId, partnerOrgId: opt.orgId || undefined,
                         partnerName: opt.name, initiativeId: opt.initiativeId, initiativeTitle: opt.initiativeTitle,
+                        connectionId: opt.connectionId,
                       });
                       setShowPicker(false);
                     }}
@@ -307,6 +310,7 @@ export default function MouTab() {
           partnerName={mouTarget.partnerName}
           initiativeId={mouTarget.initiativeId}
           initiativeTitle={mouTarget.initiativeTitle}
+          connectionId={mouTarget.connectionId}
           onClose={() => { setMouTarget(null); load(); }}
           onOpenDocument={(documentId) => {
             // Goes straight into the new (or pre-existing) draft instead of

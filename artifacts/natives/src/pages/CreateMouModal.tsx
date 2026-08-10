@@ -33,13 +33,14 @@ interface Props {
   partnerName: string;
   initiativeId: string | null;
   initiativeTitle: string;
+  connectionId: string | null;
   onClose: () => void;
   // Navigates straight into the created (or pre-existing) draft instead of
   // showing a "Draft saved, click Done" screen the person has to dismiss.
   onOpenDocument: (documentId: string) => void;
 }
 export default function CreateMouModal({
-  myUserId, partnerUserId, partnerOrgId, partnerName, initiativeId, initiativeTitle, onClose, onOpenDocument,
+  myUserId, partnerUserId, partnerOrgId, partnerName, initiativeId, initiativeTitle, connectionId, onClose, onOpenDocument,
 }: Props) {
   const [loadingOrgs, setLoadingOrgs] = useState(true);
   const [myOrg, setMyOrg] = useState<OrgLite | null>(null);
@@ -80,7 +81,10 @@ export default function CreateMouModal({
     // Scoped to this specific initiative + partner pairing -- an
     // initiative can have multiple confirmed partners, each entitled to
     // their own MoU, so checking initiative_id alone would wrongly block
-    // the second partner from ever starting theirs.
+    // the second partner from ever starting theirs. Same logic applies to
+    // direct partnership connections: the same two orgs could separately
+    // be matched via an initiative AND have a direct connection, and those
+    // are legitimately two different MoUs, not a duplicate.
     if (initiativeId && mineData && theirs) {
       const { data } = await supabase
         .from("mou_documents").select("id")
@@ -88,10 +92,17 @@ export default function CreateMouModal({
         .or(`and(org_a_id.eq.${mineData.id},org_b_id.eq.${theirs.id}),and(org_a_id.eq.${theirs.id},org_b_id.eq.${mineData.id})`)
         .maybeSingle();
       setExistingDocId(data?.id ?? null);
+    } else if (connectionId && mineData && theirs) {
+      const { data } = await supabase
+        .from("mou_documents").select("id")
+        .eq("connection_id", connectionId)
+        .or(`and(org_a_id.eq.${mineData.id},org_b_id.eq.${theirs.id}),and(org_a_id.eq.${theirs.id},org_b_id.eq.${mineData.id})`)
+        .maybeSingle();
+      setExistingDocId(data?.id ?? null);
     }
     setCheckingExisting(false);
   }
-  
+
   async function chooseTemplate() {
     setPath("template");
     setLoadingTemplate(true);
@@ -125,6 +136,7 @@ export default function CreateMouModal({
       org_a_id: myOrg.id,
       org_b_id: partnerOrg.id,
       initiative_id: initiativeId,
+      connection_id: connectionId,
       source_type: "template",
       template_id: template?.id,
       toggle_selections: toggleValues,
@@ -144,6 +156,7 @@ export default function CreateMouModal({
       org_a_id: myOrg.id,
       org_b_id: partnerOrg.id,
       initiative_id: initiativeId,
+      connection_id: connectionId,
       source_type: "custom",
       status: "draft",
       created_by: myUserId,
@@ -166,6 +179,7 @@ export default function CreateMouModal({
       org_a_id: myOrg.id,
       org_b_id: partnerOrg.id,
       initiative_id: initiativeId,
+      connection_id: connectionId,
       source_type: "uploaded_pdf",
       rendered_file_path: path,
       status: "draft",
