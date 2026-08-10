@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { jsPDF } from "jspdf";
 import { BRICOLAGE_GROTESQUE_BOLD_BASE64 } from "@/lib/fonts/bricolageGrotesqueBold";
-import { X, Loader2, Download, Upload, CheckCircle2, Send } from "lucide-react";
+import { X, Loader2, Download, Upload, CheckCircle2, Send, Circle } from "lucide-react";
 import SignaturePad from "@/components/dashboard/SignaturePad";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -761,7 +761,13 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     if (uploadError) { setSigning(false); return; }
 
     const isOrgA = myOrgId === doc.org_a_id;
+    // Field edits (like a corrected dropdown selection) only live in local
+    // state until an explicit Save click -- and signing triggers a reload
+    // afterward that pulls field_values back from the database, silently
+    // discarding anything unsaved. Persisting the current field values
+    // here, atomically with the signature, closes that gap.
     const updates: Partial<MouDoc> & Record<string, any> = {
+      field_values: fieldValues,
       updated_at: new Date().toISOString(),
     };
     if (isOrgA) {
@@ -1236,7 +1242,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     );
   }
 
-  const statusInfo = STATUS_LABEL[doc.status];
   const iAmCreator = myUserId === doc.created_by;
   const hasUnresolvedOrgBFlags = (doc.field_flags ?? []).some((f) => !f.resolved && f.raised_by === "org_b");
   const hasUnresolvedOrgAFlags = (doc.field_flags ?? []).some((f) => !f.resolved && f.raised_by === "org_a");
@@ -1259,6 +1264,64 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   // and it's unavailable once the document is fully executed.
   const canVoidAndReopen = previewLocked && doc.status !== "fully_executed";
 
+  // Stage tracker -- built from the actual granular flags on the document
+  // (signature locks, details_completed_by_org_a, org_b_finalization_confirmed,
+  // partnership_status_confirmed) rather than the single `status` string.
+  // Raw status conflates "someone signed" with "sent to the other party",
+  // which is exactly what made the old header label misleading -- this
+  // instead shows every real stage, what's done, and who's next.
+  const orgAName = orgA?.organisation_name ?? "Org A";
+  const orgBName = orgB?.organisation_name ?? "Org B";
+  const stages: { key: string; label: string; completed: boolean; blocked?: string }[] = [];
+  if (doc.source_type === "template") {
+    stages.push({
+      key: "org_a_prepare",
+      label: `${orgAName} fills in details and signs`,
+      completed: doc.details_completed_by_org_a && !hasUnresolvedOrgBFlags,
+    });
+    stages.push({
+      key: "org_b_review",
+      label: `${orgBName} reviews, fills in their details, and signs`,
+      completed: orgBSubmittedForReview,
+      blocked: !doc.details_completed_by_org_a
+        ? `Waiting on ${orgAName}`
+        : hasUnresolvedOrgBFlags
+        ? `${orgAName} is resolving flags you raised`
+        : undefined,
+    });
+  } else if (doc.source_type === "uploaded_pdf") {
+    stages.push({ key: "org_a_sign", label: `${orgAName} uploads their signed copy`, completed: !!doc.signed_files?.[doc.org_a_id] });
+    stages.push({ key: "org_b_sign", label: `${orgBName} uploads their signed copy`, completed: !!doc.signed_files?.[doc.org_b_id] });
+  } else {
+    stages.push({ key: "org_a_sign", label: `${orgAName} signs`, completed: doc.signature_locked_org_a });
+    stages.push({ key: "org_b_sign", label: `${orgBName} signs`, completed: doc.signature_locked_org_b });
+  }
+  if (isBindingMou) {
+    stages.push({
+      key: "org_b_confirm",
+      label: `${orgBName} confirms no objection (binding agreement)`,
+      completed: doc.org_b_finalization_confirmed,
+      blocked: hasUnresolvedOrgAFlags ? `Resolve ${orgAName}'s flags first` : undefined,
+    });
+  }
+  stages.push({
+    key: "org_a_finalize",
+    label: `${orgAName} finalizes — fully executes the MoU`,
+    completed: doc.status === "fully_executed",
+    blocked: hasUnresolvedOrgAFlags
+      ? `Resolve ${orgAName}'s flags first`
+      : isBindingMou && !doc.org_b_finalization_confirmed
+      ? `Waiting on ${orgBName}'s confirmation`
+      : undefined,
+  });
+  stages.push({
+    key: "mark_partnership",
+    label: `${orgAName} marks the partnership as executed`,
+    completed: doc.partnership_status_confirmed,
+  });
+  const currentStage = stages.find((s) => !s.completed);
+  const trackerStatusText = !currentStage ? "Complete" : currentStage.blocked ?? `Next: ${currentStage.label}`;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
       onClick={onClose}>
@@ -1271,8 +1334,8 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               MoU — {orgA?.organisation_name} & {orgB?.organisation_name}
             </h2>
             <span className="inline-flex items-center gap-1.5 mt-1 text-sm font-medium text-black dark:text-white">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusInfo.color }} />
-              {statusInfo.label}
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: !currentStage ? "#2D6A4F" : "#C45C26" }} />
+              {trackerStatusText}
             </span>
           </div>
           <button type="button" onClick={onClose} className="text-black dark:text-white hover:text-[#2D6A4F] transition-colors shrink-0">
@@ -1281,7 +1344,34 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
         </div>
 
         <div className="px-5 sm:px-6 py-5 overflow-y-auto space-y-6">
-
+          {/* Signing progress tracker */}
+          <div className="rounded-xl border border-border p-4 space-y-3">
+            <p className="text-sm font-semibold text-black dark:text-white">Signing progress</p>
+            <div className="space-y-2.5">
+              {stages.map((s) => {
+                const isCurrent = currentStage?.key === s.key;
+                return (
+                  <div key={s.key} className="flex items-start gap-2.5">
+                    {s.completed ? (
+                      <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-[#2D6A4F]" />
+                    ) : (
+                      <Circle className={`w-4 h-4 shrink-0 mt-0.5 ${isCurrent ? "text-[#C45C26]" : "text-black/30 dark:text-white/30"}`} />
+                    )}
+                    <div>
+                      <p className={`text-sm ${
+                        s.completed ? "text-black dark:text-white" : isCurrent ? "text-black dark:text-white font-medium" : "text-black/50 dark:text-white/50"
+                      }`}>
+                        {s.label}
+                      </p>
+                      {isCurrent && s.blocked && (
+                        <p className="text-xs text-black dark:text-white mt-0.5">{s.blocked}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
           {/* Template: fillable fields */}
           {doc.source_type === "template" && (
             <>
