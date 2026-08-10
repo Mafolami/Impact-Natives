@@ -386,6 +386,7 @@ export default function DashboardPartnerships() {
                 onExpressInterest={e => selectedOrg && expressInterest(selectedOrg, e)}
                 onBack={() => setMobileDetailOpen(false)}
                 viewerOrg={viewerOrg}
+                mouExecuted={selectedOrg ? mouExecutedOrgIds.has(selectedOrg.id) : false}
               />
             </div>
           </div>

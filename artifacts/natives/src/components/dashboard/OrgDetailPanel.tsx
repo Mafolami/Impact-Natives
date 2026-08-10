@@ -18,7 +18,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Loader2, ShieldCheck, Sparkles, CheckCircle2, ArrowUpRight, ArrowLeft } from "lucide-react";
+import { Loader2, ShieldCheck, Sparkles, CheckCircle2, ArrowUpRight, ArrowLeft, Award } from "lucide-react";
 import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -157,13 +157,14 @@ function Section({ children, className = "" }: { children: React.ReactNode; clas
 
 // ─── Main panel ─────────────────────────────────────────────────────────────────
 
-export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, onExpressInterest, onBack, backLabel, viewerOrg, variant = "panel" }: {
+export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, onExpressInterest, onBack, backLabel, viewerOrg, variant = "panel", mouExecuted = false }: {
   org: OrgRow | null; isSaved: boolean; onToggleSave: (e: React.MouseEvent) => void;
   isOrg: boolean; alreadySent: boolean; sending: boolean;
   onExpressInterest: (e: React.MouseEvent) => void; onBack: () => void;
   backLabel?: string;
   viewerOrg: OrgRow | null;
   variant?: "panel" | "page";
+  mouExecuted?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [fit, setFit] = useState<FitResult | null>(null);
@@ -261,6 +262,12 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
                   style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
                   <ShieldCheck className="w-3 h-3" />Verified
+                </span>
+              )}
+              {mouExecuted && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+                  style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F", border: "1px solid rgba(45,106,79,0.3)" }}>
+                  <Award className="w-3 h-3" />MoU Executed
                 </span>
               )}
               {fitLoading && (
@@ -642,6 +649,12 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
               <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
                 style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
                 <ShieldCheck className="w-3 h-3" />Verified
+              </span>
+            )}
+            {mouExecuted && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+                style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F", border: "1px solid rgba(45,106,79,0.3)" }}>
+                <Award className="w-3 h-3" />MoU Executed
               </span>
             )}
             {fitLoading && (
