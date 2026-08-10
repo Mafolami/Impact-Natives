@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2, FileText, PenLine, Upload, Plus, X, ArrowRight } from "lucide-react";
+import { Loader2, FileText, PenLine, Upload, Plus, X, ArrowRight, Trash2 } from "lucide-react";
 import CreateMouModal from "./CreateMouModal";
 import MouDocumentDetail from "./MouDocumentDetail";
 
@@ -115,6 +115,8 @@ export default function MouTab() {
   const [showPicker, setShowPicker] = useState(false);
   const [partnerOptions, setPartnerOptions] = useState<PartnerOption[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [mouTarget, setMouTarget] = useState<{
     partnerUserId?: string; partnerOrgId?: string; partnerName: string; initiativeId: string | null; initiativeTitle: string; connectionId: string | null;
   } | null>(null);
@@ -229,6 +231,19 @@ export default function MouTab() {
     return orgMap[otherId];
   }
 
+  // RLS (mou_documents delete policy) already restricts this to draft
+  // documents the caller's org participates in -- the .eq("status",
+  // "draft") here is just defense in depth matching the button's own
+  // draft-only visibility, not the actual enforcement.
+  async function deleteDraft(id: string) {
+    setDeletingId(id);
+    const { error } = await supabase.from("mou_documents").delete().eq("id", id).eq("status", "draft");
+    setDeletingId(null);
+    setConfirmDeleteId(null);
+    if (error) return;
+    setDocs((prev) => prev.filter((d) => d.id !== id));
+  }
+
   if (loading || !userId) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -298,8 +313,10 @@ export default function MouTab() {
                   return { label: text, color: done ? "#2D6A4F" : "#C45C26" };
                 })();
             return (
-              <button key={d.id} type="button" onClick={() => setOpenDocId(d.id)}
-                className="w-full text-left rounded-2xl border border-border bg-white dark:bg-card p-6 hover:border-[#2D6A4F]/50 transition-colors flex flex-col gap-5">
+              <div key={d.id} role="button" tabIndex={0}
+                onClick={() => setOpenDocId(d.id)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpenDocId(d.id); } }}
+                className="w-full text-left rounded-2xl border border-border bg-white dark:bg-card p-6 hover:border-[#2D6A4F]/50 transition-colors flex flex-col gap-5 cursor-pointer">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="flex items-start gap-3 min-w-0">
                     <div className="mt-0.5 p-2 rounded-lg bg-[#2D6A4F]/10 shrink-0">
@@ -322,6 +339,14 @@ export default function MouTab() {
                     <span className="text-xs text-black dark:text-white whitespace-nowrap">
                       {new Date(d.updated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                     </span>
+                    {d.status === "draft" && (
+                      <button type="button"
+                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(d.id); }}
+                        aria-label="Delete draft MoU"
+                        className="p-1 -m-1 text-black/40 dark:text-white/40 hover:text-red-600 dark:hover:text-red-500 transition-colors shrink-0">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                     <ArrowRight className="w-4 h-4 text-black/40 dark:text-white/40 shrink-0" />
                   </div>
                 </div>
@@ -351,7 +376,7 @@ export default function MouTab() {
                     </div>
                   </div>
                 )}
-              </button>
+              </div>
             );
           })}
         </div>
@@ -416,6 +441,26 @@ export default function MouTab() {
             load();
           }}
         />
+      )}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setConfirmDeleteId(null)}>
+          <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-sm shadow-xl p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <p className="text-base font-bold text-black dark:text-white">Delete this draft?</p>
+            <p className="text-sm text-black dark:text-white leading-relaxed">
+              This permanently deletes the draft MoU. This cannot be undone.
+            </p>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setConfirmDeleteId(null)}
+                className="flex-1 h-10 rounded-full border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors">
+                Cancel
+              </button>
+              <button type="button" onClick={() => deleteDraft(confirmDeleteId)} disabled={deletingId === confirmDeleteId}
+                className="flex-1 h-10 rounded-full bg-red-600 hover:bg-red-700 text-white text-sm font-medium disabled:opacity-60 transition-colors">
+                {deletingId === confirmDeleteId ? "Deleting..." : "Yes, delete"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       </div>
     </div>
