@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { jsPDF } from "jspdf";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { BRICOLAGE_GROTESQUE_BOLD_BASE64 } from "@/lib/fonts/bricolageGrotesqueBold";
-import { X, Loader2, Download, Upload, CheckCircle2, Send, ArrowLeft } from "lucide-react";
+import { X, Loader2, Download, Upload, CheckCircle2, Send, ArrowLeft, PenLine } from "lucide-react";
 import SignaturePad from "@/components/dashboard/SignaturePad";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -117,6 +118,11 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const [confirmingPartnershipStatus, setConfirmingPartnershipStatus] = useState(false);
   const [showVoidConfirm, setShowVoidConfirm] = useState(false);
   const [voiding, setVoiding] = useState(false);
+  // In-platform PDF signing (uploaded_pdf docs only). Inline signing is
+  // the default UI; "upload instead" opens a confirm-and-upload modal
+  // as a secondary text link, not a competing button.
+  const [composingSignature, setComposingSignature] = useState(false);
+  const [showUploadWarning, setShowUploadWarning] = useState(false);
   const isViewerOrgA = orgA?.user_id === myUserId;
   const isViewerOrgB = orgB?.user_id === myUserId;
   useEffect(() => { load(); }, [documentId]);
@@ -750,6 +756,16 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     return new Blob([array], { type: mime });
   }
 
+  // pdf-lib's embedPng wants raw bytes, not a Blob -- same decode as
+  // dataUrlToBlob above, just stopping one step earlier.
+  function dataUrlToUint8Array(dataUrl: string): Uint8Array {
+    const base64 = dataUrl.split(",")[1];
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
   async function confirmSignature(dataUrl: string) {
     if (!doc || !orgA || !orgB) return;
     setSigning(true);
@@ -992,6 +1008,76 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     setUploadingSigned(false);
   }
 
+  // In-platform signing for uploaded_pdf documents. Appends a new final
+  // page to the ORIGINAL uploaded file (not onto the other party's
+  // already-signed copy -- each party's signed copy is independent, same
+  // as the upload-fallback path already worked). Only offered when the
+  // original upload is an actual PDF; pdf-lib can't append to a Word doc,
+  // so .doc/.docx uploads fall back to the upload-only flow further down.
+  async function composeAndSignPdf(dataUrl: string) {
+    if (!doc || !orgA || !orgB || !uploadedFileUrl) return;
+    const myOrgId = orgA.user_id === myUserId ? orgA.id : orgB.user_id === myUserId ? orgB.id : null;
+    if (!myOrgId) return;
+    setComposingSignature(true);
+    try {
+      const originalBytes = await fetch(uploadedFileUrl).then((r) => r.arrayBuffer());
+      const pdfDoc = await PDFDocument.load(originalBytes);
+      const sigImage = await pdfDoc.embedPng(dataUrlToUint8Array(dataUrl));
+      const font = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+      const boldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+      const pages = pdfDoc.getPages();
+      const lastPage = pages[pages.length - 1];
+      const { width, height } = lastPage ? lastPage.getSize() : { width: 595.28, height: 841.89 };
+      const signaturePage = pdfDoc.addPage([width, height]);
+      const margin = 56;
+      let y = height - margin - 40;
+      const isOrgA = myOrgId === doc.org_a_id;
+      const orgName = isOrgA ? orgA.organisation_name : orgB.organisation_name;
+      signaturePage.drawText("Signature Page", { x: margin, y, size: 16, font: boldFont, color: rgb(0.176, 0.416, 0.31) });
+      y -= 40;
+      signaturePage.drawText(`For ${orgName}:`, { x: margin, y, size: 11, font: boldFont, color: rgb(0.067, 0.067, 0.067) });
+      y -= 70;
+      const sigDims = sigImage.scaleToFit(180, 60);
+      signaturePage.drawImage(sigImage, { x: margin, y, width: sigDims.width, height: sigDims.height });
+      y -= 20;
+      signaturePage.drawLine({ start: { x: margin, y }, end: { x: margin + 220, y }, thickness: 0.5, color: rgb(0.067, 0.067, 0.067) });
+      y -= 16;
+      signaturePage.drawText(new Date().toLocaleDateString("en-GB"), { x: margin, y, size: 10, font, color: rgb(0.067, 0.067, 0.067) });
+      y -= 30;
+      signaturePage.drawText("Signed in-platform via Impact Natives.", { x: margin, y, size: 8, font, color: rgb(0.47, 0.47, 0.47) });
+
+      const signedBytes = await pdfDoc.save();
+      const signedBlob = new Blob([signedBytes.buffer as ArrayBuffer], { type: "application/pdf" });
+      const sigPngPath = `signatures/${doc.id}/${myOrgId}-${Date.now()}.png`;
+      const signedPdfPath = `signed/${doc.id}/${myUserId}-${Date.now()}-signed.pdf`;
+
+      const { error: pngError } = await supabase.storage.from("mou-documents").upload(sigPngPath, dataUrlToBlob(dataUrl));
+      if (pngError) return;
+      const { error: pdfUploadError } = await supabase.storage.from("mou-documents").upload(signedPdfPath, signedBlob);
+      if (pdfUploadError) return;
+
+      const updatedSignedFiles = { ...(doc.signed_files ?? {}), [myOrgId]: signedPdfPath };
+      const bothSigned = updatedSignedFiles[doc.org_a_id] && updatedSignedFiles[doc.org_b_id];
+      const newStatus = bothSigned ? "fully_executed" : (doc.status === "draft" ? "sent" : doc.status);
+      const updates: Partial<MouDoc> & Record<string, any> = {
+        signed_files: updatedSignedFiles,
+        status: newStatus,
+        updated_at: new Date().toISOString(),
+      };
+      if (isOrgA) {
+        updates.signature_org_a_path = sigPngPath;
+        updates.signed_at_org_a = new Date().toISOString();
+      } else {
+        updates.signature_org_b_path = sigPngPath;
+        updates.signed_at_org_b = new Date().toISOString();
+      }
+      await supabase.from("mou_documents").update(updates).eq("id", doc.id);
+      setDoc({ ...doc, ...updates } as MouDoc);
+    } finally {
+      setComposingSignature(false);
+    }
+    load({ silent: true });
+  }
   function sanitizeForPdf(text: string | null | undefined): string {
     if (!text) return "";
     return text
@@ -1263,6 +1349,10 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   // signature exists, content is frozen. Void & Reset is the only way back,
   // and it's unavailable once the document is fully executed.
   const canVoidAndReopen = previewLocked && doc.status !== "fully_executed";
+  // pdf-lib can only append a page to an actual PDF -- a .doc/.docx
+  // original has no such capability, so those go straight to the
+  // upload-and-verify fallback with no inline option offered at all.
+  const canSignUploadedPdfInline = doc.source_type === "uploaded_pdf" && !!doc.rendered_file_path?.toLowerCase().endsWith(".pdf");
 
   // Stage tracker -- built from the actual granular flags on the document
   // (signature locks, details_completed_by_org_a, org_b_finalization_confirmed,
@@ -1571,6 +1661,12 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           {doc.source_type === "uploaded_pdf" && (
             <div className="space-y-3">
               <p className="text-base font-semibold text-black dark:text-white">Uploaded document</p>
+              {canVoidAndReopen && (
+                <button type="button" onClick={() => setShowVoidConfirm(true)}
+                  className="text-sm text-red-600 hover:underline underline-offset-2">
+                  Need to change this? Void signatures and reopen
+                </button>
+              )}
               {uploadedFileUrl ? (
                 <a href={uploadedFileUrl} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-black dark:text-white hover:underline underline-offset-2 text-base">
@@ -1611,29 +1707,58 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
             
 
             {doc.source_type === "uploaded_pdf" && (
-              <div className="space-y-2">
-                <p className="text-sm text-black dark:text-white">
-                  This document was uploaded, so Impact Natives cannot place a signature onto it directly — sign it outside the platform, then upload each signed copy here.
-                </p>
-                <label className="flex items-center justify-center gap-2 cursor-pointer rounded-xl border border-dashed border-border px-4 py-4 text-base text-black dark:text-white hover:border-[#2D6A4F]/40 transition-colors">
-                  {uploadingSigned ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                  Upload your signed copy
-                  <input type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    className="hidden" disabled={uploadingSigned}
-                    onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadSignedCopy(f); }} />
-                </label>
+              <div className="space-y-4">
                 <div className="flex items-center gap-4 text-sm">
                   <span className="flex items-center gap-1.5 text-black dark:text-white">
                     {doc.signed_files?.[doc.org_a_id] && <CheckCircle2 className="w-4 h-4" />}
-                    {orgA?.organisation_name}: {doc.signed_files?.[doc.org_a_id] ? "Signed copy uploaded" : "Awaiting upload"}
+                    {orgA?.organisation_name}: {doc.signed_files?.[doc.org_a_id] ? "Signed" : "Awaiting signature"}
                   </span>
                 </div>
                 <div className="flex items-center gap-4 text-sm">
                   <span className="flex items-center gap-1.5 text-black dark:text-white">
                     {doc.signed_files?.[doc.org_b_id] && <CheckCircle2 className="w-4 h-4" />}
-                    {orgB?.organisation_name}: {doc.signed_files?.[doc.org_b_id] ? "Signed copy uploaded" : "Awaiting upload"}
+                    {orgB?.organisation_name}: {doc.signed_files?.[doc.org_b_id] ? "Signed" : "Awaiting signature"}
                   </span>
                 </div>
+
+                {(isViewerOrgA || isViewerOrgB) && (() => {
+                  const myAlreadySigned = isViewerOrgA ? !!doc.signed_files?.[doc.org_a_id] : !!doc.signed_files?.[doc.org_b_id];
+                  if (myAlreadySigned) {
+                    return (
+                      <div className="border-t border-border pt-4">
+                        <p className="text-sm text-black dark:text-white">
+                          You've completed your part of this document. Need to change something? Use "Void signatures and reopen" below.
+                        </p>
+                      </div>
+                    );
+                  }
+                  if (!canSignUploadedPdfInline) {
+                    return (
+                      <div className="border-t border-border pt-4 space-y-3">
+                        <p className="text-sm text-black dark:text-white">
+                          This document was uploaded as a Word file, so Impact Natives can't place a signature onto it directly. Sign it outside the platform, then upload your signed copy.
+                        </p>
+                        <button type="button" onClick={() => setShowUploadWarning(true)}
+                          className="text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium transition-colors">
+                          Upload your signed copy
+                        </button>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="border-t border-border pt-4 space-y-3">
+                      <p className="text-base font-semibold text-black dark:text-white">Sign this document</p>
+                      <p className="text-sm text-black dark:text-white">
+                        Your signature is appended as a new final page on the uploaded document.
+                      </p>
+                      <SignaturePad onConfirm={composeAndSignPdf} disabled={composingSignature} confirming={composingSignature} />
+                      <button type="button" onClick={() => setShowUploadWarning(true)} disabled={composingSignature}
+                        className="flex items-center gap-1.5 text-sm text-black dark:text-white hover:underline underline-offset-2 disabled:opacity-60">
+                        <PenLine className="w-3.5 h-3.5" /> Sign outside the platform and upload instead
+                      </button>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
@@ -1809,6 +1934,32 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               </button>
             </div>
           )}
+      {showUploadWarning && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowUploadWarning(false)}>
+          <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-sm shadow-xl p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <p className="text-base font-bold text-black dark:text-white">Upload a signed copy</p>
+            <p className="text-sm text-black dark:text-white leading-relaxed">
+              Impact Natives can't verify a signature added outside the platform the way it can for one signed here directly. An uploaded signed copy goes through manual verification, which can take up to 48 hours before this document reflects it as complete.
+            </p>
+            <label className="flex items-center justify-center gap-2 cursor-pointer rounded-xl border border-dashed border-border px-4 py-4 text-base text-black dark:text-white hover:border-[#2D6A4F]/40 transition-colors">
+              {uploadingSigned ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              {uploadingSigned ? "Uploading..." : "Choose your signed copy"}
+              <input type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                className="hidden" disabled={uploadingSigned}
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  await uploadSignedCopy(f);
+                  setShowUploadWarning(false);
+                }} />
+            </label>
+            <button type="button" onClick={() => setShowUploadWarning(false)} disabled={uploadingSigned}
+              className="w-full h-10 rounded-full border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors disabled:opacity-60">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
       {showVoidConfirm && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowVoidConfirm(false)}>
           <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-sm shadow-xl p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
