@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { jsPDF } from "jspdf";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { BRICOLAGE_GROTESQUE_BOLD_BASE64 } from "@/lib/fonts/bricolageGrotesqueBold";
-import { X, Loader2, Download, Upload, CheckCircle2, Send, ArrowLeft, PenLine } from "lucide-react";
+import { X, Loader2, Download, Upload, CheckCircle2, Send, ArrowLeft, PenLine, Flag } from "lucide-react";
 import SignaturePad from "@/components/dashboard/SignaturePad";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -386,6 +386,11 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     [baseSections, sectionOverrides]
   );
   const previewLocked = !!doc?.signature_org_a_path || !!doc?.signature_org_b_path;
+  // Org B only ever gets a read-only view of the document text plus the
+  // ability to flag/comment -- direct editing of clauses or free-text
+  // content is Org A's job alone, independent of whether a signature has
+  // locked things yet.
+  const canEditDocumentContent = isViewerOrgA && !previewLocked;
   function handleSectionEdit(sectionId: string, value: string) {
     setSectionOverrides((prev) => ({ ...prev, [sectionId]: value }));
   }
@@ -626,10 +631,11 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                 Cancel
               </button>
             </div>
-          ) : (
+           ) : (
             <button type="button" onClick={() => setOpenFlagField(key)}
-              className="text-sm text-black dark:text-white hover:underline underline-offset-2">
-              Flag this
+              aria-label="Flag this" title="Flag this"
+              className="inline-flex items-center justify-center w-7 h-7 rounded-full text-black/50 dark:text-white/50 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors">
+              <Flag className="w-3.5 h-3.5" />
             </button>
           )
         )}
@@ -740,11 +746,21 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   }
 
   async function markSent() {
-    if (!doc) return;
+    if (!doc || !orgB) return;
     setSaving(true);
     await supabase.from("mou_documents").update({ status: "sent", updated_at: new Date().toISOString() }).eq("id", doc.id);
     setDoc({ ...doc, status: "sent" });
     setSaving(false);
+    // Org B has no visibility into this document at all until now (RLS
+    // blocks it while draft), so this is the only way they'll find out
+    // it exists.
+    await supabase.rpc("send_mou_notification", {
+      p_document_id: doc.id,
+      p_type: "mou_sent",
+      p_title: "New MoU to review",
+      p_body: `${orgA?.organisation_name ?? "A partner"} has sent you an MoU to review.`,
+      p_link: `/dashboard/portfolio/mou`,
+    });
   }
 
   function dataUrlToBlob(dataUrl: string): Blob {
@@ -1586,7 +1602,9 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                 <div>
                   <p className="text-base font-semibold text-black dark:text-white">Document preview</p>
                   <p className="text-sm text-black dark:text-white">
-                    {previewLocked
+                    {isViewerOrgB
+                      ? `This is a read-only preview. Use the flag icon on any clause to ask ${orgA?.organisation_name ?? "the other party"} to change it.`
+                      : previewLocked
                       ? "This text is locked because a signature has been added."
                       : "Edit any clause directly — erase what doesn't apply, adjust wording as needed."}
                   </p>
@@ -1600,21 +1618,23 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                 {displaySections.map((s) => (
                   <div key={s.id}>
                     <p className="text-sm font-semibold uppercase tracking-wide text-black dark:text-white mb-1">{s.title}</p>
-                    {previewLocked ? (
-                      <p className="text-base text-black dark:text-white leading-relaxed whitespace-pre-line">
-                        {s.body}
-                      </p>
-                    ) : (
+                    {canEditDocumentContent ? (
                       <textarea
                         value={s.body}
                         onChange={(e) => handleSectionEdit(s.id, e.target.value)}
                         rows={Math.max(3, Math.ceil(s.body.length / 80))}
                         className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white leading-relaxed focus:outline-none focus:border-[#2D6A4F]/50 resize-y"
                       />
+                    ) : (
+                      <p className="text-base text-black dark:text-white leading-relaxed whitespace-pre-line">
+                        {s.body}
+                      </p>
                     )}
+                    {(isViewerOrgA || isViewerOrgB) &&
+                      renderFlagsForField(`section:${s.id}`, { canRaise: isViewerOrgB && doc.status !== "fully_executed", raiserRole: "org_b" })}
                   </div>
                 ))}
-                {!previewLocked && Object.keys(sectionOverrides).length > 0 && (
+                {canEditDocumentContent && Object.keys(sectionOverrides).length > 0 && (
                   <button type="button" onClick={savePreviewEdits} disabled={savingSections}
                     className="text-sm text-black dark:text-white hover:underline underline-offset-2 disabled:opacity-60">
                     {savingSections ? "Saving..." : "Save document edits"}
@@ -1628,16 +1648,16 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           {doc.source_type === "custom" && (
             <div className="space-y-3">
               <p className="text-base font-semibold text-black dark:text-white">Document text</p>
-              {previewLocked && (
+              {isViewerOrgB ? (
+                <p className="text-sm text-black dark:text-white">
+                  This is a read-only preview. Use the flag icon below to ask {orgA?.organisation_name ?? "the other party"} to change anything.
+                </p>
+              ) : previewLocked && (
                 <p className="text-sm text-black dark:text-white">
                   This text is locked because a signature has been added.
                 </p>
               )}
-              {previewLocked ? (
-                <p className="w-full px-4 py-3 rounded-xl border border-border bg-white dark:bg-card text-base text-black dark:text-white leading-relaxed whitespace-pre-line">
-                  {customContent}
-                </p>
-              ) : (
+              {canEditDocumentContent ? (
                 <textarea
                   value={customContent}
                   onChange={(e) => setCustomContent(e.target.value)}
@@ -1646,7 +1666,13 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                   placeholder="Write the full text of your agreement here..."
                   className="w-full px-4 py-3 rounded-xl border border-border bg-white dark:bg-card text-base text-black dark:text-white leading-relaxed focus:outline-none focus:border-[#2D6A4F]/50 resize-y"
                 />
+              ) : (
+                <p className="w-full px-4 py-3 rounded-xl border border-border bg-white dark:bg-card text-base text-black dark:text-white leading-relaxed whitespace-pre-line">
+                  {customContent}
+                </p>
               )}
+              {(isViewerOrgA || isViewerOrgB) &&
+                renderFlagsForField("custom_content", { canRaise: isViewerOrgB && doc.status !== "fully_executed", raiserRole: "org_b" })}
               {canVoidAndReopen && (
                 <button type="button" onClick={() => setShowVoidConfirm(true)}
                   className="text-sm text-red-600 hover:underline underline-offset-2">
@@ -1681,6 +1707,19 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           {/* Send / sign actions */}
           <div className="space-y-3 border-t border-border pt-5">
             <p className="text-base font-semibold text-black dark:text-white">Send & sign</p>
+
+            {isViewerOrgA && doc.status === "draft" && (
+              <div className="space-y-2">
+                <p className="text-sm text-black dark:text-white">
+                  {orgB?.organisation_name ?? "Your partner"} can't see this document until you send it.
+                </p>
+                <button type="button" onClick={markSent}
+                  disabled={saving || missingFieldLabels.length > 0 || dateValidationErrors.length > 0}
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors disabled:opacity-60">
+                  <Send className="w-4 h-4" /> {saving ? "Sending..." : `Send to ${orgB?.organisation_name ?? "partner"}`}
+                </button>
+              </div>
+            )}
 
             {missingFieldLabels.length > 0 && (doc.source_type !== "template" || !isViewerOrgB || orgBCanFillTheirPart) && (
               <div className="rounded-xl border border-border bg-muted/20 p-4">

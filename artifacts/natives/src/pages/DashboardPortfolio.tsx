@@ -727,9 +727,9 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
                       </div>
                     </td>
                     <td className="px-5 py-3">
-                      <ActionsDropdown actions={[
-                        { label: "MoU", href: `/dashboard/portfolio/mou?newForUserId=${row.creator_user_id}&partnerName=${encodeURIComponent(row.creator_name)}&initiativeId=${row.initiative_id}&initiativeTitle=${encodeURIComponent(row.initiative_title)}` },
-                      ]} />
+                      {/* No MoU action here -- the initiative creator starts
+                          the MoU, not the confirmed partner. Enforced at the
+                          database level too; see mou_documents INSERT policy. */}
                     </td>
                   </tr>
                 ))}

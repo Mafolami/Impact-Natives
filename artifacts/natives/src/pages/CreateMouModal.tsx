@@ -57,6 +57,12 @@ export default function CreateMouModal({
   // the existing document instead of hitting a duplicate-key error.
   const [checkingExisting, setCheckingExisting] = useState(true);
   const [existingDocId, setExistingDocId] = useState<string | null>(null);
+  // Initiative creator = Org A by design (platform-wide rule) -- a
+  // confirmed partner is never allowed to spin up the MoU themselves and
+  // cast themselves as org_a. The database enforces this on insert; this
+  // just gives a clear message instead of letting them hit a raw RLS
+  // error after clicking through the whole picker.
+  const [notInitiativeCreator, setNotInitiativeCreator] = useState(false);
   useEffect(() => {
     init();
   }, []);
@@ -78,6 +84,14 @@ export default function CreateMouModal({
     }
     setPartnerOrg(theirs);
     setLoadingOrgs(false);
+    if (initiativeId) {
+      const { data: ini } = await supabase.from("initiative_requests").select("user_id").eq("id", initiativeId).maybeSingle();
+      if (ini && ini.user_id !== myUserId) {
+        setNotInitiativeCreator(true);
+        setCheckingExisting(false);
+        return;
+      }
+    }
     // Scoped to this specific initiative + partner pairing -- an
     // initiative can have multiple confirmed partners, each entitled to
     // their own MoU, so checking initiative_id alone would wrongly block
@@ -352,6 +366,18 @@ export default function CreateMouModal({
     );
   }
 
+  function renderNotCreator() {
+    return (
+      <div className="text-center py-6 space-y-3">
+        <X className="w-10 h-10 text-red-600 mx-auto" />
+        <p className="text-base font-semibold text-black dark:text-white">Only the initiative creator can start this MoU</p>
+        <p className="text-sm text-black dark:text-white max-w-xs mx-auto">
+          For {initiativeTitle || "this initiative"}, only the organisation that created it can start the MoU with a confirmed partner.
+        </p>
+      </div>
+    );
+  }
+
   function renderExisting() {
     return (
       <div className="text-center py-6 space-y-3">
@@ -375,13 +401,13 @@ export default function CreateMouModal({
         onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
-            {path && !existingDocId && (
+            {path && !existingDocId && !notInitiativeCreator && (
               <button type="button" onClick={() => setPath(null)} className="text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
                 <ArrowLeft className="w-4 h-4" />
               </button>
             )}
             <h2 className="text-lg font-bold text-black dark:text-white">
-              {existingDocId ? "MoU already exists" : "Create MoU"}
+              {notInitiativeCreator ? "Not available" : existingDocId ? "MoU already exists" : "Create MoU"}
             </h2>
           </div>
           <button type="button" onClick={onClose} className="text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
@@ -393,7 +419,8 @@ export default function CreateMouModal({
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
             </div>
-          ) : existingDocId ? renderExisting()
+          ) : notInitiativeCreator ? renderNotCreator()
+            : existingDocId ? renderExisting()
             : path === "template" ? renderTemplateStep()
             : path === "custom" ? renderCustomStep()
             : path === "upload" ? renderUploadStep()
