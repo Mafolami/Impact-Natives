@@ -728,6 +728,8 @@ export function PortfolioTable() {
                       <span className="text-sm text-black dark:text-white">{row.title}</span>
                     )}
                   </td>
+                  <td className="px-4 py-3 text-sm text-black dark:text-white whitespace-nowrap">{row.type}</td>
+                  <td className="px-4 py-3"><DirectionPill direction={row.direction} /></td>
                   <td className="px-4 py-3">
                     {row.organisationHref ? (
                       <Link href={row.organisationHref}
@@ -738,10 +740,7 @@ export function PortfolioTable() {
                       <span className="text-sm text-black dark:text-white">{row.organisation}</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm text-black dark:text-white whitespace-nowrap">{row.type}</td>
                   <td className="px-4 py-3 text-xs text-black dark:text-white whitespace-nowrap">{row.supportType ?? "—"}</td>
-                  <td className="px-4 py-3"><DirectionPill direction={row.direction} /></td>
-                  <td className="px-4 py-3 text-sm text-black dark:text-white">{row.eoiCount ?? "—"}</td>
                   <td className="px-4 py-3">
                     {row.contactEmail ? (
                       <a href={`mailto:${row.contactEmail}`} className="text-xs text-[#2D6A4F] hover:underline whitespace-nowrap">
@@ -749,6 +748,7 @@ export function PortfolioTable() {
                       </a>
                     ) : <span className="text-xs text-black dark:text-white">—</span>}
                   </td>
+                  <td className="px-4 py-3 text-sm text-black dark:text-white">{row.eoiCount ?? "—"}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1 items-start">
                       <div className="flex items-center gap-1.5">
