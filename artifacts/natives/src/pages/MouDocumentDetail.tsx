@@ -1,10 +1,9 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, type ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import { jsPDF } from "jspdf";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { BRICOLAGE_GROTESQUE_BOLD_BASE64 } from "@/lib/fonts/bricolageGrotesqueBold";
-import { X, Loader2, Download, Upload, CheckCircle2, Send, ArrowLeft, PenLine, Flag } from "lucide-react";
-import SignaturePad from "@/components/dashboard/SignaturePad";
+import { X, Loader2, Download, Upload, CheckCircle2, Send, ArrowLeft, PenLine, Flag, Lock, Clock, PartyPopper, Trash2 } from "lucide-react";import SignaturePad from "@/components/dashboard/SignaturePad";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SectionVariant { toggle_value: string | boolean | null; body: string }
@@ -606,6 +605,21 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       </div>
     );
   }
+  function InfoBanner({ tone, icon: Icon, children }: { tone: "locked" | "waiting" | "success" | "celebrate"; icon: typeof Lock; children: ReactNode }) {
+    const styles = {
+      locked: { bg: "bg-white dark:bg-card", border: "border-border", icon: "text-black dark:text-white" },
+      waiting: { bg: "bg-amber-50 dark:bg-amber-950/20", border: "border-amber-200 dark:border-amber-900/40", icon: "text-amber-600 dark:text-amber-500" },
+      success: { bg: "bg-[#2D6A4F]/[0.06]", border: "border-[#2D6A4F]/20", icon: "text-[#2D6A4F]" },
+      celebrate: { bg: "bg-[#2D6A4F]/10", border: "border-[#2D6A4F]/30", icon: "text-[#2D6A4F]" },
+    }[tone];
+    return (
+      <div className={`flex items-start gap-3 rounded-xl border ${styles.border} ${styles.bg} px-4 py-3`}>
+        <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${styles.icon}`} />
+        <p className="text-sm text-black dark:text-white leading-relaxed">{children}</p>
+      </div>
+    );
+  }
+
   function renderFlagsForField(key: string, opts: { canRaise: boolean; raiserRole: "org_a" | "org_b" }) {
     const flags = (doc?.field_flags ?? []).filter((f) => f.field_key === key);
     return (
@@ -613,7 +627,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
         {flags.map((f) => {
           const iCanResolve = !f.resolved && ((f.raised_by === "org_b" && isViewerOrgA) || (f.raised_by === "org_a" && isViewerOrgB));
           return (
-            <div key={f.id} className={`text-sm rounded-md px-2 py-1 ${f.resolved ? "bg-muted/20 text-black/60 dark:text-white/60" : "bg-amber-50 text-amber-800 border border-amber-200"}`}>
+            <div key={f.id} className={`text-sm rounded-md px-2 py-1 ${f.resolved ? "bg-muted/20 text-black dark:text-white" : "bg-amber-50 text-amber-800 border border-amber-200"}`}>
               <span>{f.note}</span>
               {iCanResolve && (
                 <button type="button" onClick={() => resolveFlag(f.id)} className="ml-2 underline underline-offset-2">
@@ -642,7 +656,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
            ) : (
             <button type="button" onClick={() => setOpenFlagField(key)}
               aria-label="Flag this" title="Flag this"
-              className="inline-flex items-center justify-center w-7 h-7 rounded-full text-black/50 dark:text-white/50 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors">
+              className="inline-flex items-center justify-center w-7 h-7 rounded-full text-black dark:text-white hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors">
               <Flag className="w-3.5 h-3.5" />
             </button>
           )
@@ -753,11 +767,17 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     setSaving(false);
   }
 
-  async function markSent() {
+   async function markSent() {
     if (!doc || !orgB) return;
     setSaving(true);
-    await supabase.from("mou_documents").update({ status: "sent", updated_at: new Date().toISOString() }).eq("id", doc.id);
-    setDoc({ ...doc, status: "sent" });
+    // Same atomic-save principle as signing: whatever's currently in the
+    // form must be captured here, or clicking Send right after filling
+    // the form silently discards it -- this was a real data-loss bug,
+    // not just a missing save.
+    const updates: Record<string, any> = { status: "sent", field_values: fieldValues, updated_at: new Date().toISOString() };
+    if (doc.source_type === "custom") updates.custom_content = customContent;
+    await supabase.from("mou_documents").update(updates).eq("id", doc.id);
+    setDoc({ ...doc, ...updates } as MouDoc);
     setSaving(false);
     // Org B has no visibility into this document at all until now (RLS
     // blocks it while draft), so this is the only way they'll find out
@@ -1465,12 +1485,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                         ? "These control which clauses appear in the document. Locked once either party signs."
                         : "Set at document creation. Locked because a signature exists on this document."}
                     </p>
-                    {canVoidAndReopen && (
-                      <button type="button" onClick={() => setShowVoidConfirm(true)}
-                        className="text-sm text-red-600 hover:underline underline-offset-2">
-                        Need to change these? Void signatures and reopen
-                      </button>
-                    )}
                   </div>
                   <div className="rounded-xl border border-border p-4 space-y-4">
                     {template.toggles.map((t) => {
@@ -1558,13 +1572,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                     </div>
                   )}
 
-                  {isViewerOrgA && orgADetailsEditable && (
-                    <button type="button" onClick={saveFieldValues} disabled={saving}
-                      className="text-sm text-black dark:text-white hover:underline underline-offset-2 disabled:opacity-60">
-                      {saving ? "Saving..." : "Save progress"}
-                    </button>
-                  )}
-
                   {groupedFieldKeys.orgBKeys.length > 0 && (
                     <div className="rounded-xl border border-border p-4 space-y-3">
                       <p className="text-sm font-semibold text-[#2D6A4F] uppercase tracking-wide">
@@ -1593,13 +1600,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                               </div>
                             ))}
                           </div>
-                          {orgBFieldsEditable && (
-                            <button type="button" onClick={saveFieldValues} disabled={saving}
-                              className="text-sm text-black dark:text-white hover:underline underline-offset-2 disabled:opacity-60">
-                              {saving ? "Saving..." : "Save field values"}
-                            </button>
-                          )}
-                        </>
+                          </>
                       )}
                     </div>
                   )}
@@ -1615,13 +1616,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                       : previewLocked
                       ? "This text is locked because a signature has been added."
                       : "Edit any clause directly — erase what doesn't apply, adjust wording as needed."}
-                  </p>
-                  {canVoidAndReopen && (
-                    <button type="button" onClick={() => setShowVoidConfirm(true)}
-                      className="text-sm text-red-600 hover:underline underline-offset-2">
-                      Need to change this? Void signatures and reopen
-                    </button>
-                  )}
+                   </p>
                 </div>
                 {displaySections.map((s) => (
                   <div key={s.id}>
@@ -1681,12 +1676,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               )}
               {(isViewerOrgA || isViewerOrgB) &&
                 renderFlagsForField("custom_content", { canRaise: isViewerOrgB && doc.status !== "fully_executed", raiserRole: "org_b" })}
-              {canVoidAndReopen && (
-                <button type="button" onClick={() => setShowVoidConfirm(true)}
-                  className="text-sm text-red-600 hover:underline underline-offset-2">
-                  Need to change this? Void signatures and reopen
-                </button>
-              )}
               {saving && <p className="text-sm text-black dark:text-white">Saving...</p>}
             </div>
           )}
@@ -1695,12 +1684,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           {doc.source_type === "uploaded_pdf" && (
             <div className="space-y-3">
               <p className="text-base font-semibold text-black dark:text-white">Uploaded document</p>
-              {canVoidAndReopen && (
-                <button type="button" onClick={() => setShowVoidConfirm(true)}
-                  className="text-sm text-red-600 hover:underline underline-offset-2">
-                  Need to change this? Void signatures and reopen
-                </button>
-              )}
               {uploadedFileUrl ? (
                 <a href={uploadedFileUrl} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-black dark:text-white hover:underline underline-offset-2 text-base">
@@ -1717,17 +1700,39 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
             <p className="text-base font-semibold text-black dark:text-white">Send & sign</p>
 
             {isViewerOrgA && doc.status === "draft" && (
-              <div className="space-y-2">
-                <p className="text-sm text-black dark:text-white">
-                  {orgB?.organisation_name ?? "Your partner"} can't see this document until you send it.
-                </p>
-                <button type="button" onClick={markSent}
-                  disabled={saving || missingFieldLabels.length > 0 || dateValidationErrors.length > 0}
-                  className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors disabled:opacity-60">
-                  <Send className="w-4 h-4" /> {saving ? "Sending..." : `Send to ${orgB?.organisation_name ?? "partner"}`}
-                </button>
-              </div>
+              <p className="text-sm text-black dark:text-white">
+                {orgB?.organisation_name ?? "Your partner"} can't see this document until you send it.
+              </p>
             )}
+
+            {(() => {
+              const canSaveProgress = doc.source_type === "template" && (orgADetailsEditable || orgBFieldsEditable);
+              const canSend = isViewerOrgA && doc.status === "draft";
+              if (!canSaveProgress && !canSend && !canVoidAndReopen) return null;
+              return (
+                <div className="flex flex-wrap items-center gap-2">
+                  {canSaveProgress && (
+                    <button type="button" onClick={saveFieldValues} disabled={saving}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-border text-black dark:text-white hover:border-[#2D6A4F]/50 transition-colors disabled:opacity-60 text-sm font-medium">
+                      {saving ? "Saving..." : "Save progress"}
+                    </button>
+                  )}
+                  {canSend && (
+                    <button type="button" onClick={markSent}
+                      disabled={saving || missingFieldLabels.length > 0 || dateValidationErrors.length > 0}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors disabled:opacity-60">
+                      <Send className="w-4 h-4" /> {saving ? "Sending..." : `Send to ${orgB?.organisation_name ?? "partner"}`}
+                    </button>
+                  )}
+                  {canVoidAndReopen && (
+                    <button type="button" onClick={() => setShowVoidConfirm(true)}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-red-300 dark:border-red-900/50 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors text-sm font-medium">
+                      <Trash2 className="w-4 h-4" /> Void signatures and reopen
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
 
             {missingFieldLabels.length > 0 && (doc.source_type !== "template" || !isViewerOrgB || orgBCanFillTheirPart) && (
               <div className="rounded-xl border border-border bg-muted/20 p-4">
@@ -1849,9 +1854,9 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                   if (myLocked) {
                     return (
                       <div className="border-t border-border pt-4">
-                        <p className="text-sm text-black dark:text-white">
+                        <InfoBanner tone="locked" icon={Lock}>
                           You have finalized your signature on this document. It can no longer be changed.
-                        </p>
+                        </InfoBanner>
                       </div>
                     );
                   }
@@ -1886,7 +1891,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                             className="text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium transition-colors">
                             {isOrgA ? "Finish" : `Submit for ${orgA?.organisation_name ?? "final"} review`}
                           </button>
-                          <p className="text-sm text-black/60 dark:text-white/60">
+                          <p className="text-sm text-black dark:text-white">                            
                             {isOrgA
                               ? "Once you finish, you won't be able to change or clear your signature again."
                               : `Once you submit, you won't be able to change or clear your signature again. ${orgA?.organisation_name ?? "The other party"} will do a final review before the MoU is fully executed.`}
@@ -1912,14 +1917,14 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           {isViewerOrgA && doc.status === "pending_org_a_final_review" && (
             <div className="space-y-2">
               {hasUnresolvedOrgAFlags && (
-                <p className="text-sm text-black dark:text-white">
+                <InfoBanner tone="waiting" icon={Clock}>
                   Waiting for {orgB?.organisation_name ?? "the other party"} to resolve the flags you raised before you can finalize.
-                </p>
+                </InfoBanner>
               )}
               {!hasUnresolvedOrgAFlags && finalizeBlockedOnOrgBConfirmation && (
-                <p className="text-sm text-black dark:text-white">
+                <InfoBanner tone="waiting" icon={Clock}>
                   This MoU includes binding commitments. Waiting for {orgB?.organisation_name ?? "the other party"} to confirm they have no objection before you can finalize.
-                </p>
+                </InfoBanner>
               )}
               <button type="button" onClick={finalizeDocument}
                 disabled={finalizing || hasUnresolvedOrgAFlags || finalizeBlockedOnOrgBConfirmation}
@@ -1930,9 +1935,9 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           )}
           {orgBCanConfirmFinalization && (
             <div className="space-y-2">
-              <p className="text-sm text-black dark:text-white">
+              <InfoBanner tone="waiting" icon={Clock}>
                 This MoU includes binding commitments. Confirm you have no objection before {orgA?.organisation_name ?? "the other party"} can finalize it.
-              </p>
+              </InfoBanner>
               <button type="button" onClick={confirmFinalization}
                 disabled={confirmingFinalization}
                 className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3 text-base font-medium transition-colors disabled:opacity-60">
@@ -1941,15 +1946,15 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
             </div>
           )}
           {isViewerOrgB && doc.status === "pending_org_a_final_review" && !hasUnresolvedOrgAFlags && isBindingMou && doc.org_b_finalization_confirmed && (
-            <p className="text-sm text-black dark:text-white">
+            <InfoBanner tone="success" icon={CheckCircle2}>
               You've confirmed no objection. Waiting for {orgA?.organisation_name ?? "the other party"} to finalize.
-            </p>
+            </InfoBanner>
           )}
           {isViewerOrgA && doc.status === "fully_executed" && !doc.partnership_status_confirmed && (
             <div className="space-y-2">
-              <p className="text-sm text-black dark:text-white">
+              <InfoBanner tone="celebrate" icon={PartyPopper}>
                 This MoU is fully executed. Mark the {doc.initiative_id ? "initiative" : "partnership"} as executed so it's reflected wherever this relationship is shown.
-              </p>
+              </InfoBanner>
               <button type="button" onClick={confirmPartnershipStatus}
                 disabled={confirmingPartnershipStatus}
                 className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3 text-base font-medium transition-colors disabled:opacity-60">
@@ -1958,22 +1963,22 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
             </div>
           )}
           {doc.status === "fully_executed" && doc.partnership_status_confirmed && (
-            <p className="text-sm text-black dark:text-white">
+            <InfoBanner tone="success" icon={CheckCircle2}>
               Partnership status updated{doc.partnership_status_confirmed_at ? ` on ${new Date(doc.partnership_status_confirmed_at).toLocaleDateString("en-GB")}` : ""}.
-            </p>
+            </InfoBanner>
           )}
           {/* Export */}
           {doc.source_type !== "uploaded_pdf" && (
             <div className="space-y-2">
               {doc.final_document_path && (
-                <p className="text-sm text-black dark:text-white">
+                <InfoBanner tone="celebrate" icon={PartyPopper}>
                   This MoU is fully executed. Exporting now gives you the final signed copy both parties hold.
-                </p>
+                </InfoBanner>
               )}
               {exportDisabledForOrgB && (
-                <p className="text-sm text-black dark:text-white">
+                <InfoBanner tone="waiting" icon={Clock}>
                   Export will be available once {orgA?.organisation_name ?? "the other party"} finalizes the document.
-                </p>
+                </InfoBanner>
               )}
               <button type="button" onClick={exportPdf} disabled={exportDisabledForOrgB}
                 className="w-full flex items-center justify-center gap-2 border border-border rounded-full py-3 text-base font-medium text-black dark:text-white hover:border-[#2D6A4F]/50 transition-colors disabled:cursor-not-allowed disabled:opacity-60">

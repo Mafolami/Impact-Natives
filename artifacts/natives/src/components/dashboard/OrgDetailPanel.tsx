@@ -559,7 +559,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
 
         {viewerOrgLoading ? (
           <div className="rounded-xl border border-border bg-card px-5 py-4">
-            <span className="text-xs font-semibold text-black/40 dark:text-white/40">Loading...</span>
+            <span className="text-xs font-semibold text-black dark:text-white">Loading...</span>
           </div>
         ) : org.user_id === viewerOrg?.user_id ? (
           <div className="rounded-xl border border-border bg-card px-5 py-4">
@@ -954,7 +954,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
 
         {viewerOrgLoading ? (
           <div className="px-8 py-4 border-t border-border">
-            <span className="text-xs font-semibold text-black/40 dark:text-white/40">Loading...</span>
+            <span className="text-xs font-semibold text-black dark:text-white">Loading...</span>
           </div>
         ) : org.user_id === viewerOrg?.user_id ? (
           <div className="px-8 py-4 border-t border-border">

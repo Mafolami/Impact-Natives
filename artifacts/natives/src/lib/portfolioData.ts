@@ -80,8 +80,11 @@ const INITIATIVE_STATUS_MAP: Record<string, string> = {
 // Mirrors InterestsExpressedTab's existing status derivation exactly, so
 // the tracker doesn't introduce a second, inconsistent vocabulary for the
 // same underlying conversation states.
-function deriveEoiStatus(conversationStatus: string | null | undefined): string {
-  if (conversationStatus === "confirmed") return "Partner confirmed";
+function mouExecutedFor(confirmedPartners: any[] | null | undefined, userId: string): boolean {
+  return (confirmedPartners ?? []).some((p: any) => p.user_id === userId && p.status === "mou_executed");
+}
+
+function deriveEoiStatus(conversationStatus: string | null | undefined): string {  if (conversationStatus === "confirmed") return "Partner confirmed";
   if (conversationStatus === "open") return "In conversation";
   if (conversationStatus === "declined" || conversationStatus === "rejected") return "Declined";
   return "Interest expressed";
@@ -238,7 +241,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
       .maybeSingle(),
     supabase
       .from("initiative_requests")
-      .select("id, title, status, eois, created_at")
+      .select("id, title, status, eois, created_at, confirmed_partners")
       .eq("user_id", userId)
       .not("status", "eq", "draft"),
     supabase
@@ -284,9 +287,8 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
     const initIds = [...new Set(myEois.map(e => e.initiative_id))];
     const { data: inits } = await supabase
       .from("initiative_requests")
-      .select("id, title, user_id")
-      .in("id", initIds);
-    const initMap = new Map((inits ?? []).map(i => [i.id, i]));
+      .select("id, title, user_id, confirmed_partners")
+      .in("id", initIds);    const initMap = new Map((inits ?? []).map(i => [i.id, i]));
 
     const ownerUserIds = [...new Set((inits ?? []).map(i => i.user_id).filter(Boolean))];
     const { data: ownerOrgs } = ownerUserIds.length
@@ -304,7 +306,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
       const ini = initMap.get(eoi.initiative_id);
       const ownerOrg = ini ? ownerOrgMap.get(ini.user_id) : undefined;
       const conv = eoi.conversation_id ? convMap.get(eoi.conversation_id) : undefined;
-      const status = deriveEoiStatus(conv?.status);
+      const status = mouExecutedFor(ini?.confirmed_partners, userId) ? "MoU Executed" : deriveEoiStatus(conv?.status);
       rows.push({
         id: `ini-eoi-out-${eoi.id}`,
         title: ini?.title ?? "Initiative",
@@ -315,7 +317,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
         supportType: eoi.partnership_type ? (EOI_SUPPORT_TYPE_LABELS[eoi.partnership_type] ?? eoi.partnership_type) : null,
         direction: "Outbound",
         eoiCount: null,
-        contactEmail: status === "Partner confirmed" ? ownerOrg?.email ?? null : null,
+        contactEmail: (status === "Partner confirmed" || status === "MoU Executed") ? ownerOrg?.email ?? null : null,
         contactPhone: null,
         status,
         date: conv?.updated_at ?? eoi.created_at,
@@ -367,7 +369,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
       const org = expresserOrgMap.get(eoi.user_id);
       const profile = expresserProfileMap.get(eoi.user_id);
       const conv = eoi.conversation_id ? convMap2.get(eoi.conversation_id) : undefined;
-      const status = deriveEoiStatus(conv?.status);
+      const status = mouExecutedFor(ini?.confirmed_partners, eoi.user_id) ? "MoU Executed" : deriveEoiStatus(conv?.status);
       rows.push({
         id: `ini-eoi-in-${eoi.id}`,
         title: ini?.title ?? "Initiative",
@@ -378,8 +380,8 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
         supportType: eoi.partnership_type ? (EOI_SUPPORT_TYPE_LABELS[eoi.partnership_type] ?? eoi.partnership_type) : null,
         direction: "Inbound",
         eoiCount: null,
-        contactEmail: status === "Partner confirmed" ? (profile?.email ?? org?.email ?? null) : null,
-        contactPhone: status === "Partner confirmed" ? (profile?.phone ?? null) : null,
+        contactEmail: (status === "Partner confirmed" || status === "MoU Executed") ? (profile?.email ?? org?.email ?? null) : null,
+        contactPhone: (status === "Partner confirmed" || status === "MoU Executed") ? (profile?.phone ?? null) : null,
         status,
         date: conv?.updated_at ?? eoi.created_at,
         outcome: null,
@@ -398,10 +400,10 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
     if (!myOrg?.id) return;
     const [{ data: sent }, { data: received }] = await Promise.all([
       supabase.from("partnership_connections")
-        .select("id, receiver_org_id, status, partnership_type, partnership_title, created_at, updated_at, accepted_at, formed_at, declined_at")
+        .select("id, receiver_org_id, status, partnership_type, partnership_title, created_at, updated_at, accepted_at, formed_at, declined_at, mou_executed_at")
         .eq("sender_org_id", myOrg.id),
       supabase.from("partnership_connections")
-        .select("id, sender_org_id, status, partnership_type, partnership_title, created_at, updated_at, accepted_at, formed_at, declined_at")
+        .select("id, sender_org_id, status, partnership_type, partnership_title, created_at, updated_at, accepted_at, formed_at, declined_at, mou_executed_at")
         .eq("receiver_org_id", myOrg.id),
     ]);
 
@@ -418,7 +420,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
 
     for (const conn of sent ?? []) {
       const counterpart = counterpartMap.get(conn.receiver_org_id);
-      const status = PARTNERSHIP_STATUS_MAP[conn.status] ?? conn.status;
+      const status = conn.mou_executed_at ? "MoU Executed" : (PARTNERSHIP_STATUS_MAP[conn.status] ?? conn.status);
       rows.push({
         id: `partner-out-${conn.id}`,
         title: resolvePartnershipTitle(counterpart, conn.partnership_title),
@@ -429,7 +431,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
         supportType: conn.partnership_type ?? null,
         direction: "Outbound",
         eoiCount: null,
-        contactEmail: status === "Partnership formed" ? counterpart?.email ?? null : null,
+        contactEmail: (status === "Partnership formed" || status === "MoU Executed") ? counterpart?.email ?? null : null,
         contactPhone: null,
         status,
         date: conn.updated_at,
@@ -441,7 +443,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
 
     for (const conn of received ?? []) {
       const counterpart = counterpartMap.get(conn.sender_org_id);
-      const status = PARTNERSHIP_STATUS_MAP[conn.status] ?? conn.status;
+      const status = conn.mou_executed_at ? "MoU Executed" : (PARTNERSHIP_STATUS_MAP[conn.status] ?? conn.status);
       const title = myOrg.partnership_sought
         ? resolvePartnershipTitle(myOrg, myOrg.partnership_title)
         : resolvePartnershipTitle(counterpart, conn.partnership_title);
@@ -455,7 +457,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
         supportType: conn.partnership_type ?? null,
         direction: "Inbound",
         eoiCount: null,
-        contactEmail: status === "Partnership formed" ? counterpart?.email ?? null : null,
+        contactEmail: (status === "Partnership formed" || status === "MoU Executed") ? counterpart?.email ?? null : null,
         contactPhone: null,
         status,
         date: conn.updated_at,

@@ -344,11 +344,11 @@ export default function MouTab() {
                       <button type="button"
                         onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(d.id); }}
                         aria-label="Delete draft MoU"
-                        className="p-1 -m-1 text-black/40 dark:text-white/40 hover:text-red-600 dark:hover:text-red-500 transition-colors shrink-0">
+                        className="p-1 -m-1 text-black dark:text-white hover:text-red-600 dark:hover:text-red-500 transition-colors shrink-0">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     )}
-                    <ArrowRight className="w-4 h-4 text-black/40 dark:text-white/40 shrink-0" />
+                    <ArrowRight className="w-4 h-4 text-black dark:text-white shrink-0" />
                   </div>
                 </div>
                 {d.status !== "draft" && (
@@ -367,7 +367,7 @@ export default function MouTab() {
                                 </svg>
                               )}
                             </div>
-                            <p className={`text-[11px] leading-snug ${s.completed ? "text-black dark:text-white" : "text-black/40 dark:text-white/40"}`}>
+                            <p className={`text-[11px] leading-snug text-black dark:text-white ${s.completed ? "font-semibold" : "font-normal"}`}>
                               {s.label}
                             </p>
                           </div>

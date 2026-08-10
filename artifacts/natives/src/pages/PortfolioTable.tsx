@@ -41,6 +41,7 @@ const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
   "Partnership formed":   { bg: "rgba(3,105,161,0.12)",  color: "#0369a1" },
   "Awaiting confirmation":{ bg: "rgba(196,92,38,0.08)",  color: "#C45C26" },
   "Unlisted":             { bg: "rgba(107,114,128,0.12)",color: "#6b7280" },
+  "MoU Executed":         { bg: "rgba(45,106,79,0.16)",  color: "#2D6A4F" },
 };
 
 const DIRECTION_STYLES: Record<PortfolioDirection, { bg: string; color: string }> = {
