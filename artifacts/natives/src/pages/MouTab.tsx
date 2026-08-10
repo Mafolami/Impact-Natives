@@ -39,19 +39,35 @@ interface PartnerOption {
   connectionId: string | null;
 }
 
-const STATUS_META: Record<string, { label: string; color: string }> = {
-  draft: { label: "Draft", color: "#C45C26" },
-  sent: { label: "Sent — awaiting signatures", color: "#C45C26" },
-  signed_by_org_a: { label: "Partly signed", color: "#2D6A4F" },
-  signed_by_org_b: { label: "Partly signed", color: "#2D6A4F" },
-  pending_org_a_final_review: { label: "Awaiting final review", color: "#C45C26" },
-  fully_executed: { label: "Fully executed", color: "#2D6A4F" },
-};
 const SOURCE_META: Record<string, { label: string; icon: typeof FileText }> = {
   template: { label: "Template", icon: FileText },
   custom: { label: "Custom", icon: PenLine },
   uploaded_pdf: { label: "Uploaded", icon: Upload },
 };
+// Same stage order as the detail page's tracker, reduced to a boolean per
+// stage rather than labels -- powers the segmented progress bar on each
+// card, a compact visual echo of the full tracker without opening the doc.
+function computeStageCompletion(d: MouDocRow): boolean[] {
+  const flags = d.field_flags ?? [];
+  const hasUnresolvedOrgBFlags = flags.some((f) => !f.resolved && f.raised_by === "org_b");
+  const isBindingMou = d.toggle_selections?.["agreement_type"] === "binding";
+  const orgBSubmittedForReview = d.status === "pending_org_a_final_review" || d.status === "fully_executed";
+  const completed: boolean[] = [];
+  if (d.source_type === "template") {
+    completed.push(d.details_completed_by_org_a && !hasUnresolvedOrgBFlags);
+    completed.push(orgBSubmittedForReview);
+  } else if (d.source_type === "uploaded_pdf") {
+    completed.push(!!d.signed_files?.[d.org_a_id]);
+    completed.push(!!d.signed_files?.[d.org_b_id]);
+  } else {
+    completed.push(d.signature_locked_org_a);
+    completed.push(d.signature_locked_org_b);
+  }
+  if (isBindingMou) completed.push(d.org_b_finalization_confirmed);
+  completed.push(d.status === "fully_executed");
+  completed.push(d.partnership_status_confirmed);
+  return completed;
+}
 // Condensed version of the detail page's stage tracker -- same underlying
 // logic (signature locks, details_completed_by_org_a, binding confirmation,
 // partnership write-back), reduced to a single accurate next-action line
@@ -234,38 +250,37 @@ export default function MouTab() {
 
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-black dark:text-white">MoUs</h1>
-        <p className="text-sm text-black dark:text-white mt-0.5">
-          Memorandums of understanding across your confirmed partnerships and initiatives.
-        </p>
-      </div>
-      <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex gap-4 text-sm">
-          <div>
-            <p className="text-lg font-bold text-black dark:text-white leading-none">{docs.length}</p>
-            <p className="text-xs text-black dark:text-white mt-1">Total</p>
-          </div>
-          <div className="w-px bg-border" />
-          <div>
-            <p className="text-lg font-bold text-black dark:text-white leading-none">
-              {docs.filter((d) => d.status !== "draft" && d.status !== "fully_executed").length}
-            </p>
-            <p className="text-xs text-black dark:text-white mt-1">In progress</p>
-          </div>
-          <div className="w-px bg-border" />
-          <div>
-            <p className="text-lg font-bold text-black dark:text-white leading-none">
-              {docs.filter((d) => d.status === "fully_executed").length}
-            </p>
-            <p className="text-xs text-black dark:text-white mt-1">Fully executed</p>
-          </div>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">MoUs</h1>
+          <p className="text-sm text-black dark:text-white mt-1 max-w-md">
+            Memorandums of understanding across your confirmed partnerships and initiatives.
+          </p>
         </div>
         <button type="button" onClick={openPicker}
-          className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium transition-colors shrink-0">
+          className="flex items-center gap-1.5 h-10 px-5 rounded-full text-white text-sm font-bold transition-all hover:brightness-110 active:scale-[0.98] shrink-0"
+          style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
           <Plus className="w-4 h-4" /> New MoU
         </button>
+      </div>
+      <div className="space-y-5">
+      <div className="grid grid-cols-3 gap-3 sm:max-w-md">
+        <div className="rounded-xl p-3.5 bg-muted border border-border">
+          <p className="text-lg font-black text-foreground leading-none">{docs.length}</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-black dark:text-white mt-1.5">Total</p>
+        </div>
+        <div className="rounded-xl p-3.5 bg-muted border border-border">
+          <p className="text-lg font-black text-[#C45C26] leading-none">
+            {docs.filter((d) => d.status !== "draft" && d.status !== "fully_executed").length}
+          </p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-black dark:text-white mt-1.5">In progress</p>
+        </div>
+        <div className="rounded-xl p-3.5 bg-muted border border-border">
+          <p className="text-lg font-black text-[#2D6A4F] leading-none">
+            {docs.filter((d) => d.status === "fully_executed").length}
+          </p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-black dark:text-white mt-1.5">Fully executed</p>
+        </div>
       </div>
       {docs.length === 0 ? (
         <div className="rounded-2xl border border-border bg-white dark:bg-card p-12 text-center">
@@ -309,14 +324,23 @@ export default function MouTab() {
                   </div>
                   <ArrowRight className="w-4 h-4 text-black/40 dark:text-white/40 shrink-0 mt-1" />
                 </div>
-                <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
-                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-black dark:text-white">
-                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: meta.color }} />
-                    {meta.label}
-                  </span>
-                  <span className="text-xs text-black dark:text-white whitespace-nowrap">
-                    {new Date(d.updated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                  </span>
+                <div className="pt-3 border-t border-border space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full"
+                      style={{ background: meta.color === "#2D6A4F" ? "rgba(45,106,79,0.12)" : "rgba(196,92,38,0.12)", color: meta.color }}>
+                      {meta.label}
+                    </span>
+                    <span className="text-xs text-black dark:text-white whitespace-nowrap">
+                      {new Date(d.updated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                    </span>
+                  </div>
+                  {d.status !== "draft" && (
+                    <div className="flex items-center gap-1">
+                      {computeStageCompletion(d).map((done, i) => (
+                        <span key={i} className={`h-1.5 flex-1 rounded-full ${done ? "bg-[#2D6A4F]" : "bg-border"}`} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </button>
             );

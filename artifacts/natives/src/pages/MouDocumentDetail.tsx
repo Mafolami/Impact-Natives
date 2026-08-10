@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { jsPDF } from "jspdf";
 import { BRICOLAGE_GROTESQUE_BOLD_BASE64 } from "@/lib/fonts/bricolageGrotesqueBold";
-import { X, Loader2, Download, Upload, CheckCircle2, Send, Circle, ArrowLeft } from "lucide-react";
+import { X, Loader2, Download, Upload, CheckCircle2, Send, Circle, ArrowLeft, Check } from "lucide-react";
 import SignaturePad from "@/components/dashboard/SignaturePad";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -1339,34 +1339,8 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           </span>
         </div>
       </div>
-          {/* Signing progress tracker */}
-          <div className="rounded-xl border border-border p-4 space-y-3">
-            <p className="text-sm font-semibold text-black dark:text-white">Signing progress</p>
-            <div className="space-y-2.5">
-              {stages.map((s) => {
-                const isCurrent = currentStage?.key === s.key;
-                return (
-                  <div key={s.key} className="flex items-start gap-2.5">
-                    {s.completed ? (
-                      <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-[#2D6A4F]" />
-                    ) : (
-                      <Circle className={`w-4 h-4 shrink-0 mt-0.5 ${isCurrent ? "text-[#C45C26]" : "text-black/30 dark:text-white/30"}`} />
-                    )}
-                    <div>
-                      <p className={`text-sm ${
-                        s.completed ? "text-black dark:text-white" : isCurrent ? "text-black dark:text-white font-medium" : "text-black/50 dark:text-white/50"
-                      }`}>
-                        {s.label}
-                      </p>
-                      {isCurrent && s.blocked && (
-                        <p className="text-xs text-black dark:text-white mt-0.5">{s.blocked}</p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
+        <div className="space-y-6 min-w-0">
           {/* Template: fillable fields */}
           {doc.source_type === "template" && (
             <>
@@ -1837,6 +1811,44 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               </button>
             </div>
           )}
+        </div>
+        <div className="lg:sticky lg:top-6 rounded-2xl border border-border bg-white dark:bg-card p-5 space-y-4">
+          <p className="text-sm font-bold text-black dark:text-white">Signing progress</p>
+          <div className="relative">
+            {stages.map((s, i) => {
+              const isCurrent = currentStage?.key === s.key;
+              return (
+                <div key={s.key} className="relative flex gap-3 pb-6 last:pb-0">
+                  {i < stages.length - 1 && (
+                    <span className="absolute left-[9px] top-5 bottom-0 w-px bg-border" />
+                  )}
+                  <div className="relative z-10 shrink-0 mt-0.5">
+                    {s.completed ? (
+                      <div className="w-5 h-5 rounded-full bg-[#2D6A4F] flex items-center justify-center">
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
+                    ) : isCurrent ? (
+                      <div className="w-5 h-5 rounded-full border-2 border-[#C45C26] bg-white dark:bg-card" />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full border-2 border-border bg-white dark:bg-card" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className={`text-sm leading-snug ${
+                      s.completed ? "text-black dark:text-white" : isCurrent ? "text-black dark:text-white font-semibold" : "text-black/40 dark:text-white/40"
+                    }`}>
+                      {s.label}
+                    </p>
+                    {isCurrent && s.blocked && (
+                      <p className="text-xs text-[#C45C26] mt-1">{s.blocked}</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
       {showVoidConfirm && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowVoidConfirm(false)}>
           <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-sm shadow-xl p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
