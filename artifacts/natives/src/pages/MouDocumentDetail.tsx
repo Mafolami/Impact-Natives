@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { jsPDF } from "jspdf";
 import { BRICOLAGE_GROTESQUE_BOLD_BASE64 } from "@/lib/fonts/bricolageGrotesqueBold";
-import { X, Loader2, Download, Upload, CheckCircle2, Send, Circle } from "lucide-react";
+import { X, Loader2, Download, Upload, CheckCircle2, Send, Circle, ArrowLeft } from "lucide-react";
 import SignaturePad from "@/components/dashboard/SignaturePad";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -1236,7 +1236,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
 
   if (loading || !doc) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="flex items-center justify-center py-24">
         <Loader2 className="w-6 h-6 text-[#2D6A4F] animate-spin" />
       </div>
     );
@@ -1323,27 +1323,22 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const trackerStatusText = !currentStage ? "Complete" : currentStage.blocked ?? `Next: ${currentStage.label}`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
-      onClick={onClose}>
-      <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-2xl shadow-xl flex flex-col max-h-[92vh]"
-        onClick={(e) => e.stopPropagation()}>
-
-        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-border shrink-0">
-          <div>
-            <h2 className="text-lg font-bold text-black dark:text-white">
-              MoU — {orgA?.organisation_name} & {orgB?.organisation_name}
-            </h2>
-            <span className="inline-flex items-center gap-1.5 mt-1 text-sm font-medium text-black dark:text-white">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: !currentStage ? "#2D6A4F" : "#C45C26" }} />
-              {trackerStatusText}
-            </span>
-          </div>
-          <button type="button" onClick={onClose} className="text-black dark:text-white hover:text-[#2D6A4F] transition-colors shrink-0">
-            <X className="w-5 h-5" />
-          </button>
+    <div className="space-y-6">
+      <button type="button" onClick={onClose}
+        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-[#C45C26] transition-colors">
+        <ArrowLeft className="w-3.5 h-3.5" /> Back
+      </button>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground tracking-tight">
+            MoU — {orgA?.organisation_name} & {orgB?.organisation_name}
+          </h2>
+          <span className="inline-flex items-center gap-1.5 mt-2 text-sm font-medium text-black dark:text-white">
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: !currentStage ? "#2D6A4F" : "#C45C26" }} />
+            {trackerStatusText}
+          </span>
         </div>
-
-        <div className="px-5 sm:px-6 py-5 overflow-y-auto space-y-6">
+      </div>
           {/* Signing progress tracker */}
           <div className="rounded-xl border border-border p-4 space-y-3">
             <p className="text-sm font-semibold text-black dark:text-white">Signing progress</p>
@@ -1842,8 +1837,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               </button>
             </div>
           )}
-        </div>
-      </div>
       {showVoidConfirm && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowVoidConfirm(false)}>
           <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-sm shadow-xl p-6 space-y-4" onClick={(e) => e.stopPropagation()}>

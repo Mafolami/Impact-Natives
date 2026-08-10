@@ -181,6 +181,17 @@ export default function MouTab() {
     );
   }
 
+  // MoU detail now renders as its own full page, matching every other
+  // detail view in the app, instead of as a modal floating on top of the
+  // list -- so opening a document replaces this view entirely.
+  if (openDocId) {
+    return (
+      <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6">
+        <MouDocumentDetail documentId={openDocId} myUserId={userId} onClose={() => { setOpenDocId(null); load(); }} />
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6">
       <div>
@@ -325,10 +336,7 @@ export default function MouTab() {
           }}
         />
       )}
-      {openDocId && (
-        <MouDocumentDetail documentId={openDocId} myUserId={userId} onClose={() => { setOpenDocId(null); load(); }} />
-      )}
-    </div>
+      </div>
     </div>
   );
 }
