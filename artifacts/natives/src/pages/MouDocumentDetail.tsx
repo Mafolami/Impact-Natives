@@ -95,6 +95,7 @@ const GOVERNING_JURISDICTION_OPTIONS = ["Federal Republic of Nigeria", "Lagos St
 
 export default function MouDocumentDetail({ documentId, myUserId, onClose }: Props) {
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [doc, setDoc] = useState<MouDoc | null>(null);
   const [template, setTemplate] = useState<MouTemplate | null>(null);
   const [orgA, setOrgA] = useState<OrgFull | null>(null);
@@ -130,9 +131,16 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   useEffect(() => { load(); }, [documentId]);
 
   async function load(opts: { silent?: boolean } = {}) {
-    if (!opts.silent) setLoading(true);
+    if (!opts.silent) { setLoading(true); setNotFound(false); }
     const { data: docRow } = await supabase.from("mou_documents").select("*").eq("id", documentId).maybeSingle();
-    if (!docRow) { if (!opts.silent) setLoading(false); return; }
+    if (!docRow) {
+      // Either the row doesn't exist, or RLS silently blocked it (e.g. a
+      // draft MoU URL guessed or bookmarked by the non-creating party).
+      // Either way, this is a real terminal state, not "still loading" --
+      // show a clear message instead of spinning forever.
+      if (!opts.silent) { setLoading(false); setNotFound(true); }
+      return;
+    }
     setDoc(docRow as MouDoc);
     setFieldValues((docRow.field_values as Record<string, string>) ?? {});
     setCustomContent(docRow.custom_content ?? "");
@@ -1361,6 +1369,20 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     const pdf = buildPdf();
     if (!pdf || !orgA || !orgB) return;
     pdf.save(`MoU-${sanitizeForPdf(orgA.organisation_name)}-${sanitizeForPdf(orgB.organisation_name)}.pdf`);
+  }
+
+  if (notFound) {
+    return (
+      <div className="max-w-lg mx-auto py-24 px-6">
+        <InfoBanner tone="locked" icon={X}>
+          This MoU isn't available. It may not exist, or you may not have access to it yet.
+        </InfoBanner>
+        <button type="button" onClick={onClose}
+          className="mt-4 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+      </div>
+    );
   }
 
   if (loading || !doc) {
