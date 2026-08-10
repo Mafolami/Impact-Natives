@@ -14,6 +14,14 @@ interface MouDocRow {
   source_type: string;
   status: string;
   updated_at: string;
+  toggle_selections: Record<string, string | boolean> | null;
+  field_flags: { raised_by: "org_a" | "org_b"; resolved: boolean }[] | null;
+  details_completed_by_org_a: boolean;
+  signature_locked_org_a: boolean;
+  signature_locked_org_b: boolean;
+  signed_files: Record<string, string> | null;
+  org_b_finalization_confirmed: boolean;
+  partnership_status_confirmed: boolean;
 }
 
 interface OrgLite {
@@ -44,6 +52,38 @@ const SOURCE_META: Record<string, { label: string; icon: typeof FileText }> = {
   custom: { label: "Custom", icon: PenLine },
   uploaded_pdf: { label: "Uploaded", icon: Upload },
 };
+// Condensed version of the detail page's stage tracker -- same underlying
+// logic (signature locks, details_completed_by_org_a, binding confirmation,
+// partnership write-back), reduced to a single accurate next-action line
+// instead of the full stage list, since the card only has room for one.
+// Replaces the old raw-status label, which said "Sent" for almost the
+// entire lifecycle regardless of what was actually happening.
+function nextActionLabel(d: MouDocRow, orgAName: string, orgBName: string): { text: string; done: boolean } {
+  const flags = d.field_flags ?? [];
+  const hasUnresolvedOrgBFlags = flags.some((f) => !f.resolved && f.raised_by === "org_b");
+  const hasUnresolvedOrgAFlags = flags.some((f) => !f.resolved && f.raised_by === "org_a");
+  const isBindingMou = d.toggle_selections?.["agreement_type"] === "binding";
+  const orgBSubmittedForReview = d.status === "pending_org_a_final_review" || d.status === "fully_executed";
+
+  if (d.status === "fully_executed") {
+    return d.partnership_status_confirmed
+      ? { text: "Fully executed", done: true }
+      : { text: `${orgAName} to mark partnership as executed`, done: true };
+  }
+  if (d.source_type === "template") {
+    if (!(d.details_completed_by_org_a && !hasUnresolvedOrgBFlags)) return { text: `Waiting on ${orgAName} to fill details and sign`, done: false };
+    if (!orgBSubmittedForReview) return { text: `Waiting on ${orgBName} to review and sign`, done: false };
+  } else if (d.source_type === "uploaded_pdf") {
+    if (!d.signed_files?.[d.org_a_id]) return { text: `Waiting on ${orgAName} to upload signed copy`, done: false };
+    if (!d.signed_files?.[d.org_b_id]) return { text: `Waiting on ${orgBName} to upload signed copy`, done: false };
+  } else {
+    if (!d.signature_locked_org_a) return { text: `Waiting on ${orgAName} to sign`, done: false };
+    if (!d.signature_locked_org_b) return { text: `Waiting on ${orgBName} to sign`, done: false };
+  }
+  if (hasUnresolvedOrgAFlags) return { text: `Waiting on ${orgAName} to resolve flags`, done: false };
+  if (isBindingMou && !d.org_b_finalization_confirmed) return { text: `Waiting on ${orgBName} to confirm no objection`, done: false };
+  return { text: `Waiting on ${orgAName} to finalize`, done: false };
+}
 
 export default function MouTab() {
   const { user } = useAuth();
@@ -91,7 +131,7 @@ export default function MouTab() {
 
     const { data: docRows } = await supabase
       .from("mou_documents")
-      .select("id, org_a_id, org_b_id, initiative_id, source_type, status, updated_at")
+      .select("id, org_a_id, org_b_id, initiative_id, source_type, status, updated_at, toggle_selections, field_flags, details_completed_by_org_a, signature_locked_org_a, signature_locked_org_b, signed_files, org_b_finalization_confirmed, partnership_status_confirmed")
       .or(`org_a_id.eq.${myOrg.id},org_b_id.eq.${myOrg.id}`)
       .order("updated_at", { ascending: false });
 
@@ -238,10 +278,18 @@ export default function MouTab() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {docs.map((d) => {
-            const meta = STATUS_META[d.status] ?? { label: d.status, color: "#C45C26" };
             const sourceMeta = SOURCE_META[d.source_type] ?? { label: d.source_type, icon: FileText };
             const SourceIcon = sourceMeta.icon;
             const title = d.initiative_id ? initiativeTitleMap[d.initiative_id] : null;
+            const otherOrgName = otherOrg(d)?.organisation_name ?? "Unknown organisation";
+            const isMyOrgA = d.org_a_id === myOrgId;
+            const myOrgName = "You";
+            const meta = d.status === "draft"
+              ? { label: "Draft", color: "#C45C26" }
+              : (() => {
+                  const { text, done } = nextActionLabel(d, isMyOrgA ? myOrgName : otherOrgName, isMyOrgA ? otherOrgName : myOrgName);
+                  return { label: text, color: done ? "#2D6A4F" : "#C45C26" };
+                })();
             return (
               <button key={d.id} type="button" onClick={() => setOpenDocId(d.id)}
                 className="text-left rounded-2xl border border-border bg-white dark:bg-card p-5 hover:border-[#2D6A4F]/50 transition-colors flex flex-col gap-3">
