@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { X, Loader2, Upload, Download } from "lucide-react";
-import { MouMilestone, MilestoneEvidenceRow, WorkflowComment, OrgRef, actorLabel } from "@/lib/milestones";
+import { MouMilestone, MilestoneEvidenceRow, WorkflowComment, OrgRef, actorLabel, MILESTONE_STATUS_LABEL, MILESTONE_STATUS_PILL_STYLES } from "@/lib/milestones";
 
 export default function MilestoneDetailModal({ milestone, orgA, orgB, myUserId, onClose, onChanged }: {
   milestone: MouMilestone;
@@ -20,6 +20,8 @@ export default function MilestoneDetailModal({ milestone, orgA, orgB, myUserId, 
   const [uploadingEvidence, setUploadingEvidence] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [postingComment, setPostingComment] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
+  const [transitionError, setTransitionError] = useState<string | null>(null);
 
   useEffect(() => { loadDetail(); }, [milestone.id]);
 
@@ -77,6 +79,34 @@ export default function MilestoneDetailModal({ milestone, orgA, orgB, myUserId, 
     await loadDetail();
   }
 
+  // The database trigger is the real authority check -- these mirror it
+  // client-side only so the right buttons show up, not to duplicate the rule.
+  const isPayerOwner =
+    (current.payer_org_id === orgA?.id && myUserId === orgA?.user_id) ||
+    (current.payer_org_id === orgB?.id && myUserId === orgB?.user_id);
+  const isDocParticipant = myUserId === orgA?.user_id || myUserId === orgB?.user_id;
+  const canVerify =
+    current.status !== "verified" && current.status !== "disbursed" &&
+    (current.payer_org_id ? isPayerOwner : isDocParticipant);
+  const canDisburse = current.status === "verified" && current.payer_org_id !== null && isPayerOwner;
+
+  async function transitionTo(status: "verified" | "disbursed") {
+    setTransitioning(true);
+    setTransitionError(null);
+    const { data, error } = await supabase.from("mou_milestones").update({ status }).eq("id", current.id).select().maybeSingle();
+    setTransitioning(false);
+    if (error || !data) {
+      setTransitionError(
+        error?.message.includes("permission") || error?.code === "42501"
+          ? "You don't have permission to do that."
+          : (error?.message ?? "That didn't go through -- try again.")
+      );
+      return;
+    }
+    setCurrent(data as MouMilestone);
+    onChanged();
+  }
+
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-white dark:bg-card rounded-t-2xl sm:rounded-2xl border border-border w-full sm:max-w-md max-h-[90vh] overflow-y-auto p-6 space-y-5"
@@ -84,7 +114,12 @@ export default function MilestoneDetailModal({ milestone, orgA, orgB, myUserId, 
 
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-base font-bold text-black dark:text-white">{current.title}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-base font-bold text-black dark:text-white">{current.title}</p>
+              <span className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full border ${MILESTONE_STATUS_PILL_STYLES[MILESTONE_STATUS_LABEL[current.status].tone]}`}>
+                {MILESTONE_STATUS_LABEL[current.status].label}
+              </span>
+            </div>
             {current.target_date && (
               <p className="text-xs text-black dark:text-white mt-0.5">
                 {new Date(current.target_date).toLocaleDateString("en-GB")}
@@ -99,6 +134,26 @@ export default function MilestoneDetailModal({ milestone, orgA, orgB, myUserId, 
 
         {current.description && (
           <p className="text-sm text-black dark:text-white">{current.description}</p>
+        )}
+
+        {(canVerify || canDisburse) && (
+          <div className="space-y-2">
+            {transitionError && (
+              <p className="text-sm text-amber-600 dark:text-amber-500">{transitionError}</p>
+            )}
+            {canVerify && (
+              <button type="button" onClick={() => transitionTo("verified")} disabled={transitioning}
+                className="w-full h-10 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium disabled:opacity-60 transition-colors">
+                {transitioning ? "Verifying..." : "Mark as verified"}
+              </button>
+            )}
+            {canDisburse && (
+              <button type="button" onClick={() => transitionTo("disbursed")} disabled={transitioning}
+                className="w-full h-10 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium disabled:opacity-60 transition-colors">
+                {transitioning ? "Releasing..." : "Release disbursement"}
+              </button>
+            )}
+          </div>
         )}
 
         <div className="space-y-3 border-t border-border pt-4">

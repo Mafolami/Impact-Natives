@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2, FileText, PenLine, Upload, Plus, X, ArrowRight, Trash2 } from "lucide-react";
+import { Loader2, FileText, PenLine, Upload, Plus, X, ArrowRight, Trash2, Target } from "lucide-react";
 import CreateMouModal from "./CreateMouModal";
 import MouDocumentDetail from "./MouDocumentDetail";
 
@@ -104,7 +104,7 @@ function nextActionLabel(d: MouDocRow, orgAName: string, orgBName: string): { te
 export default function MouTab() {
   const { user } = useAuth();
   const userId = user?.id;
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const [loading, setLoading] = useState(true);
   const [myOrgId, setMyOrgId] = useState<string | null>(null);
   const [docs, setDocs] = useState<MouDocRow[]>([]);
@@ -376,6 +376,13 @@ export default function MouTab() {
                       ))}
                     </div>
                   </div>
+                )}
+                {d.status === "fully_executed" && (
+                  <button type="button"
+                    onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/portfolio/milestones?mouId=${d.id}`); }}
+                    className="flex items-center justify-center gap-1.5 h-9 rounded-full border border-border text-sm text-black dark:text-white hover:border-[#2D6A4F]/40 transition-colors">
+                    <Target className="w-3.5 h-3.5" /> Milestones
+                  </button>
                 )}
               </div>
             );

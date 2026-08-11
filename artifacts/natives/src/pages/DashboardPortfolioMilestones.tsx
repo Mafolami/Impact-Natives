@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
+import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
 import {
   MouMilestone, OrgRef, isMilestoneOverdue,
 } from "@/lib/milestones";
@@ -18,6 +19,7 @@ interface ExecutedDoc {
 export default function DashboardPortfolioMilestones() {
   const { user } = useAuth();
   const userId = user?.id ?? null;
+  const [location, navigate] = useLocation();
 
   const [loading, setLoading] = useState(true);
   const [myOrgId, setMyOrgId] = useState<string | null>(null);
@@ -27,6 +29,13 @@ export default function DashboardPortfolioMilestones() {
 
   const [filterPartner, setFilterPartner] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+
+  // Arriving from a specific MoU's "Milestones" card button -- ?mouId=...
+  const [scopedDocId, setScopedDocId] = useState<string | null>(null);
+  useEffect(() => {
+    const params = new URLSearchParams(location.includes("?") ? location.split("?")[1] : "");
+    setScopedDocId(params.get("mouId"));
+  }, [location]);
 
   const [showPicker, setShowPicker] = useState(false);
   const [pickedDocId, setPickedDocId] = useState<string>("");
@@ -95,6 +104,7 @@ export default function DashboardPortfolioMilestones() {
 
   const filtered = useMemo(() => {
     return milestones.filter((m) => {
+      if (scopedDocId) return m.mou_document_id === scopedDocId;
       if (filterStatus !== "all" && m.status !== filterStatus) return false;
       if (filterPartner !== "all") {
         const doc = docsById[m.mou_document_id];
@@ -102,7 +112,7 @@ export default function DashboardPortfolioMilestones() {
       }
       return true;
     });
-  }, [milestones, filterStatus, filterPartner, docsById, myOrgId]);
+  }, [milestones, filterStatus, filterPartner, docsById, myOrgId, scopedDocId]);
 
   const stats = useMemo(() => {
     const totalCommitted = milestones.reduce((sum, m) => sum + (m.linked_amount ?? 0), 0);
@@ -133,27 +143,45 @@ export default function DashboardPortfolioMilestones() {
     );
   }
 
+  const scopedPartnerName = scopedDocId && docsById[scopedDocId]
+    ? (orgMap[partnerOrgIdFor(docsById[scopedDocId])]?.organisation_name ?? "this partner")
+    : null;
+
   return (
     <div className="space-y-6">
-      {/* Summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
-          <p className="text-xs text-black dark:text-white mb-1">Total committed</p>
-          <p className="text-xl font-medium text-black dark:text-white">{stats.totalCommitted.toLocaleString()}</p>
+      {scopedDocId && (
+        <div className="flex items-center justify-between rounded-xl border border-border px-4 py-3">
+          <p className="text-sm text-black dark:text-white">
+            Viewing milestones for <span className="font-medium">{scopedPartnerName}</span>
+          </p>
+          <button type="button" onClick={() => navigate("/dashboard/portfolio/milestones")}
+            className="flex items-center gap-1 text-sm text-black dark:text-white hover:underline">
+            <X className="w-3.5 h-3.5" /> View all
+          </button>
         </div>
-        <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
-          <p className="text-xs text-black dark:text-white mb-1">Disbursed</p>
-          <p className="text-xl font-medium text-black dark:text-white">{stats.disbursed.toLocaleString()}</p>
+      )}
+
+      {/* Summary -- only meaningful across the whole portfolio, not one agreement */}
+      {!scopedDocId && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
+            <p className="text-xs text-black dark:text-white mb-1">Total committed</p>
+            <p className="text-xl font-medium text-black dark:text-white">{stats.totalCommitted.toLocaleString()}</p>
+          </div>
+          <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
+            <p className="text-xs text-black dark:text-white mb-1">Disbursed</p>
+            <p className="text-xl font-medium text-black dark:text-white">{stats.disbursed.toLocaleString()}</p>
+          </div>
+          <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
+            <p className="text-xs text-black dark:text-white mb-1">On track</p>
+            <p className="text-xl font-medium text-black dark:text-white">{stats.onTrack}</p>
+          </div>
+          <div className="rounded-xl p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
+            <p className="text-xs text-amber-600 dark:text-amber-500 mb-1">Overdue</p>
+            <p className="text-xl font-medium text-amber-600 dark:text-amber-500">{stats.overdue}</p>
+          </div>
         </div>
-        <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
-          <p className="text-xs text-black dark:text-white mb-1">On track</p>
-          <p className="text-xl font-medium text-black dark:text-white">{stats.onTrack}</p>
-        </div>
-        <div className="rounded-xl p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
-          <p className="text-xs text-amber-600 dark:text-amber-500 mb-1">Overdue</p>
-          <p className="text-xl font-medium text-amber-600 dark:text-amber-500">{stats.overdue}</p>
-        </div>
-      </div>
+      )}
 
       {milestones.length === 0 ? (
         <p className="text-sm text-black dark:text-white">
@@ -161,43 +189,62 @@ export default function DashboardPortfolioMilestones() {
         </p>
       ) : (
         <>
-          {/* Filters */}
-          <div className="flex flex-wrap items-center gap-2">
-            <select value={filterPartner} onChange={(e) => setFilterPartner(e.target.value)}
-              className="h-9 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white">
-              <option value="all">All partners</option>
-              {partnerOptions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
-              className="h-9 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white">
-              <option value="all">All statuses</option>
-              <option value="pending">Pending</option>
-              <option value="revision_requested">Revision requested</option>
-              <option value="in_review">In review</option>
-              <option value="verified">Verified</option>
-              <option value="disbursed">Disbursed</option>
-            </select>
-            <div className="flex-1" />
-            <button type="button" onClick={() => setShowPicker(true)}
-              className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
-              <Plus className="w-4 h-4" /> New milestone
-            </button>
-          </div>
+          {/* Filters -- redundant once already scoped to a single MoU */}
+          {!scopedDocId && (
+            <div className="flex flex-wrap items-center gap-2">
+              <select value={filterPartner} onChange={(e) => setFilterPartner(e.target.value)}
+                className="h-9 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white">
+                <option value="all">All partners</option>
+                {partnerOptions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
+                className="h-9 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white">
+                <option value="all">All statuses</option>
+                <option value="pending">Pending</option>
+                <option value="revision_requested">Revision requested</option>
+                <option value="in_review">In review</option>
+                <option value="verified">Verified</option>
+                <option value="disbursed">Disbursed</option>
+              </select>
+              <div className="flex-1" />
+              <button type="button" onClick={() => setShowPicker(true)}
+                className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
+                <Plus className="w-4 h-4" /> New milestone
+              </button>
+            </div>
+          )}
 
-          {/* Board */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {columns.map((col) => {
-              const items = filtered.filter(col.predicate);
-              return (
-                <div key={col.key} className="space-y-2">
-                  <p className="text-xs font-medium text-black dark:text-white">{col.label} &middot; {items.length}</p>
-                  {items.map((m) => (
-                    <MilestoneCard key={m.id} milestone={m} onClick={() => setSelectedMilestone(m)} />
-                  ))}
-                </div>
-              );
-            })}
-          </div>
+          {scopedDocId && (
+            <div className="flex justify-end">
+              <button type="button" onClick={() => setPickedDocId(scopedDocId)}
+                className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
+                <Plus className="w-4 h-4" /> New milestone
+              </button>
+            </div>
+          )}
+
+          {/* Scoped view: a flat list is enough for one agreement's milestones */}
+          {scopedDocId ? (
+            <div className="space-y-2">
+              {filtered.map((m) => (
+                <MilestoneCard key={m.id} milestone={m} onClick={() => setSelectedMilestone(m)} />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {columns.map((col) => {
+                const items = filtered.filter(col.predicate);
+                return (
+                  <div key={col.key} className="space-y-2">
+                    <p className="text-xs font-medium text-black dark:text-white">{col.label} &middot; {items.length}</p>
+                    {items.map((m) => (
+                      <MilestoneCard key={m.id} milestone={m} onClick={() => setSelectedMilestone(m)} />
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </>
       )}
 

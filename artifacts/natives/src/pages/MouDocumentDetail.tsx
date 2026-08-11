@@ -4,10 +4,6 @@ import { jsPDF } from "jspdf";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { BRICOLAGE_GROTESQUE_BOLD_BASE64 } from "@/lib/fonts/bricolageGrotesqueBold";
 import { X, Loader2, Download, Upload, CheckCircle2, Send, ArrowLeft, PenLine, Flag, Lock, Clock, PartyPopper, Trash2 } from "lucide-react";import SignaturePad from "@/components/dashboard/SignaturePad";
-import { MouMilestone, fetchMilestones } from "@/lib/milestones";
-import MilestoneCard from "@/components/mou/MilestoneCard";
-import MilestoneCreateModal from "@/components/mou/MilestoneCreateModal";
-import MilestoneDetailModal from "@/components/mou/MilestoneDetailModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SectionVariant { toggle_value: string | boolean | null; body: string }
@@ -121,12 +117,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   // as a secondary text link, not a competing button.
   const [composingSignature, setComposingSignature] = useState(false);
   const [showUploadWarning, setShowUploadWarning] = useState(false);
-  // Milestones (MEL). Only ever relevant once the MoU is fully_executed --
-  // created against a specific agreement, not a standalone feature.
-  const [milestones, setMilestones] = useState<MouMilestone[]>([]);
-  const [loadingMilestones, setLoadingMilestones] = useState(false);
-  const [showNewMilestone, setShowNewMilestone] = useState(false);
-  const [selectedMilestone, setSelectedMilestone] = useState<MouMilestone | null>(null);
   const isViewerOrgA = orgA?.user_id === myUserId;
   const isViewerOrgB = orgB?.user_id === myUserId;
   useEffect(() => { load(); }, [documentId]);
@@ -166,10 +156,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     if (docRow.source_type === "template" && docRow.template_id) {
       const { data: tpl } = await supabase.from("mou_templates").select("id, name, sections, toggles").eq("id", docRow.template_id).maybeSingle();
       setTemplate(tpl as MouTemplate);
-    }
-
-    if (docRow.status === "fully_executed") {
-      loadMilestones();
     }
 
     if (docRow.source_type === "uploaded_pdf" && docRow.rendered_file_path) {
@@ -962,14 +948,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     if (error) return;
     const updates = { partnership_status_confirmed: true, partnership_status_confirmed_at: new Date().toISOString() };
     setDoc({ ...doc, ...updates } as MouDoc);
-  }
-
-  // Milestones (MEL). Creation, evidence, and comments are handled by the
-  // shared components -- this page only owns the list and which modal is open.
-  async function loadMilestones() {
-    setLoadingMilestones(true);
-    setMilestones(await fetchMilestones(documentId));
-    setLoadingMilestones(false);
   }
 
   // Org B's "no objection" gate for binding MoUs -- required before Org A
@@ -2019,55 +1997,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               </button>
             </div>
           )}
-
-          {/* Milestones -- only exists once the agreement is real */}
-          {doc.status === "fully_executed" && (
-            <div className="space-y-3 border-t border-border pt-5">
-              <div className="flex items-center justify-between">
-                <p className="text-base font-semibold text-black dark:text-white">Milestones</p>
-                <button type="button" onClick={() => setShowNewMilestone(true)}
-                  className="flex items-center gap-1.5 text-sm text-[#2D6A4F] hover:underline">
-                  <span className="text-base leading-none">+</span> New milestone
-                </button>
-              </div>
-
-              {loadingMilestones && (
-                <p className="text-sm text-black dark:text-white">Loading...</p>
-              )}
-
-              {!loadingMilestones && milestones.length === 0 && (
-                <p className="text-sm text-black dark:text-white">
-                  No milestones yet. Add one to start tracking delivery against this agreement.
-                </p>
-              )}
-
-              {milestones.map((m) => (
-                <MilestoneCard key={m.id} milestone={m} onClick={() => setSelectedMilestone(m)} />
-              ))}
-            </div>
-          )}
-
-      {showNewMilestone && doc && (
-        <MilestoneCreateModal
-          mouDocumentId={doc.id}
-          orgA={orgA}
-          orgB={orgB}
-          myUserId={myUserId}
-          onClose={() => setShowNewMilestone(false)}
-          onCreated={loadMilestones}
-        />
-      )}
-
-      {selectedMilestone && (
-        <MilestoneDetailModal
-          milestone={selectedMilestone}
-          orgA={orgA}
-          orgB={orgB}
-          myUserId={myUserId}
-          onClose={() => setSelectedMilestone(null)}
-          onChanged={loadMilestones}
-        />
-      )}
 
       {showUploadWarning && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowUploadWarning(false)}>
