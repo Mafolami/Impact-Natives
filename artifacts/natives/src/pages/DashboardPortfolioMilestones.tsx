@@ -17,6 +17,11 @@ interface ExecutedDoc {
   org_b_id: string;
   initiative_id: string | null;
   connection_id: string | null;
+  toggle_selections: Record<string, string | boolean> | null;
+}
+
+function isBindingDoc(doc: ExecutedDoc): boolean {
+  return doc.toggle_selections?.["agreement_type"] === "binding";
 }
 
 export default function DashboardPortfolioMilestones() {
@@ -68,7 +73,7 @@ export default function DashboardPortfolioMilestones() {
 
     const { data: docRows } = await supabase
       .from("mou_documents")
-      .select("id, org_a_id, org_b_id, initiative_id, connection_id")
+      .select("id, org_a_id, org_b_id, initiative_id, connection_id, toggle_selections")
       .or(`org_a_id.eq.${myOrg.id},org_b_id.eq.${myOrg.id}`)
       .eq("status", "fully_executed");
     setDocs((docRows as ExecutedDoc[]) ?? []);
@@ -324,6 +329,15 @@ export default function DashboardPortfolioMilestones() {
     ? (docTitle(docsById[scopedDocId]) ?? scopedPartnerName)
     : null;
 
+  const scopedDoc = scopedDocId ? docsById[scopedDocId] : null;
+  // Non-binding agreements carry no financial commitment -- showing
+  // "Total committed"/"Disbursed" tiles for one implies an obligation
+  // that doesn't exist. Only suppress this when scoped to a single
+  // agreement that's actually non-binding; the unscoped portfolio view
+  // keeps all four, since it's an aggregate where binding agreements'
+  // real figures still belong.
+  const showFinancialTiles = !scopedDoc || isBindingDoc(scopedDoc);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -342,18 +356,28 @@ export default function DashboardPortfolioMilestones() {
         )}
       </div>
 
+      {scopedDoc && !showFinancialTiles && (
+        <p className="text-xs text-black dark:text-white">
+          Non-binding agreement -- no financial figures are tracked here.
+        </p>
+      )}
+
       {/* Tiles now reflect the current scope -- whole portfolio when
           unscoped, just this agreement's numbers when scoped -- so they
           stay visible in both states rather than disappearing on scope. */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
-          <p className="text-xs text-black dark:text-white mb-1">Total committed</p>
-          <p className="text-xl font-medium text-black dark:text-white">{formatCurrencyTotals(stats.totalCommitted)}</p>
-        </div>
-        <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
-          <p className="text-xs text-black dark:text-white mb-1">Disbursed</p>
-          <p className="text-xl font-medium text-black dark:text-white">{formatCurrencyTotals(stats.disbursed)}</p>
-        </div>
+      <div className={`grid grid-cols-2 gap-3 ${showFinancialTiles ? "sm:grid-cols-4" : "sm:grid-cols-2 sm:max-w-sm"}`}>
+        {showFinancialTiles && (
+          <>
+            <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
+              <p className="text-xs text-black dark:text-white mb-1">Total committed</p>
+              <p className="text-xl font-medium text-black dark:text-white">{formatCurrencyTotals(stats.totalCommitted)}</p>
+            </div>
+            <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
+              <p className="text-xs text-black dark:text-white mb-1">Disbursed</p>
+              <p className="text-xl font-medium text-black dark:text-white">{formatCurrencyTotals(stats.disbursed)}</p>
+            </div>
+          </>
+        )}
         <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
           <p className="text-xs text-black dark:text-white mb-1">On track</p>
           <p className="text-xl font-medium text-black dark:text-white">{stats.onTrack}</p>
@@ -518,6 +542,7 @@ export default function DashboardPortfolioMilestones() {
           mouDocumentId={pickedDocId}
           orgA={orgMap[docsById[pickedDocId]?.org_a_id] ?? null}
           orgB={orgMap[docsById[pickedDocId]?.org_b_id] ?? null}
+          isBinding={docsById[pickedDocId] ? isBindingDoc(docsById[pickedDocId]) : true}
           myUserId={userId}
           onClose={() => setPickedDocId("")}
           onCreated={load}
