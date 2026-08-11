@@ -2,10 +2,11 @@ import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2, Plus, X, Clock, Eye, CheckCircle2, PartyPopper } from "lucide-react";
+import { Loader2, Plus, X, Clock, Eye, CheckCircle2, PartyPopper, ChevronDown } from "lucide-react";
 import {
   MouMilestone, OrgRef, isMilestoneOverdue,
 } from "@/lib/milestones";
+import { resolveMouDocTitle } from "@/lib/mouTitle";
 import MilestoneCard from "@/components/mou/MilestoneCard";
 import MilestoneCreateModal from "@/components/mou/MilestoneCreateModal";
 import MilestoneDetailModal from "@/components/mou/MilestoneDetailModal";
@@ -41,6 +42,11 @@ export default function DashboardPortfolioMilestones() {
   }, [location]);
 
   const [showPicker, setShowPicker] = useState(false);
+  // "create" opens the picker to choose which MoU a new milestone belongs
+  // to; "view" opens the same picker to scope the whole board to one MoU
+  // via ?mouId=, reusing the identical searchable list rather than a
+  // second component.
+  const [pickerMode, setPickerMode] = useState<"create" | "view">("create");
   const [pickerSearch, setPickerSearch] = useState("");
   const [pickedDocId, setPickedDocId] = useState<string>("");
   const [selectedMilestone, setSelectedMilestone] = useState<MouMilestone | null>(null);
@@ -106,9 +112,7 @@ export default function DashboardPortfolioMilestones() {
   // so fall back to the listing owner's (org_a's) own partnership_sought
   // text, same resolution used for the MoU picker on the MoUs page.
   function docTitle(doc: ExecutedDoc): string | null {
-    if (doc.initiative_id) return initiativeTitleMap[doc.initiative_id] ?? null;
-    if (doc.connection_id) return orgMap[doc.org_a_id]?.partnership_sought ?? null;
-    return null;
+    return resolveMouDocTitle(doc, orgMap, initiativeTitleMap);
   }
 
   const pickerOptions = useMemo(() => {
@@ -198,17 +202,21 @@ export default function DashboardPortfolioMilestones() {
 
   return (
     <div className="space-y-6">
-      {scopedDocId && (
-        <div className="flex items-center justify-between rounded-xl border border-border px-4 py-3">
-          <p className="text-sm text-black dark:text-white">
-            Viewing milestones for <span className="font-medium">{scopedPartnerName}</span>
-          </p>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <button type="button"
+          onClick={() => { setPickerMode("view"); setPickedDocId(scopedDocId ?? ""); setPickerSearch(""); setShowPicker(true); }}
+          className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm text-black dark:text-white hover:border-[#2D6A4F]/40 transition-colors">
+          <span>Viewing:</span>
+          <span className="font-semibold">{scopedPartnerName ?? "All milestones"}</span>
+          <ChevronDown className="w-3.5 h-3.5" />
+        </button>
+        {scopedDocId && (
           <button type="button" onClick={() => navigate("/dashboard/portfolio/milestones")}
             className="flex items-center gap-1 text-sm text-black dark:text-white hover:underline">
             <X className="w-3.5 h-3.5" /> View all
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Summary -- only meaningful across the whole portfolio, not one agreement */}
       {!scopedDocId && (
@@ -234,7 +242,7 @@ export default function DashboardPortfolioMilestones() {
 
       {!scopedDocId && (
         <div className="flex justify-end">
-          <button type="button" onClick={() => setShowPicker(true)}
+          <button type="button" onClick={() => { setPickerMode("create"); setPickedDocId(""); setPickerSearch(""); setShowPicker(true); }}
             className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
             <Plus className="w-4 h-4" /> New milestone
           </button>
@@ -318,7 +326,9 @@ export default function DashboardPortfolioMilestones() {
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowPicker(false)}>
           <div className="bg-white dark:bg-card rounded-t-2xl sm:rounded-2xl border border-border w-full sm:max-w-sm shadow-xl p-6 space-y-4 max-h-[80vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}>
-            <p className="text-base font-bold text-black dark:text-white">Which agreement is this for?</p>
+            <p className="text-base font-bold text-black dark:text-white">
+              {pickerMode === "view" ? "Choose which agreement to view" : "Which agreement is this for?"}
+            </p>
             {docs.length === 0 ? (
               <p className="text-sm text-black dark:text-white">No executed MoUs yet -- milestones can only be added once an agreement is fully executed.</p>
             ) : (
@@ -327,6 +337,14 @@ export default function DashboardPortfolioMilestones() {
                   onChange={(e) => setPickerSearch(e.target.value)}
                   className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
                 <div className="overflow-y-auto space-y-1.5 -mx-1 px-1">
+                  {pickerMode === "view" && (
+                    <button type="button" onClick={() => setPickedDocId("")}
+                      className={`w-full text-left rounded-lg border px-3 py-2 transition-colors ${
+                        pickedDocId === "" ? "border-[#2D6A4F] bg-[#2D6A4F]/[0.06]" : "border-border hover:border-[#2D6A4F]/40"
+                      }`}>
+                      <p className="text-sm font-medium text-black dark:text-white">All milestones</p>
+                    </button>
+                  )}
                   {pickerOptions.length === 0 && (
                     <p className="text-sm text-black dark:text-white">No match.</p>
                   )}
@@ -347,10 +365,17 @@ export default function DashboardPortfolioMilestones() {
                 className="flex-1 h-10 rounded-full border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors">
                 Cancel
               </button>
-              <button type="button" disabled={!pickedDocId}
-                onClick={() => { setShowPicker(false); setPickerSearch(""); }}
+              <button type="button" disabled={pickerMode === "create" && !pickedDocId}
+                onClick={() => {
+                  setShowPicker(false);
+                  setPickerSearch("");
+                  if (pickerMode === "view") {
+                    navigate(pickedDocId ? `/dashboard/portfolio/milestones?mouId=${pickedDocId}` : "/dashboard/portfolio/milestones");
+                    setPickedDocId("");
+                  }
+                }}
                 className="flex-1 h-10 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium disabled:opacity-60 transition-colors">
-                Continue
+                {pickerMode === "view" ? (pickedDocId ? "View" : "View all") : "Continue"}
               </button>
             </div>
           </div>
