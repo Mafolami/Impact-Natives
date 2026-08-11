@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import {
   Home, Handshake, Lightbulb, FlaskConical, Compass,
   MessageSquare, User, Settings, LogOut, ShieldCheck,
-  ChevronLeft, ChevronRight, ChevronDown, Globe, Sparkles, FileText,
+  ChevronLeft, ChevronRight, ChevronDown, Globe, Sparkles, FileText, Target,
 } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { cn } from "@/lib/utils";
@@ -35,6 +35,7 @@ const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
         children: [
           { label: "Exchanges", href: "/dashboard/portfolio/exchanges", icon: Lightbulb, corporateOnly: false },
           { label: "MoUs",      href: "/dashboard/portfolio/mou",       icon: FileText,  corporateOnly: false },
+          { label: "Milestones", href: "/dashboard/portfolio/milestones", icon: Target, corporateOnly: false },
         ],
       },
       { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, corporateOnly: false },
