@@ -4,6 +4,10 @@ import { jsPDF } from "jspdf";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { BRICOLAGE_GROTESQUE_BOLD_BASE64 } from "@/lib/fonts/bricolageGrotesqueBold";
 import { X, Loader2, Download, Upload, CheckCircle2, Send, ArrowLeft, PenLine, Flag, Lock, Clock, PartyPopper, Trash2 } from "lucide-react";import SignaturePad from "@/components/dashboard/SignaturePad";
+import { MouMilestone, fetchMilestones } from "@/lib/milestones/milestones";
+import MilestoneCard from "@/components/mou/MilestoneCard";
+import MilestoneCreateModal from "@/components/mou/MilestoneCreateModal";
+import MilestoneDetailModal from "@/components/mou/MilestoneDetailModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SectionVariant { toggle_value: string | boolean | null; body: string }
@@ -28,19 +32,6 @@ interface OrgFull {
   organisation_type: string | null;
   partnership_budget?: string | null;
   partnership_sought?: string | null;
-}
-
-interface MouMilestone {
-  id: string;
-  title: string;
-  description: string | null;
-  target_date: string | null;
-  linked_amount: number | null;
-  linked_currency: string | null;
-  payer_org_id: string | null;
-  recipient_org_id: string | null;
-  status: "pending" | "in_review" | "verified" | "disbursed" | "revision_requested";
-  created_at: string;
 }
 
 interface MouDoc {
@@ -135,13 +126,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const [milestones, setMilestones] = useState<MouMilestone[]>([]);
   const [loadingMilestones, setLoadingMilestones] = useState(false);
   const [showNewMilestone, setShowNewMilestone] = useState(false);
-  const [creatingMilestone, setCreatingMilestone] = useState(false);
-  const [msTitle, setMsTitle] = useState("");
-  const [msDescription, setMsDescription] = useState("");
-  const [msTargetDate, setMsTargetDate] = useState("");
-  const [msAmount, setMsAmount] = useState("");
-  const [msCurrency, setMsCurrency] = useState("NGN");
-  const [msPayerSide, setMsPayerSide] = useState<"org_a" | "org_b" | "none">("none");
+  const [selectedMilestone, setSelectedMilestone] = useState<MouMilestone | null>(null);
   const isViewerOrgA = orgA?.user_id === myUserId;
   const isViewerOrgB = orgB?.user_id === myUserId;
   useEffect(() => { load(); }, [documentId]);
@@ -979,60 +964,13 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     setDoc({ ...doc, ...updates } as MouDoc);
   }
 
-  // Milestones (MEL). Manual entry only for now -- no parsing of the
-  // free-text payment_schedule field, which lives unstructured in
-  // field_values and isn't reliable enough to auto-generate rows from.
+  // Milestones (MEL). Creation, evidence, and comments are handled by the
+  // shared components -- this page only owns the list and which modal is open.
   async function loadMilestones() {
     setLoadingMilestones(true);
-    const { data } = await supabase
-      .from("mou_milestones")
-      .select("id,title,description,target_date,linked_amount,linked_currency,payer_org_id,recipient_org_id,status,created_at")
-      .eq("mou_document_id", documentId)
-      .order("target_date", { ascending: true, nullsFirst: false });
-    setMilestones((data as MouMilestone[]) ?? []);
+    setMilestones(await fetchMilestones(documentId));
     setLoadingMilestones(false);
   }
-
-  function resetMilestoneForm() {
-    setMsTitle(""); setMsDescription(""); setMsTargetDate("");
-    setMsAmount(""); setMsCurrency("NGN"); setMsPayerSide("none");
-  }
-
-  async function createMilestone() {
-    if (!doc || !orgA || !orgB || !msTitle.trim()) return;
-    // A milestone that carries money needs a payer -- the disbursement gate
-    // has nothing to check against otherwise. A pure deliverable (no amount)
-    // doesn't need one.
-    const amount = msAmount.trim() ? Number(msAmount) : null;
-    if (amount !== null && msPayerSide === "none") return;
-    setCreatingMilestone(true);
-    const payerOrgId = msPayerSide === "org_a" ? orgA.id : msPayerSide === "org_b" ? orgB.id : null;
-    const recipientOrgId = msPayerSide === "org_a" ? orgB.id : msPayerSide === "org_b" ? orgA.id : null;
-    const { error } = await supabase.from("mou_milestones").insert({
-      mou_document_id: doc.id,
-      title: msTitle.trim(),
-      description: msDescription.trim() || null,
-      target_date: msTargetDate || null,
-      linked_amount: amount,
-      linked_currency: amount !== null ? msCurrency : null,
-      payer_org_id: payerOrgId,
-      recipient_org_id: recipientOrgId,
-      created_by: myUserId,
-    });
-    setCreatingMilestone(false);
-    if (error) return;
-    resetMilestoneForm();
-    setShowNewMilestone(false);
-    await loadMilestones();
-  }
-
-  const MILESTONE_STATUS_LABEL: Record<MouMilestone["status"], { label: string; tone: "locked" | "waiting" | "success" | "celebrate" }> = {
-    pending: { label: "Pending", tone: "waiting" },
-    revision_requested: { label: "Revision requested", tone: "locked" },
-    in_review: { label: "In review", tone: "waiting" },
-    verified: { label: "Verified", tone: "success" },
-    disbursed: { label: "Disbursed", tone: "celebrate" },
-  };
 
   // Org B's "no objection" gate for binding MoUs -- required before Org A
   // can finalize when agreement_type is binding, so Org A never has
@@ -1453,7 +1391,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           This MoU isn't available. It may not exist, or you may not have access to it yet.
         </InfoBanner>
         <button type="button" onClick={onClose}
-          className="mt-4 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          className="mt-4 flex items-center gap-1.5 text-sm text-black dark:text-white hover:underline">
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
       </div>
@@ -1554,7 +1492,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   return (
     <div className="space-y-6">
       <button type="button" onClick={onClose}
-        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-[#C45C26] transition-colors">
+        className="flex items-center gap-1.5 text-sm text-black dark:text-white hover:text-[#C45C26] dark:hover:text-[#C45C26] transition-colors">
         <ArrowLeft className="w-3.5 h-3.5" /> Back
       </button>
       <div className="flex items-start justify-between gap-4">
@@ -2103,83 +2041,32 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                 </p>
               )}
 
-              {milestones.map((m) => {
-                const isOverdue = m.target_date && new Date(m.target_date) < new Date() && m.status !== "verified" && m.status !== "disbursed";
-                const statusInfo = MILESTONE_STATUS_LABEL[m.status];
-                const pillStyles = {
-                  locked: "bg-white dark:bg-card border-border text-black dark:text-white",
-                  waiting: "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/40 text-amber-600 dark:text-amber-500",
-                  success: "bg-[#2D6A4F]/[0.06] border-[#2D6A4F]/20 text-[#2D6A4F]",
-                  celebrate: "bg-[#2D6A4F]/10 border-[#2D6A4F]/30 text-[#2D6A4F]",
-                }[statusInfo.tone];
-                return (
-                  <div key={m.id} className="rounded-xl border border-border px-4 py-3 space-y-1.5">
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="text-sm font-medium text-black dark:text-white">{m.title}</p>
-                      <span className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full border ${pillStyles}`}>
-                        {isOverdue ? "Overdue" : statusInfo.label}
-                      </span>
-                    </div>
-                    {m.description && (
-                      <p className="text-sm text-black dark:text-white">{m.description}</p>
-                    )}
-                    <div className="flex items-center gap-3 text-xs text-black dark:text-white">
-                      {m.target_date && <span>{new Date(m.target_date).toLocaleDateString("en-GB")}</span>}
-                      {m.linked_amount !== null && (
-                        <span className="font-medium">{m.linked_currency} {m.linked_amount.toLocaleString()}</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+              {milestones.map((m) => (
+                <MilestoneCard key={m.id} milestone={m} onClick={() => setSelectedMilestone(m)} />
+              ))}
             </div>
           )}
 
-      {showNewMilestone && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowNewMilestone(false)}>
-          <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-sm shadow-xl p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <p className="text-base font-bold text-black dark:text-white">New milestone</p>
-            <input type="text" placeholder="Title" value={msTitle} onChange={(e) => setMsTitle(e.target.value)}
-              className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
-            <textarea placeholder="Description (optional)" value={msDescription} onChange={(e) => setMsDescription(e.target.value)}
-              rows={2} className="w-full px-3 py-2 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white resize-none" />
-            <div>
-              <label className="text-xs text-black dark:text-white">Target date</label>
-              <input type="date" value={msTargetDate} onChange={(e) => setMsTargetDate(e.target.value)}
-                className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
-            </div>
-            <div className="flex gap-2">
-              <input type="number" placeholder="Amount (optional)" value={msAmount} onChange={(e) => setMsAmount(e.target.value)}
-                className="flex-1 h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
-              <select value={msCurrency} onChange={(e) => setMsCurrency(e.target.value)} disabled={!msAmount.trim()}
-                className="w-24 h-10 px-2 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white disabled:opacity-60">
-                {CURRENCY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            {msAmount.trim() && (
-              <div>
-                <label className="text-xs text-black dark:text-white">Who releases this amount</label>
-                <select value={msPayerSide} onChange={(e) => setMsPayerSide(e.target.value as any)}
-                  className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white">
-                  <option value="none">Select...</option>
-                  <option value="org_a">{orgA?.organisation_name ?? "Org A"}</option>
-                  <option value="org_b">{orgB?.organisation_name ?? "Org B"}</option>
-                </select>
-              </div>
-            )}
-            <div className="flex gap-2">
-              <button type="button" onClick={() => { setShowNewMilestone(false); resetMilestoneForm(); }}
-                className="flex-1 h-10 rounded-full border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors">
-                Cancel
-              </button>
-              <button type="button" onClick={createMilestone}
-                disabled={creatingMilestone || !msTitle.trim() || (!!msAmount.trim() && msPayerSide === "none")}
-                className="flex-1 h-10 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium disabled:opacity-60 transition-colors">
-                {creatingMilestone ? "Adding..." : "Add milestone"}
-              </button>
-            </div>
-          </div>
-        </div>
+      {showNewMilestone && doc && (
+        <MilestoneCreateModal
+          mouDocumentId={doc.id}
+          orgA={orgA}
+          orgB={orgB}
+          myUserId={myUserId}
+          onClose={() => setShowNewMilestone(false)}
+          onCreated={loadMilestones}
+        />
+      )}
+
+      {selectedMilestone && (
+        <MilestoneDetailModal
+          milestone={selectedMilestone}
+          orgA={orgA}
+          orgB={orgB}
+          myUserId={myUserId}
+          onClose={() => setSelectedMilestone(null)}
+          onChanged={loadMilestones}
+        />
       )}
 
       {showUploadWarning && (
