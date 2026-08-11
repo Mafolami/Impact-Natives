@@ -140,17 +140,13 @@ export default function DashboardPortfolioMilestones() {
     return opts;
   }, [docs, orgMap, myOrgId]);
 
-  const filtered = useMemo(() => {
-    return milestones.filter((m) => {
-      if (scopedDocId) return m.mou_document_id === scopedDocId;
-      if (filterStatus !== "all" && m.status !== filterStatus) return false;
-      if (filterPartner !== "all") {
-        const doc = docsById[m.mou_document_id];
-        if (!doc || partnerOrgIdFor(doc) !== filterPartner) return false;
-      }
-      return true;
-    });
-  }, [milestones, filterStatus, filterPartner, docsById, myOrgId, scopedDocId]);
+  // Status is the only cross-cutting milestone-level filter now -- which
+  // agreement(s) show is decided by scopedDocId / filterPartner below, at
+  // the section level, not by mixing into this same predicate.
+  const statusFiltered = useMemo(() => {
+    return milestones.filter((m) => filterStatus === "all" || m.status === filterStatus);
+  }, [milestones, filterStatus]);
+  const docsWithAnyMilestone = useMemo(() => new Set(milestones.map((m) => m.mou_document_id)), [milestones]);
 
   const stats = useMemo(() => {
     const totalCommitted = milestones.reduce((sum, m) => sum + (m.linked_amount ?? 0), 0);
@@ -187,6 +183,57 @@ export default function DashboardPortfolioMilestones() {
     if (!doc) return { orgA: null, orgB: null };
     return { orgA: orgMap[doc.org_a_id] ?? null, orgB: orgMap[doc.org_b_id] ?? null };
   }
+
+  // One board, reused whether it's rendering the single scoped agreement,
+  // the merged all-agreements view, or one section among several under a
+  // partner filter -- the columns/logic never change, only which
+  // milestones feed in.
+  function KanbanBoard({ items }: { items: MouMilestone[] }) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {columns.map((col) => {
+          const colItems = items.filter(col.predicate);
+          const Icon = col.icon;
+          return (
+            <div key={col.key} className={`rounded-xl border ${col.border} overflow-hidden`}>
+              <div className={`flex items-center gap-2 px-3 py-2.5 border-b ${col.border} ${col.headerBg}`}>
+                <Icon className={`w-4 h-4 ${col.text}`} />
+                <p className={`text-sm font-semibold ${col.text}`}>{col.label}</p>
+                <span className={`ml-auto text-xs font-semibold px-2 py-0.5 rounded-full border ${col.border} ${col.text} bg-white dark:bg-card`}>
+                  {colItems.length}
+                </span>
+              </div>
+              <div className="p-3 space-y-2 bg-white dark:bg-card min-h-[64px]">
+                {colItems.length === 0 ? (
+                  <p className="text-xs text-black dark:text-white">Nothing here.</p>
+                ) : (
+                  colItems.map((m) => (
+                    <MilestoneCard key={m.id} milestone={m} onClick={() => setSelectedMilestone(m)} />
+                  ))
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // Three cases, matching how the person actually wants to read this page:
+  // 1. A specific agreement is scoped (Viewing picker) -- exactly one
+  //    board, that agreement's milestones only.
+  // 2. "All agreements", no partner filter -- one merged board across
+  //    everything, unchanged from before.
+  // 3. A specific partner is selected -- a partner can have more than one
+  //    agreement, so merging them into one board would hide which
+  //    agreement each milestone belongs to. Render one board per
+  //    agreement instead, stacked with a header and a divider.
+  const kanbanMode: "single" | "merged" | "byAgreement" = scopedDocId ? "single" : filterPartner === "all" ? "merged" : "byAgreement";
+  const sectionDocs = useMemo(() => {
+    if (kanbanMode === "single") return scopedDocId ? docs.filter((d) => d.id === scopedDocId) : [];
+    if (kanbanMode === "byAgreement") return docs.filter((d) => partnerOrgIdFor(d) === filterPartner && docsWithAnyMilestone.has(d.id));
+    return [];
+  }, [kanbanMode, docs, scopedDocId, filterPartner, docsWithAnyMilestone, myOrgId]);
 
   if (loading) {
     return (
@@ -290,40 +337,35 @@ export default function DashboardPortfolioMilestones() {
             </div>
           )}
 
-          {/* Scoped view: a flat list is enough for one agreement's milestones */}
-          {scopedDocId ? (
-            <div className="space-y-2">
-              {filtered.map((m) => (
-                <MilestoneCard key={m.id} milestone={m} onClick={() => setSelectedMilestone(m)} />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {columns.map((col) => {
-                const items = filtered.filter(col.predicate);
-                const Icon = col.icon;
-                return (
-                  <div key={col.key} className={`rounded-xl border ${col.border} overflow-hidden`}>
-                    <div className={`flex items-center gap-2 px-3 py-2.5 border-b ${col.border} ${col.headerBg}`}>
-                      <Icon className={`w-4 h-4 ${col.text}`} />
-                      <p className={`text-sm font-semibold ${col.text}`}>{col.label}</p>
-                      <span className={`ml-auto text-xs font-semibold px-2 py-0.5 rounded-full border ${col.border} ${col.text} bg-white dark:bg-card`}>
-                        {items.length}
-                      </span>
+          {kanbanMode === "single" && (
+            sectionDocs.length === 0 ? null : <KanbanBoard items={statusFiltered.filter((m) => m.mou_document_id === sectionDocs[0].id)} />
+          )}
+
+          {kanbanMode === "merged" && (
+            <KanbanBoard items={statusFiltered} />
+          )}
+
+          {kanbanMode === "byAgreement" && (
+            sectionDocs.length === 0 ? (
+              <p className="text-sm text-black dark:text-white">No milestones for this partner yet.</p>
+            ) : (
+              <div className="space-y-8">
+                {sectionDocs.map((doc, i) => {
+                  const partnerName = orgMap[partnerOrgIdFor(doc)]?.organisation_name ?? "Partner";
+                  const title = docTitle(doc);
+                  return (
+                    <div key={doc.id}>
+                      {i > 0 && <div className="border-t border-border mb-8" />}
+                      <div className="mb-3">
+                        <p className="text-base font-semibold text-black dark:text-white">{partnerName}</p>
+                        {title && <p className="text-sm text-black dark:text-white mt-0.5">{title}</p>}
+                      </div>
+                      <KanbanBoard items={statusFiltered.filter((m) => m.mou_document_id === doc.id)} />
                     </div>
-                    <div className="p-3 space-y-2 bg-white dark:bg-card min-h-[64px]">
-                      {items.length === 0 ? (
-                        <p className="text-xs text-black dark:text-white">Nothing here.</p>
-                      ) : (
-                        items.map((m) => (
-                          <MilestoneCard key={m.id} milestone={m} onClick={() => setSelectedMilestone(m)} />
-                        ))
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )
           )}
         </>
       )}
