@@ -31,7 +31,6 @@ export default function DashboardPortfolioMilestones() {
   const [initiativeTitleMap, setInitiativeTitleMap] = useState<Record<string, string>>({});
   const [milestones, setMilestones] = useState<MouMilestone[]>([]);
 
-  const [filterPartner, setFilterPartner] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
   // Arriving from a specific MoU's "Milestones" card button -- ?mouId=...
@@ -127,34 +126,27 @@ export default function DashboardPortfolioMilestones() {
     return opts.filter((o) => o.partnerName.toLowerCase().includes(q) || (o.title ?? "").toLowerCase().includes(q));
   }, [docs, orgMap, myOrgId, initiativeTitleMap, pickerSearch]);
 
-  const partnerOptions = useMemo(() => {
-    const seen = new Set<string>();
-    const opts: { id: string; name: string }[] = [];
-    docs.forEach((d) => {
-      const pid = partnerOrgIdFor(d);
-      if (!seen.has(pid)) {
-        seen.add(pid);
-        opts.push({ id: pid, name: orgMap[pid]?.organisation_name ?? "Partner" });
-      }
-    });
-    return opts;
-  }, [docs, orgMap, myOrgId]);
-
   // Status is the only cross-cutting milestone-level filter now -- which
-  // agreement(s) show is decided by scopedDocId / filterPartner below, at
-  // the section level, not by mixing into this same predicate.
+  // agreement(s) show is decided by scopedDocId below, at the section
+  // level, not by mixing into this same predicate.
   const statusFiltered = useMemo(() => {
     return milestones.filter((m) => filterStatus === "all" || m.status === filterStatus);
   }, [milestones, filterStatus]);
   const docsWithAnyMilestone = useMemo(() => new Set(milestones.map((m) => m.mou_document_id)), [milestones]);
 
+  // Tiles reflect whatever's currently in view -- the whole portfolio when
+  // unscoped, just the one agreement's numbers when scoped. Uses the base
+  // milestones set (not statusFiltered), since the tiles are an overview
+  // independent of the status dropdown, not a live count of the filtered
+  // rows below them.
+  const statsMilestones = scopedDocId ? milestones.filter((m) => m.mou_document_id === scopedDocId) : milestones;
   const stats = useMemo(() => {
-    const totalCommitted = milestones.reduce((sum, m) => sum + (m.linked_amount ?? 0), 0);
-    const disbursed = milestones.filter((m) => m.status === "disbursed").reduce((sum, m) => sum + (m.linked_amount ?? 0), 0);
-    const overdue = milestones.filter((m) => isMilestoneOverdue(m)).length;
-    const onTrack = milestones.filter((m) => !isMilestoneOverdue(m) && m.status !== "disbursed").length;
+    const totalCommitted = statsMilestones.reduce((sum, m) => sum + (m.linked_amount ?? 0), 0);
+    const disbursed = statsMilestones.filter((m) => m.status === "disbursed").reduce((sum, m) => sum + (m.linked_amount ?? 0), 0);
+    const overdue = statsMilestones.filter((m) => isMilestoneOverdue(m)).length;
+    const onTrack = statsMilestones.filter((m) => !isMilestoneOverdue(m) && m.status !== "disbursed").length;
     return { totalCommitted, disbursed, overdue, onTrack };
-  }, [milestones]);
+  }, [statsMilestones]);
 
   const columns: {
     key: string; label: string; predicate: (m: MouMilestone) => boolean;
@@ -219,21 +211,21 @@ export default function DashboardPortfolioMilestones() {
     );
   }
 
-  // Three cases, matching how the person actually wants to read this page:
-  // 1. A specific agreement is scoped (Viewing picker) -- exactly one
-  //    board, that agreement's milestones only.
-  // 2. "All agreements", no partner filter -- one merged board across
-  //    everything, unchanged from before.
-  // 3. A specific partner is selected -- a partner can have more than one
-  //    agreement, so merging them into one board would hide which
-  //    agreement each milestone belongs to. Render one board per
-  //    agreement instead, stacked with a header and a divider.
-  const kanbanMode: "single" | "merged" | "byAgreement" = scopedDocId ? "single" : filterPartner === "all" ? "merged" : "byAgreement";
+  // Always sectioned now -- one Kanban per agreement, with a header naming
+  // the partner and the initiative/partnership title. Scoped to one
+  // agreement, that's exactly one section; unscoped, it's every agreement
+  // that has at least one milestone, sorted so the list is stable to
+  // browse rather than jumping around on reload.
   const sectionDocs = useMemo(() => {
-    if (kanbanMode === "single") return scopedDocId ? docs.filter((d) => d.id === scopedDocId) : [];
-    if (kanbanMode === "byAgreement") return docs.filter((d) => partnerOrgIdFor(d) === filterPartner && docsWithAnyMilestone.has(d.id));
-    return [];
-  }, [kanbanMode, docs, scopedDocId, filterPartner, docsWithAnyMilestone, myOrgId]);
+    const base = scopedDocId
+      ? docs.filter((d) => d.id === scopedDocId)
+      : docs.filter((d) => docsWithAnyMilestone.has(d.id));
+    return [...base].sort((a, b) => {
+      const aName = orgMap[partnerOrgIdFor(a)]?.organisation_name ?? "";
+      const bName = orgMap[partnerOrgIdFor(b)]?.organisation_name ?? "";
+      return aName.localeCompare(bName) || (docTitle(a) ?? "").localeCompare(docTitle(b) ?? "");
+    });
+  }, [docs, scopedDocId, docsWithAnyMilestone, orgMap, initiativeTitleMap, myOrgId]);
 
   if (loading) {
     return (
@@ -264,34 +256,34 @@ export default function DashboardPortfolioMilestones() {
           <ChevronDown className="w-3.5 h-3.5" />
         </button>
         {scopedDocId && (
-          <button type="button" onClick={() => navigate("/dashboard/portfolio/milestones")}
+          <button type="button" onClick={() => { setScopedDocId(null); navigate("/dashboard/portfolio/milestones"); }}
             className="flex items-center gap-1 text-sm text-black dark:text-white hover:underline">
             <X className="w-3.5 h-3.5" /> View all
           </button>
         )}
       </div>
 
-      {/* Summary -- only meaningful across the whole portfolio, not one agreement */}
-      {!scopedDocId && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
-            <p className="text-xs text-black dark:text-white mb-1">Total committed</p>
-            <p className="text-xl font-medium text-black dark:text-white">{stats.totalCommitted.toLocaleString()}</p>
-          </div>
-          <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
-            <p className="text-xs text-black dark:text-white mb-1">Disbursed</p>
-            <p className="text-xl font-medium text-black dark:text-white">{stats.disbursed.toLocaleString()}</p>
-          </div>
-          <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
-            <p className="text-xs text-black dark:text-white mb-1">On track</p>
-            <p className="text-xl font-medium text-black dark:text-white">{stats.onTrack}</p>
-          </div>
-          <div className="rounded-xl p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
-            <p className="text-xs text-amber-600 dark:text-amber-500 mb-1">Overdue</p>
-            <p className="text-xl font-medium text-amber-600 dark:text-amber-500">{stats.overdue}</p>
-          </div>
+      {/* Tiles now reflect the current scope -- whole portfolio when
+          unscoped, just this agreement's numbers when scoped -- so they
+          stay visible in both states rather than disappearing on scope. */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
+          <p className="text-xs text-black dark:text-white mb-1">Total committed</p>
+          <p className="text-xl font-medium text-black dark:text-white">{stats.totalCommitted.toLocaleString()}</p>
         </div>
-      )}
+        <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
+          <p className="text-xs text-black dark:text-white mb-1">Disbursed</p>
+          <p className="text-xl font-medium text-black dark:text-white">{stats.disbursed.toLocaleString()}</p>
+        </div>
+        <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
+          <p className="text-xs text-black dark:text-white mb-1">On track</p>
+          <p className="text-xl font-medium text-black dark:text-white">{stats.onTrack}</p>
+        </div>
+        <div className="rounded-xl p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
+          <p className="text-xs text-amber-600 dark:text-amber-500 mb-1">Overdue</p>
+          <p className="text-xl font-medium text-amber-600 dark:text-amber-500">{stats.overdue}</p>
+        </div>
+      </div>
 
       {!scopedDocId && (
         <div className="flex justify-end">
@@ -317,55 +309,40 @@ export default function DashboardPortfolioMilestones() {
         </p>
       ) : (
         <>
-          {/* Filters -- pointless on an empty list, and redundant once scoped to one MoU */}
-          {!scopedDocId && (
-            <div className="flex flex-wrap items-center gap-2">
-              <select value={filterPartner} onChange={(e) => setFilterPartner(e.target.value)}
-                className="h-9 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white">
-                <option value="all">All partners</option>
-                {partnerOptions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
-                className="h-9 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white">
-                <option value="all">All statuses</option>
-                <option value="pending">Pending</option>
-                <option value="revision_requested">Revision requested</option>
-                <option value="in_review">In review</option>
-                <option value="verified">Verified</option>
-                <option value="disbursed">Disbursed</option>
-              </select>
-            </div>
-          )}
+          {/* Status filter stays available in both states now -- it narrows
+              what's in each column, distinct from which agreement(s) show,
+              which scopedDocId/sectionDocs decide instead. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
+              className="h-9 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white">
+              <option value="all">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="revision_requested">Revision requested</option>
+              <option value="in_review">In review</option>
+              <option value="verified">Verified</option>
+              <option value="disbursed">Disbursed</option>
+            </select>
+          </div>
 
-          {kanbanMode === "single" && (
-            sectionDocs.length === 0 ? null : <KanbanBoard items={statusFiltered.filter((m) => m.mou_document_id === sectionDocs[0].id)} />
-          )}
-
-          {kanbanMode === "merged" && (
-            <KanbanBoard items={statusFiltered} />
-          )}
-
-          {kanbanMode === "byAgreement" && (
-            sectionDocs.length === 0 ? (
-              <p className="text-sm text-black dark:text-white">No milestones for this partner yet.</p>
-            ) : (
-              <div className="space-y-8">
-                {sectionDocs.map((doc, i) => {
-                  const partnerName = orgMap[partnerOrgIdFor(doc)]?.organisation_name ?? "Partner";
-                  const title = docTitle(doc);
-                  return (
-                    <div key={doc.id}>
-                      {i > 0 && <div className="border-t border-border mb-8" />}
-                      <div className="mb-3">
-                        <p className="text-base font-semibold text-black dark:text-white">{partnerName}</p>
-                        {title && <p className="text-sm text-black dark:text-white mt-0.5">{title}</p>}
-                      </div>
-                      <KanbanBoard items={statusFiltered.filter((m) => m.mou_document_id === doc.id)} />
+          {sectionDocs.length === 0 ? (
+            <p className="text-sm text-black dark:text-white">No milestones for this agreement yet.</p>
+          ) : (
+            <div className="space-y-8">
+              {sectionDocs.map((doc, i) => {
+                const partnerName = orgMap[partnerOrgIdFor(doc)]?.organisation_name ?? "Partner";
+                const title = docTitle(doc);
+                return (
+                  <div key={doc.id}>
+                    {i > 0 && <div className="h-[3px] bg-border rounded-full mb-8" />}
+                    <div className="mb-3">
+                      <p className="text-base font-semibold text-black dark:text-white">{partnerName}</p>
+                      {title && <p className="text-sm text-black dark:text-white mt-0.5">{title}</p>}
                     </div>
-                  );
-                })}
-              </div>
-            )
+                    <KanbanBoard items={statusFiltered.filter((m) => m.mou_document_id === doc.id)} />
+                  </div>
+                );
+              })}
+            </div>
           )}
         </>
       )}
