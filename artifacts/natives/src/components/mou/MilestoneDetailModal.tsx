@@ -22,6 +22,7 @@ export default function MilestoneDetailModal({ milestone, orgA, orgB, myUserId, 
   const [postingComment, setPostingComment] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [transitionError, setTransitionError] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   useEffect(() => { loadDetail(); }, [milestone.id]);
 
@@ -88,9 +89,11 @@ export default function MilestoneDetailModal({ milestone, orgA, orgB, myUserId, 
   const canVerify =
     current.status !== "verified" && current.status !== "disbursed" &&
     (current.payer_org_id ? isPayerOwner : isDocParticipant);
+  const canDecline = canVerify && current.status !== "revision_requested";
   const canDisburse = current.status === "verified" && current.payer_org_id !== null && isPayerOwner;
+  const canDelete = (current.status === "pending" || current.status === "revision_requested") && isDocParticipant;
 
-  async function transitionTo(status: "verified" | "disbursed") {
+  async function transitionTo(status: "verified" | "disbursed" | "revision_requested") {
     setTransitioning(true);
     setTransitionError(null);
     const { data, error } = await supabase.from("mou_milestones").update({ status }).eq("id", current.id).select().maybeSingle();
@@ -105,6 +108,19 @@ export default function MilestoneDetailModal({ milestone, orgA, orgB, myUserId, 
     }
     setCurrent(data as MouMilestone);
     onChanged();
+  }
+
+  async function deleteMilestone() {
+    setTransitioning(true);
+    setTransitionError(null);
+    const { error } = await supabase.from("mou_milestones").delete().eq("id", current.id);
+    setTransitioning(false);
+    if (error) {
+      setTransitionError("Couldn't delete -- try again.");
+      return;
+    }
+    onChanged();
+    onClose();
   }
 
   return (
@@ -142,10 +158,21 @@ export default function MilestoneDetailModal({ milestone, orgA, orgB, myUserId, 
               <p className="text-sm text-amber-600 dark:text-amber-500">{transitionError}</p>
             )}
             {canVerify && (
-              <button type="button" onClick={() => transitionTo("verified")} disabled={transitioning}
-                className="w-full h-10 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium disabled:opacity-60 transition-colors">
-                {transitioning ? "Verifying..." : "Mark as verified"}
-              </button>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => transitionTo("verified")} disabled={transitioning}
+                  className="flex-1 h-10 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium disabled:opacity-60 transition-colors">
+                  {transitioning ? "Verifying..." : "Mark as verified"}
+                </button>
+                {canDecline && (
+                  <button type="button" onClick={() => transitionTo("revision_requested")} disabled={transitioning}
+                    className="flex-1 h-10 rounded-full border border-border text-sm text-black dark:text-white disabled:opacity-60 hover:border-foreground/30 transition-colors">
+                    Decline
+                  </button>
+                )}
+              </div>
+            )}
+            {current.status === "revision_requested" && (
+              <p className="text-xs text-black dark:text-white">Sent back for revision -- see the comments below for what needs to change.</p>
             )}
             {canDisburse && (
               <button type="button" onClick={() => transitionTo("disbursed")} disabled={transitioning}
@@ -226,6 +253,31 @@ export default function MilestoneDetailModal({ milestone, orgA, orgB, myUserId, 
             </button>
           </div>
         </div>
+
+        {canDelete && (
+          <div className="border-t border-border pt-4">
+            {!confirmingDelete ? (
+              <button type="button" onClick={() => setConfirmingDelete(true)}
+                className="text-sm text-red-600 dark:text-red-500 hover:underline">
+                Delete this milestone
+              </button>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-black dark:text-white">Delete this milestone? This can't be undone.</p>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setConfirmingDelete(false)}
+                    className="flex-1 h-10 rounded-full border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors">
+                    Cancel
+                  </button>
+                  <button type="button" onClick={deleteMilestone} disabled={transitioning}
+                    className="flex-1 h-10 rounded-full bg-red-600 hover:bg-red-700 text-white text-sm font-medium disabled:opacity-60 transition-colors">
+                    {transitioning ? "Deleting..." : "Yes, delete"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
     </div>
