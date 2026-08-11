@@ -183,13 +183,31 @@ export default function DashboardPortfolioMilestones() {
         </div>
       )}
 
+      {!scopedDocId && (
+        <div className="flex justify-end">
+          <button type="button" onClick={() => setShowPicker(true)}
+            className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
+            <Plus className="w-4 h-4" /> New milestone
+          </button>
+        </div>
+      )}
+
+      {scopedDocId && (
+        <div className="flex justify-end">
+          <button type="button" onClick={() => setPickedDocId(scopedDocId)}
+            className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
+            <Plus className="w-4 h-4" /> New milestone
+          </button>
+        </div>
+      )}
+
       {milestones.length === 0 ? (
         <p className="text-sm text-black dark:text-white">
-          No milestones yet. Add one from an executed MoU, or from here once you have at least one.
+          No milestones yet. Use the button above to add one against an executed MoU.
         </p>
       ) : (
         <>
-          {/* Filters -- redundant once already scoped to a single MoU */}
+          {/* Filters -- pointless on an empty list, and redundant once scoped to one MoU */}
           {!scopedDocId && (
             <div className="flex flex-wrap items-center gap-2">
               <select value={filterPartner} onChange={(e) => setFilterPartner(e.target.value)}
@@ -206,20 +224,6 @@ export default function DashboardPortfolioMilestones() {
                 <option value="verified">Verified</option>
                 <option value="disbursed">Disbursed</option>
               </select>
-              <div className="flex-1" />
-              <button type="button" onClick={() => setShowPicker(true)}
-                className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
-                <Plus className="w-4 h-4" /> New milestone
-              </button>
-            </div>
-          )}
-
-          {scopedDocId && (
-            <div className="flex justify-end">
-              <button type="button" onClick={() => setPickedDocId(scopedDocId)}
-                className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
-                <Plus className="w-4 h-4" /> New milestone
-              </button>
             </div>
           )}
 
