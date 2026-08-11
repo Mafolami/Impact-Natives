@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2, Plus, X } from "lucide-react";
+import { Loader2, Plus, X, Clock, Eye, CheckCircle2, PartyPopper } from "lucide-react";
 import {
   MouMilestone, OrgRef, isMilestoneOverdue,
 } from "@/lib/milestones";
@@ -156,11 +156,26 @@ export default function DashboardPortfolioMilestones() {
     return { totalCommitted, disbursed, overdue, onTrack };
   }, [milestones]);
 
-  const columns: { key: string; label: string; predicate: (m: MouMilestone) => boolean }[] = [
-    { key: "pending", label: "Pending", predicate: (m) => m.status === "pending" || m.status === "revision_requested" },
-    { key: "in_review", label: "In review", predicate: (m) => m.status === "in_review" },
-    { key: "verified", label: "Verified", predicate: (m) => m.status === "verified" },
-    { key: "disbursed", label: "Disbursed", predicate: (m) => m.status === "disbursed" },
+  const columns: {
+    key: string; label: string; predicate: (m: MouMilestone) => boolean;
+    icon: typeof Clock; border: string; headerBg: string; text: string;
+  }[] = [
+    {
+      key: "pending", label: "Pending", predicate: (m) => m.status === "pending" || m.status === "revision_requested",
+      icon: Clock, border: "border-amber-200 dark:border-amber-900/40", headerBg: "bg-amber-50 dark:bg-amber-950/20", text: "text-amber-600 dark:text-amber-500",
+    },
+    {
+      key: "in_review", label: "In review", predicate: (m) => m.status === "in_review",
+      icon: Eye, border: "border-blue-200 dark:border-blue-900/40", headerBg: "bg-blue-50 dark:bg-blue-950/20", text: "text-blue-600 dark:text-blue-400",
+    },
+    {
+      key: "verified", label: "Verified", predicate: (m) => m.status === "verified",
+      icon: CheckCircle2, border: "border-[#2D6A4F]/20", headerBg: "bg-[#2D6A4F]/[0.06]", text: "text-[#2D6A4F]",
+    },
+    {
+      key: "disbursed", label: "Disbursed", predicate: (m) => m.status === "disbursed",
+      icon: PartyPopper, border: "border-[#2D6A4F]/30", headerBg: "bg-[#2D6A4F]/10", text: "text-[#2D6A4F]",
+    },
   ];
 
   function orgsForMilestone(m: MouMilestone): { orgA: OrgRef | null; orgB: OrgRef | null } {
@@ -272,12 +287,25 @@ export default function DashboardPortfolioMilestones() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {columns.map((col) => {
                 const items = filtered.filter(col.predicate);
+                const Icon = col.icon;
                 return (
-                  <div key={col.key} className="space-y-2">
-                    <p className="text-xs font-medium text-black dark:text-white">{col.label} &middot; {items.length}</p>
-                    {items.map((m) => (
-                      <MilestoneCard key={m.id} milestone={m} onClick={() => setSelectedMilestone(m)} />
-                    ))}
+                  <div key={col.key} className={`rounded-xl border ${col.border} overflow-hidden`}>
+                    <div className={`flex items-center gap-2 px-3 py-2.5 border-b ${col.border} ${col.headerBg}`}>
+                      <Icon className={`w-4 h-4 ${col.text}`} />
+                      <p className={`text-sm font-semibold ${col.text}`}>{col.label}</p>
+                      <span className={`ml-auto text-xs font-semibold px-2 py-0.5 rounded-full border ${col.border} ${col.text} bg-white dark:bg-card`}>
+                        {items.length}
+                      </span>
+                    </div>
+                    <div className="p-3 space-y-2 bg-white dark:bg-card min-h-[64px]">
+                      {items.length === 0 ? (
+                        <p className="text-xs text-black dark:text-white">Nothing here.</p>
+                      ) : (
+                        items.map((m) => (
+                          <MilestoneCard key={m.id} milestone={m} onClick={() => setSelectedMilestone(m)} />
+                        ))
+                      )}
+                    </div>
                   </div>
                 );
               })}
