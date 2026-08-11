@@ -199,6 +199,12 @@ export default function DashboardPortfolioMilestones() {
   const scopedPartnerName = scopedDocId && docsById[scopedDocId]
     ? (orgMap[partnerOrgIdFor(docsById[scopedDocId])]?.organisation_name ?? "this partner")
     : null;
+  // The "Viewing:" label should read as an initiative/partnership title,
+  // not just a partner org name -- the org name is the fallback, not the
+  // primary label, matching how the picker's own rows are titled.
+  const scopedTitle = scopedDocId && docsById[scopedDocId]
+    ? (docTitle(docsById[scopedDocId]) ?? scopedPartnerName)
+    : null;
 
   return (
     <div className="space-y-6">
@@ -207,7 +213,7 @@ export default function DashboardPortfolioMilestones() {
           onClick={() => { setPickerMode("view"); setPickedDocId(scopedDocId ?? ""); setPickerSearch(""); setShowPicker(true); }}
           className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm text-black dark:text-white hover:border-[#2D6A4F]/40 transition-colors">
           <span>Viewing:</span>
-          <span className="font-semibold">{scopedPartnerName ?? "All milestones"}</span>
+          <span className="font-semibold">{scopedTitle ?? "All milestones"}</span>
           <ChevronDown className="w-3.5 h-3.5" />
         </button>
         {scopedDocId && (
@@ -370,6 +376,15 @@ export default function DashboardPortfolioMilestones() {
                   setShowPicker(false);
                   setPickerSearch("");
                   if (pickerMode === "view") {
+                    // Set scoped state directly rather than relying only on
+                    // the URL round-trip -- a query-only change (same path,
+                    // different ?mouId=) doesn't reliably re-fire the
+                    // location-watching effect below on every setup, which
+                    // was leaving the "Viewing:" label stuck on its old
+                    // value even though the underlying list was scoped
+                    // correctly. The navigate() call still runs too, so a
+                    // refresh or direct link to the URL keeps working.
+                    setScopedDocId(pickedDocId || null);
                     navigate(pickedDocId ? `/dashboard/portfolio/milestones?mouId=${pickedDocId}` : "/dashboard/portfolio/milestones");
                     setPickedDocId("");
                   }
