@@ -22,4 +22,4 @@ export function resolveMouDocTitle(
   if (doc.initiative_id) return initiativeTitleMap[doc.initiative_id] ?? null;
   if (doc.connection_id) return orgMap[doc.org_a_id]?.partnership_sought ?? null;
   return null;
-}
+} 
