@@ -213,7 +213,7 @@ export default function DashboardPortfolioMilestones() {
           onClick={() => { setPickerMode("view"); setPickedDocId(scopedDocId ?? ""); setPickerSearch(""); setShowPicker(true); }}
           className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm text-black dark:text-white hover:border-[#2D6A4F]/40 transition-colors">
           <span>Viewing:</span>
-          <span className="font-semibold">{scopedTitle ?? "All milestones"}</span>
+          <span className="font-semibold">{scopedTitle ?? "All agreements"}</span>
           <ChevronDown className="w-3.5 h-3.5" />
         </button>
         {scopedDocId && (
@@ -342,15 +342,21 @@ export default function DashboardPortfolioMilestones() {
                 <input type="text" placeholder="Search by partner or title" value={pickerSearch}
                   onChange={(e) => setPickerSearch(e.target.value)}
                   className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
+                {pickerMode === "view" && (
+                  // Deliberately outside the scrollable/searchable list and
+                  // visually distinct (plain row, no card border) -- this
+                  // is a scope-reset action, not another agreement, and
+                  // styling it identically to the rows below made it read
+                  // as a fourth option in the same list rather than an
+                  // escape hatch from it.
+                  <button type="button" onClick={() => setPickedDocId("")}
+                    className={`w-full text-left px-3 py-2 border-b border-border transition-colors ${
+                      pickedDocId === "" ? "text-[#2D6A4F] font-semibold" : "text-black dark:text-white hover:text-[#2D6A4F]"
+                    }`}>
+                    All agreements
+                  </button>
+                )}
                 <div className="overflow-y-auto space-y-1.5 -mx-1 px-1">
-                  {pickerMode === "view" && (
-                    <button type="button" onClick={() => setPickedDocId("")}
-                      className={`w-full text-left rounded-lg border px-3 py-2 transition-colors ${
-                        pickedDocId === "" ? "border-[#2D6A4F] bg-[#2D6A4F]/[0.06]" : "border-border hover:border-[#2D6A4F]/40"
-                      }`}>
-                      <p className="text-sm font-medium text-black dark:text-white">All milestones</p>
-                    </button>
-                  )}
                   {pickerOptions.length === 0 && (
                     <p className="text-sm text-black dark:text-white">No match.</p>
                   )}
