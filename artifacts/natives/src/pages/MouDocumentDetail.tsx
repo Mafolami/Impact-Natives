@@ -67,15 +67,6 @@ interface Props {
   onClose: () => void;
 }
 
-const STATUS_LABEL: Record<string, { label: string; color: string }> = {
-  draft: { label: "Draft", color: "#C45C26" },
-  sent: { label: "Sent — awaiting signatures", color: "#C45C26" },
-  signed_by_org_a: { label: "Signed by one party", color: "#2D6A4F" },
-  signed_by_org_b: { label: "Signed by one party", color: "#2D6A4F" },
-  pending_org_a_final_review: { label: "Awaiting final review", color: "#C45C26" },
-  fully_executed: { label: "Fully executed", color: "#2D6A4F" },
-};
-
 function fieldKeysIn(text: string): string[] {
   const matches = text.match(/\{\{(\w+)\}\}/g) ?? [];
   return matches.map((m) => m.slice(2, -2));

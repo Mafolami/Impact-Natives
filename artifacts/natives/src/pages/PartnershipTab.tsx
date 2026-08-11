@@ -292,6 +292,7 @@ export function PartnershipTab() {
   const pendingInbound   = inbound.filter(c => c.status === "pending");
   const acceptedInbound  = inbound.filter(c => c.status === "accepted");
   const confirmedInbound = inbound.filter(c => c.status === "formed");
+  const confirmedOutbound = outbound.filter(c => c.status === "formed");
   const isListed         = myListing?.partnership_listed;
 
   const subTabs: { key: PartnershipView; label: string }[] = [
@@ -567,14 +568,16 @@ export function PartnershipTab() {
       {/* ── Confirmed ── */}
       {activeView === "confirmed" && (
         <>
-          {confirmedInbound.length === 0 ? (
+          {confirmedInbound.length === 0 && confirmedOutbound.length === 0 ? (
             <EmptyState
               icon={CheckCircle2}
               title="No confirmed partnerships yet."
               body="Once the other party confirms the partnership, they'll appear here."
             />
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {confirmedInbound.length > 0 && (
+              <div className="space-y-4">
               {/* Group confirmed partners by partnership_title */}
               {(() => {
                 const grouped = confirmedInbound.reduce((acc, conn) => {
@@ -657,6 +660,67 @@ export function PartnershipTab() {
                   </div>
                 ));
               })()}
+              </div>
+              )}
+
+              {confirmedOutbound.length > 0 && (
+              <div className="rounded-xl border border-[#2D6A4F]/20 bg-card overflow-hidden">
+                <div className="px-5 py-3 border-b border-border bg-[#2D6A4F]/5">
+                  <p className="text-sm font-semibold text-[#2D6A4F]">Partnerships you joined</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {confirmedOutbound.length} confirmed partner{confirmedOutbound.length !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      {["Name", "Role", "Contact", "Confirmed"].map(h => (
+                        <th key={h} className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {confirmedOutbound.map(conn => {
+                      const org = conn.receiver_org;
+                      return (
+                        <tr key={conn.id}>
+                          <td className="px-5 py-3">
+                            <p className="text-sm font-medium text-foreground">
+                              {org?.organisation_name ?? "Unknown"}
+                            </p>
+                          </td>
+                          <td className="px-5 py-3">
+                            <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                              style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
+                              {conn.partnership_type}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3">
+                            <div className="space-y-0.5">
+                              {org?.email && (
+                                <a href={`mailto:${org.email}`}
+                                  className="block text-xs text-[#2D6A4F] hover:underline">
+                                  {org.email}
+                                </a>
+                              )}
+                              {org?.website && org.website !== "https://" && (
+                                <a href={org.website} target="_blank" rel="noopener noreferrer"
+                                  className="block text-xs text-muted-foreground hover:text-foreground">
+                                  {org.website.replace(/^https?:\/\//, "")} ↗
+                                </a>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-5 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                            {timeAgo(conn.updated_at)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              )}
             </div>
           )}
         </>
