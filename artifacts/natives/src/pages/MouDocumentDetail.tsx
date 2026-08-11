@@ -4,7 +4,7 @@ import { jsPDF } from "jspdf";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { BRICOLAGE_GROTESQUE_BOLD_BASE64 } from "@/lib/fonts/bricolageGrotesqueBold";
 import { X, Loader2, Download, Upload, CheckCircle2, Send, ArrowLeft, PenLine, Flag, Lock, Clock, PartyPopper, Trash2 } from "lucide-react";import SignaturePad from "@/components/dashboard/SignaturePad";
-import { MouMilestone, fetchMilestones } from "@/lib/milestones/milestones";
+import { MouMilestone, fetchMilestones } from "@/lib/milestones";
 import MilestoneCard from "@/components/mou/MilestoneCard";
 import MilestoneCreateModal from "@/components/mou/MilestoneCreateModal";
 import MilestoneDetailModal from "@/components/mou/MilestoneDetailModal";
