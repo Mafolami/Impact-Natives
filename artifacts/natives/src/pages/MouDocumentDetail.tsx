@@ -108,6 +108,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const [flagNote, setFlagNote] = useState("");
   const [customFieldMode, setCustomFieldMode] = useState<Record<string, boolean>>({});
   const [finalizing, setFinalizing] = useState(false);
+  const [finalizeError, setFinalizeError] = useState<string | null>(null);
   const [confirmingFinalization, setConfirmingFinalization] = useState(false);
   const [confirmingPartnershipStatus, setConfirmingPartnershipStatus] = useState(false);
   const [showVoidConfirm, setShowVoidConfirm] = useState(false);
@@ -907,11 +908,17 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   async function finalizeDocument() {
     if (!doc || !orgA || !orgB) return;
     if (doc.status !== "pending_org_a_final_review") return;
+    if (!doc.signed_at_org_a) { setFinalizeError("You need to sign your own section before this MoU can be fully executed."); return; }
     const stillUnresolved = (doc.field_flags ?? []).some((f) => !f.resolved && f.raised_by === "org_a");
     if (stillUnresolved) return;
     setFinalizing(true);
+    setFinalizeError(null);
     const { error } = await supabase.rpc("finalize_mou_document", { p_document_id: doc.id });
-    if (error) { setFinalizing(false); return; }
+    if (error) {
+      setFinalizing(false);
+      setFinalizeError("This MoU can't be finalized yet -- both parties need to have signed first.");
+      return;
+    }
     const pdf = buildPdf();
     let finalPath: string | null = null;
     if (pdf) {
@@ -1927,6 +1934,11 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
             )}
           {isViewerOrgA && doc.status === "pending_org_a_final_review" && (
             <div className="space-y-2">
+              {!doc.signed_at_org_a && (
+                <InfoBanner tone="locked" icon={PenLine}>
+                  You haven't signed your own section yet. Sign above before you can fully execute this MoU.
+                </InfoBanner>
+              )}
               {hasUnresolvedOrgAFlags && (
                 <InfoBanner tone="waiting" icon={Clock}>
                   Waiting for {orgB?.organisation_name ?? "the other party"} to resolve the flags you raised before you can finalize.
@@ -1937,8 +1949,11 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                   This MoU includes binding commitments. Waiting for {orgB?.organisation_name ?? "the other party"} to confirm they have no objection before you can finalize.
                 </InfoBanner>
               )}
+              {finalizeError && (
+                <p className="text-sm text-amber-600 dark:text-amber-500">{finalizeError}</p>
+              )}
               <button type="button" onClick={finalizeDocument}
-                disabled={finalizing || hasUnresolvedOrgAFlags || finalizeBlockedOnOrgBConfirmation}
+                disabled={finalizing || !doc.signed_at_org_a || hasUnresolvedOrgAFlags || finalizeBlockedOnOrgBConfirmation}
                 className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3 text-base font-medium transition-colors disabled:opacity-60">
                 {finalizing ? "Finalizing..." : "Finish Finally — fully execute this MoU"}
               </button>
