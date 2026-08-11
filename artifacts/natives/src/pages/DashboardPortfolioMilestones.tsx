@@ -14,6 +14,8 @@ interface ExecutedDoc {
   id: string;
   org_a_id: string;
   org_b_id: string;
+  initiative_id: string | null;
+  connection_id: string | null;
 }
 
 export default function DashboardPortfolioMilestones() {
@@ -25,6 +27,7 @@ export default function DashboardPortfolioMilestones() {
   const [myOrgId, setMyOrgId] = useState<string | null>(null);
   const [docs, setDocs] = useState<ExecutedDoc[]>([]);
   const [orgMap, setOrgMap] = useState<Record<string, OrgRef>>({});
+  const [initiativeTitleMap, setInitiativeTitleMap] = useState<Record<string, string>>({});
   const [milestones, setMilestones] = useState<MouMilestone[]>([]);
 
   const [filterPartner, setFilterPartner] = useState<string>("all");
@@ -38,6 +41,7 @@ export default function DashboardPortfolioMilestones() {
   }, [location]);
 
   const [showPicker, setShowPicker] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState("");
   const [pickedDocId, setPickedDocId] = useState<string>("");
   const [selectedMilestone, setSelectedMilestone] = useState<MouMilestone | null>(null);
 
@@ -52,17 +56,25 @@ export default function DashboardPortfolioMilestones() {
 
     const { data: docRows } = await supabase
       .from("mou_documents")
-      .select("id, org_a_id, org_b_id")
+      .select("id, org_a_id, org_b_id, initiative_id, connection_id")
       .or(`org_a_id.eq.${myOrg.id},org_b_id.eq.${myOrg.id}`)
       .eq("status", "fully_executed");
     setDocs((docRows as ExecutedDoc[]) ?? []);
 
     const orgIds = [...new Set((docRows ?? []).flatMap((d: any) => [d.org_a_id, d.org_b_id]))];
     if (orgIds.length > 0) {
-      const { data: orgs } = await supabase.from("organizations").select("id, user_id, organisation_name").in("id", orgIds);
+      const { data: orgs } = await supabase.from("organizations").select("id, user_id, organisation_name, partnership_sought").in("id", orgIds);
       const map: Record<string, OrgRef> = {};
       (orgs ?? []).forEach((o: any) => { map[o.id] = o; });
       setOrgMap(map);
+    }
+
+    const initIds = [...new Set((docRows ?? []).map((d: any) => d.initiative_id).filter((x: any): x is string => !!x))];
+    if (initIds.length > 0) {
+      const { data: inits } = await supabase.from("initiative_requests").select("id, title").in("id", initIds);
+      const titleMap: Record<string, string> = {};
+      (inits ?? []).forEach((i: any) => { titleMap[i.id] = i.title; });
+      setInitiativeTitleMap(titleMap);
     }
 
     const docIds = (docRows ?? []).map((d: any) => d.id);
@@ -88,6 +100,28 @@ export default function DashboardPortfolioMilestones() {
   function partnerOrgIdFor(doc: ExecutedDoc): string {
     return doc.org_a_id === myOrgId ? doc.org_b_id : doc.org_a_id;
   }
+
+  // Initiative-based docs already have a real title. Connection-based docs
+  // don't -- partnership_title is essentially never populated in practice,
+  // so fall back to the listing owner's (org_a's) own partnership_sought
+  // text, same resolution used for the MoU picker on the MoUs page.
+  function docTitle(doc: ExecutedDoc): string | null {
+    if (doc.initiative_id) return initiativeTitleMap[doc.initiative_id] ?? null;
+    if (doc.connection_id) return orgMap[doc.org_a_id]?.partnership_sought ?? null;
+    return null;
+  }
+
+  const pickerOptions = useMemo(() => {
+    const opts = docs.map((d) => ({
+      doc: d,
+      partnerName: orgMap[partnerOrgIdFor(d)]?.organisation_name ?? "Partner",
+      title: docTitle(d),
+    }));
+    opts.sort((a, b) => a.partnerName.localeCompare(b.partnerName) || (a.title ?? "").localeCompare(b.title ?? ""));
+    const q = pickerSearch.trim().toLowerCase();
+    if (!q) return opts;
+    return opts.filter((o) => o.partnerName.toLowerCase().includes(q) || (o.title ?? "").toLowerCase().includes(q));
+  }, [docs, orgMap, myOrgId, initiativeTitleMap, pickerSearch]);
 
   const partnerOptions = useMemo(() => {
     const seen = new Set<string>();
@@ -254,29 +288,39 @@ export default function DashboardPortfolioMilestones() {
 
       {showPicker && (
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowPicker(false)}>
-          <div className="bg-white dark:bg-card rounded-t-2xl sm:rounded-2xl border border-border w-full sm:max-w-sm shadow-xl p-6 space-y-4"
+          <div className="bg-white dark:bg-card rounded-t-2xl sm:rounded-2xl border border-border w-full sm:max-w-sm shadow-xl p-6 space-y-4 max-h-[80vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}>
             <p className="text-base font-bold text-black dark:text-white">Which agreement is this for?</p>
             {docs.length === 0 ? (
               <p className="text-sm text-black dark:text-white">No executed MoUs yet -- milestones can only be added once an agreement is fully executed.</p>
             ) : (
-              <select value={pickedDocId} onChange={(e) => setPickedDocId(e.target.value)}
-                className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white">
-                <option value="">Select an MoU...</option>
-                {docs.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {orgMap[partnerOrgIdFor(d)]?.organisation_name ?? "Partner"}
-                  </option>
-                ))}
-              </select>
+              <>
+                <input type="text" placeholder="Search by partner or title" value={pickerSearch}
+                  onChange={(e) => setPickerSearch(e.target.value)}
+                  className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
+                <div className="overflow-y-auto space-y-1.5 -mx-1 px-1">
+                  {pickerOptions.length === 0 && (
+                    <p className="text-sm text-black dark:text-white">No match.</p>
+                  )}
+                  {pickerOptions.map(({ doc, partnerName, title }) => (
+                    <button type="button" key={doc.id} onClick={() => setPickedDocId(doc.id)}
+                      className={`w-full text-left rounded-lg border px-3 py-2 transition-colors ${
+                        pickedDocId === doc.id ? "border-[#2D6A4F] bg-[#2D6A4F]/[0.06]" : "border-border hover:border-[#2D6A4F]/40"
+                      }`}>
+                      <p className="text-sm font-medium text-black dark:text-white">{partnerName}</p>
+                      <p className="text-xs text-black dark:text-white">{title ?? "Partnership"}</p>
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
             <div className="flex gap-2">
-              <button type="button" onClick={() => { setShowPicker(false); setPickedDocId(""); }}
+              <button type="button" onClick={() => { setShowPicker(false); setPickedDocId(""); setPickerSearch(""); }}
                 className="flex-1 h-10 rounded-full border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors">
                 Cancel
               </button>
               <button type="button" disabled={!pickedDocId}
-                onClick={() => setShowPicker(false)}
+                onClick={() => { setShowPicker(false); setPickerSearch(""); }}
                 className="flex-1 h-10 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium disabled:opacity-60 transition-colors">
                 Continue
               </button>

@@ -36,6 +36,7 @@ export interface OrgRef {
   id: string;
   user_id: string;
   organisation_name: string;
+  partnership_sought?: string | null;
 }
 
 export const MILESTONE_STATUS_LABEL: Record<MouMilestone["status"], { label: string; tone: "locked" | "waiting" | "success" | "celebrate" }> = {
