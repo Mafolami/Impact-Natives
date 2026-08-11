@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
@@ -49,6 +49,13 @@ export default function DashboardPortfolioMilestones() {
   const [pickerSearch, setPickerSearch] = useState("");
   const [pickedDocId, setPickedDocId] = useState<string>("");
   const [selectedMilestone, setSelectedMilestone] = useState<MouMilestone | null>(null);
+  // Sections with nothing outstanding (everything already disbursed)
+  // default to collapsed so the page doesn't turn into a long scroll of
+  // boards with no live activity. seenDocIds tracks which docs already had
+  // their default applied, so a person manually re-expanding one doesn't
+  // get overridden back to collapsed on the next data reload.
+  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+  const seenDocIds = useRef<Set<string>>(new Set());
 
   useEffect(() => { load(); }, [userId]);
 
@@ -140,9 +147,36 @@ export default function DashboardPortfolioMilestones() {
   // independent of the status dropdown, not a live count of the filtered
   // rows below them.
   const statsMilestones = scopedDocId ? milestones.filter((m) => m.mou_document_id === scopedDocId) : milestones;
+  // Amounts were being summed as bare numbers with no regard for
+  // linked_currency, so a $50,000 milestone displayed as plain "50,000"
+  // with the currency silently dropped. Grouping by currency and
+  // formatting each group with Intl.NumberFormat fixes that, and also
+  // keeps a mixed-currency portfolio honest instead of adding unlike
+  // currencies together into one misleading total.
+  function sumByCurrency(items: MouMilestone[], predicate?: (m: MouMilestone) => boolean): { currency: string; amount: number }[] {
+    const totals = new Map<string, number>();
+    for (const m of items) {
+      if (predicate && !predicate(m)) continue;
+      if (!m.linked_amount) continue;
+      const currency = m.linked_currency || "USD";
+      totals.set(currency, (totals.get(currency) ?? 0) + m.linked_amount);
+    }
+    return [...totals.entries()].map(([currency, amount]) => ({ currency, amount }));
+  }
+  function formatCurrencyTotals(totals: { currency: string; amount: number }[]): string {
+    if (totals.length === 0) return "0";
+    return totals.map(({ currency, amount }) => {
+      try {
+        return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount);
+      } catch {
+        // Unrecognized/invalid currency code -- fall back rather than crash the tile.
+        return `${currency} ${amount.toLocaleString()}`;
+      }
+    }).join(" · ");
+  }
   const stats = useMemo(() => {
-    const totalCommitted = statsMilestones.reduce((sum, m) => sum + (m.linked_amount ?? 0), 0);
-    const disbursed = statsMilestones.filter((m) => m.status === "disbursed").reduce((sum, m) => sum + (m.linked_amount ?? 0), 0);
+    const totalCommitted = sumByCurrency(statsMilestones);
+    const disbursed = sumByCurrency(statsMilestones, (m) => m.status === "disbursed");
     const overdue = statsMilestones.filter((m) => isMilestoneOverdue(m)).length;
     const onTrack = statsMilestones.filter((m) => !isMilestoneOverdue(m) && m.status !== "disbursed").length;
     return { totalCommitted, disbursed, overdue, onTrack };
@@ -211,11 +245,13 @@ export default function DashboardPortfolioMilestones() {
     );
   }
 
-  // Always sectioned now -- one Kanban per agreement, with a header naming
-  // the partner and the initiative/partnership title. Scoped to one
-  // agreement, that's exactly one section; unscoped, it's every agreement
-  // that has at least one milestone, sorted so the list is stable to
-  // browse rather than jumping around on reload.
+  // Always sectioned now -- one Kanban per agreement, grouped under its
+  // partner. A partner with several agreements gets its name shown once,
+  // then each agreement's title + board stacked underneath with just
+  // spacing between them; the thick divider is reserved for moving to a
+  // genuinely different partner, not between two agreements with the same
+  // one. Scoped to one agreement, this collapses to a single group with a
+  // single agreement in it -- same code path, no special case needed.
   const sectionDocs = useMemo(() => {
     const base = scopedDocId
       ? docs.filter((d) => d.id === scopedDocId)
@@ -226,6 +262,49 @@ export default function DashboardPortfolioMilestones() {
       return aName.localeCompare(bName) || (docTitle(a) ?? "").localeCompare(docTitle(b) ?? "");
     });
   }, [docs, scopedDocId, docsWithAnyMilestone, orgMap, initiativeTitleMap, myOrgId]);
+
+  const partnerGroups = useMemo(() => {
+    const groups: { partnerId: string; partnerName: string; docs: ExecutedDoc[] }[] = [];
+    for (const doc of sectionDocs) {
+      const partnerId = partnerOrgIdFor(doc);
+      const partnerName = orgMap[partnerId]?.organisation_name ?? "Partner";
+      const last = groups[groups.length - 1];
+      if (last && last.partnerId === partnerId) {
+        last.docs.push(doc);
+      } else {
+        groups.push({ partnerId, partnerName, docs: [doc] });
+      }
+    }
+    return groups;
+  }, [sectionDocs, orgMap, myOrgId]);
+
+  // Auto-collapse any agreement with nothing outstanding (every milestone
+  // already disbursed) the first time it's seen, so a long history of
+  // fully-settled agreements doesn't turn the page into dead scroll. Never
+  // applied to a scoped single agreement -- if someone picked it via
+  // Viewing, they want to see it, not have it hide itself.
+  useEffect(() => {
+    if (scopedDocId) return;
+    setCollapsedIds((prev) => {
+      let changed = false;
+      const next = new Set(prev);
+      for (const doc of sectionDocs) {
+        if (seenDocIds.current.has(doc.id)) continue;
+        seenDocIds.current.add(doc.id);
+        const hasOutstanding = milestones.some((m) => m.mou_document_id === doc.id && m.status !== "disbursed");
+        if (!hasOutstanding) { next.add(doc.id); changed = true; }
+      }
+      return changed ? next : prev;
+    });
+  }, [sectionDocs, milestones, scopedDocId]);
+
+  function toggleCollapse(docId: string) {
+    setCollapsedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(docId)) next.delete(docId); else next.add(docId);
+      return next;
+    });
+  }
 
   if (loading) {
     return (
@@ -269,11 +348,11 @@ export default function DashboardPortfolioMilestones() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
           <p className="text-xs text-black dark:text-white mb-1">Total committed</p>
-          <p className="text-xl font-medium text-black dark:text-white">{stats.totalCommitted.toLocaleString()}</p>
+          <p className="text-xl font-medium text-black dark:text-white">{formatCurrencyTotals(stats.totalCommitted)}</p>
         </div>
         <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
           <p className="text-xs text-black dark:text-white mb-1">Disbursed</p>
-          <p className="text-xl font-medium text-black dark:text-white">{stats.disbursed.toLocaleString()}</p>
+          <p className="text-xl font-medium text-black dark:text-white">{formatCurrencyTotals(stats.disbursed)}</p>
         </div>
         <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
           <p className="text-xs text-black dark:text-white mb-1">On track</p>
@@ -324,24 +403,36 @@ export default function DashboardPortfolioMilestones() {
             </select>
           </div>
 
-          {sectionDocs.length === 0 ? (
+          {partnerGroups.length === 0 ? (
             <p className="text-sm text-black dark:text-white">No milestones for this agreement yet.</p>
           ) : (
             <div className="space-y-8">
-              {sectionDocs.map((doc, i) => {
-                const partnerName = orgMap[partnerOrgIdFor(doc)]?.organisation_name ?? "Partner";
-                const title = docTitle(doc);
-                return (
-                  <div key={doc.id}>
-                    {i > 0 && <div className="h-[3px] bg-border rounded-full mb-8" />}
-                    <div className="mb-3">
-                      <p className="text-base font-semibold text-black dark:text-white">{partnerName}</p>
-                      {title && <p className="text-sm text-black dark:text-white mt-0.5">{title}</p>}
-                    </div>
-                    <KanbanBoard items={statusFiltered.filter((m) => m.mou_document_id === doc.id)} />
+              {partnerGroups.map((group, gi) => (
+                <div key={group.partnerId}>
+                  {gi > 0 && <div className="h-[3px] bg-border rounded-full mb-8" />}
+                  <p className="text-base font-semibold text-black dark:text-white mb-4">{group.partnerName}</p>
+                  <div className="space-y-6">
+                    {group.docs.map((doc) => {
+                      const title = docTitle(doc) ?? "Partnership";
+                      const docItems = statusFiltered.filter((m) => m.mou_document_id === doc.id);
+                      const isCollapsed = !scopedDocId && collapsedIds.has(doc.id);
+                      return (
+                        <div key={doc.id}>
+                          <button type="button" onClick={() => toggleCollapse(doc.id)}
+                            className="flex items-center gap-2 mb-2 text-left group">
+                            <ChevronDown className={`w-3.5 h-3.5 text-black dark:text-white transition-transform shrink-0 ${isCollapsed ? "-rotate-90" : ""}`} />
+                            <p className="text-sm text-black dark:text-white group-hover:underline">{title}</p>
+                            {isCollapsed && (
+                              <span className="text-xs text-black dark:text-white">({docItems.length})</span>
+                            )}
+                          </button>
+                          {!isCollapsed && <KanbanBoard items={docItems} />}
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           )}
         </>
