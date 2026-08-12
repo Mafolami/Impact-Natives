@@ -4,13 +4,12 @@ import StarterKit from "@tiptap/starter-kit"
 import Placeholder from "@tiptap/extension-placeholder"
 import { supabase } from "@/lib/supabase";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
+import { useAuth } from "@/context/AuthContext";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 type PartnershipType =
   | "funding" | "technical" | "operational" | "leadership" | "strategic" | "lead";
-
 interface FormState {
   title: string;
   sectors: string[];
@@ -30,7 +29,6 @@ interface FormState {
   submitterOrg: string;
   submitterEmail: string;
 }
-
 const INITIAL_STATE: FormState = {
   title: "",
   sectors: [],
@@ -50,7 +48,6 @@ const INITIAL_STATE: FormState = {
   submitterOrg: "",
   submitterEmail: "",
 };
-
 const CURRENCIES = [
   { code: "USD", symbol: "$",   label: "USD — US Dollar" },
   { code: "GBP", symbol: "£",   label: "GBP — British Pound" },
@@ -62,11 +59,9 @@ const CURRENCIES = [
   { code: "CAD", symbol: "CA$", label: "CAD — Canadian Dollar" },
   { code: "AUD", symbol: "A$",  label: "AUD — Australian Dollar" },
 ]
-
 function wordCount(text: string): number {
   return text.trim() === "" ? 0 : text.trim().split(/\s+/).length
 }
-
 const PARTNERSHIP_OPTIONS: { value: PartnershipType; label: string; color: string }[] = [
   { value: "funding",     label: "Funding",      color: "#C47A3A" },
   { value: "technical",   label: "Technical",    color: "#4A8C5C" },
@@ -75,7 +70,6 @@ const PARTNERSHIP_OPTIONS: { value: PartnershipType; label: string; color: strin
   { value: "strategic",   label: "Strategic",    color: "#B45C38" },
   { value: "lead",        label: "Project Lead", color: "#5C9E72" },
 ];
-
 // ─── Sector Selector ──────────────────────────────────────────────────────────
 function SectorSelector({ selected, onChange }: { selected: string[]; onChange: (v: string[]) => void }) {
   const [open, setOpen] = useState(false)
@@ -157,9 +151,7 @@ function SectorSelector({ selected, onChange }: { selected: string[]; onChange: 
     </div>
   )
 }
-
 // ─── Sub-components ───────────────────────────────────────────────────────────
-
 // 5-segment step bar
 function StepBar({ current }: { current: number }) {
   return (
@@ -177,7 +169,6 @@ function StepBar({ current }: { current: number }) {
     </div>
   );
 }
-
 function FieldLabel({
   children,
   required,
@@ -197,13 +188,11 @@ function FieldLabel({
     </label>
   );
 }
-
 function HintText({ children }: { children: React.ReactNode }) {
   return (
     <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{children}</p>
   );
 }
-
 function TagInput({
   tags,
   onAdd,
@@ -264,7 +253,6 @@ function TagInput({
     </div>
   );
 }
-
 function ChipGroup<T extends string>({
   options,
   selected,
@@ -307,7 +295,6 @@ function ChipGroup<T extends string>({
     </div>
   );
 }
-
 function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5 py-3 border-b border-border last:border-0">
@@ -318,7 +305,6 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-
 // ─── Step header labels ───────────────────────────────────────────────────────
 const STEP_TITLES = [
   "The basics",
@@ -327,7 +313,6 @@ const STEP_TITLES = [
   "Initiative detail",
   "Review & publish",
 ];
-
 function StepHeader({ step }: { step: number }) {
   return (
     <div className="mb-7">
@@ -338,7 +323,6 @@ function StepHeader({ step }: { step: number }) {
     </div>
   );
 }
-
 function StepFooter({
   onBack,
   onNext,
@@ -376,7 +360,6 @@ function StepFooter({
     </div>
   );
 }
-
 // ─── Main Modal ───────────────────────────────────────────────────────────────
 export default function CreateInitiativeModal({
   isOpen,
@@ -387,12 +370,18 @@ export default function CreateInitiativeModal({
   onClose: () => void;
   onSuccess?: (data: FormState) => void;
 }) {
+  // orgOwnerId is null for anonymous visitors (this modal supports
+  // logged-out submission, per the success screen's "sign in to track
+  // your submission" copy) and resolves normally for signed-in Owners or
+  // Members. Assumes this component is mounted under <AuthProvider> --
+  // true for any route that needs sign-in state visible, which a public
+  // marketing page does (e.g. showing "Sign in" vs a dashboard link).
+  const { orgOwnerId } = useAuth();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(INITIAL_STATE);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -402,17 +391,13 @@ export default function CreateInitiativeModal({
       setForm(f => ({ ...f, detailContent: editor.getHTML() }))
     },
   })
-
   if (!isOpen) return null;
-
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
-
   function toggle<T>(arr: T[], item: T): T[] {
     return arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item];
   }
-
   function handleClose() {
     onClose();
     setTimeout(() => {
@@ -422,7 +407,6 @@ export default function CreateInitiativeModal({
       setError(null);
     }, 300);
   }
-
   async function handleSubmit() {
     if (!form.submitterName.trim() || !form.submitterEmail.trim()) {
       setError("Please fill in your name and email.");
@@ -450,7 +434,12 @@ export default function CreateInitiativeModal({
           esg_alignment:   form.esg,
           status:          "pending",
           eois:            0,
-          user_id:         (await supabase.auth.getUser()).data.user?.id ?? null,
+          // Org-level, not the literal creator -- same fix applied to
+          // CreateInitiativeModalDashboard.tsx. orgOwnerId is null for an
+          // anonymous submitter (unchanged behavior), resolves to the
+          // Owner's id for a signed-in Member, or their own id for an
+          // Owner or individual account.
+          user_id:         orgOwnerId ?? null,
           submitter_name:  form.submitterName,
           submitter_org:   form.submitterOrg || null,
           submitter_email: form.submitterEmail,
@@ -465,21 +454,16 @@ export default function CreateInitiativeModal({
       setSubmitting(false);
     }
   }
-
   // ── Validation ──────────────────────────────────────────────────────────────
   const step0Valid = !!form.title && form.sectors.length > 0 && form.locations.length > 0;
-
   const budgetMaxLtMin =
     !!(form.budgetMin && form.budgetMax &&
     Number(form.budgetMax.replace(/,/g, '')) < Number(form.budgetMin.replace(/,/g, '')));
-
   const step1Valid =
     form.problem.length >= 20 && wordCount(form.problem) <= 30 &&
     form.outcome.length >= 20 && wordCount(form.outcome) <= 30 &&
     !budgetMaxLtMin;
-
   const step2Valid = form.partnerships.length > 0;
-
   const urlValid = (url: string) => {
     if (!url) return true;
     if (/\s/.test(url)) return false;
@@ -488,12 +472,9 @@ export default function CreateInitiativeModal({
       return (u.protocol === 'https:' || u.protocol === 'http:') && u.hostname.includes('.');
     } catch { return false; }
   };
-
   const step3Valid = !(form.resourceLink && !urlValid(form.resourceLink));
-
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.submitterEmail.trim());
   const step4Valid = !!form.submitterName.trim() && emailValid;
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
@@ -503,7 +484,6 @@ export default function CreateInitiativeModal({
         className="bg-background rounded-2xl border border-border w-full max-w-lg shadow-xl flex flex-col"
         style={{ height: "min(90vh, 740px)" }}
       >
-
         {/* ── Header ── */}
         <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-border shrink-0">
           <div className="flex-1">
@@ -514,11 +494,9 @@ export default function CreateInitiativeModal({
             <X className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
-
         {/* ── Body ── */}
         {!submitted && (
           <div className="flex-1 overflow-y-auto px-6 py-6">
-
             {/* ── Step 0: Basics ── */}
             {step === 0 && (
               <div className="space-y-6">
@@ -565,12 +543,10 @@ export default function CreateInitiativeModal({
                 </div>
               </div>
             )}
-
             {/* ── Step 1: Challenge & Outcome ── */}
             {step === 1 && (
               <div className="space-y-6">
                 <StepHeader step={1} />
-
                 <div>
                   <FieldLabel required>Problem statement</FieldLabel>
                   <textarea
@@ -589,7 +565,6 @@ export default function CreateInitiativeModal({
                     </p>
                   </div>
                 </div>
-
                 <div>
                   <FieldLabel required>Expected outcome</FieldLabel>
                   <textarea
@@ -608,7 +583,6 @@ export default function CreateInitiativeModal({
                     </p>
                   </div>
                 </div>
-
                 <div>
                   <FieldLabel optional>Budget range</FieldLabel>
                   <div className="flex gap-2 items-center">
@@ -640,7 +614,6 @@ export default function CreateInitiativeModal({
                   )}
                   <HintText>Numbers only. Leave blank if not yet defined.</HintText>
                 </div>
-
                 <div>
                   <FieldLabel optional>Tags</FieldLabel>
                   <TagInput
@@ -653,7 +626,6 @@ export default function CreateInitiativeModal({
                 </div>
               </div>
             )}
-
             {/* ── Step 2: Partnerships ── */}
             {step === 2 && (
               <div className="space-y-7">
@@ -689,7 +661,6 @@ export default function CreateInitiativeModal({
                 </div>
               </div>
             )}
-
             {/* ── Step 3: Full Detail (optional) ── */}
             {step === 3 && (
               <div className="space-y-6">
@@ -730,7 +701,6 @@ export default function CreateInitiativeModal({
                     />
                   </div>
                 </div>
-
                 <div>
                   <FieldLabel optional>Resource link</FieldLabel>
                   <input
@@ -747,12 +717,10 @@ export default function CreateInitiativeModal({
                 </div>
               </div>
             )}
-
             {/* ── Step 4: Review & Submit ── */}
             {step === 4 && (
               <div className="space-y-6">
                 <StepHeader step={4} />
-
                 {/* Summary */}
                 <div className="rounded-xl border border-border bg-muted/30 px-4 divide-y divide-border">
                   <ReviewRow label="Title"    value={form.title} />
@@ -780,7 +748,6 @@ export default function CreateInitiativeModal({
                     <ReviewRow label="Full description" value="Included ✓" />
                   )}
                 </div>
-
                 {/* Submitter details */}
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
@@ -822,13 +789,11 @@ export default function CreateInitiativeModal({
                     </div>
                   </div>
                 </div>
-
                 {error && <p className="text-sm text-destructive">{error}</p>}
               </div>
             )}
           </div>
         )}
-
         {/* ── Success ── */}
         {submitted && (
           <div className="flex-1 flex flex-col items-center justify-center text-center px-8 py-12">
@@ -875,7 +840,6 @@ export default function CreateInitiativeModal({
             </div>
           </div>
         )}
-
         {/* ── Footer ── */}
         {!submitted && step === 0 && (
           <StepFooter onNext={() => setStep(1)} nextDisabled={!step0Valid} />

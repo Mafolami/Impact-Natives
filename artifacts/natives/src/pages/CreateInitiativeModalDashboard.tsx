@@ -7,12 +7,10 @@ import { SECTOR_OPTIONS } from "@/lib/sectors";
 import { useAuth } from "@/context/AuthContext"
 import { X, Sparkles, Loader2, CheckCircle2, AlertCircle, Info, PenLine, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 type PartnershipType = "funding" | "technical" | "operational" | "leadership" | "strategic" | "lead"
 type InitiativeStage = "concept" | "planning" | "active" | "scaling"
 type EntryMode = "ai" | "manual" | null
-
 interface FormState {
   title: string
   sectors: string[]
@@ -46,7 +44,6 @@ interface FormState {
   targetFemalePct: string;
   targetTimelineMonths: string;
 }
-
 const INITIAL_STATE: FormState = {
   title: "", sectors: [], locations: [], openToRemotePartnerships: false, targetPopulation: "",
   budgetMin: "", budgetMax: "", currency: "USD",
@@ -57,7 +54,6 @@ const INITIAL_STATE: FormState = {
   submitterName: "", submitterOrg: "", submitterEmail: "",
   targetBeneficiaries: "", targetJobs: "", targetFemalePct: "", targetTimelineMonths: "",
 }
-
 const SDG_OPTIONS = [
   "No Poverty", "Zero Hunger", "Good Health and Well-being", "Quality Education",
   "Gender Equality", "Clean Water and Sanitation", "Affordable and Clean Energy",
@@ -66,19 +62,16 @@ const SDG_OPTIONS = [
   "Responsible Consumption and Production", "Climate Action", "Life Below Water",
   "Life on Land", "Peace Justice and Strong Institutions", "Partnerships for the Goals",
 ]
-
 const CURRENCIES = [
   { code: "USD" }, { code: "GBP" }, { code: "EUR" }, { code: "NGN" },
   { code: "KES" }, { code: "GHS" }, { code: "ZAR" }, { code: "CAD" }, { code: "AUD" },
 ]
-
 const STAGE_OPTIONS: { value: InitiativeStage; label: string; sub: string }[] = [
   { value: "concept",  label: "Concept",  sub: "Idea defined, no funding yet" },
   { value: "planning", label: "Planning", sub: "Funded, building implementation plan" },
   { value: "active",   label: "Active",   sub: "Currently executing" },
   { value: "scaling",  label: "Scaling",  sub: "Running successfully, seeking to expand" },
 ]
-
 const CONFIRMED_ASSET_OPTIONS = [
   { value: "full_funding",    label: "Full funding secured" },
   { value: "partial_funding", label: "Partial funding secured" },
@@ -87,9 +80,7 @@ const CONFIRMED_ASSET_OPTIONS = [
   { value: "lead_team",       label: "Lead team confirmed" },
   { value: "none",            label: "Nothing confirmed yet" },
 ]
-
 const DURATION_OPTIONS = ["Under 6 months", "6–12 months", "1–2 years", "2–5 years", "Ongoing"]
-
 const PARTNERSHIP_OPTIONS: { value: PartnershipType; label: string; color: string }[] = [
   { value: "funding",     label: "Funding",      color: "#C47A3A" },
   { value: "technical",   label: "Technical",    color: "#4A8C5C" },
@@ -98,25 +89,20 @@ const PARTNERSHIP_OPTIONS: { value: PartnershipType; label: string; color: strin
   { value: "strategic",   label: "Strategic",    color: "#B45C38" },
   { value: "lead",        label: "Project Lead", color: "#5C9E72" },
 ]
-
 interface BriefAssessment {
   score: "strong" | "good" | "basic"
   what_works: string
   improve: string
 }
-
 const SCORE_CONFIG = {
   strong: { label: "Strong brief",    color: "#2D6A4F", bg: "rgba(45,106,79,0.12)", icon: CheckCircle2 },
   good:   { label: "Good brief",      color: "#f59e0b", bg: "rgba(180,83,9,0.12)", icon: Info },
   basic:  { label: "Developing brief", color: "#C45C26", bg: "rgba(196,92,38,0.08)", icon: AlertCircle },
 }
-
 function wordCount(text: string): number {
   return text.trim() === "" ? 0 : text.trim().split(/\s+/).length
 }
-
 // ─── Sub-components ───────────────────────────────────────────────────────────
-
 function FieldLabel({ children, required, optional }: {
   children: React.ReactNode; required?: boolean; optional?: boolean
 }) {
@@ -128,11 +114,9 @@ function FieldLabel({ children, required, optional }: {
     </label>
   )
 }
-
 function HintText({ children }: { children: React.ReactNode }) {
   return <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{children}</p>
 }
-
 function TagInput({ tags, onAdd, onRemove, placeholder }: {
   tags: string[]; onAdd: (v: string) => void; onRemove: (v: string) => void; placeholder: string
 }) {
@@ -163,7 +147,6 @@ function TagInput({ tags, onAdd, onRemove, placeholder }: {
     </div>
   )
 }
-
 function SectorSelector({ selected, onChange }: { selected: string[]; onChange: (v: string[]) => void }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -208,7 +191,6 @@ function SectorSelector({ selected, onChange }: { selected: string[]; onChange: 
     </div>
   )
 }
-
 function ChipToggle({ label, selected, onToggle, color }: {
   label: string; selected: boolean; onToggle: () => void; color?: string
 }) {
@@ -222,7 +204,6 @@ function ChipToggle({ label, selected, onToggle, color }: {
     </button>
   )
 }
-
 function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5 py-3 border-b border-border last:border-0">
@@ -231,7 +212,6 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
     </div>
   )
 }
-
 // ─── AI Description Generator ─────────────────────────────────────────────────
 export function AIDescriptionGenerator({
   form, supabaseUrl, orgProfile, onGenerated,
@@ -243,7 +223,6 @@ export function AIDescriptionGenerator({
 }) {
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
   async function generate() {
     setGenerating(true); setError(null)
     try {
@@ -264,7 +243,6 @@ export function AIDescriptionGenerator({
       setGenerating(false)
     }
   }
-
   return (
     <div className="space-y-2">
       <button type="button" onClick={generate} disabled={generating}
@@ -278,37 +256,30 @@ export function AIDescriptionGenerator({
     </div>
   )
 }
-
 // ─── Main Modal ───────────────────────────────────────────────────────────────
 export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSuccess }: {
   isOpen: boolean; onClose: () => void; onSuccess?: () => void
 }) {
-  const { user } = useAuth()
-
+  const { user, orgOwnerId } = useAuth()
   // mode: null = entry screen, "ai" = AI path, "manual" = manual path
   const [mode, setMode]                       = useState<EntryMode>(null)
   const [plainDescription, setPlainDescription] = useState("")
   const [extracting, setExtracting]           = useState(false)
   const [extractError, setExtractError]       = useState<string | null>(null)
-
   // AI path steps: 0=review, 1=description, 2=submit
   // Manual path steps: 0-5 original flow
   const [aiStep, setAiStep]                   = useState(0)
   const [manualStep, setManualStep]           = useState(0)
-
   const [form, setForm]                       = useState<FormState>(INITIAL_STATE)
   const [profileLoaded, setProfileLoaded]     = useState(false)
   const [orgProfile, setOrgProfile]           = useState<Record<string, any> | null>(null)
   const [submitted, setSubmitted]             = useState(false)
   const [submitting, setSubmitting]           = useState(false)
   const [error, setError]                     = useState<string | null>(null)
-
   const [assessment, setAssessment]           = useState<BriefAssessment | null>(null)
   const [assessingBrief, setAssessingBrief]   = useState(false)
   const [descriptionGenerated, setDescriptionGenerated] = useState(false)
-
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -316,16 +287,20 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
     ],
     onUpdate: ({ editor }) => { setForm(f => ({ ...f, detailContent: editor.getHTML() })) },
   })
-
   useEffect(() => {
-    if (!user || profileLoaded) return
+    if (!user || !orgOwnerId || profileLoaded) return
     async function loadProfile() {
+      // Real person's own contact details -- who's actually filling this
+      // form, not who owns the org. Stays user.id, same logic as MoU's
+      // created_by.
       const { data } = await supabase.from("profiles").select("full_name, email, org_name").eq("id", user!.id).single()
       if (data) setForm(f => ({ ...f, submitterName: data.full_name || "", submitterEmail: data.email || user!.email || "", submitterOrg: data.org_name || "" }))
-
+      // Org's own track record -- resolves via orgOwnerId so a Member
+      // pulls the real org history (beneficiaries reached, grants, etc.)
+      // instead of silently finding nothing under their own id.
       const { data: orgData } = await supabase.from("organizations")
         .select("organisation_name,description,sector,years_of_operation,total_beneficiaries_reached,jobs_created,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations")
-        .eq("user_id", user!.id).maybeSingle()
+        .eq("user_id", orgOwnerId).maybeSingle()
       if (orgData) {
         setOrgProfile(orgData)
         const evidenceParts: string[] = []
@@ -337,28 +312,22 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
           setForm(f => f.impactEvidence ? f : { ...f, impactEvidence: evidenceParts.join(". ") + "." })
         }
       }
-
       setProfileLoaded(true)
     }
     loadProfile()
-  }, [user, profileLoaded])
-
+  }, [user, orgOwnerId, profileLoaded])
   if (!isOpen) return null
-
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm(prev => ({ ...prev, [key]: value }))
     // Reset assessment when any field changes so it reflects the updated brief
     if (assessment) setAssessment(null)
   }
-
   function toggle<T>(arr: T[], item: T): T[] {
     return arr.includes(item) ? arr.filter(x => x !== item) : [...arr, item]
   }
-
   function toggleArr(arr: string[], val: string, setter: (v: string[]) => void) {
     setter(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val])
   }
-
   function handleClose() {
     onClose()
     setTimeout(() => {
@@ -368,7 +337,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
       editor?.commands.setContent("")
     }, 300)
   }
-
   // ── Extract from plain description ────────────────────────────────────────
   async function extractFromDescription() {
     if (!plainDescription.trim()) return
@@ -408,7 +376,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
     } catch { setExtractError("Something went wrong. Try again or fill in manually.") }
     finally { setExtracting(false) }
   }
-
   // ── AI quality assessment ─────────────────────────────────────────────────
   async function assessBrief() {
     setAssessingBrief(true)
@@ -431,7 +398,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
     } catch { /* silent */ }
     finally { setAssessingBrief(false) }
   }
-
   // ── Submit ────────────────────────────────────────────────────────────────
   async function handleSubmit() {
     setSubmitting(true); setError(null)
@@ -462,7 +428,12 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
         ai_quality_score: assessment?.score ?? null,
         ai_quality_rationale: assessment?.what_works ?? null,
         status: "pending", eois: 0,
-        user_id: user?.id ?? null,
+        // Org-level, not the literal creator -- once Team invites exist, a
+        // Member creating an initiative should attribute it to the org
+        // (orgOwnerId), matching every other write in this sweep. For an
+        // Owner today, orgOwnerId === their own id, so this changes nothing
+        // observable yet.
+        user_id: orgOwnerId ?? null,
         submitter_name: form.submitterName,
         submitter_org: form.submitterOrg || null,
         submitter_email: form.submitterEmail,
@@ -473,29 +444,24 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
       setError(e instanceof Error ? e.message : JSON.stringify(e))
     } finally { setSubmitting(false) }
   }
-
   const urlValid = (url: string) => {
     if (!url) return true
     if (/\s/.test(url)) return false
     try { const u = new URL(url); return (u.protocol === 'https:' || u.protocol === 'http:') && u.hostname.includes('.') }
     catch { return false }
   }
-
   // ── AI path step progress ─────────────────────────────────────────────────
   const AI_STEPS = ["Review details", "Full description", "Submit"]
   // ── Manual path step progress ─────────────────────────────────────────────
   const MANUAL_STEPS = ["Basics", "Challenge", "Partnerships", "Experience", "Detail", "Review"]
-
   const totalBars = mode === "ai" ? 3 : mode === "manual" ? 6 : 1
   const currentBar = mode === "ai" ? aiStep : mode === "manual" ? manualStep : 0
-
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
       onClick={e => e.target === e.currentTarget && handleClose()}>
       <div className="bg-background rounded-2xl border border-border w-full max-w-lg shadow-xl flex flex-col"
         style={{ height: "min(90vh, 780px)" }}>
-
         {/* Header */}
         <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-border shrink-0">
           <div className="flex-1 space-y-1">
@@ -517,11 +483,9 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
             <X className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
-
         {/* Body */}
         {!submitted && (
           <div className="flex-1 overflow-y-auto px-6 py-6">
-
             {/* ── Entry screen ── */}
             {mode === null && (
               <div className="space-y-6">
@@ -529,7 +493,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                   <h2 className="text-xl font-semibold text-foreground">Create an initiative</h2>
                   <p className="text-sm text-muted-foreground mt-1">How would you like to get started?</p>
                 </div>
-
                 {/* AI path */}
                 <div className="rounded-xl border border-[#2D6A4F]/30 bg-[#2D6A4F]/3 p-5 space-y-4">
                   <div className="flex items-center gap-2">
@@ -557,14 +520,12 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     }
                   </button>
                 </div>
-
                 {/* Divider */}
                 <div className="flex items-center gap-3">
                   <div className="flex-1 h-px bg-border" />
                   <p className="text-xs text-muted-foreground">or</p>
                   <div className="flex-1 h-px bg-border" />
                 </div>
-
                 {/* Manual path */}
                 <button type="button" onClick={() => setMode("manual")}
                   className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border hover:border-foreground/20 transition-colors text-left">
@@ -576,7 +537,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                 </button>
               </div>
             )}
-
             {/* ── AI Path: Step 0 — Review all fields ── */}
             {mode === "ai" && aiStep === 0 && (
               <div className="space-y-5">
@@ -587,14 +547,12 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                   </div>
                   <p className="text-xs text-muted-foreground">Review every field. Edit anything that needs updating before continuing.</p>
                 </div>
-
                 {/* Title */}
                 <div>
                   <FieldLabel required>Initiative title</FieldLabel>
                   <input type="text" value={form.title} onChange={e => set("title", e.target.value)}
                     className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
                 </div>
-
                 {/* Problem */}
                 <div>
                   <FieldLabel required>Problem statement</FieldLabel>
@@ -604,7 +562,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     <p className={`text-xs ${wordCount(form.problem) > 30 ? 'text-red-500 font-semibold' : 'text-muted-foreground'}`}>{wordCount(form.problem)}/30 words</p>
                   </div>
                 </div>
-
                 {/* Outcome */}
                 <div>
                   <FieldLabel required>Expected outcome</FieldLabel>
@@ -614,7 +571,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     <p className={`text-xs ${wordCount(form.outcome) > 30 ? 'text-red-500 font-semibold' : 'text-muted-foreground'}`}>{wordCount(form.outcome)}/30 words</p>
                   </div>
                 </div>
-
                 {/* Who it serves */}
                 <div>
                   <FieldLabel optional>Who does this initiative directly serve?</FieldLabel>
@@ -622,13 +578,11 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     placeholder="e.g. Women smallholder farmers in Kano State, aged 25–50"
                     className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
                 </div>
-
                 {/* Sectors */}
                 <div>
                   <FieldLabel required>Sectors</FieldLabel>
                   <SectorSelector selected={form.sectors} onChange={v => set("sectors", v)} />
                 </div>
-
                 {/* Locations */}
                 <div>
                   <FieldLabel required>Locations</FieldLabel>
@@ -637,7 +591,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     onRemove={v => set("locations", form.locations.filter(x => x !== v))}
                     placeholder="Type a location and press Enter..." />
                 </div>
-
                 {/* Open to remote partnerships */}
                 <div>
                   <button type="button" onClick={() => set("openToRemotePartnerships", !form.openToRemotePartnerships)}
@@ -655,7 +608,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     </span>
                   </button>
                 </div>
-
                 {/* Partnerships */}
                 <div>
                   <FieldLabel required>Partnerships sought</FieldLabel>
@@ -668,7 +620,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     ))}
                   </div>
                 </div>
-
                 {/* Specific ask */}
                 <div>
                   <FieldLabel optional>Specific ask</FieldLabel>
@@ -676,7 +627,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     placeholder="What would a partner actually do or contribute?"
                     className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
                 </div>
-
                 {/* Stage */}
                 <div>
                   <FieldLabel optional>Stage</FieldLabel>
@@ -691,7 +641,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     ))}
                   </div>
                 </div>
-
                 {/* Budget */}
                 <div>
                   <FieldLabel optional>Budget range</FieldLabel>
@@ -715,7 +664,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                   )}
                 </div>
                 {/* SDG tags */}
-
                 <div>
                   <FieldLabel optional>SDG alignment</FieldLabel>
                   <div className="flex flex-wrap gap-1.5 mt-1">
@@ -726,7 +674,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     ))}
                   </div>
                 </div>
-
                 {/* ESG */}
                 <div>
                   <FieldLabel optional>ESG / CSR alignment</FieldLabel>
@@ -743,7 +690,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     ))}
                   </div>
                 </div>
-
                 {/* Prior experience */}
                 <div>
                   <FieldLabel optional>Prior experience with similar initiatives?</FieldLabel>
@@ -762,7 +708,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                       rows={3} className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
                   )}
                 </div>
-
                 {/* Confirmed assets */}
                 <div>
                   <FieldLabel optional>What is already confirmed?</FieldLabel>
@@ -794,7 +739,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     ))}
                   </div>
                 </div>
-
                 {/* Tags */}
                 <div>
                   <FieldLabel optional>Tags</FieldLabel>
@@ -803,7 +747,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     onRemove={v => set("tags", form.tags.filter(x => x !== v))}
                     placeholder="Add tags and press Enter..." />
                 </div>
-
                 {/* Impact evidence */}
                 <div>
                   <FieldLabel optional>Impact evidence</FieldLabel>
@@ -812,7 +755,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
                   <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">Funders and investors look for evidence that your approach works. Share what you have, even if it's early-stage.</p>
                 </div>
-
                 {/* Target impact metrics */}
                 <div>
                   <FieldLabel optional>Target impact metrics</FieldLabel>
@@ -850,7 +792,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                 </div>
               </div>
             )}
-
             {/* ── AI Path: Step 1 — Full description ── */}
             {mode === "ai" && aiStep === 1 && (
               <div className="space-y-5">
@@ -860,7 +801,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     Generate a full description from your brief, or write your own. This appears on your initiative listing.
                   </p>
                 </div>
-
                 <AIDescriptionGenerator
                   form={form}
                   supabaseUrl={supabaseUrl}
@@ -871,14 +811,12 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     setDescriptionGenerated(true)
                   }}
                 />
-
                 {descriptionGenerated && (
                   <div className="flex items-center gap-2 rounded-lg border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-3 py-2">
                     <Sparkles className="w-3.5 h-3.5 text-[#2D6A4F] shrink-0" />
                     <p className="text-xs text-[#2D6A4F]">AI-generated — edit freely before submitting.</p>
                   </div>
                 )}
-
                 {/* Rich text editor */}
                 <div>
                   <div className="flex gap-1 border border-border rounded-t-lg px-2 py-1.5 bg-muted/40 flex-wrap">
@@ -900,7 +838,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                       className="[&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[180px] [&_.ProseMirror]:px-3 [&_.ProseMirror]:py-2 [&_.ProseMirror]:text-sm [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5 [&_.ProseMirror_li]:mb-1 [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h2]:text-base [&_.ProseMirror_h2]:mt-4 [&_.ProseMirror_h2]:mb-2 [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-muted-foreground/50 [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none" />
                   </div>
                 </div>
-
                 {/* Resource link */}
                 <div>
                   <FieldLabel optional>Resource link</FieldLabel>
@@ -912,12 +849,9 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                   )}
                   <HintText>Already have a concept note or proposal? Link it here.</HintText>
                 </div>
-
                 
-
                 </div>
             )}
-
             {/* ── AI Path: Step 2 — Review & Submit ── */}
             {mode === "ai" && aiStep === 2 && (
               <div className="space-y-6">
@@ -925,7 +859,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                   <h2 className="text-xl font-semibold text-foreground">Review & submit</h2>
                   <p className="text-sm text-muted-foreground mt-1">Check everything looks right before publishing.</p>
                 </div>
-
                 {/* AI assessment */}
                 {!assessment && !assessingBrief && (
                   <button type="button" onClick={assessBrief}
@@ -956,7 +889,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     </div>
                   )
                 })()}
-
                 <div className="rounded-xl border border-border bg-muted/30 px-4 divide-y divide-border">
                   <ReviewRow label="Title"             value={form.title} />
                   <ReviewRow label="Sectors"           value={form.sectors.join(", ")} />
@@ -980,18 +912,15 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     <ReviewRow label="Confirmed" value={form.confirmedAssets.map(a => CONFIRMED_ASSET_OPTIONS.find(o => o.value === a)?.label ?? a).join(", ")} />
                   )}
                 </div>
-
                 <div className="rounded-xl border border-border bg-muted/20 px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Submitting as</p>
                   <p className="text-sm font-medium text-foreground">{form.submitterName || "—"}</p>
                   {form.submitterOrg && <p className="text-xs text-muted-foreground">{form.submitterOrg}</p>}
                   <p className="text-xs text-muted-foreground">{form.submitterEmail}</p>
                 </div>
-
                 {error && <p className="text-sm text-destructive">{error}</p>}
               </div>
             )}
-
             {/* ── Manual path steps ── */}
             {mode === "manual" && (
               <ManualSteps
@@ -1011,7 +940,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
             )}
           </div>
         )}
-
         {/* Success */}
         {submitted && (
           <div className="flex-1 flex flex-col items-center justify-center text-center px-8 py-12">
@@ -1037,7 +965,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
             </div>
           </div>
         )}
-
         {/* Footer */}
         {!submitted && (
           <div className="flex justify-between items-center px-6 py-4 border-t border-border bg-background shrink-0">
@@ -1057,7 +984,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
               <button type="button" onClick={() => setManualStep(s => s - 1)}
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors">← Back</button>
             ) : <span />}
-
             {/* Next / Submit button */}
             {mode === null ? (
               <span />
@@ -1090,7 +1016,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
     </div>
   )
 }
-
 // ─── Manual Steps Component ───────────────────────────────────────────────────
 function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, assessment, assessingBrief, assessBrief, supabaseUrl, orgProfile }: {
   step: number
@@ -1112,7 +1037,6 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
     { value: "active",   label: "🚀 Active",   sub: "Currently executing" },
     { value: "scaling",  label: "📈 Scaling",  sub: "Running successfully, seeking to expand" },
   ]
-
   function FieldLabel({ children, required, optional }: { children: React.ReactNode; required?: boolean; optional?: boolean }) {
     return (
       <label className="block text-sm font-medium text-foreground mb-2">
@@ -1122,20 +1046,16 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
       </label>
     )
   }
-
   function HintText({ children }: { children: React.ReactNode }) {
     return <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{children}</p>
   }
-
   const stepTitles = ["The basics", "Challenge & outcome", "Partnership needs", "Your experience", "Initiative detail", "Review & submit"]
-
   return (
     <div className="space-y-6">
       <div className="mb-7">
         <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1">Step {step + 1} of 6</p>
         <h2 className="text-xl font-semibold text-foreground">{stepTitles[step]}</h2>
       </div>
-
       {/* Step 0 */}
       {step === 0 && (
         <div className="space-y-6">
@@ -1182,7 +1102,6 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
           </div>
         </div>
       )}
-
       {/* Step 1 */}
       {step === 1 && (
         <div className="space-y-6">
@@ -1276,7 +1195,6 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
           </div>
         </div>
       )}
-
       {/* Step 2 */}
       {step === 2 && (
         <div className="space-y-6">
@@ -1333,7 +1251,6 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
           </div>
         </div>
       )}
-
       {/* Step 3 */}
       {step === 3 && (
         <div className="space-y-6">
@@ -1360,7 +1277,6 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
               </div>
             </div>
           )}
-
           {/* Impact evidence */}
           <div>
             <FieldLabel optional>Impact evidence</FieldLabel>
@@ -1369,7 +1285,6 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
               className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
             <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">Share what you have, even if it's early-stage.</p>
           </div>
-
           {/* Target impact metrics */}
           <div>
             <FieldLabel optional>Target impact metrics</FieldLabel>
@@ -1407,7 +1322,6 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
           </div>
         </div>
       )}
-
       {/* Step 4 */}
       {step === 4 && (
         <div className="space-y-5">
@@ -1444,10 +1358,8 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
             {form.resourceLink && !urlValid(form.resourceLink) && <p className="text-xs text-red-500 mt-1">Please enter a valid address.</p>}
           </div>
           
-
           </div>
       )}
-
       {/* Step 5 — Review */}
       {step === 5 && (
         <div className="space-y-6">
@@ -1514,7 +1426,6 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
     </div>
   )
 }
-
 // ─── Manual Footer Button ─────────────────────────────────────────────────────
 function ManualFooterButton({ step, form, urlValid, onNext, onSubmit, submitting }: {
   step: number
@@ -1530,14 +1441,12 @@ function ManualFooterButton({ step, form, urlValid, onNext, onSubmit, submitting
   const step2Valid = form.partnerships.length > 0 && form.specificAsk.trim().length > 0
   const step3Valid = form.hadPriorExperience !== null
   const step4Valid = !(form.resourceLink && !urlValid(form.resourceLink))
-
   const disabled =
     (step === 0 && !step0Valid) ||
     (step === 1 && !step1Valid) ||
     (step === 2 && !step2Valid) ||
     (step === 3 && !step3Valid) ||
     (step === 4 && !step4Valid)
-
   if (step === 5) {
     return (
       <button type="button" onClick={onSubmit} disabled={submitting}
@@ -1546,7 +1455,6 @@ function ManualFooterButton({ step, form, urlValid, onNext, onSubmit, submitting
       </button>
     )
   }
-
   return (
     <button type="button" onClick={onNext} disabled={disabled}
       className="rounded-full h-10 px-7 bg-primary hover:bg-primary/90 text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
@@ -1554,7 +1462,3 @@ function ManualFooterButton({ step, form, urlValid, onNext, onSubmit, submitting
     </button>
   )
 }
-
-// ─── Also need generate-initiative-description Edge Function ──────────────────
-// This is called by AIDescriptionGenerator as fallback
-// Deploy separately: supabase/functions/generate-initiative-description/index.ts
