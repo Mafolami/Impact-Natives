@@ -205,15 +205,21 @@ export default function MouTab() {
     if (connOrgIds.length > 0) {
       const { data: connOrgs } = await supabase.from("organizations").select("id, organisation_name, user_id").in("id", connOrgIds);
       const connOrgMap = new Map((connOrgs ?? []).map((o: any) => [o.id, o]));
-      // partnership_title on the connection itself is essentially always
-      // empty -- no write path in the app ever sets it. Since every
-      // option here is inbound (they expressed interest in ME), the
-      // listing this was about is always my own.
+      // Since every option here is inbound (they expressed interest in ME),
+      // the listing this was about is always my own -- so org_a_id is
+      // always myOrgId here. Resolved through the same resolveMouDocTitle
+      // helper the rest of the app uses (rather than a separate ad-hoc
+      // fallback chain), so this picker can't quietly drift out of sync
+      // if that resolution logic ever changes.
       for (const c of inboundFormed ?? []) {
         const org = connOrgMap.get(c.sender_org_id);
         if (org && !seenOrgIds.has(org.id)) {
           seenOrgIds.add(org.id);
-          const subtitle = myOrgListing?.partnership_sought || c.partnership_title || "Direct partnership";
+          const subtitle = resolveMouDocTitle(
+            { initiative_id: null, connection_id: c.id, org_a_id: myOrgId },
+            { [myOrgId]: { id: myOrgId, partnership_sought: myOrgListing?.partnership_sought ?? null } },
+            {}
+          ) ?? "Direct partnership";
           options.push({ orgId: org.id, userId: org.user_id, name: org.organisation_name, initiativeId: null, initiativeTitle: subtitle, connectionId: c.id });
         }
       }
