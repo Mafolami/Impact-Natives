@@ -113,6 +113,22 @@ function combinedPartnerPhrase(types: string[], esgAdoption: boolean): string {
   if (esgAdoption) phrase = phrase ? `${phrase} and ESG/CSR adoption` : "ESG/CSR adoption";
   return phrase;
 }
+// Implementer orgs (NGOs, social enterprises, etc.) fill in the 9-item
+// DD_ITEMS checklist (dd_* columns). Funders and corporates fill in a
+// separate 6-item FUNDER_DD_ITEMS checklist instead (fdd_* columns) --
+// same classification DashboardNatives.tsx already uses to pick between
+// the two. Reading only dd_* regardless of org type meant every funder or
+// corporate showed 0% DD Readiness here no matter how much of their real
+// checklist was actually completed, since their answers live in a
+// completely different set of columns this code never looked at.
+function isImplementerOrgType(orgType: string | null | undefined): boolean {
+  return !["philanthropic_foundation", "venture_capital", "corporation", "technology_company", "public_sector"].includes(orgType ?? "");
+}
+function ddItemsFor(o: Record<string, any>): (boolean | undefined)[] {
+  return isImplementerOrgType(o.organisation_type)
+    ? [o.dd_financial_model, o.dd_audited_accounts, o.dd_governance_doc, o.dd_esg_assessment, o.dd_impact_framework, o.dd_environmental_policy, o.dd_safeguarding_policy, o.dd_legal_registration, o.dd_legal_compliance_declaration]
+    : [o.fdd_disbursement_track_record, o.fdd_decision_transparency, o.fdd_conflict_disclosure, o.fdd_governance_doc, o.fdd_esg_framework, o.fdd_legal_registration];
+}
 function budgetMatches(budget: string | null | undefined, filter: string): boolean {
   if (!budget) return false;
   const nums = budget.replace(/[^0-9]/g, " ").trim().split(/\s+/).map(Number).filter(Boolean);
@@ -662,14 +678,14 @@ export default function DashboardMarketplace() {
         const userTypeMap  = new Map((profiles ?? []).map((p: any) => [p.id, p.user_type]));
         const { data: ddOrgs } = await supabase
           .from("organizations")
-          .select("user_id,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence")
+          .select("user_id,organisation_type,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration")
           .in("user_id", userIds);
         const ddScoreMap = new Map((ddOrgs ?? []).map((o: any) => {
-          const items = [o.dd_financial_model, o.dd_audited_accounts, o.dd_governance_doc, o.dd_esg_assessment, o.dd_impact_framework, o.dd_environmental_policy, o.dd_safeguarding_policy, o.dd_legal_registration, o.dd_legal_compliance_declaration];
+          const items = ddItemsFor(o);
           return [o.user_id, Math.round((items.filter(Boolean).length / items.length) * 100)];
         }));
         const ddTierMap = new Map((ddOrgs ?? []).map((o: any) => {
-          const items = [o.dd_financial_model, o.dd_audited_accounts, o.dd_governance_doc, o.dd_esg_assessment, o.dd_impact_framework, o.dd_environmental_policy, o.dd_safeguarding_policy, o.dd_legal_registration, o.dd_legal_compliance_declaration];
+          const items = ddItemsFor(o);
           const score = Math.round((items.filter(Boolean).length / items.length) * 100);
           return [o.user_id, computeTrustTier(score, o.dd_evidence).tier];
         }));
@@ -993,13 +1009,11 @@ function MarketplaceDetail({
   useEffect(() => {
     if (!initiative.user_id) return;
     supabase.from("organizations")
-      .select("dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence")
+      .select("organisation_type,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration")
       .eq("user_id", initiative.user_id).single()
       .then(({ data }) => { if (data) setInitiativeOrgDd(data); });
   }, [initiative.user_id]);
-  const initiativeDdItems = initiativeOrgDd
-    ? [initiativeOrgDd.dd_financial_model, initiativeOrgDd.dd_audited_accounts, initiativeOrgDd.dd_governance_doc, initiativeOrgDd.dd_esg_assessment, initiativeOrgDd.dd_impact_framework, initiativeOrgDd.dd_environmental_policy, initiativeOrgDd.dd_safeguarding_policy, initiativeOrgDd.dd_legal_registration, initiativeOrgDd.dd_legal_compliance_declaration]
-    : [];
+  const initiativeDdItems = initiativeOrgDd ? ddItemsFor(initiativeOrgDd) : [];
   const initiativeDdScore = initiativeOrgDd
     ? Math.round((initiativeDdItems.filter(Boolean).length / initiativeDdItems.length) * 100)
     : null;
