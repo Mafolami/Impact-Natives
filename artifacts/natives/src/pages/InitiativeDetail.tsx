@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 interface Initiative {
   id: string;
+  user_id: string;
   title: string;
   sectors: string[];
   locations: string[];
@@ -67,6 +68,10 @@ export default function InitiativeDetail() {
   const [saved, setSaved] = useState(false);
   const [savingToggle, setSavingToggle] = useState(false);
   const id = params?.id;
+  // Same comparison DashboardMarketplace.tsx uses. This is the UI half of
+  // the self-EOI guard; the DB trigger prevent_self_eoi() is the real
+  // enforcement, this just avoids showing an action that would fail.
+  const isOwnInitiative = !!orgOwnerId && !!initiative && initiative.user_id === orgOwnerId;
   useEffect(() => {
     if (!id) return;
     async function load() {
@@ -133,6 +138,8 @@ export default function InitiativeDetail() {
     if (error) {
       if (error.code === "23505") {
         setEoiError("Your organisation has already expressed interest in this initiative.");
+      } else if (error.code === "23514") {
+        setEoiError("You can't express interest in your own initiative.");
       } else {
         setEoiError(error.message);
       }
@@ -217,12 +224,18 @@ export default function InitiativeDetail() {
             </div>
             {/* Actions */}
             <div className="flex flex-col gap-2 shrink-0">
-              <Button
-                onClick={handleExpressInterest}
-                className="bg-[#2D6A4F] hover:bg-[#245c43] text-white whitespace-nowrap"
-              >
-                Express Interest
-              </Button>
+              {isOwnInitiative ? (
+                <div className="h-10 px-4 flex items-center justify-center rounded-md text-sm text-muted-foreground border border-gray-200 bg-gray-50 whitespace-nowrap">
+                  Your initiative
+                </div>
+              ) : (
+                <Button
+                  onClick={handleExpressInterest}
+                  className="bg-[#2D6A4F] hover:bg-[#245c43] text-white whitespace-nowrap"
+                >
+                  Express Interest
+                </Button>
+              )}
               {user && (
                 <Button
                   variant="outline"
