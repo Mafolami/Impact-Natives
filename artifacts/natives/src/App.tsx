@@ -199,7 +199,7 @@ if (isAdmin) {
         <Switch>
           <Route path="/legal/:doc" component={LegalPage} />
           <Route path="/legal" component={LegalPage} />
-          <Route path="/" component={HomePage} />
+          <Route path="/">{isAppDomain ? <SignIn /> : <HomePage />}</Route>
           <Route path="/platform" component={PlatformPage} />
           <Route path="/platform/:tab" component={PlatformPage} />
           <Route path="/market" component={ImpactMarketplace} />
@@ -253,6 +253,7 @@ const PageLoader = () => (
 );
 
 const AUTH_PATHS = ["/signin", "/signup", "/onboarding", "/auth/callback", "/verify", "/forgot-password", "/reset-password"];
+const isAppDomain = typeof window !== "undefined" && window.location.hostname === "app.impactnatives.com";
 function App() {
   useReveal();
   const isAuthPage = AUTH_PATHS.some(p => window.location.pathname.startsWith(p));
