@@ -4,7 +4,6 @@ import { jsPDF } from "jspdf";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { BRICOLAGE_GROTESQUE_BOLD_BASE64 } from "@/lib/fonts/bricolageGrotesqueBold";
 import { X, Loader2, Download, Upload, CheckCircle2, Send, ArrowLeft, PenLine, Flag, Lock, Clock, PartyPopper, Trash2 } from "lucide-react";import SignaturePad from "@/components/dashboard/SignaturePad";
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SectionVariant { toggle_value: string | boolean | null; body: string }
 interface TemplateSection { id: string; title: string; toggle_key: string | null; variants: SectionVariant[] }
@@ -19,7 +18,6 @@ interface FieldFlag {
   resolved: boolean;
   created_at: string;
 }
-
 interface OrgFull {
   id: string;
   user_id: string;
@@ -29,7 +27,6 @@ interface OrgFull {
   partnership_budget?: string | null;
   partnership_sought?: string | null;
 }
-
 interface MouDoc {
   id: string;
   org_a_id: string;
@@ -60,13 +57,11 @@ interface MouDoc {
   partnership_status_confirmed_at: string | null;
   created_by: string;
 }
-
 interface Props {
   documentId: string;
   myUserId: string;
   onClose: () => void;
 }
-
 function fieldKeysIn(text: string): string[] {
   const matches = text.match(/\{\{(\w+)\}\}/g) ?? [];
   return matches.map((m) => m.slice(2, -2));
@@ -83,7 +78,6 @@ const PAYMENT_SCHEDULE_OPTIONS = [
 const REPORTING_FREQUENCY_OPTIONS = ["Weekly", "Monthly", "Quarterly", "Bi-annually", "Annually", "Ad hoc / as needed"];
 const NOTICE_DAYS_OPTIONS = ["3", "7", "14", "30", "60", "90"];
 const GOVERNING_JURISDICTION_OPTIONS = ["Federal Republic of Nigeria", "Lagos State, Nigeria", "United Kingdom", "Ghana", "Kenya", "South Africa"];
-
 export default function MouDocumentDetail({ documentId, myUserId, onClose }: Props) {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -121,7 +115,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const isViewerOrgA = orgA?.user_id === myUserId;
   const isViewerOrgB = orgB?.user_id === myUserId;
   useEffect(() => { load(); }, [documentId]);
-
   async function load(opts: { silent?: boolean } = {}) {
     if (!opts.silent) { setLoading(true); setNotFound(false); }
     const { data: docRow } = await supabase.from("mou_documents").select("*").eq("id", documentId).maybeSingle();
@@ -136,7 +129,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     setDoc(docRow as MouDoc);
     setFieldValues((docRow.field_values as Record<string, string>) ?? {});
     setCustomContent(docRow.custom_content ?? "");
-
     const [{ data: orgRows }, initRes, connRes] = await Promise.all([
       supabase.from("organizations").select("id, user_id, organisation_name, country, organisation_type, partnership_budget, partnership_sought")
         .in("id", [docRow.org_a_id, docRow.org_b_id]),
@@ -153,17 +145,14 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     setOrgB(b);
     setInitiative((initRes as any)?.data ?? null);
     setConnectionListingOrgId((connRes as any)?.data?.receiver_org_id ?? null);
-
     if (docRow.source_type === "template" && docRow.template_id) {
       const { data: tpl } = await supabase.from("mou_templates").select("id, name, sections, toggles").eq("id", docRow.template_id).maybeSingle();
       setTemplate(tpl as MouTemplate);
     }
-
     if (docRow.source_type === "uploaded_pdf" && docRow.rendered_file_path) {
       const { data: signedUrlData } = await supabase.storage.from("mou-documents").createSignedUrl(docRow.rendered_file_path, 3600);
       setUploadedFileUrl(signedUrlData?.signedUrl ?? null);
     }
-
     if (docRow.signature_org_a_path) {
       const { data } = await supabase.storage.from("mou-documents").createSignedUrl(docRow.signature_org_a_path, 3600);
       if (data?.signedUrl) setSignatureAUrl(data.signedUrl);
@@ -178,7 +167,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     }
     if (!opts.silent) setLoading(false);
   }
-
   // Preload signature images as actual <img> elements ahead of time so
   // exportPdf() can composite them synchronously via doc.addImage() --
   // jsPDF needs a loaded image, not just a URL string.
@@ -198,7 +186,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       img.src = signatureBUrl;
     }
   }, [signatureBUrl]);
-
   // Known field_keys mapped to real platform data — anything not in this map
   // stays blank for manual entry rather than guessed at.
   function titleCase(text: string): string {
@@ -234,7 +221,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       financial_amount: orgA.partnership_budget ?? orgB.partnership_budget ?? "",
     };
   }, [orgA, orgB, initiative, connectionListingOrgId]);
-
   const compiledSections = useMemo(() => {
     if (!doc || !template) return [];
     const selections = doc.toggle_selections ?? {};
@@ -264,7 +250,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       })
       .filter((s): s is { id: string; title: string; body: string } => s !== null && s.id !== "signatures");
   }, [doc, template, fieldValues, autofill]);
-
   const allFieldKeys = useMemo(() => {
     const keys = new Set<string>();
     compiledSections.forEach((s) => fieldKeysIn(s.body).forEach((k) => keys.add(k)));
@@ -411,7 +396,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     setSectionOverrides({});
     setSavingSections(false);
   }
-
   function renderCompiledText(body: string): string {
     return body.replace(/\{\{(\w+)\}\}/g, (_, key) => resolvedValue(key) || `[${key}]`);
   }
@@ -618,7 +602,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       </div>
     );
   }
-
   function renderFlagsForField(key: string, opts: { canRaise: boolean; raiserRole: "org_a" | "org_b" }) {
     const flags = (doc?.field_flags ?? []).filter((f) => f.field_key === key);
     const locked = doc?.status === "fully_executed";
@@ -663,9 +646,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       </div>
     );
   }
-
   
-
   async function saveFieldValues() {
     if (!doc) return;
     setSaving(true);
@@ -756,7 +737,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       });
     }
   }
-
   async function saveCustomContent() {
     if (!doc) return;
     setSaving(true);
@@ -765,9 +745,15 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     }).eq("id", doc.id);
     setSaving(false);
   }
-
    async function markSent() {
     if (!doc || !orgB) return;
+    // Org A must have signed before the document can go to Org B -- an
+    // unsigned send left Org B stuck with no way to sign their own side
+    // or notify Org A to come back and sign. The DB trigger
+    // (enforce_org_a_signed_before_send) is the real guarantee; this just
+    // avoids a wasted round trip that would only end in a Postgres error.
+    const alreadySigned = doc.source_type === "uploaded_pdf" ? !!doc.signed_files?.[doc.org_a_id] : !!doc.signature_org_a_path;
+    if (!alreadySigned) return;
     setSaving(true);
     // Same atomic-save principle as signing: whatever's currently in the
     // form must be captured here, or clicking Send right after filling
@@ -789,7 +775,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       p_link: `/dashboard/portfolio/mou`,
     });
   }
-
   function dataUrlToBlob(dataUrl: string): Blob {
     const [header, base64] = dataUrl.split(",");
     const mime = header.match(/:(.*?);/)?.[1] ?? "image/png";
@@ -798,7 +783,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     for (let i = 0; i < bytes.length; i++) array[i] = bytes.charCodeAt(i);
     return new Blob([array], { type: mime });
   }
-
   // pdf-lib's embedPng wants raw bytes, not a Blob -- same decode as
   // dataUrlToBlob above, just stopping one step earlier.
   function dataUrlToUint8Array(dataUrl: string): Uint8Array {
@@ -808,7 +792,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     return bytes;
   }
-
   async function confirmSignature(dataUrl: string) {
     if (!doc || !orgA || !orgB) return;
     setSigning(true);
@@ -818,7 +801,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     const { error: uploadError } = await supabase.storage
       .from("mou-documents").upload(path, dataUrlToBlob(dataUrl));
     if (uploadError) { setSigning(false); return; }
-
     const isOrgA = myOrgId === doc.org_a_id;
     // Field edits (like a corrected dropdown selection) only live in local
     // state until an explicit Save click -- and signing triggers a reload
@@ -868,7 +850,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
         p_link: `/dashboard/portfolio/mou`,
       });
     }
-
     setSigning(false);
     setRedrawingSignature(false);
     load({ silent: true });
@@ -901,7 +882,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     });
     load({ silent: true });
   }
-
   // Org A's terminal action -- only reachable once Org B has submitted and
   // signed, and only once every flag Org A raised on Org B's section has
   // been resolved. This is now the sole path to "fully_executed".
@@ -941,7 +921,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     setFinalizing(false);
     load({ silent: true });
   }
-
   // Org A's deliberate follow-on step after execution -- separate from
   // finalizeDocument() by design, so writing the executed MoU back into
   // the initiative or partnership connection is never automatic. Org A
@@ -956,7 +935,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     const updates = { partnership_status_confirmed: true, partnership_status_confirmed_at: new Date().toISOString() };
     setDoc({ ...doc, ...updates } as MouDoc);
   }
-
   // Org B's "no objection" gate for binding MoUs -- required before Org A
   // can finalize when agreement_type is binding, so Org A never has
   // unilateral sign-off power over a binding commitment.
@@ -1045,18 +1023,15 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     const path = `signed/${doc.id}/${myUserId}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_")}`;
     const { error: uploadError } = await supabase.storage.from("mou-documents").upload(path, file);
     if (uploadError) { setUploadingSigned(false); return; }
-
     const updatedSignedFiles = { ...(doc.signed_files ?? {}), [myOrgId]: path };
     const bothSigned = updatedSignedFiles[doc.org_a_id] && updatedSignedFiles[doc.org_b_id];
     const newStatus = bothSigned ? "fully_executed" : (doc.status === "draft" ? "sent" : doc.status);
-
     await supabase.from("mou_documents").update({
       signed_files: updatedSignedFiles, status: newStatus, updated_at: new Date().toISOString(),
     }).eq("id", doc.id);
     setDoc({ ...doc, signed_files: updatedSignedFiles, status: newStatus as MouDoc["status"] });
     setUploadingSigned(false);
   }
-
   // In-platform signing for uploaded_pdf documents. Appends a new final
   // page to the ORIGINAL uploaded file (not onto the other party's
   // already-signed copy -- each party's signed copy is independent, same
@@ -1094,17 +1069,14 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       signaturePage.drawText(new Date().toLocaleDateString("en-GB"), { x: margin, y, size: 10, font, color: rgb(0.067, 0.067, 0.067) });
       y -= 30;
       signaturePage.drawText("Signed in-platform via Impact Natives.", { x: margin, y, size: 8, font, color: rgb(0.47, 0.47, 0.47) });
-
       const signedBytes = await pdfDoc.save();
       const signedBlob = new Blob([signedBytes.buffer as ArrayBuffer], { type: "application/pdf" });
       const sigPngPath = `signatures/${doc.id}/${myOrgId}-${Date.now()}.png`;
       const signedPdfPath = `signed/${doc.id}/${myUserId}-${Date.now()}-signed.pdf`;
-
       const { error: pngError } = await supabase.storage.from("mou-documents").upload(sigPngPath, dataUrlToBlob(dataUrl));
       if (pngError) return;
       const { error: pdfUploadError } = await supabase.storage.from("mou-documents").upload(signedPdfPath, signedBlob);
       if (pdfUploadError) return;
-
       const updatedSignedFiles = { ...(doc.signed_files ?? {}), [myOrgId]: signedPdfPath };
       const bothSigned = updatedSignedFiles[doc.org_a_id] && updatedSignedFiles[doc.org_b_id];
       const newStatus = bothSigned ? "fully_executed" : (doc.status === "draft" ? "sent" : doc.status);
@@ -1137,7 +1109,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       .replace(/[\u00A0\u2000-\u200B\u202F\u205F\u3000]/g, " ")
       .replace(/[^\x00-\x7E]/g, "");
   }
-
   function buildPdf(): jsPDF | null {
     if (!doc || !orgA || !orgB) return null;
     const pdf = new jsPDF({ unit: "pt", format: "a4", floatPrecision: 2 });
@@ -1368,7 +1339,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     if (!pdf || !orgA || !orgB) return;
     pdf.save(`MoU-${sanitizeForPdf(orgA.organisation_name)}-${sanitizeForPdf(orgB.organisation_name)}.pdf`);
   }
-
   if (notFound) {
     return (
       <div className="max-w-lg mx-auto py-24 px-6">
@@ -1382,7 +1352,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       </div>
     );
   }
-
   if (loading || !doc) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -1390,7 +1359,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       </div>
     );
   }
-
   const iAmCreator = myUserId === doc.created_by;
   const hasUnresolvedOrgBFlags = (doc.field_flags ?? []).some((f) => !f.resolved && f.raised_by === "org_b");
   const hasUnresolvedOrgAFlags = (doc.field_flags ?? []).some((f) => !f.resolved && f.raised_by === "org_a");
@@ -1400,6 +1368,11 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const orgBFieldsEditable = isViewerOrgB && doc.status !== "fully_executed" && (!orgBSubmittedForReview || hasUnresolvedOrgAFlags);
   const exportDisabledForOrgB = isViewerOrgB && doc.status === "pending_org_a_final_review";
   const isBindingMou = doc.toggle_selections?.["agreement_type"] === "binding";
+  // Which field proves Org A has signed depends on source_type -- template/
+  // custom docs sign via signature_org_a_path, uploaded_pdf docs sign via
+  // signed_files keyed by org id. Mirrors the check the DB trigger
+  // (enforce_org_a_signed_before_send) applies server-side.
+  const orgAHasSigned = doc.source_type === "uploaded_pdf" ? !!doc.signed_files?.[doc.org_a_id] : !!doc.signature_org_a_path;
   const orgBConfirmationPending = isBindingMou && !doc.org_b_finalization_confirmed;
   const orgBCanConfirmFinalization =
     isViewerOrgB && doc.status === "pending_org_a_final_review" && !hasUnresolvedOrgAFlags && orgBConfirmationPending;
@@ -1415,7 +1388,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   // original has no such capability, so those go straight to the
   // upload-and-verify fallback with no inline option offered at all.
   const canSignUploadedPdfInline = doc.source_type === "uploaded_pdf" && !!doc.rendered_file_path?.toLowerCase().endsWith(".pdf");
-
   // Stage tracker -- built from the actual granular flags on the document
   // (signature locks, details_completed_by_org_a, org_b_finalization_confirmed,
   // partnership_status_confirmed) rather than the single `status` string.
@@ -1473,7 +1445,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   });
   const currentStage = stages.find((s) => !s.completed);
   const trackerStatusText = !currentStage ? "Complete" : currentStage.blocked ?? `Next: ${currentStage.label}`;
-
   return (
     <div className="space-y-6">
       <button type="button" onClick={onClose}
@@ -1557,7 +1528,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                         : `Waiting for ${orgA?.organisation_name ?? "the other party"} to complete their details.`}
                     </p>
                   </div>
-
                   {groupedFieldKeys.orgAKeys.length > 0 && (isViewerOrgA || doc.details_completed_by_org_a) && (
                     <div className="rounded-xl border border-border p-4 space-y-3">
                       <p className="text-sm font-semibold text-[#2D6A4F] uppercase tracking-wide">
@@ -1573,7 +1543,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                       </div>
                     </div>
                   )}
-
                   {orderedOtherKeys.length > 0 && (isViewerOrgA || doc.details_completed_by_org_a) && (
                     <div className="rounded-xl border border-border p-4 space-y-3">
                       <p className="text-sm font-semibold text-[#2D6A4F] uppercase tracking-wide">
@@ -1589,7 +1558,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                       </div>
                     </div>
                   )}
-
                   {groupedFieldKeys.orgBKeys.length > 0 && (
                     <div className="rounded-xl border border-border p-4 space-y-3">
                       <p className="text-sm font-semibold text-[#2D6A4F] uppercase tracking-wide">
@@ -1624,7 +1592,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                   )}
                 </div>
               )}
-
               <div className="space-y-4 border-t border-border pt-5">
                 <div>
                   <p className="text-base font-semibold text-black dark:text-white">Document preview</p>
@@ -1664,7 +1631,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               </div>
             </>
           )}
-
           {/* Custom: free text editor */}
           {doc.source_type === "custom" && (
             <div className="space-y-3">
@@ -1697,7 +1663,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               {saving && <p className="text-sm text-black dark:text-white">Saving...</p>}
             </div>
           )}
-
           {/* Uploaded PDF */}
           {doc.source_type === "uploaded_pdf" && (
             <div className="space-y-3">
@@ -1712,17 +1677,19 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               )}
             </div>
           )}
-
           {/* Send / sign actions */}
           <div className="space-y-3 border-t border-border pt-5">
             <p className="text-base font-semibold text-black dark:text-white">Send & sign</p>
-
             {isViewerOrgA && doc.status === "draft" && (
               <p className="text-sm text-black dark:text-white">
                 {orgB?.organisation_name ?? "Your partner"} can't see this document until you send it.
               </p>
             )}
-
+            {isViewerOrgA && doc.status === "draft" && !orgAHasSigned && (
+              <InfoBanner tone="waiting" icon={PenLine}>
+                Sign this document before sending it. {orgB?.organisation_name ?? "The other party"} can't sign their own side, and has no way to prompt you to come back and sign, once it's already been sent.
+              </InfoBanner>
+            )}
             {(() => {
               const canSaveProgress = doc.source_type === "template" && (orgADetailsEditable || orgBFieldsEditable);
               const canSend = isViewerOrgA && doc.status === "draft";
@@ -1737,7 +1704,8 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                   )}
                   {canSend && (
                     <button type="button" onClick={markSent}
-                      disabled={saving || missingFieldLabels.length > 0 || dateValidationErrors.length > 0}
+                      disabled={saving || missingFieldLabels.length > 0 || dateValidationErrors.length > 0 || !orgAHasSigned}
+                      title={!orgAHasSigned ? "Sign this document before sending it" : undefined}
                       className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors disabled:opacity-60">
                       <Send className="w-4 h-4" /> {saving ? "Sending..." : `Send to ${orgB?.organisation_name ?? "partner"}`}
                     </button>
@@ -1751,7 +1719,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                 </div>
               );
             })()}
-
             {missingFieldLabels.length > 0 && (doc.source_type !== "template" || !isViewerOrgB || orgBCanFillTheirPart) && (
               <div className="rounded-xl border border-border bg-muted/20 p-4">
                 <p className="text-sm font-medium text-black dark:text-white mb-1">Complete these fields before sending or signing:</p>
@@ -1775,7 +1742,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               </div>
             )}
             
-
             {doc.source_type === "uploaded_pdf" && (
               <div className="space-y-4">
                 <div className="flex items-center gap-4 text-sm">
@@ -1790,7 +1756,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                     {orgB?.organisation_name}: {doc.signed_files?.[doc.org_b_id] ? "Signed" : "Awaiting signature"}
                   </span>
                 </div>
-
                 {(isViewerOrgA || isViewerOrgB) && (() => {
                   const myAlreadySigned = isViewerOrgA ? !!doc.signed_files?.[doc.org_a_id] : !!doc.signed_files?.[doc.org_b_id];
                   if (myAlreadySigned) {
@@ -1831,7 +1796,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                 })()}
               </div>
             )}
-
             {doc.source_type !== "uploaded_pdf" && missingFieldLabels.length === 0 && dateValidationErrors.length === 0 &&
               (doc.source_type !== "template" || !isViewerOrgB || orgBCanFillTheirPart) && (
               <div className="space-y-4">
@@ -1863,7 +1827,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                     )}
                   </div>
                 </div>
-
                 {orgA && orgB && (orgA.user_id === myUserId || orgB.user_id === myUserId) && (() => {
                   const isOrgA = orgA.user_id === myUserId;
                   const mySigUrl = isOrgA ? signatureAUrl : signatureBUrl;
@@ -1922,7 +1885,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               </div>
             )}
           </div>
-
           {isViewerOrgA && doc.source_type === "template" && doc.signature_org_a_path && missingFieldLabels.length === 0 && dateValidationErrors.length === 0 && (
               <button type="button" onClick={completeOrgADetails}
               disabled={saving || (doc.details_completed_by_org_a && !hasUnresolvedOrgBFlags)}
@@ -2012,7 +1974,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               </button>
             </div>
           )}
-
       {showUploadWarning && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowUploadWarning(false)}>
           <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-sm shadow-xl p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
