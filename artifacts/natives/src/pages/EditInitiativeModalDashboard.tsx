@@ -234,7 +234,7 @@ export default function EditInitiativeModalDashboard({ isOpen, initiativeId, onC
   onClose: () => void
   onSaved?: () => void
 }) {
-  const { user } = useAuth()
+  const { orgOwnerId } = useAuth()
   const [loading, setLoading]     = useState(true)
   const [form, setForm]           = useState<EditFormState | null>(null)
   const [original, setOriginal]   = useState<EditFormState | null>(null)
@@ -253,13 +253,13 @@ export default function EditInitiativeModalDashboard({ isOpen, initiativeId, onC
   })
 
   useEffect(() => {
-    if (!isOpen || !user) return
+    if (!isOpen || !orgOwnerId) return
     supabase.from("organizations")
       .select("organisation_name,description,sector,years_of_operation,total_beneficiaries_reached,jobs_created,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations")
-      .eq("user_id", user.id)
+      .eq("user_id", orgOwnerId)
       .maybeSingle()
       .then(({ data }) => setOrgProfile(data ?? null))
-  }, [isOpen, user])
+  }, [isOpen, orgOwnerId])
 
   useEffect(() => {
     if (!isOpen || !initiativeId) return

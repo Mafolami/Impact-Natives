@@ -225,11 +225,18 @@ export async function fetchOutcomeHistory(outcomeId: string): Promise<PortfolioO
   return data ?? [];
 }
 
-export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]> {
+// orgOwnerId drives every org-scoped lookup (organizations, initiative_requests,
+// expressions_of_interest -- the latter stores orgOwnerId as its user_id since
+// EOI is org-level, one per org). actorUserId is the real signed-in person,
+// needed only where the join key is a real person rather than an org: matching
+// into confirmed_partners[].user_id (set from conversation.other_user_id when
+// a partner is proposed in DashboardMessages.tsx, not an org id) and the
+// corresponding partnership_outcomes.partner_user_id join.
+export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string): Promise<PortfolioRow[]> {
   const rows: PortfolioRow[] = [];
 
   // myOrg, myInitiatives, and myEois are independent of each other -- each
-  // only needs userId, not any other query's result -- so they now run
+  // only needs orgOwnerId, not any other query's result -- so they now run
   // concurrently instead of strictly sequentially. This was the main cause
   // of slow loads: several genuinely independent query chains were running
   // one after another with no real data dependency forcing that order.
@@ -237,21 +244,21 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
     supabase
       .from("organizations")
       .select("id, organisation_name, partnership_sought, partnership_title, partnership_listed, partnership_formed, needs, email, updated_at")
-      .eq("user_id", userId)
+      .eq("user_id", orgOwnerId)
       .maybeSingle(),
     supabase
       .from("initiative_requests")
       .select("id, title, status, eois, created_at, confirmed_partners")
-      .eq("user_id", userId)
+      .eq("user_id", orgOwnerId)
       .not("status", "eq", "draft"),
     supabase
       .from("expressions_of_interest")
       .select("id, initiative_id, partnership_type, created_at, conversation_id")
-      .eq("user_id", userId),
+      .eq("user_id", orgOwnerId),
   ]);
 
   const myOrgName = myOrg?.organisation_name ?? "You";
-  const myProfileHref = `/dashboard/natives?tab=organisation&user=${userId}`;
+  const myProfileHref = `/dashboard/natives?tab=organisation&user=${orgOwnerId}`;
 
   // ── 1. My own initiative listings ──────────────────────────────────────
   for (const ini of myInitiatives ?? []) {
@@ -306,7 +313,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
       const ini = initMap.get(eoi.initiative_id);
       const ownerOrg = ini ? ownerOrgMap.get(ini.user_id) : undefined;
       const conv = eoi.conversation_id ? convMap.get(eoi.conversation_id) : undefined;
-      const status = mouExecutedFor(ini?.confirmed_partners, userId) ? "MoU Executed" : deriveEoiStatus(conv?.status);
+      const status = mouExecutedFor(ini?.confirmed_partners, actorUserId) ? "MoU Executed" : deriveEoiStatus(conv?.status);
       rows.push({
         id: `ini-eoi-out-${eoi.id}`,
         title: ini?.title ?? "Initiative",
@@ -327,7 +334,7 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
           ...(conv?.opened_at ? [{ label: "In conversation", date: conv.opened_at }] : []),
           ...(conv?.confirmed_at ? [{ label: "Confirmed", date: conv.confirmed_at }] : []),
         ],
-        raw: { kind: "initiative_eoi", initiativeId: eoi.initiative_id, eoiId: eoi.id, conversationId: eoi.conversation_id, partnerUserId: userId },
+        raw: { kind: "initiative_eoi", initiativeId: eoi.initiative_id, eoiId: eoi.id, conversationId: eoi.conversation_id, partnerUserId: actorUserId },
       });
     }
   }
@@ -369,6 +376,18 @@ export async function fetchPortfolioRows(userId: string): Promise<PortfolioRow[]
       const org = expresserOrgMap.get(eoi.user_id);
       const profile = expresserProfileMap.get(eoi.user_id);
       const conv = eoi.conversation_id ? convMap2.get(eoi.conversation_id) : undefined;
+      // NOTE: same identity mismatch as the Outbound block above, but not
+      // fixed here. eoi.user_id is orgOwnerId of the expressing org (post
+      // the self-EOI sweep), while confirmed_partners[].user_id is the
+      // real conversation participant (conversation.other_user_id,
+      // computed relative to a viewer elsewhere -- not a real column on
+      // conversations, and not fetched in this function at all). Harmless
+      // today since every expressing org is solo (owner's id === orgOwnerId
+      // === the real conversation participant), but will misreport "MoU
+      // Executed" status here the moment a Member (not the Owner) is the
+      // one who actually held the conversation. Needs conversation
+      // participant data this function doesn't have; not fixed as part of
+      // this sweep.
       const status = mouExecutedFor(ini?.confirmed_partners, eoi.user_id) ? "MoU Executed" : deriveEoiStatus(conv?.status);
       rows.push({
         id: `ini-eoi-in-${eoi.id}`,

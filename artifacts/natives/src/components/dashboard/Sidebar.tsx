@@ -58,8 +58,7 @@ interface SidebarProps {
 
 export default function Sidebar({ onCollapse }: SidebarProps) {
   const [location] = useLocation();
-  const { profile, signOut } = useAuth();
-  console.log("Sidebar profile:", profile?.user_type, profile?.org_name, profile?.full_name);
+  const { profile, signOut, orgOwnerId } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
@@ -83,17 +82,17 @@ const isCorporate = ["corporation", "technology_company", "public_sector"].inclu
     .filter(section => section.items.length > 0);
 
   useEffect(() => {
-    if (!profile) return;
+    if (!profile || !orgOwnerId) return;
 
     async function fetchUnread() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user || !orgOwnerId) return;
 
       // Pending EOIs on my initiatives
       const { data: myInits } = await supabase
         .from("initiative_requests")
         .select("id")
-        .eq("user_id", user.id);
+        .eq("user_id", orgOwnerId);
       const myInitIds = (myInits ?? []).map((i: any) => i.id);
 
       let pendingEoiCount = 0;
@@ -102,7 +101,7 @@ const isCorporate = ["corporation", "technology_company", "public_sector"].inclu
           .from("expressions_of_interest")
           .select("conversation_id")
           .in("initiative_id", myInitIds)
-          .neq("user_id", user.id);
+          .neq("user_id", orgOwnerId);
         const convoIds = (eois ?? []).map((e: any) => e.conversation_id).filter(Boolean);
         if (convoIds.length > 0) {
           const { data: pendingConvos } = await supabase
@@ -177,7 +176,7 @@ const isCorporate = ["corporation", "technology_company", "public_sector"].inclu
       clearInterval(interval);
       supabase.removeChannel(channel);
     };
-  }, [profile]);
+  }, [profile, orgOwnerId]);
 
   // Clear badge when user visits messages
   useEffect(() => {

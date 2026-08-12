@@ -14,7 +14,7 @@ const VIEWER_ORG_SELECT =
   "partnership_working_style,partnership_dd_financial_model,partnership_dd_audited_accounts," +
   "partnership_dd_safeguarding_policy,partnership_dd_data_policy,partnership_dd_governance_doc";
 
-export function useOrgActions(userId: string | null | undefined) {
+export function useOrgActions(orgOwnerId: string | null | undefined, actorUserId: string | null | undefined) {
   const [viewerOrg, setViewerOrg] = useState<OrgRow | null>(null);
   const [viewerOrgLoading, setViewerOrgLoading] = useState(true);
   const [currentUserOrgId, setCurrentUserOrgId] = useState<string | null>(null);
@@ -23,14 +23,19 @@ export function useOrgActions(userId: string | null | undefined) {
   const [sendingInterest, setSendingInterest] = useState<string | null>(null);
 
   useEffect(() => {
-    if (userId) load();
-  }, [userId]);
+    if (orgOwnerId) load();
+  }, [orgOwnerId, actorUserId]);
 
   async function load() {
+    // saved_organizations is personal-per-person (same as saved_initiatives),
+    // so it's keyed by actorUserId. organizations lookup is the acting org's
+    // identity, keyed by orgOwnerId. sentInterests dedup stays scoped to
+    // sender_user_id (actorUserId) -- unchanged design, just fixed to read
+    // the correct identity instead of the org lookup's identity.
     const [savedRes, myOrgRes, connRes] = await Promise.all([
-      supabase.from("saved_organizations").select("organization_id").eq("user_id", userId!),
-      supabase.from("organizations").select(VIEWER_ORG_SELECT).eq("user_id", userId!).maybeSingle(),
-      supabase.from("partnership_connections").select("receiver_org_id").eq("sender_user_id", userId!),
+      supabase.from("saved_organizations").select("organization_id").eq("user_id", actorUserId!),
+      supabase.from("organizations").select(VIEWER_ORG_SELECT).eq("user_id", orgOwnerId!).maybeSingle(),
+      supabase.from("partnership_connections").select("receiver_org_id").eq("sender_user_id", actorUserId!),
     ]);
 
     // The supabase client isn't bound to generated Database types (see
@@ -55,30 +60,33 @@ export function useOrgActions(userId: string | null | undefined) {
   }
   async function toggleSave(orgId: string, e: React.MouseEvent) {
     e.stopPropagation();
-    if (!userId) return;
+    if (!actorUserId) return;
     if (savedOrgs.has(orgId)) {
-      await supabase.from("saved_organizations").delete().eq("user_id", userId).eq("organization_id", orgId);
+      await supabase.from("saved_organizations").delete().eq("user_id", actorUserId).eq("organization_id", orgId);
       setSavedOrgs(prev => { const n = new Set(prev); n.delete(orgId); return n; });
     } else {
-      await supabase.from("saved_organizations").insert({ user_id: userId, organization_id: orgId });
+      await supabase.from("saved_organizations").insert({ user_id: actorUserId, organization_id: orgId });
       setSavedOrgs(prev => new Set(prev).add(orgId));
     }
   }
 
   async function expressInterest(org: OrgRow, e: React.MouseEvent) {
     e.stopPropagation();
-    if (!userId || sentInterests.has(org.id) || org.partnership_formed) return;
+    if (!orgOwnerId || !actorUserId || sentInterests.has(org.id) || org.partnership_formed) return;
     let senderOrgId = currentUserOrgId;
     if (!senderOrgId) {
-      const { data } = await supabase.from("organizations").select("id").eq("user_id", userId).maybeSingle();
+      const { data } = await supabase.from("organizations").select("id").eq("user_id", orgOwnerId).maybeSingle();
       if (!data) { alert("You need an organisation profile to express interest."); return; }
       senderOrgId = data.id; setCurrentUserOrgId(data.id);
     }
     if (senderOrgId === org.id) return;
     setSendingInterest(org.id);
     try {
+      // sender_user_id is real-person authorship (who actually clicked
+      // this), not org identity -- stays actorUserId even though the
+      // connection itself is between sender_org_id and receiver_org_id.
       const { error } = await supabase.from("partnership_connections").insert({        sender_org_id: senderOrgId, receiver_org_id: org.id,
-        sender_user_id: userId, source: "browse", status: "pending",
+        sender_user_id: actorUserId, source: "browse", status: "pending",
       });
       if (error && !error.message.includes("unique")) throw error;
       const { data: senderOrg } = await supabase.from("organizations").select("organisation_name").eq("id", senderOrgId).single();
@@ -107,7 +115,7 @@ export function useOrgActions(userId: string | null | undefined) {
         });
         const customMsg = (e as any).customMessage;
         await supabase.from("messages").insert({
-          conversation_id: convData.id, sender_id: userId,
+          conversation_id: convData.id, sender_id: actorUserId,
           body: customMsg || `Hi ${org.organisation_name}, I came across your partnership listing on Impact Natives and I'm interested in exploring a potential collaboration.${org.partnership_sought ? ` I see you're looking for: ${org.partnership_sought}` : ""}\n\nWould you be open to a conversation?`,
         });
       }

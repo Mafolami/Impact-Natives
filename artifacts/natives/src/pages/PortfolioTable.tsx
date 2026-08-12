@@ -505,7 +505,7 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
 }
 
 export function PortfolioTable() {
-  const { user } = useAuth();
+  const { user, orgOwnerId } = useAuth();
   const [, navigate] = useLocation();
   const [rows, setRows] = useState<PortfolioRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -553,14 +553,14 @@ export function PortfolioTable() {
   }
 
   async function load(showLoader = true) {
-    if (!user) return;
+    if (!user || !orgOwnerId) return;
     if (showLoader) setLoading(true);
-    const data = await fetchPortfolioRows(user.id);
+    const data = await fetchPortfolioRows(orgOwnerId, user.id);
     setRows(data);
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { load(); }, [user, orgOwnerId]);
 
   const statusOptions = useMemo(() => {
     const set = new Set(rows.map(r => r.status));
@@ -596,10 +596,10 @@ export function PortfolioTable() {
   }
 
   async function handleAccept(row: PortfolioRow) {
-    if (row.raw.kind !== "partnership_connection" || !user) return;
+    if (row.raw.kind !== "partnership_connection" || !user || !orgOwnerId) return;
     setActioningId(row.id);
     const { data: myOrg } = await supabase.from("organizations")
-      .select("id, organisation_name").eq("user_id", user.id).maybeSingle();
+      .select("id, organisation_name").eq("user_id", orgOwnerId).maybeSingle();
     const { data: conn } = await supabase.from("partnership_connections")
       .select("id, conversation_id, ai_rationale").eq("id", row.raw.connectionId).single();
     if (!conn) { setActioningId(null); return; }
@@ -612,10 +612,10 @@ export function PortfolioTable() {
   }
 
   async function handleDecline(row: PortfolioRow) {
-    if (row.raw.kind !== "partnership_connection" || !user) return;
+    if (row.raw.kind !== "partnership_connection" || !user || !orgOwnerId) return;
     setActioningId(row.id);
     const { data: myOrg } = await supabase.from("organizations")
-      .select("id, organisation_name").eq("user_id", user.id).maybeSingle();
+      .select("id, organisation_name").eq("user_id", orgOwnerId).maybeSingle();
     const { data: conn } = await supabase.from("partnership_connections")
       .select("id, conversation_id, ai_rationale").eq("id", row.raw.connectionId).single();
     if (!conn) { setActioningId(null); return; }
@@ -643,10 +643,10 @@ export function PortfolioTable() {
   }
 
   async function handleMarkFormed(row: PortfolioRow) {
-    if (row.raw.kind !== "partnership_listing" || !user) return;
+    if (row.raw.kind !== "partnership_listing" || !user || !orgOwnerId) return;
     setActioningId(row.id);
     const { data: myOrg } = await supabase.from("organizations")
-      .select("id, organisation_name, partnership_title").eq("user_id", user.id).maybeSingle();
+      .select("id, organisation_name, partnership_title").eq("user_id", orgOwnerId).maybeSingle();
     const { data: inbound } = await supabase.from("partnership_connections")
       .select("id, status").eq("receiver_org_id", row.raw.orgId);
     await markPartnershipFormed(

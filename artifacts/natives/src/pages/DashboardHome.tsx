@@ -310,7 +310,7 @@ function MyInitiativesMini({ initiatives }: { initiatives: InitiativeRow[] }) {
 // Component
 // ---------------------------------------------------------------------------
 export default function DashboardHome() {
-  const { user, profile } = useAuth();
+  const { user, profile, orgOwnerId } = useAuth();
   const [location, navigate] = useLocation();
 
   const [myInitiatives, setMyInitiatives]         = useState<InitiativeRow[]>([]);
@@ -365,18 +365,18 @@ export default function DashboardHome() {
 
   // ── Personal data fetch ───────────────────────────────────────────────────
   const loadPersonal = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id || !orgOwnerId) return;
     const [initRes, allInitRes, convRes, eoiRes] = await Promise.all([
       supabase
         .from("initiative_requests")
         .select("id,title,sectors,locations,status,eois,created_at")
-        .or(`user_id.eq.${user.id},submitter_email.eq.${user.email}`)
+        .or(`user_id.eq.${orgOwnerId},submitter_email.eq.${user.email}`)
         .order("created_at", { ascending: false })
         .limit(3),
       supabase
         .from("initiative_requests")
         .select("id,status")
-        .or(`user_id.eq.${user.id},submitter_email.eq.${user.email}`),
+        .or(`user_id.eq.${orgOwnerId},submitter_email.eq.${user.email}`),
       supabase
         .from("conversation_participants")
         .select("conversation_id")
@@ -384,7 +384,7 @@ export default function DashboardHome() {
       supabase
         .from("initiative_requests")
         .select("id")
-        .or(`user_id.eq.${user.id},submitter_email.eq.${user.email}`),
+        .or(`user_id.eq.${orgOwnerId},submitter_email.eq.${user.email}`),
     ]);
 
     if (initRes.data) setMyInitiatives(initRes.data as InitiativeRow[]);
@@ -478,7 +478,7 @@ export default function DashboardHome() {
     setSnapshot({ openConversations, pendingEOIs, openEnquiries, unreadMessages });
     setAllMyInits(allInits);
     setLoadingPersonal(false);
-  }, [user?.id]);
+  }, [user?.id, orgOwnerId]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -587,11 +587,11 @@ export default function DashboardHome() {
         onClose={() => setShowCreateModal(false)}
         onSuccess={() => {
           setShowCreateModal(false);
-          if (user) {
+          if (user && orgOwnerId) {
             supabase
               .from("initiative_requests")
               .select("id,title,sectors,locations,status,eois,created_at")
-              .or(`user_id.eq.${user.id},submitter_email.eq.${user.email}`)
+              .or(`user_id.eq.${orgOwnerId},submitter_email.eq.${user.email}`)
               .order("created_at", { ascending: false })
               .limit(3)
               .then(({ data }) => { if (data) setMyInitiatives(data as InitiativeRow[]); });

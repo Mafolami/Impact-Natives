@@ -92,7 +92,7 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave, mouExecuted }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function DashboardPartnerships() {
-  const { user } = useAuth();
+  const { user, orgOwnerId } = useAuth();
   const autoOpenOrgId = new URLSearchParams(window.location.search).get("org");
   const [orgs, setOrgs]                       = useState<OrgRow[]>([]);
   const [loading, setLoading]                 = useState(true);
@@ -122,7 +122,7 @@ export default function DashboardPartnerships() {
   // This lives on partnership_connections (per relationship), not on the
   // org row itself, so it's a separate lookup rather than a selected column.
   const [mouExecutedOrgIds, setMouExecutedOrgIds] = useState<Set<string>>(new Set());
-  const { viewerOrg, viewerOrgLoading, savedOrgs, sentInterests, sendingInterest, toggleSave, expressInterest } = useOrgActions(user?.id);
+  const { viewerOrg, viewerOrgLoading, savedOrgs, sentInterests, sendingInterest, toggleSave, expressInterest } = useOrgActions(orgOwnerId, user?.id);
 
   useEffect(() => { if (user) loadAll(); }, [user]);
 

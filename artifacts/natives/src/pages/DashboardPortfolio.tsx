@@ -460,16 +460,17 @@ function InitiativeDetail({ initiative, onBack, onRequestEdit }: { initiative: I
 
 // ─── Interests Expressed Tab ──────────────────────────────────────────────────
 
-function InterestsExpressedTab({ userId }: { userId: string }) {
+function InterestsExpressedTab({ orgOwnerId }: { orgOwnerId: string | null | undefined }) {
   const [loading, setLoading] = useState(true);
   const [eois, setEois]       = useState<OutboundEOI[]>([]);
 
   useEffect(() => {
     async function load() {
+      if (!orgOwnerId) { setLoading(false); return; }
       const { data: sentEois } = await supabase
         .from("expressions_of_interest")
         .select("id, initiative_id, partnership_type, message, created_at, conversation_id")
-        .eq("user_id", userId)
+        .eq("user_id", orgOwnerId)
         .order("created_at", { ascending: false });
 
       if (!sentEois || sentEois.length === 0) { setLoading(false); return; }
@@ -499,7 +500,7 @@ function InterestsExpressedTab({ userId }: { userId: string }) {
       setLoading(false);
     }
     load();
-  }, [userId]);
+  }, [orgOwnerId]);
 
   if (loading) return (
     <div className="flex items-center justify-center py-16">
@@ -558,13 +559,14 @@ function InterestsExpressedTab({ userId }: { userId: string }) {
 
 // ─── Confirmed Partners Tab (unchanged logic) ─────────────────────────────────
 
-function ConfirmedPartnersTab({ userId }: { userId: string }) {
+function ConfirmedPartnersTab({ orgOwnerId, actorUserId }: { orgOwnerId: string | null | undefined; actorUserId: string | null | undefined }) {
   const [loading, setLoading]                       = useState(true);
   const [creatorConfirmed, setCreatorConfirmed]     = useState<CreatorConfirmedInitiative[]>([]);
   const [expresserConfirmed, setExpresserConfirmed] = useState<ExpresserConfirmedRow[]>([]);
-  useEffect(() => { loadPartners(); }, [userId]);
+  useEffect(() => { loadPartners(); }, [orgOwnerId, actorUserId]);
 
   async function loadPartners() {
+    if (!orgOwnerId || !actorUserId) { setLoading(false); return; }
     setLoading(true);
     const { data: allInits } = await supabase
       .from("initiative_requests")
@@ -573,8 +575,9 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
 
     if (!allInits) { setLoading(false); return; }
 
+    // initiative_requests.user_id is orgOwnerId (who posted the initiative).
     const myInitsWithConfirmed = allInits
-      .filter((init: any) => init.user_id === userId && Array.isArray(init.confirmed_partners))
+      .filter((init: any) => init.user_id === orgOwnerId && Array.isArray(init.confirmed_partners))
       .map((init: any) => ({
         ...init,
         confirmed_partners: (init.confirmed_partners as any[]).filter((p: any) => isActiveConfirmedStatus(p.status)),
@@ -596,9 +599,14 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
       setCreatorConfirmed([]);
     }
 
+    // confirmed_partners[].user_id is the real conversation participant
+    // (set from conversation.other_user_id when a partner is proposed --
+    // see DashboardMessages.tsx proposePartner()), NOT orgOwnerId. So "am
+    // I the confirmed partner on someone else's initiative" compares
+    // against actorUserId, the real person, not the org identity.
     const relevant = allInits.filter((init: any) => {
-      if (init.user_id === userId) return false;
-      return ((init.confirmed_partners as any[]) ?? []).some((p: any) => p.user_id === userId && isActiveConfirmedStatus(p.status));
+      if (init.user_id === orgOwnerId) return false;
+      return ((init.confirmed_partners as any[]) ?? []).some((p: any) => p.user_id === actorUserId && isActiveConfirmedStatus(p.status));
     });
     if (relevant.length > 0) {
       const ownerIds = [...new Set(relevant.map((i: any) => i.user_id).filter(Boolean))];
@@ -606,7 +614,7 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
       const ownerMap = new Map((ownerProfiles ?? []).map((p: any) => [p.id, p]));
       setExpresserConfirmed(relevant.map((init: any) => {
         const partners = (init.confirmed_partners as any[]) ?? [];
-        const myEntry  = partners.find((p: any) => p.user_id === userId && isActiveConfirmedStatus(p.status));
+        const myEntry  = partners.find((p: any) => p.user_id === actorUserId && isActiveConfirmedStatus(p.status));
         const owner    = ownerMap.get(init.user_id);
         return { initiative_id: init.id, initiative_title: init.title, creator_user_id: init.user_id, creator_name: owner?.full_name ?? "Unknown", role: myEntry?.role ?? "", status: myEntry?.status ?? "confirmed", confirmed_at: myEntry?.confirmed_at ?? "" };
       }));
@@ -745,7 +753,7 @@ function ConfirmedPartnersTab({ userId }: { userId: string }) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardInitiatives() {
-  const { user } = useAuth();
+  const { user, orgOwnerId } = useAuth();
   const [, navigate] = useLocation();
   const [initiatives, setInitiatives] = useState<InitiativeRow[]>([]);
   const [loading, setLoading]         = useState(true);
@@ -778,7 +786,7 @@ export default function DashboardInitiatives() {
   }, []);
   const [selectedPartnerOrg, setSelectedPartnerOrg] = useState<OrgRow | null>(null);
   const [partnerOrgMouExecuted, setPartnerOrgMouExecuted] = useState(false);
-  const { viewerOrg, viewerOrgLoading, savedOrgs, sentInterests, sendingInterest, toggleSave, expressInterest } = useOrgActions(user?.id);
+  const { viewerOrg, viewerOrgLoading, savedOrgs, sentInterests, sendingInterest, toggleSave, expressInterest } = useOrgActions(orgOwnerId, user?.id);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [closingId, setClosingId] = useState<string | null>(null);
@@ -803,18 +811,18 @@ export default function DashboardInitiatives() {
   }, []);
 
   async function load() {
-    if (!user) return;
+    if (!orgOwnerId) return;
     const { data, error } = await supabase
         .from("initiative_requests")
         .select("id,title,sectors,locations,status,eois,created_at,problem,outcome,partnerships,esg_alignment,budget,tags,detail_content,resource_link,submitter_name,submitter_org,confirmed_partners,user_id,source")
-        .eq("user_id", user.id)
+        .eq("user_id", orgOwnerId)
         .not("status", "eq", "draft")
         .order("created_at", { ascending: false });
     if (data) setInitiatives(data as InitiativeRow[]);
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { load(); }, [orgOwnerId]);
 
   useEffect(() => {
     if (!routeId || initiatives.length === 0) return;
@@ -1040,12 +1048,12 @@ export default function DashboardInitiatives() {
 
             {/* Interests Expressed */}
             {initSubTab === "expressed" && user && (
-              <InterestsExpressedTab userId={user.id} />
+              <InterestsExpressedTab orgOwnerId={orgOwnerId} />
             )}
 
             {/* Confirmed */}
             {initSubTab === "confirmed" && user && (
-              <ConfirmedPartnersTab userId={user.id} />
+              <ConfirmedPartnersTab orgOwnerId={orgOwnerId} actorUserId={user?.id} />
             )}
           </div>
         )}

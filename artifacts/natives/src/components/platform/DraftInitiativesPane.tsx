@@ -403,10 +403,10 @@ function DraftCard({
 }
 
 export function DraftInitiativesPane({
-  userId,
+  orgOwnerId,
   onPublished,
 }: {
-  userId: string;
+  orgOwnerId: string;
   onPublished: () => void;
 }) {
   const [drafts, setDrafts]   = useState<DraftInitiative[]>([]);
@@ -417,7 +417,7 @@ export function DraftInitiativesPane({
     const { data } = await supabase
       .from("initiative_requests")
       .select("id,title,problem,outcome,specific_ask,partnerships,sectors,locations,budget,target_population,stage,duration,target_beneficiaries,esg_alignment,sdg_tags,created_at")
-      .eq("user_id", userId)
+      .eq("user_id", orgOwnerId)
       .eq("source", "ai_generated")
       .eq("status", "draft")
       .order("created_at", { ascending: false });
@@ -425,7 +425,7 @@ export function DraftInitiativesPane({
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, [userId]);
+  useEffect(() => { load(); }, [orgOwnerId]);
 
   if (loading) return (
     <div className="flex items-center justify-center py-16">

@@ -131,7 +131,7 @@ function EmptyState({ icon: Icon, title, body }: { icon: any; title: string; bod
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function PartnershipTab() {
-  const { user } = useAuth();
+  const { user, orgOwnerId } = useAuth();
   const [, navigate] = useLocation();
   const [loading, setLoading]         = useState(true);
   const [myOrgId, setMyOrgId]         = useState<string | null>(null);
@@ -153,8 +153,8 @@ export function PartnershipTab() {
   
 
   useEffect(() => {
-    if (user) load();
-  }, [user]);
+    if (user && orgOwnerId) load();
+  }, [user, orgOwnerId]);
 
   async function load() {
     setLoading(true);
@@ -162,7 +162,7 @@ export function PartnershipTab() {
     const { data: myOrg } = await supabase
       .from("organizations")
       .select("id, organisation_name, partnership_sought, partnership_title, partnership_listed, partnership_formed, needs, offers, sdgs, sector, status")
-      .eq("user_id", user!.id)
+      .eq("user_id", orgOwnerId!)
       .maybeSingle();
 
     if (!myOrg) { setLoading(false); return; }

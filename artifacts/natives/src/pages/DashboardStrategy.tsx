@@ -9,17 +9,17 @@ import { DraftInitiativesPane } from "@/components/platform/DraftInitiativesPane
 type StrategyTab = "build" | "upload" | "initiatives";
 
 export default function DashboardStrategy() {
-  const { user, profile } = useAuth();
+  const { orgOwnerId } = useAuth();
   const [orgId, setOrgId]                   = useState<string | null>(null);
   const [orgCountry, setOrgCountry]         = useState<string>("");
   const [tab, setTab]                       = useState<StrategyTab>("build");
 
   useEffect(() => {
-    if (!user) return;
+    if (!orgOwnerId) return;
     supabase
       .from("organizations")
       .select("id,country")
-      .eq("user_id", user.id)
+      .eq("user_id", orgOwnerId)
       .maybeSingle()
       .then(({ data }) => {
         if (data?.id) setOrgId(data.id);
@@ -36,7 +36,7 @@ export default function DashboardStrategy() {
           setOrgCountry(countryVal);
         }
       });
-  }, [user]);
+  }, [orgOwnerId]);
 
   if (!orgId) return null;
 
@@ -64,7 +64,7 @@ export default function DashboardStrategy() {
 
       {tab === "build"       && <ImpactStrategyPane organizationId={orgId} />}
     {tab === "upload"        && <UploadStrategyPane organizationId={orgId} operatingCountry={orgCountry} />}
-      {tab === "initiatives" && <DraftInitiativesPane userId={user!.id} onPublished={() => setTab("initiatives")} />}
+      {tab === "initiatives" && <DraftInitiativesPane orgOwnerId={orgOwnerId!} onPublished={() => setTab("initiatives")} />}
     </div>
   );
 }
