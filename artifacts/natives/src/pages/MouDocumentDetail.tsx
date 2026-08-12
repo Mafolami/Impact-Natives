@@ -1026,9 +1026,20 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     const updatedSignedFiles = { ...(doc.signed_files ?? {}), [myOrgId]: path };
     const bothSigned = updatedSignedFiles[doc.org_a_id] && updatedSignedFiles[doc.org_b_id];
     const newStatus = bothSigned ? "fully_executed" : (doc.status === "draft" ? "sent" : doc.status);
-    await supabase.from("mou_documents").update({
+    // The row update was previously fired without checking its result --
+    // if it failed (e.g. a DB constraint rejected the transition), this
+    // still ran setDoc() unconditionally, showing "fully executed" in the
+    // UI while the database silently kept the old status. The file is
+    // already uploaded and safe at this point either way, so on failure
+    // this just reloads from the database instead of trusting local state.
+    const { error: updateError } = await supabase.from("mou_documents").update({
       signed_files: updatedSignedFiles, status: newStatus, updated_at: new Date().toISOString(),
     }).eq("id", doc.id);
+    if (updateError) {
+      setUploadingSigned(false);
+      load({ silent: true });
+      return;
+    }
     setDoc({ ...doc, signed_files: updatedSignedFiles, status: newStatus as MouDoc["status"] });
     setUploadingSigned(false);
   }
