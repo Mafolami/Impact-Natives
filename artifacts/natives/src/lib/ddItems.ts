@@ -55,6 +55,28 @@ export interface TrustTierResult {
   hasRedFlag: boolean;
 }
 
+// Implementer orgs (NGOs, social enterprises, etc.) fill in the 9-item
+// DD_ITEMS checklist (dd_* columns). Funders and corporates fill in the
+// separate 6-item FUNDER_DD_ITEMS checklist instead (fdd_* columns).
+// Single source of truth -- was previously copy-pasted into
+// DashboardMarketplace.tsx and DashboardNatives.tsx separately, which is
+// how EsgSnapshotSection.tsx ended up missing the branch entirely.
+export function isImplementerOrgType(orgType: string | null | undefined): boolean {
+  return !["philanthropic_foundation", "venture_capital", "corporation", "technology_company", "public_sector"].includes(orgType ?? "");
+}
+
+// Builds the correct labeled checklist (implementer or funder) for a given
+// org, reading the matching dd_* or fdd_* column for each item. Keeps the
+// label text in one place so anything downstream (score bars, ESG snapshot
+// prompts, PDFs) shows the same wording as the editing form in
+// DashboardProfile.tsx.
+export function ddReadinessLabeledItems(org: Record<string, any>): { key: string; label: string; value: boolean }[] {
+  const implementer = isImplementerOrgType(org.organisation_type);
+  const items = implementer ? DD_ITEMS : FUNDER_DD_ITEMS;
+  const prefix = implementer ? "dd_" : "fdd_";
+  return items.map((item) => ({ key: item.key, label: item.label, value: Boolean(org[`${prefix}${item.key}`]) }));
+}
+
 export function computeTrustTier(ddScore: number, ddEvidence: Record<string, any> | null | undefined): TrustTierResult {
   const legal = ddEvidence?.legal_compliance_declaration ?? {};
   const hasRedFlag = Boolean(legal.hasBlacklisting) || Boolean(legal.hasPendingDisputes);

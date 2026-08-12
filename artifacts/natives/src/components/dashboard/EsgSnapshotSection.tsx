@@ -13,7 +13,7 @@ import { Loader2 } from "lucide-react";
 import { jsPDF } from "jspdf";
 import { supabase } from "@/lib/supabase";
 import { BRICOLAGE_GROTESQUE_BOLD_BASE64 } from "@/lib/fonts/bricolageGrotesqueBold";
-import { computeTrustTier } from "@/lib/ddItems";
+import { computeTrustTier, isImplementerOrgType, ddReadinessLabeledItems } from "@/lib/ddItems";
 import { TrustBadge } from "@/components/ui/TrustBadge";
 
 export interface EsgSnapshotOrgInput {
@@ -31,6 +31,12 @@ export interface EsgSnapshotOrgInput {
   dd_safeguarding_policy?: boolean;
   dd_legal_registration?: boolean;
   dd_legal_compliance_declaration?: boolean;
+  fdd_disbursement_track_record?: boolean;
+  fdd_decision_transparency?: boolean;
+  fdd_conflict_disclosure?: boolean;
+  fdd_governance_doc?: boolean;
+  fdd_esg_framework?: boolean;
+  fdd_legal_registration?: boolean;
   dd_evidence?: Record<string, any> | null;
   total_beneficiaries_reached?: string | number | null;
   jobs_created?: string | number | null;
@@ -77,7 +83,14 @@ export function EsgSnapshotSection({ org }: { org: EsgSnapshotOrgInput }) {
     setEsgReportLoading(true);
     setEsgReportError(false);
     try {
-      const legalEvidence = org.dd_evidence?.legal_compliance_declaration ?? {};
+      // Implementers store red-flag detail under the "legal_compliance_declaration"
+      // item; funders/corporates store it under "conflict_disclosure" instead --
+      // same dd_evidence column, different item key depending on which checklist
+      // the org actually filled in.
+      const implementer = isImplementerOrgType(org.organisation_type);
+      const legalEvidence = implementer
+        ? (org.dd_evidence?.legal_compliance_declaration ?? {})
+        : (org.dd_evidence?.conflict_disclosure ?? {});
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-esg-report`, {
         method: "POST",
@@ -90,18 +103,11 @@ export function EsgSnapshotSection({ org }: { org: EsgSnapshotOrgInput }) {
             country: joinIfArray(org.country),
           },
           dd_readiness: {
-            financial_model: org.dd_financial_model,
-            audited_accounts: org.dd_audited_accounts,
-            governance_doc: org.dd_governance_doc,
-            esg_assessment: org.dd_esg_assessment,
-            impact_framework: org.dd_impact_framework,
-            environmental_policy: org.dd_environmental_policy,
-            safeguarding_policy: org.dd_safeguarding_policy,
-            legal_registration: org.dd_legal_registration,
-            legal_compliance_declaration: org.dd_legal_compliance_declaration,
-            has_blacklisting: legalEvidence.hasBlacklisting ?? null,
-            has_pending_disputes: legalEvidence.hasPendingDisputes ?? null,
-            has_conflicts: legalEvidence.conflictsToDisclose ?? null,
+            is_implementer: implementer,
+            items: ddReadinessLabeledItems(org),
+            has_blacklisting: implementer ? (legalEvidence.hasBlacklisting ?? null) : null,
+            has_pending_disputes: implementer ? (legalEvidence.hasPendingDisputes ?? null) : null,
+            has_conflicts: (implementer ? legalEvidence.conflictsToDisclose : legalEvidence.hasConflicts) ?? null,
           },
           delivery: deliveryStats,
           track_record: {
