@@ -11,7 +11,6 @@ import { useLocation } from "wouter";
 import CreateInitiativeModalDashboard from "./CreateInitiativeModalDashboard";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { FaWhatsapp, FaXTwitter, FaLinkedin } from "react-icons/fa6";
-
 interface InitiativeRow {
   id: string;
   title: string;
@@ -28,7 +27,6 @@ interface InitiativeRow {
   submitter_org?: string | null;
   user_id?: string | null;
   esg_alignment?: boolean | null;
-  // new fields
   submitter_is_verified?: boolean;
   submitter_dd_score?: number | null;
   submitter_trust_tier?: "gold" | "silver" | "bronze" | "flagged" | null;
@@ -37,22 +35,14 @@ interface InitiativeRow {
   submitter_user_type?: string | null;
   specific_ask?: string | null;
   stage?: string | null;
-  // Only status is read from each entry -- other partner fields (name,
-  // user_id, etc.) aren't needed here, so the type stays minimal rather
-  // than duplicating the full confirmed_partners shape.
   confirmed_partners?: { status?: string }[] | null;
 }
-
-// REPLACE WITH:
-// Location options derived dynamically from loaded initiatives (see useDynamicOptions below)
-
 const BUDGET_OPTIONS = [
   { label: "Under $50K",   value: "under_50k" },
   { label: "$50K – $200K", value: "50k_200k"  },
   { label: "$200K – $1M",  value: "200k_1m"   },
   { label: "Over $1M",     value: "over_1m"   },
 ];
-
 const PARTNERSHIP_OPTIONS = [
   { value: "funding",     label: "Funding"      },
   { value: "technical",   label: "Technical"    },
@@ -61,11 +51,7 @@ const PARTNERSHIP_OPTIONS = [
   { value: "strategic",   label: "Strategic"    },
   { value: "lead",        label: "Project Lead" },
 ];
-
 const PASS_REASONS = ["Too early stage", "Outside mandate", "Budget mismatch", "Geography mismatch", "Team concerns", "Other"];
-
-// RAG status colors for AI-recommended actions across deal memo and CSR brief.
-// Red = Pass, Amber = needs more info/exploration, Green = positive recommendation.
 const RAG_COLORS: Record<string, { border: string; bg: string; text: string }> = {
   "Pass":                       { border: "#C4262640", bg: "rgba(196,38,38,0.08)", text: "#C42626" },
   "Request More Info":          { border: "#f59e0b40", bg: "rgba(180,83,9,0.12)", text: "#b45309" },
@@ -77,8 +63,6 @@ const DEFAULT_RAG = { border: "#e5e7eb", bg: "#f9fafb", text: "#6b7280" };
 function ragFor(action?: string) {
   return (action && RAG_COLORS[action]) || DEFAULT_RAG;
 }
-// Score badges use the same three colors as the action itself, banded per
-// function (deal memo: <40/40-70/>70, CSR brief: <50/50-75/>75).
 function ragForScore(score: number, passBelow: number, positiveAbove: number) {
   if (score < passBelow) return RAG_COLORS["Pass"];
   if (score <= positiveAbove) return RAG_COLORS["Request More Info"];
@@ -89,20 +73,15 @@ function RagIcon({ action, className }: { action?: string; className?: string })
   if (action === "Express Interest" || action === "Adopt as CSR programme") return <ShieldCheck className={className} />;
   return <AlertTriangle className={className} />;
 }
-
 function useDynamicOptions(initiatives: InitiativeRow[]) {
   const sectors = Array.from(
     new Set(initiatives.flatMap(i => i.sectors ?? []))
   ).filter(Boolean).sort();
-
   const locations = Array.from(
     new Set(initiatives.flatMap(i => i.locations ?? []))
   ).filter(Boolean).sort();
-
   return { sectors, locations };
 }
-
-// EOI partnership types now aligned with initiative vocabulary
 const EOI_PARTNERSHIP_TYPES = [
   { value: "funding",     label: "Funding"       },
   { value: "technical",   label: "Technical"     },
@@ -120,8 +99,6 @@ function rolePartnerPhrase(value: string): string {
   if (label === "Project Lead") return label;
   return `${label} partner`;
 }
-// Joins multiple selected types into a natural phrase: "Technical partner",
-// "Technical partner and Funding partner", or with ESG/CSR folded in too.
 function combinedPartnerPhrase(types: string[], esgAdoption: boolean): string {
   const labels = types.map(eoiTypeLabel);
   let phrase = "";
@@ -136,7 +113,6 @@ function combinedPartnerPhrase(types: string[], esgAdoption: boolean): string {
   if (esgAdoption) phrase = phrase ? `${phrase} and ESG/CSR adoption` : "ESG/CSR adoption";
   return phrase;
 }
-
 function budgetMatches(budget: string | null | undefined, filter: string): boolean {
   if (!budget) return false;
   const nums = budget.replace(/[^0-9]/g, " ").trim().split(/\s+/).map(Number).filter(Boolean);
@@ -148,34 +124,19 @@ function budgetMatches(budget: string | null | undefined, filter: string): boole
   if (filter === "over_1m")   return avg >= 1000000;
   return false;
 }
-
-// ─── Decision Icons ───────────────────────────────────────────────────────────
-// Shared Save / Pass control used on the card grid and in the initiative detail
-// header. Save writes to saved_initiatives (the same table backing the "Saved"
-// filter toggle), Pass writes to funder_decisions. Independent tables, so the
-// two actions can never silently overwrite each other.
-// Native share sheet where supported (mobile), clipboard-copy fallback
-// elsewhere (desktop). Matches DecisionIcons' sizing props so it drops
-// into the same icon row.
 function ShareButton({ initiativeId, title, size = "sm" }: { initiativeId: string; title: string; size?: "sm" | "md" }) {
   const [copied, setCopied] = useState(false);
   const [open, setOpen] = useState(false);
   const dim = size === "md" ? "h-9 w-9" : "h-8 w-8";
   const iconDim = size === "md" ? "w-4 h-4" : "w-3.5 h-3.5";
-
   const url = `${window.location.origin}/dashboard/marketplace/${initiativeId}`;
   const message = `Check out this initiative on Impact Natives: ${title}. Sign up to explore partnership opportunities like this one.`;
-  // Message and link kept as one combined string everywhere -- iOS's native
-  // share sheet silently drops a separate `text` field whenever `title` is
-  // also passed, so `title` is never sent to navigator.share at all.
   const combined = `${message}\n${url}`;
-
   async function handleNativeShare(e: React.MouseEvent) {
     e.stopPropagation();
     setOpen(false);
     try { await navigator.share({ text: combined }); } catch { /* user cancelled */ }
   }
-
   async function handleCopy(e: React.MouseEvent) {
     e.stopPropagation();
     await navigator.clipboard.writeText(combined);
@@ -183,26 +144,21 @@ function ShareButton({ initiativeId, title, size = "sm" }: { initiativeId: strin
     setOpen(false);
     setTimeout(() => setCopied(false), 1800);
   }
-
   function openShareIntent(e: React.MouseEvent, href: string) {
     e.stopPropagation();
     window.open(href, "_blank", "noopener,noreferrer");
     setOpen(false);
   }
-
   const whatsappHref = `https://wa.me/?text=${encodeURIComponent(combined)}`;
   const xHref = `https://x.com/intent/tweet?text=${encodeURIComponent(message)}&url=${encodeURIComponent(url)}`;
   const linkedinHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
-
   const triggerButtonClass = `${dim} rounded-full flex items-center justify-center border transition-colors ${
     copied
       ? "border-[#2D6A4F]/30 bg-[rgba(45,106,79,0.12)] text-[#2D6A4F]"
       : "border-border text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] hover:bg-[#2D6A4F]/5 dark:hover:border-[#C45C26] dark:hover:text-[#C45C26] dark:hover:bg-[#C45C26]/10"
   }`;
   const triggerIcon = copied ? <Check className={iconDim} /> : <Share2 className={iconDim} />;
-
   const hasNativeShare = "share" in navigator;
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -239,7 +195,6 @@ function ShareButton({ initiativeId, title, size = "sm" }: { initiativeId: strin
     </Popover>
   );
 }
-
 function DecisionIcons({
   saved, passed, passReason, onToggleSave, onConfirmPass, onUndoPass, size = "sm",
 }: {
@@ -253,10 +208,8 @@ function DecisionIcons({
 }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [reason, setReason] = useState("");
-
   const dim = size === "md" ? "h-9 w-9" : "h-8 w-8";
   const iconDim = size === "md" ? "w-4 h-4" : "w-3.5 h-3.5";
-
   return (
     <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
       <button
@@ -270,7 +223,6 @@ function DecisionIcons({
         }`}>
         <Bookmark className={iconDim} fill={saved ? "currentColor" : "none"} />
       </button>
-
       {passed ? (
         <button
           type="button"
@@ -321,8 +273,6 @@ function DecisionIcons({
     </div>
   );
 }
-
-// ─── Filter Panel ─────────────────────────────────────────────────────────────
 function FilterPanel({
   sectors, setSectors, locations, setLocations,
   budgets, setBudgets, partnerships, setPartnerships,
@@ -340,14 +290,12 @@ function FilterPanel({
   }
   const [sectorSearch, setSectorSearch] = useState("");
   const [locationSearch, setLocationSearch] = useState("");
-
   const filteredSectorOptions = sectorOptions.filter(o =>
     o.toLowerCase().includes(sectorSearch.toLowerCase())
   );
   const filteredLocationOptions = locationOptions.filter(o =>
     o.toLowerCase().includes(locationSearch.toLowerCase())
   );
-
   function DropdownFilter({ label, search, setSearch, options, selected, set }: {
     label: string; search: string; setSearch: (v: string) => void;
     options: string[]; selected: string[]; set: (v: string[]) => void;
@@ -408,7 +356,6 @@ function FilterPanel({
       </div>
     );
   }
-
   return (
     <div className="p-5 space-y-5">
       <div className="flex items-center justify-between">
@@ -419,21 +366,16 @@ function FilterPanel({
           </button>
         )}
       </div>
-
       <DropdownFilter
         label="Sector" search={sectorSearch} setSearch={setSectorSearch}
         options={sectorOptions} selected={sectors} set={setSectors}
       />
-
       <div className="h-px bg-border" />
-
       <DropdownFilter
         label="Location" search={locationSearch} setSearch={setLocationSearch}
         options={locationOptions} selected={locations} set={setLocations}
       />
-
       <div className="h-px bg-border" />
-
       <div>
         <p className="text-xs font-bold uppercase tracking-wider text-black dark:text-white mb-2.5">Budget range</p>
         <div className="flex flex-wrap gap-1.5">
@@ -449,9 +391,7 @@ function FilterPanel({
           ))}
         </div>
       </div>
-
       <div className="h-px bg-border" />
-
       <div>
         <p className="text-xs font-bold uppercase tracking-wider text-black dark:text-white mb-2.5">Partnership sought</p>
         <div className="flex flex-wrap gap-1.5">
@@ -470,8 +410,6 @@ function FilterPanel({
     </div>
   );
 }
-
-// ─── Initiative Card ──────────────────────────────────────────────────────────
 function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, passReason, onConfirmPass, onUndoPass }: {
   ini: InitiativeRow; expressed: boolean; onClick: () => void;
   saved: boolean; onToggleSave: (id: string, wasSaved: boolean) => void;
@@ -482,11 +420,9 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
   const partnershipLabels = (ini.partnerships ?? []).slice(0, 3)
     .map(p => PARTNERSHIP_OPTIONS.find(o => o.value === p)?.label ?? p);
   const extraPartnerships = (ini.partnerships?.length ?? 0) - 3;
-
   return (
     <button type="button" onClick={onClick}
       className="w-full text-left rounded-2xl border border-border bg-white dark:bg-card hover:border-[#452A1D]/50 dark:hover:border-[#C45C26] hover:shadow-md transition-all duration-200 group p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
-      {/* Left half — identity */}
       <div className="min-w-0 flex flex-col">
       <div className="flex items-center gap-1.5 flex-wrap mb-3">
           {ini.status === "closed" && (
@@ -506,7 +442,6 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
             </span>
           )}
         </div>
-
         <h3 className="text-xl font-bold text-foreground group-hover:text-[#2D6A4F] dark:group-hover:text-[#C45C26] transition-colors leading-snug">
           {ini.title}
         </h3>
@@ -524,7 +459,6 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
             {ini.submitter_is_verified && <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-[#2D6A4F]" />}
           </a>
         )}
-
         <div className="flex items-center gap-1.5 shrink-0 mt-auto pt-4">
           <ShareButton initiativeId={ini.id} title={ini.title} size="sm" />
           <DecisionIcons
@@ -536,13 +470,10 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
           />
         </div>
       </div>
-
-      {/* Right half — description + all tags, each type on its own row */}
       <div className="min-w-0 flex flex-col sm:border-l sm:border-border sm:pl-6">
         {ini.problem && (
           <p className="text-base text-foreground leading-relaxed">{ini.problem}</p>
         )}
-
         <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-border">
           {ini.sectors && ini.sectors.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap">
@@ -560,7 +491,6 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
               )}
             </div>
           )}
-
           {ini.esg_alignment && (
             <div className="flex items-center gap-2">
               <Leaf className="w-3.5 h-3.5 shrink-0 text-[#2e7d32]" />
@@ -570,7 +500,6 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
               </span>
             </div>
           )}
-
           {ini.locations?.[0] && (
             <div className="flex items-center gap-2 text-sm text-black dark:text-white">
               <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -580,14 +509,12 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
               {ini.locations.slice(0, 2).join(", ")}
             </div>
           )}
-
           {ini.budget && (
             <div className="flex items-center gap-2 text-sm text-black dark:text-white">
               <Wallet className="w-3.5 h-3.5 shrink-0" />
               {ini.budget}
             </div>
           )}
-
           {ini.submitter_dd_score != null && (
             <div className="flex items-center gap-2 text-sm text-black dark:text-white">
               <FileCheck className="w-3.5 h-3.5 shrink-0" />
@@ -595,7 +522,6 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
               {ini.submitter_trust_tier && <TrustBadge tier={ini.submitter_trust_tier} />}
             </div>
           )}
-
           {partnershipLabels.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap">
               <Handshake className="w-3.5 h-3.5 shrink-0 text-black dark:text-white" />
@@ -612,7 +538,6 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
             </div>
           )}
         </div>
-
         <div className="flex items-center justify-end mt-auto pt-4">
           <span className="text-sm font-bold text-black dark:text-white">
             {ini.eois} EOI{ini.eois !== 1 ? "s" : ""}
@@ -622,8 +547,6 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
     </button>
   );
 }
-
-// ─── Main ─────────────────────────────────────────────────────────────────────
 export default function DashboardMarketplace() {
   const [initiatives, setInitiatives]     = useState<InitiativeRow[]>([]);
   const { sectors: dynamicSectors, locations: dynamicLocations } = useDynamicOptions(initiatives);
@@ -632,18 +555,14 @@ export default function DashboardMarketplace() {
   const [showFilters, setShowFilters]     = useState(false);
   const [selected, setSelected]           = useState<InitiativeRow | null>(null);
   const [expressedIds, setExpressedIds]   = useState<Set<string>>(new Set());
-  const { user, profile } = useAuth();
+  const { user, profile, orgOwnerId } = useAuth();
   const isFunder = ["philanthropic_foundation", "venture_capital"].includes(profile?.org_type ?? "");
   const isCorporate = ["corporation", "technology_company", "public_sector"].includes(profile?.org_type ?? "");
   const [location] = useLocation();
-
   const [sectors, setSectors]         = useState<string[]>([]);
   const [budgets, setBudgets]         = useState<string[]>([]);  const [partnerships, setPartnerships] = useState<string[]>([]);
-
   const activeFilterCount = sectors.length + locations.length + budgets.length + partnerships.length;
-
   function clearFilters() { setSectors([]); setLocations([]); setBudgets([]); setPartnerships([]); setStartupPipeline(false); }
-
   async function handleToggleSave(id: string, wasSaved: boolean) {
     if (!user?.id) return;
     if (wasSaved) {
@@ -655,11 +574,10 @@ export default function DashboardMarketplace() {
       setSavedIds(prev => new Set(prev).add(id));
     }
   }
-
   async function handleConfirmPass(id: string, reason: string) {
-    if (!user?.id) return;
+    if (!orgOwnerId) return;
     await supabase.from("funder_decisions").upsert({
-      funder_id: user.id,
+      funder_id: orgOwnerId,
       initiative_id: id,
       decision: "pass",
       reason,
@@ -667,15 +585,13 @@ export default function DashboardMarketplace() {
     setPassedIds(prev => new Set(prev).add(id));
     setPassReasons(prev => ({ ...prev, [id]: reason }));
   }
-
   async function handleUndoPass(id: string) {
-    if (!user?.id) return;
+    if (!orgOwnerId) return;
     await supabase.from("funder_decisions").delete()
-      .eq("funder_id", user.id).eq("initiative_id", id);
+      .eq("funder_id", orgOwnerId).eq("initiative_id", id);
     setPassedIds(prev => { const next = new Set(prev); next.delete(id); return next; });
     setPassReasons(prev => { const next = { ...prev }; delete next[id]; return next; });
   }
-
   const [loading, setLoading] = useState(true);
   const [startupPipeline, setStartupPipeline] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -684,7 +600,6 @@ export default function DashboardMarketplace() {
   const [showPassed, setShowPassed] = useState(false);
   const [passedIds, setPassedIds] = useState<Set<string>>(new Set());
   const [passReasons, setPassReasons] = useState<Record<string, string>>({});
-
   useEffect(() => {
     if (!user?.id) return;
     supabase
@@ -695,13 +610,12 @@ export default function DashboardMarketplace() {
         setSavedIds(new Set((data ?? []).map((r: any) => r.initiative_id)));
       });
   }, [user?.id]);
-
   useEffect(() => {
-    if (!user?.id) return;
+    if (!orgOwnerId) return;
     supabase
       .from("funder_decisions")
       .select("initiative_id, decision, reason")
-      .eq("funder_id", user.id)
+      .eq("funder_id", orgOwnerId)
       .then(({ data }) => {
         const ids = new Set<string>();
         const reasons: Record<string, string> = {};
@@ -714,19 +628,15 @@ export default function DashboardMarketplace() {
         setPassedIds(ids);
         setPassReasons(reasons);
       });
-  }, [user?.id]);
-
+  }, [orgOwnerId]);
   function toggleStartupPipeline() {
     setStartupPipeline(v => !v);
   }
-
   useEffect(() => {
-    if (!user) return;
-    supabase.from("expressions_of_interest").select("initiative_id").eq("user_id", user.id)
+    if (!orgOwnerId) return;
+    supabase.from("expressions_of_interest").select("initiative_id").eq("user_id", orgOwnerId)
       .then(({ data }) => { if (data) setExpressedIds(new Set(data.map(d => d.initiative_id))); });
-  }, [user]);
-
-  // Handle deep link separately from data load
+  }, [orgOwnerId]);
   useEffect(() => {
     if (!initiatives.length) return;
     const params = new URLSearchParams(window.location.search);
@@ -736,7 +646,6 @@ export default function DashboardMarketplace() {
       if (match) setSelected(match as InitiativeRow);
     }
   }, [initiatives.length]);
-
   useEffect(() => {
     async function load() {
       const { data } = await supabase
@@ -744,16 +653,13 @@ export default function DashboardMarketplace() {
         .select("id,title,sectors,locations,status,eois,created_at,problem,outcome,partnerships,budget,tags,submitter_org,user_id,esg_alignment,specific_ask,stage,confirmed_partners")
         .in("status", ["published", "closed"])
         .order("created_at", { ascending: false });
-
       if (data && data.length > 0) {
-        // Fetch verification status for submitters
         const userIds = [...new Set((data as any[]).map(i => i.user_id).filter(Boolean))];
         const { data: profiles } = await supabase
           .from("profiles").select("id,is_verified,org_type,full_name,user_type").in("id", userIds);
         const verifiedMap  = new Map((profiles ?? []).map((p: any) => [p.id, p.is_verified]));
        const orgTypeMap   = new Map((profiles ?? []).map((p: any) => [p.id, p.org_type ?? p.user_type]));        const nameMap      = new Map((profiles ?? []).map((p: any) => [p.id, p.full_name]));
         const userTypeMap  = new Map((profiles ?? []).map((p: any) => [p.id, p.user_type]));
-
         const { data: ddOrgs } = await supabase
           .from("organizations")
           .select("user_id,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence")
@@ -767,7 +673,6 @@ export default function DashboardMarketplace() {
           const score = Math.round((items.filter(Boolean).length / items.length) * 100);
           return [o.user_id, computeTrustTier(score, o.dd_evidence).tier];
         }));
-
         const enriched = (data as any[]).map(ini => ({
           ...ini,
           submitter_is_verified: verifiedMap.get(ini.user_id) ?? false,
@@ -777,14 +682,12 @@ export default function DashboardMarketplace() {
           submitter_dd_score:    ddScoreMap.get(ini.user_id) ?? null,
           submitter_trust_tier:  ddTierMap.get(ini.user_id) ?? null,
         }));
-
         setInitiatives(enriched as InitiativeRow[]);
       }
       setLoading(false);
     }
     load();
   }, []);
-
   const filtered = initiatives.filter(ini => {
     if (showSaved && !savedIds.has(ini.id)) return false;
     if (showPassed && !passedIds.has(ini.id)) return false;
@@ -806,7 +709,6 @@ export default function DashboardMarketplace() {
     if (partnerships.length > 0 && !partnerships.some(p => ini.partnerships?.includes(p))) return false;
     return true;
   });
-
   if (selected) {
     return (
       <MarketplaceDetail
@@ -826,7 +728,6 @@ export default function DashboardMarketplace() {
       />
     );
   }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-end">
@@ -835,7 +736,6 @@ export default function DashboardMarketplace() {
           + Create Initiative
         </button>
       </div>
-
       {isFunder && (
         <div className="flex gap-2">
           <button type="button" onClick={toggleStartupPipeline}
@@ -853,7 +753,6 @@ export default function DashboardMarketplace() {
           </button>
         </div>
       )}
-
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -923,7 +822,6 @@ export default function DashboardMarketplace() {
           )}
         </button>
       </div>
-
       {activeFilterCount > 0 && !showFilters && (
         <div className="flex flex-wrap gap-2 items-center">
           {[
@@ -940,14 +838,12 @@ export default function DashboardMarketplace() {
           </button>
         </div>
       )}
-
       {!loading && (
         <p className="text-xs text-black dark:text-white">
           {filtered.length} initiative{filtered.length !== 1 ? "s" : ""}
           {showSaved ? " saved" : showPassed ? " passed" : activeFilterCount > 0 ? " matching filters" : ""}
         </p>
       )}
-
       {loading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
@@ -990,11 +886,6 @@ export default function DashboardMarketplace() {
     </div>
   );
 }
-
-
-// ─── Marketplace Detail — Premium full view ─────────────────────────────────
-// Drop this in to replace the existing MarketplaceDetail function in DashboardMarketplace.tsx
-
 function MarketplaceDetail({
   initiative, onBack, expressed, onExpressed,
   saved, passed, passReason, onToggleSave, onConfirmPass, onUndoPass,
@@ -1010,7 +901,7 @@ function MarketplaceDetail({
   onConfirmPass: (reason: string) => void;
   onUndoPass: () => void;
 }) {
-  const { user, profile } = useAuth();
+  const { user, profile, orgOwnerId } = useAuth();
   const [eoiOpen, setEoiOpen]                   = useState(false);
   const [partnershipTypes, setPartnershipTypes] = useState<string[]>([]);
   const [esgAdoption, setEsgAdoption]           = useState(false);
@@ -1032,8 +923,6 @@ function MarketplaceDetail({
   const [loadingCsr, setLoadingCsr]             = useState(false);
   const [csrOpen, setCsrOpen]                   = useState(false);
   const [csrMandate, setCsrMandate]             = useState<any | null>(null);
-
-  // Full detail fields fetched separately
   const [fullDetail, setFullDetail] = useState<{
     target_population?: string | null;
     specific_ask?: string | null;
@@ -1057,20 +946,18 @@ function MarketplaceDetail({
     budget_max?: number | null;
     budget_currency?: string | null;
   } | null>(null);
-
-  const isOwnInitiative = !!user && initiative.user_id === user.id;
+  // Compares against orgOwnerId, not the literal logged-in person -- once
+  // Members exist and CreateInitiativeModal/CreateInitiativeModalDashboard
+  // are fixed to write initiative_requests.user_id as orgOwnerId too, a
+  // Member viewing their own org's initiative still needs to see "Your
+  // initiative," not "Express interest" on their own org's listing.
+  const isOwnInitiative = !!orgOwnerId && initiative.user_id === orgOwnerId;
   useEffect(() => {
-    if (!user || expressed) return;
+    if (!orgOwnerId || expressed) return;
     supabase.from("expressions_of_interest").select("id,partnership_type")
-      .eq("initiative_id", initiative.id).eq("user_id", user.id).maybeSingle()
+      .eq("initiative_id", initiative.id).eq("user_id", orgOwnerId).maybeSingle()
       .then(({ data }) => { if (data && data.partnership_type !== "question") setAlreadyExpressed(true); });
-  }, [user, initiative.id]);
-  // Generation waits for the user to pause selecting partnership types
-  // rather than firing on the very first click and then needing a manual
-  // Regenerate to pick up the rest. Debounced: every type toggle resets
-  // the timer, so ticking three boxes in a row produces one generation,
-  // not three. Skipped entirely once the user has started typing their
-  // own edit, so an in-progress edit is never silently overwritten.
+  }, [orgOwnerId, initiative.id]);
   const hasManuallyEditedRef = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -1079,37 +966,30 @@ function MarketplaceDetail({
     debounceRef.current = setTimeout(() => { generateAiMessage(); }, 700);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [eoiOpen, partnershipTypes]);
-
-  // Fetch full detail fields
   useEffect(() => {
     supabase.from("initiative_requests")
       .select("target_population,specific_ask,stage,confirmed_assets,had_prior_experience,prior_experience_detail,start_date,duration,sdg_tags,detail_content,resource_link,co_funding_status,ai_quality_score,target_beneficiaries,target_jobs,target_female_pct,target_timeline_months,impact_evidence,budget_min,budget_max,budget_currency")
       .eq("id", initiative.id).single()
       .then(({ data }) => { if (data) setFullDetail(data); });
   }, [initiative.id]);
-
-  // Load funder mandate if user is a funder
   const isFunder = ["philanthropic_foundation", "venture_capital"].includes(profile?.org_type ?? "");
   const isCorporate = ["corporation", "technology_company", "public_sector"].includes(profile?.org_type ?? "");
   
   useEffect(() => {
-    if (!isFunder || !user?.id) return;
+    if (!isFunder || !orgOwnerId) return;
     supabase.from("organizations")
       .select("grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,mandate_sectors,mandate_sdgs,investment_thesis")
-      .eq("user_id", user.id).single()
+      .eq("user_id", orgOwnerId).single()
       .then(({ data }) => { if (data) setFunderMandate(data); });
-  }, [user?.id, isFunder]);
-
+  }, [orgOwnerId, isFunder]);
   useEffect(() => {
-    if (!isCorporate || !user?.id) return;
+    if (!isCorporate || !orgOwnerId) return;
     supabase.from("organizations")
       .select("esg_frameworks,csr_budget_range,geographic_focus,mandate_sectors,mandate_sdgs,partner_type_preference")
-      .eq("user_id", user.id).single()
+      .eq("user_id", orgOwnerId).single()
       .then(({ data }) => { if (data) setCsrMandate({ ...data, org_type: profile?.org_type, org_name: profile?.org_name ?? null }); });
-  }, [user?.id, isCorporate]);
-
+  }, [orgOwnerId, isCorporate]);
   const [initiativeOrgDd, setInitiativeOrgDd] = useState<any | null>(null);
-
   useEffect(() => {
     if (!initiative.user_id) return;
     supabase.from("organizations")
@@ -1117,7 +997,6 @@ function MarketplaceDetail({
       .eq("user_id", initiative.user_id).single()
       .then(({ data }) => { if (data) setInitiativeOrgDd(data); });
   }, [initiative.user_id]);
-
   const initiativeDdItems = initiativeOrgDd
     ? [initiativeOrgDd.dd_financial_model, initiativeOrgDd.dd_audited_accounts, initiativeOrgDd.dd_governance_doc, initiativeOrgDd.dd_esg_assessment, initiativeOrgDd.dd_impact_framework, initiativeOrgDd.dd_environmental_policy, initiativeOrgDd.dd_safeguarding_policy, initiativeOrgDd.dd_legal_registration, initiativeOrgDd.dd_legal_compliance_declaration]
     : [];
@@ -1127,12 +1006,10 @@ function MarketplaceDetail({
   const initiativeTrustTier = initiativeOrgDd
     ? computeTrustTier(initiativeDdScore ?? 0, initiativeOrgDd.dd_evidence).tier
     : null;
-
   async function submitQuestion() {
     if (!question.trim() || !user?.id || !initiative.user_id) return;
     setQuestionSubmitting(true);
     try {
-      // Check for existing question conversation
       const { data: existing } = await supabase
         .from("conversations")
         .select("id")
@@ -1146,9 +1023,7 @@ function MarketplaceDetail({
           .then(r => (r.data ?? []).map((p: any) => p.conversation_id))
         ))
         .maybeSingle();
-
       let conversationId = existing?.id;
-
       if (!conversationId) {
         const { data: newConvoId } = await supabase.rpc("create_conversation", {
           p_initiative_id: initiative.id,
@@ -1182,19 +1057,12 @@ function MarketplaceDetail({
     setQuestionSubmitting(false);
   }
       
-
   async function generateAiMessage() {
     setAiMessageLoading(true);
     setAiMessageFailed(false);
     try {
       const { data: ep } = await supabase.from("profiles").select("full_name,org_name,user_type,sectors").eq("id", user!.id).single();
-      const { data: orgRow } = await supabase.from("organizations").select("description,offers").eq("user_id", user!.id).maybeSingle();
-      // The contact person's own name and the org's name are two different
-      // things. Collapsing them into one value (org accounts previously
-      // passed the org name as BOTH expresser_name and expresser_org) is
-      // what produced "I am Splux, working with Splux". Pass the real
-      // person's name only if one is actually on file; leave it null
-      // otherwise rather than substituting the org name for it.
+      const { data: orgRow } = await supabase.from("organizations").select("description,offers").eq("user_id", orgOwnerId ?? user!.id).maybeSingle();
       const expresserPersonName = ep?.full_name ?? null;
       const expresserOrgName = ep?.org_name ?? null;
       const { data: ownerProfile } = await supabase
@@ -1211,9 +1079,6 @@ function MarketplaceDetail({
           initiative_title: initiative.title, initiative_problem: initiative.problem ?? null,
           initiative_outcome: initiative.outcome ?? null, initiative_sectors: initiative.sectors ?? [],
           esg_intent: false, initiative_owner_name: ownerName ?? null,
-          // The specific role(s) the sender is offering to play, so the
-          // message can say what kind of partner they'd be instead of a
-          // generic "partnership opportunities" line.
           partnership_types: partnershipTypes.map(eoiTypeLabel),
         },
       });
@@ -1228,7 +1093,6 @@ function MarketplaceDetail({
     }
     setAiMessageLoading(false);
   }
-
   async function generateCsrBrief() {
     setLoadingCsr(true);
     setCsrOpen(true);
@@ -1263,7 +1127,6 @@ function MarketplaceDetail({
     }
     setLoadingCsr(false);
   }
-
   async function generateDealMemo() {
     setLoadingMemo(true);
     setMemoOpen(true);
@@ -1301,13 +1164,11 @@ function MarketplaceDetail({
     }
     setLoadingMemo(false);
   }
-
   const STAGE_LABELS: Record<string, string> = {    concept: "Concept — idea defined, no funding yet",
     planning: "Planning — funded, building implementation plan",
     active: "Active — currently executing",
     scaling: "Scaling — running successfully, seeking to expand",
   };
-
   const CO_FUNDING_LABELS: Record<string, string> = {
     seeking_sole_funder:  "Seeking a sole funder",
     open_to_coalition:    "Open to co-funding coalition",
@@ -1317,23 +1178,20 @@ function MarketplaceDetail({
     partially_funded:     "Partially funded",
     seeking_funding:      "Seeking funding",
   };
-
   const QUALITY_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
     strong: { label: "Strong brief",    color: "#2D6A4F", bg: "rgba(45,106,79,0.12)" },
     good:   { label: "Good brief",      color: "#f59e0b", bg: "rgba(180,83,9,0.12)" },
     basic:  { label: "Developing brief", color: "#C45C26", bg: "rgba(196,92,38,0.08)" },
   };
-
-  // ── Transaction-safe EOI submit ────────────────────────────────────────────
   async function submitEOI() {
-    if (!user || (partnershipTypes.length === 0 && !esgAdoption)) return;
+    if (!user || !orgOwnerId || (partnershipTypes.length === 0 && !esgAdoption)) return;
     setSubmitting(true); setEoiError(null);
     try {
       const combined = [partnershipTypes.join(", "), esgAdoption ? "ESG/CSR Adoption" : ""].filter(Boolean).join(" + ");
       const { data: eoiData, error: eoiErr } = await supabase.from("expressions_of_interest")
-        .insert({ initiative_id: initiative.id, user_id: user.id, partnership_type: combined, message: message || null, esg_adoption: esgAdoption })
+        .insert({ initiative_id: initiative.id, user_id: orgOwnerId, partnership_type: combined, message: message || null, esg_adoption: esgAdoption })
         .select("id").single();
-      if (eoiErr) { setEoiError(eoiErr.code === "23505" ? "You've already expressed interest in this initiative." : eoiErr.message); return; }
+      if (eoiErr) { setEoiError(eoiErr.code === "23505" ? "Your organisation has already expressed interest in this initiative." : eoiErr.message); return; }
       await supabase.rpc("increment_eoi_count", { p_initiative_id: initiative.id });
       const { data: convoResult, error: convoError } = await supabase.rpc("create_conversation", { p_initiative_id: initiative.id, p_owner_id: initiative.user_id ?? null });
       if (convoError || !convoResult) { setEoiError(`Failed to create conversation: ${convoError?.message ?? "unknown"}`); return; }
@@ -1355,12 +1213,9 @@ function MarketplaceDetail({
       setSubmitted(true); setAlreadyExpressed(true); onExpressed(initiative.id);
     } finally { setSubmitting(false); }
   }
-
   const canSubmit = partnershipTypes.length > 0 || esgAdoption;  const qualityCfg = fullDetail?.ai_quality_score ? QUALITY_CONFIG[fullDetail.ai_quality_score] : null;
-
   return (
     <div className="space-y-8">
-      {/* Back + Deal Memo */}
       <div className="flex items-center justify-between">
         <button type="button" onClick={onBack}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-[#C45C26] transition-colors">
@@ -1390,11 +1245,8 @@ function MarketplaceDetail({
           </button>
         )}
       </div>
-
-      {/* Deal Memo Panel — pure analysis; Save/Pass live in the hero header, Express Interest below */}
       {memoOpen && (
         <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
-          {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#2D6A4F]" />
@@ -1423,7 +1275,6 @@ function MarketplaceDetail({
               </button>
             </div>
           </div>
-
           {loadingMemo ? (
             <div className="space-y-3">
               {[1, 2, 3, 4].map(i => (
@@ -1432,10 +1283,7 @@ function MarketplaceDetail({
             </div>
           ) : dealMemo ? (
             <div className="space-y-4">
-              {/* Headline */}
               <p className="text-sm font-medium text-foreground leading-relaxed">{dealMemo.headline}</p>
-
-              {/* Sections */}
               {[
                 { label: "Problem validity", value: dealMemo.problem_validity },
                 { label: "Solution fit", value: dealMemo.solution_fit },
@@ -1448,8 +1296,6 @@ function MarketplaceDetail({
                   <p className="text-[15px] text-foreground leading-relaxed">{section.value}</p>
                 </div>
               ))}
-
-              {/* Risk flags */}
               {dealMemo.risk_flags?.length > 0 && (
                 <div className="space-y-1">
                   <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Risk flags</p>
@@ -1463,8 +1309,6 @@ function MarketplaceDetail({
                   </ul>
                 </div>
               )}
-
-              {/* Recommended action */}
               {dealMemo.recommended_action && (
                 <div className="rounded-xl border-2 border-l-[6px] px-5 py-4 space-y-1.5 shadow-sm"
                   style={{
@@ -1488,8 +1332,6 @@ function MarketplaceDetail({
           )}
         </div>
       )}
-
-      {/* CSR Brief Panel */}
       {csrOpen && (
         <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
           <div className="flex items-center justify-between">
@@ -1519,7 +1361,6 @@ function MarketplaceDetail({
               </button>
             </div>
           </div>
-
           {loadingCsr ? (
             <div className="space-y-3">
               {[1, 2, 3, 4].map(i => (
@@ -1529,7 +1370,6 @@ function MarketplaceDetail({
           ) : csrBrief ? (
             <div className="space-y-4">
               <p className="text-sm font-medium text-foreground leading-relaxed">{csrBrief.headline}</p>
-
              {[
                 { label: "SDG alignment",               value: csrBrief.sdg_alignment },
                 { label: "Local content",               value: csrBrief.local_content },
@@ -1544,7 +1384,6 @@ function MarketplaceDetail({
                   <p className="text-[15px] text-foreground leading-relaxed">{section.value}</p>
                 </div>
               ))}
-
               {csrBrief.risk_flags?.length > 0 && (
                 <div className="space-y-1">
                   <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Risk flags</p>
@@ -1558,7 +1397,6 @@ function MarketplaceDetail({
                   </ul>
                 </div>
               )}
-
               {csrBrief.recommended_action && (
                 <div className="rounded-xl border-2 border-l-[6px] px-5 py-4 space-y-1.5 shadow-sm"
                   style={{
@@ -1582,15 +1420,6 @@ function MarketplaceDetail({
           )}
         </div>
       )}
-
-      {/* ── Hero block ── */}
-
-      {/* Hero — diagonal espresso-to-forest-green gradient, distinct from
-          every other card on the page. Every text element inside had to
-          shift from dark-on-light to light-on-dark along with it; the meta
-          grid's inner tiles deliberately stay light (bg-background,
-          unchanged) so they read as bright "windows" set into the dark
-          gradient rather than blending into it. */}
       <div className="rounded-2xl p-6 space-y-4 bg-gradient-to-br from-[#3D2618] via-[#33301F] to-[#1B3328]">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-wrap gap-1.5">
@@ -1635,7 +1464,6 @@ function MarketplaceDetail({
             )}
           </div>
         </div>
-
         <div>
           <h2 className="text-2xl font-bold text-white tracking-tight leading-snug">{initiative.title}</h2>
           <div className="flex items-center gap-3 mt-2 text-xs text-white/70 flex-wrap">
@@ -1673,9 +1501,6 @@ function MarketplaceDetail({
             );
           })()}
         </div>
-
-        {/* Meta grid — deliberately unchanged: light bg-background tiles
-            read as bright accents against the dark gradient behind them */}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
             { label: "Location", value: initiative.locations?.join(", ") || "—" },
@@ -1690,8 +1515,6 @@ function MarketplaceDetail({
           ))}
         </div>
       </div>
-
-      {/* ── Problem & Outcome ── */}
       {(initiative.problem || initiative.outcome) && (
         <div className="grid gap-3 sm:grid-cols-2">
           {initiative.problem && (
@@ -1708,16 +1531,12 @@ function MarketplaceDetail({
           )}
         </div>
       )}
-
-      {/* ── Target population ── */}
       {fullDetail?.target_population && (
         <div className="rounded-xl border border-border bg-card px-5 py-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Who this serves</p>
           <p className="text-[15px] text-foreground leading-relaxed">{fullDetail.target_population}</p>
         </div>
       )}
-
-      {/* ── Target impact metrics ── */}
       {(fullDetail?.target_beneficiaries || fullDetail?.target_jobs || fullDetail?.target_female_pct || fullDetail?.target_timeline_months) && (
         <div className="rounded-xl border border-border bg-card px-5 py-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Target impact metrics</p>
@@ -1749,24 +1568,18 @@ function MarketplaceDetail({
           </div>
         </div>
       )}
-
-      {/* ── Impact evidence ── */}
       {fullDetail?.impact_evidence && (
         <div className="rounded-xl border border-border bg-card px-5 py-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Impact evidence</p>
           <p className="text-[15px] text-foreground leading-relaxed">{fullDetail.impact_evidence}</p>
         </div>
       )}
-
-      {/* ── Specific ask ── */}
       {fullDetail?.specific_ask && (
         <div className="rounded-xl border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-5 py-4">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-[#2D6A4F] mb-2">Specific ask</p>
           <p className="text-sm text-foreground leading-relaxed">{fullDetail.specific_ask}</p>
         </div>
       )}
-
-      {/* ── Partnerships sought ── */}
       {initiative.partnerships && initiative.partnerships.length > 0 && (
         <div className="rounded-xl border border-border bg-card px-5 py-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Partnerships sought</p>
@@ -1779,8 +1592,6 @@ function MarketplaceDetail({
           </div>
         </div>
       )}
-
-      {/* ── Stage & confirmed assets ── */}
       {(fullDetail?.stage || fullDetail?.confirmed_assets?.length) && (
         <div className="grid gap-3 sm:grid-cols-2">
           {fullDetail?.stage && (
@@ -1803,8 +1614,6 @@ function MarketplaceDetail({
           )}
         </div>
       )}
-
-      {/* ── Timeline ── */}
       {(fullDetail?.start_date || fullDetail?.duration) && (
         <div className="grid gap-3 sm:grid-cols-2">
           {fullDetail.start_date && (
@@ -1821,16 +1630,12 @@ function MarketplaceDetail({
           )}
         </div>
       )}
-
-      {/* ── Co-funding status ── */}
       {fullDetail?.co_funding_status && (
         <div className="rounded-xl border border-border bg-card px-5 py-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1">Funding status</p>
           <p className="text-[15px] text-foreground">{CO_FUNDING_LABELS[fullDetail.co_funding_status] ?? fullDetail.co_funding_status}</p>
         </div>
       )}
-
-      {/* ── Prior experience ── */}
       {fullDetail?.had_prior_experience !== null && fullDetail?.had_prior_experience !== undefined && (
         <div className="rounded-xl border border-border bg-card px-5 py-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Track record</p>
@@ -1841,8 +1646,6 @@ function MarketplaceDetail({
             <p className="text-[15px] text-foreground leading-relaxed italic">"{fullDetail.prior_experience_detail}"</p>
           )}
         </div>      )}
-
-      {/* ── SDG alignment ── */}
       {fullDetail?.sdg_tags && fullDetail.sdg_tags.length > 0 && (
         <div className="rounded-xl border border-border bg-card px-5 py-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-3">SDG Alignment</p>
@@ -1854,8 +1657,6 @@ function MarketplaceDetail({
           </div>
         </div>
       )}
-
-      {/* ── Full description ── */}
       {fullDetail?.detail_content && fullDetail.detail_content !== "<p></p>" && (
         <div className="rounded-xl border border-border bg-card px-5 py-4">
           <div className="flex items-center justify-between mb-3">
@@ -1913,8 +1714,6 @@ function MarketplaceDetail({
             dangerouslySetInnerHTML={{ __html: fullDetail.detail_content }} />
         </div>
       )}
-
-      {/* Hidden print container — only visible when printing */}
       {fullDetail?.detail_content && fullDetail.detail_content !== "<p></p>" && (
         <div id="concept-note-print" style={{ display: "none" }}>
           <h1>{initiative.title}</h1>
@@ -1930,8 +1729,6 @@ function MarketplaceDetail({
           </div>
         </div>
       )}
-
-      {/* ── Resource link ── */}
       {fullDetail?.resource_link && (
         <div className="rounded-xl border border-border bg-card px-5 py-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Resource</p>
@@ -1941,8 +1738,6 @@ function MarketplaceDetail({
           </a>
         </div>
       )}
-
-      {/* ── ESG callout ── */}
       {initiative.esg_alignment && (
         <div className="rounded-xl border px-5 py-4 flex items-start gap-3"
           style={{ borderColor: "#a5d6a7", background: "rgba(46,125,50,0.08)" }}>
@@ -1955,8 +1750,6 @@ function MarketplaceDetail({
           </div>
         </div>
       )}
-
-      {/* ── Tags ── */}
       {initiative.tags && initiative.tags.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {initiative.tags.map(t => (
@@ -1965,12 +1758,8 @@ function MarketplaceDetail({
           ))}
         </div>
       )}
-
-      {/* ── Action bar — Express Interest only; Save/Pass live in the header above ── */}
       {!isOwnInitiative && (
         <div className="space-y-3 pt-2">
-
-          {/* Ask a question — funders only */}
           {isFunder && !alreadyExpressed && !questionSubmitted && (
             <div className="space-y-2">
               {!questionOpen ? (
@@ -2005,14 +1794,12 @@ function MarketplaceDetail({
               )}
             </div>
           )}
-
           {questionSubmitted && (
             <div className="flex items-center gap-2 justify-center text-xs text-[#2D6A4F] py-1">
               <CheckCircle2 className="w-4 h-4" />
               Question sent. The initiative lead will respond in Messages.
             </div>
           )}
-
           <button type="button"
             onClick={() => { if (!alreadyExpressed) { setEoiOpen(true); } }}
             disabled={alreadyExpressed}
@@ -2025,14 +1812,11 @@ function MarketplaceDetail({
           </button>
         </div>
       )}
-
       {isOwnInitiative && (
         <div className="w-full rounded-full h-11 flex items-center justify-center text-sm text-muted-foreground border border-border bg-muted">
           Your initiative
         </div>
       )}
-
-      {/* Full EOI Modal */}
       {eoiOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-background rounded-2xl border border-border w-full max-w-md shadow-xl p-6 max-h-[90vh] overflow-y-auto">
