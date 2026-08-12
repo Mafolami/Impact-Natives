@@ -120,6 +120,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function fetchOrgOwnerId(userId: string) {
     const resolved = await resolveOrgOwnerId(userId);
+    // TEMPORARY -- remove once orgOwnerId is verified in the browser.
+    console.log("[orgOwnerId check] my user id:", userId, "| resolved orgOwnerId:", resolved, "| match:", userId === resolved ? "Owner (expected for everyone today)" : "Member -- resolved to their Owner's id");
     setOrgOwnerId(resolved);
   }
 
