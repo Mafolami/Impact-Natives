@@ -356,16 +356,13 @@ export default function DashboardPortfolioMilestones() {
         )}
       </div>
 
-      {scopedDoc && !showFinancialTiles && (
-        <p className="text-xs text-black dark:text-white">
-          Non-binding agreement -- no financial figures are tracked here.
-        </p>
-      )}
-
       {/* Tiles now reflect the current scope -- whole portfolio when
           unscoped, just this agreement's numbers when scoped -- so they
-          stay visible in both states rather than disappearing on scope. */}
-      <div className={`grid grid-cols-2 gap-3 ${showFinancialTiles ? "sm:grid-cols-4" : "sm:grid-cols-2 sm:max-w-sm"}`}>
+          stay visible in both states rather than disappearing on scope.
+          When financial tiles are hidden (non-binding), the remaining two
+          each span half the grid instead of shrinking into a narrow
+          left-aligned block with dead space on the right. */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {showFinancialTiles && (
           <>
             <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
@@ -378,11 +375,11 @@ export default function DashboardPortfolioMilestones() {
             </div>
           </>
         )}
-        <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
+        <div className={`rounded-xl p-4 bg-white dark:bg-card border border-border ${!showFinancialTiles ? "sm:col-span-2" : ""}`}>
           <p className="text-xs text-black dark:text-white mb-1">On track</p>
           <p className="text-xl font-medium text-black dark:text-white">{stats.onTrack}</p>
         </div>
-        <div className="rounded-xl p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
+        <div className={`rounded-xl p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 ${!showFinancialTiles ? "sm:col-span-2" : ""}`}>
           <p className="text-xs text-amber-600 dark:text-amber-500 mb-1">Overdue</p>
           <p className="text-xl font-medium text-amber-600 dark:text-amber-500">{stats.overdue}</p>
         </div>
