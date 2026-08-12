@@ -188,15 +188,17 @@ function SectionCardGroup({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SectionCard({ title, onEdit, children }: { title: string; onEdit: () => void; children: React.ReactNode }) {
+function SectionCard({ title, onEdit, editable = true, children }: { title: string; onEdit: () => void; editable?: boolean; children: React.ReactNode }) {
   return (
     <div className="px-8 sm:px-12 py-10">
       <div className="flex items-center justify-between mb-6">
         <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
-        <button type="button" onClick={onEdit} aria-label={`Edit ${title}`}
-          className="text-[#111111] dark:text-[#F5F5F5] hover:opacity-60 transition-opacity shrink-0">
-          <Pencil className="w-4 h-4" />
-        </button>
+        {editable && (
+          <button type="button" onClick={onEdit} aria-label={`Edit ${title}`}
+            className="text-[#111111] dark:text-[#F5F5F5] hover:opacity-60 transition-opacity shrink-0">
+            <Pencil className="w-4 h-4" />
+          </button>
+        )}
       </div>
       <div className="space-y-9">
         {children}
@@ -608,7 +610,7 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
 }
 
 export default function DashboardProfile() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, orgOwnerId, refreshProfile } = useAuth();
   const [saving, setSaving]               = useState(false);
   const [saved, setSavedState]            = useState(false);
   const [saveBlocked, setSaveBlocked]     = useState(false);
@@ -616,6 +618,16 @@ export default function DashboardProfile() {
   const [logoUploading, setLogoUploading] = useState(false);
   const [personalPhotoUploading, setPersonalPhotoUploading] = useState(false);
   const [logoUrl, setLogoUrl]             = useState<string | null>(null);
+
+  // Org-field writes are Owner-only at the RLS layer (organizations UPDATE
+  // policy is `user_id = auth.uid()`, no Member support) -- this is a
+  // deliberate, existing restriction, not something being newly added
+  // here. Members can view the org profile but not edit it, until Team
+  // permissions get their own dedicated design pass. isOrgOwner just makes
+  // the UI honest about that: hide edit affordances a Member's save would
+  // silently fail against anyway, rather than showing a pencil icon that
+  // doesn't work.
+  const isOrgOwner = !!user && !!orgOwnerId && user.id === orgOwnerId;
 
   const isOrg = profile?.user_type === "organisation";
   const [orgType, setOrgType] = useState<string>(profile?.org_type ?? "");
@@ -735,7 +747,7 @@ export default function DashboardProfile() {
     try {
       const fields: Record<string, any> = { dd_evidence: updatedEvidence };
       fields[`${prefix}_${key}`] = true;
-      await saveOrgFields(user.id, fields);
+      await saveOrgFields(orgOwnerId!, fields);
     } catch (err: any) {
       alert(`Couldn't save: ${err.message}`);
     }
@@ -747,7 +759,7 @@ export default function DashboardProfile() {
     try {
       const fields: Record<string, any> = {};
       fields[`${prefix}_${key}`] = false;
-      await saveOrgFields(user.id, fields);
+      await saveOrgFields(orgOwnerId!, fields);
     } catch (err: any) {
       alert(`Couldn't save: ${err.message}`);
     }
@@ -785,7 +797,7 @@ export default function DashboardProfile() {
     if (!user) return;
     setTrackRecordSaving(true);
     try {
-      await saveOrgFields(user.id, {
+      await saveOrgFields(orgOwnerId!, {
         total_beneficiaries_reached: draftTotalBeneficiaries ? parseInt(draftTotalBeneficiaries) : null,
         jobs_created: draftJobsCreated ? parseInt(draftJobsCreated) : null,
         female_beneficiaries_pct: draftFemalePct ? parseInt(draftFemalePct) : null,
@@ -845,7 +857,7 @@ export default function DashboardProfile() {
     if (draftGrantRangeInvalid) { alert("Max must be greater than or equal to Min."); return; }
     setMandateSaving(true);
     try {
-      await saveOrgFields(user.id, {
+      await saveOrgFields(orgOwnerId!, {
         investment_thesis: draftInvestmentThesis || null,
         grant_range_min: draftGrantRangeMin ? parseFloat(draftGrantRangeMin) : null,
         grant_range_max: draftGrantRangeMax ? parseFloat(draftGrantRangeMax) : null,
@@ -939,7 +951,7 @@ export default function DashboardProfile() {
     if (!user) return;
     setCsrSectionSaving(true);
     try {
-      await saveOrgFields(user.id, {
+      await saveOrgFields(orgOwnerId!, {
         csr_focus_statement: draftCsrFocusStatement || null,
         csr_budget_range: draftCsrBudgetRange || null,
         esg_frameworks: draftEsgFrameworks.length > 0 ? draftEsgFrameworks : null,
@@ -958,7 +970,7 @@ export default function DashboardProfile() {
     if (!user) return;
     setCsrSectionSaving(true);
     try {
-      await saveOrgFields(user.id, {
+      await saveOrgFields(orgOwnerId!, {
         inkind_support: draftInkindSupport.length > 0 ? draftInkindSupport : null,
         employee_engagement_available: draftEmployeeEngagement,
         cobranding_open: draftCobrandingOpen,
@@ -981,7 +993,7 @@ export default function DashboardProfile() {
     if (!user) return;
     setCsrSectionSaving(true);
     try {
-      await saveOrgFields(user.id, {
+      await saveOrgFields(orgOwnerId!, {
         tech_support_available: draftTechSupport.length > 0 ? draftTechSupport : null,
         sandbox_ready: draftSandboxReady,
         sandbox_description: draftSandboxDescription || null,
@@ -1014,7 +1026,7 @@ export default function DashboardProfile() {
     setOrgSectionSaving(true);
     try {
       await saveProfileFields(user.id, { org_name: draftOrgName || null, country: draftCountry || null });
-      await saveOrgFields(user.id, { description: draftOrgDescription || null });
+      await saveOrgFields(orgOwnerId!, { description: draftOrgDescription || null });
       setOrgName(draftOrgName);
       setOrgDescription(draftOrgDescription);
       setCountry(draftCountry);
@@ -1122,7 +1134,7 @@ export default function DashboardProfile() {
         social_links: draftSocialLinks.length > 0 ? draftSocialLinks : null,
       });
       if (isOrg) {
-        await saveOrgFields(user.id, { website: draftWebsite || null });
+        await saveOrgFields(orgOwnerId!, { website: draftWebsite || null });
       }
       setLinkedinUrl(draftLinkedinUrl);
       setWebsite(draftWebsite);
@@ -1136,9 +1148,9 @@ export default function DashboardProfile() {
   }
 
   useEffect(() => {
-    if (!user) return;
+    if (!orgOwnerId) return;
     supabase.from("organizations")
-     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")      .eq("user_id", user.id).maybeSingle()
+     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")      .eq("user_id", orgOwnerId).maybeSingle()
       .then(({ data }) => {
         if (!data) return;
         setOrgId(data.id ?? null);
@@ -1190,7 +1202,7 @@ export default function DashboardProfile() {
         if (data.previous_funders) setPreviousFunders(data.previous_funders);
         setThirdPartyEvaluations(data.third_party_evaluations ?? false);
       });
-  }, [user]);
+  }, [orgOwnerId]);
 
   async function handleLogoDelete() {
     if (!user) return;
@@ -1358,7 +1370,7 @@ export default function DashboardProfile() {
 
     if (profileError) console.error("Profile update error:", profileError);
 
-    if (profile?.user_type === "organisation") {
+    if (isOrgOwner && profile?.user_type === "organisation") {
       const { error: thesisError } = await supabase
         .from("organizations")
         .update({
@@ -1366,13 +1378,13 @@ export default function DashboardProfile() {
           website: website || null,
           ...(orgType ? { organisation_type: orgType } : {}),
         })
-        .eq("user_id", user.id);
+        .eq("user_id", orgOwnerId!);
       if (thesisError) console.error("Investment thesis update error:", thesisError);
     }
     const orgTypeNow = profile?.org_type ?? orgType ?? "";
     const isFunderOrCorporate = ["philanthropic_foundation", "venture_capital", "technology_company", "corporation", "public_sector"].includes(orgTypeNow);
     
-    if (isFunderOrCorporate) {
+    if (isOrgOwner && isFunderOrCorporate) {
       await supabase
         .from("organizations")
         .update({
@@ -1396,10 +1408,10 @@ export default function DashboardProfile() {
           sandbox_description: sandboxDescription || null,
           updated_at: new Date().toISOString(),
         })
-        .eq("user_id", user.id);
+        .eq("user_id", orgOwnerId!);
     }
 
-    if (profile?.user_type === "organisation") {
+    if (isOrgOwner && profile?.user_type === "organisation") {
       await supabase
         .from("organizations")
         .update({
@@ -1432,15 +1444,15 @@ export default function DashboardProfile() {
           third_party_evaluations: thirdPartyEvaluations,
           updated_at: new Date().toISOString(),
         })
-        .eq("user_id", user.id);
+        .eq("user_id", orgOwnerId!);
     }
 
     await refreshProfile();
 
-    if (user && profile?.user_type === "organisation") {
+    if (isOrgOwner && profile?.user_type === "organisation") {
       const { data } = await supabase.from("organizations")
         .select("logo_url,description,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")
-        .eq("user_id", user.id).maybeSingle();
+        .eq("user_id", orgOwnerId!).maybeSingle();
       if (data) {
         if (data.previous_funders) setPreviousFunders(data.previous_funders);
         if (data.geographic_focus) setGeographicFocus(data.geographic_focus);
@@ -1743,7 +1755,7 @@ export default function DashboardProfile() {
                     </div>
                   </div>
 
-                  <SectionCard title="Contact Details" onEdit={openOrgContactModal}>
+                  <SectionCard editable={isOrgOwner} title="Contact Details" onEdit={openOrgContactModal}>
                     <DisplayField label="Full name">
                       {fullName ? <p className="text-sm text-black dark:text-white">{fullName}</p> : <EmptyValue />}
                     </DisplayField>
@@ -1831,7 +1843,7 @@ export default function DashboardProfile() {
                     </div>
                   </div>
 
-                  <SectionCard title="Organisation Details" onEdit={openOrgModal}>
+                  <SectionCard editable={isOrgOwner} title="Organisation Details" onEdit={openOrgModal}>
                     <DisplayField label="Organisation name">
                       {orgName ? <p className="text-sm text-black dark:text-white">{orgName}</p> : <EmptyValue />}
                     </DisplayField>
@@ -1873,7 +1885,7 @@ export default function DashboardProfile() {
               {/* ── FOCUS AREAS PANE ── */}
               {activePane === "focus" && (
                 <SectionCardGroup>
-                  <SectionCard title="Focus areas" onEdit={openFocusModal}>
+                  <SectionCard editable={isOrgOwner} title="Focus areas" onEdit={openFocusModal}>
                     <DisplayField label="Sectors">
                       {sectors.length > 0
                         ? <div className="flex flex-wrap gap-2">{sectors.map(s => <FlatTag key={s}>{s}</FlatTag>)}</div>
@@ -1901,7 +1913,7 @@ export default function DashboardProfile() {
               {/* ── ONLINE PRESENCE PANE ── */}
               {activePane === "presence" && (
                 <SectionCardGroup>
-                  <SectionCard title="Online presence" onEdit={openPresenceModal}>
+                  <SectionCard editable={isOrgOwner} title="Online presence" onEdit={openPresenceModal}>
                     {!isOrg && (
                       <DisplayField label="LinkedIn">
                         {linkedinUrl ? (
@@ -2210,7 +2222,7 @@ export default function DashboardProfile() {
               {/* ── TRACK RECORD PANE ── */}
               {activePane === "track" && isImplementer && (
                 <SectionCardGroup>
-                  <SectionCard title="Impact & track record" onEdit={openTrackRecordModal}>
+                  <SectionCard editable={isOrgOwner} title="Impact & track record" onEdit={openTrackRecordModal}>
                     <DisplayField label="Cumulative reach">
                       {(totalBeneficiaries || jobsCreated || femalePct || youthPct || yearsOfOperation) ? (
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
@@ -2380,13 +2392,13 @@ export default function DashboardProfile() {
               {/* ── MANDATE PANE (funders) ── */}
               {activePane === "mandate" && isFunder && (
                 <SectionCardGroup>
-                  <SectionCard title="Investment thesis" onEdit={openMandateModal}>
+                  <SectionCard editable={isOrgOwner} title="Investment thesis" onEdit={openMandateModal}>
                     <DisplayField label="Investment focus">
                       {investmentThesis ? <p className="text-sm text-black dark:text-white leading-relaxed">{investmentThesis}</p> : <EmptyValue />}
                     </DisplayField>
                   </SectionCard>
 
-                  <SectionCard title="Mandate criteria" onEdit={openMandateModal}>
+                  <SectionCard editable={isOrgOwner} title="Mandate criteria" onEdit={openMandateModal}>
                     <DisplayField label="Grant / investment range">
                       {(grantRangeMin || grantRangeMax) ? (
                         <p className="text-sm text-black dark:text-white">
@@ -2533,7 +2545,7 @@ export default function DashboardProfile() {
                 <SectionCardGroup>
 
                   {/* ── CSR & ESG section (display only -- edit via modal) ── */}
-                  <SectionCard title="CSR & ESG" onEdit={openCsrEsgModal}>
+                  <SectionCard editable={isOrgOwner} title="CSR & ESG" onEdit={openCsrEsgModal}>
                     <DisplayField label="CSR/ESG focus statement">
                       {csrFocusStatement
                         ? <p className="text-sm text-black dark:text-white leading-relaxed">{csrFocusStatement}</p>
@@ -2554,7 +2566,7 @@ export default function DashboardProfile() {
                   </SectionCard>
 
                   {/* ── Partnership preferences card (display only) ── */}
-                  <SectionCard title="Partnership preferences" onEdit={openPartnershipModal}>
+                  <SectionCard editable={isOrgOwner} title="Partnership preferences" onEdit={openPartnershipModal}>
                     <DisplayField label="What we bring to partnerships">
                       {inkindSupport.length > 0
                         ? <div className="flex flex-wrap gap-2">{inkindSupport.map(s => <FlatTag key={s}>{s}</FlatTag>)}</div>
@@ -2585,7 +2597,7 @@ export default function DashboardProfile() {
 
                   {/* ── Technology support card (technology_company only, display only) ── */}
                   {profile?.org_type === "technology_company" && (
-                    <SectionCard title="Technology support" onEdit={openTechModal}>
+                    <SectionCard editable={isOrgOwner} title="Technology support" onEdit={openTechModal}>
                       <DisplayField label="Tech resources we can offer">
                         {techSupport.length > 0
                           ? <div className="flex flex-wrap gap-2">{techSupport.map(t => <FlatTag key={t}>{t}</FlatTag>)}</div>
