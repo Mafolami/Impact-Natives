@@ -1,6 +1,6 @@
 import { useEffect, useState, lazy, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
-import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -196,10 +196,13 @@ if (isAdmin) {
       <ScrollToTop />
       <Navbar />
 <main className="flex-1 homepage-main">
+        {isAppDomain ? (
+          <Redirect to="/signin" />
+        ) : (
         <Switch>
           <Route path="/legal/:doc" component={LegalPage} />
           <Route path="/legal" component={LegalPage} />
-          <Route path="/">{isAppDomain ? <SignIn /> : <HomePage />}</Route>
+          <Route path="/" component={HomePage} />
           <Route path="/platform" component={PlatformPage} />
           <Route path="/platform/:tab" component={PlatformPage} />
           <Route path="/market" component={ImpactMarketplace} />
@@ -221,6 +224,7 @@ if (isAdmin) {
           <Route path="/verification-standard" component={VerificationStandardPage} />
           <Route component={NotFound} />
         </Switch>
+        )}
       </main>
       {!hideFooter && <Footer />}
       <ExitIntentPopup />
@@ -254,6 +258,7 @@ const PageLoader = () => (
 
 const AUTH_PATHS = ["/signin", "/signup", "/onboarding", "/auth/callback", "/verify", "/forgot-password", "/reset-password"];
 const isAppDomain = typeof window !== "undefined" && window.location.hostname === "app.impactnatives.com";
+const APP_ALLOWED_PATHS = ["/dashboard", "/admin", "/signin", "/signup", "/login", "/register", "/onboarding", "/auth/callback", "/verify", "/forgot-password", "/reset-password"];
 function App() {
   useReveal();
   const isAuthPage = AUTH_PATHS.some(p => window.location.pathname.startsWith(p));
