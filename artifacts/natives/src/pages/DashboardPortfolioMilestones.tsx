@@ -25,7 +25,7 @@ function isBindingDoc(doc: ExecutedDoc): boolean {
 }
 
 export default function DashboardPortfolioMilestones() {
-  const { user } = useAuth();
+  const { user, orgOwnerId } = useAuth();
   const userId = user?.id ?? null;
   const [location, navigate] = useLocation();
 
@@ -62,12 +62,12 @@ export default function DashboardPortfolioMilestones() {
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const seenDocIds = useRef<Set<string>>(new Set());
 
-  useEffect(() => { load(); }, [userId]);
+  useEffect(() => { load(); }, [orgOwnerId]);
 
   async function load() {
-    if (!userId) return;
+    if (!orgOwnerId) return;
     setLoading(true);
-    const { data: myOrg } = await supabase.from("organizations").select("id").eq("user_id", userId).maybeSingle();
+    const { data: myOrg } = await supabase.from("organizations").select("id").eq("user_id", orgOwnerId).maybeSingle();
     if (!myOrg) { setLoading(false); return; }
     setMyOrgId(myOrg.id);
 
