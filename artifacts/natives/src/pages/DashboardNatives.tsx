@@ -30,6 +30,7 @@ interface ProfileRow {
   social_links?: { label: string; url: string }[];
   show_individual_profile?: boolean;
   feed_visibility?: string;
+  member_org_name?: string;
 }
 
 interface OrgRow {
@@ -294,10 +295,42 @@ function IndividualsPanel({ search, sectorFilter, countryFilter, autoOpenUserId,
       // filtered here instead. show_individual_profile.eq.true rows are
       // untouched -- that's an org's own separate, explicit opt-in to
       // list their personal profile, not gated by their feed_visibility.
-      const rows = (data ?? []).filter((p: ProfileRow) =>
+      const rows: ProfileRow[] = (data ?? []).filter((p: ProfileRow) =>
         p.show_individual_profile === true ||
         (p.user_type === "individual_creative" || !p.user_type) && p.feed_visibility !== "none"
       );
+
+      // Attach org association for individuals who are active team
+      // Members elsewhere -- same tagged-with-organisation treatment an
+      // org's own org_name badge gets, so a Member appearing as
+      // "individual" here still reads as affiliated, not unattached.
+      // org_members.user_id has no FK to profiles/organizations (see
+      // TeamTab.tsx), so this is two separate queries merged client-side.
+      const individualIds = rows
+        .filter(p => p.user_type === "individual_creative" || !p.user_type)
+        .map(p => p.id);
+      if (individualIds.length > 0) {
+        const { data: memberships } = await supabase
+          .from("org_members")
+          .select("user_id, org_id")
+          .in("user_id", individualIds)
+          .eq("status", "active");
+        if (memberships && memberships.length > 0) {
+          const orgIds = [...new Set(memberships.map((m: any) => m.org_id))];
+          const { data: orgs } = await supabase
+            .from("organizations")
+            .select("id, organisation_name")
+            .in("id", orgIds);
+          const orgNameById = new Map((orgs ?? []).map((o: any) => [o.id, o.organisation_name]));
+          const orgNameByUserId = new Map(
+            memberships.map((m: any) => [m.user_id, orgNameById.get(m.org_id)])
+          );
+          for (const row of rows) {
+            const orgName = orgNameByUserId.get(row.id);
+            if (orgName) row.member_org_name = orgName;
+          }
+        }
+      }
       setProfiles(rows);
       if (autoOpenUserId) {
         const match = rows.find(p => p.id === autoOpenUserId);
@@ -347,10 +380,10 @@ function ProfileCard({ profile, onClick }: { profile: ProfileRow; onClick: () =>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
           <p className="text-base font-bold text-[#111111] dark:text-[#F5F5F5] truncate">{profile.full_name}</p>
-          {profile.user_type === "organisation" && profile.org_name && (
+          {(profile.org_name || profile.member_org_name) && (
             <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
               style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
-              {profile.org_name}
+              {profile.org_name || profile.member_org_name}
             </span>
           )}
         </div>
@@ -391,10 +424,10 @@ function ProfileDetail({ profile, onBack }: { profile: ProfileRow; onBack: () =>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h3 className="text-2xl sm:text-[32px] font-bold text-[#111111] dark:text-[#F5F5F5] tracking-tight">{profile.full_name}</h3>
-                {profile.user_type === "organisation" && profile.org_name && (
+                {(profile.org_name || profile.member_org_name) && (
                   <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
                     style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
-                    {profile.org_name}
+                    {profile.org_name || profile.member_org_name}
                   </span>
                 )}
               </div>
