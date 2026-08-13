@@ -630,6 +630,11 @@ export default function DashboardProfile() {
   const isOrgOwner = !!user && !!orgOwnerId && user.id === orgOwnerId;
 
   const isOrg = profile?.user_type === "organisation";
+  // Already representing someone else's org as a Member -- don't offer
+  // to register a second, competing org. The invite-acceptance flow is
+  // the "represent an organisation" path for these accounts; this card
+  // is for genuinely unaffiliated individuals only.
+  const isTeamMember = !!(orgOwnerId && user && orgOwnerId !== user.id);
   const [orgType, setOrgType] = useState<string>(profile?.org_type ?? "");
   const [orgId, setOrgId] = useState<string | null>(null);
   const orgTypeNow = profile?.org_type ?? orgType ?? "";
@@ -1635,6 +1640,7 @@ export default function DashboardProfile() {
                     </div>
                   </div>
 
+                  {!isTeamMember && (
                   <div className="px-8 sm:px-12 py-10">
                     <div className="rounded-xl border border-dashed border-[#2D6A4F]/40 bg-[#2D6A4F]/5 p-5 flex items-start gap-4">
                       <div className="w-10 h-10 rounded-xl bg-[rgba(45,106,79,0.12)] flex items-center justify-center shrink-0">
@@ -1652,6 +1658,7 @@ export default function DashboardProfile() {
                       </div>
                     </div>
                   </div>
+                  )}
 
                   <SectionCard title="Basic info" onEdit={openIndividualContactModal}>
                     <DisplayField label="Full name">

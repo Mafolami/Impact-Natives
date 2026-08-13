@@ -29,6 +29,7 @@ interface ProfileRow {
   user_type?: string;
   social_links?: { label: string; url: string }[];
   show_individual_profile?: boolean;
+  feed_visibility?: string;
 }
 
 interface OrgRow {
@@ -280,12 +281,23 @@ function IndividualsPanel({ search, sectorFilter, countryFilter, autoOpenUserId,
       setLoading(true);
       const { data, error } = await supabase
         .from("profiles")
-        .select("id,full_name,role_title,country,sectors,bio,avatar_url,linkedin_url,website,user_type,social_links,org_name,show_individual_profile")
+        .select("id,full_name,role_title,country,sectors,bio,avatar_url,linkedin_url,website,user_type,social_links,org_name,show_individual_profile,feed_visibility")
         .not("full_name", "is", null)
         .or("user_type.eq.individual_creative,user_type.is.null,show_individual_profile.eq.true")
         .order("full_name", { ascending: true });
       if (error) console.error(error);
-      const rows = data ?? [];
+      // The Settings > Privacy "Visibility" toggle (feed_visibility) is
+      // meant to control public discoverability generally, not just the
+      // activity feed -- but the query above has no way to express "AND
+      // feed_visibility isn't none" for the individual_creative/null
+      // branch without an unreadable nested .or() string, so it's
+      // filtered here instead. show_individual_profile.eq.true rows are
+      // untouched -- that's an org's own separate, explicit opt-in to
+      // list their personal profile, not gated by their feed_visibility.
+      const rows = (data ?? []).filter((p: ProfileRow) =>
+        p.show_individual_profile === true ||
+        (p.user_type === "individual_creative" || !p.user_type) && p.feed_visibility !== "none"
+      );
       setProfiles(rows);
       if (autoOpenUserId) {
         const match = rows.find(p => p.id === autoOpenUserId);
