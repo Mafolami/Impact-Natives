@@ -29,7 +29,6 @@ interface ProfileRow {
   user_type?: string;
   social_links?: { label: string; url: string }[];
   show_individual_profile?: boolean;
-  feed_visibility?: string;
   member_org_name?: string;
 }
 
@@ -282,33 +281,22 @@ function IndividualsPanel({ search, sectorFilter, countryFilter, autoOpenUserId,
       setLoading(true);
       const { data, error } = await supabase
         .from("profiles")
-        .select("id,full_name,role_title,country,sectors,bio,avatar_url,linkedin_url,website,user_type,social_links,org_name,show_individual_profile,feed_visibility")
+        .select("id,full_name,role_title,country,sectors,bio,avatar_url,linkedin_url,website,user_type,social_links,org_name,show_individual_profile")
         .not("full_name", "is", null)
         .or("user_type.eq.individual_creative,user_type.is.null,show_individual_profile.eq.true")
         .order("full_name", { ascending: true });
       if (error) console.error(error);
-      // The Settings > Privacy "Visibility" toggle (feed_visibility) is
-      // meant to control public discoverability generally, not just the
-      // activity feed -- but the query above has no way to express "AND
-      // feed_visibility isn't none" for the individual_creative/null
-      // branch without an unreadable nested .or() string, so it's
-      // filtered here instead. show_individual_profile.eq.true rows are
-      // untouched -- that's an org's own separate, explicit opt-in to
-      // list their personal profile, not gated by their feed_visibility.
-      const rows: ProfileRow[] = (data ?? []).filter((p: ProfileRow) =>
-        p.show_individual_profile === true ||
-        (p.user_type === "individual_creative" || !p.user_type) && p.feed_visibility !== "none"
-      );
+      const allRows: ProfileRow[] = data ?? [];
 
-      // Attach org association for individuals who are active team
-      // Members elsewhere -- same tagged-with-organisation treatment an
-      // org's own org_name badge gets, so a Member appearing as
-      // "individual" here still reads as affiliated, not unattached.
+      // Find active org associations (Owner rows are already handled by
+      // show_individual_profile.eq.true in the query above -- this is
+      // for team Members, whose org link lives in org_members instead).
       // org_members.user_id has no FK to profiles/organizations (see
-      // TeamTab.tsx), so this is two separate queries merged client-side.
-      const individualIds = rows
+      // TeamTab.tsx), so this is separate queries merged client-side.
+      const individualIds = allRows
         .filter(p => p.user_type === "individual_creative" || !p.user_type)
         .map(p => p.id);
+      const memberOrgNameByUserId = new Map<string, string>();
       if (individualIds.length > 0) {
         const { data: memberships } = await supabase
           .from("org_members")
@@ -322,15 +310,30 @@ function IndividualsPanel({ search, sectorFilter, countryFilter, autoOpenUserId,
             .select("id, organisation_name")
             .in("id", orgIds);
           const orgNameById = new Map((orgs ?? []).map((o: any) => [o.id, o.organisation_name]));
-          const orgNameByUserId = new Map(
-            memberships.map((m: any) => [m.user_id, orgNameById.get(m.org_id)])
-          );
-          for (const row of rows) {
-            const orgName = orgNameByUserId.get(row.id);
-            if (orgName) row.member_org_name = orgName;
+          for (const m of memberships) {
+            const orgName = orgNameById.get(m.org_id);
+            if (orgName) memberOrgNameByUserId.set(m.user_id, orgName);
           }
         }
       }
+
+      // The Individual profile toggle in Settings > Privacy ("Also show
+      // me as an individual") is the actual control for whether someone
+      // with an org association shows up here -- same field
+      // (show_individual_profile) an org Owner already uses, now also
+      // available to Members. The Public/Private toggle there is
+      // feed-only and plays no part in this. A plain individual with no
+      // org association at all has nothing to opt into -- they show
+      // unconditionally, same as always.
+      const rows = allRows.filter(p => {
+        const memberOrgName = memberOrgNameByUserId.get(p.id);
+        if (memberOrgName) {
+          p.member_org_name = memberOrgName;
+          return p.show_individual_profile === true;
+        }
+        return true;
+      });
+
       setProfiles(rows);
       if (autoOpenUserId) {
         const match = rows.find(p => p.id === autoOpenUserId);

@@ -29,7 +29,7 @@ const NOTIFICATION_LABELS: { key: keyof NotificationPrefs; label: string; sub: s
 ];
 
 export default function DashboardSettings() {
-  const { user, profile, signOut, refreshProfile } = useAuth();
+  const { user, profile, orgOwnerId, signOut, refreshProfile } = useAuth();
   const initialTab = (new URLSearchParams(window.location.search).get("tab") as SettingsTab) || "account";
   const [tab, setTab] = useState<SettingsTab>(
     ["account", "privacy", "notifications", "team", "danger"].includes(initialTab) ? initialTab : "account"
@@ -306,7 +306,15 @@ export default function DashboardSettings() {
             </div>
           </div>
 
-          {profile?.user_type === "organisation" && (
+          {/* This is the real control for whether someone with an org
+              association shows up under "Individuals" in the Natives
+              directory -- not the Public/Private toggle above, which is
+              feed-only. Applies to org Owners (existing) and now also
+              active team Members (orgOwnerId resolves to someone else's
+              id) -- both have an org to be "tagged with", same as the
+              copy below describes. A person with no org association at
+              all has no use for this toggle; they're shown unconditionally. */}
+          {(profile?.user_type === "organisation" || (orgOwnerId && user && orgOwnerId !== user.id)) && (
             <div className="px-5 py-4">
               <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Individual profile</p>
               <button type="button"
