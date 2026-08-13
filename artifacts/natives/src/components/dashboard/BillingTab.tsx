@@ -12,12 +12,21 @@
 // cancel. An org simply reverts to Free automatically (via the
 // downgrade-expired-subscriptions cron) if it isn't renewed by manually
 // checking out again before the period ends.
+//
+// v2: full feature lists per tier (not trimmed -- this page's job is to
+// make the value case, so it shouldn't undersell itself), a visually
+// distinct treatment per tier (Plus elevated as the default recommendation,
+// Compliance in a dark "audit-grade" register, Free deliberately quiet),
+// and a real fix for the post-checkout flash: the payment-confirmation
+// poll used to call the same load() that resets role to "loading" on every
+// tick, so the whole tab blinked to a spinner and back up to 6 times over
+// 15 seconds. It now polls silently and only ever moves forward once real
+// data is in -- no visible state flicker.
 
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { Button } from "@/components/ui/button";
-import { Loader2, Check, ExternalLink } from "lucide-react";
+import { Loader2, Check, Sparkles } from "lucide-react";
 
 type Role = "loading" | "owner" | "member" | "none";
 type Tier = "free" | "plus" | "pro" | "compliance";
@@ -34,18 +43,34 @@ interface OrgBilling {
 
 const CORPORATE_TYPES = ["corporation", "technology_company", "public_sector"];
 
-const TIERS: { value: Tier; name: string; priceNgn: number; priceUsdRef: number; blurb: string; features: string[] }[] = [
+interface TierDef {
+  value: Tier;
+  name: string;
+  priceNgn: number;
+  priceUsdRef: number;
+  blurb: string;
+  features: string[];
+  badge?: string;
+  register: "quiet" | "primary" | "accent" | "dark";
+}
+
+const TIERS: TierDef[] = [
   {
     value: "free",
     name: "Free",
     priceNgn: 0,
     priceUsdRef: 0,
-    blurb: "Get listed and start matching.",
+    blurb: "Everything you need to get listed and start matching.",
+    register: "quiet",
     features: [
-      "Browse the directory and marketplace",
-      "Manual initiative and partnership listings",
+      "Browse the full directory & marketplace",
+      "Manual initiative & partnership listings",
       "Self-attested DD readiness",
-      "Trust Score badge",
+      "Trust Score & verified badge",
+      "Reply to inbound messages",
+      "Receive & sign MoUs",
+      "Milestone tracking on signed MoUs",
+      "Weekly & monthly digest emails",
     ],
   },
   {
@@ -53,12 +78,18 @@ const TIERS: { value: Tier; name: string; priceNgn: number; priceUsdRef: number;
     name: "Plus",
     priceNgn: 80_000,
     priceUsdRef: 59,
-    blurb: "AI-assisted matching and outreach.",
+    blurb: "Let AI do the matching, drafting, and outreach for you.",
+    badge: "Most popular",
+    register: "primary",
     features: [
-      "AI-parsed initiative creation",
-      "Full AI matching and reasoning",
+      "Everything in Free",
+      "AI-parsed initiative creation from a brief",
+      "AI brief quality scoring & suggestions",
+      "Full AI-powered org-to-org matching",
+      "Instant AI fit analysis on any org",
       "AI-drafted outreach messages",
-      "Originate MoUs",
+      "Originate & send your own MoUs",
+      "Self-view AI ESG Snapshot",
     ],
   },
   {
@@ -66,10 +97,11 @@ const TIERS: { value: Tier; name: string; priceNgn: number; priceUsdRef: number;
     name: "Pro",
     priceNgn: 339_000,
     priceUsdRef: 249,
-    blurb: "For funders and corporates evaluating partners.",
+    blurb: "For funders and corporates evaluating partners at scale.",
+    register: "accent",
     features: [
       "Everything in Plus",
-      "Deal memo / CSR brief generation",
+      "AI deal memo (funders) or CSR brief (corporates)",
       "Evaluate any candidate's ESG Snapshot",
       "AI-drafted EOI to initiative owners",
     ],
@@ -79,12 +111,15 @@ const TIERS: { value: Tier; name: string; priceNgn: number; priceUsdRef: number;
     name: "Compliance",
     priceNgn: 1_090_000,
     priceUsdRef: 799,
-    blurb: "Corporate organisations only.",
+    blurb: "Audit-ready CSR infrastructure for corporate teams.",
+    badge: "Corporate only",
+    register: "dark",
     features: [
       "Everything in Pro",
-      "Strategy Builder",
-      "Unlimited ESG reports",
-      "SRG1 deadline tracking + audit-ready DD export",
+      "Strategy Builder for CSR planning",
+      "Unlimited AI ESG reports",
+      "SRG1 deadline tracking & reminders",
+      "Audit-ready DD export",
     ],
   },
 ];
@@ -105,6 +140,8 @@ function fmtDate(iso: string | null) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+const ORG_SELECT = "id, organisation_name, organisation_type, subscription_tier, subscription_status, subscription_current_period_end";
+
 export function BillingTab() {
   const { user, orgOwnerId } = useAuth();
   const [role, setRole] = useState<Role>("loading");
@@ -113,42 +150,42 @@ export function BillingTab() {
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
   const pollAttempts = useRef(0);
+  const pollInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    if (user?.id) load();
-  }, [user?.id, orgOwnerId]);
-
-  async function load() {
+  async function loadWithRoleTransition() {
     if (!user) return;
     setRole("loading");
+    const resolved = await resolveOrg();
+    setOrg(resolved.org);
+    setRole(resolved.role);
+  }
+
+  async function refetchOrgSilently() {
+    if (!user) return;
+    const resolved = await resolveOrg();
+    setOrg(resolved.org);
+  }
+
+  async function resolveOrg(): Promise<{ org: OrgBilling | null; role: Role }> {
+    if (!user) return { org: null, role: "none" };
 
     const { data: ownedOrg } = await supabase
-      .from("organizations")
-      .select("id, organisation_name, organisation_type, subscription_tier, subscription_status, subscription_current_period_end")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (ownedOrg) {
-      setOrg(ownedOrg as OrgBilling);
-      setRole("owner");
-      return;
-    }
+      .from("organizations").select(ORG_SELECT).eq("user_id", user.id).maybeSingle();
+    if (ownedOrg) return { org: ownedOrg as OrgBilling, role: "owner" };
 
     if (orgOwnerId && orgOwnerId !== user.id) {
       const { data: ownerOrg } = await supabase
-        .from("organizations")
-        .select("id, organisation_name, organisation_type, subscription_tier, subscription_status, subscription_current_period_end")
-        .eq("user_id", orgOwnerId)
-        .maybeSingle();
-      if (ownerOrg) {
-        setOrg(ownerOrg as OrgBilling);
-        setRole("member");
-        return;
-      }
+        .from("organizations").select(ORG_SELECT).eq("user_id", orgOwnerId).maybeSingle();
+      if (ownerOrg) return { org: ownerOrg as OrgBilling, role: "member" };
     }
 
-    setRole("none");
+    return { org: null, role: "none" };
   }
+
+  useEffect(() => {
+    if (user?.id) loadWithRoleTransition();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, orgOwnerId]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -156,22 +193,22 @@ export function BillingTab() {
 
     setConfirmingPayment(true);
     pollAttempts.current = 0;
-
-    const interval = setInterval(async () => {
+    pollInterval.current = setInterval(async () => {
       pollAttempts.current += 1;
-      await load();
-      if (pollAttempts.current >= 6) {
-        clearInterval(interval);
+      await refetchOrgSilently();
+      if (pollAttempts.current >= 6 && pollInterval.current) {
+        clearInterval(pollInterval.current);
         setConfirmingPayment(false);
       }
     }, 2500);
 
-    return () => clearInterval(interval);
+    return () => { if (pollInterval.current) clearInterval(pollInterval.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (confirmingPayment && org?.subscription_status === "active") {
+      if (pollInterval.current) clearInterval(pollInterval.current);
       setConfirmingPayment(false);
       const url = new URL(window.location.href);
       url.searchParams.delete("reference");
@@ -220,14 +257,14 @@ export function BillingTab() {
   const isOwner = role === "owner";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* ── Current plan summary ── */}
-      <div className="rounded-xl border border-border bg-white dark:bg-card px-5 py-4">
+      <div className="rounded-xl border border-border bg-white dark:bg-card px-6 py-5">
         <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Current plan</p>
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <div className="flex items-center gap-2">
-              <p className="text-lg font-semibold text-foreground">{currentTierInfo.name}</p>
+            <div className="flex items-center gap-2.5">
+              <p className="text-2xl font-bold text-foreground tracking-tight">{currentTierInfo.name}</p>
               {org && org.subscription_tier !== "free" && (
                 <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_STYLES[org.subscription_status]}`}>
                   {STATUS_LABELS[org.subscription_status]}
@@ -235,16 +272,16 @@ export function BillingTab() {
               )}
             </div>
             {org && org.subscription_tier !== "free" && org.subscription_status === "active" && (
-              <p className="text-xs text-black dark:text-white mt-1">
-                Renews by {fmtDate(org.subscription_current_period_end)} — renewal isn't automatic yet, so check out again before this date to keep access.
+              <p className="text-sm text-black dark:text-white mt-1.5">
+                Renews by <span className="font-medium">{fmtDate(org.subscription_current_period_end)}</span> — renewal isn't automatic yet, so check out again before this date to keep access.
               </p>
             )}
             {(!org || org.subscription_tier === "free") && (
-              <p className="text-xs text-black dark:text-white mt-1">Upgrade below for AI matching, drafting, and more.</p>
+              <p className="text-sm text-black dark:text-white mt-1.5">Upgrade below for AI matching, drafting, and more.</p>
             )}
           </div>
           {confirmingPayment && (
-            <div className="flex items-center gap-2 text-xs text-[#2D6A4F]">
+            <div className="flex items-center gap-2 text-xs text-[#2D6A4F] font-medium">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
               Confirming your payment...
             </div>
@@ -265,62 +302,98 @@ export function BillingTab() {
 
       {/* ── Plan cards ── */}
       {isOwner && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 items-start">
           {TIERS.map((t) => {
             const isCurrent = org?.subscription_tier === t.value;
             const isComplianceLocked = t.value === "compliance" && !CORPORATE_TYPES.includes(org?.organisation_type || "");
+            const isElevated = t.register === "primary";
+            const isDark = t.register === "dark";
+
+            const cardBase = "rounded-2xl flex flex-col transition-all duration-200";
+            const cardStyle =
+              isDark
+                ? "bg-[#0E1512] border border-[#2A3B33] text-white lg:-translate-y-0"
+                : isElevated
+                ? "bg-white dark:bg-card border-2 border-[#2D6A4F] shadow-[0_12px_32px_-8px_rgba(45,106,79,0.35)] lg:-translate-y-3"
+                : t.register === "accent"
+                ? "bg-white dark:bg-card border-2 border-[#C45C26]/40"
+                : "bg-white dark:bg-card border border-border";
+
             return (
-              <div key={t.value}
-                className={`rounded-xl border px-5 py-4 flex flex-col ${
-                  isCurrent ? "border-[#2D6A4F] bg-[#2D6A4F]/5" : "border-border bg-white dark:bg-card"
-                }`}>
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-sm font-semibold text-foreground">{t.name}</p>
-                  {isCurrent && (
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-[#2D6A4F]/10 text-[#2D6A4F]">
-                      Current
-                    </span>
+              <div key={t.value} className={`${cardBase} ${cardStyle} px-6 ${isElevated ? "py-8" : "py-6"}`}>
+                {t.badge && (
+                  <div className={`inline-flex items-center gap-1 self-start mb-3 text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                    isElevated
+                      ? "bg-gradient-to-b from-[#3a8560] to-[#2D6A4F] text-white shadow-sm"
+                      : isDark
+                      ? "bg-[#C9A227]/15 text-[#D9B94A] border border-[#C9A227]/30"
+                      : "bg-[#C45C26]/10 text-[#C45C26]"
+                  }`}>
+                    {isElevated && <Sparkles className="w-3 h-3" />}
+                    {t.badge}
+                  </div>
+                )}
+
+                <p className={`font-bold tracking-tight mb-1 ${isElevated ? "text-2xl" : "text-xl"} ${isDark ? "text-white" : "text-foreground"}`}>
+                  {t.name}
+                </p>
+                <p className={`text-sm mb-4 leading-snug ${isDark ? "text-white/60" : "text-black dark:text-white"}`}>
+                  {t.blurb}
+                </p>
+
+                <div className="mb-5">
+                  <p className={`font-extrabold tracking-tight ${isElevated ? "text-4xl" : "text-3xl"} ${isDark ? "text-white" : "text-foreground"}`}>
+                    {t.priceNgn === 0 ? "₦0" : `₦${t.priceNgn.toLocaleString()}`}
+                    <span className={`text-sm font-medium ml-1 ${isDark ? "text-white/50" : "text-black dark:text-white"}`}>/mo</span>
+                  </p>
+                  {t.priceUsdRef > 0 && (
+                    <p className={`text-xs mt-1 ${isDark ? "text-white/40" : "text-black dark:text-white"}`}>≈ ${t.priceUsdRef} USD reference</p>
                   )}
                 </div>
-                <p className="text-xs text-black dark:text-white mb-3">{t.blurb}</p>
-                <p className="text-xl font-semibold text-foreground mb-1">
-                  {t.priceNgn === 0 ? "₦0" : `₦${t.priceNgn.toLocaleString()}`}
-                  <span className="text-xs font-normal text-black dark:text-white">/mo</span>
-                </p>
-                {t.priceUsdRef > 0 && (
-                  <p className="text-xs text-black dark:text-white mb-3">≈ ${t.priceUsdRef} USD reference</p>
-                )}
-                <div className="space-y-1.5 mb-4 flex-1">
+
+                <div className="space-y-2.5 mb-6 flex-1">
                   {t.features.map((f) => (
-                    <div key={f} className="flex items-start gap-1.5">
-                      <Check className="w-3.5 h-3.5 text-[#2D6A4F] shrink-0 mt-0.5" />
-                      <p className="text-xs text-black dark:text-white">{f}</p>
+                    <div key={f} className="flex items-start gap-2">
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
+                        isDark ? "bg-[#C9A227]/20" : isElevated ? "bg-[#2D6A4F]/15" : "bg-[#C45C26]/10"
+                      }`}>
+                        <Check className={`w-2.5 h-2.5 ${isDark ? "text-[#D9B94A]" : isElevated ? "text-[#2D6A4F]" : "text-[#C45C26]"}`} strokeWidth={3} />
+                      </div>
+                      <p className={`text-sm leading-snug ${isDark ? "text-white/85" : "text-foreground"}`}>{f}</p>
                     </div>
                   ))}
                 </div>
+
                 {t.value === "free" ? (
-                  <p className="text-xs text-black dark:text-white text-center py-2">
+                  <div className="text-center py-2.5 text-sm font-medium text-black dark:text-white border border-dashed border-border rounded-full">
                     {isCurrent ? "You're on Free" : "Included by default"}
-                  </p>
+                  </div>
                 ) : isComplianceLocked ? (
-                  <Button type="button" disabled
-                    className="rounded-full h-9 text-sm w-full">
+                  <button type="button" disabled
+                    className="w-full h-11 rounded-full text-sm font-semibold bg-white/5 text-white/40 border border-white/10 cursor-not-allowed">
                     Corporate organisations only
-                  </Button>
+                  </button>
                 ) : isCurrent ? (
-                  <Button type="button" disabled
-                    className="rounded-full h-9 text-sm w-full">
-                    Current plan
-                  </Button>
+                  <div className={`w-full h-11 rounded-full text-sm font-semibold flex items-center justify-center gap-1.5 ${
+                    isDark ? "bg-white/10 text-white" : "bg-[#2D6A4F]/10 text-[#2D6A4F]"
+                  }`}>
+                    <Check className="w-4 h-4" /> Current plan
+                  </div>
                 ) : (
-                  <Button type="button"
+                  <button type="button"
                     onClick={() => startCheckout(t.value)}
                     disabled={checkingOutTier !== null}
-                    className="bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full h-9 text-sm w-full">
+                    className={`w-full h-11 rounded-full text-sm font-semibold transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${
+                      isDark
+                        ? "bg-gradient-to-b from-[#D9B94A] to-[#C9A227] text-[#0E1512] shadow-[0_4px_14px_-2px_rgba(201,162,39,0.5)] hover:shadow-[0_6px_20px_-2px_rgba(201,162,39,0.65)] hover:-translate-y-0.5 active:translate-y-0"
+                        : isElevated
+                        ? "bg-gradient-to-b from-[#3a8560] to-[#2D6A4F] text-white shadow-[0_4px_14px_-2px_rgba(45,106,79,0.5)] hover:shadow-[0_6px_20px_-2px_rgba(45,106,79,0.65)] hover:-translate-y-0.5 active:translate-y-0"
+                        : "bg-gradient-to-b from-[#d4713d] to-[#C45C26] text-white shadow-[0_4px_14px_-2px_rgba(196,92,38,0.4)] hover:shadow-[0_6px_20px_-2px_rgba(196,92,38,0.55)] hover:-translate-y-0.5 active:translate-y-0"
+                    }`}>
                     {checkingOutTier === t.value
-                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      : <>{org && TIERS.findIndex(x => x.value === t.value) > TIERS.findIndex(x => x.value === org.subscription_tier) ? "Upgrade" : "Switch"} <ExternalLink className="w-3 h-3 ml-1.5" /></>}
-                  </Button>
+                      ? <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                      : (org && TIERS.findIndex(x => x.value === t.value) > TIERS.findIndex(x => x.value === org.subscription_tier) ? `Upgrade to ${t.name}` : `Switch to ${t.name}`)}
+                  </button>
                 )}
               </div>
             );
