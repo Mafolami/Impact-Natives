@@ -169,7 +169,7 @@ export function LabRequestModalDashboard({
   onSuccess?: () => void;
   initialTier?: "starter" | "standard" | "strategic";
 }) {
-    const { user, profile } = useAuth();
+    const { user, profile, orgOwnerId } = useAuth();
   const isIndividual = profile?.user_type === "individual_creative";
   const [emailError, setEmailError] = useState("");
   const [form, setForm] = useState({
@@ -225,7 +225,7 @@ const displayTotal = totalSteps;
       expected_outcomes:    outcomes,
       idea_stages:          stages,
       status:               "proposal_review",
-      user_id:              user?.id ?? null,
+      user_id:              orgOwnerId ?? user?.id ?? null,
     });
     setLoading(false);
     if (error) alert(error.message);

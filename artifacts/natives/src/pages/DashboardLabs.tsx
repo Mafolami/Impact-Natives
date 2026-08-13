@@ -204,24 +204,24 @@ function LabDetail({ lab, onBack }: { lab: LabRow; onBack: () => void }) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function DashboardLabs() {
-  const { user } = useAuth();
+  const { user, orgOwnerId } = useAuth();
   const [labs, setLabs]         = useState<LabRow[]>([]);
   const [loading, setLoading]   = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selected, setSelected] = useState<LabRow | null>(null);
 
   async function load() {
-    if (!user) return;
+    if (!user || !orgOwnerId) return;
     const { data } = await supabase
       .from("lab_requests")
       .select("id, organisation_name, organisation_type, contact_name, email, problem, why_it_matters, sector, geography, desired_participants, expected_outcomes, idea_stages, budget_range, budget_tier, status, created_at")
-      .eq("user_id", user.id)
+      .eq("user_id", orgOwnerId)
       .order("created_at", { ascending: false });
     if (data) setLabs(data as LabRow[]);
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { load(); }, [user, orgOwnerId]);
 
   if (selected) {
     return <LabDetail lab={selected} onBack={() => setSelected(null)} />;
