@@ -9,7 +9,7 @@ import { Loader2 } from "lucide-react";
 
 export default function DashboardLayout({ children, adminOnly }: { children: React.ReactNode; adminOnly?: boolean }) {
   const { user, profile, loading, signOut, orgOwnerId, hasPendingInvite } = useAuth();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -39,6 +39,16 @@ export default function DashboardLayout({ children, adminOnly }: { children: Rea
       }, 1000);
       return () => clearTimeout(timer);
     }
+    // A pending invite takes priority over everything else in the
+    // dashboard shell -- there's nothing useful to do here (no org of
+    // their own, not yet an active member of anyone else's) until they
+    // accept or decline. Re-checked on every route change (location is
+    // a dependency below), so this can't be bypassed by typing a
+    // different dashboard URL directly.
+    if (hasPendingInvite && !location.startsWith("/dashboard/settings")) {
+      navigate("/dashboard/settings?tab=team");
+      return undefined;
+    }
     if (adminOnly) {
       if (profile && !profile.is_admin) navigate("/dashboard");
       return undefined;
@@ -55,7 +65,7 @@ export default function DashboardLayout({ children, adminOnly }: { children: Rea
       navigate("/onboarding");
     }
     return undefined;
-  }, [user, profile, loading, navigate, adminOnly, orgOwnerId, hasPendingInvite]);
+  }, [user, profile, loading, navigate, adminOnly, orgOwnerId, hasPendingInvite, location]);
 
   if (loading || !user) {
     return (
