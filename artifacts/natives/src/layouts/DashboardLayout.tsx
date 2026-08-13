@@ -8,7 +8,7 @@ import Topbar from "@/components/dashboard/Topbar";
 import { Loader2 } from "lucide-react";
 
 export default function DashboardLayout({ children, adminOnly }: { children: React.ReactNode; adminOnly?: boolean }) {
-  const { user, profile, loading, signOut } = useAuth();
+  const { user, profile, loading, signOut, orgOwnerId, hasPendingInvite } = useAuth();
   const [, navigate] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -43,11 +43,19 @@ export default function DashboardLayout({ children, adminOnly }: { children: Rea
       if (profile && !profile.is_admin) navigate("/dashboard");
       return undefined;
     }
-    if (profile && !profile.onboarding_completed) {
+    // A pending invitee (hasn't accepted yet) or an active Member of
+    // someone else's org (orgOwnerId resolved to someone other than
+    // themself) never needs the individual/organisation onboarding flow
+    // -- they're joining an existing org, not creating a profile from
+    // scratch. Without this, a freshly-invited account with
+    // onboarding_completed still false gets forced into /onboarding
+    // before they can ever reach Settings > Team to accept.
+    const isTeamJoiner = hasPendingInvite || (orgOwnerId && orgOwnerId !== user.id);
+    if (profile && !profile.onboarding_completed && !isTeamJoiner) {
       navigate("/onboarding");
     }
     return undefined;
-  }, [user, profile, loading, navigate, adminOnly]);
+  }, [user, profile, loading, navigate, adminOnly, orgOwnerId, hasPendingInvite]);
 
   if (loading || !user) {
     return (

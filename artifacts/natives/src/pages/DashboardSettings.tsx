@@ -30,7 +30,10 @@ const NOTIFICATION_LABELS: { key: keyof NotificationPrefs; label: string; sub: s
 
 export default function DashboardSettings() {
   const { user, profile, signOut, refreshProfile } = useAuth();
-  const [tab, setTab] = useState<SettingsTab>("account");
+  const initialTab = (new URLSearchParams(window.location.search).get("tab") as SettingsTab) || "account";
+  const [tab, setTab] = useState<SettingsTab>(
+    ["account", "privacy", "notifications", "team", "danger"].includes(initialTab) ? initialTab : "account"
+  );
 
   // ── Password ──────────────────────────────────────────────────────────────
   const [pwSending, setPwSending]   = useState(false);

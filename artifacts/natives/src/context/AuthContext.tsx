@@ -49,6 +49,13 @@ interface AuthContextType {
   // live, without changing behavior at all for the vast majority of
   // users who are Owners (orgOwnerId === user.id for them).
   orgOwnerId: string | null;
+  // True when this user has an org_members row with status='pending' for
+  // any org -- i.e. they've been invited to a team but haven't accepted
+  // yet. A brand-new invited account has no organizations row of their
+  // own and hasn't onboarded, so without this flag DashboardLayout's
+  // onboarding gate would force them into the individual/organisation
+  // onboarding flow before they can ever reach Settings > Team to accept.
+  hasPendingInvite: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
@@ -92,11 +99,23 @@ async function resolveOrgOwnerId(userId: string): Promise<string> {
   return userId;
 }
 
+async function checkPendingInvite(userId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("org_members")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("status", "pending")
+    .limit(1)
+    .maybeSingle();
+  return !!data;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [orgOwnerId, setOrgOwnerId] = useState<string | null>(null);
+  const [hasPendingInvite, setHasPendingInvite] = useState(false);
   const [loading, setLoading] = useState(true);
 
   async function fetchProfile(userId: string) {
@@ -119,8 +138,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function fetchOrgOwnerId(userId: string) {
-    const resolved = await resolveOrgOwnerId(userId);
+    const [resolved, pending] = await Promise.all([
+      resolveOrgOwnerId(userId),
+      checkPendingInvite(userId),
+    ]);
     setOrgOwnerId(resolved);
+    setHasPendingInvite(pending);
   }
 
   async function refreshProfile() {
@@ -187,6 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setProfile(null);
         setOrgOwnerId(null);
+        setHasPendingInvite(false);
       }
     });
 
@@ -234,6 +258,7 @@ async function signIn(email: string, password: string) {
         session,
         profile,
         orgOwnerId,
+        hasPendingInvite,
         loading,
         signIn,
         signUp,
