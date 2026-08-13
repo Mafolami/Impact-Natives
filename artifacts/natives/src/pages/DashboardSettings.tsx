@@ -4,8 +4,9 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { supabase } from "@/lib/supabase";
 import { Loader2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TeamTab } from "@/components/dashboard/TeamTab";
 
-type SettingsTab = "account" | "privacy" | "notifications" | "danger";
+type SettingsTab = "account" | "privacy" | "notifications" | "team" | "danger";
 
 interface NotificationPrefs {
   new_eoi: boolean;
@@ -142,6 +143,7 @@ export default function DashboardSettings() {
     { value: "account",       label: "Account" },
     { value: "privacy",       label: "Privacy" },
     { value: "notifications", label: "Notifications" },
+    { value: "team",          label: "Team" },
     { value: "danger",        label: "Danger zone" },
   ];
 
@@ -168,6 +170,14 @@ export default function DashboardSettings() {
         "EOI notifications alert you when someone expresses interest in your initiative.",
         "Partnership notifications fire when a conversation is confirmed.",
         "Weekly digest summarises ecosystem activity in your sectors.",
+      ],
+    },
+    team: {
+      title: "Team tips",
+      items: [
+        "Only the organisation owner can invite or remove team members.",
+        "Invited members get full access to your org's account, whether or not they already have an Impact Natives login.",
+        "Removing a member revokes their access immediately.",
       ],
     },
     danger: {
@@ -361,6 +371,9 @@ export default function DashboardSettings() {
           </div>
         </div>
       )}
+
+      {/* ── Team ── */}
+      {tab === "team" && <TeamTab />}
 
       {/* ── Danger Zone ── */}
       {tab === "danger" && (
