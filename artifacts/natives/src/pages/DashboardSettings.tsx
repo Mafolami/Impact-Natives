@@ -5,8 +5,9 @@ import { supabase } from "@/lib/supabase";
 import { Loader2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TeamTab } from "@/components/dashboard/TeamTab";
+import { BillingTab } from "@/components/dashboard/BillingTab";
 
-type SettingsTab = "account" | "privacy" | "notifications" | "team" | "danger";
+type SettingsTab = "account" | "privacy" | "notifications" | "team" | "billing" | "danger";
 
 interface NotificationPrefs {
   new_eoi: boolean;
@@ -32,7 +33,7 @@ export default function DashboardSettings() {
   const { user, profile, orgOwnerId, signOut, refreshProfile } = useAuth();
   const initialTab = (new URLSearchParams(window.location.search).get("tab") as SettingsTab) || "account";
   const [tab, setTab] = useState<SettingsTab>(
-    ["account", "privacy", "notifications", "team", "danger"].includes(initialTab) ? initialTab : "account"
+    ["account", "privacy", "notifications", "team", "billing", "danger"].includes(initialTab) ? initialTab : "account"
   );
 
   // ── Password ──────────────────────────────────────────────────────────────
@@ -147,6 +148,7 @@ export default function DashboardSettings() {
     { value: "privacy",       label: "Privacy" },
     { value: "notifications", label: "Notifications" },
     { value: "team",          label: "Team" },
+    { value: "billing",       label: "Billing" },
     { value: "danger",        label: "Danger zone" },
   ];
 
@@ -181,6 +183,14 @@ export default function DashboardSettings() {
         "Only the organisation owner can invite or remove team members.",
         "Invited members get full access to your org's account, whether or not they already have an Impact Natives login.",
         "Removing a member revokes their access immediately.",
+      ],
+    },
+    billing: {
+      title: "Billing tips",
+      items: [
+        "Renewal isn't automatic yet — check out again before your period ends to keep access.",
+        "Compliance is available to corporate organisations only.",
+        "Switching plans starts a new checkout for the new tier.",
       ],
     },
     danger: {
@@ -385,6 +395,9 @@ export default function DashboardSettings() {
 
       {/* ── Team ── */}
       {tab === "team" && <TeamTab />}
+
+      {/* ── Billing ── */}
+      {tab === "billing" && <BillingTab />}
 
       {/* ── Danger Zone ── */}
       {tab === "danger" && (
