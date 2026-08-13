@@ -202,6 +202,24 @@ export function TeamTab() {
     setActingOn(null);
   }
 
+  // ── Owner: resend a pending invite ───────────────────────────────────
+  // Same edge function as the invite form, called with the row's own
+  // email/seat_label -- invite-team-member's own logic already handles
+  // this correctly (re-sends via inviteUserByEmail for an unconfirmed
+  // account, or just refreshes the notification for a confirmed one).
+  const [resendError, setResendError] = useState<string | null>(null);
+  async function resendInvite(row: RosterRow) {
+    setActingOn(row.id);
+    setResendError(null);
+    const { data, error } = await supabase.functions.invoke("invite-team-member", {
+      body: { invited_email: row.invited_email, seat_label: row.seat_label },
+    });
+    if (error || data?.error) {
+      setResendError(data?.error || error?.message || "Could not resend invite.");
+    }
+    setActingOn(null);
+  }
+
   // ── Invitee: accept / decline ────────────────────────────────────────────
   async function respondToInvite(invite: PendingInvite, accept: boolean) {
     setActingOn(invite.id);
@@ -348,6 +366,14 @@ export function TeamTab() {
               <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_STYLES[row.status]}`}>
                 {row.status === "pending" ? "Pending" : "Active"}
               </span>
+              {row.status === "pending" && (
+                <button type="button"
+                  onClick={() => resendInvite(row)}
+                  disabled={actingOn === row.id}
+                  className="text-xs text-[#2D6A4F] hover:text-[#245c43] font-medium">
+                  {actingOn === row.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Resend"}
+                </button>
+              )}
               <button type="button"
                 onClick={() => revokeMember(row)}
                 disabled={actingOn === row.id}
@@ -357,6 +383,11 @@ export function TeamTab() {
             </div>
           </div>
         ))}
+        {resendError && (
+          <div className="px-5 py-3">
+            <p className="text-xs text-red-500">{resendError}</p>
+          </div>
+        )}
       </div>
     </div>
   );
