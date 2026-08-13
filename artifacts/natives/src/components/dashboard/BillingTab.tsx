@@ -7,21 +7,20 @@
 // Pricing is fixed NGN (see paystack-initialize's PRICING_NGN_KOBO -- kept
 // in sync manually, there's no shared config file for this yet). No true
 // recurring billing exists: a purchase is a single Paystack transaction
-// that buys 30 days, tracked via subscription_current_period_end. There is
-// deliberately no "cancel" action here -- there's nothing recurring to
-// cancel. An org simply reverts to Free automatically (via the
-// downgrade-expired-subscriptions cron) if it isn't renewed by manually
-// checking out again before the period ends.
+// that buys 30 days, tracked via subscription_current_period_end.
 //
-// v2: full feature lists per tier (not trimmed -- this page's job is to
-// make the value case, so it shouldn't undersell itself), a visually
-// distinct treatment per tier (Plus elevated as the default recommendation,
-// Compliance in a dark "audit-grade" register, Free deliberately quiet),
-// and a real fix for the post-checkout flash: the payment-confirmation
-// poll used to call the same load() that resets role to "loading" on every
-// tick, so the whole tab blinked to a spinner and back up to 6 times over
-// 15 seconds. It now polls silently and only ever moves forward once real
-// data is in -- no visible state flicker.
+// v3: 2x2 card grid (4-across read as cramped at this content density --
+// each card carries a full feature list, not a trimmed one). Cancel is now
+// real: calls the cancel-subscription edge function, which reverts to Free
+// immediately (there's no recurring charge to actually cancel -- see that
+// function's header for why organizations' subscription_* columns can't be
+// written directly from the client). Two-step confirm, same pattern as the
+// Danger Zone tab in this same Settings page.
+//
+// v2 (carried forward): full feature lists per tier, distinct visual
+// register per tier (Plus elevated/primary, Pro accent, Compliance dark
+// "audit-grade", Free quiet), and the post-checkout poll refetches silently
+// instead of re-triggering the loading spinner on every tick.
 
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -152,6 +151,11 @@ export function BillingTab() {
   const pollAttempts = useRef(0);
   const pollInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // ── Cancel plan ──────────────────────────────────────────────────────
+  const [cancelConfirm, setCancelConfirm] = useState(false);
+  const [canceling, setCanceling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+
   async function loadWithRoleTransition() {
     if (!user) return;
     setRole("loading");
@@ -235,6 +239,19 @@ export function BillingTab() {
     }
   }
 
+  async function cancelPlan() {
+    setCanceling(true);
+    setCancelError(null);
+    const { data, error } = await supabase.functions.invoke("cancel-subscription", { body: {} });
+    setCanceling(false);
+    if (error || data?.error) {
+      setCancelError(data?.error || error?.message || "Could not cancel plan.");
+      return;
+    }
+    setCancelConfirm(false);
+    await refetchOrgSilently();
+  }
+
   if (role === "loading") {
     return (
       <div className="flex items-center justify-center py-16 text-muted-foreground">
@@ -255,13 +272,14 @@ export function BillingTab() {
 
   const currentTierInfo = TIERS.find(t => t.value === org?.subscription_tier) ?? TIERS[0];
   const isOwner = role === "owner";
+  const canCancel = isOwner && org && org.subscription_tier !== "free" && org.subscription_status === "active";
 
   return (
     <div className="space-y-8">
       {/* ── Current plan summary ── */}
       <div className="rounded-xl border border-border bg-white dark:bg-card px-6 py-5">
         <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Current plan</p>
-        <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
             <div className="flex items-center gap-2.5">
               <p className="text-2xl font-bold text-foreground tracking-tight">{currentTierInfo.name}</p>
@@ -281,16 +299,50 @@ export function BillingTab() {
             )}
           </div>
           {confirmingPayment && (
-            <div className="flex items-center gap-2 text-xs text-[#2D6A4F] font-medium">
+            <div className="flex items-center gap-2 text-xs text-[#2D6A4F] font-medium shrink-0">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
               Confirming your payment...
             </div>
           )}
         </div>
+
         {!isOwner && (
           <p className="text-xs text-black dark:text-white mt-4">
             Only the organisation owner can manage billing.
           </p>
+        )}
+
+        {/* ── Cancel plan ── */}
+        {canCancel && !cancelConfirm && (
+          <div className="mt-4 pt-4 border-t border-border">
+            <button type="button"
+              onClick={() => setCancelConfirm(true)}
+              className="text-xs text-red-500 hover:text-red-600 font-medium">
+              Cancel plan
+            </button>
+          </div>
+        )}
+        {canCancel && cancelConfirm && (
+          <div className="mt-4 pt-4 border-t border-border space-y-2">
+            <p className="text-sm text-foreground font-medium">
+              Cancel your {currentTierInfo.name} plan? You'll lose access to {currentTierInfo.name} features immediately — this doesn't wait for your renewal date.
+            </p>
+            {cancelError && <p className="text-xs text-red-500">{cancelError}</p>}
+            <div className="flex gap-2">
+              <button type="button"
+                onClick={() => { setCancelConfirm(false); setCancelError(null); }}
+                disabled={canceling}
+                className="h-9 px-4 rounded-full border border-border text-sm font-medium hover:bg-muted transition-colors">
+                Keep plan
+              </button>
+              <button type="button"
+                onClick={cancelPlan}
+                disabled={canceling}
+                className="h-9 px-4 rounded-full bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors disabled:opacity-60">
+                {canceling ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : "Yes, cancel plan"}
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
@@ -302,7 +354,7 @@ export function BillingTab() {
 
       {/* ── Plan cards ── */}
       {isOwner && (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {TIERS.map((t) => {
             const isCurrent = org?.subscription_tier === t.value;
             const isComplianceLocked = t.value === "compliance" && !CORPORATE_TYPES.includes(org?.organisation_type || "");
@@ -312,15 +364,15 @@ export function BillingTab() {
             const cardBase = "rounded-2xl flex flex-col transition-all duration-200";
             const cardStyle =
               isDark
-                ? "bg-[#0E1512] border border-[#2A3B33] text-white lg:-translate-y-0"
+                ? "bg-[#0E1512] border border-[#2A3B33] text-white"
                 : isElevated
-                ? "bg-white dark:bg-card border-2 border-[#2D6A4F] shadow-[0_12px_32px_-8px_rgba(45,106,79,0.35)] lg:-translate-y-3"
+                ? "bg-white dark:bg-card border-2 border-[#2D6A4F] shadow-[0_12px_32px_-8px_rgba(45,106,79,0.35)]"
                 : t.register === "accent"
                 ? "bg-white dark:bg-card border-2 border-[#C45C26]/40"
                 : "bg-white dark:bg-card border border-border";
 
             return (
-              <div key={t.value} className={`${cardBase} ${cardStyle} px-6 ${isElevated ? "py-8" : "py-6"}`}>
+              <div key={t.value} className={`${cardBase} ${cardStyle} px-7 ${isElevated ? "py-8" : "py-7"}`}>
                 {t.badge && (
                   <div className={`inline-flex items-center gap-1 self-start mb-3 text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
                     isElevated
@@ -334,24 +386,26 @@ export function BillingTab() {
                   </div>
                 )}
 
-                <p className={`font-bold tracking-tight mb-1 ${isElevated ? "text-2xl" : "text-xl"} ${isDark ? "text-white" : "text-foreground"}`}>
-                  {t.name}
-                </p>
-                <p className={`text-sm mb-4 leading-snug ${isDark ? "text-white/60" : "text-black dark:text-white"}`}>
-                  {t.blurb}
-                </p>
-
-                <div className="mb-5">
-                  <p className={`font-extrabold tracking-tight ${isElevated ? "text-4xl" : "text-3xl"} ${isDark ? "text-white" : "text-foreground"}`}>
-                    {t.priceNgn === 0 ? "₦0" : `₦${t.priceNgn.toLocaleString()}`}
-                    <span className={`text-sm font-medium ml-1 ${isDark ? "text-white/50" : "text-black dark:text-white"}`}>/mo</span>
-                  </p>
-                  {t.priceUsdRef > 0 && (
-                    <p className={`text-xs mt-1 ${isDark ? "text-white/40" : "text-black dark:text-white"}`}>≈ ${t.priceUsdRef} USD reference</p>
-                  )}
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className={`font-bold tracking-tight mb-1 ${isElevated ? "text-2xl" : "text-xl"} ${isDark ? "text-white" : "text-foreground"}`}>
+                      {t.name}
+                    </p>
+                    <p className={`text-sm mb-4 leading-snug max-w-sm ${isDark ? "text-white/60" : "text-black dark:text-white"}`}>
+                      {t.blurb}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className={`font-extrabold tracking-tight leading-none ${isElevated ? "text-4xl" : "text-3xl"} ${isDark ? "text-white" : "text-foreground"}`}>
+                      {t.priceNgn === 0 ? "₦0" : `₦${t.priceNgn.toLocaleString()}`}
+                    </p>
+                    <p className={`text-xs mt-1 ${isDark ? "text-white/50" : "text-black dark:text-white"}`}>
+                      /mo{t.priceUsdRef > 0 ? ` · ≈ $${t.priceUsdRef}` : ""}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="space-y-2.5 mb-6 flex-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2.5 mb-6 mt-2 flex-1">
                   {t.features.map((f) => (
                     <div key={f} className="flex items-start gap-2">
                       <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
