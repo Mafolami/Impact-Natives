@@ -79,7 +79,12 @@ export function ddReadinessLabeledItems(org: Record<string, any>): { key: string
 
 export function computeTrustTier(ddScore: number, ddEvidence: Record<string, any> | null | undefined): TrustTierResult {
   const legal = ddEvidence?.legal_compliance_declaration ?? {};
-  const hasRedFlag = Boolean(legal.hasBlacklisting) || Boolean(legal.hasPendingDisputes);
+  const conflictDisclosure = ddEvidence?.conflict_disclosure ?? {};
+  const hasRedFlag =
+    Boolean(legal.hasBlacklisting) ||
+    Boolean(legal.hasPendingDisputes) ||
+    Boolean(legal.conflictsToDisclose) ||
+    Boolean(conflictDisclosure.hasConflicts);
 
   if (hasRedFlag) return { tier: "flagged", label: "Flagged", hasRedFlag: true };
   if (ddScore >= 90) return { tier: "gold", label: "Gold", hasRedFlag: false };

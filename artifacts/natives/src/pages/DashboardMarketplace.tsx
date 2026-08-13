@@ -1203,7 +1203,7 @@ function MarketplaceDetail({
     try {
       const combined = [partnershipTypes.join(", "), esgAdoption ? "ESG/CSR Adoption" : ""].filter(Boolean).join(" + ");
       const { data: eoiData, error: eoiErr } = await supabase.from("expressions_of_interest")
-        .insert({ initiative_id: initiative.id, user_id: orgOwnerId, partnership_type: combined, message: message || null, esg_adoption: esgAdoption })
+        .insert({ initiative_id: initiative.id, user_id: orgOwnerId, submitted_by_user_id: user.id, partnership_type: combined, message: message || null, esg_adoption: esgAdoption })
         .select("id").single();
       if (eoiErr) { setEoiError(eoiErr.code === "23505" ? "Your organisation has already expressed interest in this initiative." : eoiErr.message); return; }
       await supabase.rpc("increment_eoi_count", { p_initiative_id: initiative.id });

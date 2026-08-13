@@ -131,6 +131,7 @@ export default function InitiativeDetail() {
     const { error } = await supabase.from("expressions_of_interest").insert({
       initiative_id: id,
       user_id: orgOwnerId,
+      submitted_by_user_id: user.id,
       partnership_type: partnershipType,
       message: message || null,
     });

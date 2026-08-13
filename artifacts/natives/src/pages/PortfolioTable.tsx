@@ -290,7 +290,7 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
         existingId: existing?.id ?? null,
         relationshipType: "initiative_partner",
         initiativeId: row.raw.initiativeId,
-        partnerUserId: row.raw.partnerUserId,
+        partnerUserId: row.raw.partnerActorUserId,
         status,
         fundingDisbursed: isInitiative ? fundingDisbursed : null,
         fundingAmount: isInitiative && fundingDisbursed && fundingAmount ? Number(fundingAmount) : null,

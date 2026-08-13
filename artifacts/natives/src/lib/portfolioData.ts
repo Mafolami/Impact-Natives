@@ -62,7 +62,17 @@ export interface PortfolioRow {
   timeline: PortfolioTimelineStage[];
   raw:
     | { kind: "initiative_mine"; initiativeId: string }
-    | { kind: "initiative_eoi"; initiativeId: string; eoiId: string; conversationId: string | null; partnerUserId: string }
+    // partnerUserId: org identity (organizations.user_id) -- used only for
+    // MoU creation (newForUserId), Inbound-gated in mouHrefFor. Do not use
+    // for outcome-tracking or confirmed_partners matching.
+    // partnerActorUserId: the real conversation participant on the
+    // expressing side -- used for the outcome-tracking join key and
+    // mouExecutedFor, consistently on both directions so the same
+    // underlying relationship resolves to the same partnership_outcomes
+    // row regardless of which side is viewing/recording it. Null when the
+    // real submitter isn't known (legacy EOI rows predating
+    // submitted_by_user_id).
+    | { kind: "initiative_eoi"; initiativeId: string; eoiId: string; conversationId: string | null; partnerUserId: string; partnerActorUserId: string | null }
     | { kind: "partnership_connection"; connectionId: string; orgId: string | null }
     | { kind: "partnership_listing"; orgId: string };
 }
@@ -334,7 +344,7 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
           ...(conv?.opened_at ? [{ label: "In conversation", date: conv.opened_at }] : []),
           ...(conv?.confirmed_at ? [{ label: "Confirmed", date: conv.confirmed_at }] : []),
         ],
-        raw: { kind: "initiative_eoi", initiativeId: eoi.initiative_id, eoiId: eoi.id, conversationId: eoi.conversation_id, partnerUserId: actorUserId },
+        raw: { kind: "initiative_eoi", initiativeId: eoi.initiative_id, eoiId: eoi.id, conversationId: eoi.conversation_id, partnerUserId: ini?.user_id ?? actorUserId, partnerActorUserId: actorUserId },
       });
     }
   }
@@ -345,7 +355,7 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
     const myInitIds = myInitiatives.map(i => i.id);
     const { data: inboundEois } = await supabase
       .from("expressions_of_interest")
-      .select("id, initiative_id, user_id, partnership_type, created_at, conversation_id")
+      .select("id, initiative_id, user_id, submitted_by_user_id, partnership_type, created_at, conversation_id")
       .in("initiative_id", myInitIds);
 
     if (!inboundEois?.length) return;
@@ -376,19 +386,7 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
       const org = expresserOrgMap.get(eoi.user_id);
       const profile = expresserProfileMap.get(eoi.user_id);
       const conv = eoi.conversation_id ? convMap2.get(eoi.conversation_id) : undefined;
-      // NOTE: same identity mismatch as the Outbound block above, but not
-      // fixed here. eoi.user_id is orgOwnerId of the expressing org (post
-      // the self-EOI sweep), while confirmed_partners[].user_id is the
-      // real conversation participant (conversation.other_user_id,
-      // computed relative to a viewer elsewhere -- not a real column on
-      // conversations, and not fetched in this function at all). Harmless
-      // today since every expressing org is solo (owner's id === orgOwnerId
-      // === the real conversation participant), but will misreport "MoU
-      // Executed" status here the moment a Member (not the Owner) is the
-      // one who actually held the conversation. Needs conversation
-      // participant data this function doesn't have; not fixed as part of
-      // this sweep.
-      const status = mouExecutedFor(ini?.confirmed_partners, eoi.user_id) ? "MoU Executed" : deriveEoiStatus(conv?.status);
+      const status = mouExecutedFor(ini?.confirmed_partners, eoi.submitted_by_user_id ?? eoi.user_id) ? "MoU Executed" : deriveEoiStatus(conv?.status);
       rows.push({
         id: `ini-eoi-in-${eoi.id}`,
         title: ini?.title ?? "Initiative",
@@ -409,7 +407,7 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
           ...(conv?.opened_at ? [{ label: "In conversation", date: conv.opened_at }] : []),
           ...(conv?.confirmed_at ? [{ label: "Confirmed", date: conv.confirmed_at }] : []),
         ],
-        raw: { kind: "initiative_eoi", initiativeId: eoi.initiative_id, eoiId: eoi.id, conversationId: eoi.conversation_id, partnerUserId: eoi.user_id },
+        raw: { kind: "initiative_eoi", initiativeId: eoi.initiative_id, eoiId: eoi.id, conversationId: eoi.conversation_id, partnerUserId: eoi.user_id, partnerActorUserId: eoi.submitted_by_user_id ?? null },
       });
     }
   }
@@ -515,7 +513,7 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
   // ── 6. Attach outcome tracking to confirmed/formed relationships only ──
   const initiativeOutcomeKeys = rows.filter(
     r => r.raw.kind === "initiative_eoi" && r.status === "Partner confirmed"
-  ) as (PortfolioRow & { raw: { kind: "initiative_eoi"; initiativeId: string; partnerUserId: string } })[];
+  ) as (PortfolioRow & { raw: { kind: "initiative_eoi"; initiativeId: string; partnerActorUserId: string | null } })[];
   const connectionOutcomeRows = rows.filter(
     r => r.raw.kind === "partnership_connection" && r.status === "Partnership formed"
   ) as (PortfolioRow & { raw: { kind: "partnership_connection"; connectionId: string } })[];
@@ -545,7 +543,8 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
     const connOutcomeMap = new Map((connOutcomes ?? []).map((o: any) => [o.connection_id, o]));
 
     for (const row of initiativeOutcomeKeys) {
-      const key = `${row.raw.initiativeId}:${row.raw.partnerUserId}`;
+      if (!row.raw.partnerActorUserId) continue;
+      const key = `${row.raw.initiativeId}:${row.raw.partnerActorUserId}`;
       const outcome = initOutcomeMap.get(key) ?? null;
       row.outcome = outcome;
       if (outcome?.updated_at) {
