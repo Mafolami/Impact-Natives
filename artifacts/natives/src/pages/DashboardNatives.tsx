@@ -29,7 +29,6 @@ interface ProfileRow {
   user_type?: string;
   social_links?: { label: string; url: string }[];
   show_individual_profile?: boolean;
-  member_org_name?: string;
 }
 
 interface OrgRow {
@@ -288,52 +287,27 @@ function IndividualsPanel({ search, sectorFilter, countryFilter, autoOpenUserId,
       if (error) console.error(error);
       const allRows: ProfileRow[] = data ?? [];
 
-      // Find active org associations (Owner rows are already handled by
-      // show_individual_profile.eq.true in the query above -- this is
-      // for team Members, whose org link lives in org_members instead).
-      // org_members.user_id has no FK to profiles/organizations (see
-      // TeamTab.tsx), so this is separate queries merged client-side.
+      // Team Members never appear as "Individuals" here -- once someone
+      // represents an org (an active org_members row), their public
+      // presence is through that org's own listing, not a personal one.
+      // Prevents a Member unilaterally showing up "tagged with your
+      // organisation" without the Owner's sign-off. org_members.user_id
+      // has no FK to profiles (see TeamTab.tsx), so this is a separate
+      // query, not something the .or() above can express.
       const individualIds = allRows
         .filter(p => p.user_type === "individual_creative" || !p.user_type)
         .map(p => p.id);
-      const memberOrgNameByUserId = new Map<string, string>();
+      let memberUserIds = new Set<string>();
       if (individualIds.length > 0) {
         const { data: memberships } = await supabase
           .from("org_members")
-          .select("user_id, org_id")
+          .select("user_id")
           .in("user_id", individualIds)
           .eq("status", "active");
-        if (memberships && memberships.length > 0) {
-          const orgIds = [...new Set(memberships.map((m: any) => m.org_id))];
-          const { data: orgs } = await supabase
-            .from("organizations")
-            .select("id, organisation_name")
-            .in("id", orgIds);
-          const orgNameById = new Map((orgs ?? []).map((o: any) => [o.id, o.organisation_name]));
-          for (const m of memberships) {
-            const orgName = orgNameById.get(m.org_id);
-            if (orgName) memberOrgNameByUserId.set(m.user_id, orgName);
-          }
-        }
+        memberUserIds = new Set((memberships ?? []).map((m: any) => m.user_id));
       }
 
-      // The Individual profile toggle in Settings > Privacy ("Also show
-      // me as an individual") is the actual control for whether someone
-      // with an org association shows up here -- same field
-      // (show_individual_profile) an org Owner already uses, now also
-      // available to Members. The Public/Private toggle there is
-      // feed-only and plays no part in this. A plain individual with no
-      // org association at all has nothing to opt into -- they show
-      // unconditionally, same as always.
-      const rows = allRows.filter(p => {
-        const memberOrgName = memberOrgNameByUserId.get(p.id);
-        if (memberOrgName) {
-          p.member_org_name = memberOrgName;
-          return p.show_individual_profile === true;
-        }
-        return true;
-      });
-
+      const rows = allRows.filter(p => !memberUserIds.has(p.id));
       setProfiles(rows);
       if (autoOpenUserId) {
         const match = rows.find(p => p.id === autoOpenUserId);
@@ -383,10 +357,10 @@ function ProfileCard({ profile, onClick }: { profile: ProfileRow; onClick: () =>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
           <p className="text-base font-bold text-[#111111] dark:text-[#F5F5F5] truncate">{profile.full_name}</p>
-          {(profile.org_name || profile.member_org_name) && (
+          {profile.org_name && (
             <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
               style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
-              {profile.org_name || profile.member_org_name}
+              {profile.org_name}
             </span>
           )}
         </div>
@@ -427,10 +401,10 @@ function ProfileDetail({ profile, onBack }: { profile: ProfileRow; onBack: () =>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h3 className="text-2xl sm:text-[32px] font-bold text-[#111111] dark:text-[#F5F5F5] tracking-tight">{profile.full_name}</h3>
-                {(profile.org_name || profile.member_org_name) && (
+                {profile.org_name && (
                   <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
                     style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
-                    {profile.org_name || profile.member_org_name}
+                    {profile.org_name}
                   </span>
                 )}
               </div>
