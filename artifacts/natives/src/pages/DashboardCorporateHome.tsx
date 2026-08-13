@@ -77,6 +77,10 @@ export default function CorporateHome({ profile }: { profile: any }) {
   // distinct from "matching succeeded and found zero strong matches," which
   // still has real, weaker data worth showing.
   const [matchingUnavailable, setMatchingUnavailable] = useState(false);
+  // True when the server's eligible:false came from the Plus-tier gate
+  // specifically, not from a genuine "nothing scored yet" state -- these
+  // need different messaging: one says upgrade, the other says wait.
+  const [initiativesRequireUpgrade, setInitiativesRequireUpgrade] = useState(false);
 
   // Metrics
   const [savedCount, setSavedCount]         = useState(0);
@@ -95,6 +99,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
   // Partnership matches
   const [partnershipMatches, setPartnershipMatches] = useState<any[]>([]);
   const [partnershipEligible, setPartnershipEligible] = useState(false);
+  const [partnershipsRequireUpgrade, setPartnershipsRequireUpgrade] = useState(false);
   const [loadingPartnerships, setLoadingPartnerships] = useState(true);
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
@@ -285,6 +290,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
           });
           const result = await res.json();
+          setInitiativesRequireUpgrade(result.reason === "requires_upgrade");
           if (result.error) return { succeeded: false };
           if (typeof result.min_score === "number") setInitiativeMinScore(result.min_score);
           setMatchingUnavailable(false);
@@ -392,9 +398,11 @@ export default function CorporateHome({ profile }: { profile: any }) {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}` },
         }).then(res => res.json()).then(result => {
-          if (!cancelled && typeof result?.completeness === "number") {
+          if (cancelled) return;
+          if (typeof result?.completeness === "number") {
             setCompletenessOverride(result.completeness);
           }
+          setPartnershipsRequireUpgrade(result?.reason === "requires_upgrade");
         }).catch(() => {});
       }
     })();
@@ -505,7 +513,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
             </div>
             <p className="text-xs text-black dark:text-white">
               {missingCsrFields.length > 0
-                ? `Add ${formatMissingList(missingCsrFields)}${displayedCompleteness < 80 ? " — 80% unlocks partnership matches too." : "."}`
+                ? `Add ${formatMissingList(missingCsrFields)}${displayedCompleteness < 80 ? ". 80% also unlocks partnership matches." : "."}`
                 : ""}
             </p>
           </div>
@@ -570,6 +578,18 @@ export default function CorporateHome({ profile }: { profile: any }) {
               {[1, 2, 3].map(i => (
                 <div key={i} className="h-32 rounded-xl border border-border bg-white dark:bg-card animate-pulse" />
               ))}
+            </div>
+          ) : initiativesRequireUpgrade ? (
+            <div className="rounded-xl border border-border bg-white dark:bg-card p-8 text-center min-h-[280px] flex flex-col items-center justify-center">
+              <Leaf className="w-6 h-6 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-sm font-medium text-black dark:text-white mb-1">AI-matched initiatives need an upgrade.</p>
+              <p className="text-xs text-black dark:text-white mb-4">
+                Upgrade to see initiatives matched to your mandate.
+              </p>
+              <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
+                className="text-xs font-semibold text-white bg-[#2D6A4F] rounded-full px-4 py-1.5 hover:bg-[#245c43] transition-colors">
+                Upgrade
+              </button>
             </div>
           ) : matchingUnavailable && matchedInitiatives.length === 0 ? (
             <div className="rounded-xl border border-border bg-white dark:bg-card p-8 text-center min-h-[280px] flex flex-col items-center justify-center">
@@ -709,11 +729,23 @@ export default function CorporateHome({ profile }: { profile: any }) {
               <Building2 className="w-8 h-8 text-muted-foreground/20 mb-4" />
               <p className="text-sm font-medium text-black dark:text-white mb-1">Partnership matches are locked</p>
               <p className="text-xs text-black dark:text-white max-w-[220px] mb-4">
-                Unlocks once your CSR profile hits 80% — you're at {displayedCompleteness}%.
+                Unlocks once your CSR profile hits 80%. You're at {displayedCompleteness}%.
               </p>
               <button type="button" onClick={() => navigate("/dashboard/profile")}
                 className="text-xs font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors">
                 Complete profile
+              </button>
+            </div>
+          ) : partnershipsRequireUpgrade ? (
+            <div className="rounded-2xl border border-border bg-white dark:bg-card p-8 text-center flex flex-col items-center justify-center min-h-[300px]">
+              <Building2 className="w-8 h-8 text-muted-foreground/20 mb-4" />
+              <p className="text-sm font-medium text-black dark:text-white mb-1">AI-matched partners need an upgrade.</p>
+              <p className="text-xs text-black dark:text-white max-w-[220px] mb-4">
+                Upgrade to see organisations matched to your profile.
+              </p>
+              <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
+                className="text-xs font-semibold text-white bg-[#2D6A4F] rounded-full px-4 py-1.5 hover:bg-[#245c43] transition-colors">
+                Upgrade
               </button>
             </div>
           ) : loadingPartnerships ? (
@@ -726,7 +758,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
             <div className="rounded-2xl border border-border bg-white dark:bg-card p-8 text-center">
               <Building2 className="w-6 h-6 text-muted-foreground/30 mx-auto mb-3" />
               <p className="text-sm font-medium text-black dark:text-white mb-1">No partnership matches yet.</p>
-              <p className="text-xs text-black dark:text-white">Check back soon — this refreshes automatically.</p>
+              <p className="text-xs text-black dark:text-white">Matches update the next time you open this page.</p>
             </div>
           ) : (
             <div className="space-y-3">

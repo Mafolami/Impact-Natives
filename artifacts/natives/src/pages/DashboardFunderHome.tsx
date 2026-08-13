@@ -60,6 +60,10 @@ export default function FunderHome({ profile }: { profile: any }) {
   const [loadingMatches, setLoadingMatches] = useState(true);
   const [initiativeMinScore, setInitiativeMinScore] = useState(40);
   const [matchingUnavailable, setMatchingUnavailable] = useState(false);
+  // True when the server's eligible:false came from the Plus-tier gate
+  // specifically, not from a genuine "nothing scored yet" state -- these
+  // need different messaging: one says upgrade, the other says wait.
+  const [initiativesRequireUpgrade, setInitiativesRequireUpgrade] = useState(false);
   const [aiMatching, setAiMatching] = useState(false);
   const [mandateScore, setMandateScore] = useState(0);
   const [missingMandateFields, setMissingMandateFields] = useState<string[]>([]);
@@ -74,6 +78,7 @@ export default function FunderHome({ profile }: { profile: any }) {
   // funding initiatives, not partnering with peer organisations directly.
   const [partnershipMatches, setPartnershipMatches] = useState<any[]>([]);
   const [partnershipEligible, setPartnershipEligible] = useState(false);
+  const [partnershipsRequireUpgrade, setPartnershipsRequireUpgrade] = useState(false);
   const [loadingPartnerships, setLoadingPartnerships] = useState(true);
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
@@ -240,6 +245,7 @@ export default function FunderHome({ profile }: { profile: any }) {
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
           });
           const result = await res.json();
+          setInitiativesRequireUpgrade(result.reason === "requires_upgrade");
           if (result.error) return { succeeded: false };
           if (typeof result.min_score === "number") setInitiativeMinScore(result.min_score);
           setMatchingUnavailable(false);
@@ -323,13 +329,15 @@ export default function FunderHome({ profile }: { profile: any }) {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}` },
         }).then(res => res.json()).then(result => {
+          if (cancelled) return;
           // The client-side score above is only a first-paint estimate.
-          // The server computes completeness independently — if the two
+          // The server computes completeness independently. If the two
           // formulas ever drift apart, this keeps what's on screen honest
           // rather than trusting a locally duplicated calculation forever.
-          if (!cancelled && typeof result?.completeness === "number" && result.completeness !== mandateScore) {
+          if (typeof result?.completeness === "number" && result.completeness !== mandateScore) {
             setMandateScore(result.completeness);
           }
+          setPartnershipsRequireUpgrade(result?.reason === "requires_upgrade");
         }).catch(() => {});
       }
     })();
@@ -424,7 +432,7 @@ export default function FunderHome({ profile }: { profile: any }) {
             </div>
             <p className="text-xs text-black dark:text-white">
               {missingMandateFields.length > 0
-                ? `Add ${formatMissingList(missingMandateFields)}${mandateScore < 80 ? " — 80% unlocks partnership matches too." : "."}`
+                ? `Add ${formatMissingList(missingMandateFields)}${mandateScore < 80 ? ". 80% also unlocks partnership matches." : "."}`
                 : ""}
             </p>
           </div>
@@ -488,6 +496,15 @@ export default function FunderHome({ profile }: { profile: any }) {
               {[1, 2, 3].map(i => (
                 <div key={i} className="h-24 rounded-xl border border-border bg-white dark:bg-card animate-pulse" />
               ))}
+            </div>
+          ) : initiativesRequireUpgrade ? (
+            <div className="rounded-2xl border border-border bg-white dark:bg-card p-8 text-center">
+              <p className="text-sm font-medium text-black dark:text-white mb-1">AI-matched initiatives need an upgrade.</p>
+              <p className="text-xs text-black dark:text-white mb-3">Upgrade to see initiatives matched to your mandate.</p>
+              <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
+                className="text-xs font-semibold text-white bg-[#2D6A4F] rounded-full px-4 py-1.5 hover:bg-[#245c43] transition-colors">
+                Upgrade
+              </button>
             </div>
           ) : matchingUnavailable && matchedInitiatives.length === 0 ? (
             <div className="rounded-2xl border border-border bg-white dark:bg-card p-8 text-center">
@@ -615,8 +632,18 @@ export default function FunderHome({ profile }: { profile: any }) {
               <Building2 className="w-6 h-6 text-muted-foreground/20 mb-3" />
               <p className="text-xs font-medium text-black dark:text-white mb-1">Locked for now</p>
               <p className="text-xs text-black dark:text-white">
-                Unlocks at 80% mandate completion — you're at {mandateScore}%.
+                Unlocks at 80% mandate completion. You're at {mandateScore}%.
               </p>
+            </div>
+          ) : partnershipsRequireUpgrade ? (
+            <div className="rounded-xl border border-border bg-white dark:bg-card p-6 text-center flex flex-col items-center justify-center min-h-[220px]">
+              <Building2 className="w-6 h-6 text-muted-foreground/20 mb-3" />
+              <p className="text-xs font-medium text-black dark:text-white mb-1">AI-matched partners need an upgrade.</p>
+              <p className="text-xs text-black dark:text-white mb-3">Upgrade to see organisations matched to your profile.</p>
+              <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
+                className="text-xs font-semibold text-white bg-[#2D6A4F] rounded-full px-4 py-1.5 hover:bg-[#245c43] transition-colors">
+                Upgrade
+              </button>
             </div>
           ) : loadingPartnerships ? (
             <div className="space-y-2">
