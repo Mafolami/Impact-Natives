@@ -4,28 +4,29 @@
 // org sees a read-only summary of what their org is on, and someone with no
 // org sees a short explainer.
 //
-// Pricing is fixed NGN (see paystack-initialize's PRICING_NGN_KOBO -- kept
-// in sync manually, there's no shared config file for this yet). No true
-// recurring billing exists: a purchase is a single Paystack transaction
-// that buys 30 days, tracked via subscription_current_period_end.
+// v4: renewal is now real (see renew-subscriptions) -- the "not automatic"
+// disclaimer is gone. Active shows the actual renewal date. A failed
+// auto-renewal shows as 'past_due': access is kept during the grace window
+// (until downgrade-expired-subscriptions finally sweeps it once period_end
+// passes), with a direct "Renew now" recovery action that just re-runs
+// checkout. Cancel is allowed from both active and past_due.
 //
-// v3: 2x2 card grid (4-across read as cramped at this content density --
-// each card carries a full feature list, not a trimmed one). Cancel is now
-// real: calls the cancel-subscription edge function, which reverts to Free
-// immediately (there's no recurring charge to actually cancel -- see that
-// function's header for why organizations' subscription_* columns can't be
-// written directly from the client). Two-step confirm, same pattern as the
-// Danger Zone tab in this same Settings page.
+// Card arrangement is intentionally NOT uniform across tiers: Free and Plus
+// (8 features each) get their list split into two labeled, icon-led groups
+// so a long flat checklist doesn't read as a wall of identical bullets. Pro
+// and Compliance (4-5 features) instead lead with a single bold headline
+// pulled from their strongest capability, then a shorter list underneath --
+// different shape because they're a different kind of pitch (a short,
+// confident case, not a checklist to scan).
 //
-// v2 (carried forward): full feature lists per tier, distinct visual
-// register per tier (Plus elevated/primary, Pro accent, Compliance dark
-// "audit-grade", Free quiet), and the post-checkout poll refetches silently
-// instead of re-triggering the loading spinner on every tick.
+// v3 (carried forward): 2x2 grid, real cancel-plan action.
+// v2 (carried forward): full feature lists, distinct visual register per
+// tier, silent post-checkout poll refresh (no flashing).
 
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { Loader2, Check, Sparkles } from "lucide-react";
+import { Loader2, Check, Sparkles, Search, Zap, FileCheck, ShieldCheck, type LucideIcon } from "lucide-react";
 
 type Role = "loading" | "owner" | "member" | "none";
 type Tier = "free" | "plus" | "pro" | "compliance";
@@ -42,15 +43,23 @@ interface OrgBilling {
 
 const CORPORATE_TYPES = ["corporation", "technology_company", "public_sector"];
 
+interface FeatureGroup {
+  label: string;
+  icon: LucideIcon;
+  items: string[];
+}
+
 interface TierDef {
   value: Tier;
   name: string;
   priceNgn: number;
   priceUsdRef: number;
   blurb: string;
-  features: string[];
   badge?: string;
   register: "quiet" | "primary" | "accent" | "dark";
+  groups?: FeatureGroup[];
+  headline?: string;
+  features?: string[];
 }
 
 const TIERS: TierDef[] = [
@@ -61,15 +70,27 @@ const TIERS: TierDef[] = [
     priceUsdRef: 0,
     blurb: "Everything you need to get listed and start matching.",
     register: "quiet",
-    features: [
-      "Browse the full directory & marketplace",
-      "Manual initiative & partnership listings",
-      "Self-attested DD readiness",
-      "Trust Score & verified badge",
-      "Reply to inbound messages",
-      "Receive & sign MoUs",
-      "Milestone tracking on signed MoUs",
-      "Weekly & monthly digest emails",
+    groups: [
+      {
+        label: "Get discovered",
+        icon: Search,
+        items: [
+          "Browse the full directory & marketplace",
+          "Manual initiative & partnership listings",
+          "Trust Score & verified badge",
+          "Self-attested DD readiness",
+        ],
+      },
+      {
+        label: "Stay connected",
+        icon: FileCheck,
+        items: [
+          "Reply to inbound messages",
+          "Receive & sign MoUs",
+          "Milestone tracking on signed MoUs",
+          "Weekly & monthly digest emails",
+        ],
+      },
     ],
   },
   {
@@ -80,15 +101,27 @@ const TIERS: TierDef[] = [
     blurb: "Let AI do the matching, drafting, and outreach for you.",
     badge: "Most popular",
     register: "primary",
-    features: [
-      "Everything in Free",
-      "AI-parsed initiative creation from a brief",
-      "AI brief quality scoring & suggestions",
-      "Full AI-powered org-to-org matching",
-      "Instant AI fit analysis on any org",
-      "AI-drafted outreach messages",
-      "Originate & send your own MoUs",
-      "Self-view AI ESG Snapshot",
+    groups: [
+      {
+        label: "AI does the work",
+        icon: Sparkles,
+        items: [
+          "AI-parsed initiative creation from a brief",
+          "AI brief quality scoring & suggestions",
+          "Full AI-powered org-to-org matching",
+          "Instant AI fit analysis on any org",
+        ],
+      },
+      {
+        label: "Move faster",
+        icon: Zap,
+        items: [
+          "AI-drafted outreach messages",
+          "Originate & send your own MoUs",
+          "Self-view AI ESG Snapshot",
+          "Everything in Free",
+        ],
+      },
     ],
   },
   {
@@ -98,9 +131,9 @@ const TIERS: TierDef[] = [
     priceUsdRef: 249,
     blurb: "For funders and corporates evaluating partners at scale.",
     register: "accent",
+    headline: "Turn any candidate into a decision-ready deal memo or CSR brief.",
     features: [
       "Everything in Plus",
-      "AI deal memo (funders) or CSR brief (corporates)",
       "Evaluate any candidate's ESG Snapshot",
       "AI-drafted EOI to initiative owners",
     ],
@@ -113,10 +146,10 @@ const TIERS: TierDef[] = [
     blurb: "Audit-ready CSR infrastructure for corporate teams.",
     badge: "Corporate only",
     register: "dark",
+    headline: "Unlimited ESG reporting, built to survive an audit.",
     features: [
       "Everything in Pro",
       "Strategy Builder for CSR planning",
-      "Unlimited AI ESG reports",
       "SRG1 deadline tracking & reminders",
       "Audit-ready DD export",
     ],
@@ -151,7 +184,6 @@ export function BillingTab() {
   const pollAttempts = useRef(0);
   const pollInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ── Cancel plan ──────────────────────────────────────────────────────
   const [cancelConfirm, setCancelConfirm] = useState(false);
   const [canceling, setCanceling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
@@ -272,12 +304,13 @@ export function BillingTab() {
 
   const currentTierInfo = TIERS.find(t => t.value === org?.subscription_tier) ?? TIERS[0];
   const isOwner = role === "owner";
-  const canCancel = isOwner && org && org.subscription_tier !== "free" && org.subscription_status === "active";
+  const isPastDue = org?.subscription_status === "past_due";
+  const canCancel = isOwner && org && org.subscription_tier !== "free" && (org.subscription_status === "active" || org.subscription_status === "past_due");
 
   return (
     <div className="space-y-8">
       {/* ── Current plan summary ── */}
-      <div className="rounded-xl border border-border bg-white dark:bg-card px-6 py-5">
+      <div className={`rounded-xl border px-6 py-5 ${isPastDue ? "border-amber-300 bg-amber-50 dark:bg-amber-950/10 dark:border-amber-800" : "border-border bg-white dark:bg-card"}`}>
         <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Current plan</p>
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
@@ -289,21 +322,40 @@ export function BillingTab() {
                 </span>
               )}
             </div>
+
             {org && org.subscription_tier !== "free" && org.subscription_status === "active" && (
               <p className="text-sm text-black dark:text-white mt-1.5">
-                Renews by <span className="font-medium">{fmtDate(org.subscription_current_period_end)}</span> — renewal isn't automatic yet, so check out again before this date to keep access.
+                Renews automatically on <span className="font-medium">{fmtDate(org.subscription_current_period_end)}</span>.
               </p>
             )}
+
+            {isPastDue && (
+              <p className="text-sm text-amber-800 dark:text-amber-300 mt-1.5 max-w-md">
+                We couldn't renew your plan automatically. You'll keep {currentTierInfo.name} access until <span className="font-medium">{fmtDate(org?.subscription_current_period_end ?? null)}</span> — renew now to avoid losing it.
+              </p>
+            )}
+
             {(!org || org.subscription_tier === "free") && (
               <p className="text-sm text-black dark:text-white mt-1.5">Upgrade below for AI matching, drafting, and more.</p>
             )}
           </div>
-          {confirmingPayment && (
-            <div className="flex items-center gap-2 text-xs text-[#2D6A4F] font-medium shrink-0">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              Confirming your payment...
-            </div>
-          )}
+
+          <div className="flex items-center gap-3 shrink-0">
+            {confirmingPayment && (
+              <div className="flex items-center gap-2 text-xs text-[#2D6A4F] font-medium">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Confirming your payment...
+              </div>
+            )}
+            {isPastDue && isOwner && org && (
+              <button type="button"
+                onClick={() => startCheckout(org.subscription_tier)}
+                disabled={checkingOutTier !== null}
+                className="h-9 px-4 rounded-full bg-gradient-to-b from-amber-500 to-amber-600 text-white text-sm font-semibold shadow-sm hover:shadow-md transition-all disabled:opacity-60">
+                {checkingOutTier === org.subscription_tier ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Renew now"}
+              </button>
+            )}
+          </div>
         </div>
 
         {!isOwner && (
@@ -325,7 +377,7 @@ export function BillingTab() {
         {canCancel && cancelConfirm && (
           <div className="mt-4 pt-4 border-t border-border space-y-2">
             <p className="text-sm text-foreground font-medium">
-              Cancel your {currentTierInfo.name} plan? You'll lose access to {currentTierInfo.name} features immediately — this doesn't wait for your renewal date.
+              Cancel your {currentTierInfo.name} plan? You'll lose access to {currentTierInfo.name} features immediately.
             </p>
             {cancelError && <p className="text-xs text-red-500">{cancelError}</p>}
             <div className="flex gap-2">
@@ -371,6 +423,9 @@ export function BillingTab() {
                 ? "bg-white dark:bg-card border-2 border-[#C45C26]/40"
                 : "bg-white dark:bg-card border border-border";
 
+            const accentIcon = isDark ? "text-[#D9B94A]" : isElevated ? "text-[#2D6A4F]" : "text-[#C45C26]";
+            const accentChip = isDark ? "bg-[#C9A227]/20" : isElevated ? "bg-[#2D6A4F]/15" : "bg-[#C45C26]/10";
+
             return (
               <div key={t.value} className={`${cardBase} ${cardStyle} px-7 ${isElevated ? "py-8" : "py-7"}`}>
                 {t.badge && (
@@ -405,18 +460,57 @@ export function BillingTab() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2.5 mb-6 mt-2 flex-1">
-                  {t.features.map((f) => (
-                    <div key={f} className="flex items-start gap-2">
-                      <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                        isDark ? "bg-[#C9A227]/20" : isElevated ? "bg-[#2D6A4F]/15" : "bg-[#C45C26]/10"
-                      }`}>
-                        <Check className={`w-2.5 h-2.5 ${isDark ? "text-[#D9B94A]" : isElevated ? "text-[#2D6A4F]" : "text-[#C45C26]"}`} strokeWidth={3} />
+                {/* Free/Plus: grouped, icon-led feature sections */}
+                {t.groups && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-3 mb-6 flex-1">
+                    {t.groups.map((g) => (
+                      <div key={g.label}>
+                        <div className="flex items-center gap-1.5 mb-2.5">
+                          <g.icon className={`w-3.5 h-3.5 ${accentIcon}`} strokeWidth={2.5} />
+                          <p className={`text-[11px] font-bold uppercase tracking-wider ${isDark ? "text-white/50" : "text-black dark:text-white"}`}>
+                            {g.label}
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          {g.items.map((f) => (
+                            <div key={f} className="flex items-start gap-2">
+                              <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${accentChip}`}>
+                                <Check className={`w-2 h-2 ${accentIcon}`} strokeWidth={3.5} />
+                              </div>
+                              <p className={`text-sm leading-snug ${isDark ? "text-white/85" : "text-foreground"}`}>{f}</p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <p className={`text-sm leading-snug ${isDark ? "text-white/85" : "text-foreground"}`}>{f}</p>
+                    ))}
+                  </div>
+                )}
+
+                {/* Pro/Compliance: bold headline callout + short list */}
+                {t.headline && (
+                  <div className="flex-1 mt-2 mb-6">
+                    <div className={`rounded-xl px-4 py-3.5 mb-4 flex items-start gap-2.5 ${
+                      isDark ? "bg-[#C9A227]/10 border border-[#C9A227]/25" : "bg-[#C45C26]/[0.06] border border-[#C45C26]/20"
+                    }`}>
+                      {t.value === "compliance"
+                        ? <ShieldCheck className={`w-4 h-4 shrink-0 mt-0.5 ${accentIcon}`} strokeWidth={2.5} />
+                        : <Zap className={`w-4 h-4 shrink-0 mt-0.5 ${accentIcon}`} strokeWidth={2.5} />}
+                      <p className={`text-sm font-semibold leading-snug ${isDark ? "text-white" : "text-foreground"}`}>
+                        {t.headline}
+                      </p>
                     </div>
-                  ))}
-                </div>
+                    <div className="space-y-2">
+                      {(t.features ?? []).map((f) => (
+                        <div key={f} className="flex items-start gap-2">
+                          <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${accentChip}`}>
+                            <Check className={`w-2 h-2 ${accentIcon}`} strokeWidth={3.5} />
+                          </div>
+                          <p className={`text-sm leading-snug ${isDark ? "text-white/85" : "text-foreground"}`}>{f}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {t.value === "free" ? (
                   <div className="text-center py-2.5 text-sm font-medium text-black dark:text-white border border-dashed border-border rounded-full">
