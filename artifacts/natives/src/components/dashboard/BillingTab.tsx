@@ -4,29 +4,24 @@
 // org sees a read-only summary of what their org is on, and someone with no
 // org sees a short explainer.
 //
-// v4: renewal is now real (see renew-subscriptions) -- the "not automatic"
-// disclaimer is gone. Active shows the actual renewal date. A failed
-// auto-renewal shows as 'past_due': access is kept during the grace window
-// (until downgrade-expired-subscriptions finally sweeps it once period_end
-// passes), with a direct "Renew now" recovery action that just re-runs
-// checkout. Cancel is allowed from both active and past_due.
+// v5: pulled back from v4's grouped/headline card treatment -- that read as
+// too busy. Back to one plain vertical list per card, short feature labels
+// (a few words, not full sentences) instead of descriptive prose. Visual
+// distinction between tiers (color, border, badge, CTA gradient) is kept;
+// the content structure is deliberately simple now.
 //
-// Card arrangement is intentionally NOT uniform across tiers: Free and Plus
-// (8 features each) get their list split into two labeled, icon-led groups
-// so a long flat checklist doesn't read as a wall of identical bullets. Pro
-// and Compliance (4-5 features) instead lead with a single bold headline
-// pulled from their strongest capability, then a shorter list underneath --
-// different shape because they're a different kind of pitch (a short,
-// confident case, not a checklist to scan).
-//
+// v4 (carried forward): renewal is real (see renew-subscriptions), no "not
+// automatic" disclaimer. past_due shows a grace-window warning with a
+// one-click "Renew now" recovery action. Cancel allowed from active and
+// past_due.
 // v3 (carried forward): 2x2 grid, real cancel-plan action.
-// v2 (carried forward): full feature lists, distinct visual register per
-// tier, silent post-checkout poll refresh (no flashing).
+// v2 (carried forward): distinct visual register per tier, silent
+// post-checkout poll refresh (no flashing).
 
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { Loader2, Check, Sparkles, Search, Zap, FileCheck, ShieldCheck, type LucideIcon } from "lucide-react";
+import { Loader2, Check, Sparkles } from "lucide-react";
 
 type Role = "loading" | "owner" | "member" | "none";
 type Tier = "free" | "plus" | "pro" | "compliance";
@@ -43,12 +38,6 @@ interface OrgBilling {
 
 const CORPORATE_TYPES = ["corporation", "technology_company", "public_sector"];
 
-interface FeatureGroup {
-  label: string;
-  icon: LucideIcon;
-  items: string[];
-}
-
 interface TierDef {
   value: Tier;
   name: string;
@@ -57,40 +46,27 @@ interface TierDef {
   blurb: string;
   badge?: string;
   register: "quiet" | "primary" | "accent" | "dark";
-  groups?: FeatureGroup[];
-  headline?: string;
-  features?: string[];
+  features: string[];
 }
 
+// Short labels, not sentences -- this list is meant to be scanned, not read.
 const TIERS: TierDef[] = [
   {
     value: "free",
     name: "Free",
     priceNgn: 0,
     priceUsdRef: 0,
-    blurb: "Everything you need to get listed and start matching.",
+    blurb: "Get listed and start matching.",
     register: "quiet",
-    groups: [
-      {
-        label: "Get discovered",
-        icon: Search,
-        items: [
-          "Browse the full directory & marketplace",
-          "Manual initiative & partnership listings",
-          "Trust Score & verified badge",
-          "Self-attested DD readiness",
-        ],
-      },
-      {
-        label: "Stay connected",
-        icon: FileCheck,
-        items: [
-          "Reply to inbound messages",
-          "Receive & sign MoUs",
-          "Milestone tracking on signed MoUs",
-          "Weekly & monthly digest emails",
-        ],
-      },
+    features: [
+      "Directory & marketplace access",
+      "Manual initiative listings",
+      "Self-attested DD readiness",
+      "Trust Score & verified badge",
+      "Inbound messaging",
+      "MoU receiving & signing",
+      "Milestone tracking",
+      "Weekly & monthly digests",
     ],
   },
   {
@@ -98,30 +74,18 @@ const TIERS: TierDef[] = [
     name: "Plus",
     priceNgn: 80_000,
     priceUsdRef: 59,
-    blurb: "Let AI do the matching, drafting, and outreach for you.",
+    blurb: "AI-assisted matching and outreach.",
     badge: "Most popular",
     register: "primary",
-    groups: [
-      {
-        label: "AI does the work",
-        icon: Sparkles,
-        items: [
-          "AI-parsed initiative creation from a brief",
-          "AI brief quality scoring & suggestions",
-          "Full AI-powered org-to-org matching",
-          "Instant AI fit analysis on any org",
-        ],
-      },
-      {
-        label: "Move faster",
-        icon: Zap,
-        items: [
-          "AI-drafted outreach messages",
-          "Originate & send your own MoUs",
-          "Self-view AI ESG Snapshot",
-          "Everything in Free",
-        ],
-      },
+    features: [
+      "Everything in Free",
+      "AI-parsed initiative creation",
+      "AI brief quality scoring",
+      "Full AI org-to-org matching",
+      "Instant AI fit analysis",
+      "AI-drafted outreach messages",
+      "MoU origination",
+      "Self-view ESG Snapshot",
     ],
   },
   {
@@ -129,13 +93,13 @@ const TIERS: TierDef[] = [
     name: "Pro",
     priceNgn: 339_000,
     priceUsdRef: 249,
-    blurb: "For funders and corporates evaluating partners at scale.",
+    blurb: "For funders & corporates evaluating partners.",
     register: "accent",
-    headline: "Turn any candidate into a decision-ready deal memo or CSR brief.",
     features: [
       "Everything in Plus",
-      "Evaluate any candidate's ESG Snapshot",
-      "AI-drafted EOI to initiative owners",
+      "AI deal memo / CSR brief",
+      "Evaluate candidate ESG Snapshots",
+      "AI-drafted EOI outreach",
     ],
   },
   {
@@ -143,14 +107,14 @@ const TIERS: TierDef[] = [
     name: "Compliance",
     priceNgn: 1_090_000,
     priceUsdRef: 799,
-    blurb: "Audit-ready CSR infrastructure for corporate teams.",
+    blurb: "Audit-ready CSR infrastructure.",
     badge: "Corporate only",
     register: "dark",
-    headline: "Unlimited ESG reporting, built to survive an audit.",
     features: [
       "Everything in Pro",
-      "Strategy Builder for CSR planning",
-      "SRG1 deadline tracking & reminders",
+      "Strategy Builder",
+      "Unlimited ESG reports",
+      "SRG1 deadline tracking",
       "Audit-ready DD export",
     ],
   },
@@ -441,76 +405,34 @@ export function BillingTab() {
                   </div>
                 )}
 
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className={`font-bold tracking-tight mb-1 ${isElevated ? "text-2xl" : "text-xl"} ${isDark ? "text-white" : "text-foreground"}`}>
-                      {t.name}
-                    </p>
-                    <p className={`text-sm mb-4 leading-snug max-w-sm ${isDark ? "text-white/60" : "text-black dark:text-white"}`}>
-                      {t.blurb}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className={`font-extrabold tracking-tight leading-none ${isElevated ? "text-4xl" : "text-3xl"} ${isDark ? "text-white" : "text-foreground"}`}>
-                      {t.priceNgn === 0 ? "₦0" : `₦${t.priceNgn.toLocaleString()}`}
-                    </p>
-                    <p className={`text-xs mt-1 ${isDark ? "text-white/50" : "text-black dark:text-white"}`}>
-                      /mo{t.priceUsdRef > 0 ? ` · ≈ $${t.priceUsdRef}` : ""}
-                    </p>
-                  </div>
+                <p className={`font-bold tracking-tight mb-1 ${isElevated ? "text-2xl" : "text-xl"} ${isDark ? "text-white" : "text-foreground"}`}>
+                  {t.name}
+                </p>
+                <p className={`text-sm mb-4 leading-snug ${isDark ? "text-white/60" : "text-black dark:text-white"}`}>
+                  {t.blurb}
+                </p>
+
+                <div className="mb-5">
+                  <p className={`font-extrabold tracking-tight ${isElevated ? "text-4xl" : "text-3xl"} ${isDark ? "text-white" : "text-foreground"}`}>
+                    {t.priceNgn === 0 ? "₦0" : `₦${t.priceNgn.toLocaleString()}`}
+                    <span className={`text-sm font-medium ml-1 ${isDark ? "text-white/50" : "text-black dark:text-white"}`}>/mo</span>
+                  </p>
+                  {t.priceUsdRef > 0 && (
+                    <p className={`text-xs mt-1 ${isDark ? "text-white/40" : "text-black dark:text-white"}`}>≈ ${t.priceUsdRef} USD reference</p>
+                  )}
                 </div>
 
-                {/* Free/Plus: grouped, icon-led feature sections */}
-                {t.groups && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-3 mb-6 flex-1">
-                    {t.groups.map((g) => (
-                      <div key={g.label}>
-                        <div className="flex items-center gap-1.5 mb-2.5">
-                          <g.icon className={`w-3.5 h-3.5 ${accentIcon}`} strokeWidth={2.5} />
-                          <p className={`text-[11px] font-bold uppercase tracking-wider ${isDark ? "text-white/50" : "text-black dark:text-white"}`}>
-                            {g.label}
-                          </p>
-                        </div>
-                        <div className="space-y-2">
-                          {g.items.map((f) => (
-                            <div key={f} className="flex items-start gap-2">
-                              <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${accentChip}`}>
-                                <Check className={`w-2 h-2 ${accentIcon}`} strokeWidth={3.5} />
-                              </div>
-                              <p className={`text-sm leading-snug ${isDark ? "text-white/85" : "text-foreground"}`}>{f}</p>
-                            </div>
-                          ))}
-                        </div>
+                {/* Single-column feature list, short labels only */}
+                <div className="space-y-2.5 mb-6 flex-1">
+                  {t.features.map((f) => (
+                    <div key={f} className="flex items-center gap-2.5">
+                      <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${accentChip}`}>
+                        <Check className={`w-2.5 h-2.5 ${accentIcon}`} strokeWidth={3} />
                       </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Pro/Compliance: bold headline callout + short list */}
-                {t.headline && (
-                  <div className="flex-1 mt-2 mb-6">
-                    <div className={`rounded-xl px-4 py-3.5 mb-4 flex items-start gap-2.5 ${
-                      isDark ? "bg-[#C9A227]/10 border border-[#C9A227]/25" : "bg-[#C45C26]/[0.06] border border-[#C45C26]/20"
-                    }`}>
-                      {t.value === "compliance"
-                        ? <ShieldCheck className={`w-4 h-4 shrink-0 mt-0.5 ${accentIcon}`} strokeWidth={2.5} />
-                        : <Zap className={`w-4 h-4 shrink-0 mt-0.5 ${accentIcon}`} strokeWidth={2.5} />}
-                      <p className={`text-sm font-semibold leading-snug ${isDark ? "text-white" : "text-foreground"}`}>
-                        {t.headline}
-                      </p>
+                      <p className={`text-sm ${isDark ? "text-white/85" : "text-foreground"}`}>{f}</p>
                     </div>
-                    <div className="space-y-2">
-                      {(t.features ?? []).map((f) => (
-                        <div key={f} className="flex items-start gap-2">
-                          <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${accentChip}`}>
-                            <Check className={`w-2 h-2 ${accentIcon}`} strokeWidth={3.5} />
-                          </div>
-                          <p className={`text-sm leading-snug ${isDark ? "text-white/85" : "text-foreground"}`}>{f}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                  ))}
+                </div>
 
                 {t.value === "free" ? (
                   <div className="text-center py-2.5 text-sm font-medium text-black dark:text-white border border-dashed border-border rounded-full">
