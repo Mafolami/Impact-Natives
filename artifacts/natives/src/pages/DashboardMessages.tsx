@@ -98,7 +98,7 @@ function rolePartnerPhrase(value: string): string {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardMessages() {
- const { user, profile } = useAuth();
+ const { user, profile, orgOwnerId } = useAuth();
   const isFunder = ["philanthropic_foundation", "venture_capital"].includes(profile?.org_type ?? "");
   const [pendingEOIs, setPendingEOIs]     = useState<PendingEOI[]>([]);
   const [outboundEOIs, setOutboundEOIs]   = useState<OutboundEOI[]>([]);
@@ -107,9 +107,9 @@ export default function DashboardMessages() {
   const [activeConvo, setActiveConvo]     = useState<Conversation | null>(null);
   const [activeTab, setActiveTab]         = useState<"partnership" | "initiative">("partnership");
   useEffect(() => {
-    if (!user) return;
+    if (!user || !orgOwnerId) return;
     loadAll();
-  }, [user]);
+  }, [user, orgOwnerId]);
 
   // Extra re-trigger for same-route notification clicks (see Topbar.tsx) --
   // without this, a component already sitting on this page never notices
@@ -178,11 +178,11 @@ export default function DashboardMessages() {
   }, [conversations.length, deepLinkTrigger, user]);
 
   async function loadPendingEOIs(): Promise<void> {
-    if (!user) return;
+    if (!user || !orgOwnerId) return;
     const { data: myInitiatives } = await supabase
       .from("initiative_requests")
       .select("id, title")
-      .eq("user_id", user.id);
+      .eq("user_id", orgOwnerId);
     const myInitiativeIds = (myInitiatives ?? []).map((i: any) => i.id);
     const initiativeTitleMap = new Map((myInitiatives ?? []).map((i: any) => [i.id, i.title]));
     let pendingList: PendingEOI[] = [];
@@ -191,7 +191,7 @@ export default function DashboardMessages() {
         .from("expressions_of_interest")
         .select("id, initiative_id, user_id, partnership_type, message, created_at, conversation_id, esg_adoption")
         .in("initiative_id", myInitiativeIds)
-        .neq("user_id", user.id);
+        .neq("user_id", orgOwnerId);
       if (eoiData && eoiData.length > 0) {
         const convoIds = eoiData.map((e: any) => e.conversation_id).filter(Boolean);
         const { data: convoData } = await supabase
@@ -227,11 +227,11 @@ export default function DashboardMessages() {
   }
 
   async function loadOutboundEOIs(): Promise<void> {
-    if (!user) return;
+    if (!user || !orgOwnerId) return;
     const { data: sentEois } = await supabase
       .from("expressions_of_interest")
       .select("id, initiative_id, partnership_type, message, created_at, conversation_id")
-      .eq("user_id", user.id)
+      .eq("user_id", orgOwnerId)
       .order("created_at", { ascending: false });
     if (sentEois && sentEois.length > 0) {
       const sentConvoIds = sentEois.map((e: any) => e.conversation_id).filter(Boolean);
@@ -440,6 +440,7 @@ export default function DashboardMessages() {
       <ChatThread
         conversation={activeConvo}
         currentUserId={user!.id}
+        orgOwnerId={orgOwnerId}
         onBack={() => { setActiveConvo(null); loadAll(); }}
         onUpdate={(id, changes) => {
           setConversations(prev => prev.map(c => {
@@ -976,9 +977,10 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
 
 // ─── Chat Thread ──────────────────────────────────────────────────────────────
 
-function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }: {
+function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate, isFunder }: {
   conversation: Conversation;
   currentUserId: string;
+  orgOwnerId: string | null | undefined;
   onBack: () => void;
   onUpdate?: (id: string, changes: Partial<Conversation>) => void;
   isFunder?: boolean;
@@ -1001,7 +1003,12 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
   const bottomRef                       = useRef<HTMLDivElement>(null);
   const textareaRef                     = useRef<HTMLTextAreaElement>(null);
 
-  const isOwner = conversation.initiative_owner_id === currentUserId;
+  // conversation.initiative_owner_id is set from the initiative's own
+  // user_id at creation time (create_conversation RPC), which is
+  // orgOwnerId, not the real person who happens to be viewing this thread
+  // -- compare against orgOwnerId, not currentUserId, or a Member never
+  // reads as the owner of their own org's initiative conversations.
+  const isOwner = !!orgOwnerId && conversation.initiative_owner_id === orgOwnerId;
   const [convStatus, setConvStatus] = useState(conversation.status);
   const [funderClosed, setFunderClosed] = useState(!!conversation.funder_closed_at);
 
@@ -1343,7 +1350,7 @@ function ChatThread({ conversation, currentUserId, onBack, onUpdate, isFunder }:
   useEffect(() => {
     if (conversation.conversation_type !== "partnership") return;
     // Fetch own org ID for lister-side listener
-    supabase.from("organizations").select("id").eq("user_id", currentUserId).maybeSingle()
+    supabase.from("organizations").select("id").eq("user_id", orgOwnerId!).maybeSingle()
       .then(({ data }) => { if (data) setMyOrgId(data.id); });
     // Check existing pending confirmation for expresser
     supabase.from("partnership_connections")

@@ -8,8 +8,19 @@ import { Label } from "@/components/ui/label";
 import { ShieldCheck, Loader2, CheckCircle2, ArrowRight } from "lucide-react";
 
 export default function VerifyOrganisation() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, orgOwnerId, refreshProfile } = useAuth();
   const [, navigate] = useLocation();
+
+  // Registration type, number, TIN, SCUML are org-level statutory data --
+  // same class of field Tier 3 (DashboardProfile.tsx) restricted to Owner
+  // writes only, matching the existing organizations UPDATE RLS policy
+  // (user_id = auth.uid(), no Member support). Without this gate, a
+  // Member could fill out the whole form, have the org's actual
+  // registration data silently fail to save (0 rows matched/RLS-blocked),
+  // while the profile still gets marked verification_requested -- an
+  // admin reviewing it would see a request with no real registration data
+  // behind it.
+  const isOrgOwner = !!user && !!orgOwnerId && user.id === orgOwnerId;
 
   const [uploadedFiles, setUploadedFiles]   = useState<File[]>([]);
   const [docLink, setDocLink]               = useState("");
@@ -107,7 +118,7 @@ export default function VerifyOrganisation() {
   }
 
   async function handleSubmit() {
-    if (!user || !profile) return;
+    if (!user || !profile || !isOrgOwner) return;
     if (!hasDocuments || !hasRegistrationInfo) return;
 
     setRegError("");
@@ -125,7 +136,7 @@ export default function VerifyOrganisation() {
         scuml_number: scumlRequired ? scumlNumber.trim() : null,
         verification_status: "pending",
       })
-      .eq("user_id", user.id);
+      .eq("user_id", orgOwnerId!);
 
     if (regUpdateError) {
       setRegError(`Failed to save registration details: ${regUpdateError.message}`);
@@ -198,6 +209,34 @@ export default function VerifyOrganisation() {
     await refreshProfile();
     setSubmitting(false);
     setSubmitted(true);
+  }
+
+  // ─── Member gate ────────────────────────────────────────────────────────
+  // Registration/verification is Owner-only (see isOrgOwner comment above).
+  // Show this instead of the form rather than letting a Member fill the
+  // whole thing out only to find the submit button does nothing.
+  if (user && profile?.user_type === "organisation" && !isOrgOwner) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
+        <div className="w-full max-w-md text-center space-y-5">
+          <div className="flex justify-center">
+            <div className="p-4 rounded-full bg-[#2D6A4F]/10">
+              <ShieldCheck className="w-10 h-10 text-[#2D6A4F]" />
+            </div>
+          </div>
+          <div>
+            <h2 className="text-[25.5px] font-semibold text-black">Owner-only</h2>
+            <p className="text-[15.5px] text-black mt-2 max-w-sm mx-auto">
+              Only your organisation's owner can submit verification documents. Ask them to complete this step.
+            </p>
+          </div>
+          <Button onClick={() => navigate("/dashboard")} className="bg-[#2D6A4F] hover:bg-[#245c43] text-white px-6">
+            Go to dashboard
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   // ─── Success screen ────────────────────────────────────────────────────────
