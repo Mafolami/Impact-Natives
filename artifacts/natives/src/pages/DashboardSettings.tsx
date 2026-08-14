@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { supabase } from "@/lib/supabase";
@@ -265,9 +266,9 @@ export default function DashboardSettings() {
               <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1">Profile</p>
               <p className="text-sm text-black dark:text-white">
                 To update your photo, bio, or org details,{" "}
-                <a href="/dashboard/profile" className="text-[#2D6A4F] hover:underline underline-offset-2">
+                <Link href="/dashboard/profile" className="text-[#2D6A4F] hover:underline underline-offset-2">
                   visit your profile page
-                </a>.
+                </Link>.
               </p>
             </div>
           </div>
@@ -497,10 +498,10 @@ export default function DashboardSettings() {
 
       <div className="rounded-2xl border border-border bg-white dark:bg-card p-5 space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Quick links</p>
-        <a href="/dashboard/profile" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+        <Link href="/dashboard/profile" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
           <span className="w-1 h-1 rounded-full bg-[#C45C26] shrink-0" />
           Edit your profile
-        </a>
+        </Link>
         {profile?.user_type === "organisation" && (
           <a href="/verification-standard" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
             <ArrowRight className="w-3 h-3 text-[#2D6A4F]" />
@@ -509,20 +510,20 @@ export default function DashboardSettings() {
         )}
         {profile?.user_type !== "organisation" && (
           <>
-            <a href="/dashboard/marketplace" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+            <Link href="/dashboard/marketplace" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
               <ArrowRight className="w-3 h-3 text-[#2D6A4F]" />
               Browse the marketplace
-            </a>
-            <a href="/dashboard/natives?tab=organisation" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+            </Link>
+            <Link href="/dashboard/natives?tab=organisation" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
               <ArrowRight className="w-3 h-3 text-[#2D6A4F]" />
               Browse organisations
-            </a>
+            </Link>
           </>
         )}
-        <a href="/dashboard/natives" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+        <Link href="/dashboard/natives" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
           <span className="w-1 h-1 rounded-full bg-[#C45C26] shrink-0" />
           View directory
-        </a>
+        </Link>
       </div>
     </div>
     </div>

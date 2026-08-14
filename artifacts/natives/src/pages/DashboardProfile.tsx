@@ -1651,10 +1651,10 @@ export default function DashboardProfile() {
                         <p className="text-xs text-black dark:text-white mt-1 leading-relaxed">
                           Register your organisation without losing your individual profile or activity.
                         </p>
-                        <a href="/dashboard/upgrade-organisation"
+                        <Link href="/dashboard/upgrade-organisation"
                           className="inline-flex items-center gap-1.5 mt-3 text-sm font-semibold text-[#2D6A4F] hover:underline underline-offset-2">
                           Register an organisation
-                        </a>
+                        </Link>
                       </div>
                     </div>
                   </div>
@@ -2893,20 +2893,20 @@ export default function DashboardProfile() {
 
         <div className="rounded-2xl border border-border bg-white dark:bg-card p-5 space-y-2 md:flex-1">
           <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Quick links</p>
-          <a href="/dashboard/natives" className="flex items-center gap-2 text-xs text-black dark:text-white hover:text-foreground transition-colors py-1">
+          <Link href="/dashboard/natives" className="flex items-center gap-2 text-xs text-black dark:text-white hover:text-foreground transition-colors py-1">
             <ArrowRight className="w-3 h-3 text-[#2D6A4F]" /> View your directory listing
-          </a>
-          <a href="/dashboard/settings" className="flex items-center gap-2 text-xs text-black dark:text-white hover:text-foreground transition-colors py-1">
+          </Link>
+          <Link href="/dashboard/settings" className="flex items-center gap-2 text-xs text-black dark:text-white hover:text-foreground transition-colors py-1">
             <ArrowRight className="w-3 h-3 text-[#2D6A4F]" /> Account settings
-          </a>
+          </Link>
           {!isOrg && (
             <>
-              <a href="/dashboard/marketplace" className="flex items-center gap-2 text-xs text-black dark:text-white hover:text-foreground transition-colors py-1">
+              <Link href="/dashboard/marketplace" className="flex items-center gap-2 text-xs text-black dark:text-white hover:text-foreground transition-colors py-1">
                 <ArrowRight className="w-3 h-3 text-[#2D6A4F]" /> Browse the marketplace
-              </a>
-              <a href="/dashboard/natives?tab=organisation" className="flex items-center gap-2 text-xs text-black dark:text-white hover:text-foreground transition-colors py-1">
+              </Link>
+              <Link href="/dashboard/natives?tab=organisation" className="flex items-center gap-2 text-xs text-black dark:text-white hover:text-foreground transition-colors py-1">
                 <ArrowRight className="w-3 h-3 text-[#2D6A4F]" /> Browse organisations
-              </a>
+              </Link>
             </>
           )}
           {isOrg && (

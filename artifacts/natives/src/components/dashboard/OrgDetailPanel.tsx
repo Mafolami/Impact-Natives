@@ -17,6 +17,7 @@
 // original DetailPanel -- only layout/container classes vary by variant.
 
 import { useEffect, useRef, useState } from "react";
+import { Link } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { Loader2, ShieldCheck, Sparkles, CheckCircle2, ArrowUpRight, ArrowLeft, Award } from "lucide-react";
 import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
@@ -255,10 +256,10 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
-              <a href={`/dashboard/natives?tab=organisation&user=${org.user_id}`}
+              <Link href={`/dashboard/natives?tab=organisation&user=${org.user_id}`}
                 className="text-2xl font-bold text-foreground hover:text-[#C45C26] transition-colors tracking-tight">
                 {org.organisation_name}
-              </a>
+              </Link>
               {isVerified && (
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
                   style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
@@ -646,10 +647,10 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
-              <a href={`/dashboard/natives?tab=organisation&user=${org.user_id}`}
+              <Link href={`/dashboard/natives?tab=organisation&user=${org.user_id}`}
                 className="text-2xl font-black text-foreground hover:text-[#C45C26] transition-colors leading-tight tracking-tight">
                 {org.organisation_name}
-              </a>
+              </Link>
               {isVerified && (
               <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
                 style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
