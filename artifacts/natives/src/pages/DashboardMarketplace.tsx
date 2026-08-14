@@ -662,43 +662,46 @@ export default function DashboardMarketplace() {
   }, [initiatives.length]);
   useEffect(() => {
     async function load() {
-      const { data } = await supabase
-        .from("initiative_requests")
-        .select("id,title,sectors,locations,status,eois,created_at,problem,outcome,partnerships,budget,tags,submitter_org,user_id,esg_alignment,specific_ask,stage,confirmed_partners")
-        .in("status", ["published", "closed"])
-        .order("created_at", { ascending: false });
+      const { data } = await supabase.rpc('get_marketplace_initiatives');
       if (data && data.length > 0) {
-        const userIds = [...new Set((data as any[]).map(i => i.user_id).filter(Boolean))];
-        const [{ data: profiles }, { data: ddOrgs }] = await Promise.all([
-          supabase
-            .from("profiles").select("id,is_verified,org_type,full_name,user_type").in("id", userIds),
-          supabase
-            .from("organizations")
-            .select("user_id,organisation_type,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration")
-            .in("user_id", userIds),
-        ]);
-        const verifiedMap  = new Map((profiles ?? []).map((p: any) => [p.id, p.is_verified]));
-        const orgTypeMap   = new Map((profiles ?? []).map((p: any) => [p.id, p.org_type ?? p.user_type]));
-        const nameMap      = new Map((profiles ?? []).map((p: any) => [p.id, p.full_name]));
-        const userTypeMap  = new Map((profiles ?? []).map((p: any) => [p.id, p.user_type]));
-        const ddScoreMap = new Map((ddOrgs ?? []).map((o: any) => {
-          const items = ddItemsFor(o);
-          return [o.user_id, Math.round((items.filter(Boolean).length / items.length) * 100)];
-        }));
-        const ddTierMap = new Map((ddOrgs ?? []).map((o: any) => {
-          const items = ddItemsFor(o);
-          const score = Math.round((items.filter(Boolean).length / items.length) * 100);
-          return [o.user_id, computeTrustTier(score, o.dd_evidence).tier];
-        }));
-        const enriched = (data as any[]).map(ini => ({
-          ...ini,
-          submitter_is_verified: verifiedMap.get(ini.user_id) ?? false,
-          submitter_org_type:    orgTypeMap.get(ini.user_id) ?? null,
-          submitter_name:        nameMap.get(ini.user_id) ?? null,
-          submitter_user_type:   userTypeMap.get(ini.user_id) ?? null,
-          submitter_dd_score:    ddScoreMap.get(ini.user_id) ?? null,
-          submitter_trust_tier:  ddTierMap.get(ini.user_id) ?? null,
-        }));
+        const enriched = (data as any[]).map(ini => {
+          const hasOrg = ini.org_dd_evidence !== null;
+          let score: number | null = null;
+          let tier: string | null = null;
+          if (hasOrg) {
+            const org = {
+              organisation_type: ini.org_organisation_type,
+              dd_financial_model: ini.org_dd_financial_model,
+              dd_audited_accounts: ini.org_dd_audited_accounts,
+              dd_governance_doc: ini.org_dd_governance_doc,
+              dd_esg_assessment: ini.org_dd_esg_assessment,
+              dd_impact_framework: ini.org_dd_impact_framework,
+              dd_environmental_policy: ini.org_dd_environmental_policy,
+              dd_safeguarding_policy: ini.org_dd_safeguarding_policy,
+              dd_legal_registration: ini.org_dd_legal_registration,
+              dd_legal_compliance_declaration: ini.org_dd_legal_compliance_declaration,
+              dd_evidence: ini.org_dd_evidence,
+              fdd_disbursement_track_record: ini.org_fdd_disbursement_track_record,
+              fdd_decision_transparency: ini.org_fdd_decision_transparency,
+              fdd_conflict_disclosure: ini.org_fdd_conflict_disclosure,
+              fdd_governance_doc: ini.org_fdd_governance_doc,
+              fdd_esg_framework: ini.org_fdd_esg_framework,
+              fdd_legal_registration: ini.org_fdd_legal_registration,
+            };
+            const items = ddItemsFor(org);
+            score = Math.round((items.filter(Boolean).length / items.length) * 100);
+            tier = computeTrustTier(score, org.dd_evidence).tier;
+          }
+          return {
+            ...ini,
+            submitter_is_verified: ini.profile_is_verified ?? false,
+            submitter_org_type:    ini.profile_org_type ?? ini.profile_user_type ?? null,
+            submitter_name:        ini.profile_full_name ?? null,
+            submitter_user_type:   ini.profile_user_type ?? null,
+            submitter_dd_score:    score,
+            submitter_trust_tier:  tier,
+          };
+        });
         setInitiatives(enriched as InitiativeRow[]);
       }
       setLoading(false);
