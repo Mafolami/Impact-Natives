@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { X, FileText, PenLine, Upload, Loader2, CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
 
@@ -24,6 +25,7 @@ interface MouTemplate {
 interface OrgLite {
   id: string;
   organisation_name: string;
+  subscription_tier?: string;
 }
 
 interface Props {
@@ -42,6 +44,7 @@ interface Props {
 export default function CreateMouModal({
   myUserId, partnerUserId, partnerOrgId, partnerName, initiativeId, initiativeTitle, connectionId, onClose, onOpenDocument,
 }: Props) {
+  const [, navigate] = useLocation();
   const [loadingOrgs, setLoadingOrgs] = useState(true);
   const [myOrg, setMyOrg] = useState<OrgLite | null>(null);
   const [partnerOrg, setPartnerOrg] = useState<OrgLite | null>(null);
@@ -76,7 +79,7 @@ export default function CreateMouModal({
     setLoadingOrgs(true);
     setCheckingExisting(true);
     const { data: mineData } = await supabase
-      .from("organizations").select("id, organisation_name").eq("user_id", myUserId).maybeSingle();
+      .from("organizations").select("id, organisation_name, subscription_tier").eq("user_id", myUserId).maybeSingle();
     setMyOrg(mineData ?? null);
     let theirs: OrgLite | null = null;
     if (partnerOrgId) {
@@ -218,6 +221,19 @@ export default function CreateMouModal({
     if (inserted) onOpenDocument(inserted.id);
   }
   function renderPathPicker() {
+    if (myOrg && !["plus", "pro", "compliance"].includes(myOrg.subscription_tier ?? "")) {
+      return (
+        <div className="space-y-4">
+          <p className="text-base text-black dark:text-white">
+            Drafting an MoU with <span className="font-semibold">{partnerName}</span> needs a Plus plan or higher.
+          </p>
+          <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
+            className="w-full h-10 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-semibold transition-colors">
+            Upgrade
+          </button>
+        </div>
+      );
+    }
     return (
       <div className="space-y-3">
         <p className="text-base text-black dark:text-white">
