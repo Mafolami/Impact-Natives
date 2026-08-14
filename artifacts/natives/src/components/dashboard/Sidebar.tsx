@@ -14,7 +14,7 @@ type NavItem = { label: string; href?: string; icon: any; corporateOnly: boolean
 
 // Three sections: Home stands alone (label: null renders no header text --
 // it's the one place people return to constantly and doesn't need a
-// label). Work covers everything browsed or built. Account is
+// label). Discover covers everything browsed or built. Account is
 // identity/settings, last. No accent colour per section -- just a plain
 // label, kept subtle with spacing rather than colour.
 const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
@@ -25,7 +25,7 @@ const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
     ],
   },
   {
-    label: "Work",
+    label: "Discover",
     items: [
       { label: "Strategy", href: "/dashboard/strategy", icon: Sparkles, corporateOnly: true },
       { label: "Marketplace", href: "/dashboard/marketplace", icon: Compass, corporateOnly: false },
@@ -214,7 +214,7 @@ const isCorporate = ["corporation", "technology_company", "public_sector"].inclu
         {visibleSections.map((section, sectionIndex) => (
           <div key={section.label ?? "home"} className={sectionIndex > 0 ? "mt-5" : ""}>
             {section.label && !collapsed && (
-              <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-sidebar-foreground/60">
+              <p className="px-3 mb-2 text-[10.5px] font-bold uppercase tracking-wider text-sidebar-foreground/60">
                 {section.label}
               </p>
             )}
@@ -227,14 +227,14 @@ const isCorporate = ["corporation", "technology_company", "public_sector"].inclu
                 return (
                   <li key={href}>
                     {groupLabel && isFirstInGroup && !collapsed && (
-                      <p className="px-3 mt-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">
+                      <p className="px-3 mt-3 mb-1 text-[10.5px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">
                         {groupLabel}
                       </p>
                     )}
                     <Link href={href!}>
                       <span
                         className={cn(
-                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors cursor-pointer w-full",
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[12px] font-medium transition-colors cursor-pointer w-full",
                           collapsed && "justify-center px-2",
                           isActive(href!)
                             ? "bg-sidebar-accent text-sidebar-accent-foreground"
@@ -271,7 +271,7 @@ const isCorporate = ["corporation", "technology_company", "public_sector"].inclu
       {/* Bottom — deliberately a solid, darker tone distinct from the nav's
           gradient, so it reads as its own footer zone rather than a
           continuation of the scrollable nav area above it. */}
-      <div className="border-t border-sidebar-border px-3 py-4 shrink-0 space-y-3 bg-sidebar">                
+      <div className="border-t border-sidebar-border px-3 py-3 shrink-0 space-y-2 bg-sidebar">                
       {!collapsed && (
           <div className="flex items-center gap-2">
             <UserAvatar
@@ -281,10 +281,15 @@ const isCorporate = ["corporation", "technology_company", "public_sector"].inclu
               size="sm"
             />
                 <div className="min-w-0">
-              <p className="text-[10px] font-semibold text-sidebar-foreground truncate">                
-                {profile?.user_type === "organisation"
-                  ? (profile?.org_name || "Your Organisation")
-                  : (profile?.full_name || "Your Account")}
+              <p className="flex items-center gap-1 text-[10px] font-semibold text-sidebar-foreground truncate">
+                {profile?.user_type === "organisation" && profile?.is_verified && (
+                  <ShieldCheck className="w-3 h-3 text-[#6FCF9E] shrink-0" />
+                )}
+                <span className="truncate">
+                  {profile?.user_type === "organisation"
+                    ? (profile?.org_name || "Your Organisation")
+                    : (profile?.full_name || "Your Account")}
+                </span>
               </p>
               <p className="text-[11px] text-sidebar-foreground/60 truncate mt-0.5">
                 {profile?.user_type === "organisation"
@@ -307,20 +312,7 @@ const isCorporate = ["corporation", "technology_company", "public_sector"].inclu
             />
           </div>
         )}
-{!collapsed && profile?.user_type === "organisation" && (
-        <div className="flex items-center gap-1.5">
-          <ShieldCheck className={cn(
-            "w-3.5 h-3.5",
-            profile?.is_verified ? "text-[#6FCF9E]" : "text-sidebar-foreground/60"
-          )} />
-          <span className={cn(
-            "text-[11px]",
-            profile?.is_verified ? "text-[#6FCF9E] font-medium" : "text-sidebar-foreground/60"
-          )}>
-            {profile?.is_verified ? "Verified" : "Unverified"}
-          </span>
-        </div>
-      )}
+
 
         {!collapsed && (
           <a
