@@ -281,16 +281,16 @@ const isCorporate = ["corporation", "technology_company", "public_sector"].inclu
             />
                 <div className="min-w-0">
               <p className="flex items-center gap-1 text-[10px] font-semibold text-sidebar-foreground truncate">
-                {profile?.user_type === "organisation" && profile?.is_verified && (
-                  <ShieldCheck className="w-3 h-3 text-[#6FCF9E] shrink-0" />
-                )}
                 <span className="truncate">
                   {profile?.user_type === "organisation"
                     ? (profile?.org_name || "Your Organisation")
                     : (profile?.full_name || "Your Account")}
                 </span>
+                {profile?.user_type === "organisation" && profile?.is_verified && (
+                  <ShieldCheck className="w-3 h-3 text-[#6FCF9E] shrink-0" />
+                )}
               </p>
-              <p className="text-[11px] text-sidebar-foreground truncate mt-0.5">
+              <p className="text-[10px] text-sidebar-foreground truncate mt-0.5">
                 {profile?.user_type === "organisation"
                   ? (profile?.org_type
                       ? profile.org_type.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())
