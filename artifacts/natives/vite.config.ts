@@ -55,6 +55,7 @@ export default defineConfig({
           query: ['@tanstack/react-query'],
           supabase: ['@supabase/supabase-js'],
           swiper: ['swiper'],
+          icons: ['lucide-react'],
         },
       },
     },

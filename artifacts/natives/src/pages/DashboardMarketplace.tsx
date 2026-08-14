@@ -894,7 +894,7 @@ export default function DashboardMarketplace() {
               onConfirmPass={handleConfirmPass}
               onUndoPass={handleUndoPass}
               expressed={expressedIds.has(ini.id)}
-              onClick={() => setSelected(ini)} />
+              onClick={() => { setSelected(ini); window.scrollTo(0, 0); }} />
           ))}
         </div>
       )}
