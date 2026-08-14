@@ -700,19 +700,8 @@ export default function HomePage() {
         <div style={{ position: 'absolute', inset: 0, zIndex: 0, background: isDark ? 'hsl(193,20%,7%)' : '#ffffff' }} />
         <div style={{ position: 'absolute', width: '70vw', height: '70vh', top: '-15%', right: '-10%', background: 'radial-gradient(ellipse, rgba(196,92,38,0.08) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 1 }} />
         <div style={{ position: 'absolute', width: '50vw', height: '50vh', bottom: '0', left: '10%', background: 'radial-gradient(ellipse, rgba(45,184,122,0.04) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 1 }} />
-        <svg
-          viewBox="0 0 260 260"
-          aria-hidden="true"
-          style={{
-            position: 'absolute', width: 'min(60vw, 620px)', height: 'auto',
-            right: '-4%', top: '8%', zIndex: 1, pointerEvents: 'none',
-            opacity: isDark ? 0.05 : 0.045,
-          }}
-        >
-          <path d="M120 20 C160 30 190 60 195 100 C200 140 175 160 185 190 C195 220 170 240 150 235 C140 250 115 250 110 230 C90 225 85 200 95 180 C80 165 75 140 90 120 C85 100 95 75 120 20 Z" fill={T.text} />
-        </svg>
-        <div className="hp-mobile-stack hp-section-wrap hp-hero" style={{ position: 'relative', zIndex: 10, paddingTop: '7rem', paddingBottom: '6rem', width: '100%', display: 'grid', gridTemplateColumns: '1.05fr 1fr', gap: 'clamp(2.5rem, 5vw, 4rem)', alignItems: 'center', textAlign: 'left' }}>
-          <div className="hp-mobile-text-first">
+        <div className="hp-mobile-stack" style={{ position: 'relative', zIndex: 10, maxWidth: '1280px', margin: '0 auto', paddingTop: '7rem', paddingBottom: '6rem', paddingLeft: 'clamp(1.25rem, 3vw, 3rem)', paddingRight: 'clamp(1.25rem, 3vw, 3rem)', width: '100%', boxSizing: 'border-box', display: 'grid', gridTemplateColumns: '1.05fr 1fr', gap: 'clamp(2.5rem, 5vw, 4rem)', alignItems: 'center' }}>
+          <div className="hp-mobile-text-first" style={{ textAlign: 'left' }}>
             <h1 style={{
               fontFamily: "'Bricolage Grotesque', sans-serif",
               fontSize: 'clamp(2.5rem, 5.5vw, 4.25rem)',
@@ -749,31 +738,34 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
-          <div className="hp-mobile-img-below" style={{
-            borderRadius: '1.25rem', overflow: 'hidden', position: 'relative',
-            border: `1px solid ${T.borderMd}`, aspectRatio: '4/3', background: T.surfaceMd,
-            boxShadow: isDark ? 'none' : '0 20px 60px -20px rgba(0,0,0,0.15)',
-          }}>
-            {typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? (
-              <img src="/hero-poster.jpg" alt="Impact Natives matching interface" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-            ) : (
-              <video
+          <div className="hp-mobile-img-below" style={{ position: 'relative' }}>
+            <svg
+              viewBox="0 0 260 260"
+              aria-hidden="true"
+              style={{
+                position: 'absolute', width: '130%', height: 'auto',
+                right: '-15%', top: '-10%', zIndex: 0, pointerEvents: 'none',
+                opacity: isDark ? 0.06 : 0.05,
+              }}
+            >
+              <path d="M120 20 C160 30 190 60 195 100 C200 140 175 160 185 190 C195 220 170 240 150 235 C140 250 115 250 110 230 C90 225 85 200 95 180 C80 165 75 140 90 120 C85 100 95 75 120 20 Z" fill={T.text} />
+            </svg>
+            <div style={{
+              borderRadius: '1.25rem', overflow: 'hidden', position: 'relative', zIndex: 1,
+              border: `1px solid ${T.borderMd}`, aspectRatio: '4/3', background: T.surfaceMd,
+              boxShadow: isDark ? 'none' : '0 20px 60px -20px rgba(0,0,0,0.15)',
+            }}>
+            <video
                 autoPlay muted loop playsInline
                 poster="/hero-poster.jpg"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               >
                 <source src="/hero-matching-demo.webm" type="video/webm" />
-                <source src="/hero-matching-demo.mp4" type="video/mp4" />
-              </video>
-            )}
+              <source src="/hero-matching-demo.mp4" type="video/mp4" />
+            </video>
+            </div>
           </div>
         </div>
-```
-
-**Also add reduced-motion support.** If you have a global stylesheet with the `hp-shimmer` keyframe, add this next to it:
-
-**FIND:**
-```
       </section>
 
       {/* ── PROBLEM ───────────────────────────────────────── */}
