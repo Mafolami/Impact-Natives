@@ -196,7 +196,21 @@ export function BillingTab() {
     pollInterval.current = setInterval(async () => {
       pollAttempts.current += 1;
       await refetchOrgSilently();
-      if (pollAttempts.current >= 6 && pollInterval.current) {
+      if (pollAttempts.current >= 6 && pollInterval.current) {const url = new URL(window.location.href);
+        url.searchParams.delete("reference");
+        url.searchParams.delete("trxref");
+        window.history.replaceState({}, "", url.toString());
+    
+        setConfirmingPayment(true);
+        pollAttempts.current = 0;
+        pollInterval.current = setInterval(async () => {
+          pollAttempts.current += 1;
+          await refetchOrgSilently();
+          if (pollAttempts.current >= 6 && pollInterval.current) {
+            clearInterval(pollInterval.current);
+            setConfirmingPayment(false);
+          }
+        }, 2500);
         clearInterval(pollInterval.current);
         setConfirmingPayment(false);
       }
@@ -210,10 +224,6 @@ export function BillingTab() {
     if (confirmingPayment && org?.subscription_status === "active") {
       if (pollInterval.current) clearInterval(pollInterval.current);
       setConfirmingPayment(false);
-      const url = new URL(window.location.href);
-      url.searchParams.delete("reference");
-      url.searchParams.delete("trxref");
-      window.history.replaceState({}, "", url.toString());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [org?.subscription_status]);

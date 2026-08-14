@@ -71,9 +71,13 @@ function DraftCard({
     setDescError(null);
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(`${supabaseUrl}/functions/v1/generate-initiative-description`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({
           form: {
             title: initiative.title,

@@ -226,9 +226,13 @@ export function AIDescriptionGenerator({
   async function generate() {
     setGenerating(true); setError(null)
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch(`${supabaseUrl}/functions/v1/generate-initiative-description`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({ form, profile: orgProfile ?? undefined }),
       })
       const data = await res.json()
