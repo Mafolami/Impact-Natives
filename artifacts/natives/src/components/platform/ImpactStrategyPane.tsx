@@ -441,7 +441,7 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
         </div>
       )}
 
-      {pillars && (
+      {pillars && !requiresUpgrade && (
         <div className="space-y-4">
           <div className="flex items-center gap-4 flex-wrap">
             <button
