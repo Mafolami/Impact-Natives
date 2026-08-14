@@ -190,27 +190,20 @@ export function BillingTab() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (!params.get("reference")) return;
+    // Strip immediately on detection, not after poll confirms active --
+    // avoids leaving reference/trxref in the URL if the user navigates
+    // away or refreshes before the poll finishes.
+    const url = new URL(window.location.href);
+    url.searchParams.delete("reference");
+    url.searchParams.delete("trxref");
+    window.history.replaceState({}, "", url.toString());
 
     setConfirmingPayment(true);
     pollAttempts.current = 0;
     pollInterval.current = setInterval(async () => {
       pollAttempts.current += 1;
       await refetchOrgSilently();
-      if (pollAttempts.current >= 6 && pollInterval.current) {const url = new URL(window.location.href);
-        url.searchParams.delete("reference");
-        url.searchParams.delete("trxref");
-        window.history.replaceState({}, "", url.toString());
-    
-        setConfirmingPayment(true);
-        pollAttempts.current = 0;
-        pollInterval.current = setInterval(async () => {
-          pollAttempts.current += 1;
-          await refetchOrgSilently();
-          if (pollAttempts.current >= 6 && pollInterval.current) {
-            clearInterval(pollInterval.current);
-            setConfirmingPayment(false);
-          }
-        }, 2500);
+      if (pollAttempts.current >= 6 && pollInterval.current) {
         clearInterval(pollInterval.current);
         setConfirmingPayment(false);
       }
