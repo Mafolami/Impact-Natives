@@ -8,6 +8,7 @@
 // Step 5: Confirm (theory of change, constraints, decision maker, list publicly)
 
 import { useState, useEffect, useRef } from "react";
+import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Textarea } from "@/components/ui/textarea";
@@ -273,6 +274,8 @@ function CheckCard({ checked, onChange, label, sub }: { checked: boolean; onChan
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const [, navigate] = useLocation();
+  const [, setLocation] = useLocation();
   const { user } = useAuth();
   const [formStep, setFormStep] = useState(0);
   const [appState, setAppState] = useState<"form"|"matching"|"results"|"no_org"|"rate_limited"|"new_request_prompt">("form");
@@ -289,6 +292,7 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
   const [sendingInvite, setSendingInvite] = useState<string | null>(null);
   const [composingInvite, setComposingInvite] = useState<string | null>(null);
   const [draftMessage, setDraftMessage] = useState("");
+  const [draftRequiresUpgrade, setDraftRequiresUpgrade] = useState(false);
   const [draftLoading, setDraftLoading] = useState(false);
   const [draftFailed, setDraftFailed] = useState(false);
   const [orgProfile, setOrgProfile] = useState<any>(null);
@@ -496,6 +500,7 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
     setComposingInvite(match.org_id);
     setDraftMessage("");
     setDraftFailed(false);
+    setDraftRequiresUpgrade(false);
     await generateDraft(match);
   }
 
@@ -503,6 +508,7 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
     if (!user || !orgProfile) return;
     setDraftLoading(true);
     setDraftFailed(false);
+    setDraftRequiresUpgrade(false);
     try {
       const { data: senderProfile } = await supabase
         .from("profiles")
@@ -556,6 +562,8 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
 
       if (!error && data?.message) {
         setDraftMessage(data.message);
+      } else if (data?.requires_upgrade) {
+        setDraftRequiresUpgrade(true);
       } else {
         setDraftFailed(true);
         setDraftMessage(fallbackInviteMessage(match));
@@ -751,9 +759,9 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
                             <div className="space-y-3 pt-3 border-t border-border">
                               <div className="flex items-center justify-between">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                                  {draftLoading ? "Drafting your message..." : draftFailed ? "AI draft unavailable — edit below" : "AI-drafted message"}
+                                  {draftLoading ? "Drafting your message..." : draftRequiresUpgrade ? "AI drafting needs an upgrade" : draftFailed ? "AI draft unavailable — edit below" : "AI-drafted message"}
                                 </p>
-                                {!draftLoading && (
+                                {!draftLoading && !draftRequiresUpgrade && (
                                   <button type="button" onClick={() => generateDraft(match)}
                                     className="flex items-center gap-1 text-[10px] font-semibold text-[#2D6A4F] hover:underline">
                                     <Sparkles className="w-3 h-3" />Regenerate
@@ -764,6 +772,19 @@ export function FindPartnerModalDashboard({ isOpen, onClose }: { isOpen: boolean
                                 <div className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2.5 h-24 flex items-center justify-center gap-2 text-xs text-muted-foreground">
                                   <Loader2 className="w-3.5 h-3.5 animate-spin text-[#2D6A4F]" />
                                   Drafting...
+                                </div>
+                              ) : draftRequiresUpgrade ? (
+                                <div className="w-full rounded-lg border border-border bg-muted/30 px-3 py-3 space-y-2">
+                                  <p className="text-xs text-[#C45C26]">
+                                    AI-drafted outreach needs an upgrade.{" "}
+                                    <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")} className="underline font-medium">
+                                      Upgrade
+                                    </button>
+                                  </p>
+                                  <textarea value={draftMessage} onChange={e => setDraftMessage(e.target.value)}
+                                    placeholder="Write your own message here..."
+                                    rows={4}
+                                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
                                 </div>
                               ) : (
                                 <textarea value={draftMessage} onChange={e => setDraftMessage(e.target.value)}
