@@ -494,7 +494,15 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
   const [directLoading, setDirectLoading] = useState(!!autoOpenUserId);
   const [selected, setSelected] = useState<OrgRow | null>(null);
 
-  useEffect(() => { onSelectionChange?.(!!selected); }, [selected]);
+  useEffect(() => {
+    // While the direct single-org fetch (below) is still in flight, the
+    // parent's detailOpen is already correctly seeded true from the URL —
+    // don't let this effect's initial "selected is still null" state
+    // stomp it back to false and flash the tab pill before the fetch
+    // resolves.
+    if (directLoading) return;
+    onSelectionChange?.(!!selected);
+  }, [selected, directLoading]);
 
   // Deep link into a single org (e.g. clicking an org name elsewhere in
   // the app): fetch just that one row instead of waiting on the full
