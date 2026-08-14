@@ -9,6 +9,7 @@
 // already; duplicating this logic risks re-introducing them in only one copy.
 
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
 import { jsPDF } from "jspdf";
 import { supabase } from "@/lib/supabase";
@@ -62,10 +63,12 @@ function joinIfArray(v: string | string[] | null | undefined): string | null {
 }
 
 export function EsgSnapshotSection({ org }: { org: EsgSnapshotOrgInput }) {
+  const [, navigate] = useLocation();
   const [deliveryStats, setDeliveryStats] = useState<{ completed: number; stalled: number; fell_through: number; resolved: number; total: number } | null>(null);
   const [esgReport, setEsgReport] = useState<Record<string, any> | null>(null);
   const [esgReportLoading, setEsgReportLoading] = useState(false);
   const [esgReportError, setEsgReportError] = useState(false);
+  const [esgRequiresUpgrade, setEsgRequiresUpgrade] = useState<string | null>(null);
 
   useEffect(() => {
     setEsgReport(null);
@@ -82,6 +85,7 @@ export function EsgSnapshotSection({ org }: { org: EsgSnapshotOrgInput }) {
   async function generateEsgReport() {
     setEsgReportLoading(true);
     setEsgReportError(false);
+    setEsgRequiresUpgrade(null);
     try {
       // Implementers store red-flag detail under the "legal_compliance_declaration"
       // item; funders/corporates store it under "conflict_disclosure" instead --
@@ -96,6 +100,7 @@ export function EsgSnapshotSection({ org }: { org: EsgSnapshotOrgInput }) {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token ?? ""}` },
         body: JSON.stringify({
+          org_id: org.id,
           org: {
             organisation_name: org.organisation_name,
             organisation_type: org.organisation_type,
@@ -126,6 +131,7 @@ export function EsgSnapshotSection({ org }: { org: EsgSnapshotOrgInput }) {
       });
       const result = await res.json();
       if (result.data) setEsgReport(result.data);
+      else if (result.requires_upgrade) setEsgRequiresUpgrade(result.required_tier ?? "plus");
       else setEsgReportError(true);
     } catch {
       setEsgReportError(true);
@@ -298,6 +304,16 @@ export function EsgSnapshotSection({ org }: { org: EsgSnapshotOrgInput }) {
           {esgReportLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
           {esgReportLoading ? "Generating..." : "Generate snapshot"}
         </button>
+        {esgRequiresUpgrade && (
+          <p className="text-sm text-[#C45C26] mt-2">
+            {esgRequiresUpgrade === "pro"
+              ? "Evaluating another organisation's ESG Snapshot needs a Pro plan or higher."
+              : "Viewing your ESG Snapshot needs a Plus plan or higher."}{" "}
+            <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")} className="underline font-medium">
+              Upgrade
+            </button>
+          </p>
+        )}
         {esgReportError && (
           <p className="text-sm text-red-500 mt-2">Couldn't generate the snapshot. Try again.</p>
         )}
