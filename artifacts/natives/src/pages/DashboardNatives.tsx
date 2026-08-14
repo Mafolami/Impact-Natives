@@ -154,7 +154,10 @@ export default function DashboardNatives() {
     const params = new URLSearchParams(window.location.search);
     return params.get("user");
   });
-  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return !!params.get("user");
+  });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
