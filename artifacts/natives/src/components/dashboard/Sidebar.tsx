@@ -10,7 +10,7 @@ import {
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { cn } from "@/lib/utils";
 
-type NavItem = { label: string; href?: string; icon: any; corporateOnly: boolean; children?: NavItem[]; groupLabel?: string };
+type NavItem = { label: string; href?: string; icon: any; corporateOnly: boolean };
 
 // Three sections: Home stands alone (label: null renders no header text --
 // it's the one place people return to constantly and doesn't need a
@@ -30,12 +30,17 @@ const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
       { label: "Strategy", href: "/dashboard/strategy", icon: Sparkles, corporateOnly: true },
       { label: "Marketplace", href: "/dashboard/marketplace", icon: Compass, corporateOnly: false },
       { label: "Partnerships", href: "/dashboard/partnerships", icon: Handshake, corporateOnly: false },
-      { label: "Exchanges", href: "/dashboard/portfolio/exchanges", icon: Lightbulb, corporateOnly: false, groupLabel: "Portfolio" },
-      { label: "MoUs", href: "/dashboard/portfolio/mou", icon: FileText, corporateOnly: false, groupLabel: "Portfolio" },
-      { label: "Milestones", href: "/dashboard/portfolio/milestones", icon: Target, corporateOnly: false, groupLabel: "Portfolio" },
       { label: "Natives", href: "/dashboard/natives", icon: Globe, corporateOnly: false },
       { label: "Labs", href: "/dashboard/labs", icon: FlaskConical, corporateOnly: false },
       { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, corporateOnly: false },
+    ],
+  },
+  {
+    label: "Portfolio",
+    items: [
+      { label: "Exchanges", href: "/dashboard/portfolio/exchanges", icon: Lightbulb, corporateOnly: false },
+      { label: "MoUs", href: "/dashboard/portfolio/mou", icon: FileText, corporateOnly: false },
+      { label: "Milestones", href: "/dashboard/portfolio/milestones", icon: Target, corporateOnly: false },
     ],
   },
   {
@@ -214,27 +219,21 @@ const isCorporate = ["corporation", "technology_company", "public_sector"].inclu
         {visibleSections.map((section, sectionIndex) => (
           <div key={section.label ?? "home"} className={sectionIndex > 0 ? "mt-5" : ""}>
             {section.label && !collapsed && (
-              <p className="px-3 mb-2 text-[10.5px] font-bold uppercase tracking-wider text-sidebar-foreground/60">
+              <p className="px-3 mb-2 text-[10.5px] font-bold uppercase tracking-wider text-sidebar-foreground">
                 {section.label}
               </p>
             )}
             <ul className="space-y-1.5">
-            {section.items.map((item, itemIndex) => {
-                const { label, href, icon: Icon, groupLabel } = item;
+            {section.items.map((item) => {
+                const { label, href, icon: Icon } = item;
                 const isMessages = href === "/dashboard/messages";
                 const showBadge  = isMessages && unreadMessages > 0;
-                const isFirstInGroup = !!groupLabel && section.items[itemIndex - 1]?.groupLabel !== groupLabel;
                 return (
                   <li key={href}>
-                    {groupLabel && isFirstInGroup && !collapsed && (
-                      <p className="px-3 mt-3 mb-1 text-[10.5px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">
-                        {groupLabel}
-                      </p>
-                    )}
                     <Link href={href!}>
                       <span
                         className={cn(
-                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[12px] font-medium transition-colors cursor-pointer w-full",
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[12px] font-light transition-colors cursor-pointer w-full",
                           collapsed && "justify-center px-2",
                           isActive(href!)
                             ? "bg-sidebar-accent text-sidebar-accent-foreground"
@@ -291,7 +290,7 @@ const isCorporate = ["corporation", "technology_company", "public_sector"].inclu
                     : (profile?.full_name || "Your Account")}
                 </span>
               </p>
-              <p className="text-[11px] text-sidebar-foreground/60 truncate mt-0.5">
+              <p className="text-[11px] text-sidebar-foreground truncate mt-0.5">
                 {profile?.user_type === "organisation"
                   ? (profile?.org_type
                       ? profile.org_type.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())
@@ -319,7 +318,7 @@ const isCorporate = ["corporation", "technology_company", "public_sector"].inclu
             href="https://www.impactnatives.com/legal/privacy"
             target="_blank"
             rel="noopener noreferrer"
-            className="block text-[11px] text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors"
+            className="block text-[11px] text-sidebar-foreground hover:opacity-70 transition-opacity"
           >
             Privacy Policy
           </a>
