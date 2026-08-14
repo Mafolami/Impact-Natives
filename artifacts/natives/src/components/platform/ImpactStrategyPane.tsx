@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Trash2, Undo2, ChevronDown, ChevronUp } from "lucide-react";
@@ -53,6 +54,8 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
   const [executiveSummary, setExecutiveSummary] = useState<ExecutiveSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [, navigate] = useLocation();
+  const [requiresUpgrade, setRequiresUpgrade] = useState(false);
   const [pushingIndex, setPushingIndex]   = useState<number | null>(null);
   const [pushError, setPushError]         = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -119,15 +122,17 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
 
     setLoading(true);
     setError(null);
+    setRequiresUpgrade(false);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-impact-strategy`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${session?.access_token ?? ""}`,
           },
           body: JSON.stringify({
             organization_id: organizationId,
@@ -139,6 +144,10 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
       const json = await res.json();
 
       if (!res.ok) {
+        if (json.requires_upgrade) {
+          setRequiresUpgrade(true);
+          return;
+        }
         setError(json.message || "Strategy generation failed. Try again.");
         return;
       }
@@ -155,14 +164,16 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
     if (!pillars) return;
     setSummaryLoading(true);
     setSummaryError(null);
+    setRequiresUpgrade(false);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-impact-strategy`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${session?.access_token ?? ""}`,
           },
           body: JSON.stringify({
             action: "generate_executive_summary",
@@ -181,6 +192,10 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
       );
       const json = await res.json();
       if (!res.ok) {
+        if (json.requires_upgrade) {
+          setRequiresUpgrade(true);
+          return;
+        }
         setSummaryError(json.error ?? "Could not generate summary. Try again.");
         return;
       }
@@ -201,14 +216,16 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
     setChatLoading(true);
     setChatError(null);
     setPendingProposal(null);
+    setRequiresUpgrade(false);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-impact-strategy`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${session?.access_token ?? ""}`,
           },
           body: JSON.stringify({
             action: "refine_strategy",
@@ -223,6 +240,11 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
       );
       const json = await res.json();
       if (!res.ok) {
+        if (json.requires_upgrade) {
+          setRequiresUpgrade(true);
+          setChatMessages(prev => prev.slice(0, -1));
+          return;
+        }
         setChatError(json.error || json.message || "Something went wrong. Try again.");
         setChatMessages(prev => prev.slice(0, -1));
         return;
@@ -271,15 +293,17 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
   async function handlePushPillar(pillar: Pillar, index: number) {
     setPushingIndex(index);
     setPushError(null);
+    setRequiresUpgrade(false);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-impact-strategy`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${session?.access_token ?? ""}`,
           },
           body: JSON.stringify({
             action: "push_pillar",
@@ -292,6 +316,10 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
       const json = await res.json();
 
       if (!res.ok) {
+        if (json.requires_upgrade) {
+          setRequiresUpgrade(true);
+          return;
+        }
         setPushError(json.error || "Could not push this pillar to Initiatives.");
         return;
       }
@@ -322,7 +350,21 @@ export function ImpactStrategyPane({ organizationId }: { organizationId: string 
 
   return (
     <div className="space-y-6">
-      {!pillars && (
+      {requiresUpgrade && (
+        <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+          <p className="text-sm text-black dark:text-white">
+            Strategy Builder requires a Compliance plan.
+          </p>
+          <button
+            onClick={() => navigate("/dashboard/settings?tab=billing")}
+            className="rounded px-4 py-2 font-semibold text-sm"
+            style={{ backgroundColor: "#2D6A4F", color: "white" }}
+          >
+            Upgrade to Compliance
+          </button>
+        </div>
+      )}
+      {!pillars && !requiresUpgrade && (
         <div className="space-y-4">
           <div>
             <label className="text-[10px] font-bold uppercase tracking-[0.12em]">
