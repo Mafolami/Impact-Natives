@@ -910,6 +910,12 @@ export default function DashboardProfile() {
   const [inkindSupport, setInkindSupport]             = useState<string[]>([]);
   const [techSupport, setTechSupport]                 = useState<string[]>([]);
   const [sandboxReady, setSandboxReady]               = useState(false);
+  const [srg1PieSelfDeclared, setSrg1PieSelfDeclared]   = useState(false);
+  const [srg1AnnualRevenue, setSrg1AnnualRevenue]       = useState("");
+  const [editingComplianceSection, setEditingComplianceSection] = useState(false);
+  const [complianceSectionSaving, setComplianceSectionSaving]   = useState(false);
+  const [draftSrg1PieSelfDeclared, setDraftSrg1PieSelfDeclared] = useState(false);
+  const [draftSrg1AnnualRevenue, setDraftSrg1AnnualRevenue]     = useState("");
   const [sandboxDescription, setSandboxDescription]   = useState("");
 
   // ── CSR & ESG pane: display-card / edit-modal state ──────────────────────
@@ -1043,6 +1049,28 @@ export default function DashboardProfile() {
     setOrgSectionSaving(false);
   }
 
+  function openComplianceModal() {
+    setDraftSrg1PieSelfDeclared(srg1PieSelfDeclared);
+    setDraftSrg1AnnualRevenue(srg1AnnualRevenue);
+    setEditingComplianceSection(true);
+  }
+  async function saveComplianceSection() {
+    if (!orgOwnerId) return;
+    setComplianceSectionSaving(true);
+    try {
+      await saveOrgFields(orgOwnerId, {
+        srg1_pie_self_declared: draftSrg1PieSelfDeclared,
+        srg1_annual_revenue_ngn: draftSrg1AnnualRevenue ? Number(draftSrg1AnnualRevenue) : null,
+      });
+      setSrg1PieSelfDeclared(draftSrg1PieSelfDeclared);
+      setSrg1AnnualRevenue(draftSrg1AnnualRevenue);
+      setEditingComplianceSection(false);
+    } catch (err: any) {
+      alert(`Couldn't save: ${err.message}`);
+    }
+    setComplianceSectionSaving(false);
+  }
+
   // ── Contact Details pane (both variants): display-card / edit-modal state ──
   const [editingContactSection, setEditingContactSection] = useState(false);
   const [contactSaving, setContactSaving]     = useState(false);
@@ -1155,7 +1183,7 @@ export default function DashboardProfile() {
   useEffect(() => {
     if (!orgOwnerId) return;
     supabase.from("organizations")
-     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")      .eq("user_id", orgOwnerId).maybeSingle()
+     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,srg1_pie_self_declared,srg1_annual_revenue_ngn")      .eq("user_id", orgOwnerId).maybeSingle()
       .then(({ data }) => {
         if (!data) return;
         setOrgId(data.id ?? null);
@@ -1179,6 +1207,8 @@ export default function DashboardProfile() {
         if (data.inkind_support) setInkindSupport(data.inkind_support);
         if (data.tech_support_available) setTechSupport(data.tech_support_available);
         setSandboxReady(data.sandbox_ready ?? false);
+        setSrg1PieSelfDeclared(data.srg1_pie_self_declared ?? false);
+        setSrg1AnnualRevenue(data.srg1_annual_revenue_ngn != null ? String(data.srg1_annual_revenue_ngn) : "");
         if (data.sandbox_description) setSandboxDescription(data.sandbox_description);
         setDdFinancialModel(data.dd_financial_model ?? false);
         setDdAuditedAccounts(data.dd_audited_accounts ?? false);
@@ -1456,7 +1486,7 @@ export default function DashboardProfile() {
 
     if (isOrgOwner && profile?.user_type === "organisation") {
       const { data } = await supabase.from("organizations")
-        .select("logo_url,description,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description")
+        .select("logo_url,description,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,srg1_pie_self_declared,srg1_annual_revenue_ngn")
         .eq("user_id", orgOwnerId!).maybeSingle();
       if (data) {
         if (data.previous_funders) setPreviousFunders(data.previous_funders);
@@ -2610,7 +2640,6 @@ export default function DashboardProfile() {
                           ? <div className="flex flex-wrap gap-2">{techSupport.map(t => <FlatTag key={t}>{t}</FlatTag>)}</div>
                           : <EmptyValue />}
                       </DisplayField>
-
                       <DisplayField label="Sandbox / beta testing">
                         {sandboxReady ? (
                           <div>
@@ -2621,9 +2650,37 @@ export default function DashboardProfile() {
                       </DisplayField>
                     </SectionCard>
                   )}
+                  {/* ── SRG1 compliance self-declaration ── */}
+                  <SectionCard editable={isOrgOwner} title="Compliance (SRG1)" onEdit={openComplianceModal}>
+                    <DisplayField label="Public interest entity status">
+                      {srg1PieSelfDeclared ? (
+                        <p className="text-sm text-black dark:text-white">✓ Declared as a public interest entity under FRC Nigeria SRG1</p>
+                      ) : <EmptyValue />}
+                    </DisplayField>
+                    <DisplayField label="Annual revenue (₦)">
+                      {srg1AnnualRevenue ? (
+                        <p className="text-sm text-black dark:text-white">{Number(srg1AnnualRevenue).toLocaleString()}</p>
+                      ) : <EmptyValue />}
+                    </DisplayField>
+                  </SectionCard>
                 </SectionCardGroup>
               )}
-
+              {/* ── SRG1 compliance edit modal ── */}
+              {editingComplianceSection && (
+                <EditModal title="Compliance (SRG1)" onClose={() => setEditingComplianceSection(false)} onSave={saveComplianceSection} saving={complianceSectionSaving}>
+                  <div className="space-y-1">
+                    <ModalCheckbox checked={draftSrg1PieSelfDeclared} onChange={() => setDraftSrg1PieSelfDeclared(v => !v)}
+                      label="We are a public interest entity (PIE) under FRC Nigeria SRG1"
+                      sub="Applies if your organisation meets FRC Nigeria's public interest entity criteria" />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Annual revenue (₦, optional)</Label>
+                    <Input value={draftSrg1AnnualRevenue} onChange={e => setDraftSrg1AnnualRevenue(e.target.value.replace(/[^0-9]/g, ""))}
+                      className="mt-1 h-10" placeholder="e.g. 35000000000" />
+                    <p className="text-xs text-black dark:text-white mt-1.5 opacity-60">Orgs at or above ₦30bn annual revenue are automatically flagged as SRG1-subject, regardless of the checkbox above.</p>
+                  </div>
+                </EditModal>
+              )}
               {/* ── CSR & ESG edit modal ── */}
               {editingCsrSection === "csrEsg" && (
                 <EditModal title="CSR & ESG" onClose={() => setEditingCsrSection(null)} onSave={saveCsrEsgSection} saving={csrSectionSaving}>
