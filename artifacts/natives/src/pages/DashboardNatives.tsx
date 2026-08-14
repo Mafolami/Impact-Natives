@@ -491,9 +491,35 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
 }) {
   const [orgs, setOrgs]       = useState<OrgRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [directLoading, setDirectLoading] = useState(!!autoOpenUserId);
   const [selected, setSelected] = useState<OrgRow | null>(null);
 
   useEffect(() => { onSelectionChange?.(!!selected); }, [selected]);
+
+  // Deep link into a single org (e.g. clicking an org name elsewhere in
+  // the app): fetch just that one row instead of waiting on the full
+  // published-orgs directory load below, which pulls every org and every
+  // DD field for the whole marketplace just to find one match.
+  useEffect(() => {
+    if (!autoOpenUserId) return;
+    async function loadOne() {
+      const [{ data: orgRow }, { data: profileRow }] = await Promise.all([
+        supabase
+          .from("organizations")
+          .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status,investment_thesis,stage_preference,geographic_focus,impact_strategy,flagged_visibility_hold")
+          .eq("user_id", autoOpenUserId)
+          .eq("status", "published")
+          .single(),
+        supabase.from("profiles").select("full_name").eq("id", autoOpenUserId).single(),
+      ]);
+      if (orgRow) {
+        setSelected({ ...orgRow, contact_name: profileRow?.full_name } as OrgRow);
+        onAutoOpened?.();
+      }
+      setDirectLoading(false);
+    }
+    loadOne();
+  }, [autoOpenUserId]);
 
   useEffect(() => {
     async function load() {
@@ -517,11 +543,6 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
         contact_name: profileMap.get(o.user_id)?.full_name,      }));
 
       setOrgs(enriched);
-
-      if (autoOpenUserId) {
-        const match = enriched.find(o => o.user_id === autoOpenUserId);
-        if (match) { setSelected(match); onAutoOpened?.(); }
-      }
       setLoading(false);
     }
     load();
@@ -547,8 +568,9 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
     );
   });
 
-  if (loading) return <LoadingSpinner />;
+  if (directLoading) return <LoadingSpinner />;
   if (selected) return <NativesOrgDetail org={selected} onBack={() => setSelected(null)} />;
+  if (loading) return <LoadingSpinner />;
   if (filtered.length === 0) return (
     <EmptyState
       icon={<Users className="w-8 h-8 text-muted-foreground/40" />}
