@@ -158,7 +158,7 @@ export default function Topbar({ sidebarCollapsed }: TopbarProps) {
   return (
     <header
       className={cn(
-        "fixed top-0 right-0 h-[104px] bg-background border-b border-border flex items-center justify-between px-6 py-3 z-30 transition-all duration-200",
+        "fixed top-0 right-0 h-[81px] bg-background border-b border-border flex items-center justify-between px-6 py-2 z-30 transition-all duration-200",
         sidebarCollapsed ? "left-16" : "left-72"
       )}
     >

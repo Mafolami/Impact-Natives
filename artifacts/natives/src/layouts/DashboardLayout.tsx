@@ -85,7 +85,7 @@ export default function DashboardLayout({ children, adminOnly }: { children: Rea
         collapsed ? "ml-16" : "ml-72"
       )}>
         <Topbar sidebarCollapsed={collapsed} />
-        <main className="flex-1 pt-[104px]">
+        <main className="flex-1 pt-[81px]">
           {!profile ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
