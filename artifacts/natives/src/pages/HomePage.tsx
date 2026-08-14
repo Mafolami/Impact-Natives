@@ -700,43 +700,80 @@ export default function HomePage() {
         <div style={{ position: 'absolute', inset: 0, zIndex: 0, background: isDark ? 'hsl(193,20%,7%)' : '#ffffff' }} />
         <div style={{ position: 'absolute', width: '70vw', height: '70vh', top: '-15%', right: '-10%', background: 'radial-gradient(ellipse, rgba(196,92,38,0.08) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 1 }} />
         <div style={{ position: 'absolute', width: '50vw', height: '50vh', bottom: '0', left: '10%', background: 'radial-gradient(ellipse, rgba(45,184,122,0.04) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 1 }} />
-        <div className="hp-section-wrap hp-hero" style={{ position: 'relative', zIndex: 10, paddingTop: '7rem', paddingBottom: '6rem', width: '100%', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <h1 style={{
-            fontFamily: "'Bricolage Grotesque', sans-serif",
-            fontSize: 'clamp(2.75rem, 6.5vw, 5rem)',
-            fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.05,
-            maxWidth: '820px', marginBottom: '1.75rem', color: T.text,
+        <svg
+          viewBox="0 0 260 260"
+          aria-hidden="true"
+          style={{
+            position: 'absolute', width: 'min(60vw, 620px)', height: 'auto',
+            right: '-4%', top: '8%', zIndex: 1, pointerEvents: 'none',
+            opacity: isDark ? 0.05 : 0.045,
+          }}
+        >
+          <path d="M120 20 C160 30 190 60 195 100 C200 140 175 160 185 190 C195 220 170 240 150 235 C140 250 115 250 110 230 C90 225 85 200 95 180 C80 165 75 140 90 120 C85 100 95 75 120 20 Z" fill={T.text} />
+        </svg>
+        <div className="hp-mobile-stack hp-section-wrap hp-hero" style={{ position: 'relative', zIndex: 10, paddingTop: '7rem', paddingBottom: '6rem', width: '100%', display: 'grid', gridTemplateColumns: '1.05fr 1fr', gap: 'clamp(2.5rem, 5vw, 4rem)', alignItems: 'center', textAlign: 'left' }}>
+          <div className="hp-mobile-text-first">
+            <h1 style={{
+              fontFamily: "'Bricolage Grotesque', sans-serif",
+              fontSize: 'clamp(2.5rem, 5.5vw, 4.25rem)',
+              fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.05,
+              marginBottom: '1.75rem', color: T.text,
+            }}>
+              Africa's impact work is stalling at the{' '}
+              <span style={{ background: 'linear-gradient(90deg, #C45C26, #e07a4a, #C45C26)', backgroundSize: '200% auto', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', animation: 'hp-shimmer 3s linear infinite' }}>
+                coordination layer.
+              </span>
+            </h1>
+            <p style={{ fontSize: 'clamp(1rem, 2vw, 1.1875rem)', lineHeight: 1.72, color: T.textDim, maxWidth: '520px', marginBottom: '2.5rem' }}>
+              Impact Natives is the infrastructure where NGOs, funders, corporates, and ecosystem builders find each other, verify readiness, and form partnerships that work, without the email chains and multi-month delays.
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.875rem' }}>
+              <a href={window.location.hostname === "impactnatives.com" ? "https://app.impactnatives.com/signup" : "/platform/partnership-os"}>
+                <button className="hp-btn-primary">
+                  Find a Partner
+                  <ArrowRight style={{ width: '1rem', height: '1rem' }} />
+                </button>
+              </a>
+              <Link href="/platform/impact-marketplace">
+                <button style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                  padding: '0.625rem 1.5rem', borderRadius: '9999px',
+                  fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  background: isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
+                  border: isDark ? '1px solid rgba(255,255,255,0.14)' : '1px solid #0a0a0a',
+                  color: isDark ? '#f7f3ed' : '#0a0a0a',
+                }}>
+                  Create an Initiative
+                </button>
+              </Link>
+            </div>
+          </div>
+          <div className="hp-mobile-img-below" style={{
+            borderRadius: '1.25rem', overflow: 'hidden', position: 'relative',
+            border: `1px solid ${T.borderMd}`, aspectRatio: '4/3', background: T.surfaceMd,
+            boxShadow: isDark ? 'none' : '0 20px 60px -20px rgba(0,0,0,0.15)',
           }}>
-            Africa's impact work is stalling at the{' '}
-            <span style={{ background: 'linear-gradient(90deg, #C45C26, #e07a4a, #C45C26)', backgroundSize: '200% auto', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', animation: 'hp-shimmer 3s linear infinite' }}>
-              coordination layer.
-            </span>
-          </h1>
-          <p style={{ fontSize: 'clamp(1rem, 2vw, 1.25rem)', lineHeight: 1.72, color: T.textDim, maxWidth: '600px', marginBottom: '2.5rem' }}>
-            Impact Natives is the infrastructure where NGOs, funders, corporates, and ecosystem builders find each other, verify readiness, and form partnerships that work, without the email chains and multi-month delays.
-          </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.875rem', justifyContent: 'center' }}>
-          <a href={window.location.hostname === "impactnatives.com" ? "https://app.impactnatives.com/signup" : "/platform/partnership-os"}>
-              <button className="hp-btn-primary">
-                Find a Partner
-                <ArrowRight style={{ width: '1rem', height: '1rem' }} />
-              </button>
-            </a>
-            <Link href="/platform/impact-marketplace">
-              <button style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-                padding: '0.625rem 1.5rem', borderRadius: '9999px',
-                fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                background: isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
-                border: isDark ? '1px solid rgba(255,255,255,0.14)' : '1px solid #0a0a0a',
-                color: isDark ? '#f7f3ed' : '#0a0a0a',
-              }}>
-                Create an Initiative
-              </button>
-            </Link>
+            {typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? (
+              <img src="/hero-poster.jpg" alt="Impact Natives matching interface" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            ) : (
+              <video
+                autoPlay muted loop playsInline
+                poster="/hero-poster.jpg"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              >
+                <source src="/hero-matching-demo.webm" type="video/webm" />
+                <source src="/hero-matching-demo.mp4" type="video/mp4" />
+              </video>
+            )}
           </div>
         </div>
+```
+
+**Also add reduced-motion support.** If you have a global stylesheet with the `hp-shimmer` keyframe, add this next to it:
+
+**FIND:**
+```
       </section>
 
       {/* ── PROBLEM ───────────────────────────────────────── */}
