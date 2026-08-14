@@ -7,7 +7,7 @@ import { computeTrustTier } from "@/lib/ddItems";
 import { TrustBadge } from "@/components/ui/TrustBadge";
 import { useAuth } from "@/context/AuthContext";
 import { FileText, Sparkles } from "lucide-react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import CreateInitiativeModalDashboard from "./CreateInitiativeModalDashboard";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { FaWhatsapp, FaXTwitter, FaLinkedin } from "react-icons/fa6";
@@ -462,7 +462,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
           {ini.title}
         </h3>
         {(ini.submitter_org || ini.submitter_name) && (
-          <a
+            <Link
             href={
               ini.submitter_user_type === "organisation"
                 ? `/dashboard/natives?tab=organisation&user=${ini.user_id}`
@@ -473,7 +473,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
             <Building2 className="w-3.5 h-3.5 shrink-0" />
             {ini.submitter_user_type === "organisation" ? ini.submitter_org : ini.submitter_name}
             {ini.submitter_is_verified && <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-[#2D6A4F]" />}
-          </a>
+          </Link>
         )}
         <div className="flex items-center gap-1.5 shrink-0 mt-auto pt-4">
           <ShareButton initiativeId={ini.id} title={ini.title} size="sm" />
@@ -1525,7 +1525,7 @@ function MarketplaceDetail({
           <h2 className="text-2xl font-bold text-white tracking-tight leading-snug">{initiative.title}</h2>
           <div className="flex items-center gap-3 mt-2 text-xs text-white/70 flex-wrap">
             {(initiative.submitter_org || initiative.submitter_name) && (
-              <a
+                <Link
                 href={
                   initiative.submitter_user_type === "organisation"
                     ? `/dashboard/natives?tab=organisation&user=${initiative.user_id}`
@@ -1536,7 +1536,7 @@ function MarketplaceDetail({
                 {initiative.submitter_user_type === "organisation"
                   ? initiative.submitter_org
                   : initiative.submitter_name}
-              </a>
+              </Link>
             )}
             <span>{initiative.eois} expression{initiative.eois !== 1 ? "s" : ""} of interest</span>
             <span>{new Date(initiative.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
