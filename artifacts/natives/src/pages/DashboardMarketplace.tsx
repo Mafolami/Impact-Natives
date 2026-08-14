@@ -918,12 +918,14 @@ function MarketplaceDetail({
   onUndoPass: () => void;
 }) {
   const { user, profile, orgOwnerId } = useAuth();
+  const [, navigate] = useLocation();
   const [eoiOpen, setEoiOpen]                   = useState(false);
   const [partnershipTypes, setPartnershipTypes] = useState<string[]>([]);
   const [esgAdoption, setEsgAdoption]           = useState(false);
   const [message, setMessage]                   = useState("");
   const [aiMessageLoading, setAiMessageLoading] = useState(false);
   const [aiMessageFailed, setAiMessageFailed]   = useState(false);
+  const [aiMessageRequiresUpgrade, setAiMessageRequiresUpgrade] = useState(false);
   const [submitting, setSubmitting]             = useState(false);
   const [submitted, setSubmitted]               = useState(false);
   const [eoiError, setEoiError]                 = useState<string | null>(null);
@@ -934,10 +936,12 @@ function MarketplaceDetail({
   const [questionSubmitted, setQuestionSubmitted]   = useState(false);  const [dealMemo, setDealMemo]                 = useState<any | null>(null);
   const [loadingMemo, setLoadingMemo]           = useState(false);
   const [memoOpen, setMemoOpen]                 = useState(false);
+  const [memoRequiresUpgrade, setMemoRequiresUpgrade] = useState(false);
   const [funderMandate, setFunderMandate]       = useState<any | null>(null);
   const [csrBrief, setCsrBrief]                 = useState<any | null>(null);
   const [loadingCsr, setLoadingCsr]             = useState(false);
   const [csrOpen, setCsrOpen]                   = useState(false);
+  const [csrRequiresUpgrade, setCsrRequiresUpgrade] = useState(false);
   const [csrMandate, setCsrMandate]             = useState<any | null>(null);
   const [fullDetail, setFullDetail] = useState<{
     target_population?: string | null;
@@ -1074,6 +1078,7 @@ function MarketplaceDetail({
   async function generateAiMessage() {
     setAiMessageLoading(true);
     setAiMessageFailed(false);
+    setAiMessageRequiresUpgrade(false);
     try {
       const { data: ep } = await supabase.from("profiles").select("full_name,org_name,user_type,sectors").eq("id", user!.id).single();
       const { data: orgRow } = await supabase.from("organizations").select("description,offers").eq("user_id", orgOwnerId ?? user!.id).maybeSingle();
@@ -1099,6 +1104,8 @@ function MarketplaceDetail({
       if (!error && data?.message) {
         setMessage(data.message);
         hasManuallyEditedRef.current = false;
+      } else if (data?.requires_upgrade) {
+        setAiMessageRequiresUpgrade(true);
       } else {
         setAiMessageFailed(true);
       }
@@ -1110,11 +1117,16 @@ function MarketplaceDetail({
   async function generateCsrBrief() {
     setLoadingCsr(true);
     setCsrOpen(true);
+    setCsrRequiresUpgrade(false);
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(`${supabaseUrl}/functions/v1/generate-csr-brief`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({
           initiative: { ...initiative, ...fullDetail },
           csr_mandate: csrMandate,
@@ -1135,7 +1147,11 @@ function MarketplaceDetail({
         }),
       });
       const result = await res.json();
-      if (result.data) setCsrBrief(result.data);
+      if (result.requires_upgrade) {
+        setCsrRequiresUpgrade(true);
+      } else if (result.data) {
+        setCsrBrief(result.data);
+      }
     } catch {
       // silent
     }
@@ -1144,11 +1160,16 @@ function MarketplaceDetail({
   async function generateDealMemo() {
     setLoadingMemo(true);
     setMemoOpen(true);
+    setMemoRequiresUpgrade(false);
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(`${supabaseUrl}/functions/v1/generate-deal-memo`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({
           initiative: {
             ...initiative,
@@ -1172,7 +1193,11 @@ function MarketplaceDetail({
         }),
       });
       const result = await res.json();
-      if (result.data) setDealMemo(result.data);
+      if (result.requires_upgrade) {
+        setMemoRequiresUpgrade(true);
+      } else if (result.data) {
+        setDealMemo(result.data);
+      }
     } catch {
       // silent
     }
@@ -1341,6 +1366,15 @@ function MarketplaceDetail({
                 </div>
               )}
             </div>
+          ) : memoRequiresUpgrade ? (
+            <div className="text-center py-4">
+              <p className="text-sm font-medium text-foreground mb-1">AI deal memos need an upgrade.</p>
+              <p className="text-xs text-black dark:text-white mb-3">Upgrade to see a full AI-generated deal memo for this initiative.</p>
+              <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
+                className="text-xs font-semibold text-white bg-[#2D6A4F] rounded-full px-4 py-1.5 hover:bg-[#245c43] transition-colors">
+                Upgrade
+              </button>
+            </div>
           ) : (
             <p className="text-sm text-black dark:text-white">Failed to generate memo. Try again.</p>
           )}
@@ -1428,6 +1462,15 @@ function MarketplaceDetail({
                   <p className="text-xs text-black dark:text-white pl-6">{csrBrief.recommended_action_reason}</p>
                 </div>
               )}
+            </div>
+          ) : csrRequiresUpgrade ? (
+            <div className="text-center py-4">
+              <p className="text-sm font-medium text-foreground mb-1">AI CSR briefs need an upgrade.</p>
+              <p className="text-xs text-black dark:text-white mb-3">Upgrade to see a full AI-generated CSR adoption brief for this initiative.</p>
+              <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
+                className="text-xs font-semibold text-white bg-[#2D6A4F] rounded-full px-4 py-1.5 hover:bg-[#245c43] transition-colors">
+                Upgrade
+              </button>
             </div>
           ) : (
             <p className="text-sm text-black dark:text-white">Failed to generate brief. Try again.</p>
@@ -1909,12 +1952,22 @@ function MarketplaceDetail({
                   {(!aiMessageLoading || message) && (
                     <textarea value={message} onChange={e => { setMessage(e.target.value); hasManuallyEditedRef.current = true; }}
                       placeholder={
-                        aiMessageFailed ? "AI draft unavailable. Write your message here..."
+                        aiMessageRequiresUpgrade ? "AI drafting needs an upgrade. Write your message here..."
+                        : aiMessageFailed ? "AI draft unavailable. Write your message here..."
                         : partnershipTypes.length === 0 ? "Select a partnership type above to generate a draft message, or write your own."
                         : "Generating message..."
                       }
                       rows={5}
                       className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
+                  )}
+                  {aiMessageRequiresUpgrade && !message && (
+                    <p className="text-xs text-[#C45C26]">
+                      AI-drafted outreach needs an upgrade.{" "}
+                      <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")} className="underline font-medium">
+                        Upgrade
+                      </button>
+                      {" "}or write your own message above.
+                    </p>
                   )}
                   {aiMessageFailed && !message && (
                     <p className="text-xs text-[#C45C26]">AI draft failed. Write your own message above.</p>
