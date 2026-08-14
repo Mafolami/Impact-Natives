@@ -110,14 +110,14 @@
 }
 
 .dark {
-  --background: 207 15% 12%;
+  --background: 193 18% 9%;
   --foreground: 0 0% 98%;
 
   --border: 0 0% 15%;
   --input: 0 0% 15%;
   --ring: 20 68% 46%;
 
- --card: 207 15% 12%;
+ --card: 193 18% 9%;
   --card-foreground: 0 0% 98%;
   --card-border: 0 0% 18%;
 
