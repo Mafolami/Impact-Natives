@@ -626,32 +626,30 @@ export default function DashboardMarketplace() {
         setSavedIds(new Set((data ?? []).map((r: any) => r.initiative_id)));
       });
   }, [user?.id]);
-  useEffect(() => {
-    if (!orgOwnerId) return;
-    supabase
-      .from("funder_decisions")
-      .select("initiative_id, decision, reason")
-      .eq("funder_id", orgOwnerId)
-      .then(({ data }) => {
-        const ids = new Set<string>();
-        const reasons: Record<string, string> = {};
-        (data ?? []).forEach((r: any) => {
-          if (r.decision === "pass") {
-            ids.add(r.initiative_id);
-            if (r.reason) reasons[r.initiative_id] = r.reason;
-          }
-        });
-        setPassedIds(ids);
-        setPassReasons(reasons);
-      });
-  }, [orgOwnerId]);
   function toggleStartupPipeline() {
     setStartupPipeline(v => !v);
   }
   useEffect(() => {
     if (!orgOwnerId) return;
-    supabase.from("expressions_of_interest").select("initiative_id").eq("user_id", orgOwnerId)
-      .then(({ data }) => { if (data) setExpressedIds(new Set(data.map(d => d.initiative_id))); });
+    Promise.all([
+      supabase
+        .from("funder_decisions")
+        .select("initiative_id, decision, reason")
+        .eq("funder_id", orgOwnerId),
+      supabase.from("expressions_of_interest").select("initiative_id").eq("user_id", orgOwnerId),
+    ]).then(([{ data: decisionsData }, { data: eoiData }]) => {
+      const ids = new Set<string>();
+      const reasons: Record<string, string> = {};
+      (decisionsData ?? []).forEach((r: any) => {
+        if (r.decision === "pass") {
+          ids.add(r.initiative_id);
+          if (r.reason) reasons[r.initiative_id] = r.reason;
+        }
+      });
+      setPassedIds(ids);
+      setPassReasons(reasons);
+      if (eoiData) setExpressedIds(new Set(eoiData.map((d: any) => d.initiative_id)));
+    });
   }, [orgOwnerId]);
   useEffect(() => {
     if (!initiatives.length) return;
@@ -671,15 +669,18 @@ export default function DashboardMarketplace() {
         .order("created_at", { ascending: false });
       if (data && data.length > 0) {
         const userIds = [...new Set((data as any[]).map(i => i.user_id).filter(Boolean))];
-        const { data: profiles } = await supabase
-          .from("profiles").select("id,is_verified,org_type,full_name,user_type").in("id", userIds);
+        const [{ data: profiles }, { data: ddOrgs }] = await Promise.all([
+          supabase
+            .from("profiles").select("id,is_verified,org_type,full_name,user_type").in("id", userIds),
+          supabase
+            .from("organizations")
+            .select("user_id,organisation_type,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration")
+            .in("user_id", userIds),
+        ]);
         const verifiedMap  = new Map((profiles ?? []).map((p: any) => [p.id, p.is_verified]));
-       const orgTypeMap   = new Map((profiles ?? []).map((p: any) => [p.id, p.org_type ?? p.user_type]));        const nameMap      = new Map((profiles ?? []).map((p: any) => [p.id, p.full_name]));
+        const orgTypeMap   = new Map((profiles ?? []).map((p: any) => [p.id, p.org_type ?? p.user_type]));
+        const nameMap      = new Map((profiles ?? []).map((p: any) => [p.id, p.full_name]));
         const userTypeMap  = new Map((profiles ?? []).map((p: any) => [p.id, p.user_type]));
-        const { data: ddOrgs } = await supabase
-          .from("organizations")
-          .select("user_id,organisation_type,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration")
-          .in("user_id", userIds);
         const ddScoreMap = new Map((ddOrgs ?? []).map((o: any) => {
           const items = ddItemsFor(o);
           return [o.user_id, Math.round((items.filter(Boolean).length / items.length) * 100)];
