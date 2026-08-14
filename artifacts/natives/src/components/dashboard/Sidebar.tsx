@@ -33,9 +33,9 @@ const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
       { label: "Exchanges", href: "/dashboard/portfolio/exchanges", icon: Lightbulb, corporateOnly: false, groupLabel: "Portfolio" },
       { label: "MoUs", href: "/dashboard/portfolio/mou", icon: FileText, corporateOnly: false, groupLabel: "Portfolio" },
       { label: "Milestones", href: "/dashboard/portfolio/milestones", icon: Target, corporateOnly: false, groupLabel: "Portfolio" },
-      { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, corporateOnly: false },
-      { label: "Labs", href: "/dashboard/labs", icon: FlaskConical, corporateOnly: false },
       { label: "Natives", href: "/dashboard/natives", icon: Globe, corporateOnly: false },
+      { label: "Labs", href: "/dashboard/labs", icon: FlaskConical, corporateOnly: false },
+      { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, corporateOnly: false },
     ],
   },
   {
