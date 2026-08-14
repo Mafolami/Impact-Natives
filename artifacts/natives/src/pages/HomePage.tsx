@@ -701,7 +701,7 @@ export default function HomePage() {
         <div style={{ position: 'absolute', width: '70vw', height: '70vh', top: '-15%', right: '-10%', background: 'radial-gradient(ellipse, rgba(196,92,38,0.08) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 1 }} />
         <div style={{ position: 'absolute', width: '50vw', height: '50vh', bottom: '0', left: '10%', background: 'radial-gradient(ellipse, rgba(45,184,122,0.04) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 1 }} />
         <div className="hp-mobile-stack" style={{ position: 'relative', zIndex: 10, maxWidth: '1280px', margin: '0 auto', paddingTop: '7rem', paddingBottom: '6rem', paddingLeft: 'clamp(1.25rem, 3vw, 3rem)', paddingRight: 'clamp(1.25rem, 3vw, 3rem)', width: '100%', boxSizing: 'border-box', display: 'grid', gridTemplateColumns: '1.05fr 1fr', gap: 'clamp(2.5rem, 5vw, 4rem)', alignItems: 'center' }}>
-          <div className="hp-mobile-text-first" style={{ textAlign: 'left' }}>
+          <div className="hp-mobile-text-first" style={{ textAlign: 'left', minWidth: 0 }}>
             <h1 style={{
               fontFamily: "'Bricolage Grotesque', sans-serif",
               fontSize: 'clamp(2.5rem, 5.5vw, 4.25rem)',
@@ -738,7 +738,7 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
-          <div className="hp-mobile-img-below" style={{ position: 'relative' }}>
+          <div className="hp-mobile-img-below" style={{ position: 'relative', minWidth: 0, width: '100%' }}>
             <svg
               viewBox="0 0 260 260"
               aria-hidden="true"
@@ -758,7 +758,7 @@ export default function HomePage() {
             <video
                 autoPlay muted loop playsInline
                 poster="/hero-poster.jpg"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                style={{ width: '100%', maxWidth: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               >
                 <source src="/hero-matching-demo.webm" type="video/webm" />
               <source src="/hero-matching-demo.mp4" type="video/mp4" />
