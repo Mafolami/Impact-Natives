@@ -274,10 +274,46 @@ function IndividualsPanel({ search, sectorFilter, countryFilter, autoOpenUserId,
 }) {
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [loading, setLoading]   = useState(true);
+  const [directLoading, setDirectLoading] = useState(!!autoOpenUserId);
   const [selected, setSelected] = useState<ProfileRow | null>(null);
-
-  useEffect(() => { onSelectionChange?.(!!selected); }, [selected]);
-
+  useEffect(() => {
+    // Same guard as OrgsPanel: while the direct single-profile fetch is
+    // still in flight, don't let this effect's initial "selected is null"
+    // state stomp the parent's URL-seeded detailOpen=true back to false.
+    if (directLoading) return;
+    onSelectionChange?.(!!selected);
+  }, [selected, directLoading]);
+  // Deep link into a single profile: fetch just that one row instead of
+  // waiting on the full profiles directory load below. Mirrors the fix
+  // applied to OrgsPanel.
+  useEffect(() => {
+    if (!autoOpenUserId) return;
+    async function loadOne() {
+      const { data: profileRow } = await supabase
+        .from("profiles")
+        .select("id,full_name,role_title,country,sectors,bio,avatar_url,linkedin_url,website,user_type,social_links,org_name,show_individual_profile")
+        .eq("id", autoOpenUserId)
+        .not("full_name", "is", null)
+        .or("user_type.eq.individual_creative,user_type.is.null,show_individual_profile.eq.true")
+        .single();
+      if (profileRow) {
+        // Team Members never get an individual detail view -- same
+        // exclusion rule as the full-list load below.
+        const { data: membership } = await supabase
+          .from("org_members")
+          .select("user_id")
+          .eq("user_id", autoOpenUserId)
+          .eq("status", "active")
+          .maybeSingle();
+        if (!membership) {
+          setSelected(profileRow as ProfileRow);
+          onAutoOpened?.();
+        }
+      }
+      setDirectLoading(false);
+    }
+    loadOne();
+  }, [autoOpenUserId]);
   useEffect(() => {
     async function load() {
       setLoading(true);
@@ -312,10 +348,6 @@ function IndividualsPanel({ search, sectorFilter, countryFilter, autoOpenUserId,
 
       const rows = allRows.filter(p => !memberUserIds.has(p.id));
       setProfiles(rows);
-      if (autoOpenUserId) {
-        const match = rows.find(p => p.id === autoOpenUserId);
-        if (match) { setSelected(match); onAutoOpened?.(); }
-      }
       setLoading(false);
     }
     load();
@@ -334,8 +366,9 @@ function IndividualsPanel({ search, sectorFilter, countryFilter, autoOpenUserId,
     );
   });
 
-  if (loading) return <LoadingSpinner />;
+  if (directLoading) return <LoadingSpinner />;
   if (selected) return <ProfileDetail profile={selected} onBack={() => setSelected(null)} />;
+  if (loading) return <LoadingSpinner />;
   if (filtered.length === 0) return (
     <EmptyState
       icon={<Users className="w-8 h-8 text-muted-foreground/40" />}
