@@ -758,7 +758,7 @@ export default function HomePage() {
             <video
               autoPlay muted loop playsInline
               aria-hidden="true"
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(28px) brightness(0.85)', transform: 'scale(1.15)', display: 'block' }}
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(18px) brightness(0.35)', transform: 'scale(1.15)', display: 'block' }}
             >
               <source src="/hero-matching-demo.webm" type="video/webm" />
               <source src="/hero-matching-demo.mp4" type="video/mp4" />
