@@ -752,13 +752,13 @@ export default function HomePage() {
             </svg>
             <div style={{
               borderRadius: '1.25rem', overflow: 'hidden', position: 'relative', zIndex: 1,
-              border: `1px solid ${T.borderMd}`, background: T.surfaceMd, height: 'clamp(320px, 34vw, 440px)',
+              border: `1px solid ${T.borderMd}`, background: isDark ? '#0d0d0f' : '#ffffff',
               boxShadow: isDark ? 'none' : '0 20px 60px -20px rgba(0,0,0,0.15)',
             }}>
             <video
                 autoPlay muted loop playsInline
                 poster="/hero-poster.jpg"
-                style={{ width: '100%', maxWidth: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                style={{ width: '100%', maxWidth: '100%', height: 'auto', display: 'block' }}
               >
                 <source src="/hero-matching-demo.webm" type="video/webm" />
               <source src="/hero-matching-demo.mp4" type="video/mp4" />
