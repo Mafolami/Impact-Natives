@@ -756,11 +756,19 @@ export default function HomePage() {
               boxShadow: isDark ? 'none' : '0 20px 60px -20px rgba(0,0,0,0.15)',
             }}>
             <video
-                autoPlay muted loop playsInline
-                poster="/hero-poster.jpg"
-                style={{ width: '100%', maxWidth: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
-              >
-                <source src="/hero-matching-demo.webm" type="video/webm" />
+              autoPlay muted loop playsInline
+              aria-hidden="true"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(28px) brightness(0.85)', transform: 'scale(1.15)', display: 'block' }}
+            >
+              <source src="/hero-matching-demo.webm" type="video/webm" />
+              <source src="/hero-matching-demo.mp4" type="video/mp4" />
+            </video>
+            <video
+              autoPlay muted loop playsInline
+              poster="/hero-poster.jpg"
+              style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+            >
+              <source src="/hero-matching-demo.webm" type="video/webm" />
               <source src="/hero-matching-demo.mp4" type="video/mp4" />
             </video>
             </div>
