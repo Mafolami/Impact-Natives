@@ -733,6 +733,7 @@ export default function DashboardProfile() {
   const [ddLegalRegistration, setDdLegalRegistration] = useState(false);
   const [ddLegalComplianceDeclaration, setDdLegalComplianceDeclaration] = useState(false);
   const [ddEvidence, setDdEvidence]                   = useState<Record<string, any>>({});
+  const [ddConfirmedAt, setDdConfirmedAt]              = useState<Record<string, any>>({});
   const [ddModalKey, setDdModalKey]                   = useState<string | null>(null);
 
   // ── Funder/corporate DD readiness (parallel, smaller checklist) ────────────
@@ -746,11 +747,16 @@ export default function DashboardProfile() {
   async function saveDdItem(key: string, answers: Record<string, any>, setter: (v: boolean) => void, prefix: string = "dd") {
     const updatedEvidence = { ...ddEvidence, [key]: answers };
     setDdEvidence(updatedEvidence);
+    // Real confirmation timestamp -- approx: false, since this is captured
+    // at the exact moment the item was confirmed (unlike the migration
+    // backfill, which only knew organizations.updated_at as an estimate).
+    const updatedConfirmedAt = { ...ddConfirmedAt, [`${prefix}_${key}`]: { at: new Date().toISOString(), approx: false } };
+    setDdConfirmedAt(updatedConfirmedAt);
     setter(true);
     setDdModalKey(null);
     if (!user) return;
     try {
-      const fields: Record<string, any> = { dd_evidence: updatedEvidence };
+      const fields: Record<string, any> = { dd_evidence: updatedEvidence, dd_confirmed_at: updatedConfirmedAt };
       fields[`${prefix}_${key}`] = true;
       await saveOrgFields(orgOwnerId!, fields);
     } catch (err: any) {
@@ -760,9 +766,15 @@ export default function DashboardProfile() {
   async function markDdItemIncomplete(key: string, setter: (v: boolean) => void, prefix: string = "dd") {
     if (!confirm("Mark this item as not complete? You'll need to re-verify it later.")) return;
     setter(false);
+    // Drop the confirmation timestamp -- the item is no longer currently
+    // attested, so a stale "confirmed on X" would be misleading on an
+    // audit export until it's re-confirmed.
+    const updatedConfirmedAt = { ...ddConfirmedAt };
+    delete updatedConfirmedAt[`${prefix}_${key}`];
+    setDdConfirmedAt(updatedConfirmedAt);
     if (!user) return;
     try {
-      const fields: Record<string, any> = {};
+      const fields: Record<string, any> = { dd_confirmed_at: updatedConfirmedAt };
       fields[`${prefix}_${key}`] = false;
       await saveOrgFields(orgOwnerId!, fields);
     } catch (err: any) {
@@ -1191,7 +1203,7 @@ export default function DashboardProfile() {
   useEffect(() => {
     if (!orgOwnerId) return;
     supabase.from("organizations")
-     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,srg1_pie_self_declared,srg1_annual_revenue_ngn,srg1_reminder_dismissed_at")      .eq("user_id", orgOwnerId).maybeSingle()
+     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,dd_confirmed_at,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,srg1_pie_self_declared,srg1_annual_revenue_ngn,srg1_reminder_dismissed_at")      .eq("user_id", orgOwnerId).maybeSingle()
       .then(({ data }) => {
         if (!data) return;
         setOrgId(data.id ?? null);
@@ -1236,6 +1248,7 @@ export default function DashboardProfile() {
         setFddEsgFramework(data.fdd_esg_framework ?? false);
         setFddLegalRegistration(data.fdd_legal_registration ?? false);
         setDdEvidence(data.dd_evidence ?? {});
+        setDdConfirmedAt(data.dd_confirmed_at ?? {});
         if (data.total_beneficiaries_reached) setTotalBeneficiaries(String(data.total_beneficiaries_reached));
         if (data.jobs_created) setJobsCreated(String(data.jobs_created));
         if (data.female_beneficiaries_pct) setFemalePct(String(data.female_beneficiaries_pct));
