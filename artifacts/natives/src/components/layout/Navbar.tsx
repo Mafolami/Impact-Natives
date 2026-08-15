@@ -298,7 +298,7 @@ const isHomePage = location === "/" || location === "/labs/commission"
               <>
                 <a href={IS_APP_DOMAIN ? "/signin" : "https://app.impactnatives.com/signin"} target={IS_APP_DOMAIN ? undefined : "_blank"} rel="noreferrer">
                   <Button variant="ghost" className={`sign-in-btn transition-all duration-200 ${!scrolled && isDark ? "text-white hover:text-white hover:bg-white/10" : ""}`}>
-                    Log In
+                    Sign In
                   </Button>
                 </a>
                 <a href={IS_APP_DOMAIN ? "/signup" : "https://app.impactnatives.com/signup"} target={IS_APP_DOMAIN ? undefined : "_blank"} rel="noreferrer">
