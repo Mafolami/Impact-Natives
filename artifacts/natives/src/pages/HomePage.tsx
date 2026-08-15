@@ -752,7 +752,7 @@ export default function HomePage() {
             </svg>
             <div style={{
               borderRadius: '1.25rem', overflow: 'hidden', position: 'relative', zIndex: 1,
-              border: `1px solid ${T.borderMd}`, background: isDark ? '#0d0d0f' : '#ffffff',
+              border: `1px solid ${T.borderMd}`, background: T.surfaceMd,
               boxShadow: isDark ? 'none' : '0 20px 60px -20px rgba(0,0,0,0.15)',
             }}>
             <video
