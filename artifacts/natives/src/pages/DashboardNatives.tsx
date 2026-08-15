@@ -908,6 +908,38 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
   const viewerIsCorporate = ["corporation", "technology_company", "public_sector"].includes(profile?.org_type ?? "");
   const isOwnProfile = !!user?.id && user.id === org.user_id;
   const canSeeDisclosureDetail = isOwnProfile || viewerIsFunder || viewerIsCorporate;
+
+  // DD export: only a funder/corporate viewing someone else's profile can
+  // trigger this, and only if their own org is on the Compliance tier.
+  // subscription_tier isn't on AuthContext's Profile, so it's fetched here
+  // directly rather than threading it through the whole auth context for
+  // one feature.
+  const [viewerTier, setViewerTier] = useState<string | null>(null);
+  const [exportState, setExportState] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportDownloadUrl, setExportDownloadUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user || isOwnProfile || !(viewerIsFunder || viewerIsCorporate)) return;
+    supabase.from("organizations").select("subscription_tier").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => setViewerTier(data?.subscription_tier ?? null));
+  }, [user, isOwnProfile, viewerIsFunder, viewerIsCorporate]);
+
+  async function handleExportDD() {
+    setExportState("loading");
+    setExportError(null);
+    setExportDownloadUrl(null);
+    const { data, error } = await supabase.functions.invoke("generate-dd-export", {
+      body: { subject_org_id: org.id },
+    });
+    if (error || data?.error) {
+      setExportState("error");
+      setExportError(data?.error ?? error?.message ?? "Export failed");
+      return;
+    }
+    setExportDownloadUrl(data.data.download_url);
+    setExportState("done");
+  }
   const legalEvidence = org.dd_evidence?.legal_compliance_declaration ?? {};
   const sectors    = normalizeArr(org.sector);
   const countries  = normalizeArr(org.country);
@@ -1190,6 +1222,36 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                     );
                   })}
                 </div>
+
+                {!isOwnProfile && (viewerIsFunder || viewerIsCorporate) && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    {viewerTier !== "compliance" ? (
+                      <p className="text-xs text-black dark:text-white opacity-60">
+                        Audit-ready DD export is a Compliance plan feature.
+                      </p>
+                    ) : ddScore < 70 ? (
+                      <p className="text-xs text-black dark:text-white opacity-60">
+                        DD export requires at least 70% readiness (currently {ddScore}%).
+                      </p>
+                    ) : exportState === "done" && exportDownloadUrl ? (
+                      <a href={exportDownloadUrl} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-[#2D6A4F] hover:underline">
+                        Download DD export (PDF)
+                      </a>
+                    ) : (
+                      <div>
+                        <button type="button" onClick={handleExportDD} disabled={exportState === "loading"}
+                          className="text-sm font-medium px-3.5 py-2 rounded-lg text-white transition-opacity disabled:opacity-60"
+                          style={{ background: "#2D6A4F" }}>
+                          {exportState === "loading" ? "Generating export…" : "Export audit-ready DD (PDF)"}
+                        </button>
+                        {exportState === "error" && exportError && (
+                          <p className="text-xs text-red-600 dark:text-red-400 mt-2">{exportError}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
