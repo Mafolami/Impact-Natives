@@ -303,7 +303,7 @@ const isHomePage = location === "/" || location === "/labs/commission"
                 </a>
                 <a href={IS_APP_DOMAIN ? "/signup" : "https://app.impactnatives.com/signup"} target={IS_APP_DOMAIN ? undefined : "_blank"} rel="noreferrer">
                   <Button className={`transition-all duration-200 ${!scrolled && isDark ? "bg-white text-[#2D6A4F] hover:bg-white/90" : "bg-primary text-white hover:bg-primary/90"}`}>
-                    Sign Up
+                    Get Started
                   </Button>
                 </a>
               </>
