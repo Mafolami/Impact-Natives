@@ -1071,6 +1071,18 @@ export default function DashboardProfile() {
     setComplianceSectionSaving(false);
   }
 
+  const [srg1Dismissing, setSrg1Dismissing] = useState(false);
+  async function dismissSrg1Reminder() {
+    if (!orgOwnerId) return;
+    setSrg1Dismissing(true);
+    try {
+      await saveOrgFields(orgOwnerId, { srg1_reminder_dismissed_at: new Date().toISOString() });
+    } catch (err: any) {
+      alert(`Couldn't dismiss: ${err.message}`);
+    }
+    setSrg1Dismissing(false);
+  }
+
   // ── Contact Details pane (both variants): display-card / edit-modal state ──
   const [editingContactSection, setEditingContactSection] = useState(false);
   const [contactSaving, setContactSaving]     = useState(false);
@@ -2662,6 +2674,12 @@ export default function DashboardProfile() {
                         <p className="text-sm text-black dark:text-white">{Number(srg1AnnualRevenue).toLocaleString()}</p>
                       ) : <EmptyValue />}
                     </DisplayField>
+                    {(srg1PieSelfDeclared || srg1AnnualRevenue) && (
+                      <button type="button" onClick={dismissSrg1Reminder} disabled={srg1Dismissing}
+                        className="text-xs text-black dark:text-white opacity-60 hover:opacity-100 transition-opacity mt-1">
+                        {srg1Dismissing ? "Dismissing…" : "Dismiss reminder for now"}
+                      </button>
+                    )}
                   </SectionCard>
                 </SectionCardGroup>
               )}
