@@ -2242,7 +2242,20 @@ export default function DashboardProfile() {
               )}
 
 {ddModalKey && (() => {
-                const isFunderItem = FUNDER_DD_ITEMS.some(i => i.key === ddModalKey);
+                // Was `FUNDER_DD_ITEMS.some(i => i.key === ddModalKey)` --
+                // broken for any key that exists in BOTH checklists
+                // (governance_doc, legal_registration). That check only
+                // asked "does this key exist in the funder list", which is
+                // true even when an implementer opened the modal, since
+                // both lists share those two keys. Silently served the
+                // funder's questions to implementers and wrote their
+                // confirmation to fdd_* columns instead of dd_*, so the
+                // implementer's own dd_governance_doc / dd_legal_registration
+                // never actually got set to true. Use org type instead --
+                // isImplementer is already computed above and is mutually
+                // exclusive with isFunder/isCorporate, so this correctly
+                // reflects which pane (dd vs fdd) opened the modal.
+                const isFunderItem = !isImplementer;
                 const item = isFunderItem
                   ? FUNDER_DD_ITEMS.find(i => i.key === ddModalKey)!
                   : DD_ITEMS.find(i => i.key === ddModalKey)!;
