@@ -407,7 +407,16 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
   }
 
   function setAnswer(key: string, value: any) {
-    setAnswers(prev => ({ ...prev, [key]: value }));
+    setAnswers(prev => {
+      const next = { ...prev, [key]: value };
+      for (const q2 of item.questions) {
+        if (q2.showIf?.key === key && q2.showIf.equals !== value) {
+          delete next[q2.key];
+          delete next[`${q2.key}_custom`];
+        }
+      }
+      return next;
+    });
   }
 
   function isQuestionMissing(q: typeof item.questions[number]): boolean {
