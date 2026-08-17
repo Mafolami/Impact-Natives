@@ -121,6 +121,8 @@ export const DD_ITEMS: DDItemDef[] = [
       questions: [
         { key: "boardSize", label: "Board size", type: "select", options: ["1–3", "4–6", "7–10", "10+", "Other"] },
         { key: "meetingCadence", label: "Meeting cadence", type: "select", options: ["Monthly", "Quarterly", "Semi-annually", "Annually", "Ad hoc", "Other"] },
+        { key: "hasIndependentMembers", label: "Any independent (non-staff, non-founder) board members?", type: "yesno" },
+        { key: "lastElectionDate", label: "Date of last board election/appointment", type: "date", required: false },
         { key: "notes", label: "Anything else worth noting?", type: "text", required: false },
       ],
     },
