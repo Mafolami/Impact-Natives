@@ -1,4 +1,23 @@
+// supabase/functions/generate-admin-triage/index.ts
+//
+// v9: admin auth gate added. This function was deployed with
+// verify_jwt: false and had no auth check of any kind inside the body --
+// any anonymous caller, logged in or not, could hit it directly and burn
+// Anthropic API calls on the site's own key. It's meant to be an internal
+// admin tool (initiative/verification triage), not a public endpoint.
+// Fixed by resolving the caller's session and requiring is_admin() --
+// the same SECURITY DEFINER helper already used by the "Admin can read
+// all organizations" / "Admin can update any organization" RLS policies
+// on `organizations`, so this now enforces the same admin boundary the
+// rest of the app already relies on, rather than inventing a new one.
+// Deployed with verify_jwt: true so an unauthenticated request is
+// rejected at the platform edge before it ever reaches this code.
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -8,6 +27,27 @@ const CORS_HEADERS = {
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
+  if (req.method !== "POST") return new Response(JSON.stringify({ error: "Method not allowed" }), {
+    status: 405, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+  });
+
+  // Admin auth gate -- see file header note.
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const callerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: { user }, error: userError } = await callerClient.auth.getUser();
+  if (userError || !user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+    });
+  }
+  const { data: isAdmin, error: isAdminError } = await callerClient.rpc("is_admin");
+  if (isAdminError || !isAdmin) {
+    return new Response(JSON.stringify({ error: "Admin access required" }), {
+      status: 403, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+    });
+  }
 
   try {
     const { type, data } = await req.json();
