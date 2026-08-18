@@ -854,33 +854,37 @@ Deno.serve(async (req: Request) => {
     // ============================================================
     forcePageBreak();
 
+    // For each legal identity field, prefer the org profile value (entered
+    // via the Legal Identity section). If that's missing, fall back to the
+    // equivalent field from dd_evidence.legal_registration (entered via the
+    // DD checklist modal) and append "(Self-Attested)" to signal the source.
+    // If neither exists, show "Not provided".
+    const ddLegal = subjectOrg.dd_evidence?.legal_registration ?? {};
+    function profileOrDd(profileVal: string | null | undefined, ddVal: string | null | undefined): string {
+      const p = cleanTextField(profileVal);
+      if (p) return p;
+      const d = cleanTextField(ddVal);
+      if (d) return `${d} (Self-Attested)`;
+      return "Not provided";
+    }
+
     sectionHeading("01", "Governance & Legal");
-    drawKeyValueTable([
+    const sec01Rows: { label: string; value: string }[] = [
       { label: "Organisation Type", value: titleCaseOrgType(subjectOrg.organisation_type) },
-      { label: "Country", value: cleanTextField(subjectOrg.country) || "Not provided" },
-      { label: "Registration Type", value: cleanTextField(subjectOrg.registration_type) || "Not provided in organisation profile" },
-      { label: "Registration Number", value: cleanTextField(subjectOrg.registration_number) || "Not provided in organisation profile" },
+      { label: "Country", value: profileOrDd(subjectOrg.country, ddLegal.country) },
+      { label: "Registration Type", value: cleanTextField(subjectOrg.registration_type) || "Not provided" },
+      { label: "Registration Number", value: profileOrDd(subjectOrg.registration_number, ddLegal.registrationNumber) },
       { label: "TIN", value: cleanTextField(subjectOrg.tin) || "Not provided" },
       { label: "SCUML / AML Registration", value: cleanTextField(subjectOrg.scuml_number) || "Not provided" },
       { label: "Year Founded", value: subjectOrg.year_founded ? String(subjectOrg.year_founded) : "Not provided" },
-    ]);
-    y -= 22;
-
-    if (legalRegRow?.confirmed && legalRegRow.detail) {
-      ensureSpace(54);
-      page.drawText("Registration Evidence (Self-Attested)", { x: MARGIN, y, size: 10.5, font: fontBold, color: ink });
-      y -= 15;
-      textBlock(`Recorded under DD checklist item ${legalRegRow.ref}:`, { size: 9.5, gap: 4 });
-      for (const part of legalRegRow.detail.split("; ")) {
-        textBlock(`•  ${part}`, { size: 9.5, gap: 3, x: MARGIN + 10, width: CONTENT_W - 10 });
-      }
-      y -= 4;
-      if (!subjectOrg.registration_number) {
-        textBlock("This was entered by the organisation directly into the DD checklist and has not passed Impact Natives' formal verification review. It is a distinct data point from the Registration Number field above, which is populated only through that review.", { size: 8.5, italic: true, color: inkSoft, lead: 11.5, gap: 20 });
-      } else {
-        y -= 20;
-      }
+    ];
+    // Add Registering Body row only when data exists (no profile column for
+    // this -- DD checklist is the only source).
+    if (ddLegal.registeringBody) {
+      sec01Rows.push({ label: "Registering Body", value: `${cleanTextField(ddLegal.registeringBody)} (Self-Attested)` });
     }
+    drawKeyValueTable(sec01Rows);
+    y -= 22;
 
     sectionHeading("02", "DD Readiness");
     textBlock(`${implementer ? "Implementer" : "Funder / Corporate"} Checklist · ${confirmedCount} of ${items.length} dimensions self-attested`, { size: 10, bold: true, gap: 3 });
