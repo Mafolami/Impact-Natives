@@ -33,6 +33,11 @@ export interface Profile {
   is_admin: boolean | null;
   investment_thesis: string | null;
   login_count: number | null;
+  registration_type: string | null;
+  registration_number: string | null;
+  tin: string | null;
+  scuml_number: string | null;
+  year_founded: number | null;
   created_at: string;
   updated_at: string;
 }

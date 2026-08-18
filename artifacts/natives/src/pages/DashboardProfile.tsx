@@ -286,6 +286,7 @@ function EditModal({ title, onClose, onSave, saving, children }: { title: string
 
 type PaneKey =
   | "basic" | "organisation" | "focus" | "presence"
+  | "legal_identity"
   | "dd" | "fdd" | "track" | "mandate" | "csr" | "verification";
 
 interface PaneDef { key: PaneKey; label: string; }
@@ -656,7 +657,8 @@ export default function DashboardProfile() {
     ? [
         { key: "basic",        label: "Contact Details" },
         { key: "organisation", label: "Organisation" },
-        { key: "focus",        label: "Focus Areas" },
+        { key: "legal_identity", label: "Legal Identity" },
+        { key: "focus",          label: "Focus Areas" },
         { key: "presence",     label: "Online Presence" },
         ...(isImplementer ? [{ key: "dd" as PaneKey, label: "DD Readiness" }] : []),
         ...((isFunder || isCorporate) ? [{ key: "fdd" as PaneKey, label: "DD Readiness" }] : []),
@@ -692,6 +694,48 @@ export default function DashboardProfile() {
     const t = setTimeout(measure, 250);
     return () => { window.removeEventListener("resize", measure); clearTimeout(t); };
   }, []);
+
+  // ── Legal Identity pane: display-card / edit-modal state ─────────────────
+  const [editingLegalIdentityOpen, setEditingLegalIdentityOpen] = useState(false);
+  const [legalIdentitySaving, setLegalIdentitySaving]           = useState(false);
+  const [draftRegistrationType, setDraftRegistrationType]       = useState("");
+  const [draftRegistrationNumber, setDraftRegistrationNumber]   = useState("");
+  const [draftTin, setDraftTin]                                 = useState("");
+  const [draftScumlNumber, setDraftScumlNumber]                 = useState("");
+  const [draftYearFounded, setDraftYearFounded]                 = useState("");
+
+  function openLegalIdentityModal() {
+    setDraftRegistrationType(registrationType ?? "");
+    setDraftRegistrationNumber(registrationNumber ?? "");
+    setDraftTin(tin ?? "");
+    setDraftScumlNumber(scumlNumber ?? "");
+    setDraftYearFounded(yearFounded ? String(yearFounded) : "");
+    setEditingLegalIdentityOpen(true);
+  }
+
+  async function saveLegalIdentitySection() {
+    if (!user) return;
+    setLegalIdentitySaving(true);
+    try {
+      await saveOrgFields(user.id, {
+        registration_type:   draftRegistrationType.trim()   || null,
+        registration_number: draftRegistrationNumber.trim() || null,
+        tin:                 draftTin.trim()                || null,
+        scuml_number:        draftScumlNumber.trim()        || null,
+        year_founded:        draftYearFounded.trim() ? parseInt(draftYearFounded.trim(), 10) : null,
+      });
+      setRegistrationType(draftRegistrationType.trim() || null);
+      setRegistrationNumber(draftRegistrationNumber.trim() || null);
+      setTin(draftTin.trim() || null);
+      setScumlNumber(draftScumlNumber.trim() || null);
+      setYearFounded(draftYearFounded.trim() ? parseInt(draftYearFounded.trim(), 10) : null);
+      await refreshProfile();
+      setEditingLegalIdentityOpen(false);
+    } catch (err: any) {
+      alert(`Couldn't save: ${err.message}`);
+    }
+    setLegalIdentitySaving(false);
+  }
 
   // ── Focus Areas pane: display-card / edit-modal state ────────────────────
   const [editingFocusOpen, setEditingFocusOpen] = useState(false);
@@ -1212,12 +1256,17 @@ export default function DashboardProfile() {
   useEffect(() => {
     if (!orgOwnerId) return;
     supabase.from("organizations")
-     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,dd_confirmed_at,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,srg1_pie_self_declared,srg1_annual_revenue_ngn,srg1_reminder_dismissed_at")      .eq("user_id", orgOwnerId).maybeSingle()
+     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,dd_confirmed_at,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,srg1_pie_self_declared,srg1_annual_revenue_ngn,srg1_reminder_dismissed_at,registration_type,registration_number,tin,scuml_number,year_founded")      .eq("user_id", orgOwnerId).maybeSingle()
       .then(({ data }) => {
         if (!data) return;
         setOrgId(data.id ?? null);
         if (data.logo_url) setLogoUrl(data.logo_url);
         if (data.description) setOrgDescription(data.description);
+        if (data.registration_type) setRegistrationType(data.registration_type);
+        if (data.registration_number) setRegistrationNumber(data.registration_number);
+        if (data.tin) setTin(data.tin);
+        if (data.scuml_number) setScumlNumber(data.scuml_number);
+        if (data.year_founded) setYearFounded(data.year_founded);
         if (data.investment_thesis) setInvestmentThesis(data.investment_thesis);
         if (data.grant_range_min) setGrantRangeMin(String(data.grant_range_min));
         if (data.grant_range_max) setGrantRangeMax(String(data.grant_range_max));
@@ -1406,6 +1455,11 @@ export default function DashboardProfile() {
     if (profile?.social_links) setSocialLinks(profile.social_links);
   }, [profile?.social_links]);
 
+  const [registrationType, setRegistrationType]     = useState<string | null>(null);
+  const [registrationNumber, setRegistrationNumber] = useState<string | null>(null);
+  const [tin, setTin]                               = useState<string | null>(null);
+  const [scumlNumber, setScumlNumber]               = useState<string | null>(null);
+  const [yearFounded, setYearFounded]               = useState<number | null>(null);
   const [sectors, setSectors]   = useState<string[]>(profile?.sectors  ?? []);
   
 
@@ -1518,7 +1572,7 @@ export default function DashboardProfile() {
 
     if (isOrgOwner && profile?.user_type === "organisation") {
       const { data } = await supabase.from("organizations")
-        .select("logo_url,description,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,srg1_pie_self_declared,srg1_annual_revenue_ngn,srg1_reminder_dismissed_at")
+        .select("logo_url,description,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,srg1_pie_self_declared,srg1_annual_revenue_ngn,srg1_reminder_dismissed_at,registration_type,registration_number,tin,scuml_number,year_founded")
         .eq("user_id", orgOwnerId!).maybeSingle();
       if (data) {
         if (data.previous_funders) setPreviousFunders(data.previous_funders);
@@ -1947,6 +2001,93 @@ export default function DashboardProfile() {
                   <div>
                     <Label className="text-sm font-medium">Country</Label>
                     <CountryPicker value={draftCountry} onChange={setDraftCountry} />
+                  </div>
+                </EditModal>
+              )}
+
+              {/* ── LEGAL IDENTITY PANE ── */}
+              {activePane === "legal_identity" && (
+                <SectionCardGroup>
+                  <SectionCard editable={isOrgOwner} title="Legal identity" onEdit={openLegalIdentityModal}>
+                    <DisplayField label="Registration type">
+                      {registrationType ?? <EmptyValue />}
+                    </DisplayField>
+                    <DisplayField label="Registration number">
+                      {registrationNumber ?? <EmptyValue />}
+                    </DisplayField>
+                    <DisplayField label="TIN">
+                      {tin ?? <EmptyValue />}
+                    </DisplayField>
+                    <DisplayField label="SCUML / AML registration">
+                      {scumlNumber ?? <EmptyValue />}
+                    </DisplayField>
+                    <DisplayField label="Year founded">
+                      {yearFounded ?? <EmptyValue />}
+                    </DisplayField>
+                  </SectionCard>
+                </SectionCardGroup>
+              )}
+
+              {editingLegalIdentityOpen && (
+                <EditModal title="Edit legal identity" onClose={() => setEditingLegalIdentityOpen(false)} onSave={saveLegalIdentitySection} saving={legalIdentitySaving}>
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium">Registration type</Label>
+                      <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">e.g. CAC, NGO, Trust, Foundation, LLC</p>
+                      <input
+                        type="text"
+                        value={draftRegistrationType}
+                        onChange={e => setDraftRegistrationType(e.target.value)}
+                        placeholder="e.g. CAC (Incorporated Trustee)"
+                        className="w-full border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm bg-white dark:bg-white/5 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Registration number</Label>
+                      <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">Official number from your registering body</p>
+                      <input
+                        type="text"
+                        value={draftRegistrationNumber}
+                        onChange={e => setDraftRegistrationNumber(e.target.value)}
+                        placeholder="e.g. RC1234567"
+                        className="w-full border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm bg-white dark:bg-white/5 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Tax Identification Number (TIN)</Label>
+                      <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">Issued by your national tax authority</p>
+                      <input
+                        type="text"
+                        value={draftTin}
+                        onChange={e => setDraftTin(e.target.value)}
+                        placeholder="e.g. 12345678-0001"
+                        className="w-full border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm bg-white dark:bg-white/5 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">SCUML / AML registration number</Label>
+                      <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">Special Control Unit Against Money Laundering — required for NGOs in Nigeria</p>
+                      <input
+                        type="text"
+                        value={draftScumlNumber}
+                        onChange={e => setDraftScumlNumber(e.target.value)}
+                        placeholder="e.g. SCUML/NGO/2024/00123"
+                        className="w-full border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm bg-white dark:bg-white/5 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Year founded</Label>
+                      <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">The year your organisation was formally established</p>
+                      <input
+                        type="number"
+                        value={draftYearFounded}
+                        onChange={e => setDraftYearFounded(e.target.value)}
+                        placeholder="e.g. 2015"
+                        min={1900}
+                        max={new Date().getFullYear()}
+                        className="w-full border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm bg-white dark:bg-white/5 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
+                      />
+                    </div>
                   </div>
                 </EditModal>
               )}
