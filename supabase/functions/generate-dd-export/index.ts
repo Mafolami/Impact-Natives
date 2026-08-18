@@ -78,6 +78,7 @@ function fmtDate(iso: string | null | undefined): string {
 }
 
 function wrapLines(str: string, size: number, f: any, maxWidth: number): string[] {
+  str = sanitizeForPdf(str);
   const words = str.split(/\s+/);
   const lines: string[] = [];
   let current = "";
@@ -110,6 +111,24 @@ function wrapLines(str: string, size: number, f: any, maxWidth: number): string[
   }
   if (current) lines.push(current);
   return lines;
+}
+
+// pdf-lib's standard fonts use WinAnsiEncoding, which doesn't cover all
+// Unicode punctuation (e.g. U+2011 non-breaking hyphen) that an LLM or a
+// user can produce. Normalize known cases, then strip anything still
+// outside Latin-1 as a last resort.
+function sanitizeForPdf(input: unknown): string {
+  let s = String(input ?? "");
+  s = s
+    .replace(/[\u2010\u2011\u2012\u2015\u2212]/g, "-")
+    .replace(/[\u2018\u2019\u201A\u201B]/g, "'")
+    .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
+    .replace(/\u2026/g, "...")
+    .replace(/\u00AD/g, "")
+    .replace(/\u00A0/g, " ")
+    .replace(/\uFEFF/g, "");
+  s = s.replace(/[^\x00-\xFF]/g, "-");
+  return s;
 }
 
 function titleCaseOrgType(v: string | null | undefined): string {
@@ -849,7 +868,7 @@ Deno.serve(async (req: Request) => {
 
     if (legalRegRow?.confirmed && legalRegRow.detail) {
       ensureSpace(54);
-      dt("Registration Evidence (Self-Attested)", { x: MARGIN, y, size: 10.5, font: fontBold, color: ink });
+      page.drawText("Registration Evidence (Self-Attested)", { x: MARGIN, y, size: 10.5, font: fontBold, color: ink });
       y -= 15;
       textBlock(`Recorded under DD checklist item ${legalRegRow.ref}:`, { size: 9.5, gap: 4 });
       for (const part of legalRegRow.detail.split("; ")) {
