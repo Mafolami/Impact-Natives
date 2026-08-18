@@ -878,7 +878,7 @@ Deno.serve(async (req: Request) => {
       { label: "SCUML / AML Registration", value: cleanTextField(subjectOrg.scuml_number) || "Not provided" },
       { label: "Year Founded", value: subjectOrg.year_founded ? String(subjectOrg.year_founded) : "Not provided" },
     ];
-    drawKeyValueTable(sec01Rows);
+    drawKeyValueTable(sec01Rows, 222);
     y -= 48;
 
     sectionHeading("02", "DD Readiness");
@@ -902,7 +902,7 @@ Deno.serve(async (req: Request) => {
       const labelLines = wrapLines(row.label, 9.5, font, colDim - 18);
       const confLines = wrapLines(confirmedText, 9, font, colConfirmed - 12);
       const detailParts = row.detail ? row.detail.split("; ") : [];
-      const detailLineSets = detailParts.map((p) => wrapLines(p, 8.5, fontItalic, CONTENT_W - 34));
+      const detailLineSets = detailParts.map((p) => wrapLines(p, 8.5, fontItalic, CONTENT_W - 50));
       const detailLinesTotal = detailLineSets.reduce((a, s) => a + s.length, 0);
       const topH = Math.max(labelLines.length, confLines.length, 1) * ddLead + ddPad;
       const detailH = detailLinesTotal > 0 ? detailLinesTotal * detailLead + 6 : 0;
@@ -941,26 +941,38 @@ Deno.serve(async (req: Request) => {
     y -= 20;
     sectionHeading("03", "DD Standing");
     const standLeftW = 150;
-    const standH = 66;
+    const standH = 82;
     ensureSpace(standH + 6);
     const stTop = y;
     page.drawRectangle({ x: MARGIN, y: stTop - standH, width: CONTENT_W, height: standH, color: panel, borderColor: border, borderWidth: 1 });
     page.drawLine({ start: { x: MARGIN + standLeftW, y: stTop - 11 }, end: { x: MARGIN + standLeftW, y: stTop - standH + 11 }, thickness: 0.5, color: border });
     page.drawText("DD READINESS", { x: MARGIN + 18, y: stTop - standH / 2 + 6, size: 8, font: fontBold, color: green });
     page.drawText(`${readinessScore}%`, { x: MARGIN + 18, y: stTop - standH / 2 - 17, size: 24, font: fontBold, color: green });
-    const standLines = [
-      { t: `Status: ${overallStatusLabel} · ${confirmedCount} of ${items.length} ${implementer ? "implementer" : "funder / corporate"} checklist dimensions self-attested.`, b: true },
-      { t: redFlags.length > 0 ? "Compliance flags disclosed. See Section 04." : "No compliance flags disclosed.", b: false },
-    ];
-    const standBlockTop = stTop - (standH - standLines.length * 13.5) / 2 - 9;
-    standLines.forEach((l, li) => page.drawText(l.t, { x: MARGIN + standLeftW + 20, y: standBlockTop - li * 13.5, size: 9.5, font: l.b ? fontBold : font, color: ink }));
+    // Stand lines are wrapped manually since the panel has fixed height --
+    // we can't grow the box, so we need to know line count up front to
+    // centre the text block. First line wraps at the right-column width.
+    const standRightW = CONTENT_W - standLeftW - 32;
+    const standLine1Wrapped = wrapLines(
+      `Status: ${overallStatusLabel} · ${confirmedCount} of ${items.length} ${implementer ? "implementer" : "funder / corporate"} checklist dimensions self-attested.`,
+      9.5, fontBold, standRightW
+    );
+    const standLine2 = redFlags.length > 0 ? "Compliance flags disclosed. See Section 04." : "No compliance flags disclosed.";
+    const standAllLines = [...standLine1Wrapped, standLine2];
+    const standTotalH = standAllLines.length * 13.5;
+    const standBlockTop = stTop - (standH - standTotalH) / 2 - 2;
+    let sly = standBlockTop;
+    standLine1Wrapped.forEach((line) => {
+      page.drawText(line, { x: MARGIN + standLeftW + 20, y: sly, size: 9.5, font: fontBold, color: ink });
+      sly -= 13.5;
+    });
+    page.drawText(standLine2, { x: MARGIN + standLeftW + 20, y: sly, size: 9.5, font, color: ink });
     y = stTop - standH - 12;
     textBlock("This figure represents completion of the defined DD readiness checklist. It is not a credit score, risk rating, certification, or independent verification of the organisation.", { size: 8.5, italic: true, color: inkSoft, lead: 11.5 });
 
-    // ============================================================
-    // PAGE 3 - Compliance & Risk
-    // ============================================================
-    forcePageBreak();
+    // Sections 04 and 05 flow on the same page as 03 if there's enough
+    // space for both section headings plus meaningful content (~200pt).
+    // If not, start a new page.
+    ensureSpace(200);
 
     sectionHeading("04", "Compliance Flags");
     if (redFlags.length > 0) {
