@@ -598,11 +598,11 @@ Deno.serve(async (req: Request) => {
 
   const legalRegRow = rows.find((r) => r.key === "legal_registration");
   const exceptions: string[] = [];
-  if (!esgReport) exceptions.push("ESG assessment unavailable for this export. See Section 07.");
+  if (!esgReport) exceptions.push("ESG assessment unavailable for this export. See Section 06.");
   if (legalRegRow?.confirmed && !subjectOrg.registration_number) {
     exceptions.push(`Legal registration (${legalRegRow.ref}) is self-attested via the DD checklist and has not passed Impact Natives' formal verification review. See Section 01.`);
   }
-  if (redFlags.length > 0) exceptions.push("One or more compliance flags disclosed. See Section 03.");
+  if (redFlags.length > 0) exceptions.push("One or more compliance flags disclosed. See Section 04.");
 
   const overallStatusLabel = readinessScore === 100 ? "COMPLETE" : readinessScore >= 85 ? "SUBSTANTIALLY COMPLETE" : "IN PROGRESS";
 
@@ -882,8 +882,6 @@ Deno.serve(async (req: Request) => {
     y -= 48;
 
     sectionHeading("02", "DD Readiness");
-    textBlock(`${implementer ? "Implementer" : "Funder / Corporate"} Checklist · ${confirmedCount} of ${items.length} dimensions self-attested`, { size: 10, bold: true, gap: 3 });
-    textBlock(`DD Readiness Score: ${readinessScore}%`, { size: 10, bold: true, gap: 3 });
     textBlock("\"Self-Attested\" means the organisation answered this item -- the answer itself may be Yes or No. See the detail line under each item for what was actually disclosed.", { size: 8, italic: true, color: inkSoft, lead: 11, gap: 10 });
 
     const colDim = 158, colStatus = 178, colConfirmed = 92;
@@ -936,12 +934,35 @@ Deno.serve(async (req: Request) => {
     y -= 12;
     textBlock("* Baseline estimate carried over from before per-item confirmation timestamps were tracked: the item was true at that point, exact original date unknown.", { size: 8, italic: true, color: inkSoft, lead: 11 });
 
+    // DD Standing panel -- moved here from its former position after
+    // Relationship Activity (old Section 06). Now sits immediately after
+    // the checklist table so the score and status are read in context,
+    // not separated from the evidence that produces them.
+    y -= 20;
+    sectionHeading("03", "DD Standing");
+    const standLeftW = 150;
+    const standH = 66;
+    ensureSpace(standH + 6);
+    const stTop = y;
+    page.drawRectangle({ x: MARGIN, y: stTop - standH, width: CONTENT_W, height: standH, color: panel, borderColor: border, borderWidth: 1 });
+    page.drawLine({ start: { x: MARGIN + standLeftW, y: stTop - 11 }, end: { x: MARGIN + standLeftW, y: stTop - standH + 11 }, thickness: 0.5, color: border });
+    page.drawText("DD READINESS", { x: MARGIN + 18, y: stTop - standH / 2 + 6, size: 8, font: fontBold, color: green });
+    page.drawText(`${readinessScore}%`, { x: MARGIN + 18, y: stTop - standH / 2 - 17, size: 24, font: fontBold, color: green });
+    const standLines = [
+      { t: `Status: ${overallStatusLabel} · ${confirmedCount} of ${items.length} ${implementer ? "implementer" : "funder / corporate"} checklist dimensions self-attested.`, b: true },
+      { t: redFlags.length > 0 ? "Compliance flags disclosed. See Section 04." : "No compliance flags disclosed.", b: false },
+    ];
+    const standBlockTop = stTop - (standH - standLines.length * 13.5) / 2 - 9;
+    standLines.forEach((l, li) => page.drawText(l.t, { x: MARGIN + standLeftW + 20, y: standBlockTop - li * 13.5, size: 9.5, font: l.b ? fontBold : font, color: ink }));
+    y = stTop - standH - 12;
+    textBlock("This figure represents completion of the defined DD readiness checklist. It is not a credit score, risk rating, certification, or independent verification of the organisation.", { size: 8.5, italic: true, color: inkSoft, lead: 11.5 });
+
     // ============================================================
-    // PAGE 3 - Compliance & Relationship Intelligence
+    // PAGE 3 - Compliance & Risk
     // ============================================================
     forcePageBreak();
 
-    sectionHeading("03", "Compliance Flags");
+    sectionHeading("04", "Compliance Flags");
     if (redFlags.length > 0) {
       for (const flag of redFlags) textBlock(flag, { size: 10, color: red, gap: 7 });
       y -= 4;
@@ -951,7 +972,7 @@ Deno.serve(async (req: Request) => {
     }
     y -= 26;
 
-    sectionHeading("04", "Disclosure-Based Risk Indicator");
+    sectionHeading("05", "Disclosure-Based Risk Indicator");
     textBlock("Basis: DD readiness score and disclosed compliance flags only. This indicator is not a comprehensive assessment of credit, financial, operational, legal, or organisational risk.", { size: 9, italic: true, color: inkSoft, lead: 12, gap: 12 });
     const riskColors: Record<string, any> = { Elevated: red, Standard: amber, Low: green };
     const riskTints: Record<string, any> = { Elevated: redTint, Standard: amberTint, Low: greenTint };
@@ -971,17 +992,6 @@ Deno.serve(async (req: Request) => {
     riskLines.forEach((line, li) => page.drawText(line, { x: MARGIN + riskLeftW + 18, y: riskBlockTop - li * 13, size: 9.5, font, color: ink }));
     y = rTop2 - riskH - 30;
 
-    sectionHeading("05", "Relationship Activity");
-    textBlock("Milestones specific to this organisation and this export relationship only.", { size: 9, italic: true, color: inkSoft, gap: 10 });
-    const tlDateW = 92;
-    ensureSpace(timelineEntries.length * 17 + 4);
-    timelineEntries.forEach((entry) => {
-      page.drawText(entry.date, { x: MARGIN, y, size: 9.5, font: fontBold, color: ink });
-      page.drawText(entry.label, { x: MARGIN + tlDateW, y, size: 9.5, font, color: ink });
-      y -= 17;
-    });
-    y -= 12;
-
     if (exceptions.length > 0) {
       const excLineSets = exceptions.map((e) => wrapLines(e, 9.5, font, CONTENT_W - 46));
       const excBodyH = excLineSets.reduce((a, s) => a + s.length * 13 + 7, 0);
@@ -999,31 +1009,12 @@ Deno.serve(async (req: Request) => {
       y = xTop - excH - 30;
     }
 
-    sectionHeading("06", "DD Standing");
-    const standLeftW = 150;
-    const standH = 66;
-    ensureSpace(standH + 6);
-    const stTop = y;
-    page.drawRectangle({ x: MARGIN, y: stTop - standH, width: CONTENT_W, height: standH, color: panel, borderColor: border, borderWidth: 1 });
-    page.drawLine({ start: { x: MARGIN + standLeftW, y: stTop - 11 }, end: { x: MARGIN + standLeftW, y: stTop - standH + 11 }, thickness: 0.5, color: border });
-    page.drawText("DD READINESS", { x: MARGIN + 18, y: stTop - standH / 2 + 6, size: 8, font: fontBold, color: green });
-    page.drawText(`${readinessScore}%`, { x: MARGIN + 18, y: stTop - standH / 2 - 17, size: 24, font: fontBold, color: green });
-    const standLines = [
-      { t: `Status: ${overallStatusLabel}`, b: true },
-      { t: `${confirmedCount} of ${items.length} compliance dimensions self-attested.`, b: false },
-      { t: redFlags.length > 0 ? "Compliance flags disclosed." : "No compliance flags disclosed.", b: false },
-    ];
-    const standBlockTop = stTop - (standH - standLines.length * 13.5) / 2 - 9;
-    standLines.forEach((l, li) => page.drawText(l.t, { x: MARGIN + standLeftW + 20, y: standBlockTop - li * 13.5, size: 9.5, font: l.b ? fontBold : font, color: ink }));
-    y = stTop - standH - 12;
-    textBlock("This figure represents completion of the defined DD readiness checklist. It is not a credit score, risk rating, certification, or independent verification of the organisation.", { size: 8.5, italic: true, color: inkSoft, lead: 11.5 });
-
     // ============================================================
-    // PAGE 4 - ESG + Document Integrity
+    // PAGE 4 - ESG Assessment
     // ============================================================
     forcePageBreak();
 
-    sectionHeading("07", "ESG Assessment");
+    sectionHeading("06", "ESG Assessment");
     if (esgReport) {
       textBlock("Basis: self-reported organisational inputs. Not independently verified by Impact Natives.", { size: 9, italic: true, color: inkSoft, gap: 14 });
       if (esgReport.headline) textBlock(String(esgReport.headline), { size: 10, bold: true, gap: 12 });
@@ -1050,7 +1041,8 @@ Deno.serve(async (req: Request) => {
     }
     y -= 30;
 
-    sectionHeading("08", "Document Integrity & Verification");
+    forcePageBreak();
+    sectionHeading("07", "Document Integrity & Verification");
     drawKeyValueTable([
       { label: "Process Reference ID", value: exportId },
       { label: "Integrity Verification", value: "SHA-256 checksum computed at generation and stored in Impact Natives' compliance records under this reference ID. Compare the checksum against that record to confirm this file has not been altered since generation." },
