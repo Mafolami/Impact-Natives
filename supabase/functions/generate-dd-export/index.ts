@@ -1,0 +1,873 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const READINESS_THRESHOLD_PCT = 70;
+
+const NON_IMPLEMENTER_TYPES = ["philanthropic_foundation", "venture_capital", "corporation", "technology_company", "public_sector"];
+function isImplementerOrgType(orgType: string | null | undefined): boolean {
+  return !NON_IMPLEMENTER_TYPES.includes(orgType ?? "");
+}
+
+const DD_ITEMS: { key: string; label: string }[] = [
+  { key: "financial_model", label: "Financial model available" },
+  { key: "audited_accounts", label: "Audited accounts available" },
+  { key: "governance_doc", label: "Governance documentation" },
+  { key: "esg_assessment", label: "ESG assessment completed" },
+  { key: "impact_framework", label: "Impact measurement framework" },
+  { key: "environmental_policy", label: "Environmental policy" },
+  { key: "safeguarding_policy", label: "Safeguarding policy" },
+  { key: "legal_registration", label: "Legal registration confirmed" },
+  { key: "legal_compliance_declaration", label: "Legal & compliance declaration" },
+];
+const FUNDER_DD_ITEMS: { key: string; label: string }[] = [
+  { key: "disbursement_track_record", label: "Disbursement track record" },
+  { key: "decision_transparency", label: "Decision-making transparency" },
+  { key: "conflict_disclosure", label: "Conflict of interest disclosure" },
+  { key: "governance_doc", label: "Governance documentation" },
+  { key: "esg_framework", label: "ESG framework" },
+  { key: "legal_registration", label: "Legal registration confirmed" },
+];
+
+function computeTrustTier(ddScore: number, ddEvidence: Record<string, any> | null | undefined) {
+  const legal = ddEvidence?.legal_compliance_declaration ?? {};
+  const conflictDisclosure = ddEvidence?.conflict_disclosure ?? {};
+  const hasRedFlag =
+    Boolean(legal.hasBlacklisting) ||
+    Boolean(legal.hasPendingDisputes) ||
+    Boolean(legal.conflictsToDisclose) ||
+    Boolean(conflictDisclosure.hasConflicts);
+  if (hasRedFlag) return { tier: "flagged", label: "Flagged", hasRedFlag: true };
+  if (ddScore >= 90) return { tier: "gold", label: "Gold", hasRedFlag: false };
+  if (ddScore >= 60) return { tier: "silver", label: "Silver", hasRedFlag: false };
+  if (ddScore >= 30) return { tier: "bronze", label: "Bronze", hasRedFlag: false };
+  return { tier: null, label: "Unrated", hasRedFlag: false };
+}
+
+function redFlagSentences(ddEvidence: Record<string, any> | null | undefined): string[] {
+  const legal = ddEvidence?.legal_compliance_declaration ?? {};
+  const conflict = ddEvidence?.conflict_disclosure ?? {};
+  const flags: string[] = [];
+  if (legal.hasBlacklisting) flags.push("The organisation has disclosed a blacklisting by a government or regulatory agency.");
+  if (legal.hasPendingDisputes) flags.push("The organisation has disclosed pending legal disputes or investigations.");
+  if (legal.conflictsToDisclose) flags.push("The organisation has disclosed related-party conflicts under its legal & compliance declaration.");
+  if (conflict.hasConflicts) flags.push("The organisation has disclosed conflicts of interest under its conflict disclosure item.");
+  return flags;
+}
+
+function sha256Hex(bytes: Uint8Array): Promise<string> {
+  return crypto.subtle.digest("SHA-256", bytes).then((buf) =>
+    Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("")
+  );
+}
+
+function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return "Not confirmed";
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function wrapLines(str: string, size: number, f: any, maxWidth: number): string[] {
+  const words = str.split(/\s+/);
+  const lines: string[] = [];
+  let current = "";
+  function breakLongWord(word: string): string {
+    let chunk = "";
+    for (const ch of word) {
+      const candidate = chunk + ch;
+      if (chunk && f.widthOfTextAtSize(candidate, size) > maxWidth) {
+        lines.push(chunk);
+        chunk = ch;
+      } else {
+        chunk = candidate;
+      }
+    }
+    return chunk;
+  }
+  for (const word of words) {
+    if (f.widthOfTextAtSize(word, size) > maxWidth) {
+      if (current) { lines.push(current); current = ""; }
+      current = breakLongWord(word);
+      continue;
+    }
+    const candidate = current ? `${current} ${word}` : word;
+    if (current && f.widthOfTextAtSize(candidate, size) > maxWidth) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+function titleCaseOrgType(v: string | null | undefined): string {
+  if (!v) return "Not provided";
+  return v.split("_").map((w) => (w.toLowerCase() === "ngo" ? "NGO" : w.charAt(0).toUpperCase() + w.slice(1))).join(" ");
+}
+
+function cleanTextField(v: string | null | undefined): string {
+  if (!v) return "";
+  const m = v.match(/^\{(.*)\}$/);
+  return m ? m[1].split(",").map((s) => s.trim()).filter(Boolean).join(", ") : v;
+}
+
+function humanizeKey(key: string): string {
+  const spaced = key.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+  const lower = spaced.toLowerCase();
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
+const EVIDENCE_DETAIL_SKIP_KEYS = new Set(["notes"]);
+
+const CONDITIONAL_EVIDENCE_KEYS: Record<string, { governingKey: string; equals: any }> = {
+  areasCovered: { governingKey: "hasWrittenPolicy", equals: true },
+  totalCommitted: { governingKey: "hasCommitments", equals: true },
+  onTimePct: { governingKey: "hasCommitments", equals: true },
+  decisionProcess: { governingKey: "hasStatedTimeline", equals: true },
+  frameworkName: { governingKey: "usesFramework", equals: true },
+};
+
+function evidenceDetailLine(itemKey: string, ddEvidence: Record<string, any> | null | undefined): string | null {
+  if (itemKey === "legal_compliance_declaration" || itemKey === "conflict_disclosure") return null;
+  const evidence = ddEvidence?.[itemKey];
+  if (!evidence || typeof evidence !== "object") return null;
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(evidence)) {
+    if (EVIDENCE_DETAIL_SKIP_KEYS.has(k)) continue;
+    const gate = CONDITIONAL_EVIDENCE_KEYS[k];
+    if (gate && evidence[gate.governingKey] !== gate.equals) continue;
+    if (v === null || v === undefined || v === "") continue;
+    if (typeof v === "boolean") { parts.push(`${humanizeKey(k)}: ${v ? "Yes" : "No"}`); continue; }
+    parts.push(`${humanizeKey(k)}: ${String(v)}`);
+  }
+  return parts.length > 0 ? parts.join("; ") : null;
+}
+
+const MOU_STATUS_LABELS: Record<string, string> = {
+  fully_executed: "Fully executed",
+  pending_org_a_final_review: "Pending final review",
+  sent: "Sent, awaiting signature",
+  draft: "Draft",
+  void: "Void",
+};
+
+function computeRiskExposure(readinessScore: number, redFlags: string[]): { label: string; detail: string } {
+  if (redFlags.length > 0) {
+    return { label: "Elevated", detail: "One or more disclosed compliance flags place this organisation in the Elevated indicator tier regardless of DD Readiness score." };
+  }
+  if (readinessScore >= 85) {
+    return { label: "Low", detail: "No disclosed compliance flags and a high rate of DD Readiness completion." };
+  }
+  return { label: "Standard", detail: "No disclosed compliance flags; DD Readiness completion is above the export threshold but not yet comprehensive." };
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+    });
+  }
+
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const callerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: { user }, error: userError } = await callerClient.auth.getUser();
+  if (userError || !user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+    });
+  }
+  const { data: ownerId } = await callerClient.rpc("resolve_org_owner_id");
+  const { data: exporterOrg } = await callerClient
+    .from("organizations")
+    .select("id, organisation_name, organisation_type, subscription_tier")
+    .eq("user_id", ownerId ?? user.id)
+    .maybeSingle();
+
+  if (!exporterOrg || exporterOrg.subscription_tier !== "compliance") {
+    return new Response(JSON.stringify({
+      error: "An audit-ready DD export requires a Compliance plan.",
+      requires_upgrade: true,
+      required_tier: "compliance",
+    }), { status: 403, headers: { "Content-Type": "application/json", ...CORS_HEADERS } });
+  }
+
+  let body: { subject_org_id?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return new Response(JSON.stringify({ error: "Invalid request body" }), {
+      status: 400, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+    });
+  }
+  const subjectOrgId = body.subject_org_id;
+  if (!subjectOrgId) {
+    return new Response(JSON.stringify({ error: "subject_org_id is required" }), {
+      status: 400, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+    });
+  }
+
+  const svc = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  const { data: subjectOrg, error: subjectErr } = await svc
+    .from("organizations")
+    .select("id, organisation_name, organisation_type, sector, country, registration_type, registration_number, tin, scuml_number, year_founded, verification_status, srg1_pie_self_declared, created_at, " +
+      "dd_financial_model, dd_audited_accounts, dd_governance_doc, dd_esg_assessment, dd_impact_framework, dd_environmental_policy, dd_safeguarding_policy, dd_legal_registration, dd_legal_compliance_declaration, " +
+      "fdd_disbursement_track_record, fdd_decision_transparency, fdd_conflict_disclosure, fdd_governance_doc, fdd_esg_framework, fdd_legal_registration, " +
+      "dd_evidence, dd_confirmed_at, " +
+      "total_beneficiaries_reached, jobs_created, female_beneficiaries_pct, youth_beneficiaries_pct, years_of_operation, grants_received_count, grants_total_value_usd, grants_delivered_on_time_pct, previous_funders, third_party_evaluations")
+    .eq("id", subjectOrgId)
+    .maybeSingle();
+
+  if (subjectErr || !subjectOrg) {
+    return new Response(JSON.stringify({ error: "Subject organisation not found" }), {
+      status: 404, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+    });
+  }
+
+  const { data: mou } = await svc
+    .from("mou_documents")
+    .select("status, updated_at, created_at")
+    .or(`and(org_a_id.eq.${exporterOrg.id},org_b_id.eq.${subjectOrgId}),and(org_a_id.eq.${subjectOrgId},org_b_id.eq.${exporterOrg.id})`)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const implementer = isImplementerOrgType(subjectOrg.organisation_type);
+  const items = implementer ? DD_ITEMS : FUNDER_DD_ITEMS;
+  const prefix = implementer ? "dd" : "fdd";
+  const confirmedAt: Record<string, { at: string; approx: boolean }> = subjectOrg.dd_confirmed_at ?? {};
+
+  const rows = items.map((item, i) => {
+    const fieldName = `${prefix}_${item.key}`;
+    const value = Boolean((subjectOrg as Record<string, any>)[fieldName]);
+    const confirmation = confirmedAt[fieldName];
+    return {
+      label: item.label,
+      key: item.key,
+      confirmed: value,
+      confirmedAt: confirmation?.at ?? null,
+      approx: confirmation?.approx ?? false,
+      ref: `${prefix.toUpperCase()}-${String(i + 1).padStart(2, "0")}`,
+      detail: value ? evidenceDetailLine(item.key, subjectOrg.dd_evidence) : null,
+    };
+  });
+
+  const confirmedCount = rows.filter((r) => r.confirmed).length;
+  const readinessScore = items.length > 0 ? Math.round((confirmedCount / items.length) * 100) : 0;
+
+  if (readinessScore < READINESS_THRESHOLD_PCT) {
+    return new Response(JSON.stringify({
+      error: `This organisation's DD Readiness (${readinessScore}%) is below the ${READINESS_THRESHOLD_PCT}% threshold required for an audit-ready export.`,
+      readiness_score: readinessScore,
+      threshold: READINESS_THRESHOLD_PCT,
+    }), { status: 403, headers: { "Content-Type": "application/json", ...CORS_HEADERS } });
+  }
+
+  // Still computed and stored for other consumers of the snapshot, but no
+  // longer rendered as a Gold/Silver/Bronze badge in the customer PDF -- a
+  // tier badge reads as third-party certification, which this export isn't.
+  const trustTier = computeTrustTier(readinessScore, subjectOrg.dd_evidence);
+  const redFlags = redFlagSentences(subjectOrg.dd_evidence);
+  const riskExposure = computeRiskExposure(readinessScore, redFlags);
+
+  let esgReport: Record<string, any> | null = null;
+  try {
+    const { data: deliveryRows } = await svc.rpc("get_org_delivery_stats", { target_org_id: subjectOrgId });
+    const delivery = deliveryRows?.[0] ?? null;
+    const legalEvidence = implementer
+      ? (subjectOrg.dd_evidence?.legal_compliance_declaration ?? {})
+      : (subjectOrg.dd_evidence?.conflict_disclosure ?? {});
+    const esgRes = await fetch(`${SUPABASE_URL}/functions/v1/generate-esg-report`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: authHeader },
+      body: JSON.stringify({
+        org_id: subjectOrgId,
+        org: {
+          organisation_name: subjectOrg.organisation_name,
+          organisation_type: subjectOrg.organisation_type,
+          sector: cleanTextField(subjectOrg.sector),
+          country: cleanTextField(subjectOrg.country),
+        },
+        dd_readiness: {
+          is_implementer: implementer,
+          items: rows.map((r) => ({ key: r.key, label: r.label, value: r.confirmed })),
+          has_blacklisting: implementer ? (legalEvidence.hasBlacklisting ?? null) : null,
+          has_pending_disputes: implementer ? (legalEvidence.hasPendingDisputes ?? null) : null,
+          has_conflicts: (implementer ? legalEvidence.conflictsToDisclose : legalEvidence.hasConflicts) ?? null,
+        },
+        delivery,
+        track_record: {
+          total_beneficiaries_reached: subjectOrg.total_beneficiaries_reached,
+          jobs_created: subjectOrg.jobs_created,
+          female_beneficiaries_pct: subjectOrg.female_beneficiaries_pct,
+          youth_beneficiaries_pct: subjectOrg.youth_beneficiaries_pct,
+          years_of_operation: subjectOrg.years_of_operation,
+          grants_received_count: subjectOrg.grants_received_count,
+          grants_total_value_usd: subjectOrg.grants_total_value_usd,
+          grants_delivered_on_time_pct: subjectOrg.grants_delivered_on_time_pct,
+          previous_funders: subjectOrg.previous_funders,
+          third_party_evaluations: subjectOrg.third_party_evaluations,
+        },
+      }),
+    });
+    const esgJson = await esgRes.json();
+    if (esgJson?.data) esgReport = esgJson.data;
+  } catch {
+    esgReport = null;
+  }
+
+  const confirmedDates = Object.values(confirmedAt).map((c) => c?.at).filter(Boolean) as string[];
+  const firstConfirmed = confirmedDates.length > 0 ? confirmedDates.reduce((a, b) => (a < b ? a : b)) : null;
+  const lastConfirmed = confirmedDates.length > 0 ? confirmedDates.reduce((a, b) => (a > b ? a : b)) : null;
+  const timelineEntries: { label: string; date: string }[] = [
+    { label: "Organisation joined the platform", date: fmtDate(subjectOrg.created_at) },
+  ];
+  if (firstConfirmed) timelineEntries.push({ label: "First DD item confirmed", date: fmtDate(firstConfirmed) });
+  if (lastConfirmed && lastConfirmed !== firstConfirmed) timelineEntries.push({ label: "Most recent DD item confirmed", date: fmtDate(lastConfirmed) });
+  if (mou) {
+    timelineEntries.push({ label: "MoU created", date: fmtDate(mou.created_at) });
+    if (mou.updated_at && mou.updated_at !== mou.created_at) {
+      timelineEntries.push({ label: `MoU status: ${MOU_STATUS_LABELS[mou.status] ?? mou.status}`, date: fmtDate(mou.updated_at) });
+    }
+  }
+
+  const legalRegRow = rows.find((r) => r.key === "legal_registration");
+  const exceptions: string[] = [];
+  if (!esgReport) exceptions.push("ESG assessment unavailable for this export. See Section 07.");
+  if (legalRegRow?.confirmed && !subjectOrg.registration_number) {
+    exceptions.push(`Legal registration (${legalRegRow.ref}) is self-attested via the DD checklist and has not passed Impact Natives' formal verification review. See Section 01.`);
+  }
+  if (redFlags.length > 0) exceptions.push("One or more compliance flags disclosed. See Section 03.");
+
+  const overallStatusLabel = readinessScore === 100 ? "COMPLETE" : readinessScore >= 85 ? "SUBSTANTIALLY COMPLETE" : "IN PROGRESS";
+
+  const { data: exportRow, error: insertErr } = await svc
+    .from("dd_export_requests")
+    .insert({
+      exporter_org_id: exporterOrg.id,
+      exporter_user_id: user.id,
+      subject_org_id: subjectOrgId,
+      dd_readiness_pct_snapshot: readinessScore,
+      trust_tier_snapshot: trustTier.tier,
+    })
+    .select("id")
+    .single();
+
+  if (insertErr || !exportRow) {
+    return new Response(JSON.stringify({ error: `Could not create export record: ${insertErr?.message}` }), {
+      status: 500, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+    });
+  }
+  const exportId = exportRow.id;
+
+  try {
+    const pdf = await PDFDocument.create();
+    const font = await pdf.embedFont(StandardFonts.Helvetica);
+    const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
+    const fontItalic = await pdf.embedFont(StandardFonts.HelveticaOblique);
+    const PAGE_W = 595.28, PAGE_H = 841.89;
+    const MARGIN = 50;
+    const TOP_MARGIN = 74;
+    const BOTTOM_LIMIT = 58;
+    const CONTENT_W = PAGE_W - MARGIN * 2;
+    let page = pdf.addPage([PAGE_W, PAGE_H]);
+    let y = PAGE_H - TOP_MARGIN;
+
+    const white = rgb(1, 1, 1);
+    const ink = rgb(0.13, 0.14, 0.15);
+    const inkSoft = rgb(0.42, 0.44, 0.46);
+    const green = rgb(0.09, 0.29, 0.20);
+    const greenTint = rgb(0.937, 0.961, 0.945);
+    const red = rgb(0.70, 0.16, 0.16);
+    const redTint = rgb(0.98, 0.93, 0.93);
+    const amber = rgb(0.60, 0.42, 0.05);
+    const amberTint = rgb(0.995, 0.972, 0.906);
+    const border = rgb(0.84, 0.85, 0.86);
+    const borderSoft = rgb(0.90, 0.905, 0.91);
+    const panel = rgb(0.973, 0.973, 0.969);
+    const rowAlt = rgb(0.976, 0.976, 0.972);
+    const neutralBg = rgb(0.898, 0.918, 0.945);
+    const neutralFg = rgb(0.27, 0.34, 0.44);
+    const mutedBg = rgb(0.925, 0.925, 0.925);
+    const mutedFg = rgb(0.44, 0.44, 0.44);
+
+    function newPage() {
+      page = pdf.addPage([PAGE_W, PAGE_H]);
+      y = PAGE_H - TOP_MARGIN;
+    }
+    function ensureSpace(need: number) {
+      if (y - need < BOTTOM_LIMIT) newPage();
+    }
+    function forcePageBreak() {
+      newPage();
+    }
+
+    // Block-level: measures the whole paragraph and moves it as one unit, so
+    // a two-line footnote can never leave its last line orphaned on the next
+    // page the way per-line pagination did.
+    function textBlock(str: string, opts: { size?: number; bold?: boolean; italic?: boolean; color?: any; gap?: number; lead?: number; x?: number; width?: number } = {}) {
+      const size = opts.size ?? 10;
+      const f = opts.italic ? fontItalic : opts.bold ? fontBold : font;
+      const w = opts.width ?? CONTENT_W;
+      const x = opts.x ?? MARGIN;
+      const lead = opts.lead ?? size + 3.5;
+      const lines = wrapLines(str, size, f, w);
+      ensureSpace(lines.length * lead);
+      for (const line of lines) {
+        page.drawText(line, { x, y, size, font: f, color: opts.color ?? ink });
+        y -= lead;
+      }
+      y -= opts.gap ?? 0;
+    }
+
+    // Kicker sits 19pt above the title baseline; at 17pt the title ascender
+    // is ~12.2pt, leaving real clearance instead of the collision the 18/15
+    // pairing produced.
+    function sectionHeading(num: string, title: string) {
+      ensureSpace(58);
+      page.drawText(`SECTION ${num}`, { x: MARGIN, y, size: 8, font: fontBold, color: green });
+      y -= 19;
+      page.drawText(title, { x: MARGIN, y, size: 17, font: fontBold, color: ink });
+      y -= 22;
+    }
+
+    const PILL_H = 15;
+    function pillWidth(label: string): number {
+      return fontBold.widthOfTextAtSize(label, 8.5) + 14;
+    }
+    // baselineY is the text baseline of the row the pill belongs to, so pills
+    // optically align with adjacent plain text on the same line.
+    function drawPill(x: number, baselineY: number, label: string, kind: "confirmed" | "neutral" | "muted" | "attention" | "flag") {
+      const size = 8.5;
+      const w = pillWidth(label);
+      const rectY = baselineY - 4;
+      let bg: any, fg: any;
+      if (kind === "confirmed") { bg = green; fg = white; }
+      else if (kind === "neutral") { bg = neutralBg; fg = neutralFg; }
+      else if (kind === "attention") { bg = amberTint; fg = amber; }
+      else if (kind === "flag") { bg = redTint; fg = red; }
+      else { bg = mutedBg; fg = mutedFg; }
+      page.drawRectangle({ x, y: rectY, width: w, height: PILL_H, color: bg });
+      page.drawText(label, { x: x + 7, y: rectY + 4.5, size, font: fontBold, color: fg });
+    }
+
+    function drawKeyValueTable(kvRows: { label: string; value: string }[], labelColW = 178, valSize = 10) {
+      const valW = CONTENT_W - labelColW - 22;
+      const lead = 13.5;
+      const heights = kvRows.map(({ value }) => Math.max(wrapLines(value, valSize, font, valW).length, 1) * lead + 7);
+      const tH = heights.reduce((a, b) => a + b, 0);
+      ensureSpace(tH + 6);
+      const top = y;
+      kvRows.forEach(({ label, value }, i) => {
+        const rh = heights[i];
+        const rTop = top - heights.slice(0, i).reduce((a, b) => a + b, 0);
+        if (i % 2 === 1) page.drawRectangle({ x: MARGIN, y: rTop - rh, width: CONTENT_W, height: rh, color: rowAlt });
+        page.drawText(label, { x: MARGIN + 12, y: rTop - 15.5, size: valSize, font: fontBold, color: ink });
+        wrapLines(value, valSize, font, valW).forEach((line, li) =>
+          page.drawText(line, { x: MARGIN + labelColW, y: rTop - 15.5 - li * lead, size: valSize, font, color: ink }));
+        if (i > 0) page.drawLine({ start: { x: MARGIN, y: rTop }, end: { x: MARGIN + CONTENT_W, y: rTop }, thickness: 0.5, color: borderSoft });
+      });
+      page.drawLine({ start: { x: MARGIN + labelColW - 12, y: top }, end: { x: MARGIN + labelColW - 12, y: top - tH }, thickness: 0.5, color: borderSoft });
+      page.drawRectangle({ x: MARGIN, y: top - tH, width: CONTENT_W, height: tH, borderColor: border, borderWidth: 1 });
+      y = top - tH;
+    }
+
+    // ============================================================
+    // PAGE 1 — Cover + Executive DD Summary
+    // ============================================================
+    page.drawText("IMPACT NATIVES · COMPLIANCE SUITE", { x: MARGIN, y, size: 21, font: fontBold, color: green });
+    y -= 24;
+    page.drawText("Audit-Ready Due Diligence Report", { x: MARGIN, y, size: 11.5, font: fontBold, color: ink });
+    y -= 32;
+
+    const verifiedLabel = subjectOrg.verification_status === "verified" ? " (Verified)" : "";
+    const pairedEntityRows: [string, string, string, string][] = [
+      ["Corporate Entity", `${exporterOrg.organisation_name}}`,
+       "Export Date", new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })],
+       ["Target Organisation", `${subjectOrg.organisation_name}${verifiedLabel}`,
+        subjectOrg.organisation_type === "corporation" ? "SRG1 Reporting Status" : "Verification Status",
+        subjectOrg.organisation_type === "corporation"
+          ? (subjectOrg.srg1_pie_self_declared ? "Self-declared PIE" : "Not self-declared")
+          : (subjectOrg.verification_status === "verified" ? "Verified" : "Not verified")],
+    ];
+    const singleEntityRows: [string, string][] = [
+      ["Process Reference ID", exportId],
+      ["MoU Status", mou ? (MOU_STATUS_LABELS[mou.status] ?? mou.status) : "No MoU on record"],
+    ];
+    const pairW = CONTENT_W / 2;
+    const eFont = 10, eLead = 13;
+    const allEntityLabels = [...pairedEntityRows.flatMap(([l1, , l2]) => [l1, l2]), ...singleEntityRows.map(([l]) => l)];
+    const labelColW = Math.max(...allEntityLabels.map((l) => fontBold.widthOfTextAtSize(l, eFont))) + 26;
+    const eValW = pairW - labelColW - 8;
+    const pairedH = pairedEntityRows.map(([, v1, , v2]) =>
+      Math.max(wrapLines(v1, eFont, font, eValW).length, wrapLines(v2, eFont, font, eValW).length, 1) * eLead + 15);
+    const singleValW = CONTENT_W - labelColW - 12;
+    const singleH = singleEntityRows.map(([, v]) => Math.max(wrapLines(v, eFont, font, singleValW).length, 1) * eLead + 15);
+    const entityH = pairedH.reduce((a, b) => a + b, 0) + singleH.reduce((a, b) => a + b, 0);
+    ensureSpace(entityH + 8);
+    const eTop = y;
+    page.drawRectangle({ x: MARGIN, y: eTop - entityH, width: CONTENT_W, height: entityH, color: panel });
+    let eY = eTop;
+    pairedEntityRows.forEach(([l1, v1, l2, v2], i) => {
+      const rh = pairedH[i];
+      page.drawText(l1, { x: MARGIN + 12, y: eY - 16, size: eFont, font: fontBold, color: ink });
+      wrapLines(v1, eFont, font, eValW).forEach((line, li) => page.drawText(line, { x: MARGIN + labelColW, y: eY - 16 - li * eLead, size: eFont, font, color: ink }));
+      page.drawText(l2, { x: MARGIN + pairW + 12, y: eY - 16, size: eFont, font: fontBold, color: ink });
+      wrapLines(v2, eFont, font, eValW).forEach((line, li) => page.drawText(line, { x: MARGIN + pairW + labelColW, y: eY - 16 - li * eLead, size: eFont, font, color: ink }));
+      if (i > 0) page.drawLine({ start: { x: MARGIN, y: eY }, end: { x: MARGIN + CONTENT_W, y: eY }, thickness: 0.5, color: borderSoft });
+      page.drawLine({ start: { x: MARGIN + pairW, y: eY }, end: { x: MARGIN + pairW, y: eY - rh }, thickness: 0.5, color: borderSoft });
+      eY -= rh;
+    });
+    singleEntityRows.forEach(([label, val], i) => {
+      const rh = singleH[i];
+      page.drawText(label, { x: MARGIN + 12, y: eY - 16, size: eFont, font: fontBold, color: ink });
+      wrapLines(val, eFont, font, singleValW).forEach((line, li) => page.drawText(line, { x: MARGIN + labelColW, y: eY - 16 - li * eLead, size: eFont, font, color: ink }));
+      page.drawLine({ start: { x: MARGIN, y: eY }, end: { x: MARGIN + CONTENT_W, y: eY }, thickness: 0.5, color: borderSoft });
+      eY -= rh;
+    });
+    page.drawLine({ start: { x: MARGIN + labelColW - 12, y: eTop }, end: { x: MARGIN + labelColW - 12, y: eTop - entityH }, thickness: 0.5, color: borderSoft });
+    page.drawRectangle({ x: MARGIN, y: eTop - entityH, width: CONTENT_W, height: entityH, borderColor: border, borderWidth: 1 });
+    y = eTop - entityH - 30;
+
+    page.drawText("EXECUTIVE DD SUMMARY", { x: MARGIN, y, size: 8, font: fontBold, color: green });
+    y -= 19;
+    page.drawText("Overview", { x: MARGIN, y, size: 17, font: fontBold, color: ink });
+    y -= 22;
+
+    const execRows: { label: string; pill: string; kind: "confirmed" | "neutral" | "muted" | "attention" | "flag" }[] = [
+      { label: "DD Readiness", pill: `${readinessScore}% Complete`, kind: readinessScore === 100 ? "confirmed" : "attention" },
+      { label: "Compliance Dimensions", pill: `${confirmedCount} of ${items.length} Self-Attested`, kind: confirmedCount === items.length ? "confirmed" : "attention" },
+      { label: "Compliance Flags", pill: redFlags.length > 0 ? `${redFlags.length} Disclosed` : "None Disclosed", kind: redFlags.length > 0 ? "flag" : "confirmed" },
+      { label: "Disclosure-Based Risk Indicator", pill: riskExposure.label, kind: riskExposure.label === "Elevated" ? "flag" : riskExposure.label === "Low" ? "confirmed" : "attention" },
+      { label: "ESG Assessment", pill: esgReport ? "Included" : "Not Available", kind: esgReport ? "confirmed" : "attention" },
+      { label: "Information Basis", pill: "Self-Reported", kind: "neutral" },
+    ];
+    const execLabelColW = Math.max(...execRows.map((r) => fontBold.widthOfTextAtSize(r.label, 10))) + 34;
+    const execRowH = 27;
+    const execH = execRowH * execRows.length;
+    ensureSpace(execH + 6);
+    const execTop = y;
+    execRows.forEach((r, i) => {
+      const rTop = execTop - i * execRowH;
+      if (i % 2 === 1) page.drawRectangle({ x: MARGIN, y: rTop - execRowH, width: CONTENT_W, height: execRowH, color: rowAlt });
+      page.drawText(r.label, { x: MARGIN + 12, y: rTop - 17.5, size: 10, font: fontBold, color: ink });
+      drawPill(MARGIN + execLabelColW, rTop - 17.5, r.pill, r.kind);
+      if (i > 0) page.drawLine({ start: { x: MARGIN, y: rTop }, end: { x: MARGIN + CONTENT_W, y: rTop }, thickness: 0.5, color: borderSoft });
+    });
+    page.drawLine({ start: { x: MARGIN + execLabelColW - 14, y: execTop }, end: { x: MARGIN + execLabelColW - 14, y: execTop - execH }, thickness: 0.5, color: borderSoft });
+    page.drawRectangle({ x: MARGIN, y: execTop - execH, width: CONTENT_W, height: execH, borderColor: border, borderWidth: 1 });
+    y = execTop - execH - 26;
+
+    // Overall status card: fixed left column with a divider, both sides
+    // vertically centred against a shared card height.
+    const statusLeftW = 232;
+    const statusDetail = `${confirmedCount} of ${items.length} due diligence readiness dimensions self-attested at the time of export. ${redFlags.length > 0 ? `${redFlags.length} compliance flag${redFlags.length !== 1 ? "s" : ""} disclosed.` : "No compliance flags disclosed."}`;
+    const statusLines = wrapLines(statusDetail, 9, font, CONTENT_W - statusLeftW - 24);
+    const statusH = Math.max(statusLines.length * 12.5 + 30, 60);
+    ensureSpace(statusH + 6);
+    const sTop = y;
+    page.drawRectangle({ x: MARGIN, y: sTop - statusH, width: CONTENT_W, height: statusH, color: greenTint, borderColor: green, borderWidth: 1 });
+    page.drawLine({ start: { x: MARGIN + statusLeftW, y: sTop - 10 }, end: { x: MARGIN + statusLeftW, y: sTop - statusH + 10 }, thickness: 0.5, color: green });
+    page.drawText("OVERALL DD STATUS", { x: MARGIN + 16, y: sTop - statusH / 2 + 4, size: 8, font: fontBold, color: green });
+    page.drawText(overallStatusLabel, { x: MARGIN + 16, y: sTop - statusH / 2 - 14, size: 16, font: fontBold, color: green });
+    const statusBlockTop = sTop - (statusH - statusLines.length * 12.5) / 2 - 8;
+    statusLines.forEach((line, li) => page.drawText(line, { x: MARGIN + statusLeftW + 18, y: statusBlockTop - li * 12.5, size: 9, font, color: ink }));
+    y = sTop - statusH - 26;
+
+    const noticeText = "This report is a point-in-time export of information submitted by the target organisation. Unless explicitly stated otherwise, information is self-reported and has not been independently verified by Impact Natives. The report reflects the status recorded at the time of generation and does not automatically incorporate later changes to the organisation's profile.";
+    const noticeLines = wrapLines(noticeText, 9, fontItalic, CONTENT_W - 32);
+    const noticeH = noticeLines.length * 12.5 + 34;
+    ensureSpace(noticeH + 6);
+    const nTop = y;
+    page.drawRectangle({ x: MARGIN, y: nTop - noticeH, width: CONTENT_W, height: noticeH, color: panel, borderColor: border, borderWidth: 0.75 });
+    page.drawText("IMPORTANT SCOPE NOTICE", { x: MARGIN + 16, y: nTop - 18, size: 8, font: fontBold, color: ink });
+    noticeLines.forEach((line, li) => page.drawText(line, { x: MARGIN + 16, y: nTop - 34 - li * 12.5, size: 9, font: fontItalic, color: ink }));
+    y = nTop - noticeH;
+
+    // ============================================================
+    // PAGE 2 — Organisation Profile + DD Readiness
+    // ============================================================
+    forcePageBreak();
+
+    sectionHeading("01", "Governance & Legal");
+    drawKeyValueTable([
+      { label: "Organisation Type", value: titleCaseOrgType(subjectOrg.organisation_type) },
+      { label: "Country", value: cleanTextField(subjectOrg.country) || "Not provided" },
+      { label: "Registration Type", value: cleanTextField(subjectOrg.registration_type) || "Not provided in organisation profile" },
+      { label: "Registration Number", value: cleanTextField(subjectOrg.registration_number) || "Not provided in organisation profile" },
+      { label: "TIN", value: cleanTextField(subjectOrg.tin) || "Not provided" },
+      { label: "SCUML / AML Registration", value: cleanTextField(subjectOrg.scuml_number) || "Not provided" },
+      { label: "Year Founded", value: subjectOrg.year_founded ? String(subjectOrg.year_founded) : "Not provided" },
+    ]);
+    y -= 22;
+
+    if (legalRegRow?.confirmed && legalRegRow.detail) {
+      ensureSpace(54);
+      dt("Registration Evidence (Self-Attested)", { x: MARGIN, y, size: 10.5, font: fontBold, color: ink });
+      y -= 15;
+      textBlock(`Recorded under DD checklist item ${legalRegRow.ref}:`, { size: 9.5, gap: 4 });
+      for (const part of legalRegRow.detail.split("; ")) {
+        textBlock(`•  ${part}`, { size: 9.5, gap: 3, x: MARGIN + 10, width: CONTENT_W - 10 });
+      }
+      y -= 4;
+      if (!subjectOrg.registration_number) {
+        textBlock("This was entered by the organisation directly into the DD checklist and has not passed Impact Natives' formal verification review. It is a distinct data point from the Registration Number field above, which is populated only through that review.", { size: 8.5, italic: true, color: inkSoft, lead: 11.5, gap: 20 });
+      } else {
+        y -= 20;
+      }
+    }
+
+    sectionHeading("02", "DD Readiness");
+    textBlock(`${implementer ? "Implementer" : "Funder / Corporate"} Checklist · ${confirmedCount} of ${items.length} dimensions self-attested`, { size: 10, bold: true, gap: 3 });
+    textBlock("\"Self-Attested\" means the organisation answered this item -- the answer itself may be Yes or No. See the detail line under each item for what was actually disclosed.", { size: 8, italic: true, color: inkSoft, lead: 11, gap: 10 });
+
+    const colDim = 158, colStatus = 178, colConfirmed = 92;
+    const ddLead = 12, ddPad = 12;
+    function drawDdTableHeader() {
+      ensureSpace(26 + 4);
+      page.drawRectangle({ x: MARGIN, y: y - 26, width: CONTENT_W, height: 26, color: green });
+      let cx = MARGIN + 12;
+      page.drawText("Compliance Dimension", { x: cx, y: y - 17, size: 10, font: fontBold, color: white }); cx += colDim;
+      page.drawText("Status", { x: cx, y: y - 17, size: 10, font: fontBold, color: white }); cx += colStatus;
+      page.drawText("Confirmed", { x: cx, y: y - 17, size: 10, font: fontBold, color: white }); cx += colConfirmed;
+      page.drawText("Ref", { x: cx, y: y - 17, size: 10, font: fontBold, color: white });
+      y -= 26;
+    }
+    drawDdTableHeader();
+    rows.forEach((row, i) => {
+      const confirmedText = row.confirmed ? `${fmtDate(row.confirmedAt)}${row.approx ? "*" : ""}` : "Not confirmed";
+      const labelLines = wrapLines(row.label, 9.5, font, colDim - 18);
+      const detailLines = row.detail ? wrapLines(row.detail, 8, fontItalic, colStatus - 18) : [];
+      const confLines = wrapLines(confirmedText, 9, font, colConfirmed - 12);
+      const rh = Math.max(labelLines.length, 1 + detailLines.length, confLines.length, 1) * ddLead + ddPad;
+      if (y - rh < BOTTOM_LIMIT) { newPage(); drawDdTableHeader(); }
+      const rTop = y;
+      if (i % 2 === 1) page.drawRectangle({ x: MARGIN, y: rTop - rh, width: CONTENT_W, height: rh, color: rowAlt });
+      let cx = MARGIN + 12;
+      labelLines.forEach((line, li) => page.drawText(line, { x: cx, y: rTop - 16 - li * ddLead, size: 9.5, font, color: ink }));
+      cx += colDim;
+      drawPill(cx, rTop - 16, row.confirmed ? "Self-Attested" : "Not Attested", row.confirmed ? "confirmed" : "muted");
+      detailLines.forEach((line, li) => page.drawText(line, { x: cx, y: rTop - 16 - ddLead - li * 11 - 2, size: 8, font: fontItalic, color: inkSoft }));
+      cx += colStatus;
+      confLines.forEach((line, li) => page.drawText(line, { x: cx, y: rTop - 16 - li * ddLead, size: 9, font, color: ink }));
+      cx += colConfirmed;
+      page.drawText(row.ref, { x: cx, y: rTop - 16, size: 8.5, font, color: inkSoft });
+      if (i > 0) page.drawLine({ start: { x: MARGIN, y: rTop }, end: { x: MARGIN + CONTENT_W, y: rTop }, thickness: 0.5, color: borderSoft });
+      y -= rh;
+    });
+    page.drawLine({ start: { x: MARGIN, y }, end: { x: MARGIN + CONTENT_W, y }, thickness: 0.75, color: border });
+    y -= 12;
+    textBlock("* Baseline estimate carried over from before per-item confirmation timestamps were tracked: the item was true at that point, exact original date unknown.", { size: 8, italic: true, color: inkSoft, lead: 11 });
+
+    // ============================================================
+    // PAGE 3 — Compliance & Relationship Intelligence
+    // ============================================================
+    forcePageBreak();
+
+    sectionHeading("03", "Compliance Flags");
+    if (redFlags.length > 0) {
+      for (const flag of redFlags) textBlock(flag, { size: 10, color: red, gap: 7 });
+      y -= 4;
+    } else {
+      textBlock("No compliance flags have been disclosed by the organisation.", { size: 10, gap: 7 });
+      textBlock("This indicates that no compliance issues were disclosed through the information available for this export. It does not constitute confirmation that no undisclosed issues exist.", { size: 8.5, italic: true, color: inkSoft, lead: 11.5 });
+    }
+    y -= 26;
+
+    sectionHeading("04", "Disclosure-Based Risk Indicator");
+    textBlock("Basis: DD readiness score and disclosed compliance flags only. This indicator is not a comprehensive assessment of credit, financial, operational, legal, or organisational risk.", { size: 9, italic: true, color: inkSoft, lead: 12, gap: 12 });
+    const riskColors: Record<string, any> = { Elevated: red, Standard: amber, Low: green };
+    const riskTints: Record<string, any> = { Elevated: redTint, Standard: amberTint, Low: greenTint };
+    const riskColor = riskColors[riskExposure.label] ?? ink;
+    const riskTint = riskTints[riskExposure.label] ?? panel;
+    const riskLeftW = 124;
+    const riskLines = wrapLines(riskExposure.detail, 9.5, font, CONTENT_W - riskLeftW - 32);
+    const riskH = Math.max(riskLines.length * 13 + 26, 52);
+    ensureSpace(riskH + 6);
+    const rTop2 = y;
+    page.drawRectangle({ x: MARGIN, y: rTop2 - riskH, width: CONTENT_W, height: riskH, color: riskTint, borderColor: riskColor, borderWidth: 1 });
+    page.drawLine({ start: { x: MARGIN + riskLeftW, y: rTop2 - 9 }, end: { x: MARGIN + riskLeftW, y: rTop2 - riskH + 9 }, thickness: 0.5, color: riskColor });
+    const riskLabel = riskExposure.label.toUpperCase();
+    const riskLabelW = fontBold.widthOfTextAtSize(riskLabel, 14);
+    page.drawText(riskLabel, { x: MARGIN + (riskLeftW - riskLabelW) / 2, y: rTop2 - riskH / 2 - 5, size: 14, font: fontBold, color: riskColor });
+    const riskBlockTop = rTop2 - (riskH - riskLines.length * 13) / 2 - 9;
+    riskLines.forEach((line, li) => page.drawText(line, { x: MARGIN + riskLeftW + 18, y: riskBlockTop - li * 13, size: 9.5, font, color: ink }));
+    y = rTop2 - riskH - 30;
+
+    sectionHeading("05", "Relationship Activity");
+    textBlock("Milestones specific to this organisation and this export relationship only.", { size: 9, italic: true, color: inkSoft, gap: 10 });
+    const tlDateW = 92;
+    ensureSpace(timelineEntries.length * 17 + 4);
+    timelineEntries.forEach((entry) => {
+      page.drawText(entry.date, { x: MARGIN, y, size: 9.5, font: fontBold, color: ink });
+      page.drawText(entry.label, { x: MARGIN + tlDateW, y, size: 9.5, font, color: ink });
+      y -= 17;
+    });
+    y -= 12;
+
+    if (exceptions.length > 0) {
+      const excLineSets = exceptions.map((e) => wrapLines(e, 9.5, font, CONTENT_W - 46));
+      const excBodyH = excLineSets.reduce((a, s) => a + s.length * 13 + 7, 0);
+      const excH = excBodyH + 42;
+      ensureSpace(excH + 6);
+      const xTop = y;
+      page.drawRectangle({ x: MARGIN, y: xTop - excH, width: CONTENT_W, height: excH, color: amberTint, borderColor: amber, borderWidth: 1 });
+      page.drawText("EXCEPTIONS · ITEMS REQUIRING ATTENTION", { x: MARGIN + 16, y: xTop - 19, size: 8, font: fontBold, color: amber });
+      let xY = xTop - 38;
+      excLineSets.forEach((set) => {
+        page.drawText("•", { x: MARGIN + 16, y: xY, size: 9.5, font: fontBold, color: amber });
+        set.forEach((line, li) => page.drawText(line, { x: MARGIN + 30, y: xY - li * 13, size: 9.5, font, color: ink }));
+        xY -= set.length * 13 + 7;
+      });
+      y = xTop - excH - 30;
+    }
+
+    sectionHeading("06", "DD Standing");
+    const standLeftW = 150;
+    const standH = 66;
+    ensureSpace(standH + 6);
+    const stTop = y;
+    page.drawRectangle({ x: MARGIN, y: stTop - standH, width: CONTENT_W, height: standH, color: panel, borderColor: border, borderWidth: 1 });
+    page.drawLine({ start: { x: MARGIN + standLeftW, y: stTop - 11 }, end: { x: MARGIN + standLeftW, y: stTop - standH + 11 }, thickness: 0.5, color: border });
+    page.drawText("DD READINESS", { x: MARGIN + 18, y: stTop - standH / 2 + 6, size: 8, font: fontBold, color: green });
+    page.drawText(`${readinessScore}%`, { x: MARGIN + 18, y: stTop - standH / 2 - 17, size: 24, font: fontBold, color: green });
+    const standLines = [
+      { t: `Status: ${overallStatusLabel}`, b: true },
+      { t: `${confirmedCount} of ${items.length} compliance dimensions self-attested.`, b: false },
+      { t: redFlags.length > 0 ? "Compliance flags disclosed." : "No compliance flags disclosed.", b: false },
+    ];
+    const standBlockTop = stTop - (standH - standLines.length * 13.5) / 2 - 9;
+    standLines.forEach((l, li) => page.drawText(l.t, { x: MARGIN + standLeftW + 20, y: standBlockTop - li * 13.5, size: 9.5, font: l.b ? fontBold : font, color: ink }));
+    y = stTop - standH - 12;
+    textBlock("This figure represents completion of the defined DD readiness checklist. It is not a credit score, risk rating, certification, or independent verification of the organisation.", { size: 8.5, italic: true, color: inkSoft, lead: 11.5 });
+
+    // ============================================================
+    // PAGE 4 — ESG + Document Integrity
+    // ============================================================
+    forcePageBreak();
+
+    sectionHeading("07", "ESG Assessment");
+    if (esgReport) {
+      textBlock("Basis: self-reported organisational inputs. Not independently verified by Impact Natives.", { size: 9, italic: true, color: inkSoft, gap: 14 });
+      if (esgReport.headline) textBlock(String(esgReport.headline), { size: 10, bold: true, gap: 12 });
+      textBlock("Environmental", { size: 10.5, bold: true, gap: 3 });
+      textBlock(String(esgReport.environmental ?? "Not provided."), { size: 9.5, gap: 12 });
+      textBlock("Social", { size: 10.5, bold: true, gap: 3 });
+      textBlock(String(esgReport.social ?? "Not provided."), { size: 9.5, gap: 12 });
+      textBlock("Governance", { size: 10.5, bold: true, gap: 3 });
+      textBlock(String(esgReport.governance ?? "Not provided."), { size: 9.5, gap: 12 });
+      if (Array.isArray(esgReport.data_gaps) && esgReport.data_gaps.length > 0) {
+        textBlock("Data gaps", { size: 10.5, bold: true, gap: 3 });
+        for (const gap of esgReport.data_gaps) textBlock(`•  ${String(gap)}`, { size: 9.5, gap: 3 });
+        y -= 9;
+      }
+      textBlock("Summary", { size: 10.5, bold: true, gap: 3 });
+      textBlock(String(esgReport.summary ?? ""), { size: 9.5, gap: 10 });
+    } else {
+      ensureSpace(76);
+      y -= 6;
+      drawPill(MARGIN, y, "STATUS: NOT AVAILABLE IN THIS EXPORT", "attention");
+      y -= 30;
+      textBlock("An ESG assessment could not be generated at the time of export. The assessment is therefore excluded from this report. This should not be interpreted as a negative finding, nor as confirmation that no ESG information exists for the organisation.", { size: 9.5, gap: 9 });
+      textBlock("Basis: self-reported organisational inputs.", { size: 8.5, italic: true, color: inkSoft });
+    }
+    y -= 30;
+
+    sectionHeading("08", "Document Integrity & Verification");
+    drawKeyValueTable([
+      { label: "Process Reference ID", value: exportId },
+      { label: "Integrity Verification", value: "SHA-256 checksum computed at generation and stored in Impact Natives' compliance records under this reference ID. Compare the checksum against that record to confirm this file has not been altered since generation." },
+    ], 160, 9.5);
+    y -= 30;
+
+    const clsLines = [
+      { t: "Impact Natives Compliance Suite · Audit-Ready Due Diligence Export", s: 9.5, b: true, c: ink },
+      { t: "Information basis: Self-reported organisational information unless explicitly stated otherwise.", s: 8.5, b: false, c: ink },
+      { t: "Assessment basis: DD readiness completion and disclosed compliance information.", s: 8.5, b: false, c: ink },
+      { t: `Export date: ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`, s: 8.5, b: false, c: ink },
+      { t: `Process reference: ${exportId}`, s: 8.5, b: false, c: ink },
+    ];
+    const clsImportant = wrapLines("Important: this report is a point-in-time due diligence record. It does not constitute an independent audit, legal opinion, financial audit, credit assessment, or comprehensive risk assessment.", 8.5, fontItalic, CONTENT_W - 36);
+    const clsH = 30 + clsLines.length * 13.5 + 8 + clsImportant.length * 11.5 + 16;
+    ensureSpace(clsH + 6);
+    const cTop = y;
+    page.drawRectangle({ x: MARGIN, y: cTop - clsH, width: CONTENT_W, height: clsH, color: panel, borderColor: border, borderWidth: 1 });
+    page.drawText("REPORT CLASSIFICATION", { x: MARGIN + 18, y: cTop - 20, size: 8, font: fontBold, color: green });
+    let cY = cTop - 38;
+    clsLines.forEach((l) => { page.drawText(l.t, { x: MARGIN + 18, y: cY, size: l.s, font: l.b ? fontBold : font, color: l.c }); cY -= 13.5; });
+    cY -= 6;
+    clsImportant.forEach((line) => { page.drawText(line, { x: MARGIN + 18, y: cY, size: 8.5, font: fontItalic, color: inkSoft }); cY -= 11.5; });
+    y = cTop - clsH;
+
+    const pdfBytes = await pdf.save();
+    const pdfHash = await sha256Hex(pdfBytes);
+    const pdfPath = `${exportId}/report.pdf`;
+
+    const { error: uploadErr } = await svc.storage.from("dd-exports").upload(pdfPath, pdfBytes, {
+      contentType: "application/pdf",
+      upsert: false,
+    });
+    if (uploadErr) throw new Error(`PDF upload failed: ${uploadErr.message}`);
+
+    const { data: signedUrlData } = await svc.storage.from("dd-exports").createSignedUrl(pdfPath, 60 * 60);
+
+    await svc.from("dd_export_requests").update({
+      status: "complete",
+      pdf_file_path: pdfPath,
+      pdf_hash: pdfHash,
+      completed_at: new Date().toISOString(),
+    }).eq("id", exportId);
+
+    const { data: subjectOwner } = await svc.from("organizations").select("user_id").eq("id", subjectOrgId).maybeSingle();
+    if (subjectOwner?.user_id) {
+      await svc.from("notifications").insert({
+        user_id: subjectOwner.user_id,
+        type: "dd_export",
+        title: "Your DD file was exported",
+        body: `${exporterOrg.organisation_name} exported an audit-ready DD file for your organisation.`,
+        metadata: { export_id: exportId, exporter_org_id: exporterOrg.id, exporter_org_name: exporterOrg.organisation_name },
+      });
+    }
+    await svc.from("org_activity_log").insert({
+      org_id: subjectOrgId,
+      actor_id: user.id,
+      verb: "dd_export_generated",
+      target_table: "dd_export_requests",
+      target_id: exportId,
+      detail: `DD file exported by ${exporterOrg.organisation_name}`,
+    });
+
+    return new Response(JSON.stringify({
+      data: {
+        export_id: exportId,
+        readiness_score: readinessScore,
+        trust_tier: trustTier.tier,
+        pdf_hash: pdfHash,
+        download_url: signedUrlData?.signedUrl ?? null,
+      },
+    }), { status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS } });
+
+  } catch (err) {
+    await svc.from("dd_export_requests").update({
+      status: "failed",
+      error_message: String(err),
+    }).eq("id", exportId);
+    return new Response(JSON.stringify({ error: String(err) }), {
+      status: 500, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+    });
+  }
+});
