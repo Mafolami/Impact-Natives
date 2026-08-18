@@ -884,7 +884,7 @@ Deno.serve(async (req: Request) => {
     sectionHeading("02", "DD Readiness");
     textBlock("\"Self-Attested\" means the organisation answered this item -- the answer itself may be Yes or No. See the detail line under each item for what was actually disclosed.", { size: 8, italic: true, color: inkSoft, lead: 11, gap: 10 });
 
-    const colDim = 158, colStatus = 178, colConfirmed = 92;
+    const colDim = 216, colStatus = 120, colConfirmed = 92;
     const ddLead = 12, ddPad = 12, detailLead = 11;
     function drawDdTableHeader() {
       ensureSpace(26 + 4);
@@ -905,7 +905,7 @@ Deno.serve(async (req: Request) => {
       // Detail bullets are drawn at x: MARGIN + 24 and must stay within
       // the Compliance Dimension column (colDim wide) to avoid bleeding
       // into the Status/Self-Attested pill column to their right.
-      const detailLineSets = detailParts.map((p) => wrapLines(p, 8.5, fontItalic, colDim - 30));
+      const detailLineSets = detailParts.map((p) => wrapLines(p, 8.5, fontItalic, colDim - 20));
       const detailLinesTotal = detailLineSets.reduce((a, s) => a + s.length, 0);
       const topH = Math.max(labelLines.length, confLines.length, 1) * ddLead + ddPad;
       const detailH = detailLinesTotal > 0 ? detailLinesTotal * detailLead + 6 : 0;
