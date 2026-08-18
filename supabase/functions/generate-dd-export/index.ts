@@ -902,7 +902,10 @@ Deno.serve(async (req: Request) => {
       const labelLines = wrapLines(row.label, 9.5, font, colDim - 18);
       const confLines = wrapLines(confirmedText, 9, font, colConfirmed - 12);
       const detailParts = row.detail ? row.detail.split("; ") : [];
-      const detailLineSets = detailParts.map((p) => wrapLines(p, 8.5, fontItalic, CONTENT_W - 50));
+      // Detail bullets are drawn at x: MARGIN + 24 and must stay within
+      // the Compliance Dimension column (colDim wide) to avoid bleeding
+      // into the Status/Self-Attested pill column to their right.
+      const detailLineSets = detailParts.map((p) => wrapLines(p, 8.5, fontItalic, colDim - 30));
       const detailLinesTotal = detailLineSets.reduce((a, s) => a + s.length, 0);
       const topH = Math.max(labelLines.length, confLines.length, 1) * ddLead + ddPad;
       const detailH = detailLinesTotal > 0 ? detailLinesTotal * detailLead + 6 : 0;
@@ -967,7 +970,7 @@ Deno.serve(async (req: Request) => {
     });
     page.drawText(standLine2, { x: MARGIN + standLeftW + 20, y: sly, size: 9.5, font, color: ink });
     y = stTop - standH - 12;
-    textBlock("This figure represents completion of the defined DD readiness checklist. It is not a credit score, risk rating, certification, or independent verification of the organisation.", { size: 8.5, italic: true, color: inkSoft, lead: 11.5 });
+    textBlock("This figure represents completion of the defined DD readiness checklist. It is not a credit score, risk rating, certification, or independent verification of the organisation.", { size: 8.5, italic: true, color: inkSoft, lead: 11.5, gap: 26 });
 
     // Sections 04 and 05 flow on the same page as 03 if there's enough
     // space for both section headings plus meaningful content (~200pt).
