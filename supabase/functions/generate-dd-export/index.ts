@@ -4,6 +4,7 @@ import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY") ?? "";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -116,8 +117,18 @@ function titleCaseOrgType(v: string | null | undefined): string {
   return v.split("_").map((w) => (w.toLowerCase() === "ngo" ? "NGO" : w.charAt(0).toUpperCase() + w.slice(1))).join(" ");
 }
 
-function cleanTextField(v: string | null | undefined): string {
-  if (!v) return "";
+// Some org fields (e.g. country) are text columns storing a Postgres
+// array-literal string like "{Nigeria}"; others (e.g. sector) are jsonb
+// columns that supabase-js already deserializes into a real JS array like
+// ["Water, Sanitation & Hygiene", ...]. The original version only handled
+// the string case -- calling .match() on an actual array threw
+// "TypeError: v.match is not a function" and killed ESG generation
+// (confirmed live via console.error on a real export against Sahel Youth
+// Foundation, whose sector column is a genuine array). Handle both.
+function cleanTextField(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "";
+  if (Array.isArray(v)) return v.filter(Boolean).map((s) => String(s).trim()).join(", ");
+  if (typeof v !== "string") return String(v);
   const m = v.match(/^\{(.*)\}$/);
   return m ? m[1].split(",").map((s) => s.trim()).filter(Boolean).join(", ") : v;
 }
@@ -170,6 +181,232 @@ function computeRiskExposure(readinessScore: number, redFlags: string[]): { labe
     return { label: "Low", detail: "No disclosed compliance flags and a high rate of DD Readiness completion." };
   }
   return { label: "Standard", detail: "No disclosed compliance flags; DD Readiness completion is above the export threshold but not yet comprehensive." };
+}
+
+// ---------------------------------------------------------------------------
+// ESG report generation, inlined from generate-esg-report (v5).
+//
+// v16 called out to /functions/v1/generate-esg-report over HTTP using
+// fetch(). That self-referential edge-function-to-edge-function call never
+// reached the target function at all -- confirmed via query_logs: zero
+// invocations of generate-esg-report correlate with any dd-export run, and
+// the gap between the get_org_delivery_stats RPC and the next step
+// (dd_export_requests insert) was ~38ms, far too fast for an LLM call to
+// have happened. The fetch was failing (or being blocked) before it ever
+// left the sandbox, and the bare `catch { esgReport = null; }` swallowed
+// whatever the actual error was, so this went undiagnosed across sessions.
+//
+// Fix: generate the ESG report in-process instead of hopping back out over
+// HTTP to another function. Same prompt, same parsing, same tier logic
+// (the compliance-tier gate already enforced earlier in this function is a
+// superset of generate-esg-report's own gate, so no separate check is
+// needed here). Errors are now logged with console.error so a future
+// failure (e.g. Groq key/rate-limit issues) is visible in function_logs
+// instead of silently producing "ESG assessment could not be generated."
+// ---------------------------------------------------------------------------
+
+function normalizeSmartQuotes(text: string): string {
+  return text
+    .replace(/[\u201C\u201D]/g, "\"")
+    .replace(/[\u2018\u2019]/g, "'");
+}
+
+function repairMissingOpeningQuote(text: string): string {
+  return text.replace(
+    /("[\w_]+"\s*:\s*)([A-Za-z][^"{}\[\]]*?)(",|"\s*\})/g,
+    '$1"$2$3'
+  );
+}
+
+function repairMissingComma(text: string): string {
+  return text.replace(/"(\s+)"([\w_]+)"(\s*):/g, '",$1"$2"$3:');
+}
+
+function parseReportJson(rawText: string): Record<string, any> {
+  let clean = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
+  clean = normalizeSmartQuotes(clean);
+  clean = repairMissingOpeningQuote(clean);
+  clean = repairMissingComma(clean);
+
+  const jsonMatch = clean.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    try {
+      return JSON.parse(jsonMatch[0]);
+    } catch {
+      // fall through to salvage below
+    }
+  }
+
+  const opening = clean.indexOf("{");
+  if (opening === -1) throw new Error("No JSON object found in response");
+  const body = clean.slice(opening);
+  const lastCompleteField = body.lastIndexOf('",');
+  if (lastCompleteField === -1) throw new Error("No complete fields in response");
+  const salvaged = body.slice(0, lastCompleteField + 1) + "}";
+  return JSON.parse(salvaged);
+}
+
+interface DdItemForEsg {
+  key: string;
+  label: string;
+  value: boolean;
+}
+
+interface EsgGenInput {
+  org: { organisation_name: string | null; organisation_type: string | null; sector: string; country: string };
+  dd_readiness: {
+    is_implementer: boolean;
+    items: DdItemForEsg[];
+    has_blacklisting: boolean | null;
+    has_pending_disputes: boolean | null;
+    has_conflicts: boolean | null;
+  };
+  delivery: { completed: number; resolved: number; stalled: number; fell_through: number; total: number } | null;
+  track_record: {
+    total_beneficiaries_reached: number | null;
+    jobs_created: number | null;
+    female_beneficiaries_pct: number | null;
+    youth_beneficiaries_pct: number | null;
+    years_of_operation: number | null;
+    grants_received_count: number | null;
+    grants_total_value_usd: number | null;
+    grants_delivered_on_time_pct: number | null;
+    previous_funders: string[] | null;
+    third_party_evaluations: boolean | null;
+  };
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function generateEsgReportInline(input: EsgGenInput): Promise<Record<string, any> | null> {
+  const { org, dd_readiness, delivery, track_record } = input;
+  const ddItems = dd_readiness.items;
+  const isImplementer = dd_readiness.is_implementer;
+  const ddScore = ddItems.length > 0
+    ? Math.round((ddItems.filter((i) => i.value).length / ddItems.length) * 100)
+    : 0;
+  const checklistLine = ddItems.map((i) => `- ${i.label}: ${i.value ? "Yes" : "No"}`).join("\n");
+
+  const deliveryResolved = delivery?.resolved ?? 0;
+  const deliveryHasData = deliveryResolved >= 1;
+  const deliveryRate = deliveryHasData && delivery ? Math.round((delivery.completed / delivery.resolved) * 100) : null;
+
+  const prompt = `You are an experienced ESG and governance analyst producing a snapshot document for a corporate or funder organisation evaluating ${org.organisation_name ?? "this organisation"} as a potential partner. This is NOT an independent audit — it is a structured summary of what the organisation has disclosed on this platform, clearly separating what is self-attested, what is self-entered historical data, and what is genuinely platform-tracked (not self-reported).
+
+ORGANISATION: ${org.organisation_name ?? "Not specified"}
+Type: ${org.organisation_type ?? "Not specified"}
+Sector: ${org.sector ?? "Not specified"}
+Country: ${org.country ?? "Not specified"}
+Years of operation: ${track_record?.years_of_operation ?? "Not specified"}
+
+DD READINESS CHECKLIST (self-attested by the organisation, NOT verified by the platform) — this is ${isImplementer ? "the implementer" : "the funder/corporate"} checklist, ${ddScore}% complete (${ddItems.filter((i) => i.value).length}/${ddItems.length} items):
+${checklistLine}
+  ${dd_readiness.has_blacklisting != null ? `  - Disclosed blacklisting by a government/regulatory agency: ${dd_readiness.has_blacklisting ? "YES — flagged" : "No"}` : ""}
+  ${dd_readiness.has_pending_disputes != null ? `  - Disclosed pending legal disputes/investigations: ${dd_readiness.has_pending_disputes ? "YES — flagged" : "No"}` : ""}
+  ${dd_readiness.has_conflicts != null ? `  - Disclosed related-party conflicts: ${dd_readiness.has_conflicts ? "YES — flagged" : "No"}` : ""}
+- Overall DD readiness score: ${ddScore}% — this exact number must be used verbatim anywhere referenced. Do not paraphrase into a different range.
+
+DELIVERY (platform-tracked outcomes of actual relationships formed on this platform — NOT self-reported):
+${deliveryHasData && delivery
+    ? `- ${delivery.completed} of ${delivery.resolved} tracked relationships completed (${deliveryRate}% completion rate). ${delivery.stalled > 0 ? `${delivery.stalled} stalled. ` : ""}${delivery.fell_through > 0 ? `${delivery.fell_through} fell through. ` : ""}${(delivery.total - delivery.resolved) > 0 ? `${delivery.total - delivery.resolved} still in progress.` : ""}`
+    : `- No completed relationship outcomes tracked on the platform yet${(delivery?.total ?? 0) > 0 ? ` (${delivery?.total} active relationship(s) in progress, none resolved)` : ""}. There is not yet enough platform history to state a delivery rate — say this plainly rather than treating zero data as a negative signal or omitting it.`}
+
+TRACK RECORD (numbers and history entered by the organisation itself — NOT verified by the platform):
+- Total beneficiaries reached: ${track_record.total_beneficiaries_reached ?? "Not provided"}
+- Jobs created: ${track_record.jobs_created ?? "Not provided"}
+- Female beneficiaries: ${track_record.female_beneficiaries_pct != null ? track_record.female_beneficiaries_pct + "%" : "Not provided"}
+- Youth beneficiaries: ${track_record.youth_beneficiaries_pct != null ? track_record.youth_beneficiaries_pct + "%" : "Not provided"}
+- Grants received: ${track_record.grants_received_count ?? "Not provided"}
+- Total grant value: ${track_record.grants_total_value_usd != null ? "USD " + Number(track_record.grants_total_value_usd).toLocaleString() : "Not provided"}
+- Grants delivered on time: ${track_record.grants_delivered_on_time_pct != null ? track_record.grants_delivered_on_time_pct + "%" : "Not provided"}
+- Previous funders: ${track_record.previous_funders?.join(", ") || "Not provided"}
+- Third-party evaluations conducted: ${track_record.third_party_evaluations ? "Yes" : "No / not disclosed"}
+
+E/S/G MAPPING — use exactly this mapping, do not invent a different one:
+- Environmental: ${isImplementer ? "based ONLY on the single \"Environmental policy\" checklist item above. This is genuinely thin data — say so plainly. Do not manufacture an environmental narrative, footprint estimate, or performance claim beyond \"a written policy is/isn't in place.\" If no policy is in place, say plainly that no environmental data is currently available rather than speculating." : "the checklist above has no dedicated environmental item for this org type. Say plainly that no environmental data is currently available for this organisation rather than speculating or borrowing from another section."}
+- Social: ${isImplementer ? "safeguarding policy, beneficiary reach and demographics (female/youth %), jobs created, and the Delivery pillar (real tracked relationship outcomes) all feed this section." : "beneficiary reach and demographics (female/youth %) if provided, and the Delivery pillar (real tracked relationship outcomes) feed this section. If little or no beneficiary data is provided, say so plainly rather than padding."}
+- Governance: ${isImplementer ? "financial model, audited accounts, governance documentation, legal registration, legal & compliance declaration (including any disclosed blacklisting/disputes/conflicts — these are real red flags if present and MUST be named explicitly, not softened), and third-party evaluations." : "the checklist items above (disbursement track record, decision-making transparency, conflict of interest disclosure, governance documentation, ESG framework, legal registration), including any disclosed conflicts — these are real red flags if present and MUST be named explicitly, not softened."}
+
+STRUCTURAL HONESTY — apply before writing anything:
+- Never blur the three data sources together. A sentence describing DD Readiness items must not imply platform verification. A sentence describing Delivery must not imply self-reporting. A sentence describing Track Record numbers must not imply independent audit.
+- Do NOT compute or state any single overall "ESG score" — none is given to you, and none should be invented. If asked implicitly by the structure to summarise, do so in prose describing relative strength/weakness across the three pillars, never as a number.
+- If a disclosed blacklisting, pending dispute, or related-party conflict is present, this MUST be named explicitly and prominently in the governance section — do not omit it, soften it into vague language, or bury it after positive framing.
+- If Environmental has thin or no data, do not pad the section to sound equivalent in depth to Social or Governance — a short, honest paragraph is correct here, not a forced match in length.
+- Do not invent numbers, dates, or statistics not present in the data given above, in either direction.
+
+LANGUAGE — avoid filler and hype: do not use innovative, cutting-edge, world-class, state-of-the-art, robust, dynamic, empowering, leverage, synergy, holistic, foster, stakeholders, "meaningful difference," "positive difference," "responsible business," "proven," "evidence-based," "best practice" (without a citation), "eliminate," "eradicate," "solve," "unprecedented," or ownerless passive phrasing like "it is hoped that."
+
+Return ONLY a valid JSON object. No markdown, no backticks, no explanation text before or after the JSON. Use only straight double quotes (") for every field — never curly or typographic quotes, never omit the opening quote of a string value, and always place a comma between every field except the last one.
+
+{"headline":"<One sentence orienting the reader to what this snapshot shows and its overall data maturity — not a score>","environmental":"<2-3 sentences, honest about thin data if applicable>","social":"<3-4 sentences weaving safeguarding/beneficiary reach and real Delivery outcomes together>","governance":"<3-4 sentences on the org's documentation and any disclosed compliance flags, named explicitly if present>","data_gaps":["<specific gap 1>","<specific gap 2>","<specific gap 3>"],"summary":"<2-3 sentences giving the reader a fair overall read of documentation maturity across the three pillars, without inventing a score>"}
+
+Write like an analyst handing this directly to the evaluating funder/corporate — plain, specific, no summary judgement sentences tacked onto each section, no hype.`;
+
+  const MAX_RATE_LIMIT_RETRIES = 1;
+  let groqRes: Response | null = null;
+  for (let rateLimitAttempt = 0; rateLimitAttempt <= MAX_RATE_LIMIT_RETRIES; rateLimitAttempt++) {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "openai/gpt-oss-120b",
+        max_completion_tokens: 2500,
+        temperature: 0.4,
+        top_p: 1,
+        reasoning_effort: "low",
+        stream: false,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+    if (res.status === 429 && rateLimitAttempt < MAX_RATE_LIMIT_RETRIES) {
+      const errBody = await res.text();
+      const retryAfterHeader = res.headers.get("retry-after");
+      const bodyMatch = errBody.match(/try again in ([\d.]+)s/i);
+      const waitSeconds = retryAfterHeader
+        ? parseFloat(retryAfterHeader)
+        : bodyMatch
+        ? parseFloat(bodyMatch[1])
+        : 5;
+      const waitMs = Math.min(Math.ceil(waitSeconds * 1000) + 500, 25000);
+      console.warn("[generate-dd-export/esg] Groq 429 rate limit hit, retrying", { rateLimitAttempt, waitMs, body: errBody });
+      await sleep(waitMs);
+      continue;
+    }
+
+    groqRes = res;
+    break;
+  }
+
+  if (!groqRes) {
+    console.error("[generate-dd-export/esg] Groq API request failed after rate limit retry");
+    return null;
+  }
+
+  if (!groqRes.ok) {
+    const err = await groqRes.text();
+    console.error(
+      `[generate-dd-export/esg] Groq API error - status: ${groqRes.status} ${groqRes.statusText}, ` +
+      `remaining-tokens: ${groqRes.headers.get("x-ratelimit-remaining-tokens")}, ` +
+      `remaining-requests: ${groqRes.headers.get("x-ratelimit-remaining-requests")}, body: ${err}`
+    );
+    return null;
+  }
+
+  const groqData = await groqRes.json();
+  const rawText = groqData.choices?.[0]?.message?.content ?? "";
+
+  try {
+    return parseReportJson(rawText);
+  } catch (parseErr) {
+    console.error("[generate-dd-export/esg] Could not parse Groq response as JSON", { error: String(parseErr), raw: rawText });
+    return null;
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -238,13 +475,14 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const { data: mou } = await svc
+  const { data: mou, error: mouErr } = await svc
     .from("mou_documents")
     .select("status, updated_at, created_at")
     .or(`and(org_a_id.eq.${exporterOrg.id},org_b_id.eq.${subjectOrgId}),and(org_a_id.eq.${subjectOrgId},org_b_id.eq.${exporterOrg.id})`)
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+  if (mouErr) console.error("[generate-dd-export] mou_documents lookup failed", { error: mouErr.message, code: mouErr.code });
 
   const implementer = isImplementerOrgType(subjectOrg.organisation_type);
   const items = implementer ? DD_ITEMS : FUNDER_DD_ITEMS;
@@ -291,42 +529,36 @@ Deno.serve(async (req: Request) => {
     const legalEvidence = implementer
       ? (subjectOrg.dd_evidence?.legal_compliance_declaration ?? {})
       : (subjectOrg.dd_evidence?.conflict_disclosure ?? {});
-    const esgRes = await fetch(`${SUPABASE_URL}/functions/v1/generate-esg-report`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: authHeader },
-      body: JSON.stringify({
-        org_id: subjectOrgId,
-        org: {
-          organisation_name: subjectOrg.organisation_name,
-          organisation_type: subjectOrg.organisation_type,
-          sector: cleanTextField(subjectOrg.sector),
-          country: cleanTextField(subjectOrg.country),
-        },
-        dd_readiness: {
-          is_implementer: implementer,
-          items: rows.map((r) => ({ key: r.key, label: r.label, value: r.confirmed })),
-          has_blacklisting: implementer ? (legalEvidence.hasBlacklisting ?? null) : null,
-          has_pending_disputes: implementer ? (legalEvidence.hasPendingDisputes ?? null) : null,
-          has_conflicts: (implementer ? legalEvidence.conflictsToDisclose : legalEvidence.hasConflicts) ?? null,
-        },
-        delivery,
-        track_record: {
-          total_beneficiaries_reached: subjectOrg.total_beneficiaries_reached,
-          jobs_created: subjectOrg.jobs_created,
-          female_beneficiaries_pct: subjectOrg.female_beneficiaries_pct,
-          youth_beneficiaries_pct: subjectOrg.youth_beneficiaries_pct,
-          years_of_operation: subjectOrg.years_of_operation,
-          grants_received_count: subjectOrg.grants_received_count,
-          grants_total_value_usd: subjectOrg.grants_total_value_usd,
-          grants_delivered_on_time_pct: subjectOrg.grants_delivered_on_time_pct,
-          previous_funders: subjectOrg.previous_funders,
-          third_party_evaluations: subjectOrg.third_party_evaluations,
-        },
-      }),
+    esgReport = await generateEsgReportInline({
+      org: {
+        organisation_name: subjectOrg.organisation_name,
+        organisation_type: subjectOrg.organisation_type,
+        sector: cleanTextField(subjectOrg.sector),
+        country: cleanTextField(subjectOrg.country),
+      },
+      dd_readiness: {
+        is_implementer: implementer,
+        items: rows.map((r) => ({ key: r.key, label: r.label, value: r.confirmed })),
+        has_blacklisting: implementer ? (legalEvidence.hasBlacklisting ?? null) : null,
+        has_pending_disputes: implementer ? (legalEvidence.hasPendingDisputes ?? null) : null,
+        has_conflicts: (implementer ? legalEvidence.conflictsToDisclose : legalEvidence.hasConflicts) ?? null,
+      },
+      delivery,
+      track_record: {
+        total_beneficiaries_reached: subjectOrg.total_beneficiaries_reached,
+        jobs_created: subjectOrg.jobs_created,
+        female_beneficiaries_pct: subjectOrg.female_beneficiaries_pct,
+        youth_beneficiaries_pct: subjectOrg.youth_beneficiaries_pct,
+        years_of_operation: subjectOrg.years_of_operation,
+        grants_received_count: subjectOrg.grants_received_count,
+        grants_total_value_usd: subjectOrg.grants_total_value_usd,
+        grants_delivered_on_time_pct: subjectOrg.grants_delivered_on_time_pct,
+        previous_funders: subjectOrg.previous_funders,
+        third_party_evaluations: subjectOrg.third_party_evaluations,
+      },
     });
-    const esgJson = await esgRes.json();
-    if (esgJson?.data) esgReport = esgJson.data;
-  } catch {
+  } catch (esgErr) {
+    console.error("[generate-dd-export] ESG generation threw", { error: String(esgErr) });
     esgReport = null;
   }
 
@@ -487,7 +719,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // ============================================================
-    // PAGE 1 — Cover + Executive DD Summary
+    // PAGE 1 - Cover + Executive DD Summary
     // ============================================================
     page.drawText("IMPACT NATIVES · COMPLIANCE SUITE", { x: MARGIN, y, size: 21, font: fontBold, color: green });
     y -= 24;
@@ -496,13 +728,13 @@ Deno.serve(async (req: Request) => {
 
     const verifiedLabel = subjectOrg.verification_status === "verified" ? " (Verified)" : "";
     const pairedEntityRows: [string, string, string, string][] = [
-      ["Corporate Entity", `${exporterOrg.organisation_name}}`,
+      ["Corporate Entity", `${exporterOrg.organisation_name}`,
        "Export Date", new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })],
-       ["Target Organisation", `${subjectOrg.organisation_name}${verifiedLabel}`,
-        subjectOrg.organisation_type === "corporation" ? "SRG1 Reporting Status" : "Verification Status",
-        subjectOrg.organisation_type === "corporation"
-          ? (subjectOrg.srg1_pie_self_declared ? "Self-declared PIE" : "Not self-declared")
-          : (subjectOrg.verification_status === "verified" ? "Verified" : "Not verified")],
+      ["Target Organisation", `${subjectOrg.organisation_name}`,
+       subjectOrg.organisation_type === "corporation" ? "SRG1 Reporting Status" : "Verification Status",
+       subjectOrg.organisation_type === "corporation"
+         ? (subjectOrg.srg1_pie_self_declared ? "Self-declared PIE" : "Not self-declared")
+         : (subjectOrg.verification_status === "verified" ? "Verified" : "Not verified")],
     ];
     const singleEntityRows: [string, string][] = [
       ["Process Reference ID", exportId],
@@ -599,7 +831,7 @@ Deno.serve(async (req: Request) => {
     y = nTop - noticeH;
 
     // ============================================================
-    // PAGE 2 — Organisation Profile + DD Readiness
+    // PAGE 2 - Organisation Profile + DD Readiness
     // ============================================================
     forcePageBreak();
 
@@ -674,7 +906,7 @@ Deno.serve(async (req: Request) => {
     textBlock("* Baseline estimate carried over from before per-item confirmation timestamps were tracked: the item was true at that point, exact original date unknown.", { size: 8, italic: true, color: inkSoft, lead: 11 });
 
     // ============================================================
-    // PAGE 3 — Compliance & Relationship Intelligence
+    // PAGE 3 - Compliance & Relationship Intelligence
     // ============================================================
     forcePageBreak();
 
@@ -756,7 +988,7 @@ Deno.serve(async (req: Request) => {
     textBlock("This figure represents completion of the defined DD readiness checklist. It is not a credit score, risk rating, certification, or independent verification of the organisation.", { size: 8.5, italic: true, color: inkSoft, lead: 11.5 });
 
     // ============================================================
-    // PAGE 4 — ESG + Document Integrity
+    // PAGE 4 - ESG + Document Integrity
     // ============================================================
     forcePageBreak();
 
@@ -842,7 +1074,7 @@ Deno.serve(async (req: Request) => {
         metadata: { export_id: exportId, exporter_org_id: exporterOrg.id, exporter_org_name: exporterOrg.organisation_name },
       });
     }
-    await svc.from("org_activity_log").insert({
+    const { error: activityLogErr } = await svc.from("org_activity_log").insert({
       org_id: subjectOrgId,
       actor_id: user.id,
       verb: "dd_export_generated",
@@ -850,6 +1082,7 @@ Deno.serve(async (req: Request) => {
       target_id: exportId,
       detail: `DD file exported by ${exporterOrg.organisation_name}`,
     });
+    if (activityLogErr) console.error("[generate-dd-export] org_activity_log insert failed", { error: activityLogErr.message, code: activityLogErr.code });
 
     return new Response(JSON.stringify({
       data: {
