@@ -872,19 +872,14 @@ Deno.serve(async (req: Request) => {
     const sec01Rows: { label: string; value: string }[] = [
       { label: "Organisation Type", value: titleCaseOrgType(subjectOrg.organisation_type) },
       { label: "Country", value: profileOrDd(subjectOrg.country, ddLegal.country) },
-      { label: "Registration Type", value: cleanTextField(subjectOrg.registration_type) || "Not provided" },
+      { label: "Registration Type / Registering Body", value: profileOrDd(subjectOrg.registration_type, ddLegal.registeringBody) },
       { label: "Registration Number", value: profileOrDd(subjectOrg.registration_number, ddLegal.registrationNumber) },
       { label: "TIN", value: cleanTextField(subjectOrg.tin) || "Not provided" },
       { label: "SCUML / AML Registration", value: cleanTextField(subjectOrg.scuml_number) || "Not provided" },
       { label: "Year Founded", value: subjectOrg.year_founded ? String(subjectOrg.year_founded) : "Not provided" },
     ];
-    // Add Registering Body row only when data exists (no profile column for
-    // this -- DD checklist is the only source).
-    if (ddLegal.registeringBody) {
-      sec01Rows.push({ label: "Registering Body", value: `${cleanTextField(ddLegal.registeringBody)} (Self-Attested)` });
-    }
     drawKeyValueTable(sec01Rows);
-    y -= 22;
+    y -= 48;
 
     sectionHeading("02", "DD Readiness");
     textBlock(`${implementer ? "Implementer" : "Funder / Corporate"} Checklist · ${confirmedCount} of ${items.length} dimensions self-attested`, { size: 10, bold: true, gap: 3 });
