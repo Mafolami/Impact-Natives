@@ -884,10 +884,11 @@ Deno.serve(async (req: Request) => {
 
     sectionHeading("02", "DD Readiness");
     textBlock(`${implementer ? "Implementer" : "Funder / Corporate"} Checklist · ${confirmedCount} of ${items.length} dimensions self-attested`, { size: 10, bold: true, gap: 3 });
+    textBlock(`DD Readiness Score: ${readinessScore}%`, { size: 10, bold: true, gap: 3 });
     textBlock("\"Self-Attested\" means the organisation answered this item -- the answer itself may be Yes or No. See the detail line under each item for what was actually disclosed.", { size: 8, italic: true, color: inkSoft, lead: 11, gap: 10 });
 
     const colDim = 158, colStatus = 178, colConfirmed = 92;
-    const ddLead = 12, ddPad = 12;
+    const ddLead = 12, ddPad = 12, detailLead = 11;
     function drawDdTableHeader() {
       ensureSpace(26 + 4);
       page.drawRectangle({ x: MARGIN, y: y - 26, width: CONTENT_W, height: 26, color: green });
@@ -902,9 +903,13 @@ Deno.serve(async (req: Request) => {
     rows.forEach((row, i) => {
       const confirmedText = row.confirmed ? `${fmtDate(row.confirmedAt)}${row.approx ? "*" : ""}` : "Not confirmed";
       const labelLines = wrapLines(row.label, 9.5, font, colDim - 18);
-      const detailLines = row.detail ? wrapLines(row.detail, 8, fontItalic, colStatus - 18) : [];
       const confLines = wrapLines(confirmedText, 9, font, colConfirmed - 12);
-      const rh = Math.max(labelLines.length, 1 + detailLines.length, confLines.length, 1) * ddLead + ddPad;
+      const detailParts = row.detail ? row.detail.split("; ") : [];
+      const detailLineSets = detailParts.map((p) => wrapLines(p, 8.5, fontItalic, CONTENT_W - 34));
+      const detailLinesTotal = detailLineSets.reduce((a, s) => a + s.length, 0);
+      const topH = Math.max(labelLines.length, confLines.length, 1) * ddLead + ddPad;
+      const detailH = detailLinesTotal > 0 ? detailLinesTotal * detailLead + 6 : 0;
+      const rh = topH + detailH;
       if (y - rh < BOTTOM_LIMIT) { newPage(); drawDdTableHeader(); }
       const rTop = y;
       if (i % 2 === 1) page.drawRectangle({ x: MARGIN, y: rTop - rh, width: CONTENT_W, height: rh, color: rowAlt });
@@ -912,11 +917,19 @@ Deno.serve(async (req: Request) => {
       labelLines.forEach((line, li) => page.drawText(line, { x: cx, y: rTop - 16 - li * ddLead, size: 9.5, font, color: ink }));
       cx += colDim;
       drawPill(cx, rTop - 16, row.confirmed ? "Self-Attested" : "Not Attested", row.confirmed ? "confirmed" : "muted");
-      detailLines.forEach((line, li) => page.drawText(line, { x: cx, y: rTop - 16 - ddLead - li * 11 - 2, size: 8, font: fontItalic, color: inkSoft }));
       cx += colStatus;
       confLines.forEach((line, li) => page.drawText(line, { x: cx, y: rTop - 16 - li * ddLead, size: 9, font, color: ink }));
       cx += colConfirmed;
       page.drawText(row.ref, { x: cx, y: rTop - 16, size: 8.5, font, color: inkSoft });
+      if (detailLineSets.length > 0) {
+        let dy = rTop - topH - 2;
+        detailLineSets.forEach((set) => {
+          set.forEach((line, li) => {
+            page.drawText(`${li === 0 ? "•  " : "   "}${line}`, { x: MARGIN + 24, y: dy, size: 8.5, font: fontItalic, color: inkSoft });
+            dy -= detailLead;
+          });
+        });
+      }
       if (i > 0) page.drawLine({ start: { x: MARGIN, y: rTop }, end: { x: MARGIN + CONTENT_W, y: rTop }, thickness: 0.5, color: borderSoft });
       y -= rh;
     });
