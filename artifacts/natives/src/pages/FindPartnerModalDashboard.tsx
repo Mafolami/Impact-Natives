@@ -192,18 +192,18 @@ function StepFooter({onBack,onNext,onSkip,nextLabel,skipLabel,nextDisabled,loadi
           </button>
         : <div/>}
       <div className="flex items-center gap-2">
-        {onSkip && (
-          <button type="button" onClick={onSkip}
-            className="h-9 px-4 rounded-full text-sm text-foreground/60 hover:text-foreground border border-border hover:border-foreground/30 transition-colors">
-            {skipLabel??"Skip"}
-          </button>
-        )}
         {onNext && (
           <button type="button" onClick={onNext} disabled={nextDisabled||loading}
             className="h-9 px-6 rounded-full text-sm font-semibold text-white bg-[#2D6A4F] hover:bg-[#245c43] disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center gap-2">
             {loading
               ? <><Loader2 className="w-3.5 h-3.5 animate-spin"/>Working...</>
               : nextLabel??"Continue"}
+          </button>
+        )}
+        {onSkip && (
+          <button type="button" onClick={onSkip}
+            className="h-9 px-4 rounded-full text-sm text-foreground/60 hover:text-foreground border border-border hover:border-foreground/30 transition-colors">
+            {skipLabel??"Skip"}
           </button>
         )}
       </div>
@@ -1446,7 +1446,12 @@ export function FindPartnerModalDashboard({
                   :formStep===5?submitAndMatch
                   :()=>goToStep(formStep+1)
                 }
-                onSkip={formStep===0?()=>{setPrefillError("");goToStep(1);}:undefined}
+                onSkip={formStep===0?()=>{
+                  setPrefillError("");
+                  // Seed description from what the user typed so Step 1 isn't blank
+                  if (freeText.trim()) setF("description", freeText.trim());
+                  goToStep(1);
+                }:undefined}
                 skipLabel="Proceed without AI"
                 nextLabel={
                   formStep===0?"Structure with AI"
