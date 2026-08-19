@@ -837,6 +837,7 @@ export function PortfolioTable() {
 
       <FindPartnerModalDashboard
         isOpen={editingListing}
+        editMode={true}
         onClose={() => { setEditingListing(false); load(false); }}
       />
 
