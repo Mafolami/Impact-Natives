@@ -95,7 +95,7 @@ const EMPTY_FORM:PrefillData = {
 
 // Step metadata — label shown in sidebar, subtitle shown in the compact header
 const STEPS = [
-  {label:"Describe",       subtitle:"Give AI enough detail to structure your brief."},
+  {label:"Describe",       subtitle:"Give AI enough detail to structure your brief or fill manually."},
   {label:"The partnership",subtitle:"What kind of partnership are you creating and what does it look like in practice."},
   {label:"Where and when", subtitle:"Location, timeline, and resource signals that filter out mismatches early."},
   {label:"Focus areas",    subtitle:"Sectors, needs, offers, and the outcome you are aiming for."},
