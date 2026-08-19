@@ -563,10 +563,9 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
             <span className="text-xs font-semibold text-black dark:text-white">Loading...</span>
           </div>
         ) : org.user_id === viewerOrg?.user_id ? (
-          <div className="flex items-center gap-2.5 px-4 py-3.5 rounded-xl"
-            style={{ background: "rgba(45,106,79,0.10)", border: "1px solid rgba(45,106,79,0.35)" }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            <p className="text-xs font-bold text-[#2D6A4F]">This is your listing</p>
+          <div className="flex items-center gap-2.5 px-4 py-3.5 rounded-xl bg-muted border border-border">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-foreground shrink-0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <p className="text-xs font-black text-foreground">This is your listing</p>
           </div>
         ) : org.partnership_formed ? (
           <div className="flex items-center gap-2.5 px-5 py-4 rounded-xl"
@@ -961,10 +960,9 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
           </div>
         ) : org.user_id === viewerOrg?.user_id ? (
           <div className="px-8 py-6 sticky bottom-0 bg-background border-t border-border">
-            <div className="flex items-center gap-2.5 px-4 py-3.5 rounded-xl"
-              style={{ background: "rgba(45,106,79,0.10)", border: "1px solid rgba(45,106,79,0.35)" }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" strokeWidth="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-              <p className="text-xs font-bold text-[#2D6A4F]">This is your listing</p>
+            <div className="flex items-center gap-2.5 px-4 py-3.5 rounded-xl bg-muted border border-border">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-foreground shrink-0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <p className="text-xs font-black text-foreground">This is your listing</p>
             </div>
           </div>
         ) : org.partnership_formed ? (          <div className="px-8 py-6 sticky bottom-0 bg-background border-t border-border">
