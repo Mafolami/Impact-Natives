@@ -151,11 +151,13 @@ function buildConnectionTimeline(conn: {
   accepted_at?: string | null;
   formed_at?: string | null;
   declined_at?: string | null;
+  mou_executed_at?: string | null;
 }): PortfolioTimelineStage[] {
   const stages: PortfolioTimelineStage[] = [{ label: "Created", date: conn.created_at }];
   if (conn.accepted_at) stages.push({ label: "Accepted", date: conn.accepted_at });
   if (conn.formed_at) stages.push({ label: "Formed", date: conn.formed_at });
   if (conn.declined_at) stages.push({ label: "Declined", date: conn.declined_at });
+  if (conn.mou_executed_at) stages.push({ label: "MoU Executed", date: conn.mou_executed_at });
   return stages;
 }
 
@@ -451,7 +453,7 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
         contactEmail: (status === "Partnership formed" || status === "MoU Executed") ? counterpart?.email ?? null : null,
         contactPhone: null,
         status,
-        date: conn.updated_at,
+        date: conn.mou_executed_at ?? conn.updated_at,
         outcome: null,
         timeline: buildConnectionTimeline(conn),
         raw: { kind: "partnership_connection", connectionId: conn.id, orgId: counterpart?.id ?? null },
@@ -477,7 +479,7 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
         contactEmail: (status === "Partnership formed" || status === "MoU Executed") ? counterpart?.email ?? null : null,
         contactPhone: null,
         status,
-        date: conn.updated_at,
+        date: conn.mou_executed_at ?? conn.updated_at,
         outcome: null,
         timeline: buildConnectionTimeline(conn),
         raw: { kind: "partnership_connection", connectionId: conn.id, orgId: counterpart?.id ?? null },
