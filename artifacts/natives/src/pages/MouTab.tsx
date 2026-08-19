@@ -321,8 +321,8 @@ export default function MouTab() {
         </div>
       )}
 
-      {/* Full-width top divider — 8px */}
-      <div className="h-2 bg-border w-full" />
+      {/* Full-width top divider — cream light / black dark */}
+      <div className="h-2 w-full bg-[#F5F0E8] dark:bg-black" />
 
       {docs.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 gap-4 text-center px-4 sm:px-6">
@@ -350,9 +350,7 @@ export default function MouTab() {
             const isDraft = d.status === "draft";
             const isExecuted = d.status === "fully_executed";
             const nextStageIndex = stages.findIndex((s) => !s.completed);
-
-            // Each stage row height — must match between rail and label column
-            const STAGE_H = 32;
+            const STAGE_H = 36;
 
             return (
               <div key={d.id}>
@@ -362,10 +360,8 @@ export default function MouTab() {
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpenDocId(d.id); } }}
                   className="flex items-stretch w-full cursor-pointer hover:bg-muted/30 transition-colors">
 
-                  {/* Left — org info */}
-                  <div className="flex-1 min-w-0 px-4 sm:px-6 py-7 flex flex-col justify-center gap-3">
-
-                    {/* Name + badge */}
+                  {/* Left — org info, capped at 42% so tracker shifts inward */}
+                  <div className="min-w-0 px-4 sm:px-6 py-9 flex flex-col justify-center gap-3" style={{ width: "42%" }}>
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <div className="p-1.5 rounded-lg bg-[#2D6A4F]/10 shrink-0">
                         <SourceIcon className="w-3.5 h-3.5 text-[#2D6A4F]" />
@@ -374,35 +370,28 @@ export default function MouTab() {
                         {otherOrg(d)?.organisation_name ?? "Unknown organisation"}
                       </p>
                       {isDraft ? (
-                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full border border-border text-foreground">
-                          Draft
-                        </span>
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full border border-border text-foreground">Draft</span>
                       ) : isExecuted ? (
                         <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-                          style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
-                          Fully executed
-                        </span>
+                          style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>Fully executed</span>
                       ) : (
                         <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-                          style={{ background: "rgba(196,92,38,0.10)", color: "#C45C26" }}>
-                          In progress
-                        </span>
+                          style={{ background: "rgba(196,92,38,0.10)", color: "#C45C26" }}>In progress</span>
                       )}
                     </div>
 
-                    {/* Title + date — charcoal black */}
+                    {/* Title wraps — no date here, date is in tracker */}
                     <p className="text-[13px] text-foreground leading-relaxed">
                       {title || sourceMeta.label}
-                      <span className="mx-2 opacity-30">·</span>
-                      {new Date(d.updated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                     </p>
 
-                    {/* Milestones / delete — pushed down with mt-2 for breathing room */}
-                    <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
+                    {/* Milestones / delete — pushed well down */}
+                    <div className="flex items-center gap-2 mt-5" onClick={(e) => e.stopPropagation()}>
                       {isExecuted && (
                         <button type="button"
                           onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/portfolio/milestones?mouId=${d.id}`); }}
-                          className="flex items-center gap-1.5 h-8 px-4 rounded-full border border-border text-[13px] text-foreground hover:border-[#2D6A4F]/40 transition-colors">
+                          className="flex items-center gap-1.5 h-9 px-5 rounded-full border border-border text-[13px] font-medium text-foreground transition-all hover:border-[#2D6A4F]/50 hover:-translate-y-px active:translate-y-0"
+                          style={{ boxShadow: "0 2px 4px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)" }}>
                           <Target className="w-3.5 h-3.5" /> Milestones
                         </button>
                       )}
@@ -410,7 +399,8 @@ export default function MouTab() {
                         <button type="button"
                           onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(d.id); }}
                           aria-label="Delete draft MoU"
-                          className="flex items-center gap-1 h-8 px-2 rounded text-[13px] text-muted-foreground hover:text-red-600 transition-colors">
+                          className="flex items-center gap-1.5 h-9 px-4 rounded-full border border-border text-[13px] text-muted-foreground hover:text-red-600 hover:border-red-300 transition-all"
+                          style={{ boxShadow: "0 2px 4px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" }}>
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       )}
@@ -420,64 +410,67 @@ export default function MouTab() {
                   {/* Vertical separator */}
                   <div className="w-px bg-border shrink-0" />
 
-                  {/* Right — vertical tracker, fixed width */}
-                  <div className="w-80 shrink-0 px-6 py-7 flex items-start">
+                  {/* Right — tracker takes remaining space */}
+                  <div className="flex-1 min-w-0 px-6 py-9 flex items-start">
                     {isDraft ? (
                       <p className="text-[13px] text-muted-foreground italic mt-1">
                         Open to start filling in details.
                       </p>
                     ) : (
                       <div className="flex gap-3 w-full">
-                        {/* Dot + line rail — each stage slot is exactly STAGE_H px */}
+                        {/* Dot + line rail */}
                         <div className="flex flex-col items-center shrink-0">
                           {stages.map((s, i) => (
-                            <div key={s.key} className="flex flex-col items-center"
-                              style={{ height: STAGE_H }}>
-                              {/* Top half — line from previous */}
+                            <div key={s.key} className="flex flex-col items-center" style={{ height: STAGE_H }}>
                               <div className="flex-1 w-px"
-                                style={{ background: i === 0 ? "transparent" : (stages[i - 1]?.completed && s.completed ? "#2D6A4F" : "var(--border)") }} />
-                              {/* Dot */}
+                                style={{ background: i === 0 ? "transparent" : (stages[i-1]?.completed && s.completed ? "#2D6A4F" : "var(--border)") }} />
                               <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${
                                 s.completed ? "bg-[#2D6A4F]" : "border-2 border-border bg-background"
-                              }`} style={{ zIndex: 1 }} />
-                              {/* Bottom half — line to next */}
+                              }`} />
                               <div className="flex-1 w-px"
                                 style={{ background: i === stages.length - 1 ? "transparent" : (s.completed ? "#2D6A4F" : "var(--border)") }} />
                             </div>
                           ))}
                         </div>
 
-                        {/* Labels + status — each row exactly STAGE_H px, vertically centred */}
+                        {/* Labels + status word */}
                         <div className="flex-1 min-w-0 flex flex-col">
                           {stages.map((s, i) => {
                             const isNext = i === nextStageIndex;
                             return (
-                              <div key={s.key}
-                                className="flex items-center justify-between gap-2"
-                                style={{ height: STAGE_H }}>
+                              <div key={s.key} className="flex items-center justify-between gap-3" style={{ height: STAGE_H }}>
                                 <span className={`text-[12px] leading-snug ${
                                   s.completed ? "text-foreground font-medium" :
                                   isNext ? "text-foreground" : "text-muted-foreground"
-                                }`}>
-                                  {s.label}
-                                </span>
+                                }`}>{s.label}</span>
                                 <span className={`text-[11px] font-semibold shrink-0 ${
                                   s.completed ? "text-[#2D6A4F]" :
                                   isNext ? "text-[#C45C26]" : "text-muted-foreground"
-                                }`}>
-                                  {s.completed ? "Done" : isNext ? "Next" : "—"}
-                                </span>
+                                }`}>{s.completed ? "Done" : isNext ? "Next" : "—"}</span>
                               </div>
                             );
                           })}
+                        </div>
+
+                        {/* Date column — one per stage row, charcoal, separated by thin left border */}
+                        <div className="flex flex-col shrink-0 pl-4 border-l border-border">
+                          {stages.map((s) => (
+                            <div key={s.key} className="flex items-center" style={{ height: STAGE_H }}>
+                              <span className="text-[11px] text-foreground whitespace-nowrap">
+                                {s.completed
+                                  ? new Date(d.updated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })
+                                  : "—"}
+                              </span>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* 8px full-width divider between rows */}
-                <div className="h-2 bg-border w-full" />
+                {/* 8px divider — cream light / black dark */}
+                <div className="h-2 w-full bg-[#F5F0E8] dark:bg-black" />
               </div>
             );
           })}
