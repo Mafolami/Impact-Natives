@@ -10,7 +10,7 @@ import { supabase } from "@/lib/supabase";
 import type { OrgRow } from "@/components/dashboard/OrgDetailPanel";
 
 const VIEWER_ORG_SELECT =
-  "id,organisation_name,description,sector,country,organisation_type,needs,offers,sdgs," +
+  "id,user_id,organisation_name,description,sector,country,organisation_type,needs,offers,sdgs," +
   "partnership_working_style,partnership_dd_financial_model,partnership_dd_audited_accounts," +
   "partnership_dd_safeguarding_policy,partnership_dd_data_policy,partnership_dd_governance_doc";
 
@@ -79,7 +79,7 @@ export function useOrgActions(orgOwnerId: string | null | undefined, actorUserId
       if (!data) { alert("You need an organisation profile to express interest."); return; }
       senderOrgId = data.id; setCurrentUserOrgId(data.id);
     }
-    if (senderOrgId === org.id) return;
+    if (senderOrgId === org.id || org.user_id === actorUserId) return;
     setSendingInterest(org.id);
     try {
       // sender_user_id is real-person authorship (who actually clicked

@@ -147,18 +147,9 @@ export default function DashboardPartnerships() {
 
       const orgIds = (data as OrgRow[]).map(o => o.id);
       if (orgIds.length > 0) {
-        const { data: executedConns } = await supabase
-          .from("partnership_connections")
-          .select("sender_org_id, receiver_org_id")
-          .eq("status", "formed")
-          .not("mou_executed_at", "is", null)
-          .or(`sender_org_id.in.(${orgIds.join(",")}),receiver_org_id.in.(${orgIds.join(",")})`);
-        const executedIds = new Set<string>();
-        (executedConns ?? []).forEach((c: any) => {
-          if (orgIds.includes(c.sender_org_id)) executedIds.add(c.sender_org_id);
-          if (orgIds.includes(c.receiver_org_id)) executedIds.add(c.receiver_org_id);
-        });
-        setMouExecutedOrgIds(executedIds);
+        const { data: executedIds } = await supabase
+          .rpc("get_mou_executed_org_ids", { org_ids: orgIds });
+        setMouExecutedOrgIds(new Set<string>(executedIds ?? []));
       }
     }
     setLoading(false);
