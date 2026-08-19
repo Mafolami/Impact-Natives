@@ -95,7 +95,7 @@ const EMPTY_FORM:PrefillData = {
 
 // Step metadata — label shown in sidebar, subtitle shown in the compact header
 const STEPS = [
-  {label:"Describe",       subtitle:"Give AI enough detail to structure your brief or fill manually."},
+  {label:"Describe",       subtitle:"Give AI enough detail to structure your brief."},
   {label:"The partnership",subtitle:"What kind of partnership are you creating and what does it look like in practice."},
   {label:"Where and when", subtitle:"Location, timeline, and resource signals that filter out mismatches early."},
   {label:"Focus areas",    subtitle:"Sectors, needs, offers, and the outcome you are aiming for."},
@@ -467,6 +467,28 @@ export function FindPartnerModalDashboard({
   const [draftFailed,setDraftFailed]=useState(false);
   const [orgProfile,setOrgProfile]=useState<any>(null);
   const [form,setForm]=useState<PrefillData>(EMPTY_FORM);
+  // Profile DD state — tracks the org's actual dd_* / fdd_* columns separately
+  // from the form, so updates here write to profile DD, not partnership_dd_*.
+  const [ddConfirmedEmpty,setDdConfirmedEmpty]=useState(false);
+  type DdState = {
+    // implementer (9)
+    dd_financial_model:boolean; dd_audited_accounts:boolean; dd_governance_doc:boolean;
+    dd_esg_assessment:boolean; dd_impact_framework:boolean; dd_environmental_policy:boolean;
+    dd_safeguarding_policy:boolean; dd_legal_registration:boolean; dd_legal_compliance_declaration:boolean;
+    // funder (6)
+    fdd_disbursement_track_record:boolean; fdd_decision_transparency:boolean;
+    fdd_conflict_disclosure:boolean; fdd_governance_doc:boolean; fdd_esg_framework:boolean;
+    fdd_legal_registration:boolean;
+  };
+  const [ddState,setDdState]=useState<DdState>({
+    dd_financial_model:false,dd_audited_accounts:false,dd_governance_doc:false,
+    dd_esg_assessment:false,dd_impact_framework:false,dd_environmental_policy:false,
+    dd_safeguarding_policy:false,dd_legal_registration:false,dd_legal_compliance_declaration:false,
+    fdd_disbursement_track_record:false,fdd_decision_transparency:false,
+    fdd_conflict_disclosure:false,fdd_governance_doc:false,fdd_esg_framework:false,
+    fdd_legal_registration:false,
+  });
+  function toggleDd(key:keyof DdState){setDdState(p=>({...p,[key]:!p[key]}));}
   const [uploadedFile,setUploadedFile]=useState<File|null>(null);
   const [uploadMode,setUploadMode]=useState<"text"|"doc">("text");
   const fileRef=useRef<HTMLInputElement>(null);
@@ -485,6 +507,7 @@ export function FindPartnerModalDashboard({
     setFormStep(0);setAppState("form");setFreeText("");setPartnershipTitle("");
     setPrefillError("");setMatches([]);setSentInvites(new Set());
     setForm(EMPTY_FORM);setUploadedFile(null);setUploadMode("text");
+    setDdConfirmedEmpty(false);
     async function loadOrg(){
       const [orgRes,profileRes]=await Promise.all([
         supabase.from("organizations").select(`
@@ -499,7 +522,12 @@ export function FindPartnerModalDashboard({
           partnership_ip_ownership,partnership_constraints,partnership_prior_attempts,
           partnership_decision_maker_confirmed,partnership_prior_experience,
           partnership_prior_experience_detail,partnership_contact_seniority,
-          partnership_physically_present,partnership_theory_of_change
+          partnership_physically_present,partnership_theory_of_change,
+          dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,
+          dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,
+          dd_legal_registration,dd_legal_compliance_declaration,
+          fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,
+          fdd_governance_doc,fdd_esg_framework,fdd_legal_registration
         `).eq("user_id",user!.id).maybeSingle(),
         supabase.from("profiles").select("org_name").eq("id",user!.id).maybeSingle(),
       ]);
@@ -510,6 +538,24 @@ export function FindPartnerModalDashboard({
       }
       if(!data){setAppState("no_org");return;}
       setOrgProfile(data);
+      // Seed ddState from current profile DD columns
+      setDdState({
+        dd_financial_model:data.dd_financial_model??false,
+        dd_audited_accounts:data.dd_audited_accounts??false,
+        dd_governance_doc:data.dd_governance_doc??false,
+        dd_esg_assessment:data.dd_esg_assessment??false,
+        dd_impact_framework:data.dd_impact_framework??false,
+        dd_environmental_policy:data.dd_environmental_policy??false,
+        dd_safeguarding_policy:data.dd_safeguarding_policy??false,
+        dd_legal_registration:data.dd_legal_registration??false,
+        dd_legal_compliance_declaration:data.dd_legal_compliance_declaration??false,
+        fdd_disbursement_track_record:data.fdd_disbursement_track_record??false,
+        fdd_decision_transparency:data.fdd_decision_transparency??false,
+        fdd_conflict_disclosure:data.fdd_conflict_disclosure??false,
+        fdd_governance_doc:data.fdd_governance_doc??false,
+        fdd_esg_framework:data.fdd_esg_framework??false,
+        fdd_legal_registration:data.fdd_legal_registration??false,
+      });
       if(!editMode&&data.partnership_formed){setAppState("new_request_prompt");return;}
       if(RATE_LIMIT_ENABLED){
         const cutoff=new Date(Date.now()-7*60*60*1000).toISOString();
@@ -607,6 +653,7 @@ export function FindPartnerModalDashboard({
       const{data:freshOrg}=await supabase.from("organizations").select("id").eq("user_id",user.id).maybeSingle();
       const orgId=freshOrg?.id??orgProfile?.id;
       if(!orgId){setAppState("form");setSubmitting(false);return;}
+      const isFunder=["philanthropic_foundation","venture_capital"].includes(form.organisation_type||orgProfile?.organisation_type||"");
       await supabase.from("organizations").update({
         country:form.country,sector:form.sectors,sdgs:form.sdgs,
         organisation_type:form.organisation_type,needs:form.needs,offers:form.offers,
@@ -640,6 +687,14 @@ export function FindPartnerModalDashboard({
         partnership_contact_seniority:form.partnership_contact_seniority||null,
         partnership_physically_present:form.partnership_physically_present,
         partnership_theory_of_change:form.partnership_theory_of_change||null,
+        // Profile DD columns — written from ddState, not the old partnership_dd_* form fields
+        ...ddState,
+        // Mirror to partnership_dd_* for backwards compatibility with OrgDetailPanel
+        partnership_dd_financial_model:isFunder?ddState.fdd_governance_doc:ddState.dd_financial_model,
+        partnership_dd_audited_accounts:isFunder?false:ddState.dd_audited_accounts,
+        partnership_dd_safeguarding_policy:isFunder?false:ddState.dd_safeguarding_policy,
+        partnership_dd_data_policy:isFunder?false:ddState.dd_legal_compliance_declaration,
+        partnership_dd_governance_doc:isFunder?ddState.fdd_governance_doc:ddState.dd_governance_doc,
         ...(listPublicly?{status:"published"}:{}),
       }).eq("id",orgId).eq("user_id",user.id);
       const{data:matchData}=await supabase.functions.invoke("match-orgs-for-partnership",{
@@ -1271,25 +1326,93 @@ export function FindPartnerModalDashboard({
                   {/* STEP 4 */}
                   {formStep===4&&(
                     <div className="space-y-7">
-                      <Field label="Documents you have ready"
-                        hint="Tick what you can share during due diligence. This is shown on your public listing." first>
-                        <CheckboxList
-                          options={[
-                            {value:"partnership_dd_financial_model",label:"Financial model",sub:"Budget projections or financial statements"},
-                            {value:"partnership_dd_audited_accounts",label:"Audited accounts",sub:"Third-party verified financial records"},
-                            {value:"partnership_dd_safeguarding_policy",label:"Safeguarding policy",sub:"Child and vulnerable adult protection"},
-                            {value:"partnership_dd_data_policy",label:"Data / GDPR policy",sub:"How you handle personal data"},
-                            {value:"partnership_dd_governance_doc",label:"Governance document",sub:"Board structure, constitution, or bylaws"},
-                          ]}
-                          selected={[
-                            form.partnership_dd_financial_model&&"partnership_dd_financial_model",
-                            form.partnership_dd_audited_accounts&&"partnership_dd_audited_accounts",
-                            form.partnership_dd_safeguarding_policy&&"partnership_dd_safeguarding_policy",
-                            form.partnership_dd_data_policy&&"partnership_dd_data_policy",
-                            form.partnership_dd_governance_doc&&"partnership_dd_governance_doc",
-                          ].filter(Boolean) as string[]}
-                          onToggle={v=>setForm(p=>({...p,[v]:!p[v as keyof PrefillData]}))}/>
-                      </Field>
+                      {/* DD Readiness — reads and writes profile columns, not partnership_dd_* */}
+                      {(()=>{
+                        const isFunder=["philanthropic_foundation","venture_capital"].includes(form.organisation_type||orgProfile?.organisation_type||"");
+                        const implItems:[keyof typeof ddState,string,string][]=[
+                          ["dd_financial_model","Financial model","Budget projections or financial statements"],
+                          ["dd_audited_accounts","Audited accounts","Third-party verified financial records"],
+                          ["dd_governance_doc","Governance document","Board structure, constitution, or bylaws"],
+                          ["dd_esg_assessment","ESG assessment","Environmental, social, and governance evaluation"],
+                          ["dd_impact_framework","Impact measurement framework","How you track and report outcomes"],
+                          ["dd_environmental_policy","Environmental policy","Your approach to environmental risk"],
+                          ["dd_safeguarding_policy","Safeguarding policy","Child and vulnerable adult protection"],
+                          ["dd_legal_registration","Legal registration","Certificate of incorporation or equivalent"],
+                          ["dd_legal_compliance_declaration","Legal and compliance declaration","Signed declaration of compliance"],
+                        ];
+                        const funderItems:[keyof typeof ddState,string,string][]=[
+                          ["fdd_disbursement_track_record","Disbursement track record","History of funds deployed on time"],
+                          ["fdd_decision_transparency","Decision transparency","How funding decisions are made and documented"],
+                          ["fdd_conflict_disclosure","Conflict of interest disclosure","Policy for managing conflicts"],
+                          ["fdd_governance_doc","Governance document","Board structure and decision-making policy"],
+                          ["fdd_esg_framework","ESG framework","Your stated environmental and social standards"],
+                          ["fdd_legal_registration","Legal registration","Incorporation or charitable status certificate"],
+                        ];
+                        const items=isFunder?funderItems:implItems;
+                        const total=items.length;
+                        const ticked=items.filter(([key])=>ddState[key]).length;
+                        const pct=Math.round((ticked/total)*100);
+                        const isZero=ticked===0;
+                        return (
+                          <Field label="Due diligence readiness" first
+                            hint={isFunder?"These reflect your organisation's funder DD profile — what you can share when implementing partners assess you.":"These reflect your organisation's DD profile — what you can share when funders and partners assess you."}>
+                            {/* Score bar */}
+                            <div className="mb-4 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[13px] text-foreground font-medium">{ticked} of {total} documents ready</span>
+                                <span className="text-[13px] font-bold" style={{color:pct>=60?"#2D6A4F":pct>=30?"#C45C26":"#ef4444"}}>{pct}%</span>
+                              </div>
+                              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                                <div className="h-full rounded-full transition-all duration-300"
+                                  style={{width:`${pct}%`,background:pct>=60?"#2D6A4F":pct>=30?"#C45C26":"#ef4444"}}/>
+                              </div>
+                            </div>
+                            {/* Zero-state prompt */}
+                            {isZero&&!ddConfirmedEmpty&&(
+                              <div className="mb-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3.5 space-y-3">
+                                <p className="text-[13px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                                  Your DD readiness is at 0%. Partners who request documentation will find nothing on file. Tick what you genuinely have ready below, or confirm you have nothing to share right now.
+                                </p>
+                                <button type="button" onClick={()=>setDdConfirmedEmpty(true)}
+                                  className="text-[12.5px] font-semibold text-amber-700 dark:text-amber-400 underline underline-offset-2 hover:text-amber-900 transition-colors">
+                                  I have nothing to share right now
+                                </button>
+                              </div>
+                            )}
+                            {isZero&&ddConfirmedEmpty&&(
+                              <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-lg bg-muted border border-border">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-foreground/50 shrink-0"><polyline points="20 6 9 17 4 12"/></svg>
+                                <p className="text-[13px] text-foreground/70">Confirmed — no documents right now.</p>
+                                <button type="button" onClick={()=>setDdConfirmedEmpty(false)}
+                                  className="ml-auto text-[12px] text-foreground/50 hover:text-foreground underline underline-offset-2 transition-colors">
+                                  Undo
+                                </button>
+                              </div>
+                            )}
+                            {/* Checklist */}
+                            <div className="space-y-1">
+                              {items.map(([key,label,sub])=>{
+                                const on=ddState[key];
+                                return (
+                                  <label key={key} className="flex items-start gap-3 py-2 cursor-pointer group">
+                                    <div className={`mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                                      on?"bg-[#2D6A4F] border-[#2D6A4F]":"border-border group-hover:border-[#2D6A4F]/50"
+                                    }`} onClick={()=>toggleDd(key)}>
+                                      {on&&<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>}
+                                    </div>
+                                    <div className="flex-1">
+                                      <p className={`text-[13.5px] leading-snug ${on?"font-semibold text-[#2D6A4F]":"text-foreground"}`}>{label}</p>
+                                      <p className="text-[12px] text-foreground/60 mt-0.5">{sub}</p>
+                                    </div>
+                                    <input type="checkbox" checked={on} onChange={()=>toggleDd(key)} className="sr-only"/>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                            <p className="text-[12px] text-foreground/50 mt-3">Updating this also updates your organisation profile's DD readiness score.</p>
+                          </Field>
+                        );
+                      })()}
 
                       <Field label="Who leads this partnership on your side?">
                         <DropdownField
