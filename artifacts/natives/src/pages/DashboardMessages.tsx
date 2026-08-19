@@ -519,7 +519,7 @@ export default function DashboardMessages() {
           <Clock className="w-8 h-8 text-muted-foreground/40 mx-auto mb-4" />
           <p className="text-black dark:text-white font-medium mb-2">No messages yet.</p>
           <p className="text-sm text-black dark:text-white mb-6 max-w-sm mx-auto">
-            When you or others express interest in initiatives, conversations will appear here.
+            When you or others express interest in initiatives and partnerships, conversations will appear here.
           </p>
           <Link href="/dashboard/marketplace">
             <Button className="bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full px-5">
