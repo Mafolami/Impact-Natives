@@ -1,38 +1,44 @@
 // supabase/functions/refresh-initiative-matches-for-org/index.ts
 // Internal-only worker: recomputes initiative matches for exactly ONE org,
-// given its org_id. Not exposed to any client, no per-request auth check
-// beyond being invoked server-side -- same pattern as match-initiatives-to-
-// funder (verify_jwt: false, trusted because it's only ever called from
-// other server-side functions, never from the browser).
+// given its org_id.
+//
+// v7: subscription_tier gate added, same reasoning as v23 of
+// refresh-initiative-matches (the interactive sibling) and v9 of
+// refresh-partnership-matches-for-org (the equivalent worker on the
+// partnership side). Skipping here also means the nightly sweep never
+// spends a Groq call scoring initiatives for a Free-tier org at all.
+//
+// v6: flagged_visibility_hold, both directions. (a) Self-exclusion: if the
+// funder/corporate org this worker computes matches FOR is itself under a
+// "Serious"-severity admin hold, skip entirely -- mirrors v8 of
+// refresh-partnership-matches-for-org. (b) Candidate-exclusion: initiatives
+// submitted by a held org are dropped from the published pool before
+// scoring -- a held implementer shouldn't be recommended to funders/
+// corporates as a candidate while under review, mirrors v32 of
+// match-orgs-for-partnership. match-initiatives-to-funder itself never
+// touches the DB (mandate/initiatives arrive as plain JSON from whichever
+// caller invoked it), so both checks have to live here, not there.
+//
+// v5: CRITERIA_VERSION moved out of a local hardcoded constant into the
+// `criteria_versions` table (match_type='initiative') -- see
+// refresh-initiative-matches v20 for the full reasoning. This function's
+// copy of the constant had already drifted from the other two once
+// (stuck at 5 while refresh-initiative-matches moved to 6); reading from
+// one shared table removes that failure mode entirely.
+//
+// v4: mirrors refresh-initiative-matches v19 -- mandate_sectors legacy
+// fallback fix (parseLegacySector) + batch retry on transient failure.
 //
 // Exists so each org's matching work gets its OWN full edge-function
-// execution-time budget (150s free tier / 400s paid), rather than sharing
-// one budget across several orgs processed in a single invocation -- which
-// is exactly what caused sweep-stale-initiative-matches to hit a 504 after
-// 150.7 seconds when it tried to loop through multiple orgs itself.
-// sweep-stale-initiative-matches now just identifies which orgs are stale
-// and dispatches one call to this function per org via
-// EdgeRuntime.waitUntil(), without waiting for each one to finish before
-// moving to the next.
+// execution-time budget, rather than sharing one budget across several
+// orgs processed in a single invocation.
 //
 // v3: mirrors refresh-initiative-matches v14-v16 -- open_to_remote_partnerships
 // and csr_focus_statement now flow into the mandate/initiative data used
-// for scoring, and minScore is no longer a cache-write filter (every
-// scored initiative is kept, ranked by score; the frontend decides what
-// counts as a "strong" match for display).
+// for scoring, and minScore is no longer a cache-write filter.
 //
-// v2: STOP FULL-CACHE CHURN. This worker previously rescored EVERY
-// published initiative from scratch on every call, unconditionally --
-// meaning the daily 3am cron guaranteed a brand-new, independently
-// sampled score and match_reason for every initiative a funder/corporate
-// had already been shown, every single day, even when nothing about
-// either side had changed. Same root cause as refresh-initiative-matches
-// v14 (score/match_reason are free-text LLM output with no fixed formula
-// tying them to the criteria object, so identical input can legitimately
-// score 78 one day and 85 the next with completely different wording).
-// Now mirrors that fix: only initiatives not already in this org's cache
-// get scored; existing rows carry over untouched unless the cache is
-// empty, past the 12h TTL, or on an old criteria_version.
+// v2: STOP FULL-CACHE CHURN. Only initiatives NOT YET in this org's cache
+// get scored.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -46,11 +52,8 @@ const CORS_HEADERS = {
 };
 
 const CACHE_TTL_HOURS = 12;
-// v5: see refresh-initiative-matches v17 -- csr_focus_statement reaching
-// the prompt shipped without a version bump, so caches written under v4
-// could be pre- or post-fix with no way to tell them apart. Bumping forces
-// one clean recompute using the corrected prompt.
-const CRITERIA_VERSION = 5;
+// Fallback only -- real value read from criteria_versions at request time.
+const CRITERIA_VERSION_FALLBACK = 6;
 const BATCH_SIZE = 15;
 const FETCH_SAFETY_CAP = 300;
 const MAX_CACHED_MATCHES = 30;
@@ -59,10 +62,35 @@ const FUNDER_TYPES = ["philanthropic_foundation", "venture_capital"];
 const CORPORATE_TYPES = ["corporation", "technology_company", "public_sector"];
 const ESG_PARTNERSHIP_TYPES = ["operational", "strategic", "lead", "other"];
 
+async function getCriteriaVersion(serviceClient: any): Promise<number> {
+  const { data, error } = await serviceClient
+    .from("criteria_versions")
+    .select("version")
+    .eq("match_type", "initiative")
+    .maybeSingle();
+  if (error || !data) {
+    console.error(`[refresh-initiative-matches-for-org] criteria_versions read failed, falling back to ${CRITERIA_VERSION_FALLBACK}: ${error?.message}`);
+    return CRITERIA_VERSION_FALLBACK;
+  }
+  return data.version;
+}
+
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
   return out;
+}
+
+function parseLegacySector(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.filter((s) => typeof s === "string" && s.trim());
+    if (typeof parsed === "string" && parsed.trim()) return [parsed];
+    return [];
+  } catch {
+    return raw.trim() ? [raw.trim()] : [];
+  }
 }
 
 function buildMandate(org: any, isFunder: boolean): any {
@@ -91,7 +119,7 @@ function buildMandate(org: any, isFunder: boolean): any {
     grant_range_max: null,
     stage_preference: ["pilot", "growth", "scale"],
     geographic_focus: org.geographic_focus ?? (org.country ? [org.country] : ["Nigeria"]),
-    mandate_sectors: org.mandate_sectors ?? (org.sector ? [org.sector] : []),
+    mandate_sectors: org.mandate_sectors ?? parseLegacySector(org.sector),
     mandate_sdgs: org.mandate_sdgs ?? [],
     esg_frameworks: org.esg_frameworks,
     csr_focus_statement: org.csr_focus_statement,
@@ -115,6 +143,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const CRITERIA_VERSION = await getCriteriaVersion(serviceClient);
 
     const { data: org, error: orgError } = await serviceClient
       .from("organizations").select("*").eq("id", org_id).maybeSingle();
@@ -129,6 +158,21 @@ Deno.serve(async (req: Request) => {
     const isCorporate = CORPORATE_TYPES.includes(org.organisation_type);
     if (!isFunder && !isCorporate) {
       return new Response(JSON.stringify({ error: "org_type_not_supported" }), {
+        status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      });
+    }
+
+    if (org.flagged_visibility_hold) {
+      return new Response(JSON.stringify({ org_id, error: "flagged_visibility_hold" }), {
+        status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      });
+    }
+
+    // AI-powered initiative matching is a Plus+ feature (see billing
+    // scoping notes). Skip before any AI compute -- this is the cron path,
+    // so this also means Free-tier orgs never cost a Groq call here at all.
+    if (org.subscription_tier === "free") {
+      return new Response(JSON.stringify({ org_id, skipped: "requires_upgrade" }), {
         status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
       });
     }
@@ -149,14 +193,22 @@ Deno.serve(async (req: Request) => {
 
     const selectCols = "id,title,sectors,locations,status,created_at,problem,outcome,budget_min,budget_max,budget_currency,budget,stage,sdg_tags,target_population,specific_ask,esg_alignment,submitter_org,user_id,open_to_remote_partnerships";
 
-    const { data: allPublished } = await serviceClient
+    const { data: allPublishedRaw } = await serviceClient
       .from("initiative_requests")
       .select(selectCols)
       .eq("status", "published")
+      .neq("user_id", org.user_id)   // ← add this
       .order("created_at", { ascending: false })
       .limit(FETCH_SAFETY_CAP);
 
-    if (!allPublished?.length) {
+    const { data: heldOrgs } = await serviceClient
+      .from("organizations")
+      .select("user_id")
+      .eq("flagged_visibility_hold", true);
+    const heldUserIds = new Set((heldOrgs ?? []).map((o: any) => o.user_id));
+    const allPublished = (allPublishedRaw ?? []).filter((i: any) => !heldUserIds.has(i.user_id));
+
+    if (!allPublished.length) {
       return new Response(JSON.stringify({ org_id, matches_cached: 0 }), {
         status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
       });
@@ -176,34 +228,39 @@ Deno.serve(async (req: Request) => {
       return rows.map((i: any) => ({ ...i, dd_readiness_score: ddMap.get(i.user_id) ?? 0 }));
     }
 
+    async function attemptBatch(batchInitiatives: any[], b: number, totalBatches: number, attempt: number): Promise<any[]> {
+      try {
+        const matchRes = await fetch(`${SUPABASE_URL}/functions/v1/match-initiatives-to-funder`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mandate, initiatives: batchInitiatives }),
+        });
+        if (!matchRes.ok) {
+          const errText = await matchRes.text();
+          console.error(`[refresh-initiative-matches-for-org] org ${org_id} batch ${b + 1}/${totalBatches} attempt ${attempt} failed: ${errText}`);
+          return [];
+        }
+        const { data: ranked } = await matchRes.json();
+        return ranked ?? [];
+      } catch (batchErr) {
+        console.error(`[refresh-initiative-matches-for-org] org ${org_id} batch ${b + 1}/${totalBatches} attempt ${attempt} threw: ${String(batchErr)}`);
+        return [];
+      }
+    }
+
     async function scoreInitiatives(initiativesToScore: any[]): Promise<any[]> {
       if (initiativesToScore.length === 0) return [];
       const batches = chunk(initiativesToScore, BATCH_SIZE);
       const batchResults = await Promise.all(batches.map(async (batchInitiatives, b) => {
-        try {
-          const matchRes = await fetch(`${SUPABASE_URL}/functions/v1/match-initiatives-to-funder`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ mandate, initiatives: batchInitiatives }),
-          });
-          if (!matchRes.ok) {
-            const errText = await matchRes.text();
-            console.error(`[refresh-initiative-matches-for-org] org ${org_id} batch ${b + 1}/${batches.length} failed: ${errText}`);
-            return [];
-          }
-          const { data: ranked } = await matchRes.json();
-          return ranked ?? [];
-        } catch (batchErr) {
-          console.error(`[refresh-initiative-matches-for-org] org ${org_id} batch ${b + 1}/${batches.length} threw: ${String(batchErr)}`);
-          return [];
-        }
+        const first = await attemptBatch(batchInitiatives, b, batches.length, 1);
+        if (first.length > 0) return first;
+        console.error(`[refresh-initiative-matches-for-org] org ${org_id} batch ${b + 1}/${batches.length} retrying once after empty result`);
+        return attemptBatch(batchInitiatives, b, batches.length, 2);
       }));
       return batchResults.flat();
     }
 
     if (isFullStale) {
-      // Genuine full recompute -- cache empty, TTL expired, or schema
-      // version bumped. Same behaviour as before this fix.
       const initiativesWithDD = await attachDD(allPublished);
       const allRanked = await scoreInitiatives(initiativesWithDD);
 
@@ -214,9 +271,6 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      // No score filter -- mirrors refresh-initiative-matches v16. Every
-      // scored initiative is kept; minScore is a display label the
-      // frontend applies, not a reason to discard a weak-but-real result.
       const topMatches = allRanked
         .sort((a: any, b: any) => b.score - a.score)
         .slice(0, MAX_CACHED_MATCHES);
@@ -246,7 +300,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Incremental path: only score initiatives not already in the cache.
     const cachedIds = new Set((existingCache ?? []).map(r => r.initiative_id));
     const missing = allPublished.filter((i: any) => !cachedIds.has(i.id));
 
