@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2, FileText, PenLine, Upload, Plus, X, ArrowRight, Trash2, Target, Search, ListFilter } from "lucide-react";
+import { Loader2, FileText, PenLine, Upload, Plus, X, Trash2, Target, Search, ListFilter } from "lucide-react";
 import CreateMouModal from "./CreateMouModal";
 import MouDocumentDetail from "./MouDocumentDetail";
 import { resolveMouDocTitle } from "@/lib/mouTitle";
@@ -260,30 +260,10 @@ export default function MouTab() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    // Negative horizontal margins break out of whatever padding the parent
-    // applies, so dividers and rows span full viewport width edge to edge.
     <div className="space-y-0 -mx-4 sm:-mx-6">
 
-      {/* Top bar — stats + New MoU, padded back in */}
-      <div className="flex items-center justify-between gap-4 px-4 sm:px-6 pb-5">
-        <div className="flex items-center gap-6">
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-2xl font-bold text-foreground">{docs.length}</span>
-            <span className="text-xs text-muted-foreground">total</span>
-          </div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-2xl font-bold text-[#C45C26]">
-              {docs.filter((d) => d.status !== "draft" && d.status !== "fully_executed").length}
-            </span>
-            <span className="text-xs text-muted-foreground">in progress</span>
-          </div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-2xl font-bold text-[#2D6A4F]">
-              {docs.filter((d) => d.status === "fully_executed").length}
-            </span>
-            <span className="text-xs text-muted-foreground">executed</span>
-          </div>
-        </div>
+      {/* Top bar — New MoU button */}
+      <div className="flex items-center justify-end px-4 sm:px-6 pb-4">
         <button type="button" onClick={openPicker}
           className="flex items-center gap-1.5 h-10 px-5 rounded-full text-white text-sm font-bold transition-all hover:brightness-110 active:scale-[0.98] shrink-0"
           style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
@@ -291,8 +271,58 @@ export default function MouTab() {
         </button>
       </div>
 
-      {/* Full-width top divider */}
-      <div className="h-1 bg-border w-full" />
+      {/* Stat cards — original 3-column grid */}
+      <div className="grid grid-cols-3 gap-3 px-4 sm:px-6 pb-5 sm:max-w-md">
+        <div className="rounded-xl p-3.5 bg-muted border border-border">
+          <p className="text-lg font-black text-foreground leading-none">{docs.length}</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-foreground mt-1.5">Total</p>
+        </div>
+        <div className="rounded-xl p-3.5 bg-muted border border-border">
+          <p className="text-lg font-black text-[#C45C26] leading-none">
+            {docs.filter((d) => d.status !== "draft" && d.status !== "fully_executed").length}
+          </p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-foreground mt-1.5">In progress</p>
+        </div>
+        <div className="rounded-xl p-3.5 bg-muted border border-border">
+          <p className="text-lg font-black text-[#2D6A4F] leading-none">
+            {docs.filter((d) => d.status === "fully_executed").length}
+          </p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-foreground mt-1.5">Executed</p>
+        </div>
+      </div>
+
+      {/* Filters — sit beneath stat cards */}
+      {docs.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 px-4 sm:px-6 pb-5">
+          <div className="relative flex-1 min-w-[180px] max-w-xs">
+            <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+            <input type="text" placeholder="Search partner or title" value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 transition-colors" />
+          </div>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+            className="h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none">
+            <option value="all">All statuses</option>
+            <option value="draft">Draft</option>
+            <option value="in_progress">In progress</option>
+            <option value="fully_executed">Fully executed</option>
+          </select>
+          <button type="button" onClick={openSelectPicker}
+            className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-sm text-foreground hover:border-[#2D6A4F]/40 transition-colors shrink-0">
+            <ListFilter className="w-3.5 h-3.5" />
+            {selectedDocIds ? `${selectedDocIds.size} selected` : "Select MoUs"}
+          </button>
+          {selectedDocIds && (
+            <button type="button" onClick={() => setSelectedDocIds(null)}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0">
+              Clear
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Full-width top divider — 8px */}
+      <div className="h-2 bg-border w-full" />
 
       {docs.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 gap-4 text-center px-4 sm:px-6">
@@ -306,39 +336,10 @@ export default function MouTab() {
         </div>
       ) : (
         <>
-          {/* Filters — padded back in, sit between top divider and list */}
-          <div className="flex flex-wrap items-center gap-2 px-4 sm:px-6 py-3">
-            <div className="relative flex-1 min-w-[180px] max-w-xs">
-              <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-              <input type="text" placeholder="Search partner or title" value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 transition-colors" />
-            </div>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-              className="h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none">
-              <option value="all">All statuses</option>
-              <option value="draft">Draft</option>
-              <option value="in_progress">In progress</option>
-              <option value="fully_executed">Fully executed</option>
-            </select>
-            <button type="button" onClick={openSelectPicker}
-              className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-sm text-foreground hover:border-[#2D6A4F]/40 transition-colors shrink-0">
-              <ListFilter className="w-3.5 h-3.5" />
-              {selectedDocIds ? `${selectedDocIds.size} selected` : "Select MoUs"}
-            </button>
-            {selectedDocIds && (
-              <button type="button" onClick={() => setSelectedDocIds(null)}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0">
-                Clear
-              </button>
-            )}
-          </div>
-
           {filteredDocs.length === 0 && (
             <p className="text-sm text-muted-foreground px-4 sm:px-6 py-6">No MoUs match your search.</p>
           )}
 
-          {/* Row list — each row full width, separated by 4px dividers */}
           {filteredDocs.map((d) => {
             const sourceMeta = SOURCE_META[d.source_type] ?? { label: d.source_type, icon: FileText };
             const SourceIcon = sourceMeta.icon;
@@ -350,104 +351,117 @@ export default function MouTab() {
             const isExecuted = d.status === "fully_executed";
             const nextStageIndex = stages.findIndex((s) => !s.completed);
 
+            // Each stage row height — must match between rail and label column
+            const STAGE_H = 32;
+
             return (
               <div key={d.id}>
-                {/* Row */}
                 <div
                   role="button" tabIndex={0}
                   onClick={() => setOpenDocId(d.id)}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpenDocId(d.id); } }}
-                  className="flex items-stretch gap-0 w-full cursor-pointer hover:bg-muted/30 transition-colors group">
+                  className="flex items-stretch w-full cursor-pointer hover:bg-muted/30 transition-colors">
 
                   {/* Left — org info */}
-                  <div className="flex-1 min-w-0 px-4 sm:px-6 py-5 flex flex-col justify-center gap-2">
+                  <div className="flex-1 min-w-0 px-4 sm:px-6 py-7 flex flex-col justify-center gap-3">
+
+                    {/* Name + badge */}
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <div className="p-1.5 rounded-lg bg-[#2D6A4F]/10 shrink-0">
                         <SourceIcon className="w-3.5 h-3.5 text-[#2D6A4F]" />
                       </div>
-                      <p className="text-sm font-bold text-foreground">
+                      <p className="text-[15px] font-bold text-foreground">
                         {otherOrg(d)?.organisation_name ?? "Unknown organisation"}
                       </p>
                       {isDraft ? (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-border text-muted-foreground">
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full border border-border text-foreground">
                           Draft
                         </span>
                       ) : isExecuted ? (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
                           style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
                           Fully executed
                         </span>
                       ) : (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
                           style={{ background: "rgba(196,92,38,0.10)", color: "#C45C26" }}>
                           In progress
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">
+
+                    {/* Title + date — charcoal black */}
+                    <p className="text-[13px] text-foreground leading-relaxed">
                       {title || sourceMeta.label}
-                      <span className="mx-1.5 opacity-40">·</span>
+                      <span className="mx-2 opacity-30">·</span>
                       {new Date(d.updated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                     </p>
-                    <div className="flex items-center gap-2 mt-1" onClick={(e) => e.stopPropagation()}>
+
+                    {/* Milestones / delete — pushed down with mt-2 for breathing room */}
+                    <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
                       {isExecuted && (
                         <button type="button"
                           onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/portfolio/milestones?mouId=${d.id}`); }}
-                          className="flex items-center gap-1.5 h-7 px-3 rounded-full border border-border text-xs text-foreground hover:border-[#2D6A4F]/40 transition-colors">
-                          <Target className="w-3 h-3" /> Milestones
+                          className="flex items-center gap-1.5 h-8 px-4 rounded-full border border-border text-[13px] text-foreground hover:border-[#2D6A4F]/40 transition-colors">
+                          <Target className="w-3.5 h-3.5" /> Milestones
                         </button>
                       )}
                       {isDraft && (
                         <button type="button"
                           onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(d.id); }}
                           aria-label="Delete draft MoU"
-                          className="flex items-center gap-1 h-7 px-2 rounded text-xs text-muted-foreground hover:text-red-600 transition-colors">
-                          <Trash2 className="w-3 h-3" />
+                          className="flex items-center gap-1 h-8 px-2 rounded text-[13px] text-muted-foreground hover:text-red-600 transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       )}
                     </div>
                   </div>
 
-                  {/* Thin vertical separator */}
+                  {/* Vertical separator */}
                   <div className="w-px bg-border shrink-0" />
 
-                  {/* Right — vertical tracker */}
-                  <div className="w-72 shrink-0 px-6 py-5 flex items-start">
+                  {/* Right — vertical tracker, fixed width */}
+                  <div className="w-80 shrink-0 px-6 py-7 flex items-start">
                     {isDraft ? (
-                      <p className="text-xs text-muted-foreground italic mt-1">
+                      <p className="text-[13px] text-muted-foreground italic mt-1">
                         Open to start filling in details.
                       </p>
                     ) : (
                       <div className="flex gap-3 w-full">
-                        {/* Dot + line rail */}
-                        <div className="flex flex-col items-center shrink-0 pt-1">
+                        {/* Dot + line rail — each stage slot is exactly STAGE_H px */}
+                        <div className="flex flex-col items-center shrink-0">
                           {stages.map((s, i) => (
-                            <div key={s.key} className="flex flex-col items-center">
-                              <div className={`w-2 h-2 rounded-full shrink-0 ${
-                                s.completed ? "bg-[#2D6A4F]" : "border border-border bg-background"
-                              }`} />
-                              {i < stages.length - 1 && (
-                                <div className={`w-px flex-1 min-h-[18px] ${
-                                  s.completed && stages[i + 1]?.completed ? "bg-[#2D6A4F]" :
-                                  s.completed ? "bg-border" : "bg-border"
-                                }`} />
-                              )}
+                            <div key={s.key} className="flex flex-col items-center"
+                              style={{ height: STAGE_H }}>
+                              {/* Top half — line from previous */}
+                              <div className="flex-1 w-px"
+                                style={{ background: i === 0 ? "transparent" : (stages[i - 1]?.completed && s.completed ? "#2D6A4F" : "var(--border)") }} />
+                              {/* Dot */}
+                              <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                                s.completed ? "bg-[#2D6A4F]" : "border-2 border-border bg-background"
+                              }`} style={{ zIndex: 1 }} />
+                              {/* Bottom half — line to next */}
+                              <div className="flex-1 w-px"
+                                style={{ background: i === stages.length - 1 ? "transparent" : (s.completed ? "#2D6A4F" : "var(--border)") }} />
                             </div>
                           ))}
                         </div>
-                        {/* Labels + status */}
+
+                        {/* Labels + status — each row exactly STAGE_H px, vertically centred */}
                         <div className="flex-1 min-w-0 flex flex-col">
                           {stages.map((s, i) => {
                             const isNext = i === nextStageIndex;
                             return (
-                              <div key={s.key} className={`flex items-center justify-between gap-2 min-h-[26px] ${i < stages.length - 1 ? "mb-0" : ""}`}>
-                                <span className={`text-[11px] leading-snug truncate ${
+                              <div key={s.key}
+                                className="flex items-center justify-between gap-2"
+                                style={{ height: STAGE_H }}>
+                                <span className={`text-[12px] leading-snug ${
                                   s.completed ? "text-foreground font-medium" :
                                   isNext ? "text-foreground" : "text-muted-foreground"
                                 }`}>
                                   {s.label}
                                 </span>
-                                <span className={`text-[10px] font-semibold shrink-0 ${
+                                <span className={`text-[11px] font-semibold shrink-0 ${
                                   s.completed ? "text-[#2D6A4F]" :
                                   isNext ? "text-[#C45C26]" : "text-muted-foreground"
                                 }`}>
@@ -460,15 +474,10 @@ export default function MouTab() {
                       </div>
                     )}
                   </div>
-
-                  {/* Arrow */}
-                  <div className="flex items-center px-4 sm:px-5">
-                    <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-[#2D6A4F] transition-colors" />
-                  </div>
                 </div>
 
-                {/* 4px full-width divider between rows */}
-                <div className="h-1 bg-border w-full" />
+                {/* 8px full-width divider between rows */}
+                <div className="h-2 bg-border w-full" />
               </div>
             );
           })}
