@@ -670,11 +670,6 @@ export function FindPartnerModalDashboard({
         partnership_language:form.partnership_language.length>0?form.partnership_language:null,
         partnership_team_capacity:form.partnership_team_capacity||null,
         partnership_funding_status:form.partnership_funding_status||null,
-        partnership_dd_financial_model:form.partnership_dd_financial_model,
-        partnership_dd_audited_accounts:form.partnership_dd_audited_accounts,
-        partnership_dd_safeguarding_policy:form.partnership_dd_safeguarding_policy,
-        partnership_dd_data_policy:form.partnership_dd_data_policy,
-        partnership_dd_governance_doc:form.partnership_dd_governance_doc,
         partnership_financial_transfer:form.partnership_financial_transfer||null,
         partnership_working_style:form.partnership_working_style||null,
         partnership_reporting:form.partnership_reporting.length>0?form.partnership_reporting:null,
@@ -690,7 +685,7 @@ export function FindPartnerModalDashboard({
         // Profile DD columns — written from ddState, not the old partnership_dd_* form fields
         ...ddState,
         // Mirror to partnership_dd_* for backwards compatibility with OrgDetailPanel
-        partnership_dd_financial_model:isFunder?ddState.fdd_governance_doc:ddState.dd_financial_model,
+        partnership_dd_financial_model:isFunder?false:ddState.dd_financial_model,
         partnership_dd_audited_accounts:isFunder?false:ddState.dd_audited_accounts,
         partnership_dd_safeguarding_policy:isFunder?false:ddState.dd_safeguarding_policy,
         partnership_dd_data_policy:isFunder?false:ddState.dd_legal_compliance_declaration,
