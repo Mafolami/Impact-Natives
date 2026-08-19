@@ -157,7 +157,7 @@ function StepNav({current,onNavigate,form,partnershipTitle,freeText,uploadedFile
                 ? <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>
                 : i+1}
             </div>
-            <span className={`text-sm truncate ${active?"font-semibold text-foreground":done?"text-foreground":"text-muted-foreground"}`}>
+            <span className={`text-sm truncate ${active?"font-semibold text-foreground":done?"text-foreground":"text-foreground/50"}`}>
               {s.label}
             </span>
           </button>
@@ -172,9 +172,9 @@ function StepHeader({step,subtitle}:{step:number;subtitle:string}){
   return (
     <div className="shrink-0 px-6 py-3 border-b border-border sm:px-8">
       <div className="flex items-baseline gap-2 flex-wrap">
-        <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">Step {step+1} of {STEPS.length}</span>
-        <span className="text-muted-foreground text-xs hidden sm:inline">·</span>
-        <p className="text-xs text-muted-foreground leading-relaxed">{subtitle}</p>
+        <span className="text-xs font-semibold text-foreground whitespace-nowrap">Step {step+1} of {STEPS.length}</span>
+        <span className="text-foreground/40 text-xs hidden sm:inline">·</span>
+        <p className="text-xs text-foreground/70 leading-relaxed">{subtitle}</p>
       </div>
     </div>
   );
@@ -187,7 +187,7 @@ function StepFooter({onBack,onNext,nextLabel,nextDisabled,loading}:{
   return (
     <div className="shrink-0 px-6 py-3 border-t border-border bg-background flex items-center justify-between sm:px-8">
       {onBack
-        ? <button type="button" onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        ? <button type="button" onClick={onBack} className="flex items-center gap-1.5 text-sm text-foreground/70 hover:text-foreground transition-colors">
             <ArrowLeft className="w-3.5 h-3.5"/>Back
           </button>
         : <div/>}
@@ -212,10 +212,10 @@ function Field({label,hint,required,first,children}:{
       {!first && <hr className="border-border mb-7"/>}
       <div className="space-y-2.5">
         <div>
-          <p className="text-sm font-semibold text-foreground">
+          <p className="text-[15px] font-semibold text-foreground">
             {label}{required && <span className="text-red-500 ml-0.5">*</span>}
           </p>
-          {hint && <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{hint}</p>}
+          {hint && <p className="text-[13px] text-foreground/70 mt-1 leading-relaxed">{hint}</p>}
         </div>
         {children}
       </div>
@@ -243,8 +243,8 @@ function RadioList({options,value,onChange}:{
               {on && <div className="w-2 h-2 rounded-full bg-[#2D6A4F]"/>}
             </div>
             <div>
-              <p className={`text-sm leading-snug ${on?"font-semibold text-[#2D6A4F]":"text-foreground"}`}>{opt.label}</p>
-              {opt.sub && <p className="text-xs text-muted-foreground mt-0.5">{opt.sub}</p>}
+              <p className={`text-[14px] leading-snug ${on?"font-semibold text-[#2D6A4F]":"text-foreground"}`}>{opt.label}</p>
+              {opt.sub && <p className="text-[12.5px] text-foreground/70 mt-0.5">{opt.sub}</p>}
             </div>
           </button>
         );
@@ -262,7 +262,7 @@ function DropdownField({options,value,onChange,placeholder}:{
 }){
   return (
     <select value={value} onChange={e=>onChange(e.target.value)}
-      className="w-full h-10 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors">
+      className="w-full h-11 px-3 rounded-lg border border-border bg-background text-[14px] text-foreground focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors">
       <option value="">{placeholder??"Select..."}</option>
       {options.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
@@ -287,8 +287,8 @@ function CheckboxList({options,selected,onToggle}:{
               {on && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>}
             </div>
             <div className="flex-1">
-              <p className={`text-sm leading-snug ${on?"font-semibold text-[#2D6A4F]":"text-foreground"}`}>{opt.label}</p>
-              {opt.sub && <p className="text-xs text-muted-foreground mt-0.5">{opt.sub}</p>}
+              <p className={`text-[14px] leading-snug ${on?"font-semibold text-[#2D6A4F]":"text-foreground"}`}>{opt.label}</p>
+              {opt.sub && <p className="text-[12.5px] text-foreground/70 mt-0.5">{opt.sub}</p>}
             </div>
             <input type="checkbox" checked={on} onChange={()=>onToggle(opt.value)} className="sr-only"/>
           </label>
@@ -343,7 +343,7 @@ function CountryPicker({selected,onToggle}:{selected:string[];onToggle:(v:string
                   }`}>
                     {on && <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><polyline points="20 6 9 17 4 12"/></svg>}
                   </div>
-                  <span className={`text-xs truncate ${on?"font-semibold text-[#2D6A4F]":"text-foreground"}`}>{c}</span>
+                  <span className={`text-[13px] truncate ${on?"font-semibold text-[#2D6A4F]":"text-foreground"}`}>{c}</span>
                   <input type="checkbox" checked={on} onChange={()=>onToggle(c)} className="sr-only"/>
                 </label>
               );
@@ -392,7 +392,7 @@ function ExpandableCheckList({label,options,selected,onToggle}:{
                   }`}>
                     {on && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>}
                   </div>
-                  <span className={`text-sm ${on?"font-semibold text-[#2D6A4F]":"text-foreground"}`}>{opt.label}</span>
+                  <span className={`text-[14px] ${on?"font-semibold text-[#2D6A4F]":"text-foreground"}`}>{opt.label}</span>
                   <input type="checkbox" checked={on} onChange={()=>onToggle(opt.value)} className="sr-only"/>
                 </label>
               );
@@ -415,8 +415,8 @@ function ConfirmRow({checked,onChange,label,sub}:{checked:boolean;onChange:(v:bo
         {checked && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>}
       </div>
       <div className="flex-1">
-        <p className={`text-sm font-medium leading-snug ${checked?"text-[#2D6A4F]":"text-foreground"}`}>{label}</p>
-        {sub && <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{sub}</p>}
+        <p className={`text-[14px] font-medium leading-snug ${checked?"text-[#2D6A4F]":"text-foreground"}`}>{label}</p>
+        {sub && <p className="text-[12.5px] text-foreground/70 mt-1 leading-relaxed">{sub}</p>}
       </div>
       <input type="checkbox" checked={checked} onChange={e=>onChange(e.target.checked)} className="sr-only"/>
     </label>
@@ -977,13 +977,13 @@ export function FindPartnerModalDashboard({
                         <div className="flex rounded-lg border border-border overflow-hidden">
                           <button type="button" onClick={()=>setUploadMode("text")}
                             className={`flex-1 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
-                              uploadMode==="text"?"bg-foreground text-background":"text-muted-foreground hover:bg-muted"
+                              uploadMode==="text"?"bg-foreground text-background":"text-foreground/70 hover:bg-muted"
                             }`}>
                             <Sparkles className="w-4 h-4"/>Write a description
                           </button>
                           <button type="button" onClick={()=>setUploadMode("doc")}
                             className={`flex-1 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
-                              uploadMode==="doc"?"bg-foreground text-background":"text-muted-foreground hover:bg-muted"
+                              uploadMode==="doc"?"bg-foreground text-background":"text-foreground/70 hover:bg-muted"
                             }`}>
                             <Upload className="w-4 h-4"/>Upload a document
                           </button>
@@ -996,7 +996,7 @@ export function FindPartnerModalDashboard({
                           <textarea rows={9}
                             placeholder="e.g. We're an NGO working on last-mile health delivery in northern Nigeria. We need a UK-based research partner to help design impact evaluations and co-author publications. We can offer field access, community relationships, and local implementation capacity. Budget: £30K–£50K over 18 months starting Q3 2026..."
                             value={freeText} onChange={e=>setFreeText(e.target.value)}
-                            className="w-full px-4 py-3.5 rounded-lg border border-border bg-background text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors leading-relaxed"/>
+                            className="w-full px-4 py-3.5 rounded-lg border border-border bg-background text-[14px] text-foreground placeholder:text-foreground/40 resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors leading-relaxed"/>
                         </Field>
                       ):(
                         <Field label="Upload your partnership strategy document"
@@ -1040,9 +1040,15 @@ export function FindPartnerModalDashboard({
                         </Field>
                       )}
                       {prefillError&&(
-                        <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded-lg px-4 py-3 border border-red-200 dark:border-red-800">
-                          {prefillError}
-                        </p>
+                        <div className="space-y-3">
+                          <p className="text-[13.5px] text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded-lg px-4 py-3 border border-red-200 dark:border-red-800">
+                            {prefillError}
+                          </p>
+                          <button type="button" onClick={()=>{setPrefillError("");goToStep(1);}}
+                            className="w-full py-2.5 text-[13.5px] font-medium text-foreground/70 hover:text-foreground border border-border rounded-lg transition-colors">
+                            Proceed without AI structure →
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}
@@ -1053,7 +1059,7 @@ export function FindPartnerModalDashboard({
                       <Field label="What are you looking for?" required first
                         hint="Be specific — what would a good partner actually do?">
                         <Textarea
-                          className="w-full text-sm resize-none rounded-lg border min-h-[110px] bg-background text-foreground"
+                          className="w-full text-[14px] resize-none rounded-lg border min-h-[110px] bg-background text-foreground"
                           value={form.partnership_sought}
                           onChange={e=>setF("partnership_sought",e.target.value)}
                           placeholder="e.g. A UK-based research institution with health systems experience who can co-design our M&E framework and co-author peer-reviewed publications."/>
@@ -1133,7 +1139,7 @@ export function FindPartnerModalDashboard({
                           placeholder="e.g. Kano State, Nigeria"
                           value={form.partnership_geo_specificity}
                           onChange={e=>setF("partnership_geo_specificity",e.target.value)}
-                          className="w-full h-11 px-4 rounded-lg border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors"/>
+                          className="w-full h-11 px-4 rounded-lg border border-border bg-background text-[14px] text-foreground placeholder:text-foreground/40 focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors"/>
                       </Field>
 
                       <Field label="Are you physically present in the target location?">
@@ -1228,7 +1234,7 @@ export function FindPartnerModalDashboard({
                       <Field label="What does success look like in 12 months?" required
                         hint="One sentence. This is the most important signal for match quality — it forces outcome clarity and tells the AI what to optimise for.">
                         <Textarea
-                          className="w-full text-sm resize-none rounded-lg border min-h-[80px] bg-background text-foreground"
+                          className="w-full text-[14px] resize-none rounded-lg border min-h-[80px] bg-background text-foreground"
                           placeholder="e.g. A published evaluation framework co-authored with our research partner, adopted by 3 state health ministries by end of 2027."
                           value={form.partnership_success_definition}
                           onChange={e=>setF("partnership_success_definition",e.target.value)}/>
@@ -1350,10 +1356,11 @@ export function FindPartnerModalDashboard({
                           value={form.partnership_prior_experience===null?"":String(form.partnership_prior_experience)}
                           onChange={v=>setF("partnership_prior_experience",v===""?null:v==="true")}/>
                         {form.partnership_prior_experience===true&&(
-                          <div className="mt-4">
+                          <div className="mt-4 space-y-2">
+                            <p className="text-[13px] text-foreground/70">Briefly describe one completed partnership — who with, what you did, and what came of it.</p>
                             <Textarea
-                              className="w-full text-sm resize-none rounded-lg border bg-background text-foreground"
-                              placeholder="Briefly describe one completed partnership — who with, what you did, and what came of it."
+                              className="w-full text-[14px] resize-none rounded-lg border bg-background text-foreground"
+                              placeholder="e.g. Co-implemented a WASH programme with WaterAid in Kaduna State 2022–23, reaching 12,000 households."
                               value={form.partnership_prior_experience_detail}
                               onChange={e=>setF("partnership_prior_experience_detail",e.target.value)}/>
                           </div>
@@ -1368,7 +1375,7 @@ export function FindPartnerModalDashboard({
                       <Field label="Your approach to creating change"
                         hint="One sentence. Helps partners check if your theories of change are compatible." first>
                         <Textarea
-                          className="w-full text-sm resize-none rounded-lg border bg-background text-foreground"
+                          className="w-full text-[14px] resize-none rounded-lg border bg-background text-foreground"
                           placeholder="e.g. We believe sustainable health outcomes require community ownership from design through to delivery."
                           value={form.partnership_theory_of_change}
                           onChange={e=>setF("partnership_theory_of_change",e.target.value)}/>
@@ -1377,7 +1384,7 @@ export function FindPartnerModalDashboard({
                       <Field label="Previous attempts at this type of partnership"
                         hint="Transparency about what you've tried builds trust and helps us match you better.">
                         <Textarea
-                          className="w-full text-sm resize-none rounded-lg border bg-background text-foreground"
+                          className="w-full text-[14px] resize-none rounded-lg border bg-background text-foreground"
                           placeholder="e.g. We partnered with a UK university in 2022 but the relationship stalled due to misaligned timelines."
                           value={form.partnership_prior_attempts}
                           onChange={e=>setF("partnership_prior_attempts",e.target.value)}/>
@@ -1386,7 +1393,7 @@ export function FindPartnerModalDashboard({
                       <Field label="Existing constraints"
                         hint="Donor restrictions, exclusivity agreements, or legal constraints partners should know before reaching out.">
                         <Textarea
-                          className="w-full text-sm resize-none rounded-lg border bg-background text-foreground"
+                          className="w-full text-[14px] resize-none rounded-lg border bg-background text-foreground"
                           placeholder="e.g. Our FCDO grant restricts work to northern Nigeria only."
                           value={form.partnership_constraints}
                           onChange={e=>setF("partnership_constraints",e.target.value)}/>
