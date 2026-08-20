@@ -654,7 +654,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     if (!doc) return;
     setSaving(true);
     await supabase.from("mou_documents").update({
-      field_values: fieldValues, updated_at: new Date().toISOString(),
+      field_values: { ...autofill, ...fieldValues }, updated_at: new Date().toISOString(),
     }).eq("id", doc.id);
     setSaving(false);
   }
@@ -675,7 +675,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     if (!doc.signature_org_a_path) return;
     setSaving(true);
     const updates = {
-      field_values: fieldValues,
+      field_values: { ...autofill, ...fieldValues },
       details_completed_by_org_a: true,
       details_completed_at_org_a: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -762,7 +762,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     // form must be captured here, or clicking Send right after filling
     // the form silently discards it -- this was a real data-loss bug,
     // not just a missing save.
-    const updates: Record<string, any> = { status: "sent", field_values: fieldValues, updated_at: new Date().toISOString() };
+    const updates: Record<string, any> = { status: "sent", field_values: { ...autofill, ...fieldValues }, updated_at: new Date().toISOString() };
     if (doc.source_type === "custom") updates.custom_content = customContent;
     await supabase.from("mou_documents").update(updates).eq("id", doc.id);
     setDoc({ ...doc, ...updates } as MouDoc);
@@ -811,7 +811,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     // discarding anything unsaved. Persisting the current field values
     // here, atomically with the signature, closes that gap.
     const updates: Partial<MouDoc> & Record<string, any> = {
-      field_values: fieldValues,
+      field_values: { ...autofill, ...fieldValues },
       updated_at: new Date().toISOString(),
     };
     if (isOrgA) {
