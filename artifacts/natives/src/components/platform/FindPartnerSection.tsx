@@ -89,7 +89,7 @@ export function FindPartnerSection() {
     async function load() {
       const { data, error } = await supabase
         .from("organizations")
-        .select("id, organisation_name, description, sector, country, organisation_type, website, email, needs, offers, sdgs, verification_status, status")
+        .select("id, organisation_name, description, sector, country, organisation_type, website, email, needs, offers, sdgs, verification_status, status, dd_financial_model, dd_audited_accounts, dd_governance_doc, dd_esg_assessment, dd_impact_framework, dd_environmental_policy, dd_safeguarding_policy, dd_legal_registration, dd_legal_compliance_declaration, fdd_disbursement_track_record, fdd_decision_transparency, fdd_conflict_disclosure, fdd_governance_doc, fdd_esg_framework, fdd_legal_registration")
         .eq("status", "published")
         .eq("partnership_listed", true)
         .order("created_at", { ascending: false });

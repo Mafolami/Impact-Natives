@@ -45,6 +45,12 @@ export interface OrgRow {
   partnership_dd_safeguarding_policy?: boolean; partnership_dd_data_policy?: boolean;
   partnership_dd_governance_doc?: boolean; partnership_prior_experience?: boolean;
   partnership_prior_experience_detail?: string; partnership_physically_present?: boolean;
+  dd_financial_model?: boolean; dd_audited_accounts?: boolean; dd_governance_doc?: boolean;
+  dd_esg_assessment?: boolean; dd_impact_framework?: boolean; dd_environmental_policy?: boolean;
+  dd_safeguarding_policy?: boolean; dd_legal_registration?: boolean; dd_legal_compliance_declaration?: boolean;
+  fdd_disbursement_track_record?: boolean; fdd_decision_transparency?: boolean;
+  fdd_conflict_disclosure?: boolean; fdd_governance_doc?: boolean; fdd_esg_framework?: boolean;
+  fdd_legal_registration?: boolean;
 }
 
 export type FitResult = {
@@ -88,10 +94,35 @@ function orgTypeLabel(value: string | null | undefined): string {
   return ORG_TYPE_FILTERS.find(o => o.value === value)?.label ?? value.replace(/_/g, " ");
 }
 
+const FUNDER_TYPES = ["philanthropic_foundation", "venture_capital"];
+
+const IMPLEMENTER_DD_DOCS: { key: keyof OrgRow; label: string }[] = [
+  { key: "dd_financial_model",              label: "Financial model" },
+  { key: "dd_audited_accounts",             label: "Audited accounts" },
+  { key: "dd_governance_doc",               label: "Governance doc" },
+  { key: "dd_esg_assessment",               label: "ESG assessment" },
+  { key: "dd_impact_framework",             label: "Impact framework" },
+  { key: "dd_environmental_policy",         label: "Environmental policy" },
+  { key: "dd_safeguarding_policy",          label: "Safeguarding policy" },
+  { key: "dd_legal_registration",           label: "Legal registration" },
+  { key: "dd_legal_compliance_declaration", label: "Legal compliance declaration" },
+];
+
+const FUNDER_DD_DOCS: { key: keyof OrgRow; label: string }[] = [
+  { key: "fdd_disbursement_track_record", label: "Disbursement track record" },
+  { key: "fdd_decision_transparency",     label: "Decision transparency" },
+  { key: "fdd_conflict_disclosure",       label: "Conflict disclosure" },
+  { key: "fdd_governance_doc",            label: "Governance doc" },
+  { key: "fdd_esg_framework",             label: "ESG framework" },
+  { key: "fdd_legal_registration",        label: "Legal registration" },
+];
+
+export function ddDocsFor(org: OrgRow): { key: keyof OrgRow; label: string }[] {
+  return FUNDER_TYPES.includes(org.organisation_type) ? FUNDER_DD_DOCS : IMPLEMENTER_DD_DOCS;
+}
+
 export function ddScore(org: OrgRow): number {
-  return [org.partnership_dd_financial_model, org.partnership_dd_audited_accounts,
-    org.partnership_dd_safeguarding_policy, org.partnership_dd_data_policy,
-    org.partnership_dd_governance_doc].filter(Boolean).length;
+  return ddDocsFor(org).filter(({ key }) => !!org[key]).length;
 }
 
 const STAGE_LABELS: Record<string, string> = {
@@ -232,14 +263,8 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
   const sectors = normalizeArr(org.sector);
   const countries = normalizeArr(org.country);
   const score = ddScore(org);
-
-  const ddDocs = [
-    { key: "partnership_dd_financial_model",     label: "Financial model" },
-    { key: "partnership_dd_audited_accounts",    label: "Audited accounts" },
-    { key: "partnership_dd_safeguarding_policy", label: "Safeguarding policy" },
-    { key: "partnership_dd_data_policy",         label: "Data policy" },
-    { key: "partnership_dd_governance_doc",      label: "Governance doc" },
-  ];
+  const ddDocs = ddDocsFor(org);
+  const ddTotal = ddDocs.length;
 
   // ── Page variant: flat content matching InitiativeDetail exactly ──
   if (variant === "page") {
@@ -469,16 +494,16 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         <Section>
           <div className="flex items-center justify-between mb-4">
             <Eyebrow>Due diligence readiness</Eyebrow>
-            <span className="text-xs font-bold mb-3" style={{ color: score > 2 ? "#065F46" : "#92400E" }}>{score} of 5 docs ready</span>
+            <span className="text-xs font-bold mb-3" style={{ color: score > ddTotal / 2 ? "#065F46" : "#92400E" }}>{score} of {ddTotal} docs ready</span>
           </div>
           <div className="h-1.5 rounded-full mb-4 overflow-hidden bg-muted">
-            <div className="h-full rounded-full transition-all" style={{ width: `${(score / 5) * 100}%`, background: score > 2 ? "#2D6A4F" : "#C45C26" }} />
+            <div className="h-full rounded-full transition-all" style={{ width: `${(score / ddTotal) * 100}%`, background: score > ddTotal / 2 ? "#2D6A4F" : "#C45C26" }} />
           </div>
           {score === 0 ? (
             <p className="text-xs text-black dark:text-white">No documents confirmed ready yet.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {ddDocs.filter(({ key }) => org[key as keyof OrgRow] as boolean).map(({ label }) => (
+              {ddDocs.filter(({ key }) => !!org[key]).map(({ label }) => (
                 <span key={label} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg"
                   style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
@@ -863,16 +888,16 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         <div className="px-8 py-6">
           <div className="flex items-center justify-between mb-4">
             <Eyebrow>Due diligence readiness</Eyebrow>
-            <span className="text-xs font-bold mb-3" style={{ color: score > 2 ? "#065F46" : "#92400E" }}>{score} of 5 docs ready</span>
+            <span className="text-xs font-bold mb-3" style={{ color: score > ddTotal / 2 ? "#065F46" : "#92400E" }}>{score} of {ddTotal} docs ready</span>
           </div>
           <div className="h-1.5 rounded-full mb-4 overflow-hidden bg-muted">
-            <div className="h-full rounded-full transition-all" style={{ width: `${(score / 5) * 100}%`, background: score > 2 ? "#2D6A4F" : "#C45C26" }} />
+            <div className="h-full rounded-full transition-all" style={{ width: `${(score / ddTotal) * 100}%`, background: score > ddTotal / 2 ? "#2D6A4F" : "#C45C26" }} />
           </div>
           {score === 0 ? (
             <p className="text-xs text-black dark:text-white">No documents confirmed ready yet.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {ddDocs.filter(({ key }) => org[key as keyof OrgRow] as boolean).map(({ label }) => (
+              {ddDocs.filter(({ key }) => !!org[key]).map(({ label }) => (
                 <span key={label} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg"
                   style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
