@@ -24,6 +24,11 @@ interface MouDocRow {
   signed_files: Record<string, string> | null;
   org_b_finalization_confirmed: boolean;
   partnership_status_confirmed: boolean;
+  details_completed_at_org_a: string | null;
+  org_b_submitted_at: string | null;
+  org_b_confirmed_at: string | null;
+  fully_executed_at: string | null;
+  partnership_status_confirmed_at: string | null;
 }
 interface OrgLite {
   id: string;
@@ -143,7 +148,7 @@ export default function MouTab() {
     setMyOrgId(myOrg.id);
     const { data: docRows } = await supabase
       .from("mou_documents")
-      .select("id, org_a_id, org_b_id, initiative_id, connection_id, source_type, status, updated_at, toggle_selections, field_flags, details_completed_by_org_a, signature_locked_org_a, signature_locked_org_b, signed_files, org_b_finalization_confirmed, partnership_status_confirmed")
+      .select("id, org_a_id, org_b_id, initiative_id, connection_id, source_type, status, updated_at, toggle_selections, field_flags, details_completed_by_org_a, signature_locked_org_a, signature_locked_org_b, signed_files, org_b_finalization_confirmed, partnership_status_confirmed, details_completed_at_org_a, org_b_submitted_at, org_b_confirmed_at, fully_executed_at, partnership_status_confirmed_at")
       .or(`org_a_id.eq.${myOrg.id},org_b_id.eq.${myOrg.id}`)
       .order("updated_at", { ascending: false });
     const orgIds = [...new Set((docRows ?? []).flatMap((d) => [d.org_a_id, d.org_b_id]))];
@@ -454,15 +459,29 @@ export default function MouTab() {
 
                         {/* Date column — one per stage row, charcoal, separated by thin left border */}
                         <div className="flex flex-col shrink-0 pl-4 border-l border-border">
-                          {stages.map((s) => (
-                            <div key={s.key} className="flex items-center" style={{ height: STAGE_H }}>
-                              <span className="text-[11px] text-foreground whitespace-nowrap">
-                                {s.completed
-                                  ? new Date(d.updated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })
-                                  : "—"}
-                              </span>
-                            </div>
-                          ))}
+                          {stages.map((s) => {
+                            const stageDate: string | null = s.completed ? (() => {
+                              switch (s.key) {
+                                case "org_a_prepare": return d.details_completed_at_org_a;
+                                case "org_b_review":  return d.org_b_submitted_at;
+                                case "org_b_confirm": return d.org_b_confirmed_at;
+                                case "org_a_sign":    return d.updated_at; // uploaded_pdf: no per-stage ts
+                                case "org_b_sign":    return d.fully_executed_at ?? d.updated_at;
+                                case "org_a_finalize":return d.fully_executed_at;
+                                case "mark_partnership": return d.partnership_status_confirmed_at;
+                                default: return d.updated_at;
+                              }
+                            })() : null;
+                            return (
+                              <div key={s.key} className="flex items-center" style={{ height: STAGE_H }}>
+                                <span className="text-[11px] text-foreground whitespace-nowrap">
+                                  {stageDate
+                                    ? new Date(stageDate).toLocaleDateString("en-GB", { day: "numeric", month: "short" })
+                                    : "—"}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}

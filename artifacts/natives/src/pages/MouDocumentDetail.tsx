@@ -55,6 +55,9 @@ interface MouDoc {
   org_b_finalization_confirmed: boolean;
   partnership_status_confirmed: boolean;
   partnership_status_confirmed_at: string | null;
+  org_b_submitted_at: string | null;
+  org_b_confirmed_at: string | null;
+  fully_executed_at: string | null;
   created_by: string;
 }
 interface Props {
@@ -871,7 +874,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     // Org A for final review, instead of finishing the document outright.
     const { error } = await supabase.rpc("finish_org_b_and_request_review", { p_document_id: doc.id });
     if (error) return;
-    const updates = { signature_locked_org_b: true, status: "pending_org_a_final_review" as MouDoc["status"], updated_at: new Date().toISOString() };
+    const updates = { signature_locked_org_b: true, status: "pending_org_a_final_review" as MouDoc["status"], org_b_submitted_at: new Date().toISOString(), updated_at: new Date().toISOString() };
     setDoc({ ...doc, ...updates } as MouDoc);
     await supabase.rpc("send_mou_notification", {
       p_document_id: doc.id,
@@ -909,7 +912,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       if (finalUploadError) finalPath = null;
       else await supabase.from("mou_documents").update({ final_document_path: finalPath }).eq("id", doc.id);
     }
-    const updates: Partial<MouDoc> & Record<string, any> = { status: "fully_executed", updated_at: new Date().toISOString() };
+    const updates: Partial<MouDoc> & Record<string, any> = { status: "fully_executed", fully_executed_at: new Date().toISOString(), updated_at: new Date().toISOString() };
     if (finalPath) updates.final_document_path = finalPath;
     setDoc({ ...doc, ...updates } as MouDoc);
     await supabase.rpc("notify_mou_fully_executed", {
@@ -947,7 +950,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     const { error } = await supabase.rpc("confirm_finalization", { p_document_id: doc.id });
     setConfirmingFinalization(false);
     if (error) return;
-    const updates = { org_b_finalization_confirmed: true, updated_at: new Date().toISOString() };
+    const updates = { org_b_finalization_confirmed: true, org_b_confirmed_at: new Date().toISOString(), updated_at: new Date().toISOString() };
     setDoc({ ...doc, ...updates } as MouDoc);
     await supabase.rpc("send_mou_notification", {
       p_document_id: doc.id,
@@ -1033,7 +1036,9 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     // already uploaded and safe at this point either way, so on failure
     // this just reloads from the database instead of trusting local state.
     const { error: updateError } = await supabase.from("mou_documents").update({
-      signed_files: updatedSignedFiles, status: newStatus, updated_at: new Date().toISOString(),
+      signed_files: updatedSignedFiles, status: newStatus,
+      ...(bothSigned ? { fully_executed_at: new Date().toISOString() } : {}),
+      updated_at: new Date().toISOString(),
     }).eq("id", doc.id);
     if (updateError) {
       setUploadingSigned(false);
