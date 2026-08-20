@@ -29,8 +29,8 @@ interface OrgFull {
 }
 interface MouDoc {
   id: string;
-  org_a_id: string;
-  org_b_id: string;
+  org_a_id: string | null;
+  org_b_id: string | null;
   initiative_id: string | null;
   connection_id: string | null;
   source_type: "template" | "custom" | "uploaded_pdf";
@@ -755,7 +755,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     // or notify Org A to come back and sign. The DB trigger
     // (enforce_org_a_signed_before_send) is the real guarantee; this just
     // avoids a wasted round trip that would only end in a Postgres error.
-    const alreadySigned = doc.source_type === "uploaded_pdf" ? !!doc.signed_files?.[doc.org_a_id] : !!doc.signature_org_a_path;
+    const alreadySigned = doc.source_type === "uploaded_pdf" ? !!doc.signed_files?.[doc.org_a_id ?? ""] : !!doc.signature_org_a_path;
     if (!alreadySigned) return;
     setSaving(true);
     // Same atomic-save principle as signing: whatever's currently in the
@@ -1027,7 +1027,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     const { error: uploadError } = await supabase.storage.from("mou-documents").upload(path, file);
     if (uploadError) { setUploadingSigned(false); return; }
     const updatedSignedFiles = { ...(doc.signed_files ?? {}), [myOrgId]: path };
-    const bothSigned = updatedSignedFiles[doc.org_a_id] && updatedSignedFiles[doc.org_b_id];
+    const bothSigned = updatedSignedFiles[doc.org_a_id ?? ""] && updatedSignedFiles[doc.org_b_id ?? ""];
     const newStatus = bothSigned ? "fully_executed" : (doc.status === "draft" ? "sent" : doc.status);
     // The row update was previously fired without checking its result --
     // if it failed (e.g. a DB constraint rejected the transition), this
@@ -1094,7 +1094,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       const { error: pdfUploadError } = await supabase.storage.from("mou-documents").upload(signedPdfPath, signedBlob);
       if (pdfUploadError) return;
       const updatedSignedFiles = { ...(doc.signed_files ?? {}), [myOrgId]: signedPdfPath };
-      const bothSigned = updatedSignedFiles[doc.org_a_id] && updatedSignedFiles[doc.org_b_id];
+      const bothSigned = updatedSignedFiles[doc.org_a_id ?? ""] && updatedSignedFiles[doc.org_b_id ?? ""];
       const newStatus = bothSigned ? "fully_executed" : (doc.status === "draft" ? "sent" : doc.status);
       const updates: Partial<MouDoc> & Record<string, any> = {
         signed_files: updatedSignedFiles,
@@ -1375,6 +1375,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       </div>
     );
   }
+  const aPartyDeleted = doc.org_a_id === null || doc.org_b_id === null;
   const iAmCreator = myUserId === doc.created_by;
   const hasUnresolvedOrgBFlags = (doc.field_flags ?? []).some((f) => !f.resolved && f.raised_by === "org_b");
   const hasUnresolvedOrgAFlags = (doc.field_flags ?? []).some((f) => !f.resolved && f.raised_by === "org_a");
@@ -1388,7 +1389,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   // custom docs sign via signature_org_a_path, uploaded_pdf docs sign via
   // signed_files keyed by org id. Mirrors the check the DB trigger
   // (enforce_org_a_signed_before_send) applies server-side.
-  const orgAHasSigned = doc.source_type === "uploaded_pdf" ? !!doc.signed_files?.[doc.org_a_id] : !!doc.signature_org_a_path;
+  const orgAHasSigned = doc.source_type === "uploaded_pdf" ? !!doc.signed_files?.[doc.org_a_id ?? ""] : !!doc.signature_org_a_path;
   const orgBConfirmationPending = isBindingMou && !doc.org_b_finalization_confirmed;
   const orgBCanConfirmFinalization =
     isViewerOrgB && doc.status === "pending_org_a_final_review" && !hasUnresolvedOrgAFlags && orgBConfirmationPending;
@@ -1430,8 +1431,8 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
         : undefined,
     });
   } else if (doc.source_type === "uploaded_pdf") {
-    stages.push({ key: "org_a_sign", label: `${orgAName} uploads their signed copy`, completed: !!doc.signed_files?.[doc.org_a_id] });
-    stages.push({ key: "org_b_sign", label: `${orgBName} uploads their signed copy`, completed: !!doc.signed_files?.[doc.org_b_id] });
+    stages.push({ key: "org_a_sign", label: `${orgAName} uploads their signed copy`, completed: !!doc.signed_files?.[doc.org_a_id ?? ""] });
+    stages.push({ key: "org_b_sign", label: `${orgBName} uploads their signed copy`, completed: !!doc.signed_files?.[doc.org_b_id ?? ""] });
   } else {
     stages.push({ key: "org_a_sign", label: `${orgAName} signs`, completed: doc.signature_locked_org_a });
     stages.push({ key: "org_b_sign", label: `${orgBName} signs`, completed: doc.signature_locked_org_b });
@@ -1478,6 +1479,11 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           </span>
         </div>
       </div>
+      {aPartyDeleted && (
+        <InfoBanner tone="locked" icon={Lock}>
+          One of the organisations on this MoU has been deleted. The document is preserved for your records, but signing, sending, and export are no longer available.
+        </InfoBanner>
+      )}
       {/* Template: fillable fields */}
           {doc.source_type === "template" && (
             <>
@@ -1762,18 +1768,18 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               <div className="space-y-4">
                 <div className="flex items-center gap-4 text-sm">
                   <span className="flex items-center gap-1.5 text-black dark:text-white">
-                    {doc.signed_files?.[doc.org_a_id] && <CheckCircle2 className="w-4 h-4" />}
-                    {orgA?.organisation_name}: {doc.signed_files?.[doc.org_a_id] ? "Signed" : "Awaiting signature"}
+                    {doc.signed_files?.[doc.org_a_id ?? ""] && <CheckCircle2 className="w-4 h-4" />}
+                    {orgA?.organisation_name}: {doc.signed_files?.[doc.org_a_id ?? ""] ? "Signed" : "Awaiting signature"}
                   </span>
                 </div>
                 <div className="flex items-center gap-4 text-sm">
                   <span className="flex items-center gap-1.5 text-black dark:text-white">
-                    {doc.signed_files?.[doc.org_b_id] && <CheckCircle2 className="w-4 h-4" />}
-                    {orgB?.organisation_name}: {doc.signed_files?.[doc.org_b_id] ? "Signed" : "Awaiting signature"}
+                    {doc.signed_files?.[doc.org_b_id ?? ""] && <CheckCircle2 className="w-4 h-4" />}
+                    {orgB?.organisation_name}: {doc.signed_files?.[doc.org_b_id ?? ""] ? "Signed" : "Awaiting signature"}
                   </span>
                 </div>
                 {(isViewerOrgA || isViewerOrgB) && (() => {
-                  const myAlreadySigned = isViewerOrgA ? !!doc.signed_files?.[doc.org_a_id] : !!doc.signed_files?.[doc.org_b_id];
+                  const myAlreadySigned = isViewerOrgA ? !!doc.signed_files?.[doc.org_a_id ?? ""] : !!doc.signed_files?.[doc.org_b_id ?? ""];
                   if (myAlreadySigned) {
                     return (
                       <div className="border-t border-border pt-4">

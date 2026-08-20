@@ -229,7 +229,7 @@ export default function MouTab() {
   const selectPickerOptions = useMemo(() => {
     const q = selectPickerSearch.trim().toLowerCase();
     return docs
-      .map((d) => ({ doc: d, partnerName: otherOrg(d)?.organisation_name ?? "Unknown organisation", title: resolveMouDocTitle(d, orgMap, initiativeTitleMap) }))
+      .map((d) => ({ doc: d, partnerName: otherOrg(d)?.organisation_name ?? "Deleted organisation", title: resolveMouDocTitle(d, orgMap, initiativeTitleMap) }))
       .filter((o) => !q || o.partnerName.toLowerCase().includes(q) || (o.title ?? "").toLowerCase().includes(q))
       .sort((a, b) => a.partnerName.localeCompare(b.partnerName));
   }, [docs, orgMap, initiativeTitleMap, selectPickerSearch, myOrgId]);
@@ -372,7 +372,7 @@ export default function MouTab() {
                         <SourceIcon className="w-3.5 h-3.5 text-[#2D6A4F]" />
                       </div>
                       <p className="text-[15px] font-bold text-foreground">
-                        {otherOrg(d)?.organisation_name ?? "Unknown organisation"}
+                        {otherOrg(d)?.organisation_name ?? "Deleted organisation"}
                       </p>
                       {isDraft ? (
                         <span className="text-[11px] font-bold px-2 py-0.5 rounded-full border border-border text-foreground">Draft</span>
