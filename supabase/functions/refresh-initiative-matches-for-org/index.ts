@@ -219,11 +219,11 @@ Deno.serve(async (req: Request) => {
       if (submitterIds.length === 0) return rows;
       const { data: ddRows } = await serviceClient
         .from("organizations")
-        .select("user_id, dd_financial_model, dd_audited_accounts, dd_governance_doc, dd_esg_assessment, dd_impact_framework")
+        .select("user_id, dd_financial_model, dd_audited_accounts, dd_governance_doc, dd_esg_assessment, dd_impact_framework, dd_environmental_policy, dd_safeguarding_policy, dd_legal_registration, dd_legal_compliance_declaration")
         .in("user_id", submitterIds);
       const ddMap = new Map((ddRows ?? []).map((r: any) => {
-        const count = [r.dd_financial_model, r.dd_audited_accounts, r.dd_governance_doc, r.dd_esg_assessment, r.dd_impact_framework].filter(Boolean).length;
-        return [r.user_id, Math.round((count / 5) * 100)];
+        const count = [r.dd_financial_model, r.dd_audited_accounts, r.dd_governance_doc, r.dd_esg_assessment, r.dd_impact_framework, r.dd_environmental_policy, r.dd_safeguarding_policy, r.dd_legal_registration, r.dd_legal_compliance_declaration].filter(Boolean).length;
+        return [r.user_id, Math.round((count / 9) * 100)];
       }));
       return rows.map((i: any) => ({ ...i, dd_readiness_score: ddMap.get(i.user_id) ?? 0 }));
     }
