@@ -1026,13 +1026,13 @@ function OrganizationsPanel({ initialView }: { initialView?: OrgView }) {
   }
 
   async function deleteOrg(id: string) {
-    if (!confirm('Permanently delete this organisation? This cannot be undone.')) return
-    const { error } = await supabase
-      .from('organizations')
-      .delete()
-      .eq('id', id)
-    if (error) alert(`Failed to delete: ${error.message}`)
-    else setOrgs(prev => prev.filter(o => o.id !== id))
+    if (!confirm('Permanently delete this organisation and all associated data? This cannot be undone. Any MoUs with other organisations will be preserved for the other party, with this organisation shown as deleted.')) return
+    const { data, error } = await supabase.rpc('delete_org_by_id', { target_org_id: id })
+    if (error) { alert(`Failed to delete: ${error.message}`); return; }
+    setOrgs(prev => prev.filter(o => o.id !== id))
+    if (data?.mous_preserved > 0) {
+      alert(`Organisation deleted. ${data.mous_preserved} MoU document(s) (${data.executed_mous_preserved} fully executed) were preserved for the other party.`)
+    }
   }
 
   return (
