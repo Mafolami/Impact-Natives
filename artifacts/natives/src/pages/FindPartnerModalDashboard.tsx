@@ -56,9 +56,7 @@ type PrefillData = {
   partnership_success_definition:string;partnership_legal_type:string[];
   partnership_exclusivity:string;partnership_language:string[];
   partnership_team_capacity:string;partnership_funding_status:string;
-  partnership_dd_financial_model:boolean;partnership_dd_audited_accounts:boolean;
-  partnership_dd_safeguarding_policy:boolean;partnership_dd_data_policy:boolean;
-  partnership_dd_governance_doc:boolean;partnership_financial_transfer:string;
+  partnership_financial_transfer:string;
   partnership_working_style:string;partnership_reporting:string[];
   partnership_ip_ownership:string;partnership_constraints:string;
   partnership_prior_attempts:string;partnership_decision_maker_confirmed:boolean;
@@ -82,9 +80,7 @@ const EMPTY_FORM:PrefillData = {
   partnership_geo_specificity:"",partnership_budget:"",partnership_decision_timeline:"",
   partnership_success_definition:"",partnership_legal_type:[],partnership_exclusivity:"",
   partnership_language:[],partnership_team_capacity:"",partnership_funding_status:"",
-  partnership_dd_financial_model:false,partnership_dd_audited_accounts:false,
-  partnership_dd_safeguarding_policy:false,partnership_dd_data_policy:false,
-  partnership_dd_governance_doc:false,partnership_financial_transfer:"",
+  partnership_financial_transfer:"",
   partnership_working_style:"",partnership_reporting:[],partnership_ip_ownership:"",
   partnership_constraints:"",partnership_prior_attempts:"",
   partnership_decision_maker_confirmed:false,partnership_prior_experience:null,
@@ -516,8 +512,7 @@ export function FindPartnerModalDashboard({
           partnership_sought,partnership_stage,partnership_duration,partnership_geo_specificity,
           partnership_budget,partnership_decision_timeline,partnership_success_definition,
           partnership_legal_type,partnership_exclusivity,partnership_language,partnership_team_capacity,
-          partnership_funding_status,partnership_dd_financial_model,partnership_dd_audited_accounts,
-          partnership_dd_safeguarding_policy,partnership_dd_data_policy,partnership_dd_governance_doc,
+          partnership_funding_status,
           partnership_financial_transfer,partnership_working_style,partnership_reporting,
           partnership_ip_ownership,partnership_constraints,partnership_prior_attempts,
           partnership_decision_maker_confirmed,partnership_prior_experience,
@@ -579,11 +574,6 @@ export function FindPartnerModalDashboard({
           partnership_language:data.partnership_language??[],
           partnership_team_capacity:data.partnership_team_capacity??"",
           partnership_funding_status:data.partnership_funding_status??"",
-          partnership_dd_financial_model:data.partnership_dd_financial_model??false,
-          partnership_dd_audited_accounts:data.partnership_dd_audited_accounts??false,
-          partnership_dd_safeguarding_policy:data.partnership_dd_safeguarding_policy??false,
-          partnership_dd_data_policy:data.partnership_dd_data_policy??false,
-          partnership_dd_governance_doc:data.partnership_dd_governance_doc??false,
           partnership_financial_transfer:data.partnership_financial_transfer??"",
           partnership_working_style:data.partnership_working_style??"",
           partnership_reporting:data.partnership_reporting??[],
