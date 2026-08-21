@@ -117,6 +117,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const [loadingIndicators, setLoadingIndicators] = useState(true);
   const [showIndicatorForm, setShowIndicatorForm] = useState(false);
   const [agreeingIndicatorId, setAgreeingIndicatorId] = useState<string | null>(null);
+  const [uploadIndicatorError, setUploadIndicatorError] = useState<string | null>(null);
   // In-platform PDF signing (uploaded_pdf docs only). Inline signing is
   // the default UI; "upload instead" opens a confirm-and-upload modal
   // as a secondary text link, not a competing button.
@@ -1048,12 +1049,25 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   }
   async function uploadSignedCopy(file: File) {
     if (!doc || !orgA || !orgB) return;
-    setUploadingSigned(true);
+    setUploadIndicatorError(null);
     // Match the logged-in user to their actual org by user_id, not by
     // guessing from who created the document — the creator and uploader
     // can be different people on the same side, or either party at all.
     const myOrgId = orgA.user_id === myUserId ? orgA.id : orgB.user_id === myUserId ? orgB.id : null;
-    if (!myOrgId) { setUploadingSigned(false); return; }
+    if (!myOrgId) return;
+    // If this signature would complete both sides (the other org has
+    // already signed), check the same requirement finalizeDocument()
+    // enforces for the template/custom path -- the DB trigger
+    // (enforce_agreed_indicator_before_execution) is the real guarantee
+    // regardless of path; this just avoids uploading a file only to hit
+    // a raw Postgres error immediately after.
+    const otherOrgId = myOrgId === doc.org_a_id ? doc.org_b_id : doc.org_a_id;
+    const otherAlreadySigned = !!doc.signed_files?.[otherOrgId ?? ""];
+    if (otherAlreadySigned && !indicators.some((i) => isIndicatorAgreed(i))) {
+      setUploadIndicatorError("At least one outcome indicator, agreed by both parties, is required before this MoU can be fully executed.");
+      return;
+    }
+    setUploadingSigned(true);
     const path = `signed/${doc.id}/${myUserId}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_")}`;
     const { error: uploadError } = await supabase.storage.from("mou-documents").upload(path, file);
     if (uploadError) { setUploadingSigned(false); return; }
@@ -1087,8 +1101,16 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   // so .doc/.docx uploads fall back to the upload-only flow further down.
   async function composeAndSignPdf(dataUrl: string) {
     if (!doc || !orgA || !orgB || !uploadedFileUrl) return;
+    setUploadIndicatorError(null);
     const myOrgId = orgA.user_id === myUserId ? orgA.id : orgB.user_id === myUserId ? orgB.id : null;
     if (!myOrgId) return;
+    // Same check as uploadSignedCopy -- see comment there.
+    const otherOrgId = myOrgId === doc.org_a_id ? doc.org_b_id : doc.org_a_id;
+    const otherAlreadySigned = !!doc.signed_files?.[otherOrgId ?? ""];
+    if (otherAlreadySigned && !indicators.some((i) => isIndicatorAgreed(i))) {
+      setUploadIndicatorError("At least one outcome indicator, agreed by both parties, is required before this MoU can be fully executed.");
+      return;
+    }
     setComposingSignature(true);
     try {
       const originalBytes = await fetch(uploadedFileUrl).then((r) => r.arrayBuffer());
@@ -1889,6 +1911,11 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                     {orgB?.organisation_name}: {doc.signed_files?.[doc.org_b_id ?? ""] ? "Signed" : "Awaiting signature"}
                   </span>
                 </div>
+                {uploadIndicatorError && (
+                  <div className="rounded-xl border border-red-300 bg-red-50 p-4">
+                    <p className="text-sm text-red-800">{uploadIndicatorError}</p>
+                  </div>
+                )}
                 {(isViewerOrgA || isViewerOrgB) && (() => {
                   const myAlreadySigned = isViewerOrgA ? !!doc.signed_files?.[doc.org_a_id ?? ""] : !!doc.signed_files?.[doc.org_b_id ?? ""];
                   if (myAlreadySigned) {
