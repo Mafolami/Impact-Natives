@@ -21,6 +21,7 @@ import { Link } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { Loader2, ShieldCheck, Sparkles, CheckCircle2, ArrowUpRight, ArrowLeft, Award } from "lucide-react";
 import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
+import VerifiedOutcomesSection from "@/components/dashboard/VerifiedOutcomesSection";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -509,14 +510,15 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
                   {label}
                 </span>
-              ))}
-            </div>
-          )}
-        </Section>
-
-        {org.sdgs && org.sdgs.length > 0 && (
-          <Section>
-            <Eyebrow>SDG alignment</Eyebrow>
+                  ))}
+                  </div>
+                )}
+              </Section>
+              
+              <VerifiedOutcomesSection orgId={org.id} variant="page" />
+              {org.sdgs && org.sdgs.length > 0 && (
+                <Section>
+                  <Eyebrow>SDG alignment</Eyebrow>
             <div className="flex flex-wrap gap-1.5">
               {org.sdgs.map(sdg => (
                 <span key={sdg} className="text-xs font-bold px-3 py-1.5 rounded-lg"
@@ -905,9 +907,10 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                 </span>
               ))}
             </div>
-          )}
-        </div>
-
+            )}
+          </div>
+          <VerifiedOutcomesSection orgId={org.id} variant="panel" />
+            
         {org.sdgs && org.sdgs.length > 0 && (
           <div className="px-8 py-6">
             <Eyebrow>SDG alignment</Eyebrow>
