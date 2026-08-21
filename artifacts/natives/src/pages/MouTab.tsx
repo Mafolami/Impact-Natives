@@ -397,7 +397,7 @@ export default function MouTab() {
                           onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/portfolio/milestones?mouId=${d.id}`); }}
                           className="flex items-center gap-1.5 h-9 px-5 rounded-full border border-border text-[13px] font-medium text-foreground transition-all hover:border-[#2D6A4F]/50 hover:-translate-y-px active:translate-y-0"
                           style={{ boxShadow: "0 2px 4px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)" }}>
-                          <Target className="w-3.5 h-3.5" /> Milestones
+                          <Target className="w-3.5 h-3.5" /> Traction
                         </button>
                       )}
                       {isDraft && (
