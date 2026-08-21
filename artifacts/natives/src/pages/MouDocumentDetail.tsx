@@ -106,6 +106,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const [customFieldMode, setCustomFieldMode] = useState<Record<string, boolean>>({});
   const [finalizing, setFinalizing] = useState(false);
   const [finalizeError, setFinalizeError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [confirmingFinalization, setConfirmingFinalization] = useState(false);
   const [confirmingPartnershipStatus, setConfirmingPartnershipStatus] = useState(false);
   const [showVoidConfirm, setShowVoidConfirm] = useState(false);
@@ -748,8 +749,9 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     }).eq("id", doc.id);
     setSaving(false);
   }
-   async function markSent() {
+  async function markSent() {
     if (!doc || !orgB) return;
+    setSendError(null);
     // Org A must have signed before the document can go to Org B -- an
     // unsigned send left Org B stuck with no way to sign their own side
     // or notify Org A to come back and sign. The DB trigger
@@ -757,6 +759,18 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     // avoids a wasted round trip that would only end in a Postgres error.
     const alreadySigned = doc.source_type === "uploaded_pdf" ? !!doc.signed_files?.[doc.org_a_id ?? ""] : !!doc.signature_org_a_path;
     if (!alreadySigned) return;
+    // Same principle for the indicator requirement -- enforce_indicator_
+    // before_send is the real guarantee at the DB level; this just avoids
+    // a wasted round trip. CreateMouModal's mandatory indicators step
+    // should already satisfy this for new drafts, but a doc created
+    // before this feature existed could still hit this path with zero
+    // indicators.
+    const { count: indicatorCount } = await supabase
+      .from("partnership_indicators").select("id", { count: "exact", head: true }).eq("mou_document_id", doc.id);
+    if (!indicatorCount || indicatorCount < 1) {
+      setSendError("Add at least one outcome indicator before sending this MoU.");
+      return;
+    }
     setSaving(true);
     // Same atomic-save principle as signing: whatever's currently in the
     // form must be captured here, or clicking Send right after filling
@@ -1751,6 +1765,11 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               <div className="rounded-xl border border-red-300 bg-red-50 p-4">
                 <p className="text-sm font-medium text-red-800 mb-1">Fix these dates before sending or signing:</p>
                 {dateValidationErrors.map((e, i) => <p key={i} className="text-sm text-red-800">{e}</p>)}
+              </div>
+            )}
+            {sendError && (
+              <div className="rounded-xl border border-red-300 bg-red-50 p-4">
+                <p className="text-sm text-red-800">{sendError}</p>
               </div>
             )}
             {noticePeriodWarning && (
