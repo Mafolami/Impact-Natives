@@ -10,6 +10,7 @@ import { resolveMouDocTitle } from "@/lib/mouTitle";
 import MilestoneCard from "@/components/mou/MilestoneCard";
 import MilestoneCreateModal from "@/components/mou/MilestoneCreateModal";
 import MilestoneDetailModal from "@/components/mou/MilestoneDetailModal";
+import IndicatorsBoard from "@/components/mou/IndicatorsBoard";
 
 interface ExecutedDoc {
   id: string;
@@ -61,6 +62,7 @@ export default function DashboardPortfolioMilestones() {
   // get overridden back to collapsed on the next data reload.
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const seenDocIds = useRef<Set<string>>(new Set());
+  const [docView, setDocView] = useState<Record<string, "milestones" | "indicators">>({});
 
   useEffect(() => { load(); }, [orgOwnerId]);
 
@@ -437,17 +439,36 @@ export default function DashboardPortfolioMilestones() {
                       const title = docTitle(doc) ?? "Partnership";
                       const docItems = statusFiltered.filter((m) => m.mou_document_id === doc.id);
                       const isCollapsed = !scopedDocId && collapsedIds.has(doc.id);
+                      const view = docView[doc.id] ?? "milestones";
                       return (
                         <div key={doc.id}>
-                          <button type="button" onClick={() => toggleCollapse(doc.id)}
-                            className="flex items-center gap-2 mb-2 text-left group">
-                            <ChevronDown className={`w-3.5 h-3.5 text-black dark:text-white transition-transform shrink-0 ${isCollapsed ? "-rotate-90" : ""}`} />
-                            <p className="text-sm text-black dark:text-white group-hover:underline">{title}</p>
-                            {isCollapsed && (
-                              <span className="text-xs text-black dark:text-white">({docItems.length})</span>
+                          <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                            <button type="button" onClick={() => toggleCollapse(doc.id)}
+                              className="flex items-center gap-2 text-left group">
+                              <ChevronDown className={`w-3.5 h-3.5 text-black dark:text-white transition-transform shrink-0 ${isCollapsed ? "-rotate-90" : ""}`} />
+                              <p className="text-sm text-black dark:text-white group-hover:underline">{title}</p>
+                              {isCollapsed && (
+                                <span className="text-xs text-black dark:text-white">({docItems.length})</span>
+                              )}
+                            </button>
+                            {!isCollapsed && (
+                              <div className="flex items-center rounded-full border border-border p-0.5 shrink-0">
+                                <button type="button" onClick={() => setDocView((prev) => ({ ...prev, [doc.id]: "milestones" }))}
+                                  className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                                    view === "milestones" ? "bg-[#2D6A4F] text-white" : "text-black dark:text-white"
+                                  }`}>
+                                  Milestones
+                                </button>
+                                <button type="button" onClick={() => setDocView((prev) => ({ ...prev, [doc.id]: "indicators" }))}
+                                  className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                                    view === "indicators" ? "bg-[#2D6A4F] text-white" : "text-black dark:text-white"
+                                  }`}>
+                                  Indicators
+                                </button>
+                              </div>
                             )}
-                          </button>
-                          {!isCollapsed && <KanbanBoard items={docItems} />}
+                          </div>
+                          {!isCollapsed && (view === "milestones" ? <KanbanBoard items={docItems} /> : <IndicatorsBoard mouDocumentId={doc.id} />)}
                         </div>
                       );
                     })}
