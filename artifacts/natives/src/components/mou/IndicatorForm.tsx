@@ -1,9 +1,16 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Loader2, Sparkles, X } from "lucide-react";
+import { Loader2, Sparkles, X, CheckCircle2 } from "lucide-react";
 import { createIndicator } from "@/lib/indicators";
 
 const REFINE_CAP = 3;
+
+interface AddedIndicator {
+  id: string;
+  name: string;
+  target_value: string;
+  measurement_window: string;
+}
 
 export default function IndicatorForm({
   mouDocumentId, createdByOrgId, initiativeId, connectionId, onClose, onCreated,
@@ -15,13 +22,16 @@ export default function IndicatorForm({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const [addedIndicators, setAddedIndicators] = useState<AddedIndicator[]>([]);
+
   const [name, setName] = useState("");
   const [definition, setDefinition] = useState("");
   const [baselineValue, setBaselineValue] = useState("");
   const [targetValue, setTargetValue] = useState("");
   const [measurementWindow, setMeasurementWindow] = useState("");
 
-  const [creating, setCreating] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
 
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [suggestFailed, setSuggestFailed] = useState(false);
@@ -35,6 +45,21 @@ export default function IndicatorForm({
   const [refineRequiresUpgrade, setRefineRequiresUpgrade] = useState(false);
   const [refineCount, setRefineCount] = useState(0);
   const [refineSuggestion, setRefineSuggestion] = useState<{ name: string; definition: string } | null>(null);
+
+  function resetDraftFields() {
+    setName("");
+    setDefinition("");
+    setBaselineValue("");
+    setTargetValue("");
+    setMeasurementWindow("");
+    setSuggestions([]);
+    setSuggestFailed(false);
+    setSuggestRequiresUpgrade(false);
+    setRefineCount(0);
+    setRefineSuggestion(null);
+    setRefineFailed(false);
+    setRefineRequiresUpgrade(false);
+  }
 
   async function suggestIndicators() {
     setSuggestLoading(true);
@@ -95,9 +120,15 @@ export default function IndicatorForm({
     setRefineSuggestion(null);
   }
 
-  async function handleCreate() {
+  // Renamed from handleCreate -- this now appends to the running list
+  // rather than closing the modal, so the person can add several
+  // indicators (the M&E-recommended 3-5 per the handover) before moving
+  // on, instead of being funnelled through the create flow once per
+  // indicator.
+  async function addIndicator() {
     if (!name.trim() || !definition.trim() || !targetValue.trim() || !measurementWindow.trim()) return;
-    setCreating(true);
+    setAdding(true);
+    setAddError(null);
     const result = await createIndicator({
       mou_document_id: mouDocumentId,
       name: name.trim(),
@@ -107,24 +138,53 @@ export default function IndicatorForm({
       measurement_window: measurementWindow.trim(),
       created_by_org_id: createdByOrgId,
     });
-    setCreating(false);
-    if (!result) return;
+    setAdding(false);
+    if (!result) { setAddError("Couldn't add that indicator. Try again."); return; }
+    setAddedIndicators((prev) => [...prev, {
+      id: result.id, name: result.name, target_value: result.target_value, measurement_window: result.measurement_window,
+    }]);
+    resetDraftFields();
+  }
+
+  function handleContinue() {
+    if (addedIndicators.length === 0) return;
     onCreated();
     onClose();
   }
 
-  const canCreate = name.trim() && definition.trim() && targetValue.trim() && measurementWindow.trim();
+  const canAdd = name.trim() && definition.trim() && targetValue.trim() && measurementWindow.trim();
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-white dark:bg-card rounded-t-2xl sm:rounded-2xl border border-border w-full sm:max-w-sm shadow-xl p-6 space-y-4 max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <p className="text-base font-bold text-black dark:text-white">New indicator</p>
+          <p className="text-base font-bold text-black dark:text-white">Add outcome indicators</p>
           <button type="button" onClick={onClose} className="p-1 rounded-full hover:bg-muted transition-colors">
             <X className="w-4 h-4 text-black dark:text-white" />
           </button>
         </div>
+        <p className="text-xs text-black dark:text-white">
+          At least one is required before this MoU can be sent. Add a few more now if you can -- 3 to 5 is typical.
+        </p>
+
+        {addedIndicators.length > 0 && (
+          <div className="space-y-1.5">
+            {addedIndicators.map((ind) => (
+              <div key={ind.id} className="flex items-start gap-2 rounded-lg border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-3 py-2">
+                <CheckCircle2 className="w-4 h-4 text-[#2D6A4F] shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-black dark:text-white">{ind.name}</p>
+                  <p className="text-xs text-black dark:text-white mt-0.5">
+                    Target: {ind.target_value} · {ind.measurement_window}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="h-px bg-border" />
 
         <button type="button" onClick={suggestIndicators} disabled={suggestLoading}
           className="w-full flex items-center justify-center gap-1.5 h-9 rounded-full border border-[#2D6A4F]/30 bg-[#2D6A4F]/5 text-sm font-medium text-[#2D6A4F] hover:bg-[#2D6A4F]/10 disabled:opacity-50 transition-colors">
@@ -208,14 +268,22 @@ export default function IndicatorForm({
           </div>
         )}
 
+        {addError && <p className="text-sm text-red-600 bg-red-50 rounded-md px-3 py-2">{addError}</p>}
+
+        <button type="button" onClick={addIndicator} disabled={adding || !canAdd}
+          className="w-full h-10 rounded-full border border-[#2D6A4F] text-[#2D6A4F] text-sm font-medium hover:bg-[#2D6A4F]/5 disabled:opacity-60 transition-colors">
+          {adding ? "Adding..." : "Add this indicator"}
+        </button>
+
         <div className="flex gap-2">
           <button type="button" onClick={onClose}
             className="flex-1 h-10 rounded-full border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors">
             Cancel
           </button>
-          <button type="button" onClick={handleCreate} disabled={creating || !canCreate}
+          <button type="button" onClick={handleContinue} disabled={addedIndicators.length === 0}
+            title={addedIndicators.length === 0 ? "Add at least one indicator first" : undefined}
             className="flex-1 h-10 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium disabled:opacity-60 transition-colors">
-            {creating ? "Adding..." : "Add indicator"}
+            {addedIndicators.length === 0 ? "Continue" : `Continue (${addedIndicators.length} added)`}
           </button>
         </div>
       </div>
