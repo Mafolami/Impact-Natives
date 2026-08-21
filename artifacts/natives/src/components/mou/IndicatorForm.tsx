@@ -150,18 +150,33 @@ export default function IndicatorForm({
           </div>
         )}
 
-        <input type="text" placeholder="Indicator name" value={name} onChange={(e) => setName(e.target.value)}
-          className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
-        <textarea placeholder="Definition -- how is this measured, from whom, on what schedule" value={definition}
-          onChange={(e) => setDefinition(e.target.value)} rows={3}
-          className="w-full px-3 py-2 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white resize-none" />
-        <input type="text" placeholder="Baseline value (optional)" value={baselineValue} onChange={(e) => setBaselineValue(e.target.value)}
-          className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
-        <input type="text" placeholder="Target value" value={targetValue} onChange={(e) => setTargetValue(e.target.value)}
-          className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
-        <input type="text" placeholder="Measurement window (e.g. quarterly, end-of-project)" value={measurementWindow}
-          onChange={(e) => setMeasurementWindow(e.target.value)}
-          className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
+        <div>
+          <label className="text-xs text-black dark:text-white block mb-1">Indicator name</label>
+          <input type="text" placeholder="e.g. Beneficiaries trained" value={name} onChange={(e) => setName(e.target.value)}
+            className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
+        </div>
+        <div>
+          <label className="text-xs text-black dark:text-white block mb-1">Definition</label>
+          <textarea placeholder="How is this measured, from whom, and on what schedule" value={definition}
+            onChange={(e) => setDefinition(e.target.value)} rows={3}
+            className="w-full px-3 py-2 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white resize-none" />
+        </div>
+        <div>
+          <label className="text-xs text-black dark:text-white block mb-1">Baseline value (optional)</label>
+          <input type="text" placeholder="Current value before this partnership" value={baselineValue} onChange={(e) => setBaselineValue(e.target.value)}
+            className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
+        </div>
+        <div>
+          <label className="text-xs text-black dark:text-white block mb-1">Target value</label>
+          <input type="text" placeholder="What you're aiming for" value={targetValue} onChange={(e) => setTargetValue(e.target.value)}
+            className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
+        </div>
+        <div>
+          <label className="text-xs text-black dark:text-white block mb-1">Measurement window</label>
+          <input type="text" placeholder="e.g. quarterly, end-of-project" value={measurementWindow}
+            onChange={(e) => setMeasurementWindow(e.target.value)}
+            className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
+        </div>
 
         {name.trim() && definition.trim() && (
           <button type="button" onClick={refineIndicator} disabled={refineLoading || refineCount >= REFINE_CAP}
