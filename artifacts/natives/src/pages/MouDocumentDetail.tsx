@@ -340,6 +340,14 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     if (startDate && endDate && startDate > endDate) errors.push("Start date cannot be later than end date.");
     if (agreementDate && startDate && agreementDate > startDate) errors.push("Agreement date cannot be later than start date.");
     if (agreementDate && endDate && agreementDate > endDate) errors.push("Agreement date cannot be later than end date.");
+    // Agreement date can be backdated (reflecting an earlier verbal
+    // understanding or effective start), but can't be dated into the
+    // future -- same principle as dating a physical document by hand.
+    if (agreementDate) {
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      if (agreementDate > today) errors.push("Agreement date cannot be later than today.");
+    }
     return errors;
   }, [fieldValues, autofill]);
   // Non-blocking, unlike dateValidationErrors -- a long notice period on a
@@ -419,6 +427,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   }
   function fieldDateError(key: string): string | null {
     if (key === "start_date" && dateValidationErrors.some((e) => e.includes("Start date"))) return "Cannot be later than end date.";
+    if (key === "agreement_date" && dateValidationErrors.some((e) => e.includes("later than today"))) return "Cannot be later than today.";
     if (key === "agreement_date" && dateValidationErrors.some((e) => e.includes("Agreement date"))) return "Cannot be later than start or end date.";
     return null;
   }
@@ -594,6 +603,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
         <input
           type={isDateField(key) ? "date" : "text"}
           value={value}
+          max={key === "agreement_date" ? new Date().toISOString().slice(0, 10) : undefined}
           onChange={(e) => setFieldValues((prev) => ({ ...prev, [key]: e.target.value }))}
           className={`w-full h-10 px-3 rounded-lg border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none ${
             dateError ? "border-red-500" : "border-border focus:border-[#2D6A4F]/50"
