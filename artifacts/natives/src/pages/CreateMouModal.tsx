@@ -2,11 +2,9 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { X, FileText, PenLine, Upload, Loader2, CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
-import IndicatorForm from "@/components/mou/IndicatorForm";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Path = "template" | "custom" | "upload" | null;
-type Stage = "picker" | "path_step" | "indicators";
 
 interface TemplateToggleOption {
   value: string | boolean;
@@ -57,14 +55,6 @@ export default function CreateMouModal({
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  // New mandatory step: once any of the three creation paths succeeds,
-  // the draft exists but can't be sent until it has at least one
-  // indicator (enforced hard at the DB level via a trigger on
-  // mou_documents -- this step is what guarantees that's already
-  // satisfied by the time anyone reaches "send", rather than leaving
-  // indicator-adding to some undefined later point in the flow).
-  const [stage, setStage] = useState<Stage>("picker");
-  const [createdDocId, setCreatedDocId] = useState<string | null>(null);
   // Only one MoU is allowed per initiative -- if one already exists,
   // creation is skipped entirely and the person is routed straight into
   // the existing document instead of hitting a duplicate-key error.
@@ -187,7 +177,7 @@ export default function CreateMouModal({
     }).select("id").single();
     setSaving(false);
     if (insertError) { setError(insertError.message); return; }
-    if (inserted) { setCreatedDocId(inserted.id); setStage("indicators"); }
+    if (inserted) onOpenDocument(inserted.id);
   }
   async function saveCustomDoc() {
     if (!myOrg || !partnerOrg) return;
@@ -204,7 +194,7 @@ export default function CreateMouModal({
     }).select("id").single();
     setSaving(false);
     if (insertError) { setError(insertError.message); return; }
-    if (inserted) { setCreatedDocId(inserted.id); setStage("indicators"); }
+    if (inserted) onOpenDocument(inserted.id);
   }
   async function saveUploadDoc() {
     if (!myOrg || !partnerOrg || !uploadFile) return;
@@ -228,7 +218,7 @@ export default function CreateMouModal({
     }).select("id").single();
     setSaving(false);
     if (insertError) { setError(insertError.message); return; }
-    if (inserted) { setCreatedDocId(inserted.id); setStage("indicators"); }
+    if (inserted) onOpenDocument(inserted.id);
   }
   function renderPathPicker() {
     if (myOrg && !["plus", "pro", "compliance"].includes(myOrg.subscription_tier ?? "")) {
@@ -430,25 +420,6 @@ export default function CreateMouModal({
     );
   }
 
-  function renderIndicatorsStep() {
-    if (!myOrg || !createdDocId) return null;
-    return (
-      <div className="space-y-4">
-        <p className="text-sm text-black dark:text-white">
-          Add at least one outcome indicator before this MoU can be sent to {partnerName}. You can add more later, from either side.
-        </p>
-        <IndicatorForm
-          mouDocumentId={createdDocId}
-          createdByOrgId={myOrg.id}
-          initiativeId={initiativeId}
-          connectionId={connectionId}
-          onClose={() => onOpenDocument(createdDocId)}
-          onCreated={() => onOpenDocument(createdDocId)}
-        />
-      </div>
-    );
-  }
-
   function renderExisting() {    return (
       <div className="text-center py-6 space-y-3">
         <CheckCircle2 className="w-10 h-10 text-[#2D6A4F] mx-auto" />
@@ -492,7 +463,6 @@ export default function CreateMouModal({
           ) : notInitiativeCreator ? renderNotCreator()
             : notListingOwner ? renderNotListingOwner()
             : existingDocId ? renderExisting()
-            : stage === "indicators" ? renderIndicatorsStep()
             : path === "template" ? renderTemplateStep()
             : path === "custom" ? renderCustomStep()
             : path === "upload" ? renderUploadStep()

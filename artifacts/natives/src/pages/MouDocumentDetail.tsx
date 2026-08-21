@@ -3,7 +3,10 @@ import { supabase } from "@/lib/supabase";
 import { jsPDF } from "jspdf";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { BRICOLAGE_GROTESQUE_BOLD_BASE64 } from "@/lib/fonts/bricolageGrotesqueBold";
-import { X, Loader2, Download, Upload, CheckCircle2, Send, ArrowLeft, PenLine, Flag, Lock, Clock, PartyPopper, Trash2 } from "lucide-react";import SignaturePad from "@/components/dashboard/SignaturePad";
+import { X, Loader2, Download, Upload, CheckCircle2, Send, ArrowLeft, PenLine, Flag, Lock, Clock, PartyPopper, Trash2 } from "lucide-react";
+import SignaturePad from "@/components/dashboard/SignaturePad";
+import IndicatorForm from "@/components/mou/IndicatorForm";
+import { PartnershipIndicator, fetchIndicators, agreeToIndicator, isIndicatorAgreed } from "@/lib/indicators";
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SectionVariant { toggle_value: string | boolean | null; body: string }
 interface TemplateSection { id: string; title: string; toggle_key: string | null; variants: SectionVariant[] }
@@ -106,11 +109,14 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const [customFieldMode, setCustomFieldMode] = useState<Record<string, boolean>>({});
   const [finalizing, setFinalizing] = useState(false);
   const [finalizeError, setFinalizeError] = useState<string | null>(null);
-  const [sendError, setSendError] = useState<string | null>(null);
   const [confirmingFinalization, setConfirmingFinalization] = useState(false);
   const [confirmingPartnershipStatus, setConfirmingPartnershipStatus] = useState(false);
   const [showVoidConfirm, setShowVoidConfirm] = useState(false);
   const [voiding, setVoiding] = useState(false);
+  const [indicators, setIndicators] = useState<PartnershipIndicator[]>([]);
+  const [loadingIndicators, setLoadingIndicators] = useState(true);
+  const [showIndicatorForm, setShowIndicatorForm] = useState(false);
+  const [agreeingIndicatorId, setAgreeingIndicatorId] = useState<string | null>(null);
   // In-platform PDF signing (uploaded_pdf docs only). Inline signing is
   // the default UI; "upload instead" opens a confirm-and-upload modal
   // as a secondary text link, not a competing button.
@@ -169,6 +175,10 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     } else {
       setSignatureBUrl(null);
     }
+    setLoadingIndicators(true);
+    const indicatorRows = await fetchIndicators(documentId);
+    setIndicators(indicatorRows);
+    setLoadingIndicators(false);
     if (!opts.silent) setLoading(false);
   }
   // Preload signature images as actual <img> elements ahead of time so
@@ -751,7 +761,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   }
   async function markSent() {
     if (!doc || !orgB) return;
-    setSendError(null);
     // Org A must have signed before the document can go to Org B -- an
     // unsigned send left Org B stuck with no way to sign their own side
     // or notify Org A to come back and sign. The DB trigger
@@ -759,18 +768,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     // avoids a wasted round trip that would only end in a Postgres error.
     const alreadySigned = doc.source_type === "uploaded_pdf" ? !!doc.signed_files?.[doc.org_a_id ?? ""] : !!doc.signature_org_a_path;
     if (!alreadySigned) return;
-    // Same principle for the indicator requirement -- enforce_indicator_
-    // before_send is the real guarantee at the DB level; this just avoids
-    // a wasted round trip. CreateMouModal's mandatory indicators step
-    // should already satisfy this for new drafts, but a doc created
-    // before this feature existed could still hit this path with zero
-    // indicators.
-    const { count: indicatorCount } = await supabase
-      .from("partnership_indicators").select("id", { count: "exact", head: true }).eq("mou_document_id", doc.id);
-    if (!indicatorCount || indicatorCount < 1) {
-      setSendError("Add at least one outcome indicator before sending this MoU.");
-      return;
-    }
     setSaving(true);
     // Same atomic-save principle as signing: whatever's currently in the
     // form must be captured here, or clicking Send right after filling
@@ -791,6 +788,16 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       p_body: `${orgA?.organisation_name ?? "A partner"} has sent you an MoU to review.`,
       p_link: `/dashboard/portfolio/mou`,
     });
+  }
+  async function handleAgreeToIndicator(indicatorId: string) {
+    if (!orgA || !orgB) return;
+    const myOrgId = orgA.user_id === myUserId ? orgA.id : orgB.user_id === myUserId ? orgB.id : null;
+    if (!myOrgId) return;
+    setAgreeingIndicatorId(indicatorId);
+    await agreeToIndicator(indicatorId, myOrgId);
+    const refreshed = await fetchIndicators(documentId);
+    setIndicators(refreshed);
+    setAgreeingIndicatorId(null);
   }
   function dataUrlToBlob(dataUrl: string): Blob {
     const [header, base64] = dataUrl.split(",");
@@ -908,6 +915,16 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     if (!doc.signed_at_org_a) { setFinalizeError("You need to sign your own section before this MoU can be fully executed."); return; }
     const stillUnresolved = (doc.field_flags ?? []).some((f) => !f.resolved && f.raised_by === "org_a");
     if (stillUnresolved) return;
+    // Same principle as the signed-check above -- the DB trigger
+    // (enforce_agreed_indicator_before_execution) is the real guarantee;
+    // this just avoids a wasted round trip that would otherwise end in a
+    // raw Postgres error. Requires actual agreement, not just existence --
+    // an indicator Org A drafted alone doesn't satisfy this.
+    const hasAgreedIndicator = indicators.some((i) => isIndicatorAgreed(i));
+    if (!hasAgreedIndicator) {
+      setFinalizeError("At least one outcome indicator, agreed by both parties, is required before this MoU can be fully executed.");
+      return;
+    }
     setFinalizing(true);
     setFinalizeError(null);
     const { error } = await supabase.rpc("finalize_mou_document", { p_document_id: doc.id });
@@ -1713,6 +1730,86 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               )}
             </div>
           )}
+          {/* Outcome indicators -- required (agreed by both parties) before
+              full execution, not before send. Either party can add one;
+              only the party that didn't create it can mark agreement. */}
+          <div className="space-y-3 border-t border-border pt-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-base font-semibold text-black dark:text-white">Outcome indicators</p>
+                <p className="text-sm text-black dark:text-white">
+                  At least one, agreed by both parties, is required before this MoU can be fully executed.
+                </p>
+              </div>
+              {orgA && (
+                <button type="button" onClick={() => setShowIndicatorForm(true)}
+                  className="shrink-0 text-sm px-4 py-1.5 rounded-full border border-[#2D6A4F]/30 text-[#2D6A4F] hover:bg-[#2D6A4F]/5 transition-colors">
+                  Add indicator
+                </button>
+              )}
+            </div>
+            {loadingIndicators ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="w-4 h-4 text-[#2D6A4F] animate-spin" />
+              </div>
+            ) : indicators.length === 0 ? (
+              <p className="text-sm text-black dark:text-white">No indicators added yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {indicators.map((ind) => {
+                  const agreed = isIndicatorAgreed(ind);
+                  const myOrgId = orgA?.user_id === myUserId ? orgA.id : orgB?.user_id === myUserId ? orgB.id : null;
+                  const iCreatedThis = myOrgId === ind.created_by_org_id;
+                  return (
+                    <div key={ind.id} className="rounded-xl border border-border p-4 space-y-1.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-black dark:text-white">{ind.name}</p>
+                          <p className="text-sm text-black dark:text-white mt-0.5">{ind.definition}</p>
+                          <p className="text-xs text-black dark:text-white mt-1">
+                            Target: {ind.target_value} · {ind.measurement_window}
+                            {ind.baseline_value && ` · Baseline: ${ind.baseline_value}`}
+                          </p>
+                        </div>
+                        <span className={`shrink-0 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${
+                          agreed
+                            ? "bg-[#2D6A4F]/[0.06] border-[#2D6A4F]/20 text-[#2D6A4F]"
+                            : "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/40 text-amber-600 dark:text-amber-500"
+                        }`}>
+                          {agreed ? "Agreed" : "Awaiting agreement"}
+                        </span>
+                      </div>
+                      {!agreed && !iCreatedThis && (
+                        <button type="button" onClick={() => handleAgreeToIndicator(ind.id)}
+                          disabled={agreeingIndicatorId === ind.id}
+                          className="text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium disabled:opacity-60 transition-colors">
+                          {agreeingIndicatorId === ind.id ? "Agreeing..." : "Agree to this indicator"}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          {showIndicatorForm && orgA && (() => {
+            const myOrgId = orgA.user_id === myUserId ? orgA.id : orgB?.user_id === myUserId ? orgB.id : null;
+            if (!myOrgId) return null;
+            return (
+              <IndicatorForm
+                mouDocumentId={doc.id}
+                createdByOrgId={myOrgId}
+                initiativeId={doc.initiative_id}
+                connectionId={doc.connection_id}
+                onClose={() => setShowIndicatorForm(false)}
+                onCreated={async () => {
+                  const refreshed = await fetchIndicators(doc.id);
+                  setIndicators(refreshed);
+                }}
+              />
+            );
+          })()}
+
           {/* Send / sign actions */}
           <div className="space-y-3 border-t border-border pt-5">
             <p className="text-base font-semibold text-black dark:text-white">Send & sign</p>
@@ -1765,11 +1862,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               <div className="rounded-xl border border-red-300 bg-red-50 p-4">
                 <p className="text-sm font-medium text-red-800 mb-1">Fix these dates before sending or signing:</p>
                 {dateValidationErrors.map((e, i) => <p key={i} className="text-sm text-red-800">{e}</p>)}
-              </div>
-            )}
-            {sendError && (
-              <div className="rounded-xl border border-red-300 bg-red-50 p-4">
-                <p className="text-sm text-red-800">{sendError}</p>
               </div>
             )}
             {noticePeriodWarning && (
