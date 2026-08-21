@@ -27,7 +27,7 @@ export default function IndicatorForm({
   const [suggestFailed, setSuggestFailed] = useState(false);
   const [suggestRequiresUpgrade, setSuggestRequiresUpgrade] = useState(false);
   const [suggestions, setSuggestions] = useState
-    { name: string; definition: string; target_value: string; measurement_window: string }[]
+    <{ name: string; definition: string; target_value: string; measurement_window: string }[]
   >([]);
 
   const [refineLoading, setRefineLoading] = useState(false);
