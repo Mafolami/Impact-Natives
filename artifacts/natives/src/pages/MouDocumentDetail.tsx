@@ -1327,6 +1327,53 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       writeParty(2, "b");
       y += 4;
     }
+    // Technical Annex -- Outcome Indicators. Only ever includes indicators
+    // agreed (agreed_by_other_org_at) at or before the moment this PDF is
+    // built. The one buildPdf() call inside finalizeDocument() runs before
+    // local state has fully_executed_at set, so this naturally captures
+    // exactly what's agreed as of execution. Any later re-export filters
+    // against the persisted fully_executed_at instead, reproducing that
+    // same frozen set even though indicators remain addable (and `indicators`
+    // itself keeps growing) after execution. Same freeze-at-execution outcome
+    // as edited_sections/custom_content, just derived from an existing
+    // timestamp rather than a new snapshot column.
+    const annexIndicators = indicators.filter((i) => {
+      if (!isIndicatorAgreed(i) || !i.agreed_by_other_org_at) return false;
+      if (doc.fully_executed_at) return new Date(i.agreed_by_other_org_at) <= new Date(doc.fully_executed_at);
+      return true;
+    });
+    function writeIndicatorAnnex() {
+      if (annexIndicators.length === 0) return;
+      writeSectionHeader("Outcome Indicators");
+      annexIndicators.forEach((ind, idx) => {
+        ensureSpace(20);
+        pdf.setFont("times", "bold");
+        pdf.setFontSize(10.5);
+        pdf.setTextColor(...BLACK);
+        pdf.text(`${idx + 1}. ${sanitizeForPdf(ind.name)}`, margin, y);
+        y += 15;
+        const rows: [string, string][] = [
+          ["Definition", ind.definition],
+          ["Target", ind.target_value],
+          ["Measurement window", ind.measurement_window],
+        ];
+        if (ind.baseline_value) rows.push(["Baseline", ind.baseline_value]);
+        rows.forEach(([label, value]) => {
+          const lineHeight = 10.5 * 1.4;
+          const wrapped: string[] = pdf.splitTextToSize(sanitizeForPdf(value), contentWidth - 130);
+          ensureSpace(wrapped.length * lineHeight);
+          pdf.setFont("times", "bold");
+          pdf.setFontSize(10.5);
+          pdf.setTextColor(...BLACK);
+          pdf.text(`${label}:`, margin + 12, y);
+          pdf.setFont("times", "normal");
+          wrapped.forEach((wl, i) => pdf.text(wl, margin + 130, y + i * lineHeight));
+          y += wrapped.length * lineHeight + 2;
+        });
+        y += 10;
+      });
+      y += 4;
+    }
     // Document header -- centered, formal title block.
     pdf.setFont("times", "bold");
     pdf.setFontSize(20);
@@ -1351,6 +1398,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
         }
       });
     }
+    writeIndicatorAnnex();
     // Signature block -- composites the actual captured signature images at
     // fixed coordinates. This only works because Impact Natives controls
     // this document's layout end to end; an uploaded external PDF's layout
