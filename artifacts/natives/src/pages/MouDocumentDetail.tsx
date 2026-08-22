@@ -116,6 +116,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const [confirmingPartnershipStatus, setConfirmingPartnershipStatus] = useState(false);
   const [showVoidConfirm, setShowVoidConfirm] = useState(false);
   const [voiding, setVoiding] = useState(false);
+  const [voidError, setVoidError] = useState<string | null>(null);
   const [indicators, setIndicators] = useState<PartnershipIndicator[]>([]);
   const [loadingIndicators, setLoadingIndicators] = useState(true);
   const [showIndicatorForm, setShowIndicatorForm] = useState(false);
@@ -1128,11 +1129,33 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   // system already applies, just triggered by a bigger action. Steps
   // status back to draft so the whole flow restarts cleanly. Blocked once
   // fully executed -- that stays final.
+  // Postgres RAISE EXCEPTION messages from this RPC (e.g. "cannot void a
+  // fully executed MoU") are already written as plain sentences, not
+  // technical jargon -- this just capitalizes and punctuates rather than
+  // rewriting them, so a new server-side check added later still surfaces
+  // correctly without needing a matching frontend string.
+  function humanizeRpcError(message: string): string {
+    const trimmed = message.trim();
+    if (!trimmed) return "Something went wrong. Please try again.";
+    const capitalized = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+    return /[.!?]$/.test(capitalized) ? capitalized : `${capitalized}.`;
+  }
   async function voidAndReopen() {
     if (!doc) return;
     setVoiding(true);
+    setVoidError(null);
     const { error } = await supabase.rpc("void_and_reopen_mou", { p_document_id: doc.id });
-    if (error) { setVoiding(false); return; }
+    if (error) {
+      setVoiding(false);
+      // If the document turned out to already be fully executed (e.g. the
+      // other party finalized it in another session and this client's
+      // local state hadn't caught up yet), reload so the UI reflects
+      // reality and the now-stale "Void signatures and reopen" option
+      // disappears on its own.
+      setVoidError(humanizeRpcError(error.message));
+      load({ silent: true });
+      return;
+    }
     const voidingPartyName = isViewerOrgA ? orgA?.organisation_name : orgB?.organisation_name;
     await supabase.rpc("send_mou_notification", {
       p_document_id: doc.id,
@@ -2126,7 +2149,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                     </button>
                   )}
                   {canVoidAndReopen && (
-                    <button type="button" onClick={() => setShowVoidConfirm(true)}
+                    <button type="button" onClick={() => { setVoidError(null); setShowVoidConfirm(true); }}
                       className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-red-300 dark:border-red-900/50 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors text-sm font-medium">
                       <Trash2 className="w-4 h-4" /> Void signatures and reopen
                     </button>
@@ -2427,8 +2450,13 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
             <p className="text-sm text-black dark:text-white leading-relaxed">
               This clears both parties' signatures and any binding-MoU confirmation, reopens every field for editing, and notifies {(isViewerOrgA ? orgB?.organisation_name : orgA?.organisation_name) ?? "the other party"}. This cannot be undone — both sides will need to review and sign again.
             </p>
+            {voidError && (
+              <div className="rounded-xl border border-red-300 bg-red-50 p-3">
+                <p className="text-sm text-red-800">{voidError}</p>
+              </div>
+            )}
             <div className="flex gap-2">
-              <button type="button" onClick={() => setShowVoidConfirm(false)}
+              <button type="button" onClick={() => { setShowVoidConfirm(false); setVoidError(null); }}
                 className="flex-1 h-10 rounded-full border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors">
                 Cancel
               </button>
