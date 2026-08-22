@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import type { OrgRef } from "@/lib/milestones";
 const INDICATOR_COLUMNS =
-  "id,mou_document_id,name,definition,baseline_value,target_value,measurement_window,source,created_by_org_id,agreed_by_other_org_id,agreed_by_other_org_at,rejected_by_org_id,rejected_by_org_at,rejection_reason,created_at";
+  "id,mou_document_id,name,definition,baseline_value,target_value,measurement_window,source,created_by_org_id,agreed_by_other_org_id,agreed_by_other_org_at,rejected_by_org_id,rejected_by_org_at,rejection_reason,suggested_by_org_id,suggested_at,suggested_name,suggested_definition,suggested_baseline_value,suggested_target_value,suggested_measurement_window,suggested_source,created_at";
 export interface PartnershipIndicator {
   id: string;
   mou_document_id: string;
@@ -17,6 +17,14 @@ export interface PartnershipIndicator {
   rejected_by_org_id: string | null;
   rejected_by_org_at: string | null;
   rejection_reason: string | null;
+  suggested_by_org_id: string | null;
+  suggested_at: string | null;
+  suggested_name: string | null;
+  suggested_definition: string | null;
+  suggested_baseline_value: string | null;
+  suggested_target_value: string | null;
+  suggested_measurement_window: string | null;
+  suggested_source: string | null;
   created_at: string;
 }
 // Three real states now: pending, agreed, rejected -- agreed and rejected
@@ -109,6 +117,79 @@ export async function deleteIndicator(indicatorId: string): Promise<boolean> {
     .eq("id", indicatorId)
     .select("id");
   return !!data && data.length > 0;
+}
+export function hasPendingSuggestion(indicator: PartnershipIndicator): boolean {
+  return !!indicator.suggested_by_org_id;
+}
+// Writes into the suggested_* holding columns only -- the live name/
+// definition/baseline_value/target_value/measurement_window/source are
+// untouched until the reviewing org explicitly accepts.
+export async function proposeIndicatorRefinement(indicatorId: string, proposingOrgId: string, patch: {
+  name: string;
+  definition: string;
+  baseline_value: string | null;
+  target_value: string;
+  measurement_window: string;
+  source: string | null;
+}): Promise<void> {
+  await supabase
+    .from("partnership_indicators")
+    .update({
+      suggested_by_org_id: proposingOrgId,
+      suggested_at: new Date().toISOString(),
+      suggested_name: patch.name,
+      suggested_definition: patch.definition,
+      suggested_baseline_value: patch.baseline_value,
+      suggested_target_value: patch.target_value,
+      suggested_measurement_window: patch.measurement_window,
+      suggested_source: patch.source,
+    })
+    .eq("id", indicatorId);
+}
+// Copies suggested_* into the live fields and clears the holding columns.
+// Also clears any prior agreement/rejection -- an accepted refinement is
+// a real change to what the indicator says, so a previously agreed
+// version no longer applies and needs fresh agreement.
+export async function acceptIndicatorRefinement(indicator: PartnershipIndicator): Promise<void> {
+  await supabase
+    .from("partnership_indicators")
+    .update({
+      name: indicator.suggested_name ?? indicator.name,
+      definition: indicator.suggested_definition ?? indicator.definition,
+      baseline_value: indicator.suggested_baseline_value,
+      target_value: indicator.suggested_target_value ?? indicator.target_value,
+      measurement_window: indicator.suggested_measurement_window ?? indicator.measurement_window,
+      source: indicator.suggested_source,
+      suggested_by_org_id: null,
+      suggested_at: null,
+      suggested_name: null,
+      suggested_definition: null,
+      suggested_baseline_value: null,
+      suggested_target_value: null,
+      suggested_measurement_window: null,
+      suggested_source: null,
+      agreed_by_other_org_id: null,
+      agreed_by_other_org_at: null,
+      rejected_by_org_id: null,
+      rejected_by_org_at: null,
+      rejection_reason: null,
+    })
+    .eq("id", indicator.id);
+}
+export async function dismissIndicatorRefinement(indicatorId: string): Promise<void> {
+  await supabase
+    .from("partnership_indicators")
+    .update({
+      suggested_by_org_id: null,
+      suggested_at: null,
+      suggested_name: null,
+      suggested_definition: null,
+      suggested_baseline_value: null,
+      suggested_target_value: null,
+      suggested_measurement_window: null,
+      suggested_source: null,
+    })
+    .eq("id", indicatorId);
 }
 export async function agreeToIndicator(indicatorId: string, agreeingOrgId: string): Promise<void> {
   await supabase
