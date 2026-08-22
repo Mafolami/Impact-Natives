@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { jsPDF } from "jspdf";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { BRICOLAGE_GROTESQUE_BOLD_BASE64 } from "@/lib/fonts/bricolageGrotesqueBold";
-import { X, Loader2, Download, Upload, CheckCircle2, Send, ArrowLeft, PenLine, Flag, Lock, Clock, PartyPopper, Trash2 } from "lucide-react";
+import { X, Loader2, Download, Upload, CheckCircle2, Send, ArrowLeft, PenLine, Flag, Lock, Clock, PartyPopper, Trash2, Target, Users, ClipboardList } from "lucide-react";
 import SignaturePad from "@/components/dashboard/SignaturePad";
 import IndicatorForm from "@/components/mou/IndicatorForm";
 import {
@@ -641,6 +641,32 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       <div className={`flex items-start gap-3 rounded-xl border ${styles.border} ${styles.bg} px-4 py-3`}>
         <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${styles.icon}`} />
         <p className="text-sm text-black dark:text-white leading-relaxed">{children}</p>
+      </div>
+    );
+  }
+  // Shared module wrapper -- every major section (terms, details, preview,
+  // indicators, send & sign) gets the same icon-badge + eyebrow + divider
+  // treatment, so the page reads as a deliberate rhythm of distinct
+  // modules instead of a flat scroll of paragraphs separated by border-t.
+  function SectionCard({ icon: Icon, eyebrow, title, description, action, children }: {
+    icon: typeof Lock; eyebrow: string; title: string; description?: ReactNode; action?: ReactNode; children: ReactNode;
+  }) {
+    return (
+      <div className="rounded-2xl border border-border bg-white dark:bg-card overflow-hidden">
+        <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-border">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-[#2D6A4F]/10 text-[#2D6A4F]">
+              <Icon className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-[#C45C26]">{eyebrow}</p>
+              <p className="text-base font-semibold text-black dark:text-white">{title}</p>
+              {description && <p className="text-sm text-black dark:text-white mt-0.5">{description}</p>}
+            </div>
+          </div>
+          {action && <div className="shrink-0">{action}</div>}
+        </div>
+        <div className="px-6 py-5 space-y-4">{children}</div>
       </div>
     );
   }
@@ -1738,15 +1764,42 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
         className="flex items-center gap-1.5 text-sm text-black dark:text-white hover:text-[#C45C26] dark:hover:text-[#C45C26] transition-colors">
         <ArrowLeft className="w-3.5 h-3.5" /> Back
       </button>
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground tracking-tight">
-            MoU — {orgA?.organisation_name} & {orgB?.organisation_name}
-          </h2>
-          <span className="inline-flex items-center gap-1.5 mt-2 text-sm font-medium text-black dark:text-white">
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: !currentStage ? "#2D6A4F" : "#C45C26" }} />
-            {trackerStatusText}
-          </span>
+      <div>
+        <h2 className="text-2xl font-bold text-foreground tracking-tight">
+          MoU — {orgA?.organisation_name} & {orgB?.organisation_name}
+        </h2>
+        <p className="text-sm mt-1 font-medium" style={{ color: !currentStage ? "#2D6A4F" : "#C45C26" }}>
+          {trackerStatusText}
+        </p>
+      </div>
+      <div className="rounded-2xl border border-border bg-white dark:bg-card px-5 py-5 overflow-x-auto">
+        <div className="flex items-start min-w-max">
+          {stages.map((stage, i) => {
+            const isCurrent = !stage.completed && stages.slice(0, i).every((s) => s.completed);
+            return (
+              <div key={stage.key} className="flex items-start">
+                <div className="flex flex-col items-center w-28 shrink-0">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
+                    stage.completed
+                      ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
+                      : isCurrent
+                      ? "border-[#C45C26] text-[#C45C26] bg-[#C45C26]/5"
+                      : "border-border text-black/40 dark:text-white/40"
+                  }`}>
+                    {stage.completed ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
+                  </div>
+                  <p className={`text-[11px] text-center mt-2 leading-tight ${
+                    stage.completed ? "text-black dark:text-white" : isCurrent ? "text-[#C45C26] font-medium" : "text-black/40 dark:text-white/40"
+                  }`}>
+                    {stage.label}
+                  </p>
+                </div>
+                {i < stages.length - 1 && (
+                  <div className={`h-0.5 w-8 mt-4 shrink-0 transition-colors ${stage.completed ? "bg-[#2D6A4F]" : "bg-border"}`} />
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
       {aPartyDeleted && (
@@ -1758,16 +1811,11 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           {doc.source_type === "template" && (
             <>
               {template && template.toggles && template.toggles.length > 0 && (
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-base font-semibold text-black dark:text-white">Agreement terms</p>
-                    <p className="text-sm text-black dark:text-white">
-                      {togglesEditable
-                        ? "These control which clauses appear in the document. Locked once either party signs."
-                        : "Set at document creation. Locked because a signature exists on this document."}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-border p-4 space-y-4">
+                <SectionCard icon={Users} eyebrow="Agreement terms" title="Clauses & conditions"
+                  description={togglesEditable
+                    ? "These control which clauses appear in the document. Locked once either party signs."
+                    : "Set at document creation. Locked because a signature exists on this document."}>
+                  <div className="space-y-4">
                     {template.toggles.map((t) => {
                       const currentValue = doc.toggle_selections?.[t.key];
                       return (
@@ -1806,7 +1854,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                       );
                     })}
                   </div>
-                </div>
+                </SectionCard>
               )}
               {allFieldKeys.length > 0 && (
                 <div className="space-y-5">
@@ -1972,21 +2020,14 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           {/* Outcome indicators -- required (agreed by both parties) before
               full execution, not before send. Either party can add one;
               only the party that didn't create it can mark agreement. */}
-          <div className="space-y-3 border-t border-border pt-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-base font-semibold text-black dark:text-white">Outcome indicators</p>
-                <p className="text-sm text-black dark:text-white">
-                  At least one, agreed by both parties, is required before this MoU can be fully executed.
-                </p>
-              </div>
-              {orgA && (
-                <button type="button" onClick={() => setShowIndicatorForm(true)}
-                  className="shrink-0 text-sm px-4 py-1.5 rounded-full border border-[#2D6A4F]/30 text-[#2D6A4F] hover:bg-[#2D6A4F]/5 transition-colors">
-                  Add indicator
-                </button>
-              )}
-            </div>
+          <SectionCard icon={Target} eyebrow="Outcome indicators" title="Measurable outcomes"
+            description="At least one, agreed by both parties, is required before this MoU can be fully executed."
+            action={orgA && (
+              <button type="button" onClick={() => setShowIndicatorForm(true)}
+                className="shrink-0 text-sm px-4 py-1.5 rounded-full border border-[#2D6A4F]/30 text-[#2D6A4F] hover:bg-[#2D6A4F]/5 transition-colors">
+                Add indicator
+              </button>
+            )}>
             {loadingIndicators ? (
               <div className="flex items-center justify-center py-6">
                 <Loader2 className="w-4 h-4 text-[#2D6A4F] animate-spin" />
@@ -2140,7 +2181,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                 })}
               </div>
             )}
-          </div>
+          </SectionCard>
           {showIndicatorForm && orgA && (() => {
             const myOrgId = orgA.user_id === myUserId ? orgA.id : orgB?.user_id === myUserId ? orgB.id : null;
             if (!myOrgId) return null;
