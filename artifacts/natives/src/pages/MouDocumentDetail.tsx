@@ -142,6 +142,14 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const [showUploadWarning, setShowUploadWarning] = useState(false);
   const isViewerOrgA = orgA?.user_id === myUserId;
   const isViewerOrgB = orgB?.user_id === myUserId;
+  const [nearTop, setNearTop] = useState(true);
+  useEffect(() => {
+    function handleScroll() {
+      setNearTop(window.scrollY < 240);
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
   useEffect(() => { load(); }, [documentId]);
   async function load(opts: { silent?: boolean } = {}) {
     if (!opts.silent) { setLoading(true); setNotFound(false); }
@@ -1778,22 +1786,23 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
         <ArrowLeft className="w-3.5 h-3.5" /> Back
       </button>
       {/* Reachable at any scroll depth -- exits immediately without
-          scrolling to the top link, or jumps straight to Indicators
-          (the section most worth returning to mid-review). */}
+          scrolling to the top link. The single chevron flips direction
+          based on scroll position: near the top, it jumps down to
+          Indicators; anywhere past that, it returns to the top instead
+          of offering a second fixed direction to jump to. */}
       <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-2">
         <button type="button" onClick={onClose} title="Back"
-          className="w-11 h-11 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white shadow-lg flex items-center justify-center transition-colors">
-          <ArrowLeft className="w-4 h-4" />
+          className="w-9 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white shadow-lg flex items-center justify-center transition-colors">
+          <ArrowLeft className="w-3.5 h-3.5" />
         </button>
         <button type="button"
-          onClick={() => document.getElementById("indicators-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-          title="Jump to indicators"
-          className="w-11 h-11 rounded-full border border-border bg-white dark:bg-card text-black dark:text-white shadow-lg flex items-center justify-center hover:border-[#2D6A4F]/50 transition-colors">
-          <ChevronDown className="w-4 h-4" />
-        </button>
-        <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} title="Scroll to top"
-          className="w-11 h-11 rounded-full border border-border bg-white dark:bg-card text-black dark:text-white shadow-lg flex items-center justify-center hover:border-[#2D6A4F]/50 transition-colors">
-          <ChevronUp className="w-4 h-4" />
+          onClick={() => {
+            if (nearTop) document.getElementById("indicators-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            else window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          title={nearTop ? "Jump to indicators" : "Scroll to top"}
+          className="w-9 h-9 rounded-full border border-border bg-white dark:bg-card text-black dark:text-white shadow-lg flex items-center justify-center hover:border-[#2D6A4F]/50 transition-colors">
+          {nearTop ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
         </button>
       </div>
       <h2 className="text-2xl font-bold text-foreground tracking-tight">
