@@ -255,12 +255,12 @@ export default function IndicatorForm({
             className="w-full px-3 py-2 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white resize-none" />
         </div>
         <div>
-          <label className="text-xs text-black dark:text-white block mb-1">Baseline value (optional)</label>
+          <label className="text-xs text-black dark:text-white block mb-1">Baseline value</label>
           <input type="text" placeholder="Current value before this partnership" value={baselineValue} onChange={(e) => setBaselineValue(e.target.value)}
             className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
         </div>
         <div>
-          <label className="text-xs text-black dark:text-white block mb-1">Source (optional)</label>
+          <label className="text-xs text-black dark:text-white block mb-1">Source</label>
           <input type="text" placeholder="e.g. Baseline survey 2026, org M&E framework" value={sourceValue} onChange={(e) => setSourceValue(e.target.value)}
             className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
         </div>
