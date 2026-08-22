@@ -6,7 +6,10 @@ import { BRICOLAGE_GROTESQUE_BOLD_BASE64 } from "@/lib/fonts/bricolageGrotesqueB
 import { X, Loader2, Download, Upload, CheckCircle2, Send, ArrowLeft, PenLine, Flag, Lock, Clock, PartyPopper, Trash2 } from "lucide-react";
 import SignaturePad from "@/components/dashboard/SignaturePad";
 import IndicatorForm from "@/components/mou/IndicatorForm";
-import { PartnershipIndicator, fetchIndicators, agreeToIndicator, isIndicatorAgreed } from "@/lib/indicators";
+import {
+  PartnershipIndicator, fetchIndicators, agreeToIndicator, rejectIndicator, updateIndicator,
+  isIndicatorAgreed, indicatorStatus, INDICATOR_AGREEMENT_LABEL, INDICATOR_AGREEMENT_PILL_STYLES,
+} from "@/lib/indicators";
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SectionVariant { toggle_value: string | boolean | null; body: string }
 interface TemplateSection { id: string; title: string; toggle_key: string | null; variants: SectionVariant[] }
@@ -118,6 +121,17 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const [showIndicatorForm, setShowIndicatorForm] = useState(false);
   const [agreeingIndicatorId, setAgreeingIndicatorId] = useState<string | null>(null);
   const [uploadIndicatorError, setUploadIndicatorError] = useState<string | null>(null);
+  // Action group for the org that didn't create a given indicator: Agree,
+  // Suggest refinement (an inline edit -- the existing UPDATE RLS already
+  // permits either participant org to edit any indicator on the document,
+  // so "suggest" is really just exposing that same edit capability rather
+  // than a new permission), or Reject with a reason.
+  const [editingIndicatorId, setEditingIndicatorId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState({ name: "", definition: "", baseline_value: "", target_value: "", measurement_window: "", source: "" });
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [rejectingIndicatorId, setRejectingIndicatorId] = useState<string | null>(null);
+  const [rejectReasonDraft, setRejectReasonDraft] = useState("");
+  const [submittingReject, setSubmittingReject] = useState(false);
   // In-platform PDF signing (uploaded_pdf docs only). Inline signing is
   // the default UI; "upload instead" opens a confirm-and-upload modal
   // as a secondary text link, not a competing button.
@@ -810,6 +824,53 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     setIndicators(refreshed);
     setAgreeingIndicatorId(null);
   }
+  function myOrgIdFor(): string | null {
+    return orgA?.user_id === myUserId ? orgA.id : orgB?.user_id === myUserId ? orgB.id : null;
+  }
+  function openEditIndicator(ind: PartnershipIndicator) {
+    setRejectingIndicatorId(null);
+    setEditingIndicatorId(ind.id);
+    setEditDraft({
+      name: ind.name, definition: ind.definition, baseline_value: ind.baseline_value ?? "",
+      target_value: ind.target_value, measurement_window: ind.measurement_window, source: ind.source ?? "",
+    });
+  }
+  function cancelEditIndicator() {
+    setEditingIndicatorId(null);
+  }
+  async function saveEditIndicator(indicatorId: string) {
+    if (!editDraft.name.trim() || !editDraft.definition.trim() || !editDraft.target_value.trim() || !editDraft.measurement_window.trim()) return;
+    setSavingEdit(true);
+    await updateIndicator(indicatorId, {
+      name: editDraft.name.trim(), definition: editDraft.definition.trim(),
+      baseline_value: editDraft.baseline_value.trim() || null, target_value: editDraft.target_value.trim(),
+      measurement_window: editDraft.measurement_window.trim(), source: editDraft.source.trim() || null,
+    });
+    const refreshed = await fetchIndicators(documentId);
+    setIndicators(refreshed);
+    setSavingEdit(false);
+    setEditingIndicatorId(null);
+  }
+  function openReject(ind: PartnershipIndicator) {
+    setEditingIndicatorId(null);
+    setRejectingIndicatorId(ind.id);
+    setRejectReasonDraft("");
+  }
+  function cancelReject() {
+    setRejectingIndicatorId(null);
+    setRejectReasonDraft("");
+  }
+  async function submitReject(indicatorId: string) {
+    const myOrgId = myOrgIdFor();
+    if (!myOrgId || !rejectReasonDraft.trim()) return;
+    setSubmittingReject(true);
+    await rejectIndicator(indicatorId, myOrgId, rejectReasonDraft.trim());
+    const refreshed = await fetchIndicators(documentId);
+    setIndicators(refreshed);
+    setSubmittingReject(false);
+    setRejectingIndicatorId(null);
+    setRejectReasonDraft("");
+  }
   function dataUrlToBlob(dataUrl: string): Blob {
     const [header, base64] = dataUrl.split(",");
     const mime = header.match(/:(.*?);/)?.[1] ?? "image/png";
@@ -1368,6 +1429,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           ["Target", ind.target_value],
           ["Measurement window", ind.measurement_window],
         ];
+        if (ind.source) rows.push(["Source", ind.source]);
         rows.forEach(([label, value]) => {
           const lineHeight = 10.5 * 1.4;
           const wrapped: string[] = pdf.splitTextToSize(sanitizeForPdf(value), contentWidth - 130);
@@ -1853,9 +1915,13 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
             ) : (
               <div className="space-y-2">
                 {indicators.map((ind) => {
-                  const agreed = isIndicatorAgreed(ind);
-                  const myOrgId = orgA?.user_id === myUserId ? orgA.id : orgB?.user_id === myUserId ? orgB.id : null;
+                  const status = indicatorStatus(ind);
+                  const pillMeta = INDICATOR_AGREEMENT_LABEL[status];
+                  const myOrgId = myOrgIdFor();
                   const iCreatedThis = myOrgId === ind.created_by_org_id;
+                  const canAct = !iCreatedThis && status !== "agreed";
+                  const isEditing = editingIndicatorId === ind.id;
+                  const isRejecting = rejectingIndicatorId === ind.id;
                   return (
                     <div key={ind.id} className="rounded-xl border border-border p-4 space-y-1.5">
                       <div className="flex items-start justify-between gap-3">
@@ -1866,21 +1932,99 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                             Target: {ind.target_value} · {ind.measurement_window}
                             {ind.baseline_value && ` · Baseline: ${ind.baseline_value}`}
                           </p>
+                          {ind.source && <p className="text-xs text-black dark:text-white mt-0.5">Source: {ind.source}</p>}
                         </div>
-                        <span className={`shrink-0 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${
-                          agreed
-                            ? "bg-[#2D6A4F]/[0.06] border-[#2D6A4F]/20 text-[#2D6A4F]"
-                            : "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/40 text-amber-600 dark:text-amber-500"
-                        }`}>
-                          {agreed ? "Agreed" : "Awaiting agreement"}
+                        <span className={`shrink-0 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${INDICATOR_AGREEMENT_PILL_STYLES[pillMeta.tone]}`}>
+                          {pillMeta.label}
                         </span>
                       </div>
-                      {!agreed && !iCreatedThis && (
-                        <button type="button" onClick={() => handleAgreeToIndicator(ind.id)}
-                          disabled={agreeingIndicatorId === ind.id}
-                          className="text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium disabled:opacity-60 transition-colors">
-                          {agreeingIndicatorId === ind.id ? "Agreeing..." : "Agree to this indicator"}
-                        </button>
+                      {status === "rejected" && ind.rejection_reason && (
+                        <p className="text-xs text-red-600 dark:text-red-500">
+                          {iCreatedThis ? "The other party" : "You"} rejected this: {ind.rejection_reason}
+                        </p>
+                      )}
+                      {canAct && !isEditing && !isRejecting && (
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          <button type="button" onClick={() => handleAgreeToIndicator(ind.id)}
+                            disabled={agreeingIndicatorId === ind.id}
+                            className="text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium disabled:opacity-60 transition-colors">
+                            {agreeingIndicatorId === ind.id ? "Agreeing..." : "Agree"}
+                          </button>
+                          <button type="button" onClick={() => openEditIndicator(ind)}
+                            className="text-sm px-4 py-1.5 rounded-full border border-border text-black dark:text-white hover:border-[#2D6A4F]/50 transition-colors">
+                            Suggest refinement
+                          </button>
+                          <button type="button" onClick={() => openReject(ind)}
+                            className="text-sm px-4 py-1.5 rounded-full border border-red-300 dark:border-red-900/50 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors">
+                            Reject
+                          </button>
+                        </div>
+                      )}
+                      {isEditing && (
+                        <div className="space-y-2 pt-2 border-t border-border">
+                          <div>
+                            <label className="text-xs text-black dark:text-white block mb-1">Indicator name</label>
+                            <input type="text" value={editDraft.name} onChange={(e) => setEditDraft((d) => ({ ...d, name: e.target.value }))}
+                              className="w-full h-9 px-2.5 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-black dark:text-white block mb-1">Definition</label>
+                            <textarea value={editDraft.definition} onChange={(e) => setEditDraft((d) => ({ ...d, definition: e.target.value }))} rows={2}
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white resize-none" />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-xs text-black dark:text-white block mb-1">Baseline</label>
+                              <input type="text" value={editDraft.baseline_value} onChange={(e) => setEditDraft((d) => ({ ...d, baseline_value: e.target.value }))}
+                                className="w-full h-9 px-2.5 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
+                            </div>
+                            <div>
+                              <label className="text-xs text-black dark:text-white block mb-1">Target</label>
+                              <input type="text" value={editDraft.target_value} onChange={(e) => setEditDraft((d) => ({ ...d, target_value: e.target.value }))}
+                                className="w-full h-9 px-2.5 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-xs text-black dark:text-white block mb-1">Measurement window</label>
+                              <input type="text" value={editDraft.measurement_window} onChange={(e) => setEditDraft((d) => ({ ...d, measurement_window: e.target.value }))}
+                                className="w-full h-9 px-2.5 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
+                            </div>
+                            <div>
+                              <label className="text-xs text-black dark:text-white block mb-1">Source</label>
+                              <input type="text" value={editDraft.source} onChange={(e) => setEditDraft((d) => ({ ...d, source: e.target.value }))}
+                                className="w-full h-9 px-2.5 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button type="button" onClick={() => saveEditIndicator(ind.id)} disabled={savingEdit}
+                              className="text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium disabled:opacity-60 transition-colors">
+                              {savingEdit ? "Saving..." : "Save suggested changes"}
+                            </button>
+                            <button type="button" onClick={cancelEditIndicator} disabled={savingEdit}
+                              className="text-sm px-4 py-1.5 rounded-full border border-border text-black dark:text-white hover:border-foreground/30 transition-colors disabled:opacity-60">
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      {isRejecting && (
+                        <div className="space-y-2 pt-2 border-t border-border">
+                          <label className="text-xs text-black dark:text-white block mb-1">Why are you rejecting this indicator?</label>
+                          <textarea value={rejectReasonDraft} onChange={(e) => setRejectReasonDraft(e.target.value)} rows={2}
+                            placeholder="Explain what needs to change"
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white resize-none" />
+                          <div className="flex gap-2">
+                            <button type="button" onClick={() => submitReject(ind.id)} disabled={submittingReject || !rejectReasonDraft.trim()}
+                              className="text-sm px-4 py-1.5 rounded-full bg-red-600 hover:bg-red-700 text-white font-medium disabled:opacity-60 transition-colors">
+                              {submittingReject ? "Rejecting..." : "Confirm rejection"}
+                            </button>
+                            <button type="button" onClick={cancelReject} disabled={submittingReject}
+                              className="text-sm px-4 py-1.5 rounded-full border border-border text-black dark:text-white hover:border-foreground/30 transition-colors disabled:opacity-60">
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
                       )}
                     </div>
                   );
