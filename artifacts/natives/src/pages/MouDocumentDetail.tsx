@@ -7,7 +7,8 @@ import { X, Loader2, Download, Upload, CheckCircle2, Send, ArrowLeft, PenLine, F
 import SignaturePad from "@/components/dashboard/SignaturePad";
 import IndicatorForm from "@/components/mou/IndicatorForm";
 import {
-  PartnershipIndicator, fetchIndicators, agreeToIndicator, rejectIndicator, updateIndicator,
+  PartnershipIndicator, fetchIndicators, agreeToIndicator, rejectIndicator,
+  proposeIndicatorRefinement, acceptIndicatorRefinement, dismissIndicatorRefinement, hasPendingSuggestion,
   isIndicatorAgreed, indicatorStatus, INDICATOR_AGREEMENT_LABEL, INDICATOR_AGREEMENT_PILL_STYLES,
 } from "@/lib/indicators";
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -130,6 +131,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const [editingIndicatorId, setEditingIndicatorId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState({ name: "", definition: "", baseline_value: "", target_value: "", measurement_window: "", source: "" });
   const [savingEdit, setSavingEdit] = useState(false);
+  const [resolvingSuggestionId, setResolvingSuggestionId] = useState<string | null>(null);
   const [rejectingIndicatorId, setRejectingIndicatorId] = useState<string | null>(null);
   const [rejectReasonDraft, setRejectReasonDraft] = useState("");
   const [submittingReject, setSubmittingReject] = useState(false);
@@ -848,12 +850,15 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   function cancelEditIndicator() {
     setEditingIndicatorId(null);
   }
+  // Proposes into suggested_* only -- the live indicator is untouched
+  // until the other org explicitly accepts via resolveSuggestion(true).
   async function saveEditIndicator(indicatorId: string) {
     if (!editDraft.name.trim() || !editDraft.definition.trim() || !editDraft.target_value.trim() || !editDraft.measurement_window.trim()) return;
     if (!orgA || !orgB) return;
     const myOrgId = myOrgIdFor();
+    if (!myOrgId) return;
     setSavingEdit(true);
-    await updateIndicator(indicatorId, {
+    await proposeIndicatorRefinement(indicatorId, myOrgId, {
       name: editDraft.name.trim(), definition: editDraft.definition.trim(),
       baseline_value: editDraft.baseline_value.trim() || null, target_value: editDraft.target_value.trim(),
       measurement_window: editDraft.measurement_window.trim(), source: editDraft.source.trim() || null,
@@ -865,9 +870,33 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     const myName = myOrgId === orgA.id ? orgA.organisation_name : orgB.organisation_name;
     await supabase.rpc("send_mou_notification", {
       p_document_id: documentId,
-      p_type: "mou_indicator_refined",
-      p_title: "Outcome indicator suggestion",
-      p_body: `${myName ?? "Your partner"} suggested changes to the indicator "${editDraft.name.trim()}".`,
+      p_type: "mou_indicator_refinement_suggested",
+      p_title: "Outcome indicator suggestion to review",
+      p_body: `${myName ?? "Your partner"} suggested changes to the indicator "${editDraft.name.trim()}". Review and accept or dismiss.`,
+      p_link: `/dashboard/portfolio/mou`,
+    });
+  }
+  async function resolveSuggestion(ind: PartnershipIndicator, accept: boolean) {
+    if (!orgA || !orgB) return;
+    const myOrgId = myOrgIdFor();
+    if (!myOrgId) return;
+    setResolvingSuggestionId(ind.id);
+    if (accept) {
+      await acceptIndicatorRefinement(ind);
+    } else {
+      await dismissIndicatorRefinement(ind.id);
+    }
+    const refreshed = await fetchIndicators(documentId);
+    setIndicators(refreshed);
+    setResolvingSuggestionId(null);
+    const myName = myOrgId === orgA.id ? orgA.organisation_name : orgB.organisation_name;
+    await supabase.rpc("send_mou_notification", {
+      p_document_id: documentId,
+      p_type: accept ? "mou_indicator_refinement_accepted" : "mou_indicator_refinement_dismissed",
+      p_title: accept ? "Outcome indicator suggestion accepted" : "Outcome indicator suggestion dismissed",
+      p_body: accept
+        ? `${myName ?? "Your partner"} accepted your suggested changes to "${ind.suggested_name ?? ind.name}".`
+        : `${myName ?? "Your partner"} dismissed your suggested changes to "${ind.name}".`,
       p_link: `/dashboard/portfolio/mou`,
     });
   }
@@ -1971,7 +2000,9 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                   const pillMeta = INDICATOR_AGREEMENT_LABEL[status];
                   const myOrgId = myOrgIdFor();
                   const iCreatedThis = myOrgId === ind.created_by_org_id;
-                  const canAct = !iCreatedThis && status !== "agreed";
+                  const pending = hasPendingSuggestion(ind);
+                  const iProposedSuggestion = pending && myOrgId === ind.suggested_by_org_id;
+                  const canAct = !iCreatedThis && status !== "agreed" && !pending;
                   const isEditing = editingIndicatorId === ind.id;
                   const isRejecting = rejectingIndicatorId === ind.id;
                   return (
@@ -1994,6 +2025,32 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                         <p className="text-xs text-red-600 dark:text-red-500">
                           {iCreatedThis ? "The other party" : "You"} rejected this: {ind.rejection_reason}
                         </p>
+                      )}
+                      {pending && (
+                        <div className="rounded-lg border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/20 p-3 space-y-2">
+                          <p className="text-xs font-semibold text-amber-700 dark:text-amber-500">
+                            {iProposedSuggestion ? "Your suggested changes -- waiting for review" : "Suggested changes to review"}
+                          </p>
+                          <div className="text-xs text-black dark:text-white space-y-1">
+                            <p><span className="font-medium">Name:</span> {ind.suggested_name}</p>
+                            <p><span className="font-medium">Definition:</span> {ind.suggested_definition}</p>
+                            <p><span className="font-medium">Target:</span> {ind.suggested_target_value} · {ind.suggested_measurement_window}</p>
+                            {ind.suggested_baseline_value && <p><span className="font-medium">Baseline:</span> {ind.suggested_baseline_value}</p>}
+                            {ind.suggested_source && <p><span className="font-medium">Source:</span> {ind.suggested_source}</p>}
+                          </div>
+                          {!iProposedSuggestion && (
+                            <div className="flex gap-2 pt-1">
+                              <button type="button" onClick={() => resolveSuggestion(ind, true)} disabled={resolvingSuggestionId === ind.id}
+                                className="text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium disabled:opacity-60 transition-colors">
+                                {resolvingSuggestionId === ind.id ? "Accepting..." : "Accept suggested changes"}
+                              </button>
+                              <button type="button" onClick={() => resolveSuggestion(ind, false)} disabled={resolvingSuggestionId === ind.id}
+                                className="text-sm px-4 py-1.5 rounded-full border border-border text-black dark:text-white hover:border-foreground/30 transition-colors disabled:opacity-60">
+                                Dismiss
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       )}
                       {canAct && !isEditing && !isRejecting && (
                         <div className="flex flex-wrap items-center gap-2 pt-1">
