@@ -648,25 +648,38 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   // indicators, send & sign) gets the same icon-badge + eyebrow + divider
   // treatment, so the page reads as a deliberate rhythm of distinct
   // modules instead of a flat scroll of paragraphs separated by border-t.
+  // Breaks out of any parent padding to span the true viewport width,
+  // regardless of how deep this component sits in the layout -- the
+  // 50vw/-mx trick works independent of the actual container width,
+  // unlike a fixed negative margin that would need to match it exactly.
+  function SectionDivider() {
+    return <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen h-2 bg-[#F4EFE3] dark:bg-black" />;
+  }
+  // Flat, not a bordered box -- each module is announced by a full-bleed
+  // divider bar rather than a rounded card, per the page's actual visual
+  // direction. Header type is deliberately large and bold: this is the
+  // one place on the page whose whole job is orientation, so it should
+  // read as a real heading, not a caption.
   function SectionCard({ icon: Icon, eyebrow, title, description, action, children }: {
     icon: typeof Lock; eyebrow: string; title: string; description?: ReactNode; action?: ReactNode; children: ReactNode;
   }) {
     return (
-      <div className="rounded-2xl border border-border bg-white dark:bg-card overflow-hidden">
-        <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-border">
-          <div className="flex items-start gap-3 min-w-0">
-            <div className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-[#2D6A4F]/10 text-[#2D6A4F]">
-              <Icon className="w-4 h-4" />
+      <div>
+        <SectionDivider />
+        <div className="pt-7 pb-1 space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Icon className="w-4 h-4 text-[#C45C26]" />
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#C45C26]">{eyebrow}</p>
+              </div>
+              <p className="text-2xl font-extrabold text-black dark:text-white tracking-tight mt-1">{title}</p>
+              {description && <p className="text-sm text-black dark:text-white mt-1.5 max-w-2xl">{description}</p>}
             </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-[#C45C26]">{eyebrow}</p>
-              <p className="text-base font-semibold text-black dark:text-white">{title}</p>
-              {description && <p className="text-sm text-black dark:text-white mt-0.5">{description}</p>}
-            </div>
+            {action && <div className="shrink-0">{action}</div>}
           </div>
-          {action && <div className="shrink-0">{action}</div>}
+          <div className="space-y-4">{children}</div>
         </div>
-        <div className="px-6 py-5 space-y-4">{children}</div>
       </div>
     );
   }
@@ -1772,31 +1785,31 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           {trackerStatusText}
         </p>
       </div>
-      <div className="rounded-2xl border border-border bg-white dark:bg-card px-5 py-5 overflow-x-auto">
-        <div className="flex items-start min-w-max">
+      <SectionDivider />
+      <div className="pt-7 pb-1">
+        <div className="flex items-start w-full">
           {stages.map((stage, i) => {
             const isCurrent = !stage.completed && stages.slice(0, i).every((s) => s.completed);
+            const prevCompleted = i > 0 && stages[i - 1].completed;
             return (
-              <div key={stage.key} className="flex items-start">
-                <div className="flex flex-col items-center w-28 shrink-0">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
-                    stage.completed
-                      ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
-                      : isCurrent
-                      ? "border-[#C45C26] text-[#C45C26] bg-[#C45C26]/5"
-                      : "border-border text-black/40 dark:text-white/40"
-                  }`}>
-                    {stage.completed ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
-                  </div>
-                  <p className={`text-[11px] text-center mt-2 leading-tight ${
-                    stage.completed ? "text-black dark:text-white" : isCurrent ? "text-[#C45C26] font-medium" : "text-black/40 dark:text-white/40"
-                  }`}>
-                    {stage.label}
-                  </p>
-                </div>
-                {i < stages.length - 1 && (
-                  <div className={`h-0.5 w-8 mt-4 shrink-0 transition-colors ${stage.completed ? "bg-[#2D6A4F]" : "bg-border"}`} />
+              <div key={stage.key} className="flex-1 flex flex-col items-center text-center relative px-1">
+                {i > 0 && (
+                  <div className={`absolute top-[18px] right-1/2 w-full h-0.5 -z-10 transition-colors ${prevCompleted ? "bg-[#2D6A4F]" : "bg-border"}`} />
                 )}
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 shrink-0 bg-background transition-colors ${
+                  stage.completed
+                    ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
+                    : isCurrent
+                    ? "border-[#C45C26] text-[#C45C26] bg-[#C45C26]/5"
+                    : "border-border text-black/40 dark:text-white/40"
+                }`}>
+                  {stage.completed ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
+                </div>
+                <p className={`text-sm font-semibold mt-2 leading-snug ${
+                  stage.completed ? "text-black dark:text-white" : isCurrent ? "text-[#C45C26]" : "text-black/40 dark:text-white/40"
+                }`}>
+                  {stage.label}
+                </p>
               </div>
             );
           })}
