@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { jsPDF } from "jspdf";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { BRICOLAGE_GROTESQUE_BOLD_BASE64 } from "@/lib/fonts/bricolageGrotesqueBold";
-import { X, Loader2, Download, Upload, CheckCircle2, Send, ArrowLeft, PenLine, Flag, Lock, Clock, PartyPopper, Trash2, Target, Users, ClipboardList } from "lucide-react";
+import { X, Loader2, Download, Upload, CheckCircle2, Send, ArrowLeft, PenLine, Flag, Lock, Clock, PartyPopper, Trash2, Target, Users, ClipboardList, ChevronUp, ChevronDown } from "lucide-react";
 import SignaturePad from "@/components/dashboard/SignaturePad";
 import IndicatorForm from "@/components/mou/IndicatorForm";
 import {
@@ -660,11 +660,11 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   // direction. Header type is deliberately large and bold: this is the
   // one place on the page whose whole job is orientation, so it should
   // read as a real heading, not a caption.
-  function SectionCard({ icon: Icon, eyebrow, title, description, action, children }: {
-    icon: typeof Lock; eyebrow: string; title: string; description?: ReactNode; action?: ReactNode; children: ReactNode;
+  function SectionCard({ icon: Icon, eyebrow, title, description, action, children, id }: {
+    icon: typeof Lock; eyebrow: string; title: string; description?: ReactNode; action?: ReactNode; children: ReactNode; id?: string;
   }) {
     return (
-      <div>
+      <div id={id}>
         <SectionDivider />
         <div className="pt-7 pb-1 space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
@@ -1777,44 +1777,28 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
         className="flex items-center gap-1.5 text-sm text-black dark:text-white hover:text-[#C45C26] dark:hover:text-[#C45C26] transition-colors">
         <ArrowLeft className="w-3.5 h-3.5" /> Back
       </button>
-      <div>
-        <h2 className="text-2xl font-bold text-foreground tracking-tight">
-          MoU — {orgA?.organisation_name} & {orgB?.organisation_name}
-        </h2>
-        <p className="text-sm mt-1 font-medium" style={{ color: !currentStage ? "#2D6A4F" : "#C45C26" }}>
-          {trackerStatusText}
-        </p>
+      {/* Reachable at any scroll depth -- exits immediately without
+          scrolling to the top link, or jumps straight to Indicators
+          (the section most worth returning to mid-review). */}
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-2">
+        <button type="button" onClick={onClose} title="Back"
+          className="w-11 h-11 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white shadow-lg flex items-center justify-center transition-colors">
+          <ArrowLeft className="w-4 h-4" />
+        </button>
+        <button type="button"
+          onClick={() => document.getElementById("indicators-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          title="Jump to indicators"
+          className="w-11 h-11 rounded-full border border-border bg-white dark:bg-card text-black dark:text-white shadow-lg flex items-center justify-center hover:border-[#2D6A4F]/50 transition-colors">
+          <ChevronDown className="w-4 h-4" />
+        </button>
+        <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} title="Scroll to top"
+          className="w-11 h-11 rounded-full border border-border bg-white dark:bg-card text-black dark:text-white shadow-lg flex items-center justify-center hover:border-[#2D6A4F]/50 transition-colors">
+          <ChevronUp className="w-4 h-4" />
+        </button>
       </div>
-      <SectionDivider />
-      <div className="pt-7 pb-1">
-        <div className="flex items-start w-full">
-          {stages.map((stage, i) => {
-            const isCurrent = !stage.completed && stages.slice(0, i).every((s) => s.completed);
-            const prevCompleted = i > 0 && stages[i - 1].completed;
-            return (
-              <div key={stage.key} className="flex-1 flex flex-col items-center text-center relative px-1">
-                {i > 0 && (
-                  <div className={`absolute top-[18px] right-1/2 w-full h-0.5 -z-10 transition-colors ${prevCompleted ? "bg-[#2D6A4F]" : "bg-border"}`} />
-                )}
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 shrink-0 bg-background transition-colors ${
-                  stage.completed
-                    ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
-                    : isCurrent
-                    ? "border-[#C45C26] text-[#C45C26] bg-[#C45C26]/5"
-                    : "border-border text-black/40 dark:text-white/40"
-                }`}>
-                  {stage.completed ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
-                </div>
-                <p className={`text-sm font-semibold mt-2 leading-snug ${
-                  stage.completed ? "text-black dark:text-white" : isCurrent ? "text-[#C45C26]" : "text-black/40 dark:text-white/40"
-                }`}>
-                  {stage.label}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <h2 className="text-2xl font-bold text-foreground tracking-tight">
+        MoU — {orgA?.organisation_name} & {orgB?.organisation_name}
+      </h2>
       {aPartyDeleted && (
         <InfoBanner tone="locked" icon={Lock}>
           One of the organisations on this MoU has been deleted. The document is preserved for your records, but signing, sending, and export are no longer available.
@@ -2033,7 +2017,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           {/* Outcome indicators -- required (agreed by both parties) before
               full execution, not before send. Either party can add one;
               only the party that didn't create it can mark agreement. */}
-          <SectionCard icon={Target} eyebrow="Outcome indicators" title="Measurable outcomes"
+          <SectionCard id="indicators-section" icon={Target} eyebrow="Outcome indicators" title="Measurable outcomes"
             description="At least one, agreed by both parties, is required before this MoU can be fully executed."
             action={orgA && (
               <button type="button" onClick={() => setShowIndicatorForm(true)}
@@ -2048,7 +2032,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
             ) : indicators.length === 0 ? (
               <p className="text-sm text-black dark:text-white">No indicators added yet.</p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-4">
                 {indicators.map((ind) => {
                   const status = indicatorStatus(ind);
                   const pillMeta = INDICATOR_AGREEMENT_LABEL[status];
@@ -2060,16 +2044,35 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                   const isEditing = editingIndicatorId === ind.id;
                   const isRejecting = rejectingIndicatorId === ind.id;
                   return (
-                    <div key={ind.id} className="rounded-xl border border-border p-4 space-y-1.5">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-black dark:text-white">{ind.name}</p>
-                          <p className="text-sm text-black dark:text-white mt-0.5">{ind.definition}</p>
-                          <p className="text-xs text-black dark:text-white mt-1">
-                            Target: {ind.target_value} · {ind.measurement_window}
-                            {ind.baseline_value && ` · Baseline: ${ind.baseline_value}`}
-                          </p>
-                          {ind.source && <p className="text-xs text-black dark:text-white mt-0.5">Source: {ind.source}</p>}
+                    <div key={ind.id} className="rounded-xl border border-border p-5 space-y-3">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0 flex-1 space-y-3">
+                          <div>
+                            <p className="text-base font-bold text-black dark:text-white">{ind.name}</p>
+                            <p className="text-sm text-black dark:text-white mt-1 leading-relaxed">{ind.definition}</p>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+                            <div>
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-black/50 dark:text-white/50">Target</p>
+                              <p className="text-sm text-black dark:text-white mt-0.5">{ind.target_value}</p>
+                            </div>
+                            <div>
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-black/50 dark:text-white/50">Measurement window</p>
+                              <p className="text-sm text-black dark:text-white mt-0.5">{ind.measurement_window}</p>
+                            </div>
+                            {ind.baseline_value && (
+                              <div>
+                                <p className="text-[11px] font-semibold uppercase tracking-wide text-black/50 dark:text-white/50">Baseline</p>
+                                <p className="text-sm text-black dark:text-white mt-0.5">{ind.baseline_value}</p>
+                              </div>
+                            )}
+                            {ind.source && (
+                              <div>
+                                <p className="text-[11px] font-semibold uppercase tracking-wide text-black/50 dark:text-white/50">Source</p>
+                                <p className="text-sm text-black dark:text-white mt-0.5">{ind.source}</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <span className={`shrink-0 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${INDICATOR_AGREEMENT_PILL_STYLES[pillMeta.tone]}`}>
                           {pillMeta.label}
