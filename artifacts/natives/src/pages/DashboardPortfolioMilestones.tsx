@@ -11,6 +11,8 @@ import MilestoneCard from "@/components/mou/MilestoneCard";
 import MilestoneCreateModal from "@/components/mou/MilestoneCreateModal";
 import MilestoneDetailModal from "@/components/mou/MilestoneDetailModal";
 import IndicatorsBoard from "@/components/mou/IndicatorsBoard";
+import { PartnershipIndicator, isIndicatorAgreed, fetchIndicatorsForDocuments } from "@/lib/indicators";
+import { ImpactClaim, fetchClaimsForIndicators, latestClaimFor, claimStageFor } from "@/lib/impactClaims";
 
 interface ExecutedDoc {
   id: string;
@@ -62,7 +64,13 @@ export default function DashboardPortfolioMilestones() {
   // get overridden back to collapsed on the next data reload.
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const seenDocIds = useRef<Set<string>>(new Set());
-  const [docView, setDocView] = useState<Record<string, "milestones" | "indicators">>({});
+  // A single page-level switch, not a per-document one -- so what's on
+  // screen is always one coherent thing (all Milestones or all
+  // Indicators), never a mix of both kanban types visible at once under
+  // stat tiles that only describe one of them.
+  const [pageView, setPageView] = useState<"milestones" | "indicators">("milestones");
+  const [allIndicators, setAllIndicators] = useState<PartnershipIndicator[]>([]);
+  const [allClaims, setAllClaims] = useState<ImpactClaim[]>([]);
 
   useEffect(() => { load(); }, [orgOwnerId]);
 
@@ -107,6 +115,11 @@ export default function DashboardPortfolioMilestones() {
     } else {
       setMilestones([]);
     }
+    const indicatorRows = docIds.length > 0 ? await fetchIndicatorsForDocuments(docIds) : [];
+    setAllIndicators(indicatorRows);
+    const agreedIds = indicatorRows.filter(isIndicatorAgreed).map((i) => i.id);
+    const claimRows = agreedIds.length > 0 ? await fetchClaimsForIndicators(agreedIds) : [];
+    setAllClaims(claimRows);
     setLoading(false);
   }
 
@@ -147,6 +160,24 @@ export default function DashboardPortfolioMilestones() {
     return milestones.filter((m) => filterStatus === "all" || m.status === filterStatus);
   }, [milestones, filterStatus]);
   const docsWithAnyMilestone = useMemo(() => new Set(milestones.map((m) => m.mou_document_id)), [milestones]);
+  const docsWithAnyIndicator = useMemo(() => new Set(allIndicators.map((i) => i.mou_document_id)), [allIndicators]);
+  // Same four-tile shape as the milestone stats, but answering "did it
+  // work" instead of "did the money move" -- Agreed/Awaiting evidence/
+  // Verified/In dispute mirror IndicatorsBoard's own columns exactly, so
+  // the page-level tiles and the per-section boards never disagree.
+  const indicatorStats = useMemo(() => {
+    const scopeIndicators = scopedDocId ? allIndicators.filter((i) => i.mou_document_id === scopedDocId) : allIndicators;
+    const agreed = scopeIndicators.filter(isIndicatorAgreed);
+    let awaitingEvidence = 0, underReview = 0, verified = 0, inDispute = 0;
+    agreed.forEach((ind) => {
+      const stage = claimStageFor(latestClaimFor(ind.id, allClaims));
+      if (stage === "awaiting_evidence") awaitingEvidence++;
+      else if (stage === "under_review") underReview++;
+      else if (stage === "verified") verified++;
+      else inDispute++;
+    });
+    return { agreedCount: agreed.length, awaitingEvidence, underReview, verified, inDispute };
+  }, [allIndicators, allClaims, scopedDocId]);
 
   // Tiles reflect whatever's currently in view -- the whole portfolio when
   // unscoped, just the one agreement's numbers when scoped. Uses the base
@@ -260,15 +291,16 @@ export default function DashboardPortfolioMilestones() {
   // one. Scoped to one agreement, this collapses to a single group with a
   // single agreement in it -- same code path, no special case needed.
   const sectionDocs = useMemo(() => {
+    const relevantSet = pageView === "milestones" ? docsWithAnyMilestone : docsWithAnyIndicator;
     const base = scopedDocId
       ? docs.filter((d) => d.id === scopedDocId)
-      : docs.filter((d) => docsWithAnyMilestone.has(d.id));
+      : docs.filter((d) => relevantSet.has(d.id));
     return [...base].sort((a, b) => {
       const aName = orgMap[partnerOrgIdFor(a)]?.organisation_name ?? "";
       const bName = orgMap[partnerOrgIdFor(b)]?.organisation_name ?? "";
       return aName.localeCompare(bName) || (docTitle(a) ?? "").localeCompare(docTitle(b) ?? "");
     });
-  }, [docs, scopedDocId, docsWithAnyMilestone, orgMap, initiativeTitleMap, myOrgId]);
+  }, [docs, scopedDocId, pageView, docsWithAnyMilestone, docsWithAnyIndicator, orgMap, initiativeTitleMap, myOrgId]);
 
   const partnerGroups = useMemo(() => {
     const groups: { partnerId: string; partnerName: string; docs: ExecutedDoc[] }[] = [];
@@ -357,6 +389,19 @@ export default function DashboardPortfolioMilestones() {
           </button>
         )}
       </div>
+      {/* Single global switch governing every section and the stat tiles
+          below -- never a per-document toggle, so the page is always
+          showing one coherent thing. */}
+      <div className="flex items-center gap-1 rounded-full border-2 border-[#2D6A4F] p-1 w-fit">
+        <button type="button" onClick={() => setPageView("milestones")}
+          className={`px-5 py-2 rounded-full text-sm font-bold transition-colors ${pageView === "milestones" ? "bg-[#2D6A4F] text-white" : "text-[#2D6A4F]"}`}>
+          Milestones
+        </button>
+        <button type="button" onClick={() => setPageView("indicators")}
+          className={`px-5 py-2 rounded-full text-sm font-bold transition-colors ${pageView === "indicators" ? "bg-[#2D6A4F] text-white" : "text-[#2D6A4F]"}`}>
+          Indicators
+        </button>
+      </div>
 
       {/* Tiles now reflect the current scope -- whole portfolio when
           unscoped, just this agreement's numbers when scoped -- so they
@@ -364,30 +409,50 @@ export default function DashboardPortfolioMilestones() {
           When financial tiles are hidden (non-binding), the remaining two
           each span half the grid instead of shrinking into a narrow
           left-aligned block with dead space on the right. */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {showFinancialTiles && (
-          <>
-            <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
-              <p className="text-xs text-black dark:text-white mb-1">Total committed</p>
-              <p className="text-xl font-medium text-black dark:text-white">{formatCurrencyTotals(stats.totalCommitted)}</p>
-            </div>
-            <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
-              <p className="text-xs text-black dark:text-white mb-1">Disbursed</p>
-              <p className="text-xl font-medium text-black dark:text-white">{formatCurrencyTotals(stats.disbursed)}</p>
-            </div>
-          </>
-        )}
-        <div className={`rounded-xl p-4 bg-white dark:bg-card border border-border ${!showFinancialTiles ? "sm:col-span-2" : ""}`}>
-          <p className="text-xs text-black dark:text-white mb-1">On track</p>
-          <p className="text-xl font-medium text-black dark:text-white">{stats.onTrack}</p>
+          {pageView === "milestones" ? (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {showFinancialTiles && (
+            <>
+              <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
+                <p className="text-xs text-black dark:text-white mb-1">Total committed</p>
+                <p className="text-xl font-medium text-black dark:text-white">{formatCurrencyTotals(stats.totalCommitted)}</p>
+              </div>
+              <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
+                <p className="text-xs text-black dark:text-white mb-1">Disbursed</p>
+                <p className="text-xl font-medium text-black dark:text-white">{formatCurrencyTotals(stats.disbursed)}</p>
+              </div>
+            </>
+          )}
+          <div className={`rounded-xl p-4 bg-white dark:bg-card border border-border ${!showFinancialTiles ? "sm:col-span-2" : ""}`}>
+            <p className="text-xs text-black dark:text-white mb-1">On track</p>
+            <p className="text-xl font-medium text-black dark:text-white">{stats.onTrack}</p>
+          </div>
+          <div className={`rounded-xl p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 ${!showFinancialTiles ? "sm:col-span-2" : ""}`}>
+            <p className="text-xs text-amber-600 dark:text-amber-500 mb-1">Overdue</p>
+            <p className="text-xl font-medium text-amber-600 dark:text-amber-500">{stats.overdue}</p>
+          </div>
         </div>
-        <div className={`rounded-xl p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 ${!showFinancialTiles ? "sm:col-span-2" : ""}`}>
-          <p className="text-xs text-amber-600 dark:text-amber-500 mb-1">Overdue</p>
-          <p className="text-xl font-medium text-amber-600 dark:text-amber-500">{stats.overdue}</p>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
+            <p className="text-xs text-black dark:text-white mb-1">Agreed</p>
+            <p className="text-xl font-medium text-black dark:text-white">{indicatorStats.agreedCount}</p>
+          </div>
+          <div className="rounded-xl p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
+            <p className="text-xs text-amber-600 dark:text-amber-500 mb-1">Awaiting evidence</p>
+            <p className="text-xl font-medium text-amber-600 dark:text-amber-500">{indicatorStats.awaitingEvidence}</p>
+          </div>
+          <div className="rounded-xl p-4 bg-[#2D6A4F]/[0.06] border border-[#2D6A4F]/20">
+            <p className="text-xs text-[#2D6A4F] mb-1">Verified</p>
+            <p className="text-xl font-medium text-[#2D6A4F]">{indicatorStats.verified}</p>
+          </div>
+          <div className="rounded-xl p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40">
+            <p className="text-xs text-red-600 dark:text-red-500 mb-1">In dispute</p>
+            <p className="text-xl font-medium text-red-600 dark:text-red-500">{indicatorStats.inDispute}</p>
+          </div>
         </div>
-      </div>
-
-      {!scopedDocId && (
+      )}
+      {pageView === "milestones" && !scopedDocId && (
         <div className="flex justify-end">
           <button type="button" onClick={() => { setPickerMode("create"); setPickedDocId(""); setPickerSearch(""); setShowPicker(true); }}
             className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
@@ -396,7 +461,7 @@ export default function DashboardPortfolioMilestones() {
         </div>
       )}
 
-      {scopedDocId && (
+{pageView === "milestones" && scopedDocId && (
         <div className="flex justify-end">
           <button type="button" onClick={() => setPickedDocId(scopedDocId)}
             className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
@@ -404,30 +469,31 @@ export default function DashboardPortfolioMilestones() {
           </button>
         </div>
       )}
-
-      {milestones.length === 0 ? (
+      {(pageView === "milestones" ? milestones.length === 0 : allIndicators.length === 0) ? (
         <p className="text-sm text-black dark:text-white">
-          No milestones yet. Use the button above to add one against an executed MoU.
+          {pageView === "milestones"
+            ? "No milestones yet. Use the button above to add one against an executed MoU."
+            : "No outcome indicators yet. Add them from the MoU document while it's still in progress."}
         </p>
       ) : (
         <>
-          {/* Status filter stays available in both states now -- it narrows
-              what's in each column, distinct from which agreement(s) show,
-              which scopedDocId/sectionDocs decide instead. */}
-          <div className="flex flex-wrap items-center gap-2">
-            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
-              className="h-9 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white">
-              <option value="all">All statuses</option>
-              <option value="pending">Pending</option>
-              <option value="revision_requested">Revision requested</option>
-              <option value="in_review">In review</option>
-              <option value="verified">Verified</option>
-              <option value="disbursed">Disbursed</option>
-            </select>
-          </div>
-
+          {pageView === "milestones" && (
+            <div className="flex flex-wrap items-center gap-2">
+              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
+                className="h-9 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white">
+                <option value="all">All statuses</option>
+                <option value="pending">Pending</option>
+                <option value="revision_requested">Revision requested</option>
+                <option value="in_review">In review</option>
+                <option value="verified">Verified</option>
+                <option value="disbursed">Disbursed</option>
+              </select>
+            </div>
+          )}
           {partnerGroups.length === 0 ? (
-            <p className="text-sm text-black dark:text-white">No milestones for this agreement yet.</p>
+            <p className="text-sm text-black dark:text-white">
+              {pageView === "milestones" ? "No milestones for this agreement yet." : "No indicators for this agreement yet."}
+            </p>
           ) : (
             <div className="space-y-8">
               {partnerGroups.map((group, gi) => (
@@ -438,37 +504,20 @@ export default function DashboardPortfolioMilestones() {
                     {group.docs.map((doc) => {
                       const title = docTitle(doc) ?? "Partnership";
                       const docItems = statusFiltered.filter((m) => m.mou_document_id === doc.id);
+                      const docIndicatorCount = allIndicators.filter((i) => i.mou_document_id === doc.id).length;
+                      const sectionCount = pageView === "milestones" ? docItems.length : docIndicatorCount;
                       const isCollapsed = !scopedDocId && collapsedIds.has(doc.id);
-                      const view = docView[doc.id] ?? "milestones";
                       return (
                         <div key={doc.id}>
-                          <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
-                            <button type="button" onClick={() => toggleCollapse(doc.id)}
-                              className="flex items-center gap-2 text-left group">
-                              <ChevronDown className={`w-3.5 h-3.5 text-black dark:text-white transition-transform shrink-0 ${isCollapsed ? "-rotate-90" : ""}`} />
-                              <p className="text-sm text-black dark:text-white group-hover:underline">{title}</p>
-                              {isCollapsed && (
-                                <span className="text-xs text-black dark:text-white">({docItems.length})</span>
-                              )}
-                            </button>
-                            {!isCollapsed && (
-                              <div className="flex items-center rounded-full border border-border p-0.5 shrink-0">
-                                <button type="button" onClick={() => setDocView((prev) => ({ ...prev, [doc.id]: "milestones" }))}
-                                  className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-                                    view === "milestones" ? "bg-[#2D6A4F] text-white" : "text-black dark:text-white"
-                                  }`}>
-                                  Milestones
-                                </button>
-                                <button type="button" onClick={() => setDocView((prev) => ({ ...prev, [doc.id]: "indicators" }))}
-                                  className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-                                    view === "indicators" ? "bg-[#2D6A4F] text-white" : "text-black dark:text-white"
-                                  }`}>
-                                  Indicators
-                                </button>
-                              </div>
+                          <button type="button" onClick={() => toggleCollapse(doc.id)}
+                            className="flex items-center gap-2 text-left group mb-2">
+                            <ChevronDown className={`w-3.5 h-3.5 text-black dark:text-white transition-transform shrink-0 ${isCollapsed ? "-rotate-90" : ""}`} />
+                            <p className="text-sm text-black dark:text-white group-hover:underline">{title}</p>
+                            {isCollapsed && (
+                              <span className="text-xs text-black dark:text-white">({sectionCount})</span>
                             )}
-                          </div>
-                          {!isCollapsed && (view === "milestones" ? <KanbanBoard items={docItems} /> : (
+                          </button>
+                          {!isCollapsed && (pageView === "milestones" ? <KanbanBoard items={docItems} /> : (
                             userId ? (
                               <IndicatorsBoard
                                 mouDocumentId={doc.id}
