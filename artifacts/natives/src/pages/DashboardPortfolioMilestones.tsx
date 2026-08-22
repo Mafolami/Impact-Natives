@@ -468,7 +468,16 @@ export default function DashboardPortfolioMilestones() {
                               </div>
                             )}
                           </div>
-                          {!isCollapsed && (view === "milestones" ? <KanbanBoard items={docItems} /> : <IndicatorsBoard mouDocumentId={doc.id} />)}
+                          {!isCollapsed && (view === "milestones" ? <KanbanBoard items={docItems} /> : (
+                            userId ? (
+                              <IndicatorsBoard
+                                mouDocumentId={doc.id}
+                                orgA={orgMap[doc.org_a_id] ?? null}
+                                orgB={orgMap[doc.org_b_id] ?? null}
+                                myUserId={userId}
+                              />
+                            ) : null
+                          ))}
                         </div>
                       );
                     })}
