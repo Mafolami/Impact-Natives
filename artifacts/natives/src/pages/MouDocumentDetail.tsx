@@ -1337,14 +1337,24 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     // itself keeps growing) after execution. Same freeze-at-execution outcome
     // as edited_sections/custom_content, just derived from an existing
     // timestamp rather than a new snapshot column.
-    const annexIndicators = indicators.filter((i) => {
-      if (!isIndicatorAgreed(i) || !i.agreed_by_other_org_at) return false;
-      if (doc.fully_executed_at) return new Date(i.agreed_by_other_org_at) <= new Date(doc.fully_executed_at);
-      return true;
-    });
+    // Live/current agreement state only -- no execution-timestamp gate.
+    // final_document_path (written once, at the instant finalizeDocument()
+    // calls this function) is what freezes the historical record; this
+    // filter drives the LIVE export button, which should reflect the
+    // present, including indicators agreed after execution.
+    const annexIndicators = indicators.filter((i) => isIndicatorAgreed(i));
     function writeIndicatorAnnex() {
       if (annexIndicators.length === 0) return;
-      writeSectionHeader("Outcome Indicators");
+      pdf.setFont("times", "bold");
+      pdf.setFontSize(13);
+      pdf.setTextColor(...FOREST_GREEN);
+      pdf.text("ANNEX A: OUTCOME INDICATORS", margin, y);
+      y += 18;
+      pdf.setFont("times", "italic");
+      pdf.setFontSize(9);
+      pdf.setTextColor(...BLACK);
+      pdf.text("Indicators mutually agreed by both parties, referenced under this Agreement.", margin, y);
+      y += 24;
       annexIndicators.forEach((ind, idx) => {
         ensureSpace(20);
         pdf.setFont("times", "bold");
@@ -1354,10 +1364,10 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
         y += 15;
         const rows: [string, string][] = [
           ["Definition", ind.definition],
+          ["Baseline", ind.baseline_value || "Not specified"],
           ["Target", ind.target_value],
           ["Measurement window", ind.measurement_window],
         ];
-        if (ind.baseline_value) rows.push(["Baseline", ind.baseline_value]);
         rows.forEach(([label, value]) => {
           const lineHeight = 10.5 * 1.4;
           const wrapped: string[] = pdf.splitTextToSize(sanitizeForPdf(value), contentWidth - 130);
@@ -1398,7 +1408,6 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
         }
       });
     }
-    writeIndicatorAnnex();
     // Signature block -- composites the actual captured signature images at
     // fixed coordinates. This only works because Impact Natives controls
     // this document's layout end to end; an uploaded external PDF's layout
@@ -1450,6 +1459,13 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     writeSignatureColumn(margin + colWidth + colGap, orgB.organisation_name, signatureBImg,
       resolvedValue("org_b_signatory_name"), resolvedValue("org_b_signatory_title"), doc.signed_at_org_b);
     y = blockTop + 18 + 24 + 22 + 16 + 10;
+    // Annex sits on its own forced page, after signatures -- standard
+    // schedule/appendix placement, not part of the numbered section flow.
+    if (annexIndicators.length > 0) {
+      pdf.addPage();
+      y = margin;
+      writeIndicatorAnnex();
+    }
     const pageCount = pdf.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       pdf.setPage(i);
