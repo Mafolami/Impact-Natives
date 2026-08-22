@@ -1,15 +1,28 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Loader2, Sparkles, X, CheckCircle2 } from "lucide-react";
-import { createIndicator } from "@/lib/indicators";
-
+import { Loader2, Sparkles, X, CheckCircle2, Pencil, Trash2 } from "lucide-react";
+import { createIndicator, updateIndicator, deleteIndicator } from "@/lib/indicators";
 const REFINE_CAP = 3;
-
+// supabase-js returns data: null whenever an edge function responds with
+// a non-2xx status (e.g. the 403 tier gate) -- the real JSON body only
+// lives on error.context, the raw Response object. Without this, every
+// gated call fell through to the generic "couldn't generate" failure
+// instead of surfacing requires_upgrade.
+async function readFunctionErrorBody(error: unknown): Promise<any> {
+  const context = (error as any)?.context;
+  if (context && typeof context.json === "function") {
+    try { return await context.json(); } catch { return null; }
+  }
+  return null;
+}
 interface AddedIndicator {
   id: string;
   name: string;
+  definition: string;
+  baseline_value: string | null;
   target_value: string;
   measurement_window: string;
+  source: string | null;
 }
 
 export default function IndicatorForm({
@@ -23,13 +36,14 @@ export default function IndicatorForm({
   onCreated: () => void;
 }) {
   const [addedIndicators, setAddedIndicators] = useState<AddedIndicator[]>([]);
-
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [definition, setDefinition] = useState("");
   const [baselineValue, setBaselineValue] = useState("");
   const [targetValue, setTargetValue] = useState("");
   const [measurementWindow, setMeasurementWindow] = useState("");
-
+  const [sourceValue, setSourceValue] = useState("");
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
@@ -52,6 +66,8 @@ export default function IndicatorForm({
     setBaselineValue("");
     setTargetValue("");
     setMeasurementWindow("");
+    setSourceValue("");
+    setEditingId(null);
     setSuggestions([]);
     setSuggestFailed(false);
     setSuggestRequiresUpgrade(false);
@@ -69,9 +85,10 @@ export default function IndicatorForm({
       const { data, error } = await supabase.functions.invoke("suggest-partnership-indicators", {
         body: { mou_document_id: mouDocumentId, initiative_id: initiativeId, connection_id: connectionId },
       });
-      if (!error && data?.suggestions) {
-        setSuggestions(data.suggestions);
-      } else if (data?.requires_upgrade) {
+      const body = data ?? (await readFunctionErrorBody(error));
+      if (body?.suggestions) {
+        setSuggestions(body.suggestions);
+      } else if (body?.requires_upgrade) {
         setSuggestRequiresUpgrade(true);
       } else {
         setSuggestFailed(true);
@@ -99,10 +116,11 @@ export default function IndicatorForm({
       const { data, error } = await supabase.functions.invoke("refine-partnership-indicator", {
         body: { name, definition, target_value: targetValue, measurement_window: measurementWindow },
       });
-      if (!error && data?.refined) {
-        setRefineSuggestion(data.refined);
+      const body = data ?? (await readFunctionErrorBody(error));
+      if (body?.refined) {
+        setRefineSuggestion(body.refined);
         setRefineCount((n) => n + 1);
-      } else if (data?.requires_upgrade) {
+      } else if (body?.requires_upgrade) {
         setRefineRequiresUpgrade(true);
       } else {
         setRefineFailed(true);
@@ -129,21 +147,51 @@ export default function IndicatorForm({
     if (!name.trim() || !definition.trim() || !targetValue.trim() || !measurementWindow.trim()) return;
     setAdding(true);
     setAddError(null);
-    const result = await createIndicator({
-      mou_document_id: mouDocumentId,
+    const payload = {
       name: name.trim(),
       definition: definition.trim(),
       baseline_value: baselineValue.trim() || null,
       target_value: targetValue.trim(),
       measurement_window: measurementWindow.trim(),
-      created_by_org_id: createdByOrgId,
-    });
+      source: sourceValue.trim() || null,
+    };
+    if (editingId) {
+      const result = await updateIndicator(editingId, payload);
+      setAdding(false);
+      if (!result) { setAddError("Couldn't save that change. Try again."); return; }
+      setAddedIndicators((prev) => prev.map((ind) => (ind.id === editingId ? {
+        id: result.id, name: result.name, definition: result.definition, baseline_value: result.baseline_value,
+        target_value: result.target_value, measurement_window: result.measurement_window, source: result.source,
+      } : ind)));
+      resetDraftFields();
+      return;
+    }
+    const result = await createIndicator({ mou_document_id: mouDocumentId, created_by_org_id: createdByOrgId, ...payload });
     setAdding(false);
     if (!result) { setAddError("Couldn't add that indicator. Try again."); return; }
     setAddedIndicators((prev) => [...prev, {
-      id: result.id, name: result.name, target_value: result.target_value, measurement_window: result.measurement_window,
+      id: result.id, name: result.name, definition: result.definition, baseline_value: result.baseline_value,
+      target_value: result.target_value, measurement_window: result.measurement_window, source: result.source,
     }]);
     resetDraftFields();
+  }
+  function startEditIndicator(ind: AddedIndicator) {
+    setEditingId(ind.id);
+    setName(ind.name);
+    setDefinition(ind.definition);
+    setBaselineValue(ind.baseline_value ?? "");
+    setTargetValue(ind.target_value);
+    setMeasurementWindow(ind.measurement_window);
+    setSourceValue(ind.source ?? "");
+  }
+  async function removeAddedIndicator(id: string) {
+    setDeletingId(id);
+    setAddError(null);
+    const deleted = await deleteIndicator(id);
+    setDeletingId(null);
+    if (!deleted) { setAddError("Couldn't remove that indicator. Try again."); return; }
+    setAddedIndicators((prev) => prev.filter((ind) => ind.id !== id));
+    if (editingId === id) resetDraftFields();
   }
 
   function handleContinue() {
@@ -156,7 +204,7 @@ export default function IndicatorForm({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white dark:bg-card rounded-t-2xl sm:rounded-2xl border border-border w-full sm:max-w-sm shadow-xl p-6 space-y-4 max-h-[85vh] overflow-y-auto"
+      <div className="bg-white dark:bg-card rounded-t-2xl sm:rounded-2xl border border-border w-full sm:max-w-lg shadow-xl p-6 space-y-4 max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <p className="text-base font-bold text-black dark:text-white">Add outcome indicators</p>
@@ -167,23 +215,6 @@ export default function IndicatorForm({
         <p className="text-xs text-black dark:text-white">
           At least one is required before this MoU can be sent. Add a few more now if you can -- 3 to 5 is typical.
         </p>
-
-        {addedIndicators.length > 0 && (
-          <div className="space-y-1.5">
-            {addedIndicators.map((ind) => (
-              <div key={ind.id} className="flex items-start gap-2 rounded-lg border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-3 py-2">
-                <CheckCircle2 className="w-4 h-4 text-[#2D6A4F] shrink-0 mt-0.5" />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-black dark:text-white">{ind.name}</p>
-                  <p className="text-xs text-black dark:text-white mt-0.5">
-                    Target: {ind.target_value} · {ind.measurement_window}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
         <div className="h-px bg-border" />
 
         <button type="button" onClick={suggestIndicators} disabled={suggestLoading}
@@ -193,7 +224,9 @@ export default function IndicatorForm({
             : <><Sparkles className="w-3.5 h-3.5" />Suggest with AI</>}
         </button>
         {suggestRequiresUpgrade && (
-          <p className="text-xs text-[#C45C26]">AI suggestions need an upgrade. You can still fill this in manually.</p>
+          <p className="text-xs text-[#C45C26]">
+            AI-suggested indicators are available on the Plus plan and above. Upgrade to use this, or fill this in manually below.
+          </p>
         )}
         {suggestFailed && (
           <p className="text-xs text-[#C45C26]">Couldn't generate suggestions. Try again or fill this in manually.</p>
@@ -211,12 +244,12 @@ export default function IndicatorForm({
         )}
 
         <div>
-          <label className="text-xs text-black dark:text-white block mb-1">Indicator name</label>
+          <label className="text-xs text-black dark:text-white block mb-1">Indicator name <span className="text-red-600">*</span></label>
           <input type="text" placeholder="e.g. Beneficiaries trained" value={name} onChange={(e) => setName(e.target.value)}
             className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
         </div>
         <div>
-          <label className="text-xs text-black dark:text-white block mb-1">Definition</label>
+          <label className="text-xs text-black dark:text-white block mb-1">Definition <span className="text-red-600">*</span></label>
           <textarea placeholder="How is this measured, from whom, and on what schedule" value={definition}
             onChange={(e) => setDefinition(e.target.value)} rows={3}
             className="w-full px-3 py-2 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white resize-none" />
@@ -227,12 +260,17 @@ export default function IndicatorForm({
             className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
         </div>
         <div>
-          <label className="text-xs text-black dark:text-white block mb-1">Target value</label>
+          <label className="text-xs text-black dark:text-white block mb-1">Source (optional)</label>
+          <input type="text" placeholder="e.g. Baseline survey 2026, org M&E framework" value={sourceValue} onChange={(e) => setSourceValue(e.target.value)}
+            className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
+        </div>
+        <div>
+          <label className="text-xs text-black dark:text-white block mb-1">Target value <span className="text-red-600">*</span></label>
           <input type="text" placeholder="What you're aiming for" value={targetValue} onChange={(e) => setTargetValue(e.target.value)}
             className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
         </div>
         <div>
-          <label className="text-xs text-black dark:text-white block mb-1">Measurement window</label>
+          <label className="text-xs text-black dark:text-white block mb-1">Measurement window <span className="text-red-600">*</span></label>
           <input type="text" placeholder="e.g. quarterly, end-of-project" value={measurementWindow}
             onChange={(e) => setMeasurementWindow(e.target.value)}
             className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
@@ -248,7 +286,7 @@ export default function IndicatorForm({
                 : <><Sparkles className="w-3 h-3" />Refine with AI ({REFINE_CAP - refineCount} left)</>}
           </button>
         )}
-        {refineRequiresUpgrade && <p className="text-xs text-[#C45C26]">Refining needs an upgrade.</p>}
+        {refineRequiresUpgrade && <p className="text-xs text-[#C45C26]">AI refinement is available on the Plus plan and above. Upgrade to use this.</p>}
         {refineFailed && <p className="text-xs text-[#C45C26]">Couldn't refine. Try again.</p>}
         {refineSuggestion && (
           <div className="rounded-lg border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-3 py-2 space-y-2">
@@ -268,13 +306,47 @@ export default function IndicatorForm({
           </div>
         )}
 
-        {addError && <p className="text-sm text-red-600 bg-red-50 rounded-md px-3 py-2">{addError}</p>}
-
-        <button type="button" onClick={addIndicator} disabled={adding || !canAdd}
-          className="w-full h-10 rounded-full border border-[#2D6A4F] text-[#2D6A4F] text-sm font-medium hover:bg-[#2D6A4F]/5 disabled:opacity-60 transition-colors">
-          {adding ? "Adding..." : "Add this indicator"}
-        </button>
-
+{addError && <p className="text-sm text-red-600 bg-red-50 rounded-md px-3 py-2">{addError}</p>}
+        <div className="flex gap-2">
+          <button type="button" onClick={addIndicator} disabled={adding || !canAdd}
+            className="flex-1 h-10 rounded-full border border-[#2D6A4F] text-[#2D6A4F] text-sm font-medium hover:bg-[#2D6A4F]/5 disabled:opacity-60 transition-colors">
+            {adding ? "Saving..." : editingId ? "Save changes" : "Add this indicator"}
+          </button>
+          {editingId && (
+            <button type="button" onClick={resetDraftFields}
+              className="h-10 px-4 rounded-full border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors">
+              Cancel edit
+            </button>
+          )}
+        </div>
+        {addedIndicators.length > 0 && (
+          <div className="space-y-1.5">
+            {addedIndicators.map((ind) => (
+              <div key={ind.id} className="flex items-start gap-2 rounded-lg border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-3 py-2">
+                <CheckCircle2 className="w-4 h-4 text-[#2D6A4F] shrink-0 mt-0.5" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-black dark:text-white">{ind.name}</p>
+                  <p className="text-xs text-black dark:text-white mt-0.5">
+                    Target: {ind.target_value} · {ind.measurement_window}
+                  </p>
+                  {ind.source && <p className="text-xs text-black dark:text-white mt-0.5">Source: {ind.source}</p>}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button type="button" onClick={() => startEditIndicator(ind)}
+                    aria-label="Edit" title="Edit"
+                    className="p-1.5 rounded-full text-black dark:text-white hover:bg-[#2D6A4F]/10 transition-colors">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button type="button" onClick={() => removeAddedIndicator(ind.id)} disabled={deletingId === ind.id}
+                    aria-label="Delete" title="Delete"
+                    className="p-1.5 rounded-full text-black dark:text-white hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 transition-colors disabled:opacity-50">
+                    {deletingId === ind.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="flex gap-2">
           <button type="button" onClick={onClose}
             className="flex-1 h-10 rounded-full border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors">
@@ -283,7 +355,7 @@ export default function IndicatorForm({
           <button type="button" onClick={handleContinue} disabled={addedIndicators.length === 0}
             title={addedIndicators.length === 0 ? "Add at least one indicator first" : undefined}
             className="flex-1 h-10 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium disabled:opacity-60 transition-colors">
-            {addedIndicators.length === 0 ? "Continue" : `Continue (${addedIndicators.length} added)`}
+            Continue
           </button>
         </div>
       </div>
