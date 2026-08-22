@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { jsPDF } from "jspdf";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { BRICOLAGE_GROTESQUE_BOLD_BASE64 } from "@/lib/fonts/bricolageGrotesqueBold";
-import { X, Loader2, Download, Upload, CheckCircle2, Send, ArrowLeft, PenLine, Flag, Lock, Clock, PartyPopper, Trash2, Target, Users, ClipboardList, ChevronUp, ChevronDown } from "lucide-react";
+import { X, Loader2, Download, Upload, CheckCircle2, Send, ArrowLeft, PenLine, Flag, Lock, Clock, PartyPopper, Trash2, Target, Users, ClipboardList, ChevronUp, ChevronDown, FileText } from "lucide-react";
 import SignaturePad from "@/components/dashboard/SignaturePad";
 import IndicatorForm from "@/components/mou/IndicatorForm";
 import {
@@ -1863,17 +1863,12 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                 </SectionCard>
               )}
               {allFieldKeys.length > 0 && (
-                <div className="space-y-5">
-                  <div>
-                    <p className="text-base font-semibold text-black dark:text-white">Fill in the details</p>
-                    <p className="text-sm text-black dark:text-white">
-                      {isViewerOrgA
-                        ? "Complete your organisation's details and the shared agreement details below, then sign. Once you submit, we'll notify the other party to review."
-                        : doc.details_completed_by_org_a
-                        ? "Review the details below. Flag anything that needs clarifying before filling in your own details."
-                        : `Waiting for ${orgA?.organisation_name ?? "the other party"} to complete their details.`}
-                    </p>
-                  </div>
+                <SectionCard icon={ClipboardList} eyebrow="Fill in the details" title="Agreement details"
+                  description={isViewerOrgA
+                    ? "Complete your organisation's details and the shared agreement details below, then sign. Once you submit, we'll notify the other party to review."
+                    : doc.details_completed_by_org_a
+                    ? "Review the details below. Flag anything that needs clarifying before filling in your own details."
+                    : `Waiting for ${orgA?.organisation_name ?? "the other party"} to complete their details.`}>
                   {groupedFieldKeys.orgAKeys.length > 0 && (isViewerOrgA || doc.details_completed_by_org_a) && (
                     <div className="rounded-xl border border-border p-4 space-y-3">
                       <p className="text-sm font-semibold text-[#2D6A4F] uppercase tracking-wide">
@@ -1936,19 +1931,14 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                       )}
                     </div>
                   )}
-                </div>
+                </SectionCard>
               )}
-              <div className="space-y-4 border-t border-border pt-5">
-                <div>
-                  <p className="text-base font-semibold text-black dark:text-white">Document preview</p>
-                  <p className="text-sm text-black dark:text-white">
-                    {isViewerOrgB
-                      ? `This is a read-only preview. Use the flag icon on any clause to ask ${orgA?.organisation_name ?? "the other party"} to change it.`
-                      : previewLocked
-                      ? "This text is locked because a signature has been added."
-                      : "Edit any clause directly — erase what doesn't apply, adjust wording as needed."}
-                   </p>
-                </div>
+              <SectionCard icon={FileText} eyebrow="Document preview" title="Full agreement text"
+                description={isViewerOrgB
+                  ? `This is a read-only preview. Use the flag icon on any clause to ask ${orgA?.organisation_name ?? "the other party"} to change it.`
+                  : previewLocked
+                  ? "This text is locked because a signature has been added."
+                  : "Edit any clause directly — erase what doesn't apply, adjust wording as needed."}>
                 {displaySections.map((s) => (
                   <div key={s.id}>
                     <p className="text-sm font-semibold uppercase tracking-wide text-black dark:text-white mb-1">{s.title}</p>
@@ -1970,17 +1960,16 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                 ))}
                 {canEditDocumentContent && Object.keys(sectionOverrides).length > 0 && (
                   <button type="button" onClick={savePreviewEdits} disabled={savingSections}
-                    className="text-sm text-black dark:text-white hover:underline underline-offset-2 disabled:opacity-60">
+                    className="text-sm font-semibold text-[#2D6A4F] hover:underline underline-offset-2 disabled:opacity-60">
                     {savingSections ? "Saving..." : "Save document edits"}
                   </button>
                 )}
-              </div>
+              </SectionCard>
             </>
           )}
           {/* Custom: free text editor */}
           {doc.source_type === "custom" && (
-            <div className="space-y-3">
-              <p className="text-base font-semibold text-black dark:text-white">Document text</p>
+            <SectionCard icon={FileText} eyebrow="Document" title="Agreement text">
               {isViewerOrgB ? (
                 <p className="text-sm text-black dark:text-white">
                   This is a read-only preview. Use the flag icon below to ask {orgA?.organisation_name ?? "the other party"} to change anything.
@@ -2007,21 +1996,20 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               {(isViewerOrgA || isViewerOrgB) &&
                 renderFlagsForField("custom_content", { canRaise: isViewerOrgB && doc.status !== "fully_executed", raiserRole: "org_b" })}
               {saving && <p className="text-sm text-black dark:text-white">Saving...</p>}
-            </div>
+            </SectionCard>
           )}
           {/* Uploaded PDF */}
           {doc.source_type === "uploaded_pdf" && (
-            <div className="space-y-3">
-              <p className="text-base font-semibold text-black dark:text-white">Uploaded document</p>
+            <SectionCard icon={FileText} eyebrow="Document" title="Uploaded document">
               {uploadedFileUrl ? (
                 <a href={uploadedFileUrl} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-black dark:text-white hover:underline underline-offset-2 text-base">
+                  className="inline-flex items-center gap-2 text-[#2D6A4F] font-semibold hover:underline underline-offset-2 text-base">
                   <Download className="w-4 h-4" /> View original document
                 </a>
               ) : (
                 <p className="text-sm text-black dark:text-white">Could not load the document link.</p>
               )}
-            </div>
+            </SectionCard>
           )}
           {/* Outcome indicators -- required (agreed by both parties) before
               full execution, not before send. Either party can add one;
@@ -2227,8 +2215,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
           })()}
 
           {/* Send / sign actions */}
-          <div className="space-y-3 border-t border-border pt-5">
-            <p className="text-base font-semibold text-black dark:text-white">Send & sign</p>
+          <SectionCard icon={Send} eyebrow="Send & sign" title="Signatures">
             {isViewerOrgA && doc.status === "draft" && (
               <p className="text-sm text-black dark:text-white">
                 {orgB?.organisation_name ?? "Your partner"} can't see this document until you send it.
@@ -2438,7 +2425,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                 })()}
               </div>
             )}
-          </div>
+          </SectionCard>
           {isViewerOrgA && doc.source_type === "template" && doc.signature_org_a_path && missingFieldLabels.length === 0 && dateValidationErrors.length === 0 && (
               <button type="button" onClick={completeOrgADetails}
               disabled={saving || (doc.details_completed_by_org_a && !hasUnresolvedOrgBFlags)}
@@ -2509,9 +2496,8 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               Partnership status updated{doc.partnership_status_confirmed_at ? ` on ${new Date(doc.partnership_status_confirmed_at).toLocaleDateString("en-GB")}` : ""}.
             </InfoBanner>
           )}
-          {/* Export */}
           {doc.source_type !== "uploaded_pdf" && (
-            <div className="space-y-2">
+            <SectionCard icon={Download} eyebrow="Export" title="Download the document">
               {doc.final_document_path && (
                 <InfoBanner tone="celebrate" icon={PartyPopper}>
                   This MoU is fully executed. Exporting now gives you the final signed copy both parties hold.
@@ -2523,10 +2509,10 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                 </InfoBanner>
               )}
               <button type="button" onClick={exportPdf} disabled={exportDisabledForOrgB}
-                className="w-full flex items-center justify-center gap-2 border border-border rounded-full py-3 text-base font-medium text-black dark:text-white hover:border-[#2D6A4F]/50 transition-colors disabled:cursor-not-allowed disabled:opacity-60">
+                className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] rounded-full py-3 text-base font-bold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-60">
                 <Download className="w-4 h-4" /> Export as PDF
               </button>
-            </div>
+            </SectionCard>
           )}
       {showUploadWarning && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowUploadWarning(false)}>
