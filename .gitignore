@@ -51,3 +51,4 @@ GoogleAuth.rtf
 artifacts/natives/.env.development.local
 artifacts/natives/.env.development.local
 .vercel
+supabase/.temp/
