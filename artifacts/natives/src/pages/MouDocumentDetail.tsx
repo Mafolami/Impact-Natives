@@ -2021,7 +2021,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
             description="At least one, agreed by both parties, is required before this MoU can be fully executed."
             action={orgA && (
               <button type="button" onClick={() => setShowIndicatorForm(true)}
-                className="shrink-0 text-sm px-4 py-1.5 rounded-full border border-[#2D6A4F]/30 text-[#2D6A4F] hover:bg-[#2D6A4F]/5 transition-colors">
+                className="shrink-0 text-sm font-bold px-5 py-2.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white shadow-sm transition-colors">
                 Add indicator
               </button>
             )}>
