@@ -2051,26 +2051,14 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                             <p className="text-base font-bold text-black dark:text-white">{ind.name}</p>
                             <p className="text-sm text-black dark:text-white mt-1 leading-relaxed">{ind.definition}</p>
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
-                            <div>
-                              <p className="text-[11px] font-semibold uppercase tracking-wide text-black/50 dark:text-white/50">Target</p>
-                              <p className="text-sm text-black dark:text-white mt-0.5">{ind.target_value}</p>
-                            </div>
-                            <div>
-                              <p className="text-[11px] font-semibold uppercase tracking-wide text-black/50 dark:text-white/50">Measurement window</p>
-                              <p className="text-sm text-black dark:text-white mt-0.5">{ind.measurement_window}</p>
-                            </div>
+                          <div className="space-y-1.5">
+                            <p className="text-sm text-black dark:text-white"><span className="font-bold">Target:</span> {ind.target_value}</p>
                             {ind.baseline_value && (
-                              <div>
-                                <p className="text-[11px] font-semibold uppercase tracking-wide text-black/50 dark:text-white/50">Baseline</p>
-                                <p className="text-sm text-black dark:text-white mt-0.5">{ind.baseline_value}</p>
-                              </div>
+                              <p className="text-sm text-black dark:text-white"><span className="font-bold">Baseline:</span> {ind.baseline_value}</p>
                             )}
+                            <p className="text-sm text-black dark:text-white"><span className="font-bold">Measurement window:</span> {ind.measurement_window}</p>
                             {ind.source && (
-                              <div>
-                                <p className="text-[11px] font-semibold uppercase tracking-wide text-black/50 dark:text-white/50">Source</p>
-                                <p className="text-sm text-black dark:text-white mt-0.5">{ind.source}</p>
-                              </div>
+                              <p className="text-sm text-black dark:text-white"><span className="font-bold">Source:</span> {ind.source}</p>
                             )}
                           </div>
                         </div>
