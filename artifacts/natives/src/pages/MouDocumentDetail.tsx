@@ -818,11 +818,20 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     if (!orgA || !orgB) return;
     const myOrgId = orgA.user_id === myUserId ? orgA.id : orgB.user_id === myUserId ? orgB.id : null;
     if (!myOrgId) return;
+    const target = indicators.find((i) => i.id === indicatorId);
     setAgreeingIndicatorId(indicatorId);
     await agreeToIndicator(indicatorId, myOrgId);
     const refreshed = await fetchIndicators(documentId);
     setIndicators(refreshed);
     setAgreeingIndicatorId(null);
+    const myName = myOrgId === orgA.id ? orgA.organisation_name : orgB.organisation_name;
+    await supabase.rpc("send_mou_notification", {
+      p_document_id: documentId,
+      p_type: "mou_indicator_agreed",
+      p_title: "Outcome indicator agreed",
+      p_body: `${myName ?? "Your partner"} agreed to the indicator "${target?.name ?? "an outcome indicator"}".`,
+      p_link: `/dashboard/portfolio/mou`,
+    });
   }
   function myOrgIdFor(): string | null {
     return orgA?.user_id === myUserId ? orgA.id : orgB?.user_id === myUserId ? orgB.id : null;
@@ -840,6 +849,8 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   }
   async function saveEditIndicator(indicatorId: string) {
     if (!editDraft.name.trim() || !editDraft.definition.trim() || !editDraft.target_value.trim() || !editDraft.measurement_window.trim()) return;
+    if (!orgA || !orgB) return;
+    const myOrgId = myOrgIdFor();
     setSavingEdit(true);
     await updateIndicator(indicatorId, {
       name: editDraft.name.trim(), definition: editDraft.definition.trim(),
@@ -850,6 +861,14 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     setIndicators(refreshed);
     setSavingEdit(false);
     setEditingIndicatorId(null);
+    const myName = myOrgId === orgA.id ? orgA.organisation_name : orgB.organisation_name;
+    await supabase.rpc("send_mou_notification", {
+      p_document_id: documentId,
+      p_type: "mou_indicator_refined",
+      p_title: "Outcome indicator suggestion",
+      p_body: `${myName ?? "Your partner"} suggested changes to the indicator "${editDraft.name.trim()}".`,
+      p_link: `/dashboard/portfolio/mou`,
+    });
   }
   function openReject(ind: PartnershipIndicator) {
     setEditingIndicatorId(null);
@@ -862,14 +881,24 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   }
   async function submitReject(indicatorId: string) {
     const myOrgId = myOrgIdFor();
-    if (!myOrgId || !rejectReasonDraft.trim()) return;
+    if (!myOrgId || !rejectReasonDraft.trim() || !orgA || !orgB) return;
+    const target = indicators.find((i) => i.id === indicatorId);
+    const reason = rejectReasonDraft.trim();
     setSubmittingReject(true);
-    await rejectIndicator(indicatorId, myOrgId, rejectReasonDraft.trim());
+    await rejectIndicator(indicatorId, myOrgId, reason);
     const refreshed = await fetchIndicators(documentId);
     setIndicators(refreshed);
     setSubmittingReject(false);
     setRejectingIndicatorId(null);
     setRejectReasonDraft("");
+    const myName = myOrgId === orgA.id ? orgA.organisation_name : orgB.organisation_name;
+    await supabase.rpc("send_mou_notification", {
+      p_document_id: documentId,
+      p_type: "mou_indicator_rejected",
+      p_title: "Outcome indicator rejected",
+      p_body: `${myName ?? "Your partner"} rejected the indicator "${target?.name ?? "an outcome indicator"}": ${reason}`,
+      p_link: `/dashboard/portfolio/mou`,
+    });
   }
   function dataUrlToBlob(dataUrl: string): Blob {
     const [header, base64] = dataUrl.split(",");
@@ -2043,8 +2072,21 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                 connectionId={doc.connection_id}
                 onClose={() => setShowIndicatorForm(false)}
                 onCreated={async () => {
+                  const before = indicators.length;
                   const refreshed = await fetchIndicators(doc.id);
                   setIndicators(refreshed);
+                  const added = refreshed.length - before;
+                  if (added > 0 && orgA && orgB) {
+                    const actingOrgId = orgA.user_id === myUserId ? orgA.id : orgB.user_id === myUserId ? orgB.id : null;
+                    const myName = actingOrgId === orgA.id ? orgA.organisation_name : orgB.organisation_name;
+                    await supabase.rpc("send_mou_notification", {
+                      p_document_id: doc.id,
+                      p_type: "mou_indicator_added",
+                      p_title: "New outcome indicator to review",
+                      p_body: `${myName ?? "Your partner"} added ${added} outcome indicator${added > 1 ? "s" : ""} for you to review.`,
+                      p_link: `/dashboard/portfolio/mou`,
+                    });
+                  }
                 }}
               />
             );
