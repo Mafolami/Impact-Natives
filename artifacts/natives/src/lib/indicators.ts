@@ -52,6 +52,15 @@ export function indicatorStatus(indicator: PartnershipIndicator): "pending" | "a
   if (isIndicatorRejected(indicator)) return "rejected";
   return "pending";
 }
+export async function fetchIndicatorsForDocuments(mouDocumentIds: string[]): Promise<PartnershipIndicator[]> {
+  if (mouDocumentIds.length === 0) return [];
+  const { data } = await supabase
+    .from("partnership_indicators")
+    .select(INDICATOR_COLUMNS)
+    .in("mou_document_id", mouDocumentIds)
+    .order("created_at", { ascending: true });
+  return (data as PartnershipIndicator[]) ?? [];
+}
 export async function fetchIndicators(mouDocumentId: string): Promise<PartnershipIndicator[]> {
   const { data } = await supabase
     .from("partnership_indicators")
