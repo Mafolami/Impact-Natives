@@ -70,10 +70,17 @@ export default function ImpactClaimForm({
       // since claiming is open to either party) becomes the prior claim
       // this submission supersedes. Resubmission carries an explicit
       // per-proof-point unchanged/update choice, never a silent default.
+      // Scoped to this org specifically -- "claiming open to either org"
+      // governs who may submit a claim on this indicator at all, not who
+      // may resubmit in response to a specific dispute. A dispute is
+      // directed at the claimant's evidence; only that claimant has
+      // standing to fix it. A different org opening this form gets a
+      // fresh submission, never someone else's carry-forward.
       const { data: priorRows } = await supabase
         .from("impact_claims")
         .select("id")
         .eq("indicator_id", indicatorId)
+        .eq("claiming_org_id", claimingOrgId)
         .eq("status", "disputed")
         .order("created_at", { ascending: false })
         .limit(1);
