@@ -40,6 +40,14 @@ export async function fetchClaimsForIndicators(indicatorIds: string[]): Promise<
 export function latestClaimFor(indicatorId: string, claims: ImpactClaim[]): ImpactClaim | null {
   return claims.find((c) => c.indicator_id === indicatorId) ?? null;
 }
+// Option A: each org's claim on an indicator is tracked independently --
+// two orgs can have active claims on the same indicator simultaneously,
+// each reviewed only by the other bilateral party. This is the per-org
+// counterpart to latestClaimFor above (which collapses to one claim per
+// indicator and no longer reflects how the board works).
+export function latestClaimForOrg(indicatorId: string, orgId: string, claims: ImpactClaim[]): ImpactClaim | null {
+  return claims.find((c) => c.indicator_id === indicatorId && c.claiming_org_id === orgId) ?? null;
+}
 export type IndicatorClaimStage = "awaiting_evidence" | "under_review" | "verified" | "in_dispute";
 // A disputed claim reopens the indicator rather than dead-ending it -- a
 // fresh "Submit claim" becomes available again, same as if no claim had
