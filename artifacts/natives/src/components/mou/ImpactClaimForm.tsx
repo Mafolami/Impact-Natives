@@ -44,6 +44,7 @@ export default function ImpactClaimForm({
 }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [canClaim, setCanClaim] = useState(true);
   const [proofPoints, setProofPoints] = useState<ProofPoint[]>([]);
   const [priorClaimId, setPriorClaimId] = useState<string | null>(null);
   const [priorEvidence, setPriorEvidence] = useState<PriorEvidenceRow[]>([]);
@@ -64,7 +65,10 @@ export default function ImpactClaimForm({
       setLoading(true);
       setLoadError(null);
 
-      const points = await fetchProofPoints(indicatorId);
+      const [points, orgRes] = await Promise.all([
+        fetchProofPoints(indicatorId),
+        supabase.from("organizations").select("subscription_tier").eq("id", claimingOrgId).single(),
+      ]);
 
       // A disputed claim reopens the indicator to awaiting-evidence --
       // the latest disputed claim on this indicator (by either org,
@@ -87,6 +91,10 @@ export default function ImpactClaimForm({
         .limit(1);
 
       if (cancelled) return;
+
+      const tier = orgRes.data?.subscription_tier ?? "free";
+      if (cancelled) return;
+      setCanClaim(["plus", "pro", "compliance"].includes(tier));
 
       const prior = priorRows?.[0] ?? null;
       let priorEv: PriorEvidenceRow[] = [];
@@ -142,6 +150,7 @@ export default function ImpactClaimForm({
 
   const canSubmit =
     !loading &&
+    canClaim &&
     !!claimedValue.trim() &&
     proofPoints.every((pp) => {
       const draft = proofPointDrafts[pp.id];
@@ -304,7 +313,16 @@ export default function ImpactClaimForm({
 
         {loadError && <p className="text-sm text-red-600 bg-red-50 rounded-md px-3 py-2">{loadError}</p>}
 
-        {!loading && !loadError && (
+        {!loading && !loadError && !canClaim && (
+          <div className="rounded-lg border border-[#C45C26]/20 bg-[#C45C26]/5 px-3 py-2.5 space-y-1.5">
+            <p className="text-sm font-medium text-black dark:text-white">Submitting claims is a Plus feature</p>
+            <p className="text-xs text-black dark:text-white">
+              Upgrade to claim credit for verified evidence on your profile.
+            </p>
+          </div>
+        )}
+
+        {!loading && !loadError && canClaim && (
           <>
             <div className="space-y-3">
               <p className="text-sm font-bold text-black dark:text-white">Verification checklist</p>
