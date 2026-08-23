@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Loader2, Sparkles, X, CheckCircle2, Pencil, Trash2 } from "lucide-react";
 import { createIndicator, updateIndicator, deleteIndicator } from "@/lib/indicators";
+import { createProofPoint, deleteProofPoint, type ProofPoint } from "@/lib/proofPoints";
 const REFINE_CAP = 3;
 // supabase-js returns data: null whenever an edge function responds with
 // a non-2xx status (e.g. the 403 tier gate) -- the real JSON body only
@@ -23,6 +24,14 @@ interface AddedIndicator {
   target_value: string;
   measurement_window: string;
   source: string | null;
+  proof_points: ProofPoint[];
+}
+
+interface DraftProofPoint {
+  tempId: string;
+  id?: string; // set once persisted -- absent means not yet saved to indicator_proof_points
+  name: string;
+  description: string | null;
 }
 
 export default function IndicatorForm({
@@ -44,6 +53,9 @@ export default function IndicatorForm({
   const [targetValue, setTargetValue] = useState("");
   const [measurementWindow, setMeasurementWindow] = useState("");
   const [sourceValue, setSourceValue] = useState("");
+  const [draftProofPoints, setDraftProofPoints] = useState<DraftProofPoint[]>([]);
+  const [proofPointName, setProofPointName] = useState("");
+  const [proofPointDescription, setProofPointDescription] = useState("");
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
@@ -67,6 +79,9 @@ export default function IndicatorForm({
     setTargetValue("");
     setMeasurementWindow("");
     setSourceValue("");
+    setDraftProofPoints([]);
+    setProofPointName("");
+    setProofPointDescription("");
     setEditingId(null);
     setSuggestions([]);
     setSuggestFailed(false);
@@ -138,13 +153,41 @@ export default function IndicatorForm({
     setRefineSuggestion(null);
   }
 
+  function addDraftProofPoint() {
+    if (!proofPointName.trim()) return;
+    setDraftProofPoints((prev) => [...prev, {
+      tempId: crypto.randomUUID(),
+      name: proofPointName.trim(),
+      description: proofPointDescription.trim() || null,
+    }]);
+    setProofPointName("");
+    setProofPointDescription("");
+  }
+
+  function removeDraftProofPoint(tempId: string) {
+    setDraftProofPoints((prev) => prev.filter((pp) => pp.tempId !== tempId));
+  }
+
   // Renamed from handleCreate -- this now appends to the running list
   // rather than closing the modal, so the person can add several
   // indicators (the M&E-recommended 3-5 per the handover) before moving
   // on, instead of being funnelled through the create flow once per
   // indicator.
+  //
+  // Every indicator now requires at least one proof point on its
+  // verification checklist before it can be added -- the checklist is
+  // created and persisted alongside the indicator as one unit, never
+  // as a separate step. Since indicator_proof_points has no UPDATE
+  // policy (locked at creation), edits to an already-added indicator's
+  // checklist are handled as delete-removed + create-new, not in-place
+  // updates -- consistent with the "full-replace, no partial edit"
+  // design for proof points.
   async function addIndicator() {
     if (!name.trim() || !definition.trim() || !targetValue.trim() || !measurementWindow.trim()) return;
+    if (draftProofPoints.length === 0) {
+      setAddError("Add at least one proof point to the verification checklist before saving.");
+      return;
+    }
     setAdding(true);
     setAddError(null);
     const payload = {
@@ -157,21 +200,57 @@ export default function IndicatorForm({
     };
     if (editingId) {
       const result = await updateIndicator(editingId, payload);
+      if (!result) { setAdding(false); setAddError("Couldn't save that change. Try again."); return; }
+
+      const existing = addedIndicators.find((ind) => ind.id === editingId);
+      const existingProofPoints = existing?.proof_points ?? [];
+      const keptIds = new Set(
+        draftProofPoints
+          .filter((pp): pp is DraftProofPoint & { id: string } => !!pp.id)
+          .map((pp) => pp.id)
+      );
+      const removed = existingProofPoints.filter((pp) => !keptIds.has(pp.id));
+      const toCreate = draftProofPoints.filter((pp) => !pp.id);
+
+      for (const pp of removed) await deleteProofPoint(pp.id);
+      const created = await Promise.all(
+        toCreate.map((pp) => createProofPoint(editingId, { name: pp.name, description: pp.description }))
+      );
+      if (created.some((c) => !c)) {
+        setAdding(false);
+        setAddError("Indicator saved, but one or more proof points couldn't be saved. Check the checklist and try again.");
+        return;
+      }
+
+      const finalProofPoints = [
+        ...existingProofPoints.filter((pp) => keptIds.has(pp.id)),
+        ...(created as ProofPoint[]),
+      ];
+
       setAdding(false);
-      if (!result) { setAddError("Couldn't save that change. Try again."); return; }
       setAddedIndicators((prev) => prev.map((ind) => (ind.id === editingId ? {
         id: result.id, name: result.name, definition: result.definition, baseline_value: result.baseline_value,
         target_value: result.target_value, measurement_window: result.measurement_window, source: result.source,
+        proof_points: finalProofPoints,
       } : ind)));
       resetDraftFields();
       return;
     }
+
     const result = await createIndicator({ mou_document_id: mouDocumentId, created_by_org_id: createdByOrgId, ...payload });
+    if (!result) { setAdding(false); setAddError("Couldn't add that indicator. Try again."); return; }
+
+    const created = await Promise.all(
+      draftProofPoints.map((pp) => createProofPoint(result.id, { name: pp.name, description: pp.description }))
+    );
     setAdding(false);
-    if (!result) { setAddError("Couldn't add that indicator. Try again."); return; }
+    if (created.some((c) => !c)) {
+      setAddError("Indicator saved, but one or more proof points couldn't be saved. Reopen it to fix the checklist.");
+    }
     setAddedIndicators((prev) => [...prev, {
       id: result.id, name: result.name, definition: result.definition, baseline_value: result.baseline_value,
       target_value: result.target_value, measurement_window: result.measurement_window, source: result.source,
+      proof_points: created.filter((c): c is ProofPoint => !!c),
     }]);
     resetDraftFields();
   }
@@ -183,6 +262,9 @@ export default function IndicatorForm({
     setTargetValue(ind.target_value);
     setMeasurementWindow(ind.measurement_window);
     setSourceValue(ind.source ?? "");
+    setDraftProofPoints(ind.proof_points.map((pp) => ({
+      tempId: pp.id, id: pp.id, name: pp.name, description: pp.description,
+    })));
   }
   async function removeAddedIndicator(id: string) {
     setDeletingId(id);
@@ -200,7 +282,7 @@ export default function IndicatorForm({
     onClose();
   }
 
-  const canAdd = name.trim() && definition.trim() && targetValue.trim() && measurementWindow.trim();
+  const canAdd = name.trim() && definition.trim() && targetValue.trim() && measurementWindow.trim() && draftProofPoints.length > 0;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
@@ -275,7 +357,47 @@ export default function IndicatorForm({
             onChange={(e) => setMeasurementWindow(e.target.value)}
             className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
         </div>
-
+        <div className="h-px bg-border" />
+        <div>
+          <p className="text-sm font-bold text-black dark:text-white">Verification checklist <span className="text-red-600">*</span></p>
+          <p className="text-xs text-black dark:text-white mt-0.5">
+            What evidence would prove this indicator happened? Add as many proof points as this indicator needs -- at least one is required.
+          </p>
+        </div>
+        <div>
+          <label className="text-xs text-black dark:text-white block mb-1">Proof point name</label>
+          <input type="text" placeholder="e.g. Signed attendance register" value={proofPointName}
+            onChange={(e) => setProofPointName(e.target.value)}
+            className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
+        </div>
+        <div>
+          <label className="text-xs text-black dark:text-white block mb-1">Description</label>
+          <input type="text" placeholder="Optional -- what makes this evidence acceptable" value={proofPointDescription}
+            onChange={(e) => setProofPointDescription(e.target.value)}
+            className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
+        </div>
+        <button type="button" onClick={addDraftProofPoint} disabled={!proofPointName.trim()}
+          className="w-full h-9 rounded-full border border-[#2D6A4F]/30 text-sm font-medium text-[#2D6A4F] hover:bg-[#2D6A4F]/5 disabled:opacity-50 transition-colors">
+          Add proof point
+        </button>
+        {draftProofPoints.length > 0 && (
+          <div className="space-y-1.5">
+            {draftProofPoints.map((pp) => (
+              <div key={pp.tempId} className="flex items-start gap-2 rounded-lg border border-border px-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-black dark:text-white">{pp.name}</p>
+                  {pp.description && <p className="text-xs text-black dark:text-white mt-0.5">{pp.description}</p>}
+                </div>
+                <button type="button" onClick={() => removeDraftProofPoint(pp.tempId)}
+                  aria-label="Remove proof point" title="Remove"
+                  className="p-1.5 rounded-full text-black dark:text-white hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 transition-colors shrink-0">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="h-px bg-border" />
         {name.trim() && definition.trim() && (
           <button type="button" onClick={refineIndicator} disabled={refineLoading || refineCount >= REFINE_CAP}
             className="w-full flex items-center justify-center gap-1.5 h-8 rounded-full border border-border text-xs font-medium text-black dark:text-white hover:border-[#2D6A4F]/40 disabled:opacity-50 transition-colors">
@@ -330,6 +452,9 @@ export default function IndicatorForm({
                     Target: {ind.target_value} · {ind.measurement_window}
                   </p>
                   {ind.source && <p className="text-xs text-black dark:text-white mt-0.5">Source: {ind.source}</p>}
+                  <p className="text-xs text-black dark:text-white mt-0.5">
+                    {ind.proof_points.length} proof point{ind.proof_points.length === 1 ? "" : "s"}
+                  </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <button type="button" onClick={() => startEditIndicator(ind)}
