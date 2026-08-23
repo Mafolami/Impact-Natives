@@ -288,7 +288,7 @@ function EditModal({ title, onClose, onSave, saving, children }: { title: string
 type PaneKey =
   | "basic" | "organisation" | "focus" | "presence"
   | "legal_identity"
-  | "dd" | "fdd" | "track" | "mandate" | "csr" | "verification";
+  | "dd" | "fdd" | "track" | "mandate" | "csr" | "verification" | "impact_evidence";
 
 interface PaneDef { key: PaneKey; label: string; }
 
@@ -667,6 +667,7 @@ export default function DashboardProfile() {
         ...(isFunder ? [{ key: "mandate" as PaneKey, label: "Mandate" }] : []),
         ...(isCorporate ? [{ key: "csr" as PaneKey, label: "CSR & ESG" }] : []),
         { key: "verification", label: "Verification" },
+        { key: "impact_evidence", label: "Impact Evidence" },
       ]
     : [
         { key: "basic",    label: "Basic Info" },
@@ -1725,18 +1726,6 @@ export default function DashboardProfile() {
             {/* Content area */}
             <div className="p-6 space-y-6 min-w-0">
 
-              {/* Standing trust indicator, not tied to any one pane --
-                  visible regardless of which tab is active. Owner sees
-                  the Public/Private toggle; a Team Member sees the real
-                  score with no interactive control, matching this
-                  page's existing isOrgOwner pattern of hiding edit
-                  affordances a Member's action would silently fail
-                  against (RLS on organizations UPDATE is user_id =
-                  auth.uid(), Owner-only). */}
-              {isOrg && orgId && (
-                <VerifiedOutcomesSection orgId={orgId} variant="panel" isOwnOrg canManage={isOrgOwner} />
-              )}
-
               {/* ── BASIC / CONTACT DETAILS PANE ── */}
               {activePane === "basic" && !isOrg && (
                 <SectionCardGroup>
@@ -2302,10 +2291,6 @@ export default function DashboardProfile() {
                           style={{ width: `${Math.round((ddReadinessItems.filter(Boolean).length / ddReadinessItems.length) * 100)}%` }} />
                       </div>
                     </div>
-                  </div>
-
-                  <div className="px-8 sm:px-12 py-10">
-                    <DeliveryStatsCard orgId={orgId} />
                   </div>
 
                   {orgId && (
@@ -3006,6 +2991,17 @@ export default function DashboardProfile() {
               
 
               {/* ── VERIFICATION PANE ── */}
+              {activePane === "impact_evidence" && isOrg && (
+                <SectionCardGroup>
+                  <div className="px-8 sm:px-12 py-10">
+                    <DeliveryStatsCard orgId={orgId} />
+                  </div>
+                  {orgId && (
+                    <VerifiedOutcomesSection orgId={orgId} variant="panel" isOwnOrg canManage={isOrgOwner} />
+                  )}
+                </SectionCardGroup>
+              )}
+
               {activePane === "verification" && isOrg && (
                 <SectionCardGroup>
                   <div className="px-8 sm:px-12 py-10">
