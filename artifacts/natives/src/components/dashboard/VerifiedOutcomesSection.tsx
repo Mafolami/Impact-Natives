@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Loader2, CheckCircle2, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { Loader2, CheckCircle2, AlertTriangle, Eye, EyeOff, Lock } from "lucide-react";
 import { canDisplayImpactScore, displayImpactScore, tierForScore, IMPACT_SCORE_TIER_STYLES } from "@/lib/impactScore";
 
 interface VerifiedOutcome {
@@ -35,6 +35,7 @@ export default function VerifiedOutcomesSection({
   const [outcomes, setOutcomes] = useState<VerifiedOutcome[]>([]);
   const [scoreRow, setScoreRow] = useState<OrgScoreRow | null>(null);
   const [savingToggle, setSavingToggle] = useState(false);
+  const [noteVisible, setNoteVisible] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,6 +61,21 @@ export default function VerifiedOutcomesSection({
     if (!error) setScoreRow((prev) => (prev ? { ...prev, show_impact_score: next } : prev));
   }
 
+  // The toggle button always renders the same way regardless of tier or
+  // permission -- consistent affordance. What clicking it DOES depends
+  // on whether the click can actually take effect: only an Owner on an
+  // eligible tier performs the real write. Everyone else gets an inline
+  // note explaining why, revealed on click rather than sitting on the
+  // page permanently -- the permanent version read as clutter once
+  // there was nothing to actually do about it without clicking through.
+  function handleToggleClick() {
+    if (isEligibleTier && canManage) {
+      toggleShowScore();
+      return;
+    }
+    setNoteVisible((v) => !v);
+  }
+
   const isEligibleTier = canDisplayImpactScore(scoreRow?.subscription_tier);
   const scoreVisibleToViewer = isOwnOrg || (isEligibleTier && !!scoreRow?.show_impact_score);
 
@@ -81,30 +97,39 @@ export default function VerifiedOutcomesSection({
   const scoreBlock = shouldRenderScoreBlock && scoreRow && (
     <div className="rounded-xl border border-border px-4 py-3 mb-3">
       {isOwnOrg ? (
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-bold text-black dark:text-white">
-              Your Impact Score: {displayImpactScore(scoreRow.impact_score)}
-              <span className={`ml-2 text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].border} ${IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].bg} ${IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].text}`}>
-                {IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].label}
-              </span>
-            </p>
-            <p className="text-[11px] text-black dark:text-white mt-1">
-              {isEligibleTier
-                ? "Reflects confirmed outcomes, partner diversity, and dispute history."
-                : canManage
-                  ? "Upgrade to Plus to show this on your public profile and in Natives."
-                  : "Ask your organisation's owner to upgrade to Plus to make this public."}
-            </p>
-          </div>
-          {isEligibleTier && canManage && (
-            <button type="button" onClick={toggleShowScore} disabled={savingToggle}
+        <div>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold text-black dark:text-white">
+                Your Impact Score: {displayImpactScore(scoreRow.impact_score)}
+                <span className={`ml-2 text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].border} ${IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].bg} ${IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].text}`}>
+                  {IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].label}
+                </span>
+              </p>
+              <p className="text-[11px] text-black dark:text-white mt-1">
+                Reflects confirmed outcomes, partner diversity, and dispute history.
+              </p>
+            </div>
+            <button type="button" onClick={handleToggleClick} disabled={savingToggle}
               className={`shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-full border text-xs font-medium transition-colors disabled:opacity-50 ${
-                scoreRow.show_impact_score ? "border-[#2D6A4F] bg-[#2D6A4F] text-white" : "border-border text-black dark:text-white"
+                isEligibleTier && scoreRow.show_impact_score ? "border-[#2D6A4F] bg-[#2D6A4F] text-white" : "border-border text-black dark:text-white"
               }`}>
-              {savingToggle ? <Loader2 className="w-3 h-3 animate-spin" /> : scoreRow.show_impact_score ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-              {scoreRow.show_impact_score ? "Public" : "Private"}
+              {savingToggle
+                ? <Loader2 className="w-3 h-3 animate-spin" />
+                : !isEligibleTier
+                  ? <Lock className="w-3 h-3" />
+                  : scoreRow.show_impact_score ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+              {!isEligibleTier ? "Upgrade" : scoreRow.show_impact_score ? "Public" : "Private"}
             </button>
+          </div>
+          {noteVisible && (
+            <p className="text-[11px] text-black dark:text-white mt-2 bg-muted rounded-md px-2 py-1.5">
+              {!isEligibleTier
+                ? canManage
+                  ? "Upgrade to Plus to show this on your public profile and in Natives."
+                  : "Ask your organisation's owner to upgrade to Plus to make this public."
+                : "Only the organisation owner can change this."}
+            </p>
           )}
         </div>
       ) : (
