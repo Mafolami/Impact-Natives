@@ -52,6 +52,7 @@ export default function ImpactClaimForm({
   const [supplementaryDraft, setSupplementaryDraft] = useState<{
     justification: string; evidenceType: "file" | "link"; evidenceFile: File | null; evidenceLink: string;
   }>({ justification: "", evidenceType: "file", evidenceFile: null, evidenceLink: "" });
+  const [claimedValue, setClaimedValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -141,6 +142,7 @@ export default function ImpactClaimForm({
 
   const canSubmit =
     !loading &&
+    !!claimedValue.trim() &&
     proofPoints.every((pp) => {
       const draft = proofPointDrafts[pp.id];
       if (!draft) return false;
@@ -171,6 +173,7 @@ export default function ImpactClaimForm({
         claiming_org_id: claimingOrgId,
         status: "pending",
         prior_claim_id: priorClaimId,
+        claimed_value: claimedValue.trim(),
       })
       .select()
       .single();
@@ -282,6 +285,15 @@ export default function ImpactClaimForm({
           <p className="text-xs text-black dark:text-white bg-[#C45C26]/10 border border-[#C45C26]/20 rounded-lg px-3 py-2">
             This indicator's prior claim was disputed. For each proof point, choose whether your evidence is unchanged or needs updating -- every one needs an explicit answer.
           </p>
+        )}
+
+        {!loading && (
+          <div>
+            <label className="text-xs text-black dark:text-white block mb-1">Claimed value <span className="text-red-600">*</span></label>
+            <input type="text" placeholder="e.g. 450 beneficiaries trained" value={claimedValue}
+              onChange={(e) => setClaimedValue(e.target.value)}
+              className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
+          </div>
         )}
 
         {loading && (

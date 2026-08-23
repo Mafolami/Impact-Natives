@@ -159,6 +159,7 @@ export default function ImpactClaimReview({
         </div>
 
         <p className="text-xs text-black dark:text-white">Claimed by {claimantName ?? "Partner"}</p>
+        <p className="text-sm font-bold text-black dark:text-white">Claimed value: {claim.claimed_value}</p>
 
         {loadingBundle && (
           <div className="flex items-center justify-center py-8">

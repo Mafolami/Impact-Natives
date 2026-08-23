@@ -16,6 +16,7 @@ export interface ImpactClaim {
   disputed_at: string | null;
   dispute_reason: string | null;
   prior_claim_id: string | null;
+  claimed_value: string;
   created_at: string;
 }
 // claim_text/indicator_value/evidence_type/evidence_value were dropped
@@ -24,7 +25,7 @@ export interface ImpactClaim {
 // it (ImpactClaimReview joins proof points + evidence directly). This
 // row is the bundle/status-machine record only.
 const CLAIM_COLUMNS =
-  "id,indicator_id,claiming_org_id,status,confirmed_by_org_id,confirmed_at,challenge_reason,challenge_raised_by_org_id,challenge_raised_at,response_window_days,response_deadline,claimant_response,disputed_by_org_id,disputed_at,dispute_reason,prior_claim_id,created_at";
+  "id,indicator_id,claiming_org_id,status,confirmed_by_org_id,confirmed_at,challenge_reason,challenge_raised_by_org_id,challenge_raised_at,response_window_days,response_deadline,claimant_response,disputed_by_org_id,disputed_at,dispute_reason,prior_claim_id,claimed_value,created_at";
 export async function fetchClaimsForIndicators(indicatorIds: string[]): Promise<ImpactClaim[]> {
   if (indicatorIds.length === 0) return [];
   const { data } = await supabase
