@@ -31,13 +31,16 @@ BEGIN
     RAISE EXCEPTION 'Only the counterparty can accept a refinement suggestion';
   END IF;
 
+  -- proposeIndicatorRefinement always submits the complete field set
+  -- (name/definition/target_value/measurement_window required, baseline/source
+  -- nullable but always present) -- direct assignment, no COALESCE needed.
   UPDATE partnership_indicators
   SET
-    name = COALESCE(v_indicator.suggested_name, name),
-    definition = COALESCE(v_indicator.suggested_definition, definition),
+    name = v_indicator.suggested_name,
+    definition = v_indicator.suggested_definition,
     baseline_value = v_indicator.suggested_baseline_value,
-    target_value = COALESCE(v_indicator.suggested_target_value, target_value),
-    measurement_window = COALESCE(v_indicator.suggested_measurement_window, measurement_window),
+    target_value = v_indicator.suggested_target_value,
+    measurement_window = v_indicator.suggested_measurement_window,
     source = v_indicator.suggested_source,
     agreed_by_other_org_id = NULL,
     agreed_by_other_org_at = NULL,
