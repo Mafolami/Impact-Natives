@@ -1,6 +1,7 @@
 // ─── DashboardNatives.tsx ─────────────────────────────────────────────────────
 import { useEffect, useState } from "react";
 import { impactScoreForSort, canDisplayImpactScore, tierForScore, displayImpactScore, IMPACT_SCORE_TIER_STYLES } from "@/lib/impactScore";
+import VerifiedOutcomesSection from "@/components/dashboard/VerifiedOutcomesSection";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Loader2, Search, Users, Sparkles, RefreshCw } from "lucide-react";
@@ -1175,6 +1176,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h3 className="text-2xl sm:text-[32px] font-bold text-[#111111] dark:text-[#F5F5F5] tracking-tight">{org.organisation_name}</h3>
                 {isVerified && <VerifiedBadge withTooltip />}
+                {canDisplayImpactScore(org.subscription_tier) && <ImpactScoreBadge score={org.impact_score ?? 0} />}
               </div>
               <p className="text-sm text-[#111111] dark:text-[#F5F5F5] mt-2">
                 {org.organisation_type && <span className="capitalize">{org.organisation_type.replace(/_/g, " ")}</span>}
@@ -1191,6 +1193,8 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
             </div>
           </div>
         </div>
+
+        <VerifiedOutcomesSection orgId={org.id} variant="panel" isOwnOrg={isOwnProfile} />
 
         {(aiSummary || loadingAi) && (
           <div className="px-8 sm:px-12 py-10">
