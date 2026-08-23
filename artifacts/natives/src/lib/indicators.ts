@@ -143,7 +143,7 @@ export async function proposeIndicatorRefinement(indicatorId: string, proposingO
   source: string | null;
   proof_points: { name: string; description: string | null }[];
 }): Promise<void> {
-  await supabase
+  const { error } = await supabase
     .from("partnership_indicators")
     .update({
       suggested_by_org_id: proposingOrgId,
@@ -157,6 +157,7 @@ export async function proposeIndicatorRefinement(indicatorId: string, proposingO
       suggested_proof_points: patch.proof_points,
     })
     .eq("id", indicatorId);
+  if (error) throw error;
 }
 // Copies suggested_* into the live fields and clears the holding columns.
 // Also clears any prior agreement/rejection -- an accepted refinement is
@@ -177,7 +178,7 @@ export async function acceptIndicatorRefinement(indicator: PartnershipIndicator)
   if (error) throw error;
 }
 export async function dismissIndicatorRefinement(indicatorId: string): Promise<void> {
-  await supabase
+  const { error } = await supabase
     .from("partnership_indicators")
     .update({
       suggested_by_org_id: null,
@@ -188,11 +189,13 @@ export async function dismissIndicatorRefinement(indicatorId: string): Promise<v
       suggested_target_value: null,
       suggested_measurement_window: null,
       suggested_source: null,
+      suggested_proof_points: null,
     })
     .eq("id", indicatorId);
+  if (error) throw error;
 }
 export async function agreeToIndicator(indicatorId: string, agreeingOrgId: string): Promise<void> {
-  await supabase
+  const { error } = await supabase
     .from("partnership_indicators")
     .update({
       agreed_by_other_org_id: agreeingOrgId,
@@ -202,9 +205,10 @@ export async function agreeToIndicator(indicatorId: string, agreeingOrgId: strin
       rejection_reason: null,
     })
     .eq("id", indicatorId);
+  if (error) throw error;
 }
 export async function rejectIndicator(indicatorId: string, rejectingOrgId: string, reason: string): Promise<void> {
-  await supabase
+  const { error } = await supabase
     .from("partnership_indicators")
     .update({
       rejected_by_org_id: rejectingOrgId,
@@ -214,4 +218,5 @@ export async function rejectIndicator(indicatorId: string, rejectingOrgId: strin
       agreed_by_other_org_at: null,
     })
     .eq("id", indicatorId);
+  if (error) throw error;
 }

@@ -132,6 +132,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const [editingIndicatorId, setEditingIndicatorId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState({ name: "", definition: "", baseline_value: "", target_value: "", measurement_window: "", source: "" });
   const [editDraftProofPoints, setEditDraftProofPoints] = useState<{ tempId: string; name: string; description: string | null }[]>([]);
+  const [indicatorActionError, setIndicatorActionError] = useState<Record<string, string>>({});
   const [editProofPointName, setEditProofPointName] = useState("");
   const [editProofPointDescription, setEditProofPointDescription] = useState("");
   const [loadingEditProofPoints, setLoadingEditProofPoints] = useState(false);
@@ -875,7 +876,14 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     if (!myOrgId) return;
     const target = indicators.find((i) => i.id === indicatorId);
     setAgreeingIndicatorId(indicatorId);
-    await agreeToIndicator(indicatorId, myOrgId);
+    setIndicatorActionError((prev) => ({ ...prev, [indicatorId]: "" }));
+    try {
+      await agreeToIndicator(indicatorId, myOrgId);
+    } catch {
+      setAgreeingIndicatorId(null);
+      setIndicatorActionError((prev) => ({ ...prev, [indicatorId]: "Couldn't agree to this indicator. Try again." }));
+      return;
+    }
     const refreshed = await fetchIndicators(documentId);
     setIndicators(refreshed);
     setAgreeingIndicatorId(null);
@@ -936,12 +944,19 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     const myOrgId = myOrgIdFor();
     if (!myOrgId) return;
     setSavingEdit(true);
-    await proposeIndicatorRefinement(indicatorId, myOrgId, {
-      name: editDraft.name.trim(), definition: editDraft.definition.trim(),
-      baseline_value: editDraft.baseline_value.trim() || null, target_value: editDraft.target_value.trim(),
-      measurement_window: editDraft.measurement_window.trim(), source: editDraft.source.trim() || null,
-      proof_points: editDraftProofPoints.map((pp) => ({ name: pp.name, description: pp.description })),
-    });
+    setIndicatorActionError((prev) => ({ ...prev, [indicatorId]: "" }));
+    try {
+      await proposeIndicatorRefinement(indicatorId, myOrgId, {
+        name: editDraft.name.trim(), definition: editDraft.definition.trim(),
+        baseline_value: editDraft.baseline_value.trim() || null, target_value: editDraft.target_value.trim(),
+        measurement_window: editDraft.measurement_window.trim(), source: editDraft.source.trim() || null,
+        proof_points: editDraftProofPoints.map((pp) => ({ name: pp.name, description: pp.description })),
+      });
+    } catch {
+      setSavingEdit(false);
+      setIndicatorActionError((prev) => ({ ...prev, [indicatorId]: "Couldn't save your suggested changes. Try again." }));
+      return;
+    }
     const refreshed = await fetchIndicators(documentId);
     setIndicators(refreshed);
     setSavingEdit(false);
@@ -960,6 +975,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     const myOrgId = myOrgIdFor();
     if (!myOrgId) return;
     setResolvingSuggestionId(ind.id);
+    setIndicatorActionError((prev) => ({ ...prev, [ind.id]: "" }));
     try {
       if (accept) {
         await acceptIndicatorRefinement(ind);
@@ -968,6 +984,12 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       }
     } catch {
       setResolvingSuggestionId(null);
+      setIndicatorActionError((prev) => ({
+        ...prev,
+        [ind.id]: accept
+          ? "Couldn't accept that suggestion. It may have already been resolved -- refresh and try again."
+          : "Couldn't dismiss that suggestion. Try again.",
+      }));
       return;
     }
     const refreshed = await fetchIndicators(documentId);
@@ -999,7 +1021,14 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     const target = indicators.find((i) => i.id === indicatorId);
     const reason = rejectReasonDraft.trim();
     setSubmittingReject(true);
-    await rejectIndicator(indicatorId, myOrgId, reason);
+    setIndicatorActionError((prev) => ({ ...prev, [indicatorId]: "" }));
+    try {
+      await rejectIndicator(indicatorId, myOrgId, reason);
+    } catch {
+      setSubmittingReject(false);
+      setIndicatorActionError((prev) => ({ ...prev, [indicatorId]: "Couldn't reject this indicator. Try again." }));
+      return;
+    }
     const refreshed = await fetchIndicators(documentId);
     setIndicators(refreshed);
     setSubmittingReject(false);
@@ -2100,6 +2129,11 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                           {pillMeta.label}
                         </span>
                       </div>
+                      {indicatorActionError[ind.id] && (
+                        <p className="text-xs text-red-600 dark:text-red-500 bg-red-50 dark:bg-red-950/20 rounded-md px-2.5 py-1.5">
+                          {indicatorActionError[ind.id]}
+                        </p>
+                      )}
                       {status === "rejected" && ind.rejection_reason && (
                         <p className="text-xs text-red-600 dark:text-red-500">
                           {iCreatedThis ? "The other party" : "You"} rejected this: {ind.rejection_reason}
