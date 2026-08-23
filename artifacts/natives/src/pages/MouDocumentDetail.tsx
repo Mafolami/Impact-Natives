@@ -6,6 +6,7 @@ import { BRICOLAGE_GROTESQUE_BOLD_BASE64 } from "@/lib/fonts/bricolageGrotesqueB
 import { X, Loader2, Download, Upload, CheckCircle2, Send, ArrowLeft, PenLine, Flag, Lock, Clock, PartyPopper, Trash2, Target, Users, ClipboardList, ChevronUp, ChevronDown, FileText } from "lucide-react";
 import SignaturePad from "@/components/dashboard/SignaturePad";
 import IndicatorForm from "@/components/mou/IndicatorForm";
+import { fetchProofPoints, type ProofPoint } from "@/lib/proofPoints";
 import {
   PartnershipIndicator, fetchIndicators, agreeToIndicator, rejectIndicator,
   proposeIndicatorRefinement, acceptIndicatorRefinement, dismissIndicatorRefinement, hasPendingSuggestion,
@@ -130,6 +131,10 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   // than a new permission), or Reject with a reason.
   const [editingIndicatorId, setEditingIndicatorId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState({ name: "", definition: "", baseline_value: "", target_value: "", measurement_window: "", source: "" });
+  const [editDraftProofPoints, setEditDraftProofPoints] = useState<{ tempId: string; name: string; description: string | null }[]>([]);
+  const [editProofPointName, setEditProofPointName] = useState("");
+  const [editProofPointDescription, setEditProofPointDescription] = useState("");
+  const [loadingEditProofPoints, setLoadingEditProofPoints] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
   const [resolvingSuggestionId, setResolvingSuggestionId] = useState<string | null>(null);
   const [rejectingIndicatorId, setRejectingIndicatorId] = useState<string | null>(null);
@@ -886,21 +891,47 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   function myOrgIdFor(): string | null {
     return orgA?.user_id === myUserId ? orgA.id : orgB?.user_id === myUserId ? orgB.id : null;
   }
-  function openEditIndicator(ind: PartnershipIndicator) {
+  // Refinement starts from the indicator's currently-live checklist, not
+  // an empty one -- the proposer edits the existing set of proof points
+  // (add/remove) rather than rebuilding from scratch. Fetched fresh each
+  // time the form opens since proof points aren't carried in the
+  // PartnershipIndicator object itself.
+  async function openEditIndicator(ind: PartnershipIndicator) {
     setRejectingIndicatorId(null);
     setEditingIndicatorId(ind.id);
     setEditDraft({
       name: ind.name, definition: ind.definition, baseline_value: ind.baseline_value ?? "",
       target_value: ind.target_value, measurement_window: ind.measurement_window, source: ind.source ?? "",
     });
+    setEditProofPointName("");
+    setEditProofPointDescription("");
+    setLoadingEditProofPoints(true);
+    const points = await fetchProofPoints(ind.id);
+    setEditDraftProofPoints(points.map((pp) => ({ tempId: pp.id, name: pp.name, description: pp.description })));
+    setLoadingEditProofPoints(false);
   }
   function cancelEditIndicator() {
     setEditingIndicatorId(null);
+    setEditDraftProofPoints([]);
+    setEditProofPointName("");
+    setEditProofPointDescription("");
+  }
+  function addEditDraftProofPoint() {
+    if (!editProofPointName.trim()) return;
+    setEditDraftProofPoints((prev) => [...prev, {
+      tempId: crypto.randomUUID(), name: editProofPointName.trim(), description: editProofPointDescription.trim() || null,
+    }]);
+    setEditProofPointName("");
+    setEditProofPointDescription("");
+  }
+  function removeEditDraftProofPoint(tempId: string) {
+    setEditDraftProofPoints((prev) => prev.filter((pp) => pp.tempId !== tempId));
   }
   // Proposes into suggested_* only -- the live indicator is untouched
   // until the other org explicitly accepts via resolveSuggestion(true).
   async function saveEditIndicator(indicatorId: string) {
     if (!editDraft.name.trim() || !editDraft.definition.trim() || !editDraft.target_value.trim() || !editDraft.measurement_window.trim()) return;
+    if (editDraftProofPoints.length === 0) return;
     if (!orgA || !orgB) return;
     const myOrgId = myOrgIdFor();
     if (!myOrgId) return;
@@ -909,6 +940,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       name: editDraft.name.trim(), definition: editDraft.definition.trim(),
       baseline_value: editDraft.baseline_value.trim() || null, target_value: editDraft.target_value.trim(),
       measurement_window: editDraft.measurement_window.trim(), source: editDraft.source.trim() || null,
+      proof_points: editDraftProofPoints.map((pp) => ({ name: pp.name, description: pp.description })),
     });
     const refreshed = await fetchIndicators(documentId);
     setIndicators(refreshed);
@@ -928,10 +960,15 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
     const myOrgId = myOrgIdFor();
     if (!myOrgId) return;
     setResolvingSuggestionId(ind.id);
-    if (accept) {
-      await acceptIndicatorRefinement(ind);
-    } else {
-      await dismissIndicatorRefinement(ind.id);
+    try {
+      if (accept) {
+        await acceptIndicatorRefinement(ind);
+      } else {
+        await dismissIndicatorRefinement(ind.id);
+      }
+    } catch {
+      setResolvingSuggestionId(null);
+      return;
     }
     const refreshed = await fetchIndicators(documentId);
     setIndicators(refreshed);
@@ -2079,6 +2116,14 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                             <p><span className="font-medium">Target:</span> {ind.suggested_target_value} · {ind.suggested_measurement_window}</p>
                             {ind.suggested_baseline_value && <p><span className="font-medium">Baseline:</span> {ind.suggested_baseline_value}</p>}
                             {ind.suggested_source && <p><span className="font-medium">Source:</span> {ind.suggested_source}</p>}
+                            {ind.suggested_proof_points && ind.suggested_proof_points.length > 0 && (
+                              <div className="pt-1">
+                                <p className="font-medium">Verification checklist ({ind.suggested_proof_points.length} proof point{ind.suggested_proof_points.length === 1 ? "" : "s"}):</p>
+                                <ul className="list-disc list-inside pl-1">
+                                  {ind.suggested_proof_points.map((pp, i) => <li key={i}>{pp.name}</li>)}
+                                </ul>
+                              </div>
+                            )}
                           </div>
                           {!iProposedSuggestion && (
                             <div className="flex gap-2 pt-1">
@@ -2147,8 +2192,44 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                                 className="w-full h-9 px-2.5 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
                             </div>
                           </div>
+                          <div className="pt-2 border-t border-border space-y-2">
+                            <p className="text-xs font-bold text-black dark:text-white">Verification checklist</p>
+                            {loadingEditProofPoints ? (
+                              <div className="flex items-center py-2"><Loader2 className="w-3.5 h-3.5 text-black dark:text-white animate-spin" /></div>
+                            ) : (
+                              <>
+                                {editDraftProofPoints.length > 0 && (
+                                  <div className="space-y-1.5">
+                                    {editDraftProofPoints.map((pp) => (
+                                      <div key={pp.tempId} className="flex items-start justify-between gap-2 rounded-lg border border-border px-2.5 py-1.5">
+                                        <div className="min-w-0 flex-1">
+                                          <p className="text-xs font-medium text-black dark:text-white">{pp.name}</p>
+                                          {pp.description && <p className="text-xs text-black dark:text-white">{pp.description}</p>}
+                                        </div>
+                                        <button type="button" onClick={() => removeEditDraftProofPoint(pp.tempId)}
+                                          className="text-xs text-red-600 shrink-0">Remove</button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                <input type="text" placeholder="Proof point name" value={editProofPointName}
+                                  onChange={(e) => setEditProofPointName(e.target.value)}
+                                  className="w-full h-9 px-2.5 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
+                                <input type="text" placeholder="Description (optional)" value={editProofPointDescription}
+                                  onChange={(e) => setEditProofPointDescription(e.target.value)}
+                                  className="w-full h-9 px-2.5 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
+                                <button type="button" onClick={addEditDraftProofPoint} disabled={!editProofPointName.trim()}
+                                  className="text-xs px-3 py-1.5 rounded-full border border-[#2D6A4F]/30 text-[#2D6A4F] hover:bg-[#2D6A4F]/5 disabled:opacity-50 transition-colors">
+                                  Add proof point
+                                </button>
+                                {editDraftProofPoints.length === 0 && (
+                                  <p className="text-xs text-red-600">At least one proof point is required.</p>
+                                )}
+                              </>
+                            )}
+                          </div>
                           <div className="flex gap-2">
-                            <button type="button" onClick={() => saveEditIndicator(ind.id)} disabled={savingEdit}
+                            <button type="button" onClick={() => saveEditIndicator(ind.id)} disabled={savingEdit || editDraftProofPoints.length === 0}
                               className="text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium disabled:opacity-60 transition-colors">
                               {savingEdit ? "Saving..." : "Save suggested changes"}
                             </button>
