@@ -80,7 +80,7 @@ export default function IndicatorsBoard({ mouDocumentId, orgA, orgB, myUserId }:
           </a>
         </Link>
       )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {columns.map((col) => {
           const Icon = col.icon;
           const colItems = agreedIndicators.filter((ind) => claimStageFor(latestClaimFor(ind.id, claims)) === col.key);
