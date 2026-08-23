@@ -1,5 +1,6 @@
 // ─── DashboardNatives.tsx ─────────────────────────────────────────────────────
 import { useEffect, useState } from "react";
+import { impactScoreForSort, canDisplayImpactScore, tierForScore, displayImpactScore, IMPACT_SCORE_TIER_STYLES } from "@/lib/impactScore";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Loader2, Search, Users, Sparkles, RefreshCw } from "lucide-react";
@@ -45,6 +46,8 @@ interface OrgRow {
   description?: string;
   investment_thesis?: string | null;
   stage_preference?: string[] | null;
+  impact_score?: number;
+  subscription_tier?: string | null;
   geographic_focus?: string[] | null;
   dd_financial_model?: boolean;
   dd_audited_accounts?: boolean;
@@ -150,6 +153,7 @@ export default function DashboardNatives() {
   const [countryFilter, setCountryFilter] = useState("");
   const [orgTypeFilter, setOrgTypeFilter] = useState("");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [sortMode, setSortMode] = useState("");
   const [autoOpenUserId, setAutoOpenUserId] = useState<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("user");
@@ -244,9 +248,17 @@ export default function DashboardNatives() {
               </button>
             )}
 
-            {(sectorFilter || countryFilter || orgTypeFilter || verifiedOnly) && (
+            {tab === "organisation" && (
+              <select value={sortMode} onChange={e => setSortMode(e.target.value)}
+                className="h-9 px-2 rounded-lg border border-border bg-background text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
+                <option value="">Sort: Verified first</option>
+                <option value="impact_score">Sort: Impact Score</option>
+              </select>
+            )}
+
+            {(sectorFilter || countryFilter || orgTypeFilter || verifiedOnly || sortMode) && (
               <button type="button"
-                onClick={() => { setSectorFilter(""); setCountryFilter(""); setOrgTypeFilter(""); setVerifiedOnly(false); }}
+                onClick={() => { setSectorFilter(""); setCountryFilter(""); setOrgTypeFilter(""); setVerifiedOnly(false); setSortMode(""); }}
                 className="h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
                 ✕ Clear
               </button>
@@ -257,7 +269,7 @@ export default function DashboardNatives() {
 
       {tab === "individual"
         ? <IndividualsPanel search={search} sectorFilter={sectorFilter} countryFilter={countryFilter} autoOpenUserId={autoOpenUserId} onAutoOpened={() => setAutoOpenUserId(null)} onSelectionChange={setDetailOpen} />
-        : <OrgsPanel search={search} sectorFilter={sectorFilter} countryFilter={countryFilter} orgTypeFilter={orgTypeFilter} verifiedOnly={verifiedOnly} autoOpenUserId={autoOpenUserId} onAutoOpened={() => setAutoOpenUserId(null)} onSelectionChange={setDetailOpen} />}
+        : <OrgsPanel search={search} sectorFilter={sectorFilter} countryFilter={countryFilter} orgTypeFilter={orgTypeFilter} verifiedOnly={verifiedOnly} sortMode={sortMode} autoOpenUserId={autoOpenUserId} onAutoOpened={() => setAutoOpenUserId(null)} onSelectionChange={setDetailOpen} />}
     </div>
   );
 }
@@ -512,12 +524,13 @@ function ProfileDetail({ profile, onBack }: { profile: ProfileRow; onBack: () =>
 
 // ── Orgs Panel ────────────────────────────────────────────────────────────────
 
-function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifiedOnly, autoOpenUserId, onAutoOpened, onSelectionChange }: {
+function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifiedOnly, sortMode, autoOpenUserId, onAutoOpened, onSelectionChange }: {
   search: string;
   sectorFilter: string;
   countryFilter: string;
   orgTypeFilter: string;
   verifiedOnly: boolean;
+  sortMode: string;
   autoOpenUserId?: string | null;
   onAutoOpened?: () => void;
   onSelectionChange?: (open: boolean) => void;
@@ -547,7 +560,7 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
       const [{ data: orgRow }, { data: profileRow }] = await Promise.all([
         supabase
           .from("organizations")
-          .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status,investment_thesis,stage_preference,geographic_focus,impact_strategy,flagged_visibility_hold")
+          .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status,investment_thesis,stage_preference,geographic_focus,impact_strategy,flagged_visibility_hold,impact_score,subscription_tier")
           .eq("user_id", autoOpenUserId)
           .eq("status", "published")
           .single(),
@@ -567,7 +580,7 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
       setLoading(true);
       const { data: orgData, error } = await supabase
         .from("organizations")
-        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status,investment_thesis,stage_preference,geographic_focus,impact_strategy,flagged_visibility_hold")        
+        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status,investment_thesis,stage_preference,geographic_focus,impact_strategy,flagged_visibility_hold,impact_score,subscription_tier")        
         .eq("status", "published")
         .order("organisation_name", { ascending: true });
 
@@ -619,8 +632,17 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
       subtitle={orgs.length === 0 ? "Published organisations will appear here." : "Try a different search term."} />
   );
 
-  // Verified orgs first
+  // Verified orgs first, unless Impact Score sort is active -- in which
+  // case score takes priority, with orgs whose score isn't currently
+  // displayable (below Plus, or downgraded) pushed to the back rather
+  // than ranked by an invisible number. Falls back to alphabetical
+  // (already the fetch order) within each tier.
   const sorted = [...filtered].sort((a, b) => {
+    if (sortMode === "impact_score") {
+      const aScore = impactScoreForSort(a.impact_score ?? 0, a.subscription_tier);
+      const bScore = impactScoreForSort(b.impact_score ?? 0, b.subscription_tier);
+      return bScore - aScore;
+    }
     const aV = a.verification_status === "verified" ? 0 : 1;
     const bV = b.verification_status === "verified" ? 0 : 1;
     return aV - bV;
@@ -634,6 +656,16 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
 }
 
 // ── Org Card ──────────────────────────────────────────────────────────────────
+
+function ImpactScoreBadge({ score }: { score: number }) {
+  const tier = tierForScore(score);
+  const styles = IMPACT_SCORE_TIER_STYLES[tier];
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${styles.border} ${styles.bg} ${styles.text}`}>
+      {styles.label} · {displayImpactScore(score)}
+    </span>
+  );
+}
 
 function NativesOrgCard({ org, onClick }: { org: OrgRow; onClick: () => void }) {
   const isVerified = org.verification_status === "verified";
@@ -656,6 +688,7 @@ function NativesOrgCard({ org, onClick }: { org: OrgRow; onClick: () => void }) 
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-base font-bold text-[#111111] dark:text-[#F5F5F5] truncate">{org.organisation_name}</p>
             {isVerified && <VerifiedBadge />}
+            {canDisplayImpactScore(org.subscription_tier) && <ImpactScoreBadge score={org.impact_score ?? 0} />}
           </div>
           {org.organisation_type && (
             <p className="text-sm text-[#111111] dark:text-[#F5F5F5] capitalize truncate">{org.organisation_type.replace(/_/g, " ")}</p>
@@ -679,6 +712,7 @@ function NativesOrgCard({ org, onClick }: { org: OrgRow; onClick: () => void }) 
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5] truncate">{org.organisation_name}</p>
             {isVerified && <VerifiedBadge />}
+            {canDisplayImpactScore(org.subscription_tier) && <ImpactScoreBadge score={org.impact_score ?? 0} />}
           </div>
           {org.organisation_type && (
             <p className="text-sm text-[#111111] dark:text-[#F5F5F5] capitalize">{org.organisation_type.replace(/_/g, " ")}</p>
