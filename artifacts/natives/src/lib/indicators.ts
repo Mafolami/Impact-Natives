@@ -25,6 +25,7 @@ export interface PartnershipIndicator {
   suggested_target_value: string | null;
   suggested_measurement_window: string | null;
   suggested_source: string | null;
+  suggested_proof_points: { name: string; description: string | null }[] | null;
   created_at: string;
 }
 // Three real states now: pending, agreed, rejected -- agreed and rejected
@@ -140,6 +141,7 @@ export async function proposeIndicatorRefinement(indicatorId: string, proposingO
   target_value: string;
   measurement_window: string;
   source: string | null;
+  proof_points: { name: string; description: string | null }[];
 }): Promise<void> {
   await supabase
     .from("partnership_indicators")
@@ -152,6 +154,7 @@ export async function proposeIndicatorRefinement(indicatorId: string, proposingO
       suggested_target_value: patch.target_value,
       suggested_measurement_window: patch.measurement_window,
       suggested_source: patch.source,
+      suggested_proof_points: patch.proof_points,
     })
     .eq("id", indicatorId);
 }
@@ -159,31 +162,19 @@ export async function proposeIndicatorRefinement(indicatorId: string, proposingO
 // Also clears any prior agreement/rejection -- an accepted refinement is
 // a real change to what the indicator says, so a previously agreed
 // version no longer applies and needs fresh agreement.
+// Delegates to the accept_indicator_refinement Postgres function rather
+// than updating columns directly. That function does two things this
+// client call can't do safely on its own: (1) it's the sole place that
+// also replaces the indicator's proof-point checklist from
+// suggested_proof_points, as an atomic delete+recreate alongside the
+// field copy -- a checklist replacement can't be half-applied; (2) it
+// enforces server-side that only the counterparty (not the org that
+// proposed the suggestion) can accept it. The indicator argument is
+// only used for its id -- the function re-reads the row itself so it's
+// always acting on current data, not whatever was in local state.
 export async function acceptIndicatorRefinement(indicator: PartnershipIndicator): Promise<void> {
-  await supabase
-    .from("partnership_indicators")
-    .update({
-      name: indicator.suggested_name ?? indicator.name,
-      definition: indicator.suggested_definition ?? indicator.definition,
-      baseline_value: indicator.suggested_baseline_value,
-      target_value: indicator.suggested_target_value ?? indicator.target_value,
-      measurement_window: indicator.suggested_measurement_window ?? indicator.measurement_window,
-      source: indicator.suggested_source,
-      suggested_by_org_id: null,
-      suggested_at: null,
-      suggested_name: null,
-      suggested_definition: null,
-      suggested_baseline_value: null,
-      suggested_target_value: null,
-      suggested_measurement_window: null,
-      suggested_source: null,
-      agreed_by_other_org_id: null,
-      agreed_by_other_org_at: null,
-      rejected_by_org_id: null,
-      rejected_by_org_at: null,
-      rejection_reason: null,
-    })
-    .eq("id", indicator.id);
+  const { error } = await supabase.rpc("accept_indicator_refinement", { p_indicator_id: indicator.id });
+  if (error) throw error;
 }
 export async function dismissIndicatorRefinement(indicatorId: string): Promise<void> {
   await supabase
