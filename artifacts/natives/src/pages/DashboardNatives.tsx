@@ -1,10 +1,9 @@
 // ─── DashboardNatives.tsx ─────────────────────────────────────────────────────
 import { useEffect, useState } from "react";
 import { impactScoreForSort, canDisplayImpactScore, tierForScore, displayImpactScore, IMPACT_SCORE_TIER_STYLES } from "@/lib/impactScore";
-import VerifiedOutcomesSection from "@/components/dashboard/VerifiedOutcomesSection";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2, Search, Users, Sparkles, RefreshCw } from "lucide-react";
+import { Loader2, Search, Users, Sparkles, RefreshCw, Trophy } from "lucide-react";
 import { UserAvatar, avatarColor, initials } from "@/components/ui/UserAvatar";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { TrustBadge } from "@/components/ui/TrustBadge";
@@ -662,8 +661,9 @@ function ImpactScoreBadge({ score }: { score: number }) {
   const tier = tierForScore(score);
   const styles = IMPACT_SCORE_TIER_STYLES[tier];
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${styles.border} ${styles.bg} ${styles.text}`}>
-      {styles.label} · {displayImpactScore(score)}
+    <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border ${styles.border} ${styles.bg} ${styles.text}`} title={styles.label}>
+      <Trophy className="w-3 h-3" />
+      {displayImpactScore(score)}
     </span>
   );
 }
@@ -1193,8 +1193,6 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
             </div>
           </div>
         </div>
-
-        <VerifiedOutcomesSection orgId={org.id} variant="panel" isOwnOrg={isOwnProfile} />
 
         {(aiSummary || loadingAi) && (
           <div className="px-8 sm:px-12 py-10">
