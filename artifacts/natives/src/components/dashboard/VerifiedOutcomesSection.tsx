@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Loader2, CheckCircle2, AlertTriangle, Eye, EyeOff, Lock } from "lucide-react";
+import { Loader2, CheckCircle2, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { canDisplayImpactScore, displayImpactScore, tierForScore, IMPACT_SCORE_TIER_STYLES } from "@/lib/impactScore";
 
 interface VerifiedOutcome {
@@ -32,6 +32,7 @@ export default function VerifiedOutcomesSection({
   orgId, variant = "panel", isOwnOrg = false, canManage = isOwnOrg,
 }: { orgId: string; variant?: "panel" | "page"; isOwnOrg?: boolean; canManage?: boolean }) {
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [outcomes, setOutcomes] = useState<VerifiedOutcome[]>([]);
   const [scoreRow, setScoreRow] = useState<OrgScoreRow | null>(null);
   const [savingToggle, setSavingToggle] = useState(false);
@@ -40,13 +41,23 @@ export default function VerifiedOutcomesSection({
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setLoadError(null);
     Promise.all([
       supabase.rpc("get_verified_outcomes_for_org", { p_org_id: orgId }),
       supabase.from("organizations").select("impact_score, subscription_tier, show_impact_score").eq("id", orgId).single(),
     ]).then(([outcomesRes, orgRes]) => {
       if (cancelled) return;
+      if (outcomesRes.error || orgRes.error) {
+        setLoadError("Couldn't load verified outcomes. Try refreshing.");
+        setLoading(false);
+        return;
+      }
       setOutcomes((outcomesRes.data as VerifiedOutcome[]) ?? []);
       setScoreRow((orgRes.data as OrgScoreRow) ?? null);
+      setLoading(false);
+    }).catch(() => {
+      if (cancelled) return;
+      setLoadError("Couldn't load verified outcomes. Try refreshing.");
       setLoading(false);
     });
     return () => { cancelled = true; };
@@ -61,13 +72,14 @@ export default function VerifiedOutcomesSection({
     if (!error) setScoreRow((prev) => (prev ? { ...prev, show_impact_score: next } : prev));
   }
 
-  // The toggle button always renders the same way regardless of tier or
-  // permission -- consistent affordance. What clicking it DOES depends
-  // on whether the click can actually take effect: only an Owner on an
-  // eligible tier performs the real write. Everyone else gets an inline
-  // note explaining why, revealed on click rather than sitting on the
-  // page permanently -- the permanent version read as clutter once
-  // there was nothing to actually do about it without clicking through.
+  // The toggle always looks and reads the same -- Public/Private, Eye
+  // icon -- regardless of tier or permission. What changes is only what
+  // clicking it DOES: an Owner on an eligible tier performs the real
+  // write; everyone else gets an inline note explaining why, revealed
+  // on click. Showing a different button (lock icon, "Upgrade" label)
+  // for the ineligible case made the control itself look broken rather
+  // than informative -- a consistent toggle that explains itself on
+  // click reads better than a control that changes shape.
   function handleToggleClick() {
     if (isEligibleTier && canManage) {
       toggleShowScore();
@@ -95,18 +107,18 @@ export default function VerifiedOutcomesSection({
   const shouldRenderScoreBlock = !!scoreRow && (isOwnOrg || scoreVisibleToViewer);
 
   const scoreBlock = shouldRenderScoreBlock && scoreRow && (
-    <div className="rounded-xl border border-border px-4 py-3 mb-3">
+    <div>
       {isOwnOrg ? (
         <div>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-bold text-black dark:text-white">
+              <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">
                 Your Impact Score: {displayImpactScore(scoreRow.impact_score)}
                 <span className={`ml-2 text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].border} ${IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].bg} ${IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].text}`}>
                   {IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].label}
                 </span>
               </p>
-              <p className="text-[11px] text-black dark:text-white mt-1">
+              <p className="text-xs text-black dark:text-white opacity-60 mt-1">
                 Reflects confirmed outcomes, partner diversity, and dispute history.
               </p>
             </div>
@@ -116,14 +128,12 @@ export default function VerifiedOutcomesSection({
               }`}>
               {savingToggle
                 ? <Loader2 className="w-3 h-3 animate-spin" />
-                : !isEligibleTier
-                  ? <Lock className="w-3 h-3" />
-                  : scoreRow.show_impact_score ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-              {!isEligibleTier ? "Upgrade" : scoreRow.show_impact_score ? "Public" : "Private"}
+                : scoreRow.show_impact_score ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+              {scoreRow.show_impact_score ? "Public" : "Private"}
             </button>
           </div>
           {noteVisible && (
-            <p className="text-[11px] text-black dark:text-white mt-2 bg-muted rounded-md px-2 py-1.5">
+            <p className="text-xs text-black dark:text-white opacity-60 mt-2">
               {!isEligibleTier
                 ? canManage
                   ? "Upgrade to Plus to show this on your public profile and in Natives."
@@ -134,7 +144,7 @@ export default function VerifiedOutcomesSection({
         </div>
       ) : (
         scoreVisibleToViewer && (
-          <p className="text-xs font-bold text-black dark:text-white">
+          <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">
             Impact Score: {displayImpactScore(scoreRow.impact_score)}
             <span className={`ml-2 text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].border} ${IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].bg} ${IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].text}`}>
               {IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].label}
@@ -147,14 +157,16 @@ export default function VerifiedOutcomesSection({
 
   const content = (
     <>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-black dark:text-white">Verified outcomes</p>
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Verified outcomes</p>
         {!loading && outcomes.length > 0 && (
-          <span className="text-xs font-bold" style={{ color: confirmedCount > 0 ? "#065F46" : "#92400E" }}>
+          <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">
             {confirmedCount} confirmed{disputedCount > 0 ? ` · ${disputedCount} disputed` : ""}
-          </span>
+          </p>
         )}
       </div>
+      <p className="text-xs text-black dark:text-white opacity-60 mb-6">Platform-verified, not self-reported.</p>
+      {loadError && <p className="text-sm text-red-600">{loadError}</p>}
       {loading ? (
         <div className="flex items-center gap-2 text-xs text-black dark:text-white">
           <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading verified outcomes...
@@ -162,7 +174,9 @@ export default function VerifiedOutcomesSection({
       ) : (
         <>
           {scoreBlock}
-          {outcomes.length > 0 && (
+          {outcomes.length === 0 ? (
+            <p className="text-sm text-black dark:text-white">No verified outcomes yet.</p>
+          ) : (
             <div className="space-y-2.5">
               {outcomes.map((o) => (
                 <div key={o.claim_id} className={`rounded-xl border px-4 py-3 ${
