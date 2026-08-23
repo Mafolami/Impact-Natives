@@ -515,7 +515,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                 )}
               </Section>
               
-              <VerifiedOutcomesSection orgId={org.id} variant="page" />
+              <VerifiedOutcomesSection orgId={org.id} variant="page" isOwnOrg={viewerOrg?.id === org.id} />
               {org.sdgs && org.sdgs.length > 0 && (
                 <Section>
                   <Eyebrow>SDG alignment</Eyebrow>
@@ -909,7 +909,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
             </div>
             )}
           </div>
-          <VerifiedOutcomesSection orgId={org.id} variant="panel" />
+          <VerifiedOutcomesSection orgId={org.id} variant="panel" isOwnOrg={viewerOrg?.id === org.id} />
             
         {org.sdgs && org.sdgs.length > 0 && (
           <div className="px-8 py-6">
