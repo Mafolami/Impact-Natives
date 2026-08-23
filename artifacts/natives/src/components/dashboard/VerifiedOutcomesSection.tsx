@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Loader2, CheckCircle2, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { Loader2, CheckCircle2, AlertTriangle, Eye, EyeOff, Trophy } from "lucide-react";
 import { canDisplayImpactScore, displayImpactScore, tierForScore, IMPACT_SCORE_TIER_STYLES } from "@/lib/impactScore";
 
 interface VerifiedOutcome {
@@ -106,34 +106,33 @@ export default function VerifiedOutcomesSection({
 
   const shouldRenderScoreBlock = !!scoreRow && (isOwnOrg || scoreVisibleToViewer);
 
-  const scoreBlock = shouldRenderScoreBlock && scoreRow && (
-    <div>
+  const tier = scoreRow ? tierForScore(scoreRow.impact_score) : null;
+  const tierStyles = tier ? IMPACT_SCORE_TIER_STYLES[tier] : null;
+
+  const scoreBlock = shouldRenderScoreBlock && scoreRow && tierStyles && (
+    <div className="space-y-1 mb-6">
       {isOwnOrg ? (
-        <div>
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">
-                Your Impact Score: {displayImpactScore(scoreRow.impact_score)}
-                <span className={`ml-2 text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].border} ${IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].bg} ${IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].text}`}>
-                  {IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].label}
-                </span>
-              </p>
-              <p className="text-xs text-black dark:text-white opacity-60 mt-1">
-                Reflects confirmed outcomes, partner diversity, and dispute history.
-              </p>
-            </div>
-            <button type="button" onClick={handleToggleClick} disabled={savingToggle}
-              className={`shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-full border text-xs font-medium transition-colors disabled:opacity-50 ${
-                isEligibleTier && scoreRow.show_impact_score ? "border-[#2D6A4F] bg-[#2D6A4F] text-white" : "border-border text-black dark:text-white"
-              }`}>
-              {savingToggle
-                ? <Loader2 className="w-3 h-3 animate-spin" />
-                : scoreRow.show_impact_score ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-              {scoreRow.show_impact_score ? "Public" : "Private"}
-            </button>
-          </div>
+        <>
+          <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">
+            Your Impact Score: {displayImpactScore(scoreRow.impact_score)}
+          </p>
+          <p className="text-sm font-medium text-black dark:text-white flex items-center gap-1.5">
+            Tier: <span title={tierStyles.label}><Trophy className={`w-4 h-4 ${tierStyles.text}`} /></span>
+          </p>
+          <p className="text-xs text-black dark:text-white opacity-60">
+            Reflects confirmed outcomes, partner diversity, and dispute history.
+          </p>
+          <button type="button" onClick={handleToggleClick} disabled={savingToggle}
+            className={`mt-2 flex items-center gap-1.5 h-8 px-3 rounded-full border text-xs font-medium transition-colors disabled:opacity-50 w-fit ${
+              isEligibleTier && scoreRow.show_impact_score ? "border-[#2D6A4F] bg-[#2D6A4F] text-white" : "border-border text-black dark:text-white"
+            }`}>
+            {savingToggle
+              ? <Loader2 className="w-3 h-3 animate-spin" />
+              : scoreRow.show_impact_score ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+            {scoreRow.show_impact_score ? "Public" : "Private"}
+          </button>
           {noteVisible && (
-            <p className="text-xs text-black dark:text-white opacity-60 mt-2">
+            <p className="text-xs text-black dark:text-white opacity-60 mt-1">
               {!isEligibleTier
                 ? canManage
                   ? "Upgrade to Plus to show this on your public profile and in Natives."
@@ -141,15 +140,17 @@ export default function VerifiedOutcomesSection({
                 : "Only the organisation owner can change this."}
             </p>
           )}
-        </div>
+        </>
       ) : (
         scoreVisibleToViewer && (
-          <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">
-            Impact Score: {displayImpactScore(scoreRow.impact_score)}
-            <span className={`ml-2 text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].border} ${IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].bg} ${IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].text}`}>
-              {IMPACT_SCORE_TIER_STYLES[tierForScore(scoreRow.impact_score)].label}
-            </span>
-          </p>
+          <>
+            <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">
+              Impact Score: {displayImpactScore(scoreRow.impact_score)}
+            </p>
+            <p className="text-sm font-medium text-black dark:text-white flex items-center gap-1.5">
+              Tier: <span title={tierStyles.label}><Trophy className={`w-4 h-4 ${tierStyles.text}`} /></span>
+            </p>
+          </>
         )
       )}
     </div>
@@ -209,12 +210,13 @@ export default function VerifiedOutcomesSection({
     </>
   );
 
-  // Matches the Section wrapper used for the page variant's DD readiness
-  // block, and the plain px-8 py-6 div used in the panel variant's --
-  // this component doesn't own its own wrapper choice, it takes whichever
-  // container convention the calling section already uses.
+  // Matches DeliveryStatsCard's own wrapper exactly (px-8 sm:px-12 py-10,
+  // no self-imposed border) so the two sections align as one column
+  // inside the shared SectionCardGroup -- the border between them comes
+  // from SectionCardGroup's own divide-y, not from this component
+  // adding a second border-t on top of it.
   if (variant === "page") {
     return <div className="rounded-xl border border-border bg-card px-5 py-4">{content}</div>;
   }
-  return <div className="px-8 py-6 border-t border-border">{content}</div>;
+  return <div className="px-8 sm:px-12 py-10">{content}</div>;
 }
