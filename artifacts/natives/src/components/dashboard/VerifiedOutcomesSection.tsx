@@ -37,6 +37,7 @@ export default function VerifiedOutcomesSection({
   const [scoreRow, setScoreRow] = useState<OrgScoreRow | null>(null);
   const [savingToggle, setSavingToggle] = useState(false);
   const [noteVisible, setNoteVisible] = useState(false);
+  const [toggleError, setToggleError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,9 +68,14 @@ export default function VerifiedOutcomesSection({
     if (!scoreRow) return;
     const next = !scoreRow.show_impact_score;
     setSavingToggle(true);
+    setToggleError(null);
     const { error } = await supabase.from("organizations").update({ show_impact_score: next }).eq("id", orgId);
     setSavingToggle(false);
-    if (!error) setScoreRow((prev) => (prev ? { ...prev, show_impact_score: next } : prev));
+    if (error) {
+      setToggleError("Couldn't update. Try again.");
+      return;
+    }
+    setScoreRow((prev) => (prev ? { ...prev, show_impact_score: next } : prev));
   }
 
   // The toggle always looks and reads the same -- Public/Private, Eye
@@ -122,17 +128,8 @@ export default function VerifiedOutcomesSection({
           <p className="text-xs text-black dark:text-white opacity-60">
             Reflects confirmed outcomes, partner diversity, and dispute history.
           </p>
-          <button type="button" onClick={handleToggleClick} disabled={savingToggle}
-            className={`mt-2 flex items-center gap-1.5 h-8 px-3 rounded-full border text-xs font-medium transition-colors disabled:opacity-50 w-fit ${
-              isEligibleTier && scoreRow.show_impact_score ? "border-[#2D6A4F] bg-[#2D6A4F] text-white" : "border-border text-black dark:text-white"
-            }`}>
-            {savingToggle
-              ? <Loader2 className="w-3 h-3 animate-spin" />
-              : scoreRow.show_impact_score ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-            {scoreRow.show_impact_score ? "Public" : "Private"}
-          </button>
           {noteVisible && (
-            <p className="text-xs text-black dark:text-white opacity-60 mt-1">
+            <p className="text-xs text-red-600 mt-1">
               {!isEligibleTier
                 ? canManage
                   ? "Upgrade to Plus to show this on your public profile and in Natives."
@@ -140,6 +137,7 @@ export default function VerifiedOutcomesSection({
                 : "Only the organisation owner can change this."}
             </p>
           )}
+          {toggleError && <p className="text-xs text-red-600 mt-1">{toggleError}</p>}
         </>
       ) : (
         scoreVisibleToViewer && (
@@ -156,15 +154,32 @@ export default function VerifiedOutcomesSection({
     </div>
   );
 
+  const toggleButton = isOwnOrg && shouldRenderScoreBlock && scoreRow && (
+    <button type="button" onClick={handleToggleClick} disabled={savingToggle}
+      className={`shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-full border text-xs font-medium transition-colors disabled:opacity-50 ${
+        isEligibleTier && scoreRow.show_impact_score
+          ? "border-[#2D6A4F] bg-[#2D6A4F] text-white hover:bg-[#245c43]"
+          : "border-border text-black dark:text-white hover:border-foreground/30"
+      }`}>
+      {savingToggle
+        ? <Loader2 className="w-3 h-3 animate-spin" />
+        : scoreRow.show_impact_score ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+      {scoreRow.show_impact_score ? "Public" : "Private"}
+    </button>
+  );
+
   const content = (
     <>
       <div className="flex items-center justify-between mb-1">
         <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Verified outcomes</p>
-        {!loading && outcomes.length > 0 && (
-          <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">
-            {confirmedCount} confirmed{disputedCount > 0 ? ` · ${disputedCount} disputed` : ""}
-          </p>
-        )}
+        <div className="flex items-center gap-3">
+          {!loading && outcomes.length > 0 && (
+            <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">
+              {confirmedCount} confirmed{disputedCount > 0 ? ` · ${disputedCount} disputed` : ""}
+            </p>
+          )}
+          {!loading && toggleButton}
+        </div>
       </div>
       <p className="text-xs text-black dark:text-white opacity-60 mb-6">Platform-verified, not self-reported.</p>
       {loadError && <p className="text-sm text-red-600">{loadError}</p>}
