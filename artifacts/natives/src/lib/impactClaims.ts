@@ -3,10 +3,6 @@ export interface ImpactClaim {
   id: string;
   indicator_id: string;
   claiming_org_id: string;
-  claim_text: string;
-  indicator_value: string;
-  evidence_type: "file" | "link";
-  evidence_value: string;
   status: "pending" | "confirmed" | "challenged" | "disputed";
   confirmed_by_org_id: string | null;
   confirmed_at: string | null;
@@ -19,10 +15,16 @@ export interface ImpactClaim {
   disputed_by_org_id: string | null;
   disputed_at: string | null;
   dispute_reason: string | null;
+  prior_claim_id: string | null;
   created_at: string;
 }
+// claim_text/indicator_value/evidence_type/evidence_value were dropped
+// from this table this session -- evidence now lives per proof point in
+// impact_claim_evidence, fetched separately by whatever component needs
+// it (ImpactClaimReview joins proof points + evidence directly). This
+// row is the bundle/status-machine record only.
 const CLAIM_COLUMNS =
-  "id,indicator_id,claiming_org_id,claim_text,indicator_value,evidence_type,evidence_value,status,confirmed_by_org_id,confirmed_at,challenge_reason,challenge_raised_by_org_id,challenge_raised_at,response_window_days,response_deadline,claimant_response,disputed_by_org_id,disputed_at,dispute_reason,created_at";
+  "id,indicator_id,claiming_org_id,status,confirmed_by_org_id,confirmed_at,challenge_reason,challenge_raised_by_org_id,challenge_raised_at,response_window_days,response_deadline,claimant_response,disputed_by_org_id,disputed_at,dispute_reason,prior_claim_id,created_at";
 export async function fetchClaimsForIndicators(indicatorIds: string[]): Promise<ImpactClaim[]> {
   if (indicatorIds.length === 0) return [];
   const { data } = await supabase

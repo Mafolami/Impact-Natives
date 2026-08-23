@@ -3,26 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { Loader2, CheckCircle2, AlertTriangle, Flag, X, EyeOff, Eye } from "lucide-react";
 import { OrgRef, actorLabel } from "@/lib/milestones";
 import { fetchProofPoints, type ProofPoint } from "@/lib/proofPoints";
-
-export interface ImpactClaim {
-  id: string;
-  indicator_id: string;
-  claiming_org_id: string;
-  status: "pending" | "confirmed" | "challenged" | "disputed";
-  confirmed_by_org_id: string | null;
-  confirmed_at: string | null;
-  challenge_reason: string | null;
-  challenge_raised_by_org_id: string | null;
-  challenge_raised_at: string | null;
-  response_window_days: number | null;
-  response_deadline: string | null;
-  claimant_response: string | null;
-  disputed_by_org_id: string | null;
-  disputed_at: string | null;
-  dispute_reason: string | null;
-  prior_claim_id: string | null;
-  created_at: string;
-}
+import type { ImpactClaim } from "@/lib/impactClaims";
 
 interface EvidenceRow {
   id: string;
