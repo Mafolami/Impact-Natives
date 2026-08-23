@@ -12,6 +12,21 @@ export function canDisplayImpactScore(subscriptionTier: string | null | undefine
   return !!subscriptionTier && SCORE_VISIBLE_TIERS.includes(subscriptionTier);
 }
 
+// For third-party viewers specifically (Natives card, Natives detail
+// header, sort) -- combines the tier gate with the org's own visibility
+// choice. canDisplayImpactScore alone only checks tier; it's still used
+// on its own inside VerifiedOutcomesSection, where it's deliberately
+// combined with isOwnOrg (the org always sees its own real score) --
+// but every OTHER caller showing a score to someone who isn't the org
+// itself needs both checks together, and every one of those call sites
+// was missing the show_impact_score half until this fix.
+export function canDisplayImpactScoreForOrg(
+  subscriptionTier: string | null | undefined,
+  showImpactScore: boolean | null | undefined
+): boolean {
+  return canDisplayImpactScore(subscriptionTier) && !!showImpactScore;
+}
+
 // Floors negative raw scores at 0 for display -- an org with more
 // disputes than confirmations can have a negative stored value, but a
 // visible negative number reads as broken, not as "low trust." Sorting
@@ -45,6 +60,10 @@ export const IMPACT_SCORE_TIER_STYLES: Record<ImpactScoreTier, { label: string; 
 // to the back rather than sorted by an invisible number -- otherwise
 // a downgraded org with a historically high score could rank first
 // with no visible reason why, which reads as broken.
-export function impactScoreForSort(rawScore: number, subscriptionTier: string | null | undefined): number {
-  return canDisplayImpactScore(subscriptionTier) ? displayImpactScore(rawScore) : -1;
+export function impactScoreForSort(
+  rawScore: number,
+  subscriptionTier: string | null | undefined,
+  showImpactScore: boolean | null | undefined
+): number {
+  return canDisplayImpactScoreForOrg(subscriptionTier, showImpactScore) ? displayImpactScore(rawScore) : -1;
 }
