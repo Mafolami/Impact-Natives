@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Link } from "wouter";
 import { Loader2, CheckCircle2, ShieldCheck, Camera, ArrowRight, Building2, Trash2, Pencil, Globe, Instagram, Twitter, Facebook, Youtube, Linkedin } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import VerifiedOutcomesSection from "@/components/dashboard/VerifiedOutcomesSection";
 import { COUNTRIES } from "@/lib/countries";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
 import { DD_ITEMS, FUNDER_DD_ITEMS, DDItemDef, DDDocument, PILLAR_INFO } from "@/lib/ddItems";
@@ -1723,6 +1724,18 @@ export default function DashboardProfile() {
 
             {/* Content area */}
             <div className="p-6 space-y-6 min-w-0">
+
+              {/* Standing trust indicator, not tied to any one pane --
+                  visible regardless of which tab is active. Owner sees
+                  the Public/Private toggle; a Team Member sees the real
+                  score with no interactive control, matching this
+                  page's existing isOrgOwner pattern of hiding edit
+                  affordances a Member's action would silently fail
+                  against (RLS on organizations UPDATE is user_id =
+                  auth.uid(), Owner-only). */}
+              {isOrg && orgId && (
+                <VerifiedOutcomesSection orgId={orgId} variant="panel" isOwnOrg canManage={isOrgOwner} />
+              )}
 
               {/* ── BASIC / CONTACT DETAILS PANE ── */}
               {activePane === "basic" && !isOrg && (
