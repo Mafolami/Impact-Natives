@@ -2279,7 +2279,7 @@ export default function DashboardProfile() {
 
               {/* ── DD READINESS PANE ── */}
               {activePane === "organisation" && isImplementer && (
-                <>
+                <div>
                   <button type="button" onClick={() => toggleOrgSection("dd")} className="w-full flex items-center gap-1.5 text-left px-8 sm:px-12 py-4 hover:bg-[#E2725B]/[0.08] transition-colors">
                     <p className="text-lg font-bold text-[#111111] dark:text-[#F5F5F5]">Due diligence readiness</p>
                     <InfoTooltip text={PILLAR_INFO.ddReadiness} />
@@ -2374,11 +2374,11 @@ export default function DashboardProfile() {
                       third_party_evaluations: thirdPartyEvaluations,
                     }} />
                   )}
-                </>
+                </div>
               )}
 
               {activePane === "organisation" && (isFunder || isCorporate) && (
-                <>
+                <div>
                   <button type="button" onClick={() => toggleOrgSection("fdd")} className="w-full flex items-center gap-1.5 text-left px-8 sm:px-12 py-4 hover:bg-[#E2725B]/[0.08] transition-colors">
                     <p className="text-lg font-bold text-[#111111] dark:text-[#F5F5F5]">Due diligence readiness</p>
                     <InfoTooltip text={PILLAR_INFO.ddReadiness} />
@@ -2440,7 +2440,7 @@ export default function DashboardProfile() {
                     </div>
                     </div>
                   )}
-                </>
+                </div>
               )}
 
 {ddModalKey && (() => {
