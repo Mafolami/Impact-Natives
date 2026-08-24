@@ -196,17 +196,17 @@ function SectionCard({ title, onEdit, editable = true, children, collapsible = f
   if (collapsible) {
     return (
       <div className="relative">
-        <button type="button" onClick={onToggle} className="w-full text-left px-8 sm:px-12 py-10 pr-14 hover:bg-[#E2725B]/[0.08] transition-colors">
+        <button type="button" onClick={onToggle} className="w-full text-left px-8 sm:px-12 py-6 pr-14 hover:bg-[#E2725B]/[0.08] transition-colors">
           <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
         </button>
         {editable && expanded && (
           <button type="button" onClick={onEdit} aria-label={`Edit ${title}`}
-            className="absolute right-8 sm:right-12 top-10 text-[#111111] dark:text-[#F5F5F5] hover:opacity-60 transition-opacity">
+            className="absolute right-8 sm:right-12 top-6 text-[#111111] dark:text-[#F5F5F5] hover:opacity-60 transition-opacity">
             <Pencil className="w-4 h-4" />
           </button>
         )}
         {expanded && (
-          <div className="px-8 sm:px-12 pb-10 -mt-4">
+          <div className="px-8 sm:px-12 pb-6 -mt-2">
             <div className="space-y-9">
               {children}
             </div>
@@ -216,7 +216,7 @@ function SectionCard({ title, onEdit, editable = true, children, collapsible = f
     );
   }
   return (
-    <div className="px-8 sm:px-12 py-10">
+    <div className="px-8 sm:px-12 py-6">
       <div className="flex items-center justify-between mb-6">
         <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
         {editable && (
@@ -235,7 +235,7 @@ function SectionCard({ title, onEdit, editable = true, children, collapsible = f
 
 function SectionGroupHeader({ title, expanded, onToggle }: { title: string; expanded: boolean; onToggle: () => void }) {
   return (
-    <button type="button" onClick={onToggle} className="w-full flex items-center justify-between px-8 sm:px-12 py-10 text-left hover:bg-[#E2725B]/[0.08] transition-colors">
+    <button type="button" onClick={onToggle} className="w-full flex items-center justify-between px-8 sm:px-12 py-6 text-left hover:bg-[#E2725B]/[0.08] transition-colors">
       <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
     </button>
   );
@@ -2280,13 +2280,12 @@ export default function DashboardProfile() {
               {/* ── DD READINESS PANE ── */}
               {activePane === "organisation" && isImplementer && (
                 <>
-                  <div className="px-8 sm:px-12 py-10">
-                    <button type="button" onClick={() => toggleOrgSection("dd")} className="w-full flex items-center gap-1.5 mb-1 text-left hover:bg-[#E2725B]/[0.08] transition-colors">
-                      <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Due diligence readiness</p>
-                      <InfoTooltip text={PILLAR_INFO.ddReadiness} />
-                    </button>
-                    {expandedOrgSections.has("dd") && (
-                    <>
+                  <button type="button" onClick={() => toggleOrgSection("dd")} className="w-full flex items-center gap-1.5 text-left px-8 sm:px-12 py-6 hover:bg-[#E2725B]/[0.08] transition-colors">
+                    <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Due diligence readiness</p>
+                    <InfoTooltip text={PILLAR_INFO.ddReadiness} />
+                  </button>
+                  {expandedOrgSections.has("dd") && (
+                    <div className="px-8 sm:px-12 pb-6">
                     <p className="text-xs text-black dark:text-white opacity-60 mb-6">
                       Signal to funders that you are investment-ready. Checking an item asks for a few quick details, which appear as a tooltip on your profile once matched.
                     </p>
@@ -2343,9 +2342,8 @@ export default function DashboardProfile() {
                           style={{ width: `${Math.round((ddReadinessItems.filter(Boolean).length / ddReadinessItems.length) * 100)}%` }} />
                       </div>
                     </div>
-                    </>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                   {expandedOrgSections.has("dd") && orgId && (
                     <EsgSnapshotSection org={{
@@ -2380,13 +2378,13 @@ export default function DashboardProfile() {
               )}
 
               {activePane === "organisation" && (isFunder || isCorporate) && (
-                  <div className="px-8 sm:px-12 py-10">
-                    <button type="button" onClick={() => toggleOrgSection("fdd")} className="w-full flex items-center gap-1.5 mb-1 text-left hover:bg-[#E2725B]/[0.08] transition-colors">
-                      <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Due diligence readiness</p>
-                      <InfoTooltip text={PILLAR_INFO.ddReadiness} />
-                    </button>
-                    {expandedOrgSections.has("fdd") && (
-                    <>
+                <>
+                  <button type="button" onClick={() => toggleOrgSection("fdd")} className="w-full flex items-center gap-1.5 text-left px-8 sm:px-12 py-6 hover:bg-[#E2725B]/[0.08] transition-colors">
+                    <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Due diligence readiness</p>
+                    <InfoTooltip text={PILLAR_INFO.ddReadiness} />
+                  </button>
+                  {expandedOrgSections.has("fdd") && (
+                    <div className="px-8 sm:px-12 pb-6">
                     <p className="text-xs text-black dark:text-white opacity-60 mb-6">
                       Signal to implementers that you are a transparent, trustworthy partner. Checking an item asks for a few quick details, which appear as a tooltip on your profile once matched.
                     </p>
@@ -2440,9 +2438,9 @@ export default function DashboardProfile() {
                           style={{ width: `${Math.round((fddReadinessItems.filter(Boolean).length / fddReadinessItems.length) * 100)}%` }} />
                       </div>
                     </div>
-                    </>
-                    )}
-                  </div>
+                    </div>
+                  )}
+                </>
               )}
 
 {ddModalKey && (() => {
