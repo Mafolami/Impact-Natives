@@ -189,21 +189,17 @@ function SectionCardGroup({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SectionCard({ title, onEdit, editable = true, children, collapsible = false, expanded = true, onToggle, accentColor }: {
+function SectionCard({ title, onEdit, editable = true, children, collapsible = false, expanded = true, onToggle }: {
   title: string; onEdit: () => void; editable?: boolean; children: React.ReactNode;
-  collapsible?: boolean; expanded?: boolean; onToggle?: () => void; accentColor?: string;
+  collapsible?: boolean; expanded?: boolean; onToggle?: () => void;
 }) {
   const TitleWrapper = collapsible ? "button" : "div";
   return (
-    <div className="px-8 sm:px-12 py-10">
+    <div className={`px-8 sm:px-12 py-10 ${collapsible ? "hover:bg-muted/40 transition-colors" : ""}`}>
       <div className="flex items-center justify-between mb-6">
         <TitleWrapper {...(collapsible ? { type: "button" as const, onClick: onToggle } : {})}
           className={`flex items-center gap-2.5 ${collapsible ? "cursor-pointer text-left" : ""}`}>
-          {accentColor && <span className="w-2 h-2 rounded-full shrink-0" style={{ background: accentColor }} />}
           <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
-          {collapsible && (
-            <ChevronDown className={`w-4 h-4 text-black dark:text-white transition-transform ${expanded ? "" : "-rotate-90"}`} />
-          )}
         </TitleWrapper>
         {editable && expanded && (
           <button type="button" onClick={onEdit} aria-label={`Edit ${title}`}
@@ -221,14 +217,10 @@ function SectionCard({ title, onEdit, editable = true, children, collapsible = f
   );
 }
 
-function SectionGroupHeader({ title, expanded, onToggle, accentColor }: { title: string; expanded: boolean; onToggle: () => void; accentColor: string }) {
+function SectionGroupHeader({ title, expanded, onToggle }: { title: string; expanded: boolean; onToggle: () => void }) {
   return (
-    <button type="button" onClick={onToggle} className="w-full flex items-center justify-between px-8 sm:px-12 py-10 text-left">
-      <div className="flex items-center gap-2.5">
-        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: accentColor }} />
-        <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
-      </div>
-      <ChevronDown className={`w-4 h-4 text-black dark:text-white transition-transform shrink-0 ${expanded ? "" : "-rotate-90"}`} />
+    <button type="button" onClick={onToggle} className="w-full flex items-center justify-between px-8 sm:px-12 py-10 text-left hover:bg-muted/40 transition-colors">
+      <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
     </button>
   );
 }
@@ -1959,12 +1951,23 @@ export default function DashboardProfile() {
 
               {/* ── ORGANISATION PANE ── */}
               {activePane === "organisation" && isOrg && (
+                <>
+                <div className="flex items-center justify-end gap-4 px-8 sm:px-12 pt-6">
+                  <button type="button" onClick={() => {
+                    const keys = ["legal_identity", "focus", "presence"];
+                    if (isImplementer) keys.push("dd", "track");
+                    if (isFunder || isCorporate) keys.push("fdd");
+                    if (isFunder) keys.push("mandate");
+                    if (isCorporate) {
+                      keys.push("csr_esg", "csr_partnership", "csr_compliance");
+                      if (profile?.org_type === "technology_company") keys.push("csr_tech");
+                    }
+                    setExpandedOrgSections(new Set(keys));
+                  }} className="text-xs text-[#2D6A4F] hover:underline">Expand all</button>
+                  <button type="button" onClick={() => setExpandedOrgSections(new Set())} className="text-xs text-black dark:text-white hover:underline">Collapse all</button>
+                </div>
                 <SectionCardGroup>
-                  <div className="px-8 sm:px-12 py-10">
-                    <div className="flex items-center gap-2.5 mb-6">
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: "#5F5E5A" }} />
-                      <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Organisation logo</p>
-                    </div>
+                  <SectionCard editable={isOrgOwner} title="Organisation Details" onEdit={openOrgModal}>
                     <div className="flex items-center gap-5">
                       <div className="group relative w-16 h-16 shrink-0">
                         <div className="w-16 h-16 rounded-xl border border-border bg-white dark:bg-card flex items-center justify-center overflow-hidden">
@@ -1998,9 +2001,6 @@ export default function DashboardProfile() {
                         {logoUrl && !logoUploading && <p className="text-xs text-[#2D6A4F] mt-1">Logo saved.</p>}
                       </div>
                     </div>
-                  </div>
-
-                  <SectionCard editable={isOrgOwner} title="Organisation Details" onEdit={openOrgModal}>
                     <DisplayField label="Organisation name">
                       {orgName ? <p className="text-sm text-black dark:text-white">{orgName}</p> : <EmptyValue />}
                     </DisplayField>
@@ -2040,7 +2040,7 @@ export default function DashboardProfile() {
               {/* ── LEGAL IDENTITY PANE ── */}
               {activePane === "organisation" && (
                 <SectionCard editable={isOrgOwner} title="Legal identity" onEdit={openLegalIdentityModal}
-                  collapsible expanded={expandedOrgSections.has("legal_identity")} onToggle={() => toggleOrgSection("legal_identity")} accentColor="#7F77DD">
+                  collapsible expanded={expandedOrgSections.has("legal_identity")} onToggle={() => toggleOrgSection("legal_identity")}>
                     <DisplayField label="Registration type">
                       {registrationType ?? <EmptyValue />}
                     </DisplayField>
@@ -2126,7 +2126,7 @@ export default function DashboardProfile() {
               {/* ── FOCUS AREAS PANE ── */}
               {activePane === "organisation" && (
                 <SectionCard editable={isOrgOwner} title="Focus areas" onEdit={openFocusModal}
-                  collapsible expanded={expandedOrgSections.has("focus")} onToggle={() => toggleOrgSection("focus")} accentColor="#1D9E75">
+                  collapsible expanded={expandedOrgSections.has("focus")} onToggle={() => toggleOrgSection("focus")}>
                     <DisplayField label="Sectors">
                       {sectors.length > 0
                         ? <div className="flex flex-wrap gap-2">{sectors.map(s => <FlatTag key={s}>{s}</FlatTag>)}</div>
@@ -2153,7 +2153,7 @@ export default function DashboardProfile() {
               {/* ── ONLINE PRESENCE PANE ── */}
               {activePane === "organisation" && (
                 <SectionCard editable={isOrgOwner} title="Online presence" onEdit={openPresenceModal}
-                  collapsible expanded={expandedOrgSections.has("presence")} onToggle={() => toggleOrgSection("presence")} accentColor="#378ADD">
+                  collapsible expanded={expandedOrgSections.has("presence")} onToggle={() => toggleOrgSection("presence")}>
                     {!isOrg && (
                       <DisplayField label="LinkedIn">
                         {linkedinUrl ? (
@@ -2257,14 +2257,10 @@ export default function DashboardProfile() {
               {/* ── DD READINESS PANE ── */}
               {activePane === "organisation" && isImplementer && (
                 <>
-                  <div className="px-8 sm:px-12 py-10">
-                    <button type="button" onClick={() => toggleOrgSection("dd")} className="w-full flex items-center justify-between gap-1.5 mb-1 text-left">
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: "#BA7517" }} />
-                        <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Due diligence readiness</p>
-                        <InfoTooltip text={PILLAR_INFO.ddReadiness} />
-                      </div>
-                      <ChevronDown className={`w-4 h-4 text-black dark:text-white transition-transform shrink-0 ${expandedOrgSections.has("dd") ? "" : "-rotate-90"}`} />
+                  <div className="px-8 sm:px-12 py-10 hover:bg-muted/40 transition-colors">
+                    <button type="button" onClick={() => toggleOrgSection("dd")} className="w-full flex items-center gap-1.5 mb-1 text-left">
+                      <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Due diligence readiness</p>
+                      <InfoTooltip text={PILLAR_INFO.ddReadiness} />
                     </button>
                     {expandedOrgSections.has("dd") && (
                     <>
@@ -2361,14 +2357,10 @@ export default function DashboardProfile() {
               )}
 
               {activePane === "organisation" && (isFunder || isCorporate) && (
-                  <div className="px-8 sm:px-12 py-10">
-                    <button type="button" onClick={() => toggleOrgSection("fdd")} className="w-full flex items-center justify-between gap-1.5 mb-1 text-left">
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: "#BA7517" }} />
-                        <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Due diligence readiness</p>
-                        <InfoTooltip text={PILLAR_INFO.ddReadiness} />
-                      </div>
-                      <ChevronDown className={`w-4 h-4 text-black dark:text-white transition-transform shrink-0 ${expandedOrgSections.has("fdd") ? "" : "-rotate-90"}`} />
+                  <div className="px-8 sm:px-12 py-10 hover:bg-muted/40 transition-colors">
+                    <button type="button" onClick={() => toggleOrgSection("fdd")} className="w-full flex items-center gap-1.5 mb-1 text-left">
+                      <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Due diligence readiness</p>
+                      <InfoTooltip text={PILLAR_INFO.ddReadiness} />
                     </button>
                     {expandedOrgSections.has("fdd") && (
                     <>
@@ -2484,7 +2476,7 @@ export default function DashboardProfile() {
               {/* ── TRACK RECORD PANE ── */}
               {activePane === "organisation" && isImplementer && (
                 <SectionCard editable={isOrgOwner} title="Impact & track record" onEdit={openTrackRecordModal}
-                  collapsible expanded={expandedOrgSections.has("track")} onToggle={() => toggleOrgSection("track")} accentColor="#639922">
+                  collapsible expanded={expandedOrgSections.has("track")} onToggle={() => toggleOrgSection("track")}>
                     <DisplayField label="Cumulative reach">
                       {(totalBeneficiaries || jobsCreated || femalePct || youthPct || yearsOfOperation) ? (
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
@@ -2653,7 +2645,7 @@ export default function DashboardProfile() {
               {/* ── MANDATE PANE (funders) ── */}
               {activePane === "organisation" && isFunder && (
                 <>
-                <SectionGroupHeader title="Mandate" expanded={expandedOrgSections.has("mandate")} onToggle={() => toggleOrgSection("mandate")} accentColor="#D85A30" />
+                <SectionGroupHeader title="Mandate" expanded={expandedOrgSections.has("mandate")} onToggle={() => toggleOrgSection("mandate")} />
                 {expandedOrgSections.has("mandate") && (
                   <>
                   <SectionCard editable={isOrgOwner} title="Investment thesis" onEdit={openMandateModal}>
@@ -2808,12 +2800,8 @@ export default function DashboardProfile() {
             
             {/* ── CSR & ESG PANE (corporates/tech/public sector) ── */}
             {activePane === "organisation" && isCorporate && (
-                <>
-                <SectionGroupHeader title="CSR and ESG" expanded={expandedOrgSections.has("csr")} onToggle={() => toggleOrgSection("csr")} accentColor="#D4537E" />
-                {expandedOrgSections.has("csr") && (
-                  <>
-                  {/* ── CSR & ESG section (display only -- edit via modal) ── */}
-                  <SectionCard editable={isOrgOwner} title="CSR & ESG" onEdit={openCsrEsgModal}>
+                  <SectionCard editable={isOrgOwner} title="CSR & ESG" onEdit={openCsrEsgModal}
+                    collapsible expanded={expandedOrgSections.has("csr_esg")} onToggle={() => toggleOrgSection("csr_esg")}>
                     <DisplayField label="CSR/ESG focus statement">
                       {csrFocusStatement
                         ? <p className="text-sm text-black dark:text-white leading-relaxed">{csrFocusStatement}</p>
@@ -2832,9 +2820,12 @@ export default function DashboardProfile() {
                         : <EmptyValue />}
                     </DisplayField>
                   </SectionCard>
+              )}
 
-                  {/* ── Partnership preferences card (display only) ── */}
-                  <SectionCard editable={isOrgOwner} title="Partnership preferences" onEdit={openPartnershipModal}>
+              {/* ── Partnership preferences card (display only) ── */}
+              {activePane === "organisation" && isCorporate && (
+                  <SectionCard editable={isOrgOwner} title="Partnership preferences" onEdit={openPartnershipModal}
+                    collapsible expanded={expandedOrgSections.has("csr_partnership")} onToggle={() => toggleOrgSection("csr_partnership")}>
                     <DisplayField label="What we bring to partnerships">
                       {inkindSupport.length > 0
                         ? <div className="flex flex-wrap gap-2">{inkindSupport.map(s => <FlatTag key={s}>{s}</FlatTag>)}</div>
@@ -2862,10 +2853,12 @@ export default function DashboardProfile() {
                         : <EmptyValue />}
                     </DisplayField>
                   </SectionCard>
+              )}
 
-                  {/* ── Technology support card (technology_company only, display only) ── */}
-                  {profile?.org_type === "technology_company" && (
-                    <SectionCard editable={isOrgOwner} title="Technology support" onEdit={openTechModal}>
+              {/* ── Technology support card (technology_company only, display only) ── */}
+              {activePane === "organisation" && isCorporate && profile?.org_type === "technology_company" && (
+                    <SectionCard editable={isOrgOwner} title="Technology support" onEdit={openTechModal}
+                      collapsible expanded={expandedOrgSections.has("csr_tech")} onToggle={() => toggleOrgSection("csr_tech")}>
                       <DisplayField label="Tech resources we can offer">
                         {techSupport.length > 0
                           ? <div className="flex flex-wrap gap-2">{techSupport.map(t => <FlatTag key={t}>{t}</FlatTag>)}</div>
@@ -2880,9 +2873,12 @@ export default function DashboardProfile() {
                         ) : <EmptyValue />}
                       </DisplayField>
                     </SectionCard>
-                  )}
-                  {/* ── SRG1 compliance self-declaration ── */}
-                  <SectionCard editable={isOrgOwner} title="Compliance (SRG1)" onEdit={openComplianceModal}>
+              )}
+
+              {/* ── SRG1 compliance self-declaration ── */}
+              {activePane === "organisation" && isCorporate && (
+                  <SectionCard editable={isOrgOwner} title="Compliance (SRG1)" onEdit={openComplianceModal}
+                    collapsible expanded={expandedOrgSections.has("csr_compliance")} onToggle={() => toggleOrgSection("csr_compliance")}>
                     <DisplayField label="Public interest entity status">
                       {srg1PieSelfDeclared ? (
                         <p className="text-sm text-black dark:text-white">✓ Declared as a public interest entity under FRC Nigeria SRG1</p>
@@ -2894,11 +2890,9 @@ export default function DashboardProfile() {
                       ) : <EmptyValue />}
                     </DisplayField>
                     </SectionCard>
-                  </>
-                )}
-                </>
               )}
                 </SectionCardGroup>
+                </>
               )}
               {/* ── SRG1 compliance edit modal ── */}
               {editingComplianceSection && (
