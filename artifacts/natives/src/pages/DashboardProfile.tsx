@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Link } from "wouter";
-import { Loader2, CheckCircle2, ShieldCheck, Camera, ArrowRight, Building2, Trash2, Pencil, Globe, Instagram, Twitter, Facebook, Youtube, Linkedin, ChevronDown } from "lucide-react";
+import { Loader2, CheckCircle2, ShieldCheck, Camera, ArrowRight, Building2, Trash2, Pencil, Globe, Instagram, Twitter, Facebook, Youtube, Linkedin, ChevronDown, ChevronsDown, ChevronsUp } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import VerifiedOutcomesSection from "@/components/dashboard/VerifiedOutcomesSection";
 import { COUNTRIES } from "@/lib/countries";
@@ -193,33 +193,49 @@ function SectionCard({ title, onEdit, editable = true, children, collapsible = f
   title: string; onEdit: () => void; editable?: boolean; children: React.ReactNode;
   collapsible?: boolean; expanded?: boolean; onToggle?: () => void;
 }) {
-  const TitleWrapper = collapsible ? "button" : "div";
-  return (
-    <div className={`px-8 sm:px-12 py-10 ${collapsible ? "hover:bg-muted/40 transition-colors" : ""}`}>
-      <div className="flex items-center justify-between mb-6">
-        <TitleWrapper {...(collapsible ? { type: "button" as const, onClick: onToggle } : {})}
-          className={`flex items-center gap-2.5 ${collapsible ? "cursor-pointer text-left" : ""}`}>
+  if (collapsible) {
+    return (
+      <div className="relative hover:bg-[#2D6A4F]/[0.06] transition-colors">
+        <button type="button" onClick={onToggle} className="w-full text-left px-8 sm:px-12 py-10 pr-14">
           <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
-        </TitleWrapper>
+        </button>
         {editable && expanded && (
+          <button type="button" onClick={onEdit} aria-label={`Edit ${title}`}
+            className="absolute right-8 sm:right-12 top-10 text-[#111111] dark:text-[#F5F5F5] hover:opacity-60 transition-opacity">
+            <Pencil className="w-4 h-4" />
+          </button>
+        )}
+        {expanded && (
+          <div className="px-8 sm:px-12 pb-10 -mt-4">
+            <div className="space-y-9">
+              {children}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+  return (
+    <div className="px-8 sm:px-12 py-10">
+      <div className="flex items-center justify-between mb-6">
+        <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
+        {editable && (
           <button type="button" onClick={onEdit} aria-label={`Edit ${title}`}
             className="text-[#111111] dark:text-[#F5F5F5] hover:opacity-60 transition-opacity shrink-0">
             <Pencil className="w-4 h-4" />
           </button>
         )}
       </div>
-      {expanded && (
-        <div className="space-y-9">
-          {children}
-        </div>
-      )}
+      <div className="space-y-9">
+        {children}
+      </div>
     </div>
   );
 }
 
 function SectionGroupHeader({ title, expanded, onToggle }: { title: string; expanded: boolean; onToggle: () => void }) {
   return (
-    <button type="button" onClick={onToggle} className="w-full flex items-center justify-between px-8 sm:px-12 py-10 text-left hover:bg-muted/40 transition-colors">
+    <button type="button" onClick={onToggle} className="w-full flex items-center justify-between px-8 sm:px-12 py-10 text-left hover:bg-[#2D6A4F]/[0.06] transition-colors">
       <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
     </button>
   );
@@ -690,11 +706,14 @@ export default function DashboardProfile() {
   // each being its own top-level tab -- several can be open together, all
   // start collapsed.
   const [expandedOrgSections, setExpandedOrgSections] = useState<Set<string>>(new Set());
+  // Accordion is exclusive by default -- opening a card closes whichever
+  // was open before. Multiple can only be open together via "Expand all";
+  // clicking any single card afterward collapses back down to just that
+  // one.
   function toggleOrgSection(key: string) {
     setExpandedOrgSections(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
-      return next;
+      if (prev.size === 1 && prev.has(key)) return new Set();
+      return new Set([key]);
     });
   }
 
@@ -1963,8 +1982,12 @@ export default function DashboardProfile() {
                       if (profile?.org_type === "technology_company") keys.push("csr_tech");
                     }
                     setExpandedOrgSections(new Set(keys));
-                  }} className="text-xs text-[#2D6A4F] hover:underline">Expand all</button>
-                  <button type="button" onClick={() => setExpandedOrgSections(new Set())} className="text-xs text-black dark:text-white hover:underline">Collapse all</button>
+                  }} title="Expand all" aria-label="Expand all" className="text-[#2D6A4F] hover:opacity-70 transition-opacity">
+                    <ChevronsDown className="w-4 h-4" />
+                  </button>
+                  <button type="button" onClick={() => setExpandedOrgSections(new Set())} title="Collapse all" aria-label="Collapse all" className="text-black dark:text-white hover:opacity-70 transition-opacity">
+                    <ChevronsUp className="w-4 h-4" />
+                  </button>
                 </div>
                 <SectionCardGroup>
                   <SectionCard editable={isOrgOwner} title="Organisation Details" onEdit={openOrgModal}>
@@ -2257,7 +2280,7 @@ export default function DashboardProfile() {
               {/* ── DD READINESS PANE ── */}
               {activePane === "organisation" && isImplementer && (
                 <>
-                  <div className="px-8 sm:px-12 py-10 hover:bg-muted/40 transition-colors">
+                  <div className="px-8 sm:px-12 py-10 hover:bg-[#2D6A4F]/[0.06] transition-colors">
                     <button type="button" onClick={() => toggleOrgSection("dd")} className="w-full flex items-center gap-1.5 mb-1 text-left">
                       <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Due diligence readiness</p>
                       <InfoTooltip text={PILLAR_INFO.ddReadiness} />
@@ -2357,7 +2380,7 @@ export default function DashboardProfile() {
               )}
 
               {activePane === "organisation" && (isFunder || isCorporate) && (
-                  <div className="px-8 sm:px-12 py-10 hover:bg-muted/40 transition-colors">
+                  <div className="px-8 sm:px-12 py-10 hover:bg-[#2D6A4F]/[0.06] transition-colors">
                     <button type="button" onClick={() => toggleOrgSection("fdd")} className="w-full flex items-center gap-1.5 mb-1 text-left">
                       <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Due diligence readiness</p>
                       <InfoTooltip text={PILLAR_INFO.ddReadiness} />
