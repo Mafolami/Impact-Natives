@@ -197,7 +197,7 @@ function SectionCard({ title, onEdit, editable = true, children, collapsible = f
     return (
       <div className="relative">
         <button type="button" onClick={onToggle} className="w-full text-left px-8 sm:px-12 py-4 pr-14 hover:bg-[#E2725B]/[0.08] transition-colors">
-          <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
+          <p className="text-lg font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
         </button>
         {editable && expanded && (
           <button type="button" onClick={onEdit} aria-label={`Edit ${title}`}
@@ -206,7 +206,7 @@ function SectionCard({ title, onEdit, editable = true, children, collapsible = f
           </button>
         )}
         {expanded && (
-          <div className="px-8 sm:px-12 pt-1 pb-4">
+          <div className="px-8 sm:px-12 pt-8 pb-4">
             <div className="space-y-9">
               {children}
             </div>
@@ -218,7 +218,7 @@ function SectionCard({ title, onEdit, editable = true, children, collapsible = f
   return (
     <div className="px-8 sm:px-12 py-4">
       <div className="flex items-center justify-between mb-4">
-        <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
+        <p className="text-lg font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
         {editable && (
           <button type="button" onClick={onEdit} aria-label={`Edit ${title}`}
             className="text-[#111111] dark:text-[#F5F5F5] hover:opacity-60 transition-opacity shrink-0">
@@ -236,7 +236,7 @@ function SectionCard({ title, onEdit, editable = true, children, collapsible = f
 function SectionGroupHeader({ title, expanded, onToggle }: { title: string; expanded: boolean; onToggle: () => void }) {
   return (
     <button type="button" onClick={onToggle} className="w-full flex items-center justify-between px-8 sm:px-12 py-4 text-left hover:bg-[#E2725B]/[0.08] transition-colors">
-      <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
+      <p className="text-lg font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
     </button>
   );
 }
@@ -2281,11 +2281,11 @@ export default function DashboardProfile() {
               {activePane === "organisation" && isImplementer && (
                 <>
                   <button type="button" onClick={() => toggleOrgSection("dd")} className="w-full flex items-center gap-1.5 text-left px-8 sm:px-12 py-4 hover:bg-[#E2725B]/[0.08] transition-colors">
-                    <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Due diligence readiness</p>
+                    <p className="text-lg font-bold text-[#111111] dark:text-[#F5F5F5]">Due diligence readiness</p>
                     <InfoTooltip text={PILLAR_INFO.ddReadiness} />
                   </button>
                   {expandedOrgSections.has("dd") && (
-                    <div className="px-8 sm:px-12 pt-2 pb-4">
+                    <div className="px-8 sm:px-12 pt-8 pb-4">
                     <p className="text-xs text-black dark:text-white opacity-60 mb-6">
                       Signal to funders that you are investment-ready. Checking an item asks for a few quick details, which appear as a tooltip on your profile once matched.
                     </p>
@@ -2380,11 +2380,11 @@ export default function DashboardProfile() {
               {activePane === "organisation" && (isFunder || isCorporate) && (
                 <>
                   <button type="button" onClick={() => toggleOrgSection("fdd")} className="w-full flex items-center gap-1.5 text-left px-8 sm:px-12 py-4 hover:bg-[#E2725B]/[0.08] transition-colors">
-                    <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Due diligence readiness</p>
+                    <p className="text-lg font-bold text-[#111111] dark:text-[#F5F5F5]">Due diligence readiness</p>
                     <InfoTooltip text={PILLAR_INFO.ddReadiness} />
                   </button>
                   {expandedOrgSections.has("fdd") && (
-                    <div className="px-8 sm:px-12 pt-2 pb-4">
+                    <div className="px-8 sm:px-12 pt-8 pb-4">
                     <p className="text-xs text-black dark:text-white opacity-60 mb-6">
                       Signal to implementers that you are a transparent, trustworthy partner. Checking an item asks for a few quick details, which appear as a tooltip on your profile once matched.
                     </p>
