@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Link } from "wouter";
-import { Loader2, CheckCircle2, ShieldCheck, Camera, ArrowRight, Building2, Trash2, Pencil, Globe, Instagram, Twitter, Facebook, Youtube, Linkedin } from "lucide-react";
+import { Loader2, CheckCircle2, ShieldCheck, Camera, ArrowRight, Building2, Trash2, Pencil, Globe, Instagram, Twitter, Facebook, Youtube, Linkedin, ChevronDown } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import VerifiedOutcomesSection from "@/components/dashboard/VerifiedOutcomesSection";
 import { COUNTRIES } from "@/lib/countries";
@@ -658,14 +658,6 @@ export default function DashboardProfile() {
     ? [
         { key: "basic",        label: "Contact Details" },
         { key: "organisation", label: "Organisation" },
-        { key: "legal_identity", label: "Legal Identity" },
-        { key: "focus",          label: "Focus Areas" },
-        { key: "presence",     label: "Online Presence" },
-        ...(isImplementer ? [{ key: "dd" as PaneKey, label: "DD Readiness" }] : []),
-        ...((isFunder || isCorporate) ? [{ key: "fdd" as PaneKey, label: "DD Readiness" }] : []),
-        ...(isImplementer ? [{ key: "track" as PaneKey, label: "Track Record" }] : []),
-        ...(isFunder ? [{ key: "mandate" as PaneKey, label: "Mandate" }] : []),
-        ...(isCorporate ? [{ key: "csr" as PaneKey, label: "CSR & ESG" }] : []),
         { key: "verification", label: "Verification" },
         { key: "impact_evidence", label: "Impact Evidence" },
       ]
@@ -676,6 +668,18 @@ export default function DashboardProfile() {
       ];
 
   const [activePane, setActivePane] = useState<PaneKey>("basic");
+
+  // Sections folded inside the Organisation tab as an accordion instead of
+  // each being its own top-level tab -- several can be open together, all
+  // start collapsed.
+  const [expandedOrgSections, setExpandedOrgSections] = useState<Set<string>>(new Set());
+  function toggleOrgSection(key: string) {
+    setExpandedOrgSections(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }
 
   // ── Fixed pane-nav horizontal position ────────────────────────────────────
   // The nav is position:fixed on desktop so it stays put on scroll, but a
@@ -1663,6 +1667,16 @@ export default function DashboardProfile() {
   const strengthLabel = strengthScore >= 80 ? "Strong" : strengthScore >= 50 ? "Good" : "Needs work";
   const strengthColor = strengthScore >= 80 ? "#2D6A4F" : strengthScore >= 50 ? "#f59e0b" : "#C45C26";
 
+  function OrgAccordionHeader({ title, sectionKey, expanded }: { title: string; sectionKey: string; expanded: boolean }) {
+    return (
+      <button type="button" onClick={() => toggleOrgSection(sectionKey)}
+        className="w-full flex items-center justify-between px-6 py-4 border-b border-border text-left hover:bg-muted/30 transition-colors">
+        <span className="text-sm font-semibold text-black dark:text-white">{title}</span>
+        <ChevronDown className={`w-4 h-4 text-black dark:text-white transition-transform ${expanded ? "" : "-rotate-90"}`} />
+      </button>
+    );
+  }
+
   const SaveBar = () => (
     <div className="space-y-2 pt-2">
       <div className="flex items-center gap-3">
@@ -2008,7 +2022,10 @@ export default function DashboardProfile() {
               )}
 
               {/* ── LEGAL IDENTITY PANE ── */}
-              {activePane === "legal_identity" && (
+              {activePane === "organisation" && (
+                <>
+                  <OrgAccordionHeader title="Legal identity" sectionKey="legal_identity" expanded={expandedOrgSections.has("legal_identity")} />
+                  {expandedOrgSections.has("legal_identity") && (
                 <SectionCardGroup>
                   <SectionCard editable={isOrgOwner} title="Legal identity" onEdit={openLegalIdentityModal}>
                     <DisplayField label="Registration type">
@@ -2028,6 +2045,8 @@ export default function DashboardProfile() {
                     </DisplayField>
                   </SectionCard>
                 </SectionCardGroup>
+                  )}
+                </>
               )}
 
               {editingLegalIdentityOpen && (
@@ -2095,7 +2114,10 @@ export default function DashboardProfile() {
               )}
 
               {/* ── FOCUS AREAS PANE ── */}
-              {activePane === "focus" && (
+              {activePane === "organisation" && (
+                <>
+                  <OrgAccordionHeader title="Focus areas" sectionKey="focus" expanded={expandedOrgSections.has("focus")} />
+                  {expandedOrgSections.has("focus") && (
                 <SectionCardGroup>
                   <SectionCard editable={isOrgOwner} title="Focus areas" onEdit={openFocusModal}>
                     <DisplayField label="Sectors">
@@ -2105,6 +2127,8 @@ export default function DashboardProfile() {
                     </DisplayField>
                   </SectionCard>
                 </SectionCardGroup>
+                  )}
+                </>
               )}
 
               {editingFocusOpen && (
@@ -2123,7 +2147,10 @@ export default function DashboardProfile() {
               )}
 
               {/* ── ONLINE PRESENCE PANE ── */}
-              {activePane === "presence" && (
+              {activePane === "organisation" && (
+                <>
+                  <OrgAccordionHeader title="Online presence" sectionKey="presence" expanded={expandedOrgSections.has("presence")} />
+                  {expandedOrgSections.has("presence") && (
                 <SectionCardGroup>
                   <SectionCard editable={isOrgOwner} title="Online presence" onEdit={openPresenceModal}>
                     {!isOrg && (
@@ -2166,6 +2193,8 @@ export default function DashboardProfile() {
                     </DisplayField>
                   </SectionCard>
                 </SectionCardGroup>
+                  )}
+                </>
               )}
 
               {editingPresenceOpen && (
@@ -2228,7 +2257,10 @@ export default function DashboardProfile() {
               )}
 
               {/* ── DD READINESS PANE ── */}
-              {activePane === "dd" && isImplementer && (
+              {activePane === "organisation" && isImplementer && (
+                <>
+                  <OrgAccordionHeader title="DD readiness" sectionKey="dd" expanded={expandedOrgSections.has("dd")} />
+                  {expandedOrgSections.has("dd") && (
                 <SectionCardGroup>
                   <div className="px-8 sm:px-12 py-10">
                     <div className="flex items-center gap-1.5 mb-1">
@@ -2323,9 +2355,14 @@ export default function DashboardProfile() {
                     }} />
                   )}
                 </SectionCardGroup>
+                  )}
+                </>
               )}
 
-              {activePane === "fdd" && (isFunder || isCorporate) && (
+              {activePane === "organisation" && (isFunder || isCorporate) && (
+                <>
+                  <OrgAccordionHeader title="DD readiness" sectionKey="fdd" expanded={expandedOrgSections.has("fdd")} />
+                  {expandedOrgSections.has("fdd") && (
                 <SectionCardGroup>
                   <div className="px-8 sm:px-12 py-10">
                     <div className="flex items-center gap-1.5 mb-1">
@@ -2387,6 +2424,8 @@ export default function DashboardProfile() {
                     </div>
                   </div>
                 </SectionCardGroup>
+                  )}
+                </>
               )}
 
 {ddModalKey && (() => {
@@ -2441,7 +2480,10 @@ export default function DashboardProfile() {
               })()}
 
               {/* ── TRACK RECORD PANE ── */}
-              {activePane === "track" && isImplementer && (
+              {activePane === "organisation" && isImplementer && (
+                <>
+                  <OrgAccordionHeader title="Track record" sectionKey="track" expanded={expandedOrgSections.has("track")} />
+                  {expandedOrgSections.has("track") && (
                 <SectionCardGroup>
                   <SectionCard editable={isOrgOwner} title="Impact & track record" onEdit={openTrackRecordModal}>
                     <DisplayField label="Cumulative reach">
@@ -2519,6 +2561,8 @@ export default function DashboardProfile() {
                     </DisplayField>
                   </SectionCard>
                 </SectionCardGroup>
+                  )}
+                </>
               )}
 
               {editingTrackRecordOpen && (
@@ -2611,7 +2655,10 @@ export default function DashboardProfile() {
               )}
 
               {/* ── MANDATE PANE (funders) ── */}
-              {activePane === "mandate" && isFunder && (
+              {activePane === "organisation" && isFunder && (
+                <>
+                  <OrgAccordionHeader title="Mandate" sectionKey="mandate" expanded={expandedOrgSections.has("mandate")} />
+                  {expandedOrgSections.has("mandate") && (
                 <SectionCardGroup>
                   <SectionCard editable={isOrgOwner} title="Investment thesis" onEdit={openMandateModal}>
                     <DisplayField label="Investment focus">
@@ -2654,6 +2701,8 @@ export default function DashboardProfile() {
                     </DisplayField>
                   </SectionCard>
                 </SectionCardGroup>
+                  )}
+                </>
               )}
 
               {editingMandateOpen && (
@@ -2762,7 +2811,10 @@ export default function DashboardProfile() {
               )}
             
             {/* ── CSR & ESG PANE (corporates/tech/public sector) ── */}
-            {activePane === "csr" && isCorporate && (
+            {activePane === "organisation" && isCorporate && (
+                <>
+                  <OrgAccordionHeader title="CSR and ESG" sectionKey="csr" expanded={expandedOrgSections.has("csr")} />
+                  {expandedOrgSections.has("csr") && (
                 <SectionCardGroup>
 
                   {/* ── CSR & ESG section (display only -- edit via modal) ── */}
@@ -2848,6 +2900,8 @@ export default function DashboardProfile() {
                     </DisplayField>
                     </SectionCard>
                 </SectionCardGroup>
+                  )}
+                </>
               )}
               {/* ── SRG1 compliance edit modal ── */}
               {editingComplianceSection && (
