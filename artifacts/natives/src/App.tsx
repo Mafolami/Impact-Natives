@@ -45,6 +45,7 @@ const DashboardPartnerships = lazy(() => import("@/pages/DashboardPartnerships")
 const DashboardPortfolio = lazy(() => import("@/pages/DashboardPortfolio"));
 const MouTab = lazy(() => import("@/pages/MouTab"));
 const DashboardPortfolioMilestones = lazy(() => import("@/pages/DashboardPortfolioMilestones"));
+const DashboardPortfolioTrackRecord = lazy(() => import("@/pages/DashboardPortfolioTrackRecord"));
 const DashboardLabs = lazy(() => import("@/pages/DashboardLabs"));
 const DashboardMarketplace = lazy(() => import("@/pages/DashboardMarketplace"));
 const DashboardMessages = lazy(() => import("@/pages/DashboardMessages"));
@@ -144,6 +145,7 @@ if (isAdmin) {
               <Route path="/dashboard/partnerships"><DashboardPartnerships /></Route>
               <Route path="/dashboard/portfolio/mou"><MouTab /></Route>
               <Route path="/dashboard/portfolio/milestones"><DashboardPortfolioMilestones /></Route>
+              <Route path="/dashboard/portfolio/track-record"><DashboardPortfolioTrackRecord /></Route>
               <Route path="/dashboard/portfolio/exchanges/partner/:orgId"><DashboardPortfolio /></Route>
               <Route path="/dashboard/portfolio/exchanges/:id"><DashboardPortfolio /></Route>
               <Route path="/dashboard/portfolio/exchanges"><DashboardPortfolio /></Route>

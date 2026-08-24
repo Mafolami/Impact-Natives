@@ -41,6 +41,7 @@ const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
       { label: "Exchanges", href: "/dashboard/portfolio/exchanges", icon: Lightbulb, corporateOnly: false },
       { label: "MoUs", href: "/dashboard/portfolio/mou", icon: FileText, corporateOnly: false },
       { label: "Traction", href: "/dashboard/portfolio/milestones", icon: Target, corporateOnly: false },
+      { label: "Track record", href: "/dashboard/portfolio/track-record", icon: ShieldCheck, corporateOnly: false },
     ],
   },
   {
