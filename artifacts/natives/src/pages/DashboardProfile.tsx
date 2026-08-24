@@ -195,8 +195,8 @@ function SectionCard({ title, onEdit, editable = true, children, collapsible = f
 }) {
   if (collapsible) {
     return (
-      <div className="relative hover:bg-[#2D6A4F]/[0.06] transition-colors">
-        <button type="button" onClick={onToggle} className="w-full text-left px-8 sm:px-12 py-10 pr-14">
+      <div className="relative">
+        <button type="button" onClick={onToggle} className="w-full text-left px-8 sm:px-12 py-10 pr-14 hover:bg-[#E2725B]/[0.08] transition-colors">
           <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
         </button>
         {editable && expanded && (
@@ -235,7 +235,7 @@ function SectionCard({ title, onEdit, editable = true, children, collapsible = f
 
 function SectionGroupHeader({ title, expanded, onToggle }: { title: string; expanded: boolean; onToggle: () => void }) {
   return (
-    <button type="button" onClick={onToggle} className="w-full flex items-center justify-between px-8 sm:px-12 py-10 text-left hover:bg-[#2D6A4F]/[0.06] transition-colors">
+    <button type="button" onClick={onToggle} className="w-full flex items-center justify-between px-8 sm:px-12 py-10 text-left hover:bg-[#E2725B]/[0.08] transition-colors">
       <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
     </button>
   );
@@ -2280,8 +2280,8 @@ export default function DashboardProfile() {
               {/* ── DD READINESS PANE ── */}
               {activePane === "organisation" && isImplementer && (
                 <>
-                  <div className="px-8 sm:px-12 py-10 hover:bg-[#2D6A4F]/[0.06] transition-colors">
-                    <button type="button" onClick={() => toggleOrgSection("dd")} className="w-full flex items-center gap-1.5 mb-1 text-left">
+                  <div className="px-8 sm:px-12 py-10">
+                    <button type="button" onClick={() => toggleOrgSection("dd")} className="w-full flex items-center gap-1.5 mb-1 text-left hover:bg-[#E2725B]/[0.08] transition-colors">
                       <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Due diligence readiness</p>
                       <InfoTooltip text={PILLAR_INFO.ddReadiness} />
                     </button>
@@ -2380,8 +2380,8 @@ export default function DashboardProfile() {
               )}
 
               {activePane === "organisation" && (isFunder || isCorporate) && (
-                  <div className="px-8 sm:px-12 py-10 hover:bg-[#2D6A4F]/[0.06] transition-colors">
-                    <button type="button" onClick={() => toggleOrgSection("fdd")} className="w-full flex items-center gap-1.5 mb-1 text-left">
+                  <div className="px-8 sm:px-12 py-10">
+                    <button type="button" onClick={() => toggleOrgSection("fdd")} className="w-full flex items-center gap-1.5 mb-1 text-left hover:bg-[#E2725B]/[0.08] transition-colors">
                       <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Due diligence readiness</p>
                       <InfoTooltip text={PILLAR_INFO.ddReadiness} />
                     </button>
