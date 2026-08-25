@@ -189,15 +189,16 @@ function SectionCardGroup({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SectionCard({ title, onEdit, editable = true, children, collapsible = false, expanded = true, onToggle }: {
-  title: string; onEdit: () => void; editable?: boolean; children: React.ReactNode;
+function SectionCard({ title, titleExtra, onEdit, editable = true, children, collapsible = false, expanded = true, onToggle }: {
+  title: string; titleExtra?: React.ReactNode; onEdit: () => void; editable?: boolean; children: React.ReactNode;
   collapsible?: boolean; expanded?: boolean; onToggle?: () => void;
 }) {
   if (collapsible) {
     return (
       <div className="relative">
-        <button type="button" onClick={onToggle} className="w-full text-left px-8 sm:px-12 py-4 pr-14 hover:bg-[#E2725B]/[0.08] transition-colors">
+        <button type="button" onClick={onToggle} className="w-full flex items-center gap-1.5 text-left px-8 sm:px-12 py-4 pr-14 hover:bg-[#E2725B]/[0.08] transition-colors">
           <p className="text-lg font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
+          {titleExtra}
         </button>
         {editable && expanded && (
           <button type="button" onClick={onEdit} aria-label={`Edit ${title}`}
@@ -2280,12 +2281,16 @@ export default function DashboardProfile() {
               {/* ── DD READINESS PANE ── */}
               {activePane === "organisation" && isImplementer && (
                 <div>
-                  <button type="button" onClick={() => toggleOrgSection("dd")} className="w-full flex items-center gap-1.5 text-left px-8 sm:px-12 py-4 hover:bg-[#E2725B]/[0.08] transition-colors">
-                    <p className="text-lg font-bold text-[#111111] dark:text-[#F5F5F5]">Due diligence readiness</p>
-                    <InfoTooltip text={PILLAR_INFO.ddReadiness} />
-                  </button>
-                  {expandedOrgSections.has("dd") && (
-                    <div className="px-8 sm:px-12 pt-8 pb-4">
+                  <SectionCard
+                    title="Due diligence readiness"
+                    titleExtra={<InfoTooltip text={PILLAR_INFO.ddReadiness} />}
+                    onEdit={() => {}}
+                    editable={false}
+                    collapsible
+                    expanded={expandedOrgSections.has("dd")}
+                    onToggle={() => toggleOrgSection("dd")}
+                  >
+                    <div>
                     <p className="text-xs text-black dark:text-white opacity-60 mb-6">
                       Signal to funders that you are investment-ready. Checking an item asks for a few quick details, which appear as a tooltip on your profile once matched.
                     </p>
@@ -2343,7 +2348,7 @@ export default function DashboardProfile() {
                       </div>
                     </div>
                     </div>
-                  )}
+                  </SectionCard>
 
                   {expandedOrgSections.has("dd") && orgId && (
                     <EsgSnapshotSection org={{
@@ -2379,12 +2384,16 @@ export default function DashboardProfile() {
 
               {activePane === "organisation" && (isFunder || isCorporate) && (
                 <div>
-                  <button type="button" onClick={() => toggleOrgSection("fdd")} className="w-full flex items-center gap-1.5 text-left px-8 sm:px-12 py-4 hover:bg-[#E2725B]/[0.08] transition-colors">
-                    <p className="text-lg font-bold text-[#111111] dark:text-[#F5F5F5]">Due diligence readiness</p>
-                    <InfoTooltip text={PILLAR_INFO.ddReadiness} />
-                  </button>
-                  {expandedOrgSections.has("fdd") && (
-                    <div className="px-8 sm:px-12 pt-8 pb-4">
+                  <SectionCard
+                    title="Due diligence readiness"
+                    titleExtra={<InfoTooltip text={PILLAR_INFO.ddReadiness} />}
+                    onEdit={() => {}}
+                    editable={false}
+                    collapsible
+                    expanded={expandedOrgSections.has("fdd")}
+                    onToggle={() => toggleOrgSection("fdd")}
+                  >
+                    <div>
                     <p className="text-xs text-black dark:text-white opacity-60 mb-6">
                       Signal to implementers that you are a transparent, trustworthy partner. Checking an item asks for a few quick details, which appear as a tooltip on your profile once matched.
                     </p>
@@ -2439,7 +2448,7 @@ export default function DashboardProfile() {
                       </div>
                     </div>
                     </div>
-                  )}
+                  </SectionCard>
                 </div>
               )}
 
