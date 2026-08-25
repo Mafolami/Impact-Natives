@@ -1259,6 +1259,7 @@ export default function DashboardProfile() {
 
   // ── Online Presence pane: display-card / edit-modal state ────────────────
   const [editingPresenceOpen, setEditingPresenceOpen] = useState(false);
+  useEffect(() => { console.log("DEBUG: editingPresenceOpen is now", editingPresenceOpen); }, [editingPresenceOpen]);
   const [presenceSaving, setPresenceSaving]     = useState(false);
   const [draftWebsite, setDraftWebsite]         = useState("");
   const [draftSocialLinks, setDraftSocialLinks] = useState<{ label: string; url: string }[]>([]);
