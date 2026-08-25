@@ -1266,6 +1266,7 @@ export default function DashboardProfile() {
   const [draftSocialCustomLabel, setDraftSocialCustomLabel] = useState("");
   const [draftSocialUrl, setDraftSocialUrl]     = useState("");
   function openPresenceModal() {
+    console.log("DEBUG: openPresenceModal called");
     setDraftLinkedinUrl(linkedinUrl);
     setDraftWebsite(website);
     setDraftSocialLinks(socialLinks);
