@@ -1736,6 +1736,9 @@ export default function DashboardProfile() {
   );
   return (
     <div className="w-full relative">
+      <div style={{position: "fixed", top: 0, left: 0, background: "lime", color: "black", fontSize: "24px", padding: "10px", zIndex: 999999}}>
+        UNCONDITIONAL DEBUG MARKER - RENDER VERSION 2
+      </div>
       <div className="space-y-4 md:pr-[304px]">
         <div className="flex flex-col md:flex-row md:gap-6">
 
