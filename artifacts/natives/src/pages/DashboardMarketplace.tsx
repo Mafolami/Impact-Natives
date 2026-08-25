@@ -1110,6 +1110,21 @@ function MarketplaceDetail({
         hasManuallyEditedRef.current = false;
       } else if (data?.requires_upgrade) {
         setAiMessageRequiresUpgrade(true);
+      } else if (error) {
+        // supabase.functions.invoke puts non-2xx responses under `error`,
+        // not `data` -- the requires_upgrade flag from the edge function's
+        // 403 body lives in error.context and has to be parsed out here,
+        // or the upgrade gate silently falls through to the generic
+        // "AI draft failed" message instead of the correct upgrade prompt.
+        let requiresUpgrade = false;
+        try {
+          const body = await (error as any)?.context?.json?.();
+          requiresUpgrade = !!body?.requires_upgrade;
+        } catch {
+          // error body wasn't JSON or context unavailable -- fall through
+        }
+        if (requiresUpgrade) setAiMessageRequiresUpgrade(true);
+        else setAiMessageFailed(true);
       } else {
         setAiMessageFailed(true);
       }
