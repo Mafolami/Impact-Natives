@@ -296,7 +296,8 @@ function ModalCheckbox({ checked, onChange, label, sub }: { checked: boolean; on
   );
 }
 
-function EditModal({ title, onClose, onSave, saving, children }: { title: string; onClose: () => void; onSave: () => void; saving: boolean; children: React.ReactNode }) {
+function EditModal({ isOpen = true, title, onClose, onSave, saving, children }: { isOpen?: boolean; title: string; onClose: () => void; onSave: () => void; saving: boolean; children: React.ReactNode }) {
+  if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-lg p-6 space-y-5 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -655,9 +656,6 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
 }
 
 export default function DashboardProfile() {
-  const __instanceId = Math.random().toString(36).slice(2);
-  console.log("DEBUG: DashboardProfile RENDER, instance", __instanceId);
-  useEffect(() => { console.log("DEBUG: DashboardProfile MOUNTED, instance", __instanceId); return () => console.log("DEBUG: DashboardProfile UNMOUNTED, instance", __instanceId); }, []);
   const { user, profile, orgOwnerId, refreshProfile } = useAuth();
   const [saving, setSaving]               = useState(false);
   const [saved, setSavedState]            = useState(false);
@@ -1262,7 +1260,6 @@ export default function DashboardProfile() {
 
   // ── Online Presence pane: display-card / edit-modal state ────────────────
   const [editingPresenceOpen, setEditingPresenceOpen] = useState(false);
-  useEffect(() => { console.log("DEBUG: editingPresenceOpen is now", editingPresenceOpen); }, [editingPresenceOpen]);
   const [presenceSaving, setPresenceSaving]     = useState(false);
   const [draftWebsite, setDraftWebsite]         = useState("");
   const [draftSocialLinks, setDraftSocialLinks] = useState<{ label: string; url: string }[]>([]);
@@ -1270,7 +1267,6 @@ export default function DashboardProfile() {
   const [draftSocialCustomLabel, setDraftSocialCustomLabel] = useState("");
   const [draftSocialUrl, setDraftSocialUrl]     = useState("");
   function openPresenceModal() {
-    console.log("DEBUG: openPresenceModal called");
     setDraftLinkedinUrl(linkedinUrl);
     setDraftWebsite(website);
     setDraftSocialLinks(socialLinks);
@@ -1739,9 +1735,6 @@ export default function DashboardProfile() {
   );
   return (
     <div className="w-full relative">
-      <div style={{position: "fixed", top: 0, left: 0, background: "lime", color: "black", fontSize: "24px", padding: "10px", zIndex: 999999}}>
-        UNCONDITIONAL DEBUG MARKER - RENDER VERSION 2
-      </div>
       <div className="space-y-4 md:pr-[304px]">
         <div className="flex flex-col md:flex-row md:gap-6">
 
@@ -2288,13 +2281,7 @@ export default function DashboardProfile() {
                 </SectionCard>
               )}
 
-              {editingPresenceOpen && (
-                <div style={{position: "fixed", inset: 0, background: "red", zIndex: 99999, color: "white", fontSize: "40px", padding: "40px"}}>
-                  DEBUG TEST VISIBLE
-                </div>
-              )}
-              {false && editingPresenceOpen && (
-                <EditModal title="Edit online presence" onClose={() => setEditingPresenceOpen(false)} onSave={savePresenceSection} saving={presenceSaving}>
+              <EditModal isOpen={editingPresenceOpen} title="Edit online presence" onClose={() => setEditingPresenceOpen(false)} onSave={savePresenceSection} saving={presenceSaving}>
                   {!isOrg && (
                     <div>
                       <Label className="text-sm font-medium">LinkedIn</Label>
@@ -2350,7 +2337,6 @@ export default function DashboardProfile() {
                     )}
                   </div>
                 </EditModal>
-              )}
 
               {/* ── DD READINESS PANE ── */}
               {activePane === "organisation" && isImplementer && (
