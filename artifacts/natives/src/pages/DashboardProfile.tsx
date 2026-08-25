@@ -2283,6 +2283,11 @@ export default function DashboardProfile() {
               )}
 
               {editingPresenceOpen && (
+                <div style={{position: "fixed", inset: 0, background: "red", zIndex: 99999, color: "white", fontSize: "40px", padding: "40px"}}>
+                  DEBUG TEST VISIBLE
+                </div>
+              )}
+              {false && editingPresenceOpen && (
                 <EditModal title="Edit online presence" onClose={() => setEditingPresenceOpen(false)} onSave={savePresenceSection} saving={presenceSaving}>
                   {!isOrg && (
                     <div>
