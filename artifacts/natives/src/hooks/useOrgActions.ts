@@ -76,40 +76,51 @@ export function useOrgActions(orgOwnerId: string | null | undefined, actorUserId
     let senderOrgId = currentUserOrgId;
     if (!senderOrgId) {
       const { data } = await supabase.from("organizations").select("id").eq("user_id", orgOwnerId).maybeSingle();
-      if (!data) { alert("You need an organisation profile to express interest."); return; }
-      senderOrgId = data.id; setCurrentUserOrgId(data.id);
+      // No org profile -- individuals can still express interest.
+      // senderOrgId stays null; sender_user_id carries their identity.
+      senderOrgId = data?.id ?? null;
+      if (senderOrgId) setCurrentUserOrgId(senderOrgId);
     }
-    if (senderOrgId === org.id || org.user_id === actorUserId) return;
+    if ((senderOrgId && senderOrgId === org.id) || org.user_id === actorUserId) return;
     setSendingInterest(org.id);
     try {
       // sender_user_id is real-person authorship (who actually clicked
       // this), not org identity -- stays actorUserId even though the
       // connection itself is between sender_org_id and receiver_org_id.
-      const { error } = await supabase.from("partnership_connections").insert({        sender_org_id: senderOrgId, receiver_org_id: org.id,
+      // sender_org_id is null for individuals expressing interest.
+      const { data: inserted, error } = await supabase.from("partnership_connections").insert({
+        sender_org_id: senderOrgId, receiver_org_id: org.id,
         sender_user_id: actorUserId, source: "browse", status: "pending",
-      });
+      }).select("id").single();
       if (error && !error.message.includes("unique")) throw error;
-      const { data: senderOrg } = await supabase.from("organizations").select("organisation_name").eq("id", senderOrgId).single();
-      const { data: convId } = await supabase.rpc("create_partnership_conversation", {
-        p_receiver_user_id: org.user_id,
-        p_sender_org_id: senderOrgId,
-        p_receiver_org_id: org.id,
-      });
+      const connectionId = inserted?.id;
+
+      // Display name for the notification: org name if the sender has
+      // an org, otherwise their individual profile name.
+      let senderName: string | null = null;
+      if (senderOrgId) {
+        const { data: senderOrg } = await supabase.from("organizations").select("organisation_name").eq("id", senderOrgId).single();
+        senderName = senderOrg?.organisation_name ?? null;
+      } else {
+        const { data: senderProfile } = await supabase.from("profiles").select("full_name").eq("id", actorUserId).maybeSingle();
+        senderName = senderProfile?.full_name ?? null;
+      }
+
+      const { data: convId } = connectionId
+        ? await supabase.rpc("create_partnership_conversation", {
+            p_receiver_user_id: org.user_id,
+            p_connection_id: connectionId,
+          })
+        : { data: null };
 
       const convData = convId ? { id: convId as string } : null;
 
       if (convData?.id) {
-        await supabase.from("partnership_connections")
-          .update({ conversation_id: convData.id })
-          .eq("sender_org_id", senderOrgId)
-          .eq("receiver_org_id", org.id)
-          .select();
-
         await supabase.rpc("join_conversation_and_notify", {
           p_conversation_id: convData.id,
           p_notification_type: "partnership_interest",
           p_notification_title: "New partnership interest",
-          p_notification_body: `${senderOrg?.organisation_name ?? "An organisation"} expressed interest in partnering with you.`,
+          p_notification_body: `${senderName ?? "Someone"} expressed interest in partnering with you.`,
           p_notification_link: `/dashboard/messages?conversation=${convData.id}`,
           p_notification_metadata: { sender_org_id: senderOrgId, receiver_org_id: org.id, conversation_id: convData.id },
         });
