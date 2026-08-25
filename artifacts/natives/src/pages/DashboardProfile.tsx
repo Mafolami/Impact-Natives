@@ -1839,6 +1839,63 @@ export default function DashboardProfile() {
                 </SectionCardGroup>
               )}
 
+              {/* ── INDIVIDUAL FOCUS AREAS PANE ── */}
+              {activePane === "focus" && !isOrg && (
+                <SectionCardGroup>
+                  <SectionCard title="Focus areas" onEdit={openFocusModal}>
+                    <DisplayField label="Sectors">
+                      {sectors.length > 0
+                        ? <div className="flex flex-wrap gap-2">{sectors.map(s => <FlatTag key={s}>{s}</FlatTag>)}</div>
+                        : <EmptyValue />}
+                    </DisplayField>
+                  </SectionCard>
+                </SectionCardGroup>
+              )}
+
+              {/* ── INDIVIDUAL ONLINE PRESENCE PANE ── */}
+              {activePane === "presence" && !isOrg && (
+                <SectionCardGroup>
+                  <SectionCard title="Online presence" onEdit={openPresenceModal}>
+                    <DisplayField label="LinkedIn">
+                      {linkedinUrl ? (
+                        <a href={linkedinUrl} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-sm text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
+                          <Linkedin className="w-4 h-4 shrink-0" />
+                          <span className="truncate">{linkedinUrl}</span>
+                        </a>
+                      ) : <EmptyValue />}
+                    </DisplayField>
+                    <DisplayField label="Website or portfolio">
+                      {website ? (
+                        <a href={website} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-sm text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
+                          <Globe className="w-4 h-4 shrink-0" />
+                          <span className="truncate">{website.replace(/^https?:\/\//, "")}</span>
+                        </a>
+                      ) : <EmptyValue />}
+                    </DisplayField>
+                    <DisplayField label="Social profiles">
+                      {socialLinks.length > 0
+                        ? (
+                          <div className="space-y-2">
+                            {socialLinks.map((s, i) => {
+                              const Icon = socialPlatformIcon(s.label);
+                              return (
+                                <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
+                                  className="flex items-center gap-2 text-sm text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
+                                  <Icon className="w-4 h-4 shrink-0" />
+                                  <span className="truncate">{s.url}</span>
+                                </a>
+                              );
+                            })}
+                          </div>
+                        )
+                        : <EmptyValue />}
+                    </DisplayField>
+                  </SectionCard>
+                </SectionCardGroup>
+              )}
+
               {editingContactSection && !isOrg && (
                 <EditModal title="Edit basic info" onClose={() => setEditingContactSection(false)} onSave={saveIndividualContactSection} saving={contactSaving}>
                   <div className="grid grid-cols-2 gap-4">
