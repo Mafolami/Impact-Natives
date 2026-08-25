@@ -191,7 +191,7 @@ ${c.partnership_listed && c.partnership_sought ? `This candidate has ALSO listed
         "Authorization": `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
+        model: "openai/gpt-oss-120b",
         max_tokens: 2000,
         messages: [{ role: "user", content: prompt }],
       }),

@@ -231,7 +231,7 @@ async function callGroqWithRetry(
         Authorization: `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
+        model: "openai/gpt-oss-120b",
         max_tokens: 4000,
         response_format: { type: "json_object" },
         messages,
@@ -546,7 +546,7 @@ ${prebuiltStrategicApproach}`;
       Authorization: `Bearer ${GROQ_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-120b",
       max_tokens: 2000,
       response_format: { type: "json_object" },
       messages: [
@@ -749,7 +749,7 @@ Example of a valid proposal response:
         Authorization: `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
+        model: "openai/gpt-oss-120b",
         max_tokens: 3000,
         response_format: { type: "json_object" },
         messages: groqMessages,

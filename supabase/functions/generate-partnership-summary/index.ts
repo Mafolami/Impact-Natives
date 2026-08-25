@@ -55,7 +55,7 @@ Return ONLY the partnership summary text. No labels, no preamble, no explanation
         "Authorization": `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
+        model: "openai/gpt-oss-120b",
         max_tokens: 200,
         messages: [{ role: "user", content: prompt }],
       }),

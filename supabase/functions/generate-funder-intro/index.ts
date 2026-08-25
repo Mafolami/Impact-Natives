@@ -63,7 +63,7 @@ Return ONLY the formatted message. No labels, no preamble, no JSON. No placehold
         "Authorization": `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
+        model: "openai/gpt-oss-120b",
         max_tokens: 200,
         temperature: 0.3,
         messages: [{ role: "user", content: prompt }],

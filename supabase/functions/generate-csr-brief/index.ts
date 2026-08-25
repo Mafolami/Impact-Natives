@@ -76,7 +76,7 @@ Write like a senior CSR analyst at a multinational. Be specific — reference ac
         "Authorization": `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
+        model: "openai/gpt-oss-120b",
         max_tokens: 1500,
         messages: [{ role: "user", content: prompt }],
       }),

@@ -50,7 +50,7 @@ const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     "Authorization": `Bearer ${GROQ_API_KEY}`,
   },
   body: JSON.stringify({
-    model: "llama-3.1-8b-instant",
+    model: "openai/gpt-oss-120b",
     max_tokens: 1500,
     messages: [{ role: "user", content: prompt }],
   }),
