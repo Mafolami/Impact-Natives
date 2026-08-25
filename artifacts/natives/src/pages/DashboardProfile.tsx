@@ -2149,7 +2149,7 @@ export default function DashboardProfile() {
 
               {/* ── FOCUS AREAS PANE ── */}
               {activePane === "organisation" && (
-                <SectionCard editable={isOrgOwner} title="Focus areas" onEdit={openFocusModal}
+                <SectionCard editable={isOrg ? isOrgOwner : true} title="Focus areas" onEdit={openFocusModal}
                   collapsible expanded={expandedOrgSections.has("focus")} onToggle={() => toggleOrgSection("focus")}>
                     <DisplayField label="Sectors">
                       {sectors.length > 0
@@ -2176,7 +2176,7 @@ export default function DashboardProfile() {
 
               {/* ── ONLINE PRESENCE PANE ── */}
               {activePane === "organisation" && (
-                <SectionCard editable={isOrgOwner} title="Online presence" onEdit={openPresenceModal}
+                <SectionCard editable={isOrg ? isOrgOwner : true} title="Online presence" onEdit={openPresenceModal}
                   collapsible expanded={expandedOrgSections.has("presence")} onToggle={() => toggleOrgSection("presence")}>
                     {!isOrg && (
                       <DisplayField label="LinkedIn">
