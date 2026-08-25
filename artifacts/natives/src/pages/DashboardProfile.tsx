@@ -696,7 +696,7 @@ export default function DashboardProfile() {
         { key: "impact_evidence", label: "Impact Evidence" },
       ]
     : [
-        { key: "basic",    label: "Contact" },
+        { key: "basic",    label: "Contact details" },
         { key: "focus",    label: "Focus Areas" },
         { key: "presence", label: "Online Presence" },
       ];
@@ -1819,7 +1819,7 @@ export default function DashboardProfile() {
                   </div>
                   )}
 
-                  <SectionCard title="Basic info" onEdit={openIndividualContactModal}>
+                  <SectionCard title="Contact details" onEdit={openIndividualContactModal}>
                     <DisplayField label="Full name">
                       {fullName ? <p className="text-sm text-black dark:text-white">{fullName}</p> : <EmptyValue />}
                     </DisplayField>
@@ -1842,7 +1842,7 @@ export default function DashboardProfile() {
               {/* ── INDIVIDUAL FOCUS AREAS PANE ── */}
               {activePane === "focus" && !isOrg && (
                 <SectionCardGroup>
-                  <div className="pt-10">
+                  <div className="pt-[88px]">
                   <SectionCard title="Focus areas" onEdit={openFocusModal}>
                     <DisplayField label="Sectors">
                       {sectors.length > 0
@@ -1857,7 +1857,7 @@ export default function DashboardProfile() {
               {/* ── INDIVIDUAL ONLINE PRESENCE PANE ── */}
               {activePane === "presence" && !isOrg && (
                 <SectionCardGroup>
-                  <div className="pt-10">
+                  <div className="pt-[88px]">
                   <SectionCard title="Online presence" onEdit={openPresenceModal}>
                     <DisplayField label="LinkedIn">
                       {linkedinUrl ? (
