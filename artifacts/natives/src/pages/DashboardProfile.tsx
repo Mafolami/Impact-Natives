@@ -655,6 +655,9 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
 }
 
 export default function DashboardProfile() {
+  const __instanceId = Math.random().toString(36).slice(2);
+  console.log("DEBUG: DashboardProfile RENDER, instance", __instanceId);
+  useEffect(() => { console.log("DEBUG: DashboardProfile MOUNTED, instance", __instanceId); return () => console.log("DEBUG: DashboardProfile UNMOUNTED, instance", __instanceId); }, []);
   const { user, profile, orgOwnerId, refreshProfile } = useAuth();
   const [saving, setSaving]               = useState(false);
   const [saved, setSavedState]            = useState(false);
