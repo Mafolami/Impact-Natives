@@ -2281,6 +2281,7 @@ export default function DashboardProfile() {
                 </SectionCard>
               )}
 
+              <p style={{background: "yellow", color: "black", padding: "10px", fontSize: "20px"}}>LIVE VALUE: {String(editingPresenceOpen)}</p>
               <EditModal isOpen={editingPresenceOpen} title="Edit online presence" onClose={() => setEditingPresenceOpen(false)} onSave={savePresenceSection} saving={presenceSaving}>
                   {!isOrg && (
                     <div>
