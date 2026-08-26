@@ -1,14 +1,26 @@
 // ─── BillingTab.tsx ─────────────────────────────────────────────────────────
 // Billing surface for DashboardSettings' "Billing" tab. Same role pattern as
 // TeamTab: an Owner sees full plan management, a Member of someone else's
-// org sees a read-only summary of what their org is on, and someone with no
-// org sees a short explainer.
+// org sees a read-only summary of what their org is on. An individual (no
+// org) manages their own billing directly, same as an Owner does for their
+// org -- see v6.
 //
-// v5: pulled back from v4's grouped/headline card treatment -- that read as
-// too busy. Back to one plain vertical list per card, short feature labels
-// (a few words, not full sentences) instead of descriptive prose. Visual
-// distinction between tiers (color, border, badge, CTA gradient) is kept;
-// the content structure is deliberately simple now.
+// v6: individual (no-org) billing support. "entity" generalizes what was
+// "org" -- an organizations row OR a profiles row, whichever applies to the
+// caller -- so the entire plan-card grid, cancel flow, and status summary
+// below are shared verbatim between org and individual accounts rather than
+// duplicated. organisationType is null for individuals, which naturally
+// locks the Compliance tier via the existing CORPORATE_TYPES check with no
+// extra branching needed. paystack-initialize/cancel-subscription already
+// resolve the caller's own org-or-profile server-side (see those functions'
+// v2 headers), so startCheckout/cancelPlan needed no changes at all here.
+//
+// v5 (carried forward): pulled back from v4's grouped/headline card
+// treatment -- that read as too busy. Back to one plain vertical list per
+// card, short feature labels (a few words, not full sentences) instead of
+// descriptive prose. Visual distinction between tiers (color, border,
+// badge, CTA gradient) is kept; the content structure is deliberately
+// simple now.
 //
 // v4 (carried forward): renewal is real (see renew-subscriptions), no "not
 // automatic" disclaimer. past_due shows a grace-window warning with a
@@ -23,14 +35,17 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Loader2, Check, Sparkles } from "lucide-react";
 
-type Role = "loading" | "owner" | "member" | "none";
+type Role = "loading" | "owner" | "member" | "individual" | "none";
 type Tier = "free" | "plus" | "pro" | "compliance";
 type SubStatus = "inactive" | "active" | "past_due" | "canceled";
 
-interface OrgBilling {
+// Generalizes an organizations row or a profiles row -- whichever billing
+// context applies to the caller. organisationType is null for individuals;
+// see the Compliance-lock note above for why that's sufficient on its own.
+interface BillingEntity {
   id: string;
-  organisation_name: string;
-  organisation_type: string | null;
+  displayName: string;
+  organisationType: string | null;
   subscription_tier: Tier;
   subscription_status: SubStatus;
   subscription_current_period_end: string | null;
@@ -137,11 +152,12 @@ function fmtDate(iso: string | null) {
 }
 
 const ORG_SELECT = "id, organisation_name, organisation_type, subscription_tier, subscription_status, subscription_current_period_end";
+const PROFILE_SELECT = "id, full_name, subscription_tier, subscription_status, subscription_current_period_end";
 
 export function BillingTab() {
   const { user, orgOwnerId } = useAuth();
   const [role, setRole] = useState<Role>("loading");
-  const [org, setOrg] = useState<OrgBilling | null>(null);
+  const [entity, setEntity] = useState<BillingEntity | null>(null);
   const [checkingOutTier, setCheckingOutTier] = useState<Tier | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
@@ -155,31 +171,68 @@ export function BillingTab() {
   async function loadWithRoleTransition() {
     if (!user) return;
     setRole("loading");
-    const resolved = await resolveOrg();
-    setOrg(resolved.org);
+    const resolved = await resolveBillingEntity();
+    setEntity(resolved.entity);
     setRole(resolved.role);
   }
 
-  async function refetchOrgSilently() {
+  async function refetchEntitySilently() {
     if (!user) return;
-    const resolved = await resolveOrg();
-    setOrg(resolved.org);
+    const resolved = await resolveBillingEntity();
+    setEntity(resolved.entity);
   }
 
-  async function resolveOrg(): Promise<{ org: OrgBilling | null; role: Role }> {
-    if (!user) return { org: null, role: "none" };
+  async function resolveBillingEntity(): Promise<{ entity: BillingEntity | null; role: Role }> {
+    if (!user) return { entity: null, role: "none" };
 
     const { data: ownedOrg } = await supabase
       .from("organizations").select(ORG_SELECT).eq("user_id", user.id).maybeSingle();
-    if (ownedOrg) return { org: ownedOrg as OrgBilling, role: "owner" };
+    if (ownedOrg) return {
+      entity: {
+        id: ownedOrg.id,
+        displayName: ownedOrg.organisation_name,
+        organisationType: ownedOrg.organisation_type,
+        subscription_tier: ownedOrg.subscription_tier,
+        subscription_status: ownedOrg.subscription_status,
+        subscription_current_period_end: ownedOrg.subscription_current_period_end,
+      },
+      role: "owner",
+    };
 
     if (orgOwnerId && orgOwnerId !== user.id) {
       const { data: ownerOrg } = await supabase
         .from("organizations").select(ORG_SELECT).eq("user_id", orgOwnerId).maybeSingle();
-      if (ownerOrg) return { org: ownerOrg as OrgBilling, role: "member" };
+      if (ownerOrg) return {
+        entity: {
+          id: ownerOrg.id,
+          displayName: ownerOrg.organisation_name,
+          organisationType: ownerOrg.organisation_type,
+          subscription_tier: ownerOrg.subscription_tier,
+          subscription_status: ownerOrg.subscription_status,
+          subscription_current_period_end: ownerOrg.subscription_current_period_end,
+        },
+        role: "member",
+      };
     }
 
-    return { org: null, role: "none" };
+    // No org at all -- individual account, billing tracked on their own
+    // profile row. organisationType stays null, which locks Compliance
+    // via the existing CORPORATE_TYPES check with no extra logic needed.
+    const { data: profile } = await supabase
+      .from("profiles").select(PROFILE_SELECT).eq("id", user.id).maybeSingle();
+    if (profile) return {
+      entity: {
+        id: profile.id,
+        displayName: profile.full_name || "your account",
+        organisationType: null,
+        subscription_tier: profile.subscription_tier,
+        subscription_status: profile.subscription_status,
+        subscription_current_period_end: profile.subscription_current_period_end,
+      },
+      role: "individual",
+    };
+
+    return { entity: null, role: "none" };
   }
 
   useEffect(() => {
@@ -202,7 +255,7 @@ export function BillingTab() {
     pollAttempts.current = 0;
     pollInterval.current = setInterval(async () => {
       pollAttempts.current += 1;
-      await refetchOrgSilently();
+      await refetchEntitySilently();
       if (pollAttempts.current >= 6 && pollInterval.current) {
         clearInterval(pollInterval.current);
         setConfirmingPayment(false);
@@ -214,12 +267,12 @@ export function BillingTab() {
   }, []);
 
   useEffect(() => {
-    if (confirmingPayment && org?.subscription_status === "active") {
+    if (confirmingPayment && entity?.subscription_status === "active") {
       if (pollInterval.current) clearInterval(pollInterval.current);
       setConfirmingPayment(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [org?.subscription_status]);
+  }, [entity?.subscription_status]);
 
   async function startCheckout(tier: Tier) {
     if (tier === "free") return;
@@ -248,7 +301,7 @@ export function BillingTab() {
       return;
     }
     setCancelConfirm(false);
-    await refetchOrgSilently();
+    await refetchEntitySilently();
   }
 
   if (role === "loading") {
@@ -263,16 +316,18 @@ export function BillingTab() {
     return (
       <div className="rounded-xl border border-border bg-white dark:bg-card px-5 py-8 text-center">
         <p className="text-sm text-black dark:text-white">
-          Billing is available once you have an organisation profile set up.
+          We couldn't load your billing details. Try refreshing the page.
         </p>
       </div>
     );
   }
 
-  const currentTierInfo = TIERS.find(t => t.value === org?.subscription_tier) ?? TIERS[0];
-  const isOwner = role === "owner";
-  const isPastDue = org?.subscription_status === "past_due";
-  const canCancel = isOwner && org && org.subscription_tier !== "free" && (org.subscription_status === "active" || org.subscription_status === "past_due");
+  const currentTierInfo = TIERS.find(t => t.value === entity?.subscription_tier) ?? TIERS[0];
+  // Owners and individuals both manage their own billing directly; only a
+  // Member of someone else's org gets the read-only summary below.
+  const canManageBilling = role === "owner" || role === "individual";
+  const isPastDue = entity?.subscription_status === "past_due";
+  const canCancel = canManageBilling && entity && entity.subscription_tier !== "free" && (entity.subscription_status === "active" || entity.subscription_status === "past_due");
 
   return (
     <div className="space-y-8">
@@ -283,26 +338,26 @@ export function BillingTab() {
           <div>
             <div className="flex items-center gap-2.5">
               <p className="text-2xl font-bold text-foreground tracking-tight">{currentTierInfo.name}</p>
-              {org && org.subscription_tier !== "free" && (
-                <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_STYLES[org.subscription_status]}`}>
-                  {STATUS_LABELS[org.subscription_status]}
+              {entity && entity.subscription_tier !== "free" && (
+                <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_STYLES[entity.subscription_status]}`}>
+                  {STATUS_LABELS[entity.subscription_status]}
                 </span>
               )}
             </div>
 
-            {org && org.subscription_tier !== "free" && org.subscription_status === "active" && (
+            {entity && entity.subscription_tier !== "free" && entity.subscription_status === "active" && (
               <p className="text-sm text-black dark:text-white mt-1.5">
-                Renews automatically on <span className="font-medium">{fmtDate(org.subscription_current_period_end)}</span>.
+                Renews automatically on <span className="font-medium">{fmtDate(entity.subscription_current_period_end)}</span>.
               </p>
             )}
 
             {isPastDue && (
               <p className="text-sm text-amber-800 dark:text-amber-300 mt-1.5 max-w-md">
-                We couldn't renew your plan automatically. You'll keep {currentTierInfo.name} access until <span className="font-medium">{fmtDate(org?.subscription_current_period_end ?? null)}</span> — renew now to avoid losing it.
+                We couldn't renew your plan automatically. You'll keep {currentTierInfo.name} access until <span className="font-medium">{fmtDate(entity?.subscription_current_period_end ?? null)}</span> — renew now to avoid losing it.
               </p>
             )}
 
-            {(!org || org.subscription_tier === "free") && (
+            {(!entity || entity.subscription_tier === "free") && (
               <p className="text-sm text-black dark:text-white mt-1.5">Upgrade below for AI matching, drafting, and more.</p>
             )}
           </div>
@@ -314,18 +369,18 @@ export function BillingTab() {
                 Confirming your payment...
               </div>
             )}
-            {isPastDue && isOwner && org && (
+            {isPastDue && canManageBilling && entity && (
               <button type="button"
-                onClick={() => startCheckout(org.subscription_tier)}
+                onClick={() => startCheckout(entity.subscription_tier)}
                 disabled={checkingOutTier !== null}
                 className="h-9 px-4 rounded-full bg-gradient-to-b from-amber-500 to-amber-600 text-white text-sm font-semibold shadow-sm hover:shadow-md transition-all disabled:opacity-60">
-                {checkingOutTier === org.subscription_tier ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Renew now"}
+                {checkingOutTier === entity.subscription_tier ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Renew now"}
               </button>
             )}
           </div>
         </div>
 
-        {!isOwner && (
+        {!canManageBilling && (
           <p className="text-xs text-black dark:text-white mt-4">
             Only the organisation owner can manage billing.
           </p>
@@ -372,11 +427,11 @@ export function BillingTab() {
       )}
 
       {/* ── Plan cards ── */}
-      {isOwner && (
+      {canManageBilling && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {TIERS.map((t) => {
-            const isCurrent = org?.subscription_tier === t.value;
-            const isComplianceLocked = t.value === "compliance" && !CORPORATE_TYPES.includes(org?.organisation_type || "");
+            const isCurrent = entity?.subscription_tier === t.value;
+            const isComplianceLocked = t.value === "compliance" && !CORPORATE_TYPES.includes(entity?.organisationType || "");
             const isElevated = t.register === "primary";
             const isDark = t.register === "dark";
 
@@ -465,7 +520,7 @@ export function BillingTab() {
                     }`}>
                     {checkingOutTier === t.value
                       ? <Loader2 className="w-4 h-4 animate-spin mx-auto" />
-                      : (org && TIERS.findIndex(x => x.value === t.value) > TIERS.findIndex(x => x.value === org.subscription_tier) ? `Upgrade to ${t.name}` : `Switch to ${t.name}`)}
+                      : (entity && TIERS.findIndex(x => x.value === t.value) > TIERS.findIndex(x => x.value === entity.subscription_tier) ? `Upgrade to ${t.name}` : `Switch to ${t.name}`)}
                   </button>
                 )}
               </div>
