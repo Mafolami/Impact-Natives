@@ -2221,21 +2221,6 @@ export default function DashboardProfile() {
                 </SectionCard>
               )}
 
-              {editingFocusOpen && (
-                <EditModal title="Edit focus areas" onClose={() => setEditingFocusOpen(false)} onSave={saveFocusSection} saving={focusSaving}>
-                  <div>
-                    <Label className="text-sm font-medium">Sectors</Label>
-                    <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">Used to match you with relevant initiatives and partners.</p>
-                    <div className="mt-2 space-y-1">
-                      {SECTOR_OPTIONS.map(s => (
-                        <ModalCheckbox key={s} checked={draftSectors.includes(s)} label={s}
-                          onChange={() => setDraftSectors(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])} />
-                      ))}
-                    </div>
-                  </div>
-                </EditModal>
-              )}
-
               {/* ── ONLINE PRESENCE PANE ── */}
               {activePane === "organisation" && (
                 <SectionCard editable={isOrg ? isOrgOwner : true} title="Online presence" onEdit={openPresenceModal}
@@ -2280,64 +2265,6 @@ export default function DashboardProfile() {
                     </DisplayField>
                 </SectionCard>
               )}
-
-              <p style={{background: "yellow", color: "black", padding: "10px", fontSize: "20px"}}>LIVE VALUE: {String(editingPresenceOpen)}</p>
-              <EditModal isOpen={editingPresenceOpen} title="Edit online presence" onClose={() => setEditingPresenceOpen(false)} onSave={savePresenceSection} saving={presenceSaving}>
-                  {!isOrg && (
-                    <div>
-                      <Label className="text-sm font-medium">LinkedIn</Label>
-                      <Input value={draftLinkedinUrl} onChange={e => setDraftLinkedinUrl(e.target.value)} className="mt-1 h-10" placeholder="https://linkedin.com/in/..." type="url" />
-                    </div>
-                  )}
-                  <div>
-                    <Label className="text-sm font-medium">Website or portfolio</Label>
-                    <Input value={draftWebsite} onChange={e => setDraftWebsite(e.target.value)} className="mt-1 h-10" placeholder="https://yourwebsite.org" type="url" />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Social profiles</Label>
-                    <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">Pick a platform, or choose "Other" for anything else.</p>
-                    <div className="flex gap-2">
-                      <select value={draftSocialLabel} onChange={(e) => setDraftSocialLabel(e.target.value)}
-                        className="h-10 rounded-lg border border-border bg-background px-2 text-sm w-32 shrink-0 focus:outline-none focus:ring-2 focus:ring-primary/20">
-                        <option value="">Platform</option>
-                        {SOCIAL_PLATFORMS.map(p => <option key={p.value} value={p.value}>{p.value}</option>)}
-                      </select>
-                      <Input value={draftSocialUrl} onChange={(e) => setDraftSocialUrl(e.target.value)} className="h-10 flex-1" placeholder="https://instagram.com/yourhandle" type="url" />
-                      <button type="button"
-                        onClick={() => {
-                          const label = draftSocialLabel === "Other" ? draftSocialCustomLabel.trim() : draftSocialLabel;
-                          if (!label || !draftSocialUrl.trim()) return;
-                          setDraftSocialLinks((prev) => [...prev, { label, url: draftSocialUrl.trim() }]);
-                          setDraftSocialLabel(""); setDraftSocialCustomLabel(""); setDraftSocialUrl("");
-                        }}
-                        className="h-10 px-3 rounded-lg border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
-                        Add
-                      </button>
-                    </div>
-                    {draftSocialLabel === "Other" && (
-                      <Input value={draftSocialCustomLabel} onChange={(e) => setDraftSocialCustomLabel(e.target.value)}
-                        className="h-10 mt-2" placeholder="Platform name" />
-                    )}
-                    {draftSocialLinks.length > 0 && (
-                      <div className="mt-2 space-y-1.5">
-                        {draftSocialLinks.map((s, i) => {
-                          const Icon = socialPlatformIcon(s.label);
-                          return (
-                            <div key={i} className="flex items-center justify-between text-xs border border-border rounded-lg px-3 py-2 bg-muted/30">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <Icon className="w-3.5 h-3.5 shrink-0 text-black dark:text-white" />
-                                <span className="font-medium text-foreground shrink-0">{s.label}</span>
-                                <span className="text-black dark:text-white truncate">{s.url}</span>
-                              </div>
-                              <button type="button" onClick={() => setDraftSocialLinks((prev) => prev.filter((_, idx) => idx !== i))}
-                                className="ml-2 text-black dark:text-white hover:text-foreground shrink-0">✕</button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </EditModal>
 
               {/* ── DD READINESS PANE ── */}
               {activePane === "organisation" && isImplementer && (
@@ -2985,6 +2912,81 @@ export default function DashboardProfile() {
                 </SectionCardGroup>
                 </>
               )}
+
+              {editingFocusOpen && (
+                <EditModal title="Edit focus areas" onClose={() => setEditingFocusOpen(false)} onSave={saveFocusSection} saving={focusSaving}>
+                  <div>
+                    <Label className="text-sm font-medium">Sectors</Label>
+                    <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">Used to match you with relevant initiatives and partners.</p>
+                    <div className="mt-2 space-y-1">
+                      {SECTOR_OPTIONS.map(s => (
+                        <ModalCheckbox key={s} checked={draftSectors.includes(s)} label={s}
+                          onChange={() => setDraftSectors(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])} />
+                      ))}
+                    </div>
+                  </div>
+                </EditModal>
+              )}
+
+              {editingPresenceOpen && (
+                <EditModal title="Edit online presence" onClose={() => setEditingPresenceOpen(false)} onSave={savePresenceSection} saving={presenceSaving}>
+                  {!isOrg && (
+                    <div>
+                      <Label className="text-sm font-medium">LinkedIn</Label>
+                      <Input value={draftLinkedinUrl} onChange={e => setDraftLinkedinUrl(e.target.value)} className="mt-1 h-10" placeholder="https://linkedin.com/in/..." type="url" />
+                    </div>
+                  )}
+                  <div>
+                    <Label className="text-sm font-medium">Website or portfolio</Label>
+                    <Input value={draftWebsite} onChange={e => setDraftWebsite(e.target.value)} className="mt-1 h-10" placeholder="https://yourwebsite.org" type="url" />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Social profiles</Label>
+                    <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">Pick a platform, or choose "Other" for anything else.</p>
+                    <div className="flex gap-2">
+                      <select value={draftSocialLabel} onChange={(e) => setDraftSocialLabel(e.target.value)}
+                        className="h-10 rounded-lg border border-border bg-background px-2 text-sm w-32 shrink-0 focus:outline-none focus:ring-2 focus:ring-primary/20">
+                        <option value="">Platform</option>
+                        {SOCIAL_PLATFORMS.map(p => <option key={p.value} value={p.value}>{p.value}</option>)}
+                      </select>
+                      <Input value={draftSocialUrl} onChange={(e) => setDraftSocialUrl(e.target.value)} className="h-10 flex-1" placeholder="https://instagram.com/yourhandle" type="url" />
+                      <button type="button"
+                        onClick={() => {
+                          const label = draftSocialLabel === "Other" ? draftSocialCustomLabel.trim() : draftSocialLabel;
+                          if (!label || !draftSocialUrl.trim()) return;
+                          setDraftSocialLinks((prev) => [...prev, { label, url: draftSocialUrl.trim() }]);
+                          setDraftSocialLabel(""); setDraftSocialCustomLabel(""); setDraftSocialUrl("");
+                        }}
+                        className="h-10 px-3 rounded-lg border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
+                        Add
+                      </button>
+                    </div>
+                    {draftSocialLabel === "Other" && (
+                      <Input value={draftSocialCustomLabel} onChange={(e) => setDraftSocialCustomLabel(e.target.value)}
+                        className="h-10 mt-2" placeholder="Platform name" />
+                    )}
+                    {draftSocialLinks.length > 0 && (
+                      <div className="mt-2 space-y-1.5">
+                        {draftSocialLinks.map((s, i) => {
+                          const Icon = socialPlatformIcon(s.label);
+                          return (
+                            <div key={i} className="flex items-center justify-between text-xs border border-border rounded-lg px-3 py-2 bg-muted/30">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <Icon className="w-3.5 h-3.5 shrink-0 text-black dark:text-white" />
+                                <span className="font-medium text-foreground shrink-0">{s.label}</span>
+                                <span className="text-black dark:text-white truncate">{s.url}</span>
+                              </div>
+                              <button type="button" onClick={() => setDraftSocialLinks((prev) => prev.filter((_, idx) => idx !== i))}
+                                className="ml-2 text-black dark:text-white hover:text-foreground shrink-0">✕</button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </EditModal>
+              )}
+
               {/* ── SRG1 compliance edit modal ── */}
               {editingComplianceSection && (
                 <EditModal title="Compliance (SRG1)" onClose={() => setEditingComplianceSection(false)} onSave={saveComplianceSection} saving={complianceSectionSaving}>
