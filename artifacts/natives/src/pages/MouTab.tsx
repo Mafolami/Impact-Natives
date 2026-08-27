@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Loader2, FileText, PenLine, Upload, Plus, X, Trash2, Target, Search, ListFilter } from "lucide-react";
@@ -589,7 +589,15 @@ export default function MouTab() {
               ) : !myOrgId ? (
                 <div className="text-sm text-muted-foreground space-y-2">
                   <p>MoUs are formed between organisations, so you'll need an organisation profile to create one.</p>
-                  <p>If you're operating as an independent consultant, you can register a consultancy profile to unlock this.</p>
+                  <p>
+                    If you're operating as an independent consultant, you can{" "}
+                    <Link href="/dashboard/upgrade-organisation?type=consultancy"
+                      className="text-[#2D6A4F] hover:underline font-medium"
+                      onClick={() => setShowPicker(false)}>
+                      register a consultancy profile
+                    </Link>{" "}
+                    to unlock this.
+                  </p>
                 </div>
               ) : partnerOptions.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
