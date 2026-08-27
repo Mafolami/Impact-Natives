@@ -673,6 +673,7 @@ export default function Onboarding() {
         country:           country      || null,
         sector:            sectors.length > 0 ? JSON.stringify(sectors) : null,
         organisation_type: orgType      || null,
+        is_solo_consultancy: orgType === "consultancy",
         description:       description  || null,
         needs:             needs.length > 0 ? needs : null,
         offers:            offers.length > 0 ? offers : null,

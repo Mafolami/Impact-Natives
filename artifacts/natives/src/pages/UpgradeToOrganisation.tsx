@@ -69,6 +69,7 @@ export default function UpgradeToOrganisation() {
         country:            country || null,
         sector:             sectors.length > 0 ? JSON.stringify(sectors) : null,
         organisation_type:  orgType,
+        is_solo_consultancy: orgType === "consultancy",
         description:        description || null,
         status:             "published",
         verification_status: "not_requested",

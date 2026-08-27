@@ -9,6 +9,7 @@ export const ORG_TYPE_OPTIONS = [
   "Creative Agency / Studio",
   "Public Sector",
   "Research & Academic Institution",
+  "Consultancy",
 ];
 
 export const ORG_TYPE_FILTERS = [
@@ -22,4 +23,5 @@ export const ORG_TYPE_FILTERS = [
   { value: "creative_agency_studio",   label: "Creative Agency / Studio" },
   { value: "public_sector",            label: "Public Sector" },
   { value: "research_academic",        label: "Research & Academic Institution" },
+  { value: "consultancy",              label: "Consultancy" },
 ];
