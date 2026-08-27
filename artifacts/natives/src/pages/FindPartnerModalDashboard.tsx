@@ -3,7 +3,7 @@
 // editMode={true}: skip Step 0, pre-populate from existing listing (PortfolioTable Edit).
 // editMode={false}: always start at Step 0, even for returning orgs.
 import { useState, useEffect, useRef } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Textarea } from "@/components/ui/textarea";
@@ -821,11 +821,18 @@ export function FindPartnerModalDashboard({
         {appState==="no_org"&&(
           <div className="flex flex-col items-center justify-center flex-1 gap-5 text-center px-8">
             <h2 className="text-xl font-bold text-foreground">Get Matched is for organisations</h2>
-            <p className="text-muted-foreground max-w-sm text-sm">Create an organisation profile first to access partnership matching.</p>
+            <p className="text-muted-foreground max-w-sm text-sm">
+              Create an organisation profile first to access partnership matching. If you're an
+              independent consultant, you can{" "}
+              <Link href="/dashboard/upgrade-organisation?type=consultancy" onClick={onClose}
+                className="text-[#2D6A4F] hover:underline font-medium">
+                register a consultancy profile
+              </Link>{" "}
+              instead.
+            </p>
             <button type="button" onClick={onClose} className="h-10 px-6 rounded-full bg-[#2D6A4F] text-white text-sm font-semibold">Close</button>
           </div>
         )}
-
         {appState==="rate_limited"&&(
           <div className="flex flex-col items-center justify-center flex-1 gap-5 text-center px-8">
             <h2 className="text-xl font-bold text-foreground">Come back in 7 hours</h2>
