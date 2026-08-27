@@ -2545,7 +2545,7 @@ export default function DashboardProfile() {
               })()}
 
               {/* ── TRACK RECORD PANE ── */}
-              {activePane === "organisation" && isImplementer && (
+              {activePane === "organisation" && isImplementer && !isSoloConsultancy && (
                 <SectionCard editable={isOrgOwner} title="Impact & track record" onEdit={openTrackRecordModal}
                   collapsible expanded={expandedOrgSections.has("track")} onToggle={() => toggleOrgSection("track")}>
                     <DisplayField label="Cumulative reach">
@@ -2622,6 +2622,154 @@ export default function DashboardProfile() {
                         : <EmptyValue />}
                     </DisplayField>
                 </SectionCard>
+              )}
+
+              {/* ── CONSULTANT EXPERTISE PANE (solo consultancies) ── */}
+              {activePane === "organisation" && isSoloConsultancy && (
+                <SectionCard editable={isOrgOwner} title="Consultant expertise" onEdit={openExpertiseModal}
+                  collapsible expanded={expandedOrgSections.has("expertise")} onToggle={() => toggleOrgSection("expertise")}>
+                  <DisplayField label="Specializations">
+                    {specializations.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {specializations.map(s => (
+                          <span key={s} className="text-xs px-2.5 py-1 rounded-full border border-border text-black dark:text-white">{s}</span>
+                        ))}
+                      </div>
+                    ) : <EmptyValue />}
+                  </DisplayField>
+                  <DisplayField label="Notable engagements">
+                    {notableEngagements.length > 0 ? (
+                      <ul className="space-y-1.5 list-disc list-inside">
+                        {notableEngagements.map((e, i) => (
+                          <li key={i} className="text-sm text-black dark:text-white">{e}</li>
+                        ))}
+                      </ul>
+                    ) : <EmptyValue />}
+                  </DisplayField>
+                  <DisplayField label="Affiliations">
+                    {affiliations.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {affiliations.map(a => (
+                          <span key={a} className="text-xs px-2.5 py-1 rounded-full border border-border text-black dark:text-white">{a}</span>
+                        ))}
+                      </div>
+                    ) : <EmptyValue />}
+                  </DisplayField>
+                </SectionCard>
+              )}
+
+              {editingExpertiseOpen && (
+                <EditModal title="Edit consultant expertise" onClose={() => setEditingExpertiseOpen(false)} onSave={saveExpertiseSection} saving={expertiseSaving}>
+                  <div>
+                    <Label className="text-sm font-medium">Specializations</Label>
+                    <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">e.g. MEL design, Grant compliance, Partnership brokering</p>
+                    <div className="flex gap-2">
+                      <Input value={draftSpecializationInput} onChange={e => setDraftSpecializationInput(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            const v = draftSpecializationInput.trim();
+                            if (v && !draftSpecializations.includes(v)) setDraftSpecializations(p => [...p, v]);
+                            setDraftSpecializationInput("");
+                          }
+                        }}
+                        className="h-10 flex-1" placeholder="Type a specialization and press Enter" />
+                      <button type="button"
+                        onClick={() => {
+                          const v = draftSpecializationInput.trim();
+                          if (v && !draftSpecializations.includes(v)) setDraftSpecializations(p => [...p, v]);
+                          setDraftSpecializationInput("");
+                        }}
+                        className="h-10 px-3 rounded-lg border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
+                        Add
+                      </button>
+                    </div>
+                    {draftSpecializations.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {draftSpecializations.map(s => (
+                          <span key={s} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-black dark:text-white">
+                            {s}
+                            <button type="button" onClick={() => setDraftSpecializations(p => p.filter(x => x !== s))} className="hover:opacity-70 ml-0.5">×</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-4 border-t border-border">
+                    <Label className="text-sm font-medium">Notable engagements</Label>
+                    <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">
+                      Describe what you did, for whom, and in what context -- e.g. "Strategic PM for Icebreaker One, an OFGEM-funded open energy data project", not just a client name alone.
+                    </p>
+                    <div className="flex gap-2">
+                      <Input value={draftEngagementInput} onChange={e => setDraftEngagementInput(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            const v = draftEngagementInput.trim();
+                            if (v && !draftNotableEngagements.includes(v)) setDraftNotableEngagements(p => [...p, v]);
+                            setDraftEngagementInput("");
+                          }
+                        }}
+                        className="h-10 flex-1" placeholder="Type an engagement and press Enter" />
+                      <button type="button"
+                        onClick={() => {
+                          const v = draftEngagementInput.trim();
+                          if (v && !draftNotableEngagements.includes(v)) setDraftNotableEngagements(p => [...p, v]);
+                          setDraftEngagementInput("");
+                        }}
+                        className="h-10 px-3 rounded-lg border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
+                        Add
+                      </button>
+                    </div>
+                    {draftNotableEngagements.length > 0 && (
+                      <div className="space-y-1.5 mt-2">
+                        {draftNotableEngagements.map((e, i) => (
+                          <div key={i} className="flex items-start justify-between gap-2 text-xs border border-border rounded-lg px-3 py-2">
+                            <span className="text-black dark:text-white">{e}</span>
+                            <button type="button" onClick={() => setDraftNotableEngagements(p => p.filter((_, idx) => idx !== i))} className="text-black dark:text-white hover:opacity-70 shrink-0">×</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-4 border-t border-border">
+                    <Label className="text-sm font-medium">Affiliations</Label>
+                    <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">Alumni networks, certifications, prior institutional roles -- e.g. PMI-ACP certified, UNITAR traineeship alumnus</p>
+                    <div className="flex gap-2">
+                      <Input value={draftAffiliationInput} onChange={e => setDraftAffiliationInput(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            const v = draftAffiliationInput.trim();
+                            if (v && !draftAffiliations.includes(v)) setDraftAffiliations(p => [...p, v]);
+                            setDraftAffiliationInput("");
+                          }
+                        }}
+                        className="h-10 flex-1" placeholder="Type an affiliation and press Enter" />
+                      <button type="button"
+                        onClick={() => {
+                          const v = draftAffiliationInput.trim();
+                          if (v && !draftAffiliations.includes(v)) setDraftAffiliations(p => [...p, v]);
+                          setDraftAffiliationInput("");
+                        }}
+                        className="h-10 px-3 rounded-lg border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
+                        Add
+                      </button>
+                    </div>
+                    {draftAffiliations.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {draftAffiliations.map(a => (
+                          <span key={a} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-black dark:text-white">
+                            {a}
+                            <button type="button" onClick={() => setDraftAffiliations(p => p.filter(x => x !== a))} className="hover:opacity-70 ml-0.5">×</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </EditModal>
               )}
 
               {editingTrackRecordOpen && (
