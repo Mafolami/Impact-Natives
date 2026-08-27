@@ -6,24 +6,19 @@
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { Loader2, Building2, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 
-const ORG_TYPES = [
-  { value: "ngo_non_profit",          label: "NGO / Non-Profit" },
-  { value: "social_enterprise",        label: "Social Enterprise" },
-  { value: "startup",                  label: "Startup" },
-  { value: "technology_company",       label: "Technology Company" },
-  { value: "corporation",              label: "Corporation" },
-  { value: "philanthropic_foundation", label: "Philanthropic Foundation" },
-  { value: "venture_capital",          label: "Venture Capital / Impact Investor" },
-  { value: "public_sector",            label: "Public Sector" },
-  { value: "research_academic",        label: "Research & Academic Institution" },
-];
+// Pulled from the shared source instead of a local copy -- this file's own
+// list was missing creative_agency_studio entirely. "consultancy" is
+// excluded from the manual dropdown since that path is locked
+// automatically in consultancy mode below, not offered as a free choice.
+const ORG_TYPES = ORG_TYPE_FILTERS.filter(t => t.value !== "consultancy");
 
 const SECTOR_OPTIONS = [
   "Health", "Education", "Agriculture & Food Systems", "Climate & Environment",
@@ -36,9 +31,13 @@ const SECTOR_OPTIONS = [
 export default function UpgradeToOrganisation() {
   const { user, profile, refreshProfile } = useAuth();
   const [, navigate] = useLocation();
+  const search = useSearch();
+  const isConsultancyMode = new URLSearchParams(search).get("type") === "consultancy";
 
-  const [orgName, setOrgName]         = useState(profile?.org_name ?? "");
-  const [orgType, setOrgType]         = useState("");
+  const [orgName, setOrgName]         = useState(
+    isConsultancyMode ? `${profile?.full_name ?? ""} Consulting`.trim() : (profile?.org_name ?? "")
+  );
+  const [orgType, setOrgType]         = useState(isConsultancyMode ? "consultancy" : "");
   const [country, setCountry]         = useState(profile?.country ?? "");
   const [website, setWebsite]         = useState(profile?.website ?? "");
   const [sectors, setSectors]         = useState<string[]>(profile?.sectors ?? []);
@@ -91,9 +90,12 @@ export default function UpgradeToOrganisation() {
         country:     country || null,
         website:     website || null,
         sectors:     sectors.length > 0 ? sectors : null,
-        // Preserve their individual visibility automatically since they were
-        // already showing as an individual before upgrading
-        show_individual_profile: true,
+        // Consultancy conversions collapse to a single profile -- the
+        // individual identity becomes the org, not a second listing
+        // alongside it. The general org-upgrade path keeps both, since
+        // that person's individual identity is genuinely separate from
+        // the institution they're also registering.
+        show_individual_profile: !isConsultancyMode,
         updated_at:  new Date().toISOString(),
       }).eq("id", user.id);
 
@@ -120,8 +122,9 @@ export default function UpgradeToOrganisation() {
         </div>
         <h2 className="text-xl font-bold text-foreground mb-2">Organisation registered</h2>
         <p className="text-sm text-muted-foreground mb-8 leading-relaxed">
-          {orgName} is now live on Impact Natives. Your individual profile is still visible in the
-          Natives directory, tagged with your new organisation. You can manage both from your dashboard.
+          {isConsultancyMode
+            ? `${orgName} is now live on Impact Natives. Your activity, connections, and history carry over. Going forward, this is how you'll appear on the platform.`
+            : `${orgName} is now live on Impact Natives. Your individual profile is still visible in the Natives directory, tagged with your new organisation. You can manage both from your dashboard.`}
         </p>
         <Button onClick={() => navigate("/dashboard/profile")}
           className="bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full px-6 h-10">
@@ -143,10 +146,13 @@ export default function UpgradeToOrganisation() {
           <Building2 className="w-5 h-5 text-[#2D6A4F]" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-foreground">Register an organisation</h2>
+          <h2 className="text-xl font-bold text-foreground">
+            {isConsultancyMode ? "Register your consultancy" : "Register an organisation"}
+          </h2>
           <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-            You'll keep your individual profile, activity, and connections. Your account simply
-            gains an organisation alongside it.
+            {isConsultancyMode
+              ? "MoUs, milestones, and track record all require an organisation profile. Setting one up here takes a couple of minutes and doesn't require registering a separate legal entity."
+              : "You'll keep your individual profile, activity, and connections. Your account simply gains an organisation alongside it."}
           </p>
         </div>
       </div>
@@ -160,16 +166,25 @@ export default function UpgradeToOrganisation() {
             className="mt-1 h-10" placeholder="e.g. Splux" />
         </div>
 
-        <div>
-          <Label className="text-sm font-medium">
-            Organisation type <span className="text-destructive">*</span>
-          </Label>
-          <select value={orgType} onChange={e => setOrgType(e.target.value)}
-            className="mt-1 w-full h-10 px-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
-            <option value="">Select type</option>
-            {ORG_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
-        </div>
+        {isConsultancyMode ? (
+          <div>
+            <Label className="text-sm font-medium">Organisation type</Label>
+            <div className="mt-1 h-10 px-3 rounded-lg border border-border bg-muted flex items-center text-sm text-muted-foreground">
+              Consultancy
+            </div>
+          </div>
+        ) : (
+          <div>
+            <Label className="text-sm font-medium">
+              Organisation type <span className="text-destructive">*</span>
+            </Label>
+            <select value={orgType} onChange={e => setOrgType(e.target.value)}
+              className="mt-1 w-full h-10 px-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
+              <option value="">Select type</option>
+              {ORG_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+          </div>
+        )}
 
         <div>
           <Label className="text-sm font-medium">
