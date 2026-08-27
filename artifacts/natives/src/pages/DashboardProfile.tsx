@@ -683,6 +683,7 @@ export default function DashboardProfile() {
   const isTeamMember = !!(orgOwnerId && user && orgOwnerId !== user.id);
   const [orgType, setOrgType] = useState<string>(profile?.org_type ?? "");
   const [orgId, setOrgId] = useState<string | null>(null);
+  const [isSoloConsultancy, setIsSoloConsultancy] = useState(false);
   const orgTypeNow = profile?.org_type ?? orgType ?? "";
   const isFunder = ["philanthropic_foundation", "venture_capital"].includes(orgTypeNow);
   const isCorporate = ["corporation", "technology_company", "public_sector"].includes(orgTypeNow);
@@ -1300,10 +1301,11 @@ export default function DashboardProfile() {
   useEffect(() => {
     if (!orgOwnerId) return;
     supabase.from("organizations")
-     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,dd_confirmed_at,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,srg1_pie_self_declared,srg1_annual_revenue_ngn,srg1_reminder_dismissed_at,registration_type,registration_number,tin,scuml_number,year_founded")      .eq("user_id", orgOwnerId).maybeSingle()
+     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,dd_confirmed_at,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,srg1_pie_self_declared,srg1_annual_revenue_ngn,srg1_reminder_dismissed_at,registration_type,registration_number,tin,scuml_number,year_founded,is_solo_consultancy")      .eq("user_id", orgOwnerId).maybeSingle()
       .then(({ data }) => {
         if (!data) return;
         setOrgId(data.id ?? null);
+        setIsSoloConsultancy(!!data.is_solo_consultancy);
         if (data.logo_url) setLogoUrl(data.logo_url);
         if (data.description) setOrgDescription(data.description);
         if (data.registration_type) setRegistrationType(data.registration_type);
@@ -2279,6 +2281,12 @@ export default function DashboardProfile() {
                     onToggle={() => toggleOrgSection("dd")}
                   >
                     <div>
+                    {isSoloConsultancy ? (
+                      <p className="text-xs text-black dark:text-white opacity-60">
+                        DD Readiness doesn't apply to solo consultancies — the checklist below is built for institutional-scale organisations (audited accounts, board governance, and similar). A consultancy-specific version, based on track record and prior engagements, is planned separately.
+                      </p>
+                    ) : (
+                      <>
                     <p className="text-xs text-black dark:text-white opacity-60 mb-6">
                       Signal to funders that you are investment-ready. Checking an item asks for a few quick details, which appear as a tooltip on your profile once matched.
                     </p>
@@ -2335,10 +2343,12 @@ export default function DashboardProfile() {
                           style={{ width: `${Math.round((ddReadinessItems.filter(Boolean).length / ddReadinessItems.length) * 100)}%` }} />
                       </div>
                     </div>
+                    </>
+                    )}
                     </div>
                   </SectionCard>
 
-                  {expandedOrgSections.has("dd") && orgId && (
+                  {expandedOrgSections.has("dd") && orgId && !isSoloConsultancy && (
                     <EsgSnapshotSection org={{
                       id: orgId,
                       organisation_name: orgName,
