@@ -13,21 +13,13 @@ import { COUNTRIES } from "@/lib/countries";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
 import { DD_ITEMS, FUNDER_DD_ITEMS, DDItemDef, DDDocument, PILLAR_INFO } from "@/lib/ddItems";
 import { EsgSnapshotSection } from "@/components/dashboard/EsgSnapshotSection";
+import { ORG_TYPE_FILTERS as ORG_TYPE_OPTIONS } from "@/lib/orgTypes";
 
-
-const ORG_TYPE_OPTIONS = [
-  { value: "ngo_non_profit",              label: "NGO / Non-Profit" },
-  { value: "social_enterprise",           label: "Social Enterprise" },
-  { value: "startup",                     label: "Startup" },
-  { value: "technology_company",          label: "Technology Company" },
-  { value: "corporation",                 label: "Corporation" },
-  { value: "philanthropic_foundation",    label: "Philanthropic Foundation" },
-  { value: "venture_capital",             label: "Venture Capital (VC)" },
-  { value: "creative_agency_studio",      label: "Creative Agency / Studio" },
-  { value: "public_sector",               label: "Public Sector" },
-  { value: "research_academic",           label: "Research & Academic Institution" },
-];
-
+// Local ORG_TYPE_OPTIONS array removed -- it was a fourth undetected copy of
+// lib/orgTypes.ts (after Onboarding.tsx, UpgradeToOrganisation.tsx, and
+// FindPartnerModalDashboard.tsx's ORG_TYPES) missing "consultancy", which is
+// why every solo consultancy's own profile showed "Organisation type: Not
+// set" despite the value being stored correctly in the database.
 // ─── Shared small components ────────────────────────────────────────────────
 
 function CountryPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
