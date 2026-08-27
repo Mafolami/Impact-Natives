@@ -812,6 +812,16 @@ export default function DashboardProfile() {
   const [funderInput, setFunderInput]                 = useState("");
   const [thirdPartyEvaluations, setThirdPartyEvaluations] = useState(false);
 
+  // ── Consultant expertise (solo consultancies -- replaces Impact & track
+  // record for this org type, since beneficiaries/funders/grants don't map
+  // onto individual consulting work) ────────────────────────────────────────
+  const [specializations, setSpecializations]         = useState<string[]>([]);
+  const [specializationInput, setSpecializationInput] = useState("");
+  const [notableEngagements, setNotableEngagements]   = useState<string[]>([]);
+  const [engagementInput, setEngagementInput]         = useState("");
+  const [affiliations, setAffiliations]               = useState<string[]>([]);
+  const [affiliationInput, setAffiliationInput]       = useState("");
+
   // ── DD readiness ──────────────────────────────────────────────────────────
   const [ddFinancialModel, setDdFinancialModel]       = useState(false);
   const [ddAuditedAccounts, setDdAuditedAccounts]     = useState(false);
@@ -932,6 +942,44 @@ export default function DashboardProfile() {
       alert(`Couldn't save: ${err.message}`);
     }
     setTrackRecordSaving(false);
+  }
+
+  // ── Consultant expertise pane: display-card / edit-modal state ───────────
+  const [editingExpertiseOpen, setEditingExpertiseOpen] = useState(false);
+  const [expertiseSaving, setExpertiseSaving] = useState(false);
+  const [draftSpecializations, setDraftSpecializations] = useState<string[]>([]);
+  const [draftSpecializationInput, setDraftSpecializationInput] = useState("");
+  const [draftNotableEngagements, setDraftNotableEngagements] = useState<string[]>([]);
+  const [draftEngagementInput, setDraftEngagementInput] = useState("");
+  const [draftAffiliations, setDraftAffiliations] = useState<string[]>([]);
+  const [draftAffiliationInput, setDraftAffiliationInput] = useState("");
+  function openExpertiseModal() {
+    setDraftSpecializations(specializations);
+    setDraftSpecializationInput("");
+    setDraftNotableEngagements(notableEngagements);
+    setDraftEngagementInput("");
+    setDraftAffiliations(affiliations);
+    setDraftAffiliationInput("");
+    setEditingExpertiseOpen(true);
+  }
+  async function saveExpertiseSection() {
+    if (!user) return;
+    setExpertiseSaving(true);
+    try {
+      await saveOrgFields(orgOwnerId!, {
+        specializations: draftSpecializations.length > 0 ? draftSpecializations : null,
+        notable_engagements: draftNotableEngagements.length > 0 ? draftNotableEngagements : null,
+        affiliations: draftAffiliations.length > 0 ? draftAffiliations : null,
+      });
+      setSpecializations(draftSpecializations);
+      setNotableEngagements(draftNotableEngagements);
+      setAffiliations(draftAffiliations);
+      await refreshProfile();
+      setEditingExpertiseOpen(false);
+    } catch (err: any) {
+      alert(`Couldn't save: ${err.message}`);
+    }
+    setExpertiseSaving(false);
   }
 
   // ── Mandate pane: display-card / edit-modal state ─────────────────────────
@@ -1293,7 +1341,7 @@ export default function DashboardProfile() {
   useEffect(() => {
     if (!orgOwnerId) return;
     supabase.from("organizations")
-     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,dd_confirmed_at,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,srg1_pie_self_declared,srg1_annual_revenue_ngn,srg1_reminder_dismissed_at,registration_type,registration_number,tin,scuml_number,year_founded,is_solo_consultancy")      .eq("user_id", orgOwnerId).maybeSingle()
+     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,dd_confirmed_at,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,srg1_pie_self_declared,srg1_annual_revenue_ngn,srg1_reminder_dismissed_at,registration_type,registration_number,tin,scuml_number,year_founded,is_solo_consultancy,specializations,notable_engagements,affiliations")      .eq("user_id", orgOwnerId).maybeSingle()
       .then(({ data }) => {
         if (!data) return;
         setOrgId(data.id ?? null);
@@ -1355,6 +1403,9 @@ export default function DashboardProfile() {
         if (data.grants_delivered_on_time_pct) setGrantsOnTimePct(String(data.grants_delivered_on_time_pct));
         if (data.previous_funders) setPreviousFunders(data.previous_funders);
         setThirdPartyEvaluations(data.third_party_evaluations ?? false);
+        if (data.specializations) setSpecializations(data.specializations);
+        if (data.notable_engagements) setNotableEngagements(data.notable_engagements);
+        if (data.affiliations) setAffiliations(data.affiliations);
       });
   }, [orgOwnerId]);
 
