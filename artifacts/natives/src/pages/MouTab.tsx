@@ -586,6 +586,11 @@ export default function MouTab() {
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
                 </div>
+              ) : !myOrgId ? (
+                <div className="text-sm text-muted-foreground space-y-2">
+                  <p>MoUs are formed between organisations, so you'll need an organisation profile to create one.</p>
+                  <p>If you're operating as an independent consultant, you can register a consultancy profile to unlock this.</p>
+                </div>
               ) : partnerOptions.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   No confirmed partners yet. Confirm a partnership first, then come back here.
