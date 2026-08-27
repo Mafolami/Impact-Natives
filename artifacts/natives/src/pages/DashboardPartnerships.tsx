@@ -209,6 +209,7 @@ export default function DashboardPartnerships() {
                   { value: "corporation",             label: "Corporation" },
                   { value: "philanthropic_foundation",label: "Foundation" },
                   { value: "public_sector",           label: "Public sector" },
+                  { value: "consultancy",             label: "Consultancy" },
                 ],
                 selected: orgTypeFilters,
                 toggle: (v: string) => setOrgTypeFilters(prev => { const n = new Set(prev); n.has(v) ? n.delete(v) : n.add(v); return n; }),

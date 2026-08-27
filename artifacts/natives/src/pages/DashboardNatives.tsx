@@ -229,8 +229,10 @@ export default function DashboardNatives() {
                 <option value="corporation">Corporation</option>
                 <option value="philanthropic_foundation">Philanthropic Foundation</option>
                 <option value="venture_capital">Venture Capital</option>
+                <option value="creative_agency_studio">Creative Agency / Studio</option>
                 <option value="public_sector">Public Sector</option>
                 <option value="research_academic">Research & Academic</option>
+                <option value="consultancy">Consultancy</option>
               </select>
             )}
 
