@@ -682,6 +682,7 @@ export default function DashboardProfile() {
   const [orgType, setOrgType] = useState<string>(profile?.org_type ?? "");
   const [orgId, setOrgId] = useState<string | null>(null);
   const [isSoloConsultancy, setIsSoloConsultancy] = useState(false);
+  const [isConsultancyChecked, setIsConsultancyChecked] = useState(false);
   const orgTypeNow = profile?.org_type ?? orgType ?? "";
   const isFunder = ["philanthropic_foundation", "venture_capital"].includes(orgTypeNow);
   const isCorporate = ["corporation", "technology_company", "public_sector"].includes(orgTypeNow);
@@ -689,12 +690,14 @@ export default function DashboardProfile() {
 
   // ── Active pane ──────────────────────────────────────────────────────────
   const panes: PaneDef[] = isOrg
-    ? [
-        ...(isSoloConsultancy ? [] : [{ key: "basic", label: "Contact Details" } as PaneDef]),
-        { key: "organisation", label: isSoloConsultancy ? "Profile" : "Organisation" },
-        { key: "verification", label: "Verification" },
-        { key: "impact_evidence", label: "Impact Evidence" },
-      ]
+    ? (isSoloConsultancy === null
+        ? []
+        : [
+            ...(isSoloConsultancy ? [] : [{ key: "basic", label: "Contact Details" } as PaneDef]),
+            { key: "organisation", label: isSoloConsultancy ? "Profile" : "Organisation" },
+            { key: "verification", label: "Verification" },
+            { key: "impact_evidence", label: "Impact Evidence" },
+          ])
     : [
         { key: "basic",    label: "Contact details" },
         { key: "focus",    label: "Focus Areas" },
@@ -1357,10 +1360,11 @@ export default function DashboardProfile() {
     if (!orgOwnerId) return;
     supabase.from("organizations")
      .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,dd_confirmed_at,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,srg1_pie_self_declared,srg1_annual_revenue_ngn,srg1_reminder_dismissed_at,registration_type,registration_number,tin,scuml_number,year_founded,is_solo_consultancy,specializations,notable_engagements,affiliations")      .eq("user_id", orgOwnerId).maybeSingle()
-      .then(({ data }) => {
-        if (!data) return;
+     .then(({ data }) => {
+        if (!data) { setIsConsultancyChecked(true); return; }
         setOrgId(data.id ?? null);
         setIsSoloConsultancy(!!data.is_solo_consultancy);
+        setIsConsultancyChecked(true);
         if (data.logo_url) setLogoUrl(data.logo_url);
         if (data.description) setOrgDescription(data.description);
         if (data.registration_type) setRegistrationType(data.registration_type);
