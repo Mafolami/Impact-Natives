@@ -2326,7 +2326,7 @@ export default function DashboardProfile() {
                     <div>
                     {isSoloConsultancy ? (
                       <p className="text-xs text-black dark:text-white opacity-60">
-                        DD Readiness doesn't apply to solo consultancies — the checklist below is built for institutional-scale organisations (audited accounts, board governance, and similar). A consultancy-specific version, based on track record and prior engagements, is planned separately.
+                        DD Readiness doesn't apply to solo consultancies.
                       </p>
                     ) : (
                       <>
