@@ -150,7 +150,7 @@ export async function acceptPartnershipWithType(
  */
 export async function markPartnershipFormed(
   myOrgId: string,
-  inboundConnections: { id: string; status: string }[],
+  inboundConnections: { id: string; status: string; conversation_id?: string | null }[],
   myOrgName: string,
   myPartnershipTitle: string | null
 ): Promise<void> {
@@ -165,11 +165,33 @@ export async function markPartnershipFormed(
       .in("id", formedIds);
   }
 
-  const pendingIds = inboundConnections.filter(c => c.status === "pending").map(c => c.id);
+  const pendingConnections = inboundConnections.filter(c => c.status === "pending");
+  const pendingIds = pendingConnections.map(c => c.id);
   if (pendingIds.length > 0) {
-    await supabase.from("partnership_connections")
+    const { error: declineError } = await supabase.from("partnership_connections")
       .update({ status: "declined", updated_at: new Date().toISOString(), declined_at: new Date().toISOString() })
       .in("id", pendingIds);
+
+    if (declineError) {
+      console.error("markPartnershipFormed: failed to decline pending connections:", declineError.message);
+    } else {
+      // Keep conversations.status in sync with the connections just
+      // declined above -- without this, Messages shows these as still
+      // pending forever even though the connection itself is correctly
+      // declined (the exact mismatch found and fixed for a real
+      // conversation on 2026-08-28).
+      const pendingConversationIds = pendingConnections
+        .map(c => c.conversation_id)
+        .filter((id): id is string => !!id);
+      if (pendingConversationIds.length > 0) {
+        const { error: convError } = await supabase.from("conversations")
+          .update({ status: "rejected" })
+          .in("id", pendingConversationIds);
+        if (convError) {
+          console.error("markPartnershipFormed: failed to sync conversations to rejected:", convError.message);
+        }
+      }
+    }
 
     await Promise.all(pendingIds.map(id =>
       supabase.rpc("send_partnership_notification", {
