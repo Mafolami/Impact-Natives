@@ -209,6 +209,8 @@ export default function DashboardPartnerships() {
                   { value: "corporation",             label: "Corporation" },
                   { value: "philanthropic_foundation",label: "Foundation" },
                   { value: "public_sector",           label: "Public sector" },
+                  { value: "creative_agency_studio",  label: "Creative Agency / Studio" },
+                  { value: "research_academic",       label: "Research & Academic Institution" },
                   { value: "consultancy",             label: "Consultancy" },
                 ],
                 selected: orgTypeFilters,
