@@ -445,7 +445,7 @@ export function FindPartnerModalDashboard({
   const [,navigate]=useLocation();
   const {user}=useAuth();
   const [formStep,setFormStep]=useState(0);
-  const [appState,setAppState]=useState<"form"|"matching"|"results"|"no_org"|"rate_limited"|"new_request_prompt">("form");
+  const [appState,setAppState]=useState<"form"|"matching"|"results"|"no_org"|"requires_upgrade"|"rate_limited"|"new_request_prompt">("form");
   const [freeText,setFreeText]=useState("");
   const [partnershipTitle,setPartnershipTitle]=useState("");
   const [prefilling,setPrefilling]=useState(false);
@@ -640,9 +640,11 @@ export function FindPartnerModalDashboard({
     if(!user||!orgProfile) return;
     setSubmitting(true);setAppState("matching");
     try{
-      const{data:freshOrg}=await supabase.from("organizations").select("id").eq("user_id",user.id).maybeSingle();
+      const{data:freshOrg}=await supabase.from("organizations").select("id,subscription_tier").eq("user_id",user.id).maybeSingle();
       const orgId=freshOrg?.id??orgProfile?.id;
       if(!orgId){setAppState("form");setSubmitting(false);return;}
+      const tier=freshOrg?.subscription_tier??orgProfile?.subscription_tier??"";
+      if(!["plus","pro","compliance"].includes(tier)){setAppState("requires_upgrade");setSubmitting(false);return;}
       const isFunder=["philanthropic_foundation","venture_capital"].includes(form.organisation_type||orgProfile?.organisation_type||"");
       await supabase.from("organizations").update({
         country:form.country,sector:form.sectors,sdgs:form.sdgs,
@@ -831,6 +833,19 @@ export function FindPartnerModalDashboard({
               instead.
             </p>
             <button type="button" onClick={onClose} className="h-10 px-6 rounded-full bg-[#2D6A4F] text-white text-sm font-semibold">Close</button>
+          </div>
+        )}
+        {appState==="requires_upgrade"&&(
+          <div className="flex flex-col items-center justify-center flex-1 gap-5 text-center px-8">
+            <h2 className="text-xl font-bold text-foreground">Get Matched is a Plus feature</h2>
+            <p className="text-muted-foreground max-w-sm text-sm">
+              AI-powered partnership matching is available on Plus and above. Upgrade your plan to see your matches.
+            </p>
+            <Link href="/dashboard/settings?tab=billing" onClick={onClose}
+              className="h-10 px-6 rounded-full bg-[#2D6A4F] text-white text-sm font-semibold flex items-center justify-center">
+              View plans
+            </Link>
+            <button type="button" onClick={onClose} className="h-10 px-6 rounded-full border border-border text-sm font-semibold">Close</button>
           </div>
         )}
         {appState==="rate_limited"&&(
