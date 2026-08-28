@@ -1947,7 +1947,13 @@ export default function DashboardProfile() {
           <div className="md:w-[200px] shrink-0 border-x border-border bg-muted/20 md:fixed md:top-[96px] md:min-h-[calc(100vh-96px)]"
             style={paneNavLeft !== null ? { left: paneNavLeft } : undefined}>
             <div className="flex md:flex-col overflow-x-auto md:overflow-visible p-2 md:pt-[28px] gap-1 scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
-              {panes.map(p => (
+              {!isConsultancyChecked && isOrg
+                ? Array.from({ length: 3 }).map((_, i) => (
+                    <div key={`pane-skeleton-${i}`} className="px-3 py-2.5 rounded-lg shrink-0">
+                      <span className="inline-block h-4 w-20 rounded bg-muted animate-pulse" />
+                    </div>
+                  ))
+                : panes.map(p => (
                 <button key={p.key} type="button" onClick={() => setActivePane(p.key)}
                   className={`text-left px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap md:whitespace-normal transition-all shrink-0 ${
                     activePane === p.key
