@@ -794,6 +794,7 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
       supabase.from("partnership_connections")
         .select("status, partnership_type")
         .eq("sender_user_id", conversation.other_user_id)
+        .eq("conversation_id", conversation.id)
         .maybeSingle()
         .then(({ data }) => {
           if (data?.status === "pending_confirmation") setDone("pending_confirmation");
@@ -826,6 +827,7 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
       .select("id")
       .in("status", ["pending", "accepted"])
       .eq("sender_user_id", conversation.other_user_id)
+      .eq("conversation_id", conversation.id)
       .maybeSingle();
 
     if (conn) {
@@ -1038,6 +1040,7 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
         filter: `sender_user_id=eq.${currentUserId}`,
       }, payload => {
         const updated = payload.new as any;
+        if (updated.conversation_id !== conversation.id) return;
         if (updated.status === "pending_confirmation" && updated.sender_user_id === currentUserId) {
           setPendingConfirmation({ id: updated.id, partnership_type: updated.partnership_type });
         }
@@ -1357,6 +1360,7 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
       .select("id, partnership_type")
       .eq("status", "pending_confirmation")
       .eq("sender_user_id", currentUserId)
+      .eq("conversation_id", conversation.id)
       .maybeSingle()
       .then(({ data }) => { if (data) setPendingConfirmation(data); });
     // Check if already resolved, sender side (expresser). Receiver side is
@@ -1367,6 +1371,7 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
     supabase.from("partnership_connections")
       .select("status")
       .eq("sender_user_id", currentUserId)
+      .eq("conversation_id", conversation.id)
       .in("status", ["formed", "declined"])
       .maybeSingle()
       .then(({ data }) => {
@@ -1382,6 +1387,7 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
     supabase.from("partnership_connections")
       .select("status")
       .eq("receiver_org_id", myOrgId)
+      .eq("conversation_id", conversation.id)
       .in("status", ["formed", "declined"])
       .maybeSingle()
       .then(({ data }) => {
@@ -1402,6 +1408,7 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
         filter: `receiver_org_id=eq.${myOrgId}`,
       }, payload => {
         const updated = payload.new as any;
+        if (updated.conversation_id !== conversation.id) return;
         if (updated.status === "formed") setPartnershipResolved("confirmed");
         if (updated.status === "declined") setPartnershipResolved("declined");
       })
