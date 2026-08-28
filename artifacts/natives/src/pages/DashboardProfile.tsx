@@ -1461,6 +1461,10 @@ export default function DashboardProfile() {
     }
     const { error } = await supabase.from("profiles").update({ avatar_url: null }).eq("id", user.id);
     if (error) { alert(`Couldn't remove photo: ${error.message}`); setPersonalPhotoUploading(false); return; }
+    if (isSoloConsultancy) {
+      await supabase.from("organizations").update({ logo_url: null }).eq("user_id", user.id);
+      setLogoUrl(null);
+    }
     await refreshProfile();
     setPersonalPhotoUploading(false);
   }
@@ -1475,6 +1479,10 @@ export default function DashboardProfile() {
     if (uploadError) { alert(`Upload failed: ${uploadError.message}`); setPersonalPhotoUploading(false); return; }
     const { data } = supabase.storage.from("org-logos").getPublicUrl(filePath);
     await supabase.from("profiles").update({ avatar_url: data.publicUrl }).eq("id", user.id);
+    if (isSoloConsultancy) {
+      await supabase.from("organizations").update({ logo_url: data.publicUrl }).eq("user_id", user.id);
+      setLogoUrl(data.publicUrl);
+    }
     await refreshProfile();
     setPersonalPhotoUploading(false);
   }
@@ -1992,8 +2000,8 @@ export default function DashboardProfile() {
                     <div className="rounded-xl border border-dashed border-border p-4 space-y-3">
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Your personal photo</p>
-                          <InfoTooltip text='Only shown on your individual profile in the Natives directory if "also appear as an individual" is turned on.' />
+                          <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">{isSoloConsultancy ? "Your photo" : "Your personal photo"}</p>
+                          <InfoTooltip text={isSoloConsultancy ? "This is the photo shown on your organisation's listing in the Natives directory." : 'Only shown on your individual profile in the Natives directory if "also appear as an individual" is turned on.'} />
                         </div>
                       </div>
                       <div className="flex items-center gap-5">
@@ -2099,39 +2107,55 @@ export default function DashboardProfile() {
                 </div>
                 <SectionCardGroup>
                   <SectionCard editable={isOrgOwner} title="Organisation Details" onEdit={openOrgModal}>
-                    <div className="flex items-center gap-5">
-                      <div className="group relative w-16 h-16 shrink-0">
-                        <div className="w-16 h-16 rounded-xl border border-border bg-white dark:bg-card flex items-center justify-center overflow-hidden">
+                    {isSoloConsultancy ? (
+                      <div className="flex items-center gap-5">
+                        <div className="w-16 h-16 rounded-xl border border-border bg-white dark:bg-card flex items-center justify-center overflow-hidden shrink-0">
                           {logoUrl ? (
-                            <img src={logoUrl} alt="Organisation logo" className="w-full h-full object-contain" />
+                            <img src={logoUrl} alt="Organisation photo" className="w-full h-full object-contain" />
                           ) : (
                             <span className="text-2xl font-bold text-black dark:text-white">{(orgName || profile?.org_name || "?")[0].toUpperCase()}</span>
                           )}
                         </div>
-                        {logoUrl && (
-                          <button type="button" onClick={handleLogoDelete} disabled={logoUploading}
-                            className="absolute inset-0 rounded-xl bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
-                            title="Remove logo">
-                            <Trash2 className="w-5 h-5 text-white" />
-                          </button>
-                        )}
+                        <p className="text-xs text-black dark:text-white">
+                          Using your photo from Contact Details.{" "}
+                          <button type="button" onClick={openOrgContactModal} className="text-[#2D6A4F] underline underline-offset-2 font-medium">Update it there</button>.
+                        </p>
                       </div>
+                    ) : (
+                      <div className="flex items-center gap-5">
+                        <div className="group relative w-16 h-16 shrink-0">
+                          <div className="w-16 h-16 rounded-xl border border-border bg-white dark:bg-card flex items-center justify-center overflow-hidden">
+                            {logoUrl ? (
+                              <img src={logoUrl} alt="Organisation logo" className="w-full h-full object-contain" />
+                            ) : (
+                              <span className="text-2xl font-bold text-black dark:text-white">{(orgName || profile?.org_name || "?")[0].toUpperCase()}</span>
+                            )}
+                          </div>
+                          {logoUrl && (
+                            <button type="button" onClick={handleLogoDelete} disabled={logoUploading}
+                              className="absolute inset-0 rounded-xl bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                              title="Remove logo">
+                              <Trash2 className="w-5 h-5 text-white" />
+                            </button>
+                          )}
+                        </div>
 
-                      <div>
-                        <label className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm text-black dark:text-white hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
-                          <Camera className="w-3.5 h-3.5" />
-                          {logoUrl ? "Replace logo" : "Upload logo"}
-                          <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="sr-only" onChange={handleLogoUpload} />
-                        </label>
-                        <p className="text-xs text-black dark:text-white mt-1.5">PNG, JPG, WebP or SVG. Max 2 MB.</p>
-                        {logoUploading && (
-                          <p className="text-xs text-[#2D6A4F] mt-1 flex items-center gap-1">
-                            <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
-                          </p>
-                        )}
-                        {logoUrl && !logoUploading && <p className="text-xs text-[#2D6A4F] mt-1">Logo saved.</p>}
+                        <div>
+                          <label className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm text-black dark:text-white hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
+                            <Camera className="w-3.5 h-3.5" />
+                            {logoUrl ? "Replace logo" : "Upload logo"}
+                            <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="sr-only" onChange={handleLogoUpload} />
+                          </label>
+                          <p className="text-xs text-black dark:text-white mt-1.5">PNG, JPG, WebP or SVG. Max 2 MB.</p>
+                          {logoUploading && (
+                            <p className="text-xs text-[#2D6A4F] mt-1 flex items-center gap-1">
+                              <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
+                            </p>
+                          )}
+                          {logoUrl && !logoUploading && <p className="text-xs text-[#2D6A4F] mt-1">Logo saved.</p>}
+                        </div>
                       </div>
-                    </div>
+                    )}
                     <DisplayField label="Organisation name">
                       {orgName ? <p className="text-sm text-black dark:text-white">{orgName}</p> : <EmptyValue />}
                     </DisplayField>
