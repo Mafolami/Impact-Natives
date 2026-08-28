@@ -2063,7 +2063,7 @@ export default function DashboardProfile() {
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Role / Title <span className="text-black dark:text-white font-normal text-xs">(optional)</span></Label>
-                    <Input value={draftRoleTitle} onChange={e => setDraftRoleTitle(e.target.value)} className="mt-1 h-10" placeholder="e.g. Executive Director, Programme Manager" />
+                    <Input value={draftRoleTitle} onChange={e => setDraftRoleTitle(e.target.value)} className="mt-1 h-10" placeholder={isSoloConsultancy ? "e.g. Founder & Principal Consultant, MEL Specialist" : "e.g. Executive Director, Programme Manager"} />
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Phone <span className="text-black dark:text-white font-normal text-xs">(optional)</span></Label>
