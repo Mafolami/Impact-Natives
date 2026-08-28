@@ -52,6 +52,7 @@ export interface OrgRow {
   fdd_disbursement_track_record?: boolean; fdd_decision_transparency?: boolean;
   fdd_conflict_disclosure?: boolean; fdd_governance_doc?: boolean; fdd_esg_framework?: boolean;
   fdd_legal_registration?: boolean;
+  specializations?: string[]; notable_engagements?: string[]; affiliations?: string[];
 }
 
 export type FitResult = {
@@ -96,6 +97,10 @@ function orgTypeLabel(value: string | null | undefined): string {
 }
 
 const FUNDER_TYPES = ["philanthropic_foundation", "venture_capital"];
+
+export function isConsultancyOrg(org: OrgRow): boolean {
+  return org.organisation_type === "consultancy";
+}
 
 const IMPLEMENTER_DD_DOCS: { key: keyof OrgRow; label: string }[] = [
   { key: "dd_financial_model",              label: "Financial model" },
@@ -493,28 +498,64 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         )}
 
         <Section>
-          <div className="flex items-center justify-between mb-4">
-            <Eyebrow>Due diligence readiness</Eyebrow>
-            <span className="text-xs font-bold mb-3" style={{ color: score > ddTotal / 2 ? "#065F46" : "#92400E" }}>{score} of {ddTotal} docs ready</span>
-          </div>
-          <div className="h-1.5 rounded-full mb-4 overflow-hidden bg-muted">
-            <div className="h-full rounded-full transition-all" style={{ width: `${(score / ddTotal) * 100}%`, background: score > ddTotal / 2 ? "#2D6A4F" : "#C45C26" }} />
-          </div>
-          {score === 0 ? (
-            <p className="text-xs text-black dark:text-white">No documents confirmed ready yet.</p>
+          {isConsultancyOrg(org) ? (
+            <>
+              <Eyebrow>Due diligence readiness</Eyebrow>
+              <p className="text-xs text-black dark:text-white mt-2">
+                Institutional due diligence (audited accounts, board governance) doesn't apply to solo consultancies.
+              </p>
+            </>
           ) : (
-            <div className="flex flex-wrap gap-2">
-              {ddDocs.filter(({ key }) => !!org[key]).map(({ label }) => (
-                <span key={label} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg"
-                  style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
-                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-                  {label}
-                </span>
-                  ))}
-                  </div>
-                )}
+            <>
+              <div className="flex items-center justify-between mb-4">
+                <Eyebrow>Due diligence readiness</Eyebrow>
+                <span className="text-xs font-bold mb-3" style={{ color: score > ddTotal / 2 ? "#065F46" : "#92400E" }}>{score} of {ddTotal} docs ready</span>
+              </div>
+              <div className="h-1.5 rounded-full mb-4 overflow-hidden bg-muted">
+                <div className="h-full rounded-full transition-all" style={{ width: `${(score / ddTotal) * 100}%`, background: score > ddTotal / 2 ? "#2D6A4F" : "#C45C26" }} />
+              </div>
+              {score === 0 ? (
+                <p className="text-xs text-black dark:text-white">No documents confirmed ready yet.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {ddDocs.filter(({ key }) => !!org[key]).map(({ label }) => (
+                    <span key={label} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg"
+                      style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                      {label}
+                    </span>
+                    ))}
+                    </div>
+                  )}
+                </>
+              )}
               </Section>
-              
+              {isConsultancyOrg(org) && !!(org.specializations?.length || org.notable_engagements?.length || org.affiliations?.length) && (
+                <Section>
+                  <Eyebrow>Consultant expertise</Eyebrow>
+                  {org.specializations && org.specializations.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-xs text-black dark:text-white mb-1.5">Specializations</p>
+                      <div className="flex flex-wrap gap-2">
+                        {org.specializations.map(s => (
+                          <span key={s} className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-muted text-foreground border border-border">{s}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {org.notable_engagements && org.notable_engagements.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-xs text-black dark:text-white mb-1.5">Notable engagements</p>
+                      <ul className="text-sm text-foreground space-y-1 list-disc list-inside">
+                        {org.notable_engagements.map(e => <li key={e}>{e}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {org.affiliations && org.affiliations.length > 0 && (
+                    <p className="text-sm text-foreground mt-3"><span className="font-semibold">Affiliations: </span>{org.affiliations.join(", ")}</p>
+                  )}
+                </Section>
+              )}
               <VerifiedOutcomesSection orgId={org.id} variant="page" isOwnOrg={viewerOrg?.id === org.id} />
               {org.sdgs && org.sdgs.length > 0 && (
                 <Section>
@@ -888,27 +929,65 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         )}
 
         <div className="px-8 py-6">
-          <div className="flex items-center justify-between mb-4">
-            <Eyebrow>Due diligence readiness</Eyebrow>
-            <span className="text-xs font-bold mb-3" style={{ color: score > ddTotal / 2 ? "#065F46" : "#92400E" }}>{score} of {ddTotal} docs ready</span>
-          </div>
-          <div className="h-1.5 rounded-full mb-4 overflow-hidden bg-muted">
-            <div className="h-full rounded-full transition-all" style={{ width: `${(score / ddTotal) * 100}%`, background: score > ddTotal / 2 ? "#2D6A4F" : "#C45C26" }} />
-          </div>
-          {score === 0 ? (
-            <p className="text-xs text-black dark:text-white">No documents confirmed ready yet.</p>
+          {isConsultancyOrg(org) ? (
+            <>
+              <Eyebrow>Due diligence readiness</Eyebrow>
+              <p className="text-xs text-black dark:text-white mt-2">
+                Institutional due diligence (audited accounts, board governance) doesn't apply to solo consultancies.
+              </p>
+            </>
           ) : (
-            <div className="flex flex-wrap gap-2">
-              {ddDocs.filter(({ key }) => !!org[key]).map(({ label }) => (
-                <span key={label} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg"
-                  style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
-                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-                  {label}
-                </span>
-              ))}
-            </div>
-            )}
+            <>
+              <div className="flex items-center justify-between mb-4">
+                <Eyebrow>Due diligence readiness</Eyebrow>
+                <span className="text-xs font-bold mb-3" style={{ color: score > ddTotal / 2 ? "#065F46" : "#92400E" }}>{score} of {ddTotal} docs ready</span>
+              </div>
+              <div className="h-1.5 rounded-full mb-4 overflow-hidden bg-muted">
+                <div className="h-full rounded-full transition-all" style={{ width: `${(score / ddTotal) * 100}%`, background: score > ddTotal / 2 ? "#2D6A4F" : "#C45C26" }} />
+              </div>
+              {score === 0 ? (
+                <p className="text-xs text-black dark:text-white">No documents confirmed ready yet.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {ddDocs.filter(({ key }) => !!org[key]).map(({ label }) => (
+                    <span key={label} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg"
+                      style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                      {label}
+                    </span>
+                  ))}
+                </div>
+                )}
+            </>
+          )}
           </div>
+          
+          {isConsultancyOrg(org) && !!(org.specializations?.length || org.notable_engagements?.length || org.affiliations?.length) && (
+            <div className="mt-6">
+              <Eyebrow>Consultant expertise</Eyebrow>
+              {org.specializations && org.specializations.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-xs text-black dark:text-white mb-1.5">Specializations</p>
+                  <div className="flex flex-wrap gap-2">
+                    {org.specializations.map(s => (
+                      <span key={s} className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-muted text-foreground border border-border">{s}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {org.notable_engagements && org.notable_engagements.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-xs text-black dark:text-white mb-1.5">Notable engagements</p>
+                  <ul className="text-sm text-foreground space-y-1 list-disc list-inside">
+                    {org.notable_engagements.map(e => <li key={e}>{e}</li>)}
+                  </ul>
+                </div>
+              )}
+              {org.affiliations && org.affiliations.length > 0 && (
+                <p className="text-sm text-foreground mt-3"><span className="font-semibold">Affiliations: </span>{org.affiliations.join(", ")}</p>
+              )}
+            </div>
+          )}
           <VerifiedOutcomesSection orgId={org.id} variant="panel" isOwnOrg={viewerOrg?.id === org.id} />
             
         {org.sdgs && org.sdgs.length > 0 && (
