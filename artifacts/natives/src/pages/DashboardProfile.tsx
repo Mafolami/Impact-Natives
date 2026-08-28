@@ -690,7 +690,7 @@ export default function DashboardProfile() {
 
   // ── Active pane ──────────────────────────────────────────────────────────
   const panes: PaneDef[] = isOrg
-    ? (isSoloConsultancy === null
+    ? (!isConsultancyChecked
         ? []
         : [
             ...(isSoloConsultancy ? [] : [{ key: "basic", label: "Contact Details" } as PaneDef]),
