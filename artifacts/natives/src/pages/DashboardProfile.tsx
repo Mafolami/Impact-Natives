@@ -188,7 +188,7 @@ function SectionCard({ title, titleExtra, headerExtra, onEdit, editable = true, 
   if (collapsible) {
     return (
       <div className="relative">
-        <div className="w-full flex items-center gap-1.5 px-8 sm:px-12 py-4 pr-14 hover:bg-[#E2725B]/[0.08] transition-colors">
+        <div className={`w-full flex items-center gap-1.5 px-8 sm:px-12 py-4 hover:bg-[#E2725B]/[0.08] transition-colors ${headerExtra ? "pr-24 sm:pr-28" : "pr-14"}`}>
           <button type="button" onClick={onToggle} className="flex-1 flex items-center gap-1.5 text-left">
             <p className="text-lg font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
             {titleExtra}
@@ -1838,7 +1838,7 @@ export default function DashboardProfile() {
   );
 
   const contactSectionJsx = (
-    <SectionCardGroup>
+    <>
       {!isSoloConsultancy && (
         <div className="px-8 sm:px-12 py-10">
           <div className="flex items-center gap-1.5 mb-6">
@@ -1890,8 +1890,28 @@ export default function DashboardProfile() {
           ) : <EmptyValue />}
         </DisplayField>
       </SectionCard>
-    </SectionCardGroup>
+    </>
   );
+
+  // Precomputed once, shared by both the standalone (non-consultancy)
+  // toggle button and Organisation Details' header toggle (consultancy) --
+  // a single chevron that flips direction based on whether everything
+  // relevant is already expanded, replacing what used to be two separate
+  // always-visible Expand-all/Collapse-all buttons.
+  const standaloneAccordionKeys = (() => {
+    const keys = ["legal_identity", "focus", "presence"];
+    if (isImplementer) keys.push("dd", "track");
+    if (isFunder || isCorporate) keys.push("fdd");
+    if (isFunder) keys.push("mandate");
+    if (isCorporate) {
+      keys.push("csr_esg", "csr_partnership", "csr_compliance");
+      if (profile?.org_type === "technology_company") keys.push("csr_tech");
+    }
+    return keys;
+  })();
+  const standaloneAllExpanded = standaloneAccordionKeys.every(k => expandedOrgSections.has(k));
+  const orgDetailsAccordionKeys = ["organisation_details", "legal_identity", "focus", "presence", "dd", "expertise"];
+  const orgDetailsAllExpanded = orgDetailsAccordionKeys.every(k => expandedOrgSections.has(k));
 
   return (
     <div className="w-full relative">
@@ -2091,7 +2111,9 @@ export default function DashboardProfile() {
                 </EditModal>
               )}
 
-{activePane === "basic" && isOrg && !isSoloConsultancy && contactSectionJsx}
+{activePane === "basic" && isOrg && !isSoloConsultancy && (
+                <SectionCardGroup>{contactSectionJsx}</SectionCardGroup>
+              )}
 
               {editingContactSection && isOrg && (
                 <EditModal title="Edit contact person" onClose={() => setEditingContactSection(false)} onSave={saveOrgContactSection} saving={contactSaving}>
@@ -2117,41 +2139,29 @@ export default function DashboardProfile() {
               {/* ── ORGANISATION PANE ── */}
               {activePane === "organisation" && isOrg && (
                 <>
-                {isSoloConsultancy && contactSectionJsx}
-                {!isSoloConsultancy && (
+                {isSoloConsultancy ? (
+                  <div className="pt-6" />
+                ) : (
                   <div className="flex items-center justify-end gap-4 px-8 sm:px-12 pt-6">
-                    <button type="button" onClick={() => {
-                      const keys = ["legal_identity", "focus", "presence"];
-                      if (isImplementer) keys.push("dd", "track");
-                      if (isFunder || isCorporate) keys.push("fdd");
-                      if (isFunder) keys.push("mandate");
-                      if (isCorporate) {
-                        keys.push("csr_esg", "csr_partnership", "csr_compliance");
-                        if (profile?.org_type === "technology_company") keys.push("csr_tech");
-                      }
-                      setExpandedOrgSections(new Set(keys));
-                    }} title="Expand all" aria-label="Expand all" className="text-[#2D6A4F] hover:opacity-70 transition-opacity">
-                      <ChevronsDown className="w-4 h-4" />
-                    </button>
-                    <button type="button" onClick={() => setExpandedOrgSections(new Set())} title="Collapse all" aria-label="Collapse all" className="text-black dark:text-white hover:opacity-70 transition-opacity">
-                      <ChevronsUp className="w-4 h-4" />
+                    <button type="button" onClick={() => setExpandedOrgSections(standaloneAllExpanded ? new Set() : new Set(standaloneAccordionKeys))}
+                      title={standaloneAllExpanded ? "Collapse all" : "Expand all"} aria-label={standaloneAllExpanded ? "Collapse all" : "Expand all"}
+                      className="text-[#2D6A4F] hover:opacity-70 transition-opacity">
+                      {standaloneAllExpanded ? <ChevronsUp className="w-4 h-4" /> : <ChevronsDown className="w-4 h-4" />}
                     </button>
                   </div>
                 )}
                 <SectionCardGroup>
+                  {isSoloConsultancy && contactSectionJsx}
                   <SectionCard editable={isOrgOwner} title="Organisation Details" onEdit={openOrgModal}
                     collapsible={isSoloConsultancy}
                     expanded={isSoloConsultancy ? expandedOrgSections.has("organisation_details") : true}
                     onToggle={() => toggleOrgSection("organisation_details")}
                     headerExtra={isSoloConsultancy ? (
-                      <div className="flex items-center gap-3 shrink-0">
-                        <button type="button" onClick={() => setExpandedOrgSections(new Set(["organisation_details", "legal_identity", "focus", "presence", "dd", "expertise"]))} title="Expand all" aria-label="Expand all" className="text-[#2D6A4F] hover:opacity-70 transition-opacity">
-                          <ChevronsDown className="w-4 h-4" />
-                        </button>
-                        <button type="button" onClick={() => setExpandedOrgSections(new Set())} title="Collapse all" aria-label="Collapse all" className="text-black dark:text-white hover:opacity-70 transition-opacity">
-                          <ChevronsUp className="w-4 h-4" />
-                        </button>
-                      </div>
+                      <button type="button" onClick={() => setExpandedOrgSections(orgDetailsAllExpanded ? new Set() : new Set(orgDetailsAccordionKeys))}
+                        title={orgDetailsAllExpanded ? "Collapse all" : "Expand all"} aria-label={orgDetailsAllExpanded ? "Collapse all" : "Expand all"}
+                        className="text-[#2D6A4F] hover:opacity-70 transition-opacity shrink-0">
+                        {orgDetailsAllExpanded ? <ChevronsUp className="w-4 h-4" /> : <ChevronsDown className="w-4 h-4" />}
+                      </button>
                     ) : undefined}>
                     {!isSoloConsultancy && (
                       <div className="flex items-center gap-5">
