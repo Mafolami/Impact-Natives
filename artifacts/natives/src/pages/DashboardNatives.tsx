@@ -90,6 +90,9 @@ interface OrgRow {
   sandbox_ready?: boolean | null;
   sandbox_description?: string | null;
   esg_frameworks?: string[] | null;
+  specializations?: string[] | null;
+  notable_engagements?: string[] | null;
+  affiliations?: string[] | null;
   partnership_listed?: boolean;
   partnership_title?: string | null;
   partnership_sought?: string | null;
@@ -563,7 +566,7 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
       const [{ data: orgRow }, { data: profileRow }] = await Promise.all([
         supabase
           .from("organizations")
-          .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status,investment_thesis,stage_preference,geographic_focus,impact_strategy,flagged_visibility_hold,impact_score,subscription_tier,show_impact_score")
+          .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,specializations,notable_engagements,affiliations,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status,investment_thesis,stage_preference,geographic_focus,impact_strategy,flagged_visibility_hold,impact_score,subscription_tier,show_impact_score")
           .eq("user_id", autoOpenUserId)
           .eq("status", "published")
           .single(),
@@ -583,7 +586,7 @@ function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifie
       setLoading(true);
       const { data: orgData, error } = await supabase
         .from("organizations")
-        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status,investment_thesis,stage_preference,geographic_focus,impact_strategy,flagged_visibility_hold,impact_score,subscription_tier,show_impact_score")        
+        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,specializations,notable_engagements,affiliations,partnership_listed,partnership_title,partnership_sought,partnership_stage,partnership_budget,partnership_decision_timeline,partnership_funding_status,investment_thesis,stage_preference,geographic_focus,impact_strategy,flagged_visibility_hold,impact_score,subscription_tier,show_impact_score")        
         .eq("status", "published")
         .order("organisation_name", { ascending: true });
 
@@ -1147,6 +1150,9 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
   const isImplementerOrg = !["philanthropic_foundation", "venture_capital", "corporation", "technology_company", "public_sector"].includes(org.organisation_type ?? "");
   const showCsrEsg = ["corporation", "technology_company"].includes(org.organisation_type ?? "") &&
     !!(org.csr_focus_statement || org.inkind_support?.length || org.esg_frameworks?.length || org.tech_support_available?.length);
+  const isConsultancyOrg = org.organisation_type === "consultancy";
+  const hasConsultancyExpertise = isConsultancyOrg &&
+    !!(org.specializations?.length || org.notable_engagements?.length || org.affiliations?.length);
 
   let impactPillars: any[] = [];
   if (org.impact_strategy) {
@@ -1393,6 +1399,33 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                     Third-party evaluations available
                   </div>
+                )}
+              </div>
+            )}
+
+            {hasConsultancyExpertise && (
+              <div>
+                <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] mb-1.5">Consultant expertise</p>
+                {org.specializations && org.specializations.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mb-1.5">Specializations</p>
+                    <div className="flex flex-wrap gap-2">
+                      {org.specializations.map(s => (
+                        <span key={s} className="text-sm font-medium px-3 py-1 rounded-md" style={{ color: "#0F6E56", background: "#E1F5EE" }}>{s}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {org.notable_engagements && org.notable_engagements.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-xs text-[#111111] dark:text-[#F5F5F5] mb-1.5">Notable engagements</p>
+                    <ul className="text-sm text-[#111111] dark:text-[#F5F5F5] space-y-1 list-disc list-inside">
+                      {org.notable_engagements.map(e => <li key={e}>{e}</li>)}
+                    </ul>
+                  </div>
+                )}
+                {org.affiliations && org.affiliations.length > 0 && (
+                  <p className="text-sm text-[#111111] dark:text-[#F5F5F5]"><span className="font-semibold">Affiliations: </span>{org.affiliations.join(", ")}</p>
                 )}
               </div>
             )}
