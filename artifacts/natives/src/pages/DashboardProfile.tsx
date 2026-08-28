@@ -215,12 +215,15 @@ function SectionCard({ title, titleExtra, headerExtra, onEdit, editable = true, 
     <div className="px-8 sm:px-12 py-4">
       <div className="flex items-center justify-between mb-4">
         <p className="text-lg font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
-        {editable && (
-          <button type="button" onClick={onEdit} aria-label={`Edit ${title}`}
-            className="text-[#111111] dark:text-[#F5F5F5] hover:opacity-60 transition-opacity shrink-0">
-            <Pencil className="w-4 h-4" />
-          </button>
-        )}
+        <div className="flex items-center gap-3 shrink-0">
+          {headerExtra}
+          {editable && (
+            <button type="button" onClick={onEdit} aria-label={`Edit ${title}`}
+              className="text-[#111111] dark:text-[#F5F5F5] hover:opacity-60 transition-opacity shrink-0">
+              <Pencil className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
       <div className="space-y-9">
         {children}
@@ -1837,6 +1840,31 @@ export default function DashboardProfile() {
     </div>
   );
 
+  // Precomputed once, shared by both the standalone (non-consultancy)
+  // toggle button and Personal Details' header toggle (consultancy) -- a
+  // single chevron that flips direction based on whether everything
+  // relevant is already expanded, replacing what used to be two separate
+  // always-visible Expand-all/Collapse-all buttons. Declared before
+  // contactSectionJsx since Personal Details' header now references
+  // orgDetailsAllExpanded directly.
+  const standaloneAccordionKeys = (() => {
+    const keys = ["legal_identity", "focus", "presence"];
+    if (isImplementer) keys.push("dd", "track");
+    if (isFunder || isCorporate) keys.push("fdd");
+    if (isFunder) keys.push("mandate");
+    if (isCorporate) {
+      keys.push("csr_esg", "csr_partnership", "csr_compliance");
+      if (profile?.org_type === "technology_company") keys.push("csr_tech");
+    }
+    return keys;
+  })();
+  const standaloneAllExpanded = standaloneAccordionKeys.every(k => expandedOrgSections.has(k));
+  // No "dd" -- Due Diligence Readiness doesn't render at all for solo
+  // consultancies (see the DD READINESS PANE gate below), so there's
+  // nothing there to expand or collapse.
+  const orgDetailsAccordionKeys = ["organisation_details", "legal_identity", "focus", "presence", "expertise"];
+  const orgDetailsAllExpanded = orgDetailsAccordionKeys.every(k => expandedOrgSections.has(k));
+
   const contactSectionJsx = (
     <>
       {!isSoloConsultancy && (
@@ -1857,7 +1885,14 @@ export default function DashboardProfile() {
         </div>
       )}
 
-      <SectionCard editable={isOrgOwner} title={isSoloConsultancy ? "Personal Details" : "Contact Details"} onEdit={openOrgContactModal}>
+      <SectionCard editable={isOrgOwner} title={isSoloConsultancy ? "Personal Details" : "Contact Details"} onEdit={openOrgContactModal}
+        headerExtra={isSoloConsultancy ? (
+          <button type="button" onClick={() => setExpandedOrgSections(orgDetailsAllExpanded ? new Set() : new Set(orgDetailsAccordionKeys))}
+            title={orgDetailsAllExpanded ? "Collapse all" : "Expand all"} aria-label={orgDetailsAllExpanded ? "Collapse all" : "Expand all"}
+            className="text-[#2D6A4F] hover:opacity-70 transition-opacity shrink-0">
+            {orgDetailsAllExpanded ? <ChevronsUp className="w-4 h-4" /> : <ChevronsDown className="w-4 h-4" />}
+          </button>
+        ) : undefined}>
         {isSoloConsultancy && (
           <div>
             <div className="flex items-center gap-1.5 mb-3">
@@ -1892,26 +1927,6 @@ export default function DashboardProfile() {
       </SectionCard>
     </>
   );
-
-  // Precomputed once, shared by both the standalone (non-consultancy)
-  // toggle button and Organisation Details' header toggle (consultancy) --
-  // a single chevron that flips direction based on whether everything
-  // relevant is already expanded, replacing what used to be two separate
-  // always-visible Expand-all/Collapse-all buttons.
-  const standaloneAccordionKeys = (() => {
-    const keys = ["legal_identity", "focus", "presence"];
-    if (isImplementer) keys.push("dd", "track");
-    if (isFunder || isCorporate) keys.push("fdd");
-    if (isFunder) keys.push("mandate");
-    if (isCorporate) {
-      keys.push("csr_esg", "csr_partnership", "csr_compliance");
-      if (profile?.org_type === "technology_company") keys.push("csr_tech");
-    }
-    return keys;
-  })();
-  const standaloneAllExpanded = standaloneAccordionKeys.every(k => expandedOrgSections.has(k));
-  const orgDetailsAccordionKeys = ["organisation_details", "legal_identity", "focus", "presence", "dd", "expertise"];
-  const orgDetailsAllExpanded = orgDetailsAccordionKeys.every(k => expandedOrgSections.has(k));
 
   return (
     <div className="w-full relative">
@@ -2155,14 +2170,7 @@ export default function DashboardProfile() {
                   <SectionCard editable={isOrgOwner} title="Organisation Details" onEdit={openOrgModal}
                     collapsible={isSoloConsultancy}
                     expanded={isSoloConsultancy ? expandedOrgSections.has("organisation_details") : true}
-                    onToggle={() => toggleOrgSection("organisation_details")}
-                    headerExtra={isSoloConsultancy ? (
-                      <button type="button" onClick={() => setExpandedOrgSections(orgDetailsAllExpanded ? new Set() : new Set(orgDetailsAccordionKeys))}
-                        title={orgDetailsAllExpanded ? "Collapse all" : "Expand all"} aria-label={orgDetailsAllExpanded ? "Collapse all" : "Expand all"}
-                        className="text-[#2D6A4F] hover:opacity-70 transition-opacity shrink-0">
-                        {orgDetailsAllExpanded ? <ChevronsUp className="w-4 h-4" /> : <ChevronsDown className="w-4 h-4" />}
-                      </button>
-                    ) : undefined}>
+                    onToggle={() => toggleOrgSection("organisation_details")}>
                     {!isSoloConsultancy && (
                       <div className="flex items-center gap-5">
                         <div className="group relative w-16 h-16 shrink-0">
@@ -2378,7 +2386,7 @@ export default function DashboardProfile() {
               )}
 
               {/* ── DD READINESS PANE ── */}
-              {activePane === "organisation" && isImplementer && (
+              {activePane === "organisation" && isImplementer && !isSoloConsultancy && (
                 <div>
                   <SectionCard
                     title="Due diligence readiness"
