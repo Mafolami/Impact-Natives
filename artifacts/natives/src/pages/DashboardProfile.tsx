@@ -684,7 +684,7 @@ export default function DashboardProfile() {
   // ── Active pane ──────────────────────────────────────────────────────────
   const panes: PaneDef[] = isOrg
     ? [
-        { key: "basic",        label: "Contact Details" },
+        ...(isSoloConsultancy ? [] : [{ key: "basic", label: "Contact Details" } as PaneDef]),
         { key: "organisation", label: "Organisation" },
         { key: "verification", label: "Verification" },
         { key: "impact_evidence", label: "Impact Evidence" },
@@ -696,6 +696,15 @@ export default function DashboardProfile() {
       ];
 
   const [activePane, setActivePane] = useState<PaneKey>("basic");
+
+  // Solo consultancies have no "Contact Details" tab (folded into
+  // Organisation instead) -- if state initialized to "basic" before
+  // isSoloConsultancy was known (it loads async), redirect once it's known.
+  useEffect(() => {
+    if (isSoloConsultancy && activePane === "basic") {
+      setActivePane("organisation");
+    }
+  }, [isSoloConsultancy]);
 
   // Sections folded inside the Organisation tab as an accordion instead of
   // each being its own top-level tab -- several can be open together, all
@@ -1786,6 +1795,86 @@ export default function DashboardProfile() {
       )}
     </div>
   );
+
+  // Solo consultancies have no separate "Contact Details" tab -- this
+  // renders inside the Organisation tab instead, since the contact person
+  // and the organisation are the same identity for them. Extracted once
+  // here so the exact same JSX (and its state bindings) is used in both the
+  // regular org "basic" tab and the consultancy "organisation" tab, rather
+  // than maintaining two copies.
+  const contactSectionJsx = (
+    <SectionCardGroup>
+      <div className="px-8 sm:px-12 py-10">
+        <div className="flex items-center gap-1.5 mb-6">
+          <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Contact</p>
+          <InfoTooltip text="Used as your organisation's contact person. If you turn on 'also appear as an individual,' this also becomes your personal profile in the Natives directory." />
+        </div>
+        <div className="rounded-xl border border-dashed border-border p-4 space-y-3">
+          <div>
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">{isSoloConsultancy ? "Your photo" : "Your personal photo"}</p>
+              <InfoTooltip text={isSoloConsultancy ? "This is the photo shown on your organisation's listing in the Natives directory." : 'Only shown on your individual profile in the Natives directory if "also appear as an individual" is turned on.'} />
+            </div>
+          </div>
+          <div className="flex items-center gap-5">
+          <div className="group relative w-14 h-14 rounded-full border border-border bg-white dark:bg-card flex items-center justify-center overflow-hidden shrink-0">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="Personal photo" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-xl font-bold text-black dark:text-white">{(fullName || "?")[0].toUpperCase()}</span>
+                )}
+                {profile?.avatar_url && (
+                  <button type="button" onClick={handlePersonalPhotoDelete} disabled={personalPhotoUploading}
+                    className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                    title="Remove photo">
+                    <Trash2 className="w-4 h-4 text-white" />
+                  </button>
+                )}
+              </div>
+            <div>
+              <label className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm text-black dark:text-white hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
+                <Camera className="w-3.5 h-3.5" />
+                {profile?.avatar_url ? "Replace photo" : "Upload photo"}
+                <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handlePersonalPhotoUpload} />
+              </label>
+              <p className="text-xs text-black dark:text-white mt-1.5">PNG, JPG or WebP. Max 2 MB.</p>
+              {personalPhotoUploading && (
+                <p className="text-xs text-[#2D6A4F] mt-1 flex items-center gap-1">
+                  <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <SectionCard editable={isOrgOwner} title="Contact Details" onEdit={openOrgContactModal}>
+        <DisplayField label="Full name">
+          {fullName ? <p className="text-sm text-black dark:text-white">{fullName}</p> : <EmptyValue />}
+        </DisplayField>
+        <DisplayField label="Role / Title">
+          {roleTitle ? <p className="text-sm text-black dark:text-white">{roleTitle}</p> : <EmptyValue />}
+        </DisplayField>
+        <DisplayField label="Email">
+          <p className="text-sm text-black dark:text-white">{user?.email ?? ""}</p>
+          <p className="text-xs text-black dark:text-white opacity-60 mt-1">Your sign-in email. Cannot be changed here.</p>
+        </DisplayField>
+        <DisplayField label="Phone">
+          {phone ? <p className="text-sm text-black dark:text-white">{phone}</p> : <EmptyValue />}
+        </DisplayField>
+        <DisplayField label="LinkedIn">
+          {linkedinUrl ? (
+            <a href={linkedinUrl} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2 text-sm text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
+              <Linkedin className="w-4 h-4 shrink-0" />
+              <span className="truncate">{linkedinUrl}</span>
+            </a>
+          ) : <EmptyValue />}
+        </DisplayField>
+      </SectionCard>
+    </SectionCardGroup>
+  );
+
   return (
     <div className="w-full relative">
       <div className="space-y-4 md:pr-[304px]">
@@ -1984,84 +2073,7 @@ export default function DashboardProfile() {
                 </EditModal>
               )}
 
-{activePane === "basic" && isOrg && (
-                <SectionCardGroup>
-                  <div className="px-8 sm:px-12 py-10">
-                    <div className="flex items-center gap-1.5 mb-6">
-                      <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Contact</p>
-                      <InfoTooltip text="Used as your organisation's contact person. If you turn on 'also appear as an individual,' this also becomes your personal profile in the Natives directory." />
-                    </div>
-                    {/* Unconditional now — this section always renders so the
-                        pane has the same shape whether show_individual_profile
-                        is on or off. Lets someone fill in a personal photo
-                        ahead of time and flip the toggle on whenever they're
-                        ready, rather than the section appearing/disappearing
-                        and changing the pane's layout depending on that flag. */}
-                    <div className="rounded-xl border border-dashed border-border p-4 space-y-3">
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">{isSoloConsultancy ? "Your photo" : "Your personal photo"}</p>
-                          <InfoTooltip text={isSoloConsultancy ? "This is the photo shown on your organisation's listing in the Natives directory." : 'Only shown on your individual profile in the Natives directory if "also appear as an individual" is turned on.'} />
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-5">
-                      <div className="group relative w-14 h-14 rounded-full border border-border bg-white dark:bg-card flex items-center justify-center overflow-hidden shrink-0">
-                            {profile?.avatar_url ? (
-                              <img src={profile.avatar_url} alt="Personal photo" className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="text-xl font-bold text-black dark:text-white">{(fullName || "?")[0].toUpperCase()}</span>
-                            )}
-                            {profile?.avatar_url && (
-                              <button type="button" onClick={handlePersonalPhotoDelete} disabled={personalPhotoUploading}
-                                className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
-                                title="Remove photo">
-                                <Trash2 className="w-4 h-4 text-white" />
-                              </button>
-                            )}
-                          </div>
-                        <div>
-                          <label className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm text-black dark:text-white hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
-                            <Camera className="w-3.5 h-3.5" />
-                            {profile?.avatar_url ? "Replace photo" : "Upload photo"}
-                            <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handlePersonalPhotoUpload} />
-                          </label>
-                          <p className="text-xs text-black dark:text-white mt-1.5">PNG, JPG or WebP. Max 2 MB.</p>
-                          {personalPhotoUploading && (
-                            <p className="text-xs text-[#2D6A4F] mt-1 flex items-center gap-1">
-                              <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <SectionCard editable={isOrgOwner} title="Contact Details" onEdit={openOrgContactModal}>
-                    <DisplayField label="Full name">
-                      {fullName ? <p className="text-sm text-black dark:text-white">{fullName}</p> : <EmptyValue />}
-                    </DisplayField>
-                    <DisplayField label="Role / Title">
-                      {roleTitle ? <p className="text-sm text-black dark:text-white">{roleTitle}</p> : <EmptyValue />}
-                    </DisplayField>
-                    <DisplayField label="Email">
-                      <p className="text-sm text-black dark:text-white">{user?.email ?? ""}</p>
-                      <p className="text-xs text-black dark:text-white opacity-60 mt-1">Your sign-in email. Cannot be changed here.</p>
-                    </DisplayField>
-                    <DisplayField label="Phone">
-                      {phone ? <p className="text-sm text-black dark:text-white">{phone}</p> : <EmptyValue />}
-                    </DisplayField>
-                    <DisplayField label="LinkedIn">
-                      {linkedinUrl ? (
-                        <a href={linkedinUrl} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-sm text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
-                          <Linkedin className="w-4 h-4 shrink-0" />
-                          <span className="truncate">{linkedinUrl}</span>
-                        </a>
-                      ) : <EmptyValue />}
-                    </DisplayField>
-                  </SectionCard>
-                </SectionCardGroup>
-              )}
+{activePane === "basic" && isOrg && !isSoloConsultancy && contactSectionJsx}
 
               {editingContactSection && isOrg && (
                 <EditModal title="Edit contact person" onClose={() => setEditingContactSection(false)} onSave={saveOrgContactSection} saving={contactSaving}>
@@ -2087,6 +2099,7 @@ export default function DashboardProfile() {
               {/* ── ORGANISATION PANE ── */}
               {activePane === "organisation" && isOrg && (
                 <>
+                {isSoloConsultancy && contactSectionJsx}
                 <div className="flex items-center justify-end gap-4 px-8 sm:px-12 pt-6">
                   <button type="button" onClick={() => {
                     const keys = ["legal_identity", "focus", "presence"];
