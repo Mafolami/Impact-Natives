@@ -111,8 +111,8 @@ interface ExtractedProfile {
 
 function trackFromOrgType(orgType: string): OrgTrack {
   if (["philanthropic_foundation", "venture_capital"].includes(orgType)) return "funder";
-  if (["corporation", "technology_company", "creative_agency_studio"].includes(orgType)) return "corporate";
-  if (["research_academic", "public_sector"].includes(orgType)) return "research";
+  if (["corporation", "technology_company", "public_sector"].includes(orgType)) return "corporate";
+  if (["research_academic"].includes(orgType)) return "research";
   return "implementer";
 }
 

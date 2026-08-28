@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { SECTOR_OPTIONS as SECTORS } from "@/lib/sectors";
 import { COUNTRIES } from "@/lib/countries";
+import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 
 const RATE_LIMIT_ENABLED = false;
 
@@ -35,18 +36,6 @@ const SDG_NAMES: Record<number,string> = {
   13:"Climate Action",14:"Life Below Water",15:"Life on Land",
   16:"Peace, Justice and Strong Institutions",17:"Partnerships for the Goals",
 };
-const ORG_TYPE_OPTIONS = [
-  {value:"ngo_non_profit",label:"NGO / Non-profit"},
-  {value:"social_enterprise",label:"Social enterprise"},
-  {value:"startup",label:"Startup"},
-  {value:"technology_company",label:"Technology company"},
-  {value:"venture_capital",label:"Venture capital"},
-  {value:"corporation",label:"Corporation"},
-  {value:"philanthropic_foundation",label:"Philanthropic foundation"},
-  {value:"public_sector",label:"Public sector / Government"},
-  {value:"research_institution",label:"Research institution / University"},
-  {value:"other",label:"Other"},
-];
 
 type PrefillData = {
   country:string[];sectors:string[];sdgs:number[];organisation_type:string;
@@ -1136,7 +1125,7 @@ export function FindPartnerModalDashboard({
                       <Field label="Organisation type"
                         hint="Confirm or correct — AI may have misread this from your profile.">
                         <DropdownField
-                          options={ORG_TYPE_OPTIONS}
+                          options={ORG_TYPE_FILTERS}
                           value={form.organisation_type}
                           onChange={v=>setF("organisation_type",v)}
                           placeholder="Select organisation type..."/>
@@ -1469,7 +1458,7 @@ export function FindPartnerModalDashboard({
                           onToggle={v=>toggleArr("partnership_reporting",v)}/>
                       </Field>
 
-                      {["research_institution","technology_company","startup","social_enterprise"].includes(form.organisation_type)&&(
+                      {["research_academic","technology_company","startup","social_enterprise"].includes(form.organisation_type)&&(
                         <Field label="IP and data ownership">
                           <RadioList
                             options={[
