@@ -181,17 +181,20 @@ function SectionCardGroup({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SectionCard({ title, titleExtra, onEdit, editable = true, children, collapsible = false, expanded = true, onToggle }: {
-  title: string; titleExtra?: React.ReactNode; onEdit: () => void; editable?: boolean; children: React.ReactNode;
+function SectionCard({ title, titleExtra, headerExtra, onEdit, editable = true, children, collapsible = false, expanded = true, onToggle }: {
+  title: string; titleExtra?: React.ReactNode; headerExtra?: React.ReactNode; onEdit: () => void; editable?: boolean; children: React.ReactNode;
   collapsible?: boolean; expanded?: boolean; onToggle?: () => void;
 }) {
   if (collapsible) {
     return (
       <div className="relative">
-        <button type="button" onClick={onToggle} className="w-full flex items-center gap-1.5 text-left px-8 sm:px-12 py-4 pr-14 hover:bg-[#E2725B]/[0.08] transition-colors">
-          <p className="text-lg font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
-          {titleExtra}
-        </button>
+        <div className="w-full flex items-center gap-1.5 px-8 sm:px-12 py-4 pr-14 hover:bg-[#E2725B]/[0.08] transition-colors">
+          <button type="button" onClick={onToggle} className="flex-1 flex items-center gap-1.5 text-left">
+            <p className="text-lg font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
+            {titleExtra}
+          </button>
+          {headerExtra}
+        </div>
         {editable && expanded && (
           <button type="button" onClick={onEdit} aria-label={`Edit ${title}`}
             className="absolute right-8 sm:right-12 top-4 text-[#111111] dark:text-[#F5F5F5] hover:opacity-60 transition-opacity">
@@ -685,7 +688,7 @@ export default function DashboardProfile() {
   const panes: PaneDef[] = isOrg
     ? [
         ...(isSoloConsultancy ? [] : [{ key: "basic", label: "Contact Details" } as PaneDef]),
-        { key: "organisation", label: "Organisation" },
+        { key: "organisation", label: isSoloConsultancy ? "Profile" : "Organisation" },
         { key: "verification", label: "Verification" },
         { key: "impact_evidence", label: "Impact Evidence" },
       ]
@@ -1802,53 +1805,68 @@ export default function DashboardProfile() {
   // here so the exact same JSX (and its state bindings) is used in both the
   // regular org "basic" tab and the consultancy "organisation" tab, rather
   // than maintaining two copies.
+  const personalPhotoBlockJsx = (
+    <div className="flex items-center gap-5">
+      <div className="group relative w-14 h-14 rounded-full border border-border bg-white dark:bg-card flex items-center justify-center overflow-hidden shrink-0">
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="Personal photo" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xl font-bold text-black dark:text-white">{(fullName || "?")[0].toUpperCase()}</span>
+            )}
+            {profile?.avatar_url && (
+              <button type="button" onClick={handlePersonalPhotoDelete} disabled={personalPhotoUploading}
+                className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                title="Remove photo">
+                <Trash2 className="w-4 h-4 text-white" />
+              </button>
+            )}
+          </div>
+        <div>
+          <label className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm text-black dark:text-white hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
+            <Camera className="w-3.5 h-3.5" />
+            {profile?.avatar_url ? "Replace photo" : "Upload photo"}
+            <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handlePersonalPhotoUpload} />
+          </label>
+          <p className="text-xs text-black dark:text-white mt-1.5">PNG, JPG or WebP. Max 2 MB.</p>
+          {personalPhotoUploading && (
+            <p className="text-xs text-[#2D6A4F] mt-1 flex items-center gap-1">
+              <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
+            </p>
+          )}
+        </div>
+    </div>
+  );
+
   const contactSectionJsx = (
     <SectionCardGroup>
-      <div className="px-8 sm:px-12 py-10">
-        <div className="flex items-center gap-1.5 mb-6">
-          <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Contact</p>
-          <InfoTooltip text="Used as your organisation's contact person. If you turn on 'also appear as an individual,' this also becomes your personal profile in the Natives directory." />
-        </div>
-        <div className="rounded-xl border border-dashed border-border p-4 space-y-3">
-          <div>
-            <div className="flex items-center gap-1.5">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">{isSoloConsultancy ? "Your photo" : "Your personal photo"}</p>
-              <InfoTooltip text={isSoloConsultancy ? "This is the photo shown on your organisation's listing in the Natives directory." : 'Only shown on your individual profile in the Natives directory if "also appear as an individual" is turned on.'} />
-            </div>
+      {!isSoloConsultancy && (
+        <div className="px-8 sm:px-12 py-10">
+          <div className="flex items-center gap-1.5 mb-6">
+            <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Contact</p>
+            <InfoTooltip text="Used as your organisation's contact person. If you turn on 'also appear as an individual,' this also becomes your personal profile in the Natives directory." />
           </div>
-          <div className="flex items-center gap-5">
-          <div className="group relative w-14 h-14 rounded-full border border-border bg-white dark:bg-card flex items-center justify-center overflow-hidden shrink-0">
-                {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt="Personal photo" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-xl font-bold text-black dark:text-white">{(fullName || "?")[0].toUpperCase()}</span>
-                )}
-                {profile?.avatar_url && (
-                  <button type="button" onClick={handlePersonalPhotoDelete} disabled={personalPhotoUploading}
-                    className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
-                    title="Remove photo">
-                    <Trash2 className="w-4 h-4 text-white" />
-                  </button>
-                )}
-              </div>
+          <div className="rounded-xl border border-dashed border-border p-4 space-y-3">
             <div>
-              <label className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm text-black dark:text-white hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
-                <Camera className="w-3.5 h-3.5" />
-                {profile?.avatar_url ? "Replace photo" : "Upload photo"}
-                <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handlePersonalPhotoUpload} />
-              </label>
-              <p className="text-xs text-black dark:text-white mt-1.5">PNG, JPG or WebP. Max 2 MB.</p>
-              {personalPhotoUploading && (
-                <p className="text-xs text-[#2D6A4F] mt-1 flex items-center gap-1">
-                  <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
-                </p>
-              )}
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Your personal photo</p>
+                <InfoTooltip text='Only shown on your individual profile in the Natives directory if "also appear as an individual" is turned on.' />
+              </div>
             </div>
+            {personalPhotoBlockJsx}
           </div>
         </div>
-      </div>
+      )}
 
-      <SectionCard editable={isOrgOwner} title="Contact Details" onEdit={openOrgContactModal}>
+      <SectionCard editable={isOrgOwner} title={isSoloConsultancy ? "Personal Details" : "Contact Details"} onEdit={openOrgContactModal}>
+        {isSoloConsultancy && (
+          <div>
+            <div className="flex items-center gap-1.5 mb-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Your photo</p>
+              <InfoTooltip text="This is the photo shown on your organisation's listing in the Natives directory." />
+            </div>
+            {personalPhotoBlockJsx}
+          </div>
+        )}
         <DisplayField label="Full name">
           {fullName ? <p className="text-sm text-black dark:text-white">{fullName}</p> : <EmptyValue />}
         </DisplayField>
@@ -2100,41 +2118,42 @@ export default function DashboardProfile() {
               {activePane === "organisation" && isOrg && (
                 <>
                 {isSoloConsultancy && contactSectionJsx}
-                <div className="flex items-center justify-end gap-4 px-8 sm:px-12 pt-6">
-                  <button type="button" onClick={() => {
-                    const keys = ["legal_identity", "focus", "presence"];
-                    if (isImplementer) keys.push("dd", "track");
-                    if (isFunder || isCorporate) keys.push("fdd");
-                    if (isFunder) keys.push("mandate");
-                    if (isCorporate) {
-                      keys.push("csr_esg", "csr_partnership", "csr_compliance");
-                      if (profile?.org_type === "technology_company") keys.push("csr_tech");
-                    }
-                    setExpandedOrgSections(new Set(keys));
-                  }} title="Expand all" aria-label="Expand all" className="text-[#2D6A4F] hover:opacity-70 transition-opacity">
-                    <ChevronsDown className="w-4 h-4" />
-                  </button>
-                  <button type="button" onClick={() => setExpandedOrgSections(new Set())} title="Collapse all" aria-label="Collapse all" className="text-black dark:text-white hover:opacity-70 transition-opacity">
-                    <ChevronsUp className="w-4 h-4" />
-                  </button>
-                </div>
+                {!isSoloConsultancy && (
+                  <div className="flex items-center justify-end gap-4 px-8 sm:px-12 pt-6">
+                    <button type="button" onClick={() => {
+                      const keys = ["legal_identity", "focus", "presence"];
+                      if (isImplementer) keys.push("dd", "track");
+                      if (isFunder || isCorporate) keys.push("fdd");
+                      if (isFunder) keys.push("mandate");
+                      if (isCorporate) {
+                        keys.push("csr_esg", "csr_partnership", "csr_compliance");
+                        if (profile?.org_type === "technology_company") keys.push("csr_tech");
+                      }
+                      setExpandedOrgSections(new Set(keys));
+                    }} title="Expand all" aria-label="Expand all" className="text-[#2D6A4F] hover:opacity-70 transition-opacity">
+                      <ChevronsDown className="w-4 h-4" />
+                    </button>
+                    <button type="button" onClick={() => setExpandedOrgSections(new Set())} title="Collapse all" aria-label="Collapse all" className="text-black dark:text-white hover:opacity-70 transition-opacity">
+                      <ChevronsUp className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
                 <SectionCardGroup>
-                  <SectionCard editable={isOrgOwner} title="Organisation Details" onEdit={openOrgModal}>
-                    {isSoloConsultancy ? (
-                      <div className="flex items-center gap-5">
-                        <div className="w-16 h-16 rounded-xl border border-border bg-white dark:bg-card flex items-center justify-center overflow-hidden shrink-0">
-                          {logoUrl ? (
-                            <img src={logoUrl} alt="Organisation photo" className="w-full h-full object-contain" />
-                          ) : (
-                            <span className="text-2xl font-bold text-black dark:text-white">{(orgName || profile?.org_name || "?")[0].toUpperCase()}</span>
-                          )}
-                        </div>
-                        <p className="text-xs text-black dark:text-white">
-                          Using your photo from Contact Details.{" "}
-                          <button type="button" onClick={openOrgContactModal} className="text-[#2D6A4F] underline underline-offset-2 font-medium">Update it there</button>.
-                        </p>
+                  <SectionCard editable={isOrgOwner} title="Organisation Details" onEdit={openOrgModal}
+                    collapsible={isSoloConsultancy}
+                    expanded={isSoloConsultancy ? expandedOrgSections.has("organisation_details") : true}
+                    onToggle={() => toggleOrgSection("organisation_details")}
+                    headerExtra={isSoloConsultancy ? (
+                      <div className="flex items-center gap-3 shrink-0">
+                        <button type="button" onClick={() => setExpandedOrgSections(new Set(["organisation_details", "legal_identity", "focus", "presence", "dd", "expertise"]))} title="Expand all" aria-label="Expand all" className="text-[#2D6A4F] hover:opacity-70 transition-opacity">
+                          <ChevronsDown className="w-4 h-4" />
+                        </button>
+                        <button type="button" onClick={() => setExpandedOrgSections(new Set())} title="Collapse all" aria-label="Collapse all" className="text-black dark:text-white hover:opacity-70 transition-opacity">
+                          <ChevronsUp className="w-4 h-4" />
+                        </button>
                       </div>
-                    ) : (
+                    ) : undefined}>
+                    {!isSoloConsultancy && (
                       <div className="flex items-center gap-5">
                         <div className="group relative w-16 h-16 shrink-0">
                           <div className="w-16 h-16 rounded-xl border border-border bg-white dark:bg-card flex items-center justify-center overflow-hidden">
