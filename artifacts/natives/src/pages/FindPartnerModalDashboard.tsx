@@ -608,7 +608,7 @@ export function FindPartnerModalDashboard({
       const p=data.prefilled;
       setForm(prev=>({...prev,
         country:p.country??[],sectors:p.sectors??[],sdgs:p.sdgs??[],
-        organisation_type:p.organisation_type??"",needs:p.needs??[],offers:p.offers??[],
+        organisation_type:orgProfile.organisation_type||p.organisation_type||"",needs:p.needs??[],offers:p.offers??[],
         description:p.description??"",partnership_sought:p.partnership_sought??"",
         partnership_stage:p.partnership_stage??"",partnership_duration:p.partnership_duration??"",
         partnership_geo_specificity:p.partnership_geo_specificity??"",
@@ -1130,7 +1130,7 @@ export function FindPartnerModalDashboard({
                       </Field>
 
                       <Field label="Organisation type"
-                        hint="Confirm or correct — AI may have misread this from your profile.">
+                        hint="From your organisation profile.">
                         <DropdownField
                           options={ORG_TYPE_FILTERS}
                           value={form.organisation_type}
