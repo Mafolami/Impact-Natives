@@ -733,15 +733,21 @@ export function FindPartnerModalDashboard({
     if(!user||!orgProfile) return;
     setSendingInvite(match.org_id);
     try{
-      const{error}=await supabase.from("partnership_connections").insert({
+      const{data:inserted,error}=await supabase.from("partnership_connections").insert({
         sender_org_id:orgProfile.id,receiver_org_id:match.org.id,
         sender_user_id:user.id,source:"ai_match",
         ai_rationale:match.rationale,fit_score:match.fit_score,status:"pending",
-      });
+      }).select("id").single();
       if(error&&!error.message.includes("unique")) throw error;
+      // Passed through so create_ai_match_conversation can write the new
+      // conversation's id back onto this row -- without it, partnership_connections.conversation_id
+      // stays null forever for AI-match invites, which breaks the messaging
+      // tab's formed/declined lookups and the receiver's Accept flow.
+      const connectionId=inserted?.id??null;
       const{data:receiverProfile}=await supabase.from("organizations").select("user_id").eq("id",match.org.id).single();
       const{data:convId,error:convError}=await supabase.rpc("create_ai_match_conversation",{
         p_sender_user_id:user.id,p_receiver_user_id:receiverProfile?.user_id??null,
+        p_connection_id:connectionId,
       });
       if(convError) throw convError;
       if(convId){await supabase.from("messages").insert({conversation_id:convId,sender_id:user.id,body:message});}
