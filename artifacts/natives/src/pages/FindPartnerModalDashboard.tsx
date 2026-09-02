@@ -132,18 +132,18 @@ function StepNav({current,onNavigate,form,partnershipTitle,freeText,uploadedFile
                 ? "hover:bg-muted/60 cursor-pointer"
                 : "cursor-default opacity-40"
             }`}>
-            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold transition-colors ${
+            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold transition-colors ${
               done
                 ? "bg-[#2D6A4F] text-white"
                 : active
                 ? "bg-foreground text-background"
-                : "border border-border text-muted-foreground"
+                : "border border-border text-foreground"
             }`}>
               {done
                 ? <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>
                 : i+1}
             </div>
-            <span className={`text-sm truncate ${active?"font-semibold text-foreground":done?"text-foreground":"text-foreground/50"}`}>
+            <span className={`text-[15px] truncate ${active?"font-semibold text-foreground":done?"text-foreground":"text-foreground/50"}`}>
               {s.label}
             </span>
           </button>
@@ -158,9 +158,9 @@ function StepHeader({step,subtitle}:{step:number;subtitle:string}){
   return (
     <div className="shrink-0 px-6 py-3 border-b border-border sm:px-8">
       <div className="flex items-baseline gap-2 flex-wrap">
-        <span className="text-[13px] font-semibold text-foreground whitespace-nowrap">Step {step+1} of {STEPS.length}</span>
-        <span className="text-foreground/40 text-[13px] hidden sm:inline">·</span>
-        <p className="text-[13px] text-foreground leading-relaxed">{subtitle}</p>
+        <span className="text-[14px] font-semibold text-foreground whitespace-nowrap">Step {step+1} of {STEPS.length}</span>
+        <span className="text-foreground/40 text-[14px] hidden sm:inline">·</span>
+        <p className="text-[14px] text-foreground leading-relaxed">{subtitle}</p>
       </div>
     </div>
   );
@@ -173,14 +173,14 @@ function StepFooter({onBack,onNext,onSkip,nextLabel,skipLabel,nextDisabled,loadi
   return (
     <div className="shrink-0 px-6 py-3 border-t border-border bg-background flex items-center justify-between gap-3 sm:px-8">
       {onBack
-        ? <button type="button" onClick={onBack} className="flex items-center gap-1.5 text-sm text-foreground/70 hover:text-foreground transition-colors shrink-0">
+        ? <button type="button" onClick={onBack} className="flex items-center gap-1.5 text-[15px] text-foreground/70 hover:text-foreground transition-colors shrink-0">
             <ArrowLeft className="w-3.5 h-3.5"/>Back
           </button>
         : <div/>}
       <div className="flex items-center gap-2">
         {onNext && (
           <button type="button" onClick={onNext} disabled={nextDisabled||loading}
-            className="h-9 px-6 rounded-full text-sm font-semibold text-white bg-[#2D6A4F] hover:bg-[#245c43] disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center gap-2">
+            className="h-9 px-6 rounded-full text-[15px] font-semibold text-white bg-[#2D6A4F] hover:bg-[#245c43] disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center gap-2">
             {loading
               ? <><Loader2 className="w-3.5 h-3.5 animate-spin"/>Working...</>
               : nextLabel??"Continue"}
@@ -188,7 +188,7 @@ function StepFooter({onBack,onNext,onSkip,nextLabel,skipLabel,nextDisabled,loadi
         )}
         {onSkip && (
           <button type="button" onClick={onSkip}
-            className="h-9 px-4 rounded-full text-sm text-foreground/60 hover:text-foreground border border-border hover:border-foreground/30 transition-colors">
+            className="h-9 px-4 rounded-full text-[15px] text-foreground/60 hover:text-foreground border border-border hover:border-foreground/30 transition-colors">
             {skipLabel??"Skip"}
           </button>
         )}
@@ -209,7 +209,7 @@ function Field({label,hint,required,first,children}:{
           <p className="text-[13.5px] font-semibold text-foreground">
             {label}{required && <span className="text-red-500 ml-0.5">*</span>}
           </p>
-          {hint && <p className="text-[13px] text-foreground/70 mt-1 leading-relaxed">{hint}</p>}
+          {hint && <p className="text-[14px] text-foreground/70 mt-1 leading-relaxed">{hint}</p>}
         </div>
         {children}
       </div>
@@ -238,7 +238,7 @@ function RadioList({options,value,onChange}:{
             </div>
             <div>
               <p className={`text-[13.5px] leading-snug ${on?"font-semibold text-[#2D6A4F]":"text-foreground"}`}>{opt.label}</p>
-              {opt.sub && <p className="text-[12px] text-foreground/70 mt-0.5">{opt.sub}</p>}
+              {opt.sub && <p className="text-[13px] text-foreground/70 mt-0.5">{opt.sub}</p>}
             </div>
           </button>
         );
@@ -282,7 +282,7 @@ function CheckboxList({options,selected,onToggle}:{
             </div>
             <div className="flex-1">
               <p className={`text-[13.5px] leading-snug ${on?"font-semibold text-[#2D6A4F]":"text-foreground"}`}>{opt.label}</p>
-              {opt.sub && <p className="text-[12px] text-foreground/70 mt-0.5">{opt.sub}</p>}
+              {opt.sub && <p className="text-[13px] text-foreground/70 mt-0.5">{opt.sub}</p>}
             </div>
             <input type="checkbox" checked={on} onChange={()=>onToggle(opt.value)} className="sr-only"/>
           </label>
@@ -302,23 +302,23 @@ function CountryPicker({selected,onToggle}:{selected:string[];onToggle:(v:string
   return (
     <div className="border border-border rounded-lg overflow-hidden">
       <button type="button" onClick={()=>setOpen(v=>!v)}
-        className="w-full flex items-center justify-between px-4 py-3 text-sm text-foreground hover:bg-muted/40 transition-colors">
+        className="w-full flex items-center justify-between px-4 py-3 text-[15px] text-foreground hover:bg-muted/40 transition-colors">
         <span className="font-medium">
           {selected.length>0?`${selected.length} selected`:"Select countries"}
         </span>
-        {open?<ChevronUp className="w-4 h-4 text-muted-foreground"/>:<ChevronDown className="w-4 h-4 text-muted-foreground"/>}
+        {open?<ChevronUp className="w-4 h-4 text-foreground"/>:<ChevronDown className="w-4 h-4 text-foreground"/>}
       </button>
       {open && (
         <div className="border-t border-border">
           <div className="px-3 py-2 border-b border-border">
             <input type="text" placeholder="Search countries..." value={search}
               onChange={e=>setSearch(e.target.value)}
-              className="w-full h-8 px-3 rounded-md border border-border bg-background text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]/30"/>
+              className="w-full h-8 px-3 rounded-md border border-border bg-background text-[13px] text-foreground focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]/30"/>
           </div>
           {selected.length>0 && (
             <div className="px-3 pt-2 pb-1 flex flex-wrap gap-1.5">
               {selected.map(c=>(
-                <span key={c} className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-[#2D6A4F]/10 text-[#2D6A4F] border border-[#2D6A4F]/20">
+                <span key={c} className="inline-flex items-center gap-1 text-[12px] font-medium px-2 py-0.5 rounded-full bg-[#2D6A4F]/10 text-[#2D6A4F] border border-[#2D6A4F]/20">
                   {c}
                   <button type="button" onClick={()=>onToggle(c)} className="hover:text-foreground transition-colors">
                     <X className="w-2.5 h-2.5"/>
@@ -337,12 +337,12 @@ function CountryPicker({selected,onToggle}:{selected:string[];onToggle:(v:string
                   }`}>
                     {on && <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><polyline points="20 6 9 17 4 12"/></svg>}
                   </div>
-                  <span className={`text-[13px] truncate ${on?"font-semibold text-[#2D6A4F]":"text-foreground"}`}>{c}</span>
+                  <span className={`text-[14px] truncate ${on?"font-semibold text-[#2D6A4F]":"text-foreground"}`}>{c}</span>
                   <input type="checkbox" checked={on} onChange={()=>onToggle(c)} className="sr-only"/>
                 </label>
               );
             })}
-            {filtered.length===0 && <p className="col-span-full py-3 text-xs text-muted-foreground">No results</p>}
+            {filtered.length===0 && <p className="col-span-full py-3 text-[13px] text-foreground">No results</p>}
           </div>
         </div>
       )}
@@ -360,7 +360,7 @@ function ExpandableCheckList({label,options,selected,onToggle}:{
   return (
     <div className="border border-border rounded-lg overflow-hidden">
       <button type="button" onClick={()=>setOpen(v=>!v)}
-        className="w-full flex items-center justify-between px-4 py-3 text-sm text-foreground hover:bg-muted/40 transition-colors">
+        className="w-full flex items-center justify-between px-4 py-3 text-[15px] text-foreground hover:bg-muted/40 transition-colors">
         {selected.length===0 ? (
           <span className="font-medium text-foreground/50">{label}</span>
         ) : (
@@ -378,7 +378,7 @@ function ExpandableCheckList({label,options,selected,onToggle}:{
           <div className="px-3 py-2 border-b border-border">
             <input type="text" placeholder={`Search ${label.toLowerCase()}...`} value={search}
               onChange={e=>setSearch(e.target.value)}
-              className="w-full h-8 px-3 rounded-md border border-border bg-background text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]/30"/>
+              className="w-full h-8 px-3 rounded-md border border-border bg-background text-[13px] text-foreground focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]/30"/>
           </div>
           <div className="max-h-56 overflow-y-auto divide-y divide-border/40">
             {filtered.map(opt=>{
@@ -395,7 +395,7 @@ function ExpandableCheckList({label,options,selected,onToggle}:{
                 </label>
               );
             })}
-            {filtered.length===0 && <p className="px-4 py-3 text-sm text-muted-foreground">No results</p>}
+            {filtered.length===0 && <p className="px-4 py-3 text-[15px] text-foreground">No results</p>}
           </div>
         </div>
       )}
@@ -414,7 +414,7 @@ function ConfirmRow({checked,onChange,label,sub}:{checked:boolean;onChange:(v:bo
       </div>
       <div className="flex-1">
         <p className={`text-[13.5px] font-medium leading-snug ${checked?"text-[#2D6A4F]":"text-foreground"}`}>{label}</p>
-        {sub && <p className="text-[12px] text-foreground/70 mt-1 leading-relaxed">{sub}</p>}
+        {sub && <p className="text-[13px] text-foreground/70 mt-1 leading-relaxed">{sub}</p>}
       </div>
       <input type="checkbox" checked={checked} onChange={e=>onChange(e.target.checked)} className="sr-only"/>
     </label>
@@ -424,7 +424,7 @@ function ConfirmRow({checked,onChange,label,sub}:{checked:boolean;onChange:(v:bo
 // Thin section label between groups of questions
 function SectionLabel({label}:{label:string;}){
   return (
-    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground pt-2">{label}</p>
+    <p className="text-[11px] font-bold uppercase tracking-widest text-foreground pt-2">{label}</p>
   );
 }
 
@@ -779,14 +779,14 @@ export function FindPartnerModalDashboard({
             <Sparkles className="w-4 h-4 text-white"/>
           </div>
           <div className="min-w-0">
-            <span className="text-sm font-semibold text-foreground">Get Matched</span>
+            <span className="text-[15px] font-semibold text-foreground">Get Matched</span>
             {partnershipTitle&&appState==="form"&&formStep>0&&(
-              <span className="text-xs text-muted-foreground ml-2">— {partnershipTitle}</span>
+              <span className="text-[13px] text-foreground ml-2">— {partnershipTitle}</span>
             )}
           </div>
         </div>
         <button type="button" onClick={onClose}
-          className="shrink-0 text-xs font-medium text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg hover:bg-muted transition-colors">
+          className="shrink-0 text-[13px] font-medium text-foreground hover:text-foreground px-3 py-1.5 rounded-lg hover:bg-muted transition-colors">
           Close ✕
         </button>
       </div>
@@ -801,25 +801,25 @@ export function FindPartnerModalDashboard({
               <Sparkles className="w-8 h-8 text-[#2D6A4F]"/>
             </div>
             <div className="max-w-md">
-              <h2 className="text-2xl font-bold text-foreground mb-3">Start a new partnership request?</h2>
-              <p className="text-sm text-muted-foreground leading-relaxed">You've recently formed a partnership. Starting fresh replaces your current listing. Confirmed partners stay saved in Portfolio.</p>
+              <h2 className="text-[25px] font-bold text-foreground mb-3">Start a new partnership request?</h2>
+              <p className="text-[15px] text-foreground leading-relaxed">You've recently formed a partnership. Starting fresh replaces your current listing. Confirmed partners stay saved in Portfolio.</p>
             </div>
             <div className="flex gap-3 w-full max-w-xs">
-              <button type="button" onClick={onClose} className="flex-1 h-11 rounded-full border border-border text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+              <button type="button" onClick={onClose} className="flex-1 h-11 rounded-full border border-border text-[15px] font-medium text-foreground hover:text-foreground transition-colors">Cancel</button>
               <button type="button" onClick={async()=>{
                 if(!orgProfile) return;
                 await supabase.from("organizations").update({partnership_formed:false,partnership_listed:false,partnership_title:null,partnership_sought:null}).eq("id",orgProfile.id);
                 const{data:freshOrg}=await supabase.from("organizations").select("id,organisation_name,description,sector,country,organisation_type,needs,offers,sdgs,website,email,verification_status,partnership_listed,partnership_formed,partnership_title").eq("id",orgProfile.id).single();
                 setOrgProfile(freshOrg);setPartnershipTitle("");setFreeText("");setAppState("form");goToStep(0);
-              }} className="flex-1 h-11 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-semibold transition-colors">Start fresh</button>
+              }} className="flex-1 h-11 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-semibold transition-colors">Start fresh</button>
             </div>
           </div>
         )}
 
         {appState==="no_org"&&(
           <div className="flex flex-col items-center justify-center flex-1 gap-5 text-center px-8">
-            <h2 className="text-xl font-bold text-foreground">Get Matched is for organisations</h2>
-            <p className="text-muted-foreground max-w-sm text-sm">
+            <h2 className="text-[21px] font-bold text-foreground">Get Matched is for organisations</h2>
+            <p className="text-foreground max-w-sm text-[15px]">
               Create an organisation profile first to access partnership matching. If you're an
               independent consultant, you can{" "}
               <Link href="/dashboard/upgrade-organisation?type=consultancy" onClick={onClose}
@@ -828,27 +828,27 @@ export function FindPartnerModalDashboard({
               </Link>{" "}
               instead.
             </p>
-            <button type="button" onClick={onClose} className="h-10 px-6 rounded-full bg-[#2D6A4F] text-white text-sm font-semibold">Close</button>
+            <button type="button" onClick={onClose} className="h-10 px-6 rounded-full bg-[#2D6A4F] text-white text-[15px] font-semibold">Close</button>
           </div>
         )}
         {appState==="requires_upgrade"&&(
           <div className="flex flex-col items-center justify-center flex-1 gap-5 text-center px-8">
-            <h2 className="text-xl font-bold text-foreground">Get Matched is a Plus feature</h2>
-            <p className="text-muted-foreground max-w-sm text-sm">
+            <h2 className="text-[21px] font-bold text-foreground">Get Matched is a Plus feature</h2>
+            <p className="text-foreground max-w-sm text-[15px]">
               AI-powered partnership matching is available on Plus and above. Upgrade your plan to see your matches.
             </p>
             <Link href="/dashboard/settings?tab=billing" onClick={onClose}
-              className="h-10 px-6 rounded-full bg-[#2D6A4F] text-white text-sm font-semibold flex items-center justify-center">
+              className="h-10 px-6 rounded-full bg-[#2D6A4F] text-white text-[15px] font-semibold flex items-center justify-center">
               View plans
             </Link>
-            <button type="button" onClick={onClose} className="h-10 px-6 rounded-full border border-border text-sm font-semibold">Close</button>
+            <button type="button" onClick={onClose} className="h-10 px-6 rounded-full border border-border text-[15px] font-semibold">Close</button>
           </div>
         )}
         {appState==="rate_limited"&&(
           <div className="flex flex-col items-center justify-center flex-1 gap-5 text-center px-8">
-            <h2 className="text-xl font-bold text-foreground">Come back in 7 hours</h2>
-            <p className="text-muted-foreground max-w-sm text-sm">You can run Get Matched once every 7 hours to keep listings current.</p>
-            <button type="button" onClick={onClose} className="h-10 px-6 rounded-full bg-[#2D6A4F] text-white text-sm font-semibold">Close</button>
+            <h2 className="text-[21px] font-bold text-foreground">Come back in 7 hours</h2>
+            <p className="text-foreground max-w-sm text-[15px]">You can run Get Matched once every 7 hours to keep listings current.</p>
+            <button type="button" onClick={onClose} className="h-10 px-6 rounded-full bg-[#2D6A4F] text-white text-[15px] font-semibold">Close</button>
           </div>
         )}
 
@@ -858,8 +858,8 @@ export function FindPartnerModalDashboard({
               <Loader2 className="w-9 h-9 text-[#2D6A4F] animate-spin"/>
             </div>
             <div>
-              <h2 className="text-xl font-bold text-foreground mb-2">Finding your matches</h2>
-              <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">Analysing needs, offers, sectors, SDG alignment, readiness signals, and working style...</p>
+              <h2 className="text-[21px] font-bold text-foreground mb-2">Finding your matches</h2>
+              <p className="text-[15px] text-foreground max-w-sm leading-relaxed">Analysing needs, offers, sectors, SDG alignment, readiness signals, and working style...</p>
             </div>
           </div>
         )}
@@ -872,26 +872,26 @@ export function FindPartnerModalDashboard({
                   <CheckCircle2 className="w-5 h-5 text-white"/>
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-foreground">{listPublicly?"You're listed":"Matches found"}</h2>
-                  <p className="text-sm text-muted-foreground mt-0.5">{listPublicly?"Your organisation now appears in the Partnerships directory.":"AI has identified potential matches based on your brief."}</p>
+                  <h2 className="text-[17px] font-bold text-foreground">{listPublicly?"You're listed":"Matches found"}</h2>
+                  <p className="text-[15px] text-foreground mt-0.5">{listPublicly?"Your organisation now appears in the Partnerships directory.":"AI has identified potential matches based on your brief."}</p>
                 </div>
               </div>
               {matches.length===0?(
                 <div className="rounded-2xl border border-border p-10 text-center space-y-3">
-                  <p className="text-base font-bold text-foreground">No matches found yet</p>
-                  <p className="text-sm text-muted-foreground max-w-xs mx-auto">The Natives team has been notified and will follow up. Check back as more organisations join.</p>
+                  <p className="text-[17px] font-bold text-foreground">No matches found yet</p>
+                  <p className="text-[15px] text-foreground max-w-xs mx-auto">The Natives team has been notified and will follow up. Check back as more organisations join.</p>
                 </div>
               ):(
                 <div className="space-y-4">
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                    <p className="text-[13px] font-bold uppercase tracking-widest text-foreground">
                       {Math.min(matches.length,matchLimit==="all"?matches.length:matchLimit)} of {matches.length} match{matches.length!==1?"es":""}
                     </p>
                     <div className="flex items-center gap-1.5">
                       {([5,10,20,"all"] as const).map(opt=>(
                         <button key={opt} type="button" onClick={()=>setMatchLimit(opt)}
-                          className={`h-7 px-3 rounded-full text-xs font-semibold border transition-colors ${
-                            matchLimit===opt?"bg-[#2D6A4F] text-white border-[#2D6A4F]":"border-border text-muted-foreground hover:border-[#2D6A4F]/40"
+                          className={`h-7 px-3 rounded-full text-[13px] font-semibold border transition-colors ${
+                            matchLimit===opt?"bg-[#2D6A4F] text-white border-[#2D6A4F]":"border-border text-foreground hover:border-[#2D6A4F]/40"
                           }`}>
                           {opt==="all"?"All":`Top ${opt}`}
                         </button>
@@ -909,66 +909,66 @@ export function FindPartnerModalDashboard({
                             <div className="flex items-center gap-2 mb-1">
                               <p className="font-bold text-foreground">{match.org.organisation_name}</p>
                               {match.org.verification_status==="verified"&&(
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[rgba(45,106,79,0.12)] text-[#2D6A4F]">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-[rgba(45,106,79,0.12)] text-[#2D6A4F]">
                                   <ShieldCheck className="w-3 h-3"/>Verified
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-muted-foreground capitalize">
+                            <p className="text-[13px] text-foreground capitalize">
                               {match.org.organisation_type?.replace(/_/g," ")}
                               {countries.length>0&&` · ${countries.join(", ")}`}
                             </p>
-                            {match.org.description&&<p className="text-xs text-muted-foreground/80 mt-1 leading-relaxed">{match.org.description}</p>}
+                            {match.org.description&&<p className="text-[13px] text-foreground mt-1 leading-relaxed">{match.org.description}</p>}
                           </div>
                           <div className="shrink-0 text-right">
-                            <div className="text-3xl font-black text-[#2D6A4F]">{match.fit_score}</div>
-                            <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">fit score</div>
+                            <div className="text-[31px] font-black text-[#2D6A4F]">{match.fit_score}</div>
+                            <div className="text-[11px] font-semibold uppercase tracking-wide text-foreground">fit score</div>
                           </div>
                         </div>
                         <div className="px-6 py-5 space-y-4">
                           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[rgba(196,92,38,0.08)]">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-[#C45C26]">Synergy</span>
-                            <span className="text-xs text-muted-foreground">{match.key_synergy}</span>
+                            <span className="text-[11px] font-black uppercase tracking-widest text-[#C45C26]">Synergy</span>
+                            <span className="text-[13px] text-foreground">{match.key_synergy}</span>
                           </div>
-                          <p className="text-sm text-muted-foreground leading-relaxed">{match.rationale}</p>
+                          <p className="text-[15px] text-foreground leading-relaxed">{match.rationale}</p>
                           {composingInvite===match.org_id?(
                             <div className="space-y-3 pt-3 border-t border-border">
                               <div className="flex items-center justify-between">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                <p className="text-[11px] font-black uppercase tracking-widest text-foreground">
                                   {draftLoading?"Drafting...":draftRequiresUpgrade?"Upgrade for AI drafting":draftFailed?"Edit below":"AI-drafted message"}
                                 </p>
                                 {!draftLoading&&!draftRequiresUpgrade&&(
                                   <button type="button" onClick={()=>generateDraft(match)}
-                                    className="flex items-center gap-1 text-[10px] font-semibold text-[#2D6A4F] hover:underline">
+                                    className="flex items-center gap-1 text-[11px] font-semibold text-[#2D6A4F] hover:underline">
                                     <Sparkles className="w-3 h-3"/>Regenerate
                                   </button>
                                 )}
                               </div>
                               {draftLoading?(
-                                <div className="h-24 rounded-lg border border-border bg-muted/30 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                                <div className="h-24 rounded-lg border border-border bg-muted/30 flex items-center justify-center gap-2 text-[13px] text-foreground">
                                   <Loader2 className="w-3.5 h-3.5 animate-spin text-[#2D6A4F]"/>Drafting...
                                 </div>
                               ):(
                                 <>
                                   {draftRequiresUpgrade&&(
-                                    <p className="text-xs text-[#C45C26]">
+                                    <p className="text-[13px] text-[#C45C26]">
                                       AI-drafted outreach needs an upgrade.{" "}
                                       <button type="button" onClick={()=>navigate("/dashboard/settings?tab=billing")} className="underline font-medium">Upgrade</button>
                                     </p>
                                   )}
                                   <textarea value={draftMessage} onChange={e=>setDraftMessage(e.target.value)}
                                     rows={5} placeholder="Write your message here..."
-                                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"/>
+                                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[15px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"/>
                                 </>
                               )}
                               <div className="flex items-center gap-2">
                                 <button type="button" onClick={()=>setComposingInvite(null)}
-                                  className="h-9 px-4 rounded-full border border-border text-xs text-muted-foreground hover:text-foreground transition-colors">
+                                  className="h-9 px-4 rounded-full border border-border text-[13px] text-foreground hover:text-foreground transition-colors">
                                   Cancel
                                 </button>
                                 <button type="button" onClick={()=>sendInvite(match,draftMessage)}
                                   disabled={sending||draftLoading||!draftMessage.trim()}
-                                  className="h-9 px-6 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-xs font-bold disabled:opacity-40 transition-colors flex items-center gap-2 ml-auto">
+                                  className="h-9 px-6 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[13px] font-bold disabled:opacity-40 transition-colors flex items-center gap-2 ml-auto">
                                   {sending?<><Loader2 className="w-3.5 h-3.5 animate-spin"/>Sending...</>:"Send"}
                                 </button>
                               </div>
@@ -976,18 +976,18 @@ export function FindPartnerModalDashboard({
                           ):(
                             <div className="flex items-center gap-3 pt-3 border-t border-border">
                               {invited?(
-                                <span className="flex items-center gap-1.5 text-sm font-semibold text-[#2D6A4F]">
+                                <span className="flex items-center gap-1.5 text-[15px] font-semibold text-[#2D6A4F]">
                                   <CheckCircle2 className="w-4 h-4"/>Invitation sent
                                 </span>
                               ):(
                                 <button type="button" onClick={()=>openComposer(match)}
-                                  className="h-10 px-6 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-xs font-bold transition-colors">
+                                  className="h-10 px-6 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[13px] font-bold transition-colors">
                                   Reach out
                                 </button>
                               )}
                               {match.org.website&&match.org.website!=="https://"&&(
                                 <a href={match.org.website} target="_blank" rel="noopener noreferrer"
-                                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors ml-auto">
+                                  className="flex items-center gap-1.5 text-[13px] text-foreground hover:text-foreground transition-colors ml-auto">
                                   <ExternalLink className="w-3.5 h-3.5"/>Website
                                 </a>
                               )}
@@ -1000,7 +1000,7 @@ export function FindPartnerModalDashboard({
                 </div>
               )}
               <button type="button" onClick={onClose}
-                className="w-full py-3.5 rounded-full border border-border text-sm font-semibold text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors">
+                className="w-full py-3.5 rounded-full border border-border text-[15px] font-semibold text-foreground hover:text-foreground hover:border-foreground/30 transition-colors">
                 Done
               </button>
             </div>
@@ -1037,19 +1037,19 @@ export function FindPartnerModalDashboard({
                         <input type="text"
                           placeholder="e.g. Research partner for Nigeria health programme"
                           value={partnershipTitle} onChange={e=>setPartnershipTitle(e.target.value)}
-                          className="w-full h-11 px-4 rounded-lg border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors"/>
+                          className="w-full h-11 px-4 rounded-lg border border-border bg-background text-[15px] text-foreground placeholder:text-foreground focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors"/>
                       </Field>
 
                       <Field label="How would you like to describe your need?" required>
                         <div className="flex rounded-lg border border-border overflow-hidden">
                           <button type="button" onClick={()=>setUploadMode("text")}
-                            className={`flex-1 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                            className={`flex-1 py-2.5 text-[15px] font-medium transition-colors flex items-center justify-center gap-2 ${
                               uploadMode==="text"?"bg-foreground text-background":"text-foreground/70 hover:bg-muted"
                             }`}>
                             <Sparkles className="w-4 h-4"/>Write a description
                           </button>
                           <button type="button" onClick={()=>setUploadMode("doc")}
-                            className={`flex-1 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+                            className={`flex-1 py-2.5 text-[15px] font-medium transition-colors flex items-center justify-center gap-2 ${
                               uploadMode==="doc"?"bg-foreground text-background":"text-foreground/70 hover:bg-muted"
                             }`}>
                             <Upload className="w-4 h-4"/>Upload a document
@@ -1074,11 +1074,11 @@ export function FindPartnerModalDashboard({
                             <button type="button" onClick={()=>fileRef.current?.click()}
                               className="w-full border-2 border-dashed border-border rounded-lg py-10 flex flex-col items-center gap-3 hover:border-[#2D6A4F]/40 hover:bg-[#2D6A4F]/5 transition-colors group">
                               <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center group-hover:bg-[#2D6A4F]/10 transition-colors">
-                                <Upload className="w-6 h-6 text-muted-foreground group-hover:text-[#2D6A4F] transition-colors"/>
+                                <Upload className="w-6 h-6 text-foreground group-hover:text-[#2D6A4F] transition-colors"/>
                               </div>
                               <div className="text-center">
-                                <p className="text-sm font-semibold text-foreground">Click to upload</p>
-                                <p className="text-xs text-muted-foreground mt-1">PDF, DOC, or DOCX — max 10MB</p>
+                                <p className="text-[15px] font-semibold text-foreground">Click to upload</p>
+                                <p className="text-[13px] text-foreground mt-1">PDF, DOC, or DOCX — max 10MB</p>
                               </div>
                             </button>
                           ):(
@@ -1087,27 +1087,27 @@ export function FindPartnerModalDashboard({
                                 <FileText className="w-5 h-5 text-white"/>
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-foreground truncate">{uploadedFile.name}</p>
-                                <p className="text-xs text-muted-foreground">{(uploadedFile.size/1024).toFixed(0)} KB</p>
+                                <p className="text-[15px] font-semibold text-foreground truncate">{uploadedFile.name}</p>
+                                <p className="text-[13px] text-foreground">{(uploadedFile.size/1024).toFixed(0)} KB</p>
                               </div>
                               <button type="button" onClick={()=>{setUploadedFile(null);if(fileRef.current) fileRef.current.value="";}}
-                                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                                className="p-1.5 rounded-lg hover:bg-muted text-foreground hover:text-foreground transition-colors">
                                 <X className="w-4 h-4"/>
                               </button>
                             </div>
                           )}
                           {uploadedFile&&(
                             <div className="mt-4">
-                              <p className="text-xs font-medium text-muted-foreground mb-2">Add extra context <span className="font-normal">(optional)</span></p>
+                              <p className="text-[13px] font-medium text-foreground mb-2">Add extra context <span className="font-normal">(optional)</span></p>
                               <textarea rows={3} placeholder="Any details not in the document..."
                                 value={freeText} onChange={e=>setFreeText(e.target.value)}
-                                className="w-full px-4 py-3 rounded-lg border border-border bg-background text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 transition-colors"/>
+                                className="w-full px-4 py-3 rounded-lg border border-border bg-background text-[15px] text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 transition-colors"/>
                             </div>
                           )}
                         </Field>
                       )}
                       {prefillError&&(
-                        <p className="text-[13px] text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded-lg px-4 py-3 border border-red-200 dark:border-red-800">
+                        <p className="text-[14px] text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded-lg px-4 py-3 border border-red-200 dark:border-red-800">
                           {prefillError}
                         </p>
                       )}
@@ -1359,8 +1359,8 @@ export function FindPartnerModalDashboard({
                             {/* Score bar */}
                             <div className="mb-4 space-y-2">
                               <div className="flex items-center justify-between">
-                                <span className="text-[13px] text-foreground font-medium">{ticked} of {total} documents ready</span>
-                                <span className="text-[13px] font-bold" style={{color:pct>=60?"#2D6A4F":pct>=30?"#C45C26":"#ef4444"}}>{pct}%</span>
+                                <span className="text-[14px] text-foreground font-medium">{ticked} of {total} documents ready</span>
+                                <span className="text-[14px] font-bold" style={{color:pct>=60?"#2D6A4F":pct>=30?"#C45C26":"#ef4444"}}>{pct}%</span>
                               </div>
                               <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                                 <div className="h-full rounded-full transition-all duration-300"
@@ -1370,7 +1370,7 @@ export function FindPartnerModalDashboard({
                             {/* Zero-state prompt */}
                             {isZero&&!ddConfirmedEmpty&&(
                               <div className="mb-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3.5 space-y-3">
-                                <p className="text-[13px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                                <p className="text-[14px] text-amber-800 dark:text-amber-300 leading-relaxed">
                                   Your DD readiness is at 0%. Partners who request documentation will find nothing on file. Tick what you genuinely have ready below, or confirm you have nothing to share right now.
                                 </p>
                                 <button type="button" onClick={()=>setDdConfirmedEmpty(true)}
@@ -1382,9 +1382,9 @@ export function FindPartnerModalDashboard({
                             {isZero&&ddConfirmedEmpty&&(
                               <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-lg bg-muted border border-border">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-foreground/50 shrink-0"><polyline points="20 6 9 17 4 12"/></svg>
-                                <p className="text-[13px] text-foreground/70">Confirmed — no documents right now.</p>
+                                <p className="text-[14px] text-foreground/70">Confirmed — no documents right now.</p>
                                 <button type="button" onClick={()=>setDdConfirmedEmpty(false)}
-                                  className="ml-auto text-[12px] text-foreground/50 hover:text-foreground underline underline-offset-2 transition-colors">
+                                  className="ml-auto text-[13px] text-foreground/50 hover:text-foreground underline underline-offset-2 transition-colors">
                                   Undo
                                 </button>
                               </div>
@@ -1402,14 +1402,14 @@ export function FindPartnerModalDashboard({
                                     </div>
                                     <div className="flex-1">
                                       <p className={`text-[13.5px] leading-snug ${on?"font-semibold text-[#2D6A4F]":"text-foreground"}`}>{label}</p>
-                                      <p className="text-[12px] text-foreground/60 mt-0.5">{sub}</p>
+                                      <p className="text-[13px] text-foreground/60 mt-0.5">{sub}</p>
                                     </div>
                                     <input type="checkbox" checked={on} onChange={()=>toggleDd(key)} className="sr-only"/>
                                   </label>
                                 );
                               })}
                             </div>
-                            <p className="text-[12px] text-foreground/50 mt-3">Updating this also updates your organisation profile's DD readiness score.</p>
+                            <p className="text-[13px] text-foreground/50 mt-3">Updating this also updates your organisation profile's DD readiness score.</p>
                           </Field>
                         );
                       })()}
@@ -1486,7 +1486,7 @@ export function FindPartnerModalDashboard({
                           onChange={v=>setF("partnership_prior_experience",v===""?null:v==="true")}/>
                         {form.partnership_prior_experience===true&&(
                           <div className="mt-4 space-y-2">
-                            <p className="text-[13px] text-foreground/70">Briefly describe one completed partnership — who with, what you did, and what came of it.</p>
+                            <p className="text-[14px] text-foreground/70">Briefly describe one completed partnership — who with, what you did, and what came of it.</p>
                             <Textarea
                               className="w-full text-[13.5px] resize-none rounded-lg border bg-background text-foreground"
                               placeholder="e.g. Co-implemented a WASH programme with WaterAid in Kaduna State 2022–23, reaching 12,000 households."
@@ -1542,7 +1542,7 @@ export function FindPartnerModalDashboard({
                             sub="Other organisations can find and express interest in your listing. Uncheck to run matching privately."/>
                         </div>
                         {!listPublicly&&(
-                          <p className="text-xs text-muted-foreground mt-3">Your details won't be listed publicly. The Natives team will follow up with matches directly.</p>
+                          <p className="text-[13px] text-foreground mt-3">Your details won't be listed publicly. The Natives team will follow up with matches directly.</p>
                         )}
                       </Field>
                     </div>
@@ -1563,7 +1563,7 @@ export function FindPartnerModalDashboard({
                       i===formStep?"bg-[#2D6A4F]":i<formStep?"bg-[#2D6A4F]/40":"bg-border"
                     }`}/>
                 ))}
-                <span className="text-xs text-muted-foreground ml-auto whitespace-nowrap">{formStep+1}/{STEPS.length}</span>
+                <span className="text-[13px] text-foreground ml-auto whitespace-nowrap">{formStep+1}/{STEPS.length}</span>
               </div>
 
               <StepFooter
