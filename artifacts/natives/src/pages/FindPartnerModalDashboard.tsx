@@ -14,6 +14,7 @@ import {
 import { SECTOR_OPTIONS as SECTORS } from "@/lib/sectors";
 import { COUNTRIES } from "@/lib/countries";
 import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
+import { normalizeArr } from "@/lib/normalizeArr";
 
 const RATE_LIMIT_ENABLED = false;
 
@@ -900,10 +901,7 @@ export function FindPartnerModalDashboard({
                   {(matchLimit==="all"?matches:matches.slice(0,matchLimit)).map(match=>{
                     const invited=sentInvites.has(match.org_id);
                     const sending=sendingInvite===match.org_id;
-                    const countries=Array.isArray(match.org.country)?match.org.country
-                      :String(match.org.country??"").startsWith("{")
-                        ?String(match.org.country).slice(1,-1).split(",").map((s:string)=>s.replace(/"/g,"").trim())
-                        :[match.org.country];
+                    const countries=normalizeArr(match.org.country);
                     return (
                       <div key={match.org_id} className="rounded-2xl border border-border overflow-hidden hover:border-[#2D6A4F]/30 transition-colors">
                         <div className="px-6 py-5 border-b border-border flex items-start justify-between gap-4">
