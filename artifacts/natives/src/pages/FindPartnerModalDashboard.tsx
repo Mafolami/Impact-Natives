@@ -361,16 +361,19 @@ function ExpandableCheckList({label,options,selected,onToggle}:{
     <div className="border border-border rounded-lg overflow-hidden">
       <button type="button" onClick={()=>setOpen(v=>!v)}
         className="w-full flex items-center justify-between px-4 py-3 text-[15px] text-foreground hover:bg-muted/40 transition-colors">
-        {selected.length===0 ? (
-          <span className="font-medium text-foreground/50">{label}</span>
-        ) : (
-          <span className="font-medium text-foreground truncate pr-2">
-            {selected.length <= 3
-              ? options.filter(o=>selected.includes(o.value)).map(o=>o.label).join(", ")
-              : `${options.filter(o=>selected.includes(o.value)).slice(0,3).map(o=>o.label).join(", ")} +${selected.length - 3} more`
-            }
-          </span>
-        )}
+        {(() => {
+          const matched = options.filter(o=>selected.includes(o.value));
+          return matched.length===0 ? (
+            <span className="font-medium text-foreground/50">{label}</span>
+          ) : (
+            <span className="font-medium text-foreground truncate pr-2">
+              {matched.length <= 3
+                ? matched.map(o=>o.label).join(", ")
+                : `${matched.slice(0,3).map(o=>o.label).join(", ")} +${matched.length - 3} more`
+              }
+            </span>
+          );
+        })()}
         {open?<ChevronUp className="w-4 h-4 text-foreground/40 shrink-0"/>:<ChevronDown className="w-4 h-4 text-foreground/40 shrink-0"/>}
       </button>
       {open && (
