@@ -7,6 +7,9 @@ export default {
       colors: {
         primary: "#C45C26",
         trust: "#2D6A4F"
+      },
+      fontFamily: {
+        sans: ['"Satoshi"', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif']
       }
     }
   },
