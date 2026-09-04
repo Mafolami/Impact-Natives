@@ -46,7 +46,7 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave, mouExecuted }
       {/* Org name + save */}
       <div className="flex items-center justify-between gap-2 mb-0.5">
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className={`text-sm font-bold truncate ${selected ? "text-[#2D6A4F]" : "text-foreground"}`}>
+          <span className={`text-[15px] font-bold truncate ${selected ? "text-[#2D6A4F]" : "text-foreground"}`}>
             {org.organisation_name}
           </span>
           {isVerified && <ShieldCheck className="w-3 h-3 shrink-0 text-[#2D6A4F]" />}
@@ -68,7 +68,7 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave, mouExecuted }
       {/* Seeking snippet -- partnership_sought is far more reliably
           populated than partnership_title, which is often null */}
       {(org.partnership_sought || normalizeArr(org.needs).length > 0) && (
-        <p className="text-xs text-black dark:text-white leading-snug line-clamp-2">
+        <p className="text-[13px] text-black dark:text-white leading-snug line-clamp-2">
           Seeking {org.partnership_sought || normalizeArr(org.needs).join(", ")}
         </p>
       )}
@@ -184,7 +184,7 @@ export default function DashboardPartnerships() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <input type="text" placeholder="Search listings..." value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full h-9 pl-9 pr-3 rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#452A1D]/25 transition-colors bg-muted border border-border" />          </div>
+              className="w-full h-9 pl-9 pr-3 rounded-lg text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#452A1D]/25 transition-colors bg-muted border border-border" />          </div>
           <div ref={filterBarRef} className="flex items-center gap-1.5 relative">
             {([
               {
@@ -273,7 +273,7 @@ export default function DashboardPartnerships() {
                           <label key={t.label} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-muted transition-colors">
                             <input type="checkbox" checked={t.checked} onChange={e => t.set(e.target.checked)}
                               className="w-3.5 h-3.5 rounded accent-[#2D6A4F]" />
-                            <span className="text-xs text-foreground font-medium">{t.label}</span>
+                            <span className="text-[13px] text-foreground font-medium">{t.label}</span>
                           </label>
                         ))}
                         {(favoritesOnly || ddReadyOnly) && (
@@ -290,7 +290,7 @@ export default function DashboardPartnerships() {
                           return (
                             <button key={o.value} type="button"
                               onClick={() => f.toggle(o.value)}
-                              className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-xs text-left transition-colors ${
+                              className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[13px] text-left transition-colors ${
                                 on ? "bg-[#2D6A4F]/10 text-[#2D6A4F] font-semibold" : "text-foreground hover:bg-muted"
                               }`}>
                               <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
@@ -325,7 +325,7 @@ export default function DashboardPartnerships() {
           <div className="flex-1" />
           {user && (
             <button type="button" onClick={() => setShowModal(true)}
-              className="h-9 px-4 rounded-full text-white text-xs font-bold transition-all hover:brightness-110 active:scale-[0.98]"
+              className="h-9 px-4 rounded-full text-white text-[13px] font-bold transition-all hover:brightness-110 active:scale-[0.98]"
               style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
               + Get Matched
             </button>
@@ -333,7 +333,7 @@ export default function DashboardPartnerships() {
         </div>
 
         {deepLinkMissing && (
-          <div className="shrink-0 px-5 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-900 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between gap-2">
+          <div className="shrink-0 px-5 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-900 text-[13px] text-amber-800 dark:text-amber-300 flex items-center justify-between gap-2">
             <span>The listing you followed a link to isn't currently available — it may be unpublished or no longer partnership-listed.</span>
             <button type="button" onClick={() => setDeepLinkMissing(false)} className="shrink-0 hover:opacity-70 font-medium">
               Dismiss
@@ -350,8 +350,8 @@ export default function DashboardPartnerships() {
           <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center px-6">
             <Handshake className="w-7 h-7 text-muted-foreground/50" />
             <div>
-              <p className="text-sm font-bold text-foreground mb-1">{orgs.length === 0 ? "No listings yet" : "No results"}</p>
-              <p className="text-xs text-black dark:text-white">{orgs.length === 0 ? "Be the first to list your organisation." : "Try a different search or filter."}</p>
+              <p className="text-[15px] font-bold text-foreground mb-1">{orgs.length === 0 ? "No listings yet" : "No results"}</p>
+              <p className="text-[13px] text-black dark:text-white">{orgs.length === 0 ? "Be the first to list your organisation." : "Try a different search or filter."}</p>
             </div>
           </div>
         ) : (

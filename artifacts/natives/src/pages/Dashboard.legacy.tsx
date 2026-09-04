@@ -129,12 +129,12 @@ export default function Dashboard() {
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <p className="text-sm text-gray-500">Welcome back</p>
-          <h1 className="text-2xl font-semibold text-gray-900">
+          <p className="text-[15px] text-gray-500">Welcome back</p>
+          <h1 className="text-[25px] font-semibold text-gray-900">
             {displayName}
           </h1>
           {profile?.org_name && (
-            <p className="text-sm text-gray-500 mt-0.5">{profile.org_name}</p>
+            <p className="text-[15px] text-gray-500 mt-0.5">{profile.org_name}</p>
           )}
         </div>
 
@@ -163,7 +163,7 @@ export default function Dashboard() {
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`text-sm px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`text-[15px] px-4 py-2 rounded-lg font-medium transition-colors ${
                 tab === t
                   ? "bg-white text-gray-900 shadow-sm"
                   : "text-gray-500 hover:text-gray-700"
@@ -171,13 +171,13 @@ export default function Dashboard() {
             >
               {t}
               {t === "My Initiatives" && myInitiatives.length > 0 && (
-                <span className="ml-1.5 text-xs text-gray-400">({myInitiatives.length})</span>
+                <span className="ml-1.5 text-[13px] text-gray-400">({myInitiatives.length})</span>
               )}
               {t === "Saved" && saved.length > 0 && (
-                <span className="ml-1.5 text-xs text-gray-400">({saved.length})</span>
+                <span className="ml-1.5 text-[13px] text-gray-400">({saved.length})</span>
               )}
               {t === "Expressions of Interest" && eois.length > 0 && (
-                <span className="ml-1.5 text-xs text-gray-400">({eois.length})</span>
+                <span className="ml-1.5 text-[13px] text-gray-400">({eois.length})</span>
               )}
             </button>
           ))}
@@ -256,13 +256,13 @@ export default function Dashboard() {
                             </h3>
                           </Link>
                         ) : (
-                          <p className="font-medium text-gray-400 italic text-sm">Initiative unavailable</p>
+                          <p className="font-medium text-gray-400 italic text-[15px]">Initiative unavailable</p>
                         )}
                         <div className="flex items-center gap-3 mt-2">
-                          <span className="text-xs bg-[#2D6A4F]/10 text-[#2D6A4F] px-2 py-0.5 rounded-full font-medium">
+                          <span className="text-[13px] bg-[#2D6A4F]/10 text-[#2D6A4F] px-2 py-0.5 rounded-full font-medium">
                             {eoi.partnership_type}
                           </span>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-[13px] text-gray-400">
                             {new Date(eoi.created_at).toLocaleDateString("en-GB", {
                               day: "numeric",
                               month: "short",
@@ -271,7 +271,7 @@ export default function Dashboard() {
                           </span>
                         </div>
                         {eoi.message && (
-                          <p className="text-sm text-gray-500 mt-2 leading-relaxed">{eoi.message}</p>
+                          <p className="text-[15px] text-gray-500 mt-2 leading-relaxed">{eoi.message}</p>
                         )}
                       </div>
                     ))}
@@ -299,11 +299,11 @@ function InitiativeCard({
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1.5">
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${status.color}`}>
+            <span className={`text-[13px] px-2 py-0.5 rounded-full font-medium ${status.color}`}>
               {status.label}
             </span>
             {initiative.sectors.slice(0, 2).map((s) => (
-              <Badge key={s} variant="secondary" className="text-xs bg-gray-100 text-gray-600 border-0">
+              <Badge key={s} variant="secondary" className="text-[13px] bg-gray-100 text-gray-600 border-0">
                 {s}
               </Badge>
             ))}
@@ -313,7 +313,7 @@ function InitiativeCard({
               {initiative.title}
             </h3>
           </Link>
-          <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400 flex-wrap">
+          <div className="flex items-center gap-3 mt-1.5 text-[13px] text-gray-400 flex-wrap">
             <span className="flex items-center gap-1">
               <Building2 className="w-3 h-3" />
               {initiative.submitter_org}
@@ -345,7 +345,7 @@ function NavCard({
   return (
     <Link href={href}>
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center justify-between hover:border-[#2D6A4F]/30 hover:shadow-md transition-all cursor-pointer group">
-        <div className="flex items-center gap-3 text-sm font-medium text-gray-700">
+        <div className="flex items-center gap-3 text-[15px] font-medium text-gray-700">
           <span className="text-[#2D6A4F]">{icon}</span>
           {label}
         </div>
@@ -366,7 +366,7 @@ function EmptyState({
 }) {
   return (
     <div className="text-center py-12 bg-white rounded-xl border border-gray-100 shadow-sm">
-      <p className="text-gray-500 text-sm mb-4">{message}</p>
+      <p className="text-gray-500 text-[15px] mb-4">{message}</p>
       <Link href={href}>
         <Button variant="outline" size="sm">
           {cta}

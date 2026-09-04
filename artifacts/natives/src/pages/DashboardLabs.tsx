@@ -76,7 +76,7 @@ function LabDetail({ lab, onBack }: { lab: LabRow; onBack: () => void }) {
   return (
     <div className="space-y-6">
       <button type="button" onClick={onBack}
-        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        className="flex items-center gap-1.5 text-[15px] text-muted-foreground hover:text-foreground transition-colors">
         <ArrowLeft className="w-3.5 h-3.5" />
         Back to Labs
       </button>
@@ -85,15 +85,15 @@ function LabDetail({ lab, onBack }: { lab: LabRow; onBack: () => void }) {
       <div className="rounded-xl px-5 py-4 space-y-1" style={{ background: s.bg }}>
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.dot }} />
-          <p className="text-sm font-semibold" style={{ color: s.dot }}>{s.label}</p>
+          <p className="text-[15px] font-semibold" style={{ color: s.dot }}>{s.label}</p>
         </div>
-        <p className="text-sm text-muted-foreground leading-relaxed">{s.description}</p>
+        <p className="text-[15px] text-muted-foreground leading-relaxed">{s.description}</p>
       </div>
 
       {/* Progress tracker — only for non-rejected */}
       {lab.status !== "rejected" && (
         <div className="rounded-xl border border-border bg-card px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Progress</p>
+          <p className="text-[13px] font-semibold uppercase tracking-wider text-muted-foreground mb-4">Progress</p>
           <div className="flex items-center gap-0">
             {STATUS_STEPS.map((step, i) => {
               const stepS = STATUS_MAP[step];
@@ -126,7 +126,7 @@ function LabDetail({ lab, onBack }: { lab: LabRow; onBack: () => void }) {
       {/* Submission details */}
       <div className="rounded-xl border border-border bg-card divide-y divide-border">
         <div className="px-5 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Submission details</p>
+          <p className="text-[13px] font-semibold uppercase tracking-wider text-muted-foreground">Submission details</p>
         </div>
 
         {[
@@ -137,17 +137,17 @@ function LabDetail({ lab, onBack }: { lab: LabRow; onBack: () => void }) {
           { label: "Budget",           value: [lab.budget_tier, lab.budget_range].filter(Boolean).join(" — ") },
         ].filter(r => r.value).map(({ label, value }) => (
           <div key={label} className="px-5 py-3">
-            <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
-            <p className="text-sm text-foreground leading-relaxed capitalize">{value}</p>
+            <p className="text-[13px] text-muted-foreground mb-0.5">{label}</p>
+            <p className="text-[15px] text-foreground leading-relaxed capitalize">{value}</p>
           </div>
         ))}
 
         {lab.desired_participants?.length > 0 && (
           <div className="px-5 py-3">
-            <p className="text-xs text-muted-foreground mb-2">Who should be in the room</p>
+            <p className="text-[13px] text-muted-foreground mb-2">Who should be in the room</p>
             <div className="flex flex-wrap gap-1.5">
               {lab.desired_participants.map((p) => (
-                <span key={p} className="text-xs px-2.5 py-1 rounded-full border border-border text-foreground">{p}</span>
+                <span key={p} className="text-[13px] px-2.5 py-1 rounded-full border border-border text-foreground">{p}</span>
               ))}
             </div>
           </div>
@@ -155,10 +155,10 @@ function LabDetail({ lab, onBack }: { lab: LabRow; onBack: () => void }) {
 
         {lab.expected_outcomes?.length > 0 && (
           <div className="px-5 py-3">
-            <p className="text-xs text-muted-foreground mb-2">Expected outcomes</p>
+            <p className="text-[13px] text-muted-foreground mb-2">Expected outcomes</p>
             <div className="flex flex-wrap gap-1.5">
               {lab.expected_outcomes.map((o) => (
-                <span key={o} className="text-xs px-2.5 py-1 rounded-full border border-border text-foreground">{o}</span>
+                <span key={o} className="text-[13px] px-2.5 py-1 rounded-full border border-border text-foreground">{o}</span>
               ))}
             </div>
           </div>
@@ -166,18 +166,18 @@ function LabDetail({ lab, onBack }: { lab: LabRow; onBack: () => void }) {
 
         {lab.idea_stages?.length > 0 && (
           <div className="px-5 py-3">
-            <p className="text-xs text-muted-foreground mb-2">Idea stage</p>
+            <p className="text-[13px] text-muted-foreground mb-2">Idea stage</p>
             <div className="flex flex-wrap gap-1.5">
               {lab.idea_stages.map((s) => (
-                <span key={s} className="text-xs px-2.5 py-1 rounded-full border border-border text-foreground">{s}</span>
+                <span key={s} className="text-[13px] px-2.5 py-1 rounded-full border border-border text-foreground">{s}</span>
               ))}
             </div>
           </div>
         )}
 
         <div className="px-5 py-3">
-          <p className="text-xs text-muted-foreground mb-0.5">Submitted</p>
-          <p className="text-sm text-foreground">{new Date(lab.created_at).toLocaleDateString("en-GB", {
+          <p className="text-[13px] text-muted-foreground mb-0.5">Submitted</p>
+          <p className="text-[15px] text-foreground">{new Date(lab.created_at).toLocaleDateString("en-GB", {
             day: "numeric", month: "long", year: "numeric"
           })}</p>
         </div>
@@ -185,14 +185,14 @@ function LabDetail({ lab, onBack }: { lab: LabRow; onBack: () => void }) {
 
       {/* Contact */}
       <div className="rounded-xl border border-border bg-muted/20 px-5 py-4">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Submitted by</p>
-        <p className="text-sm font-medium text-foreground">{lab.contact_name || "—"}</p>
-        {lab.organisation_name && <p className="text-xs text-muted-foreground">{lab.organisation_name}</p>}
-        <p className="text-xs text-muted-foreground">{lab.email}</p>
+        <p className="text-[13px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Submitted by</p>
+        <p className="text-[15px] font-medium text-foreground">{lab.contact_name || "—"}</p>
+        {lab.organisation_name && <p className="text-[13px] text-muted-foreground">{lab.organisation_name}</p>}
+        <p className="text-[13px] text-muted-foreground">{lab.email}</p>
       </div>
 
       {/* Help */}
-      <p className="text-xs text-muted-foreground text-center">
+      <p className="text-[13px] text-muted-foreground text-center">
         Questions? Reach out at{" "}
         <a href="mailto:hello@impactnatives.com" className="text-[#2D6A4F] hover:underline underline-offset-2">
           hello@impactnatives.com
@@ -232,7 +232,7 @@ export default function DashboardLabs() {
       <div className="space-y-6">
         <div className="flex items-center justify-end">
           <button type="button" onClick={() => setShowModal(true)}
-            className="rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
+            className="rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-medium transition-colors">
             + Commission a Lab
           </button>
         </div>
@@ -245,11 +245,11 @@ export default function DashboardLabs() {
           <div className="rounded-2xl border border-border bg-card p-12 text-center">
             <FlaskConical className="w-8 h-8 text-muted-foreground/40 mx-auto mb-4" />
             <p className="text-foreground font-medium mb-2">No Labs yet.</p>
-            <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
+            <p className="text-[15px] text-muted-foreground mb-6 max-w-sm mx-auto">
               Commission a Lab to bring together experts, organisations, and resources around a specific challenge.
             </p>
             <button type="button" onClick={() => setShowModal(true)}
-              className="rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
+              className="rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-medium transition-colors">
               Commission a Lab
             </button>
           </div>
@@ -264,22 +264,22 @@ export default function DashboardLabs() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1.5">
                         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.dot }} />
-                        <span className="text-xs text-muted-foreground">{s.label}</span>
+                        <span className="text-[13px] text-muted-foreground">{s.label}</span>
                         {lab.budget_range && (
                           <>
-                            <span className="text-xs text-muted-foreground">·</span>
-                            <span className="text-xs text-muted-foreground">{lab.budget_range}</span>
+                            <span className="text-[13px] text-muted-foreground">·</span>
+                            <span className="text-[13px] text-muted-foreground">{lab.budget_range}</span>
                           </>
                         )}
                       </div>
                       <p className="font-medium text-foreground group-hover:text-[#2D6A4F] transition-colors truncate">
                         {lab.problem ? lab.problem.slice(0, 80) + (lab.problem.length > 80 ? "..." : "") : "Lab request"}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-1 capitalize">
+                      <p className="text-[13px] text-muted-foreground mt-1 capitalize">
                         {lab.sector} · {lab.geography}
                       </p>
                     </div>
-                    <span className="text-xs text-muted-foreground shrink-0 mt-1">{timeAgo(lab.created_at)}</span>
+                    <span className="text-[13px] text-muted-foreground shrink-0 mt-1">{timeAgo(lab.created_at)}</span>
                   </div>
                 </button>
               );

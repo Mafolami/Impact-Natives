@@ -226,8 +226,8 @@ export default function DashboardPortfolioTrackRecord() {
           horizontal bar instead. */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="rounded-xl p-6 bg-white dark:bg-card border border-border">
-          <p className="text-base font-semibold text-black dark:text-white mb-1">Claims composition</p>
-          <p className="text-xs text-black dark:text-white opacity-60 mb-5">Confirmed vs. disputed, among claims you submitted.</p>
+          <p className="text-[17px] font-semibold text-black dark:text-white mb-1">Claims composition</p>
+          <p className="text-[13px] text-black dark:text-white opacity-60 mb-5">Confirmed vs. disputed, among claims you submitted.</p>
           {totalSubmitted > 0 ? (
             <div className="flex items-center gap-6">
               <div className="relative w-[140px] h-[140px] shrink-0">
@@ -240,23 +240,23 @@ export default function DashboardPortfolioTrackRecord() {
                   </PieChart>
                 </ChartContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <p className="text-xl font-bold text-black dark:text-white">{disputeRate}%</p>
+                  <p className="text-[21px] font-bold text-black dark:text-white">{disputeRate}%</p>
                   <p className="text-[9px] text-black dark:text-white opacity-60">disputed</p>
                 </div>
               </div>
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CONFIRMED_COLOR }} />
-                  <p className="text-sm text-black dark:text-white">Confirmed ({confirmedClaims.length})</p>
+                  <p className="text-[15px] text-black dark:text-white">Confirmed ({confirmedClaims.length})</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: DISPUTED_COLOR }} />
-                  <p className="text-sm text-black dark:text-white">Disputed ({disputedClaims.length})</p>
+                  <p className="text-[15px] text-black dark:text-white">Disputed ({disputedClaims.length})</p>
                 </div>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-black dark:text-white">No claims submitted yet.</p>
+            <p className="text-[15px] text-black dark:text-white">No claims submitted yet.</p>
           )}
           <p className="text-[10px] text-black dark:text-white opacity-60 mt-5 pt-3 border-t border-border">
             Source: claims you submitted, within the current filter.
@@ -265,10 +265,10 @@ export default function DashboardPortfolioTrackRecord() {
 
         <div className="rounded-xl p-6 bg-white dark:bg-card border border-border">
           <div className="flex items-center justify-between mb-1">
-            <p className="text-base font-semibold text-black dark:text-white">Evidence activation</p>
-            {evidenceRate !== null && <p className="text-xl font-medium text-black dark:text-white">{evidenceRate}%</p>}
+            <p className="text-[17px] font-semibold text-black dark:text-white">Evidence activation</p>
+            {evidenceRate !== null && <p className="text-[21px] font-medium text-black dark:text-white">{evidenceRate}%</p>}
           </div>
-          <p className="text-xs text-black dark:text-white opacity-60 mb-5">Agreed indicators with at least one submitted claim.</p>
+          <p className="text-[13px] text-black dark:text-white opacity-60 mb-5">Agreed indicators with at least one submitted claim.</p>
           {evidenceRate !== null ? (
             <>
               <ChartContainer config={evidenceChartConfig} className="w-full h-12 aspect-auto">
@@ -279,12 +279,12 @@ export default function DashboardPortfolioTrackRecord() {
                   <Bar dataKey="remaining" stackId="a" fill="hsl(var(--muted))" radius={[0, 6, 6, 0]} />
                 </BarChart>
               </ChartContainer>
-              <p className="text-sm text-black dark:text-white mt-3">
+              <p className="text-[15px] text-black dark:text-white mt-3">
                 {evidencedIndicators} of {filteredIndicators.length} agreed indicator{filteredIndicators.length !== 1 ? "s" : ""} evidenced
               </p>
             </>
           ) : (
-            <p className="text-sm text-black dark:text-white">No agreed indicators in this filter.</p>
+            <p className="text-[15px] text-black dark:text-white">No agreed indicators in this filter.</p>
           )}
           <p className="text-[10px] text-black dark:text-white opacity-60 mt-4 pt-3 border-t border-border">
             Source: submitted claims against agreed indicators, within the current filter.
@@ -293,7 +293,7 @@ export default function DashboardPortfolioTrackRecord() {
       </div>
 
       <button type="button" onClick={() => navigate("/dashboard/portfolio/milestones")}
-        className="text-xs text-[#2D6A4F] hover:underline">
+        className="text-[13px] text-[#2D6A4F] hover:underline">
         View milestones →
       </button>
     </div>
@@ -306,10 +306,10 @@ function FilterSelect({ label, value, onChange, options, allLabel }: {
 }) {
   return (
     <div className="flex items-center gap-2">
-      <label className="text-sm text-black dark:text-white">{label}:</label>
+      <label className="text-[15px] text-black dark:text-white">{label}:</label>
       <div className="relative">
         <select value={value} onChange={(e) => onChange(e.target.value)}
-          className="h-9 pl-3 pr-8 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white appearance-none">
+          className="h-9 pl-3 pr-8 rounded-lg border border-border bg-transparent text-[15px] text-black dark:text-white appearance-none">
           <option value="">{allLabel}</option>
           {options.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
         </select>
@@ -331,9 +331,9 @@ function StatTile({ icon: Icon, label, value, tone }: {
     <div className={`rounded-xl p-4 border ${toneClasses}`}>
       <div className="flex items-center gap-1.5 mb-1">
         <Icon className="w-3.5 h-3.5" />
-        <p className="text-xs">{label}</p>
+        <p className="text-[13px]">{label}</p>
       </div>
-      <p className="text-xl font-medium">{value}</p>
+      <p className="text-[21px] font-medium">{value}</p>
     </div>
   );
 }

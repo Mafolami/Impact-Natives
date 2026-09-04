@@ -47,10 +47,10 @@ function FeedCard({ event, currentUserId }: { event: FeedEvent; currentUserId?: 
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#2D6A4F]">New Initiative</span>
               <span className="text-[10px] text-muted-foreground">{timeAgo(event.created_at)}</span>
             </div>
-            <p className="text-sm font-semibold text-black dark:text-white group-hover:text-[#2D6A4F] transition-colors leading-snug">
+            <p className="text-[15px] font-semibold text-black dark:text-white group-hover:text-[#2D6A4F] transition-colors leading-snug">
               {event.initiative_title}
             </p>
-            <p className="text-xs text-black dark:text-white mt-1">
+            <p className="text-[13px] text-black dark:text-white mt-1">
               {event.creator_id === currentUserId ? "You" : event.creator_name}
               {event.creator_org ? ` · ${event.creator_org}` : ""}
             </p>
@@ -83,10 +83,10 @@ function FeedCard({ event, currentUserId }: { event: FeedEvent; currentUserId?: 
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#C45C26]">Partnership</span>
               <span className="text-[10px] text-muted-foreground">{timeAgo(event.created_at)}</span>
             </div>
-            <p className="text-sm font-semibold text-black dark:text-white group-hover:text-[#C45C26] transition-colors leading-snug">
+            <p className="text-[15px] font-semibold text-black dark:text-white group-hover:text-[#C45C26] transition-colors leading-snug">
               {event.partner_name} joined as {event.partner_role} partner
             </p>
-            <p className="text-xs text-black dark:text-white mt-1">{event.initiative_title}</p>
+            <p className="text-[13px] text-black dark:text-white mt-1">{event.initiative_title}</p>
           </div>
           <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-[#C45C26] shrink-0 mt-1 transition-colors" />
         </div>
@@ -106,11 +106,11 @@ function FeedCard({ event, currentUserId }: { event: FeedEvent; currentUserId?: 
               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">New Member</span>
               <span className="text-[10px] text-muted-foreground">{timeAgo(event.created_at)}</span>
             </div>
-            <p className="text-sm font-semibold text-black dark:text-white group-hover:text-foreground/80 transition-colors leading-snug">
+            <p className="text-[15px] font-semibold text-black dark:text-white group-hover:text-foreground/80 transition-colors leading-snug">
               {event.member_name} joined Impact Natives
             </p>
             {(event.member_role_title || event.member_org) && (
-              <p className="text-xs text-black dark:text-white mt-1">
+              <p className="text-[13px] text-black dark:text-white mt-1">
                 {[event.member_role_title, event.member_org].filter(Boolean).join(" · ")}
               </p>
             )}
@@ -236,9 +236,9 @@ export default function DashboardFeed() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Rss className="w-4 h-4 text-[#2D6A4F]" />
-            <h2 className="text-xl font-bold text-black dark:text-white tracking-tight">Feed</h2>
+            <h2 className="text-[21px] font-bold text-black dark:text-white tracking-tight">Feed</h2>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[15px] text-muted-foreground">
             {isPersonalised
               ? "Activity across your sectors and the wider ecosystem."
               : "Everything happening across Impact Natives."}
@@ -246,7 +246,7 @@ export default function DashboardFeed() {
         </div>
         <Link href="/dashboard/profile">
           <button type="button"
-            className="flex items-center gap-1.5 text-xs text-black dark:text-white hover:text-foreground transition-colors border border-border rounded-full px-3 py-1.5">
+            className="flex items-center gap-1.5 text-[13px] text-black dark:text-white hover:text-foreground transition-colors border border-border rounded-full px-3 py-1.5">
             <Settings2 className="w-3 h-3" />
             Personalise
           </button>
@@ -256,12 +256,12 @@ export default function DashboardFeed() {
       {/* Sector prompt */}
       {!isPersonalised && (
         <div className="rounded-xl border border-dashed border-[#2D6A4F]/30 bg-[#2D6A4F]/5 px-4 py-3 flex items-center justify-between gap-4">
-          <p className="text-xs text-black dark:text-white leading-relaxed">
+          <p className="text-[13px] text-black dark:text-white leading-relaxed">
             Set your sectors to get a personalised feed filtered to what matters to you.
           </p>
           <Link href="/dashboard/profile">
             <button type="button"
-              className="shrink-0 text-xs font-semibold text-[#2D6A4F] hover:underline underline-offset-2 whitespace-nowrap">
+              className="shrink-0 text-[13px] font-semibold text-[#2D6A4F] hover:underline underline-offset-2 whitespace-nowrap">
               Set sectors →
             </button>
           </Link>
@@ -278,8 +278,8 @@ export default function DashboardFeed() {
       ) : events.length === 0 ? (
         <div className="rounded-2xl border border-border bg-white dark:bg-card p-10 text-center">
           <Rss className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-sm font-medium text-black dark:text-white mb-1">Nothing here yet.</p>
-          <p className="text-xs text-black dark:text-white">
+          <p className="text-[15px] font-medium text-black dark:text-white mb-1">Nothing here yet.</p>
+          <p className="text-[13px] text-black dark:text-white">
             As organisations post initiatives and confirm partnerships, they'll appear here.
           </p>
         </div>

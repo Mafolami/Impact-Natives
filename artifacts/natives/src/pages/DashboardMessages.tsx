@@ -490,13 +490,13 @@ export default function DashboardMessages() {
     return (
       <Tag type={onClick ? "button" : undefined} onClick={onClick}
         className={`w-full text-left flex items-start gap-3 px-4 py-3 min-w-0 ${!last ? "border-b border-border" : ""} ${onClick ? "hover:bg-muted/40 transition-colors" : ""}`}>
-        <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-white text-xs font-semibold" style={{ background: avatarColor }}>
+        <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-white text-[13px] font-semibold" style={{ background: avatarColor }}>
           {avatarLabel}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-black dark:text-white truncate">{title}</p>
-          {subtitle && <p className="text-xs text-black dark:text-white mt-0.5 truncate">{subtitle}</p>}
-          {preview && <p className="text-xs text-black dark:text-white mt-1 line-clamp-1">{preview}</p>}
+          <p className="text-[15px] font-medium text-black dark:text-white truncate">{title}</p>
+          {subtitle && <p className="text-[13px] text-black dark:text-white mt-0.5 truncate">{subtitle}</p>}
+          {preview && <p className="text-[13px] text-black dark:text-white mt-1 line-clamp-1">{preview}</p>}
         </div>
         {status && (
           <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 mt-0.5"
@@ -518,7 +518,7 @@ export default function DashboardMessages() {
         <div className="rounded-2xl border border-border bg-white dark:bg-card p-12 text-center">
           <Clock className="w-8 h-8 text-muted-foreground/40 mx-auto mb-4" />
           <p className="text-black dark:text-white font-medium mb-2">No messages yet.</p>
-          <p className="text-sm text-black dark:text-white mb-6 max-w-sm mx-auto">
+          <p className="text-[15px] text-black dark:text-white mb-6 max-w-sm mx-auto">
             When you or others express interest in initiatives and partnerships, conversations will appear here.
           </p>
           <Link href="/dashboard/marketplace">
@@ -533,7 +533,7 @@ export default function DashboardMessages() {
               brand color rather than a flat neutral fill. */}
           <div className="flex gap-2">
             <button type="button" onClick={() => setActiveTab("partnership")}
-              className={`flex-1 h-11 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors text-white ${
+              className={`flex-1 h-11 rounded-lg flex items-center justify-center gap-2 text-[15px] font-medium transition-colors text-white ${
                 activeTab === "partnership" ? "" : "!bg-muted !text-foreground hover:!bg-muted/70"
               }`}
               style={activeTab === "partnership" ? { background: PARTNERSHIP_COLOR } : undefined}>
@@ -546,7 +546,7 @@ export default function DashboardMessages() {
               )}
             </button>
             <button type="button" onClick={() => setActiveTab("initiative")}
-              className={`flex-1 h-11 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors text-white ${
+              className={`flex-1 h-11 rounded-lg flex items-center justify-center gap-2 text-[15px] font-medium transition-colors text-white ${
                 activeTab === "initiative" ? "" : "!bg-muted !text-foreground hover:!bg-muted/70"
               }`}
               style={activeTab === "initiative" ? { background: INITIATIVE_COLOR } : undefined}>
@@ -566,7 +566,7 @@ export default function DashboardMessages() {
               {partnershipVisible.length > 0 && (
                 <section>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xs font-semibold uppercase tracking-widest text-black dark:text-white">Conversations — {partnershipVisible.length}</h3>
+                    <h3 className="text-[13px] font-semibold uppercase tracking-widest text-black dark:text-white">Conversations — {partnershipVisible.length}</h3>
                     <Link href="/dashboard/portfolio?tab=partners"
                       className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-black dark:text-white hover:underline underline-offset-2">
                       Confirmed partnerships
@@ -589,7 +589,7 @@ export default function DashboardMessages() {
               )}
               {partnershipArchived.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black dark:text-white mb-2">Archived — {partnershipArchived.length}</h3>
+                  <h3 className="text-[13px] font-semibold uppercase tracking-widest text-black dark:text-white mb-2">Archived — {partnershipArchived.length}</h3>
                   <div className="rounded-2xl border border-border bg-white dark:bg-card overflow-hidden opacity-60">
                     {partnershipArchived.map((convo, i) => (
                       <Row key={convo.id} last={i === partnershipArchived.length - 1}
@@ -605,7 +605,7 @@ export default function DashboardMessages() {
               {partnershipVisible.length === 0 && partnershipArchived.length === 0 && (
                 <div className="rounded-2xl border border-border bg-white dark:bg-card p-10 text-center">
                   <Handshake className="w-6 h-6 text-muted-foreground/40 mx-auto mb-3" />
-                  <p className="text-sm text-black dark:text-white">No partnership conversations yet.</p>
+                  <p className="text-[15px] text-black dark:text-white">No partnership conversations yet.</p>
                 </div>
               )}
             </div>
@@ -616,7 +616,7 @@ export default function DashboardMessages() {
             <div className="space-y-6">
               {pendingEOIs.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black dark:text-white mb-2">
+                  <h3 className="text-[13px] font-semibold uppercase tracking-widest text-black dark:text-white mb-2">
                     Awaiting review — {pendingEOIs.length}
                   </h3>
                   <div className="space-y-2">
@@ -629,7 +629,7 @@ export default function DashboardMessages() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2 mb-0.5 flex-wrap">
                             <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                              <p className="text-sm font-medium text-black dark:text-white">
+                              <p className="text-[15px] font-medium text-black dark:text-white">
                                 {eoi.expresser_name} expressed {eoi.partnership_type ? rolePartnerPhrase(eoi.partnership_type) : ""} interest
                               </p>
                               {eoi.expresser_verified && (
@@ -647,27 +647,27 @@ export default function DashboardMessages() {
                             </div>
                             <span className="text-[11px] text-black dark:text-white shrink-0">{timeAgo(eoi.created_at)}</span>
                           </div>
-                          <p className="text-xs text-black dark:text-white mb-1">
+                          <p className="text-[13px] text-black dark:text-white mb-1">
                             <span className="text-foreground/70">{eoi.initiative_title}</span>
                           </p>
                           {eoi.esg_adoption && (
-                            <div className="flex items-center gap-1.5 flex-wrap mt-1 text-xs text-black dark:text-white">
+                            <div className="flex items-center gap-1.5 flex-wrap mt-1 text-[13px] text-black dark:text-white">
                               <span>ESG/CSR adoption</span>
                             </div>
                           )}
                           {eoi.message && (
-                            <p className="text-xs text-black dark:text-white mt-2 leading-relaxed break-words">
+                            <p className="text-[13px] text-black dark:text-white mt-2 leading-relaxed break-words">
                               {eoi.message}
                             </p>
                           )}
                         </div>
                         <div className="flex flex-col gap-2 shrink-0">
                           <button type="button" onClick={() => acceptEOI(eoi)}
-                            className="px-3 py-1.5 rounded-full text-xs bg-[#2D6A4F] hover:bg-[#245c43] text-white transition-colors font-medium">
+                            className="px-3 py-1.5 rounded-full text-[13px] bg-[#2D6A4F] hover:bg-[#245c43] text-white transition-colors font-medium">
                             Open conversation
                           </button>
                           <button type="button" onClick={() => declineEOI(eoi)}
-                            className="px-3 py-1.5 rounded-full text-xs border border-red-400/40 text-red-500 hover:bg-red-50 transition-colors">
+                            className="px-3 py-1.5 rounded-full text-[13px] border border-red-400/40 text-red-500 hover:bg-red-50 transition-colors">
                             Decline
                           </button>
                         </div>
@@ -679,7 +679,7 @@ export default function DashboardMessages() {
 
               {initiativeEnquiries.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black dark:text-white mb-2">Enquiries — {initiativeEnquiries.length}</h3>
+                  <h3 className="text-[13px] font-semibold uppercase tracking-widest text-black dark:text-white mb-2">Enquiries — {initiativeEnquiries.length}</h3>
                   <div className="rounded-2xl border border-border bg-white dark:bg-card overflow-hidden">
                     {initiativeEnquiries.map((convo, i) => (
                       <Row key={convo.id} last={i === initiativeEnquiries.length - 1}
@@ -696,7 +696,7 @@ export default function DashboardMessages() {
 
               {initiativeActive.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black dark:text-white mb-2">Conversations — {initiativeActive.length}</h3>
+                  <h3 className="text-[13px] font-semibold uppercase tracking-widest text-black dark:text-white mb-2">Conversations — {initiativeActive.length}</h3>
                   <div className="rounded-2xl border border-border bg-white dark:bg-card overflow-hidden">
                     {initiativeActive.map((convo, i) => (
                       <Row key={convo.id} last={i === initiativeActive.length - 1}
@@ -714,7 +714,7 @@ export default function DashboardMessages() {
 
               {pendingOutbound.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black dark:text-white mb-2">Sent ({pendingOutbound.length})</h3>
+                  <h3 className="text-[13px] font-semibold uppercase tracking-widest text-black dark:text-white mb-2">Sent ({pendingOutbound.length})</h3>
                   <div className="rounded-2xl border border-border bg-white dark:bg-card overflow-hidden">
                     {pendingOutbound.map((eoi, i) => (
                       <Row key={eoi.eoi_id} last={i === pendingOutbound.length - 1}
@@ -741,7 +741,7 @@ export default function DashboardMessages() {
 
               {isFunder && initiativeArchived.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-black dark:text-white mb-2">Archived — {initiativeArchived.length}</h3>
+                  <h3 className="text-[13px] font-semibold uppercase tracking-widest text-black dark:text-white mb-2">Archived — {initiativeArchived.length}</h3>
                   <div className="rounded-2xl border border-border bg-white dark:bg-card overflow-hidden opacity-60">
                     {initiativeArchived.map((convo, i) => (
                       <Row key={convo.id} last={i === initiativeArchived.length - 1}
@@ -758,7 +758,7 @@ export default function DashboardMessages() {
               {pendingEOIs.length === 0 && initiativeEnquiries.length === 0 && initiativeActive.length === 0 && pendingOutbound.length === 0 && (
                 <div className="rounded-2xl border border-border bg-white dark:bg-card p-10 text-center">
                   <Lightbulb className="w-6 h-6 text-muted-foreground/40 mx-auto mb-3" />
-                  <p className="text-sm text-black dark:text-white">No initiative conversations yet.</p>
+                  <p className="text-[15px] text-black dark:text-white">No initiative conversations yet.</p>
                 </div>
               )}
             </div>
@@ -877,7 +877,7 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
 
   if (done === "pending_confirmation") {
     return (
-      <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0"
+      <span className="text-[13px] px-3 py-1.5 rounded-full font-medium shrink-0"
         style={{ background: "rgba(180,83,9,0.12)", color: "#b45309" }}>
         Awaiting their confirmation
       </span>
@@ -886,7 +886,7 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
 
   if (done === "accepted") {
     return (
-      <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0"
+      <span className="text-[13px] px-3 py-1.5 rounded-full font-medium shrink-0"
         style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
         ✓ Partnership intent confirmed
       </span>
@@ -895,7 +895,7 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
 
   if (done === "rejected") {
     return (
-      <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0"
+      <span className="text-[13px] px-3 py-1.5 rounded-full font-medium shrink-0"
         style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}>
         Partnership declined
       </span>
@@ -906,12 +906,12 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
     <>
       <div className="flex items-center gap-2 shrink-0">
         <button type="button" onClick={() => setOpen(true)}
-          className="text-xs px-3 py-1.5 rounded-full border border-[#2D6A4F] text-[#2D6A4F] hover:bg-[rgba(45,106,79,0.12)] transition-colors font-medium flex items-center gap-1.5">
+          className="text-[13px] px-3 py-1.5 rounded-full border border-[#2D6A4F] text-[#2D6A4F] hover:bg-[rgba(45,106,79,0.12)] transition-colors font-medium flex items-center gap-1.5">
           <UserCheck className="w-3.5 h-3.5" />
           Accept Partnership
         </button>
         <button type="button" onClick={() => setRejectOpen(true)}
-          className="text-xs px-3 py-1.5 rounded-full border border-red-400/40 text-red-500 hover:bg-red-50 transition-colors font-medium">
+          className="text-[13px] px-3 py-1.5 rounded-full border border-red-400/40 text-red-500 hover:bg-red-50 transition-colors font-medium">
           Reject
         </button>
       </div>
@@ -920,15 +920,15 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-background rounded-2xl border border-border w-full max-w-sm shadow-xl p-6 space-y-4">
-            <h3 className="text-base font-semibold text-foreground">Accept Partnership</h3>
-            <p className="text-sm text-black dark:text-white">
+            <h3 className="text-[17px] font-semibold text-foreground">Accept Partnership</h3>
+            <p className="text-[15px] text-black dark:text-white">
               Select the role for <span className="font-medium text-foreground">{conversation.other_user_name}</span>.
               They'll be asked to confirm.
             </p>
             <div className="flex flex-wrap gap-2">
               {PARTNERSHIP_TYPES.map(t => (
                 <button key={t} type="button" onClick={() => setType(t)}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                  className={`text-[13px] px-3 py-1.5 rounded-full border transition-colors ${
                     partnershipType === t
                       ? "bg-[#2D6A4F] text-white border-[#2D6A4F]"
                       : "border-border text-muted-foreground hover:border-[#2D6A4F]"
@@ -939,12 +939,12 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
             </div>
             <div className="flex gap-2 pt-2">
               <button type="button" onClick={() => { setOpen(false); setType(""); }}
-                className="flex-1 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
+                className="flex-1 h-9 rounded-full border border-border text-[15px] text-muted-foreground hover:text-foreground transition-colors">
                 Cancel
               </button>
               <button type="button" onClick={sendConfirmationRequest}
                 disabled={!partnershipType || submitting}
-                className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium disabled:opacity-40 transition-colors">
+                className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-medium disabled:opacity-40 transition-colors">
                 {submitting ? "Sending..." : "Send for confirmation"}
               </button>
             </div>
@@ -956,17 +956,17 @@ function PartnershipConfirmButton({ conversation, currentUserId, partnershipReso
       {rejectOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-background rounded-2xl border border-border w-full max-w-sm shadow-xl p-6 space-y-4">
-            <h3 className="text-base font-semibold text-foreground">Reject Partnership</h3>
-            <p className="text-sm text-black dark:text-white">
+            <h3 className="text-[17px] font-semibold text-foreground">Reject Partnership</h3>
+            <p className="text-[15px] text-black dark:text-white">
               This will notify {conversation.other_user_name} that you're not taking the partnership forward, and close this conversation.
             </p>
             <div className="flex gap-2 pt-2">
               <button type="button" onClick={() => setRejectOpen(false)}
-                className="flex-1 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
+                className="flex-1 h-9 rounded-full border border-border text-[15px] text-muted-foreground hover:text-foreground transition-colors">
                 Cancel
               </button>
               <button type="button" onClick={rejectPartnership} disabled={submitting}
-                className="flex-1 h-9 rounded-full bg-red-500 hover:bg-red-600 text-white text-sm font-medium disabled:opacity-40 transition-colors">
+                className="flex-1 h-9 rounded-full bg-red-500 hover:bg-red-600 text-white text-[15px] font-medium disabled:opacity-40 transition-colors">
                 {submitting ? "Rejecting..." : "Confirm rejection"}
               </button>
             </div>
@@ -1478,8 +1478,8 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-black dark:text-white truncate">{conversation.other_user_name}</p>
-            <p className="text-xs text-black dark:text-white truncate">Re: {conversation.initiative_title}</p>
+            <p className="text-[15px] font-semibold text-black dark:text-white truncate">{conversation.other_user_name}</p>
+            <p className="text-[13px] text-black dark:text-white truncate">Re: {conversation.initiative_title}</p>
           </div>
         </div>
 
@@ -1489,34 +1489,34 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
         {isOwner && conversation.conversation_type !== "question" && conversation.conversation_type !== "partnership" && (
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
             {confirmedRole ? (
-              <span className="text-xs px-3 py-1.5 rounded-full font-medium"
+              <span className="text-[13px] px-3 py-1.5 rounded-full font-medium"
                 style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
                 ✓ Confirmed as {rolePartnerPhrase(confirmedRole)}
               </span>
             ) : proposedRole ? (
-              <span className="text-xs px-3 py-1.5 rounded-full font-medium"
+              <span className="text-[13px] px-3 py-1.5 rounded-full font-medium"
                 style={{ background: "rgba(180,83,9,0.12)", color: "#b45309" }}>
                 Awaiting their confirmation
               </span>
             ) : declinedRole ? (
-              <span className="text-xs px-3 py-1.5 rounded-full font-medium"
+              <span className="text-[13px] px-3 py-1.5 rounded-full font-medium"
                 style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}>
                 Proposal declined
               </span>
             ) : isRejected ? (
-              <span className="text-xs px-3 py-1.5 rounded-full font-medium"
+              <span className="text-[13px] px-3 py-1.5 rounded-full font-medium"
                 style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}>
                 Conversation closed
               </span>
             ) : (
               <>
                 <button type="button" onClick={() => setConfirmOpen(true)}
-                  className="text-xs px-3 py-1.5 rounded-full border border-[#2D6A4F] text-[#2D6A4F] hover:bg-[rgba(45,106,79,0.12)] transition-colors font-medium flex items-center gap-1.5">
+                  className="text-[13px] px-3 py-1.5 rounded-full border border-[#2D6A4F] text-[#2D6A4F] hover:bg-[rgba(45,106,79,0.12)] transition-colors font-medium flex items-center gap-1.5">
                   <UserCheck className="w-3.5 h-3.5" />
                   Propose partner
                 </button>
                 <button type="button" onClick={rejectConversation} disabled={rejecting}
-                  className="text-xs px-3 py-1.5 rounded-full border border-red-400/40 text-red-500 hover:bg-red-50 transition-colors font-medium disabled:opacity-40">
+                  className="text-[13px] px-3 py-1.5 rounded-full border border-red-400/40 text-red-500 hover:bg-red-50 transition-colors font-medium disabled:opacity-40">
                   {rejecting ? "Closing..." : "Reject & close"}
                 </button>
               </>
@@ -1525,7 +1525,7 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
         )}
 
         {!isOwner && !isFunder && conversation.conversation_type !== "question" && conversation.conversation_type !== "partnership" && (confirmedRole || proposedRole || declinedRole) && (
-          <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0" style={
+          <span className="text-[13px] px-3 py-1.5 rounded-full font-medium shrink-0" style={
             confirmedRole ? { background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }
             : proposedRole ? { background: "rgba(180,83,9,0.12)", color: "#b45309" }
             : { background: "rgba(239,68,68,0.12)", color: "#ef4444" }
@@ -1537,28 +1537,28 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
         )}
         {!isOwner && isFunder && (
           isRejected ? (
-            <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0"
+            <span className="text-[13px] px-3 py-1.5 rounded-full font-medium shrink-0"
               style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}>
               This conversation was closed
             </span>
           ) : confirmedRole ? (
-            <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0"
+            <span className="text-[13px] px-3 py-1.5 rounded-full font-medium shrink-0"
               style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
               ✓ You're confirmed as {rolePartnerPhrase(confirmedRole)}
             </span>
           ) : proposedRole ? (
-            <span className="text-xs px-3 py-1.5 rounded-full font-medium shrink-0"
+            <span className="text-[13px] px-3 py-1.5 rounded-full font-medium shrink-0"
               style={{ background: "rgba(180,83,9,0.12)", color: "#b45309" }}>
               Respond to their proposal below
             </span>
           ) : funderClosed ? (
             <button type="button" onClick={reopenConversation}
-              className="text-xs px-3 py-1.5 rounded-full border border-[#2D6A4F]/30 text-[#2D6A4F] hover:bg-[#2D6A4F]/5 transition-colors shrink-0">
+              className="text-[13px] px-3 py-1.5 rounded-full border border-[#2D6A4F]/30 text-[#2D6A4F] hover:bg-[#2D6A4F]/5 transition-colors shrink-0">
               Reopen
             </button>
           ) : (
             <button type="button" onClick={closeConversation}
-              className="text-xs px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:border-red-300 hover:text-red-500 transition-colors shrink-0">
+              className="text-[13px] px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:border-red-300 hover:text-red-500 transition-colors shrink-0">
               Close
             </button>
           )
@@ -1569,14 +1569,14 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
       {confirmOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-background rounded-2xl border border-border w-full max-w-sm shadow-xl p-6 space-y-4">
-            <h3 className="text-base font-semibold text-foreground">
+            <h3 className="text-[17px] font-semibold text-foreground">
               Propose {conversation.other_user_name} as partner
             </h3>
-            <p className="text-sm text-black dark:text-white">Select the role they'll play in this initiative. They'll be asked to confirm before it counts as a partnership.</p>
+            <p className="text-[15px] text-black dark:text-white">Select the role they'll play in this initiative. They'll be asked to confirm before it counts as a partnership.</p>
             <div className="flex flex-wrap gap-2">
               {initiativePartnerships.map(p => (
                 <button key={p} type="button" onClick={() => setConfirmRole(p)}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                  className={`text-[13px] px-3 py-1.5 rounded-full border transition-colors ${
                     confirmRole === p
                       ? "bg-[#2D6A4F] text-white border-[#2D6A4F]"
                       : "border-border text-muted-foreground hover:border-[#2D6A4F]"
@@ -1588,17 +1588,17 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
             <label className="flex items-start gap-2.5 cursor-pointer">
               <input type="checkbox" checked={publicOnFeed} onChange={e => setPublicOnFeed(e.target.checked)}
                 className="mt-0.5 accent-[#2D6A4F]" />
-              <span className="text-xs text-black dark:text-white leading-relaxed">
+              <span className="text-[13px] text-black dark:text-white leading-relaxed">
                 Show this partnership on the activity feed
               </span>
             </label>
             <div className="flex gap-2 pt-2">
               <button type="button" onClick={() => { setConfirmOpen(false); setConfirmRole(""); setPublicOnFeed(false); }}
-                className="flex-1 h-9 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
+                className="flex-1 h-9 rounded-full border border-border text-[15px] text-muted-foreground hover:text-foreground transition-colors">
                 Cancel
               </button>
               <button type="button" onClick={proposePartner} disabled={!confirmRole || confirming}
-                className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium disabled:opacity-40 transition-colors">
+                className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-medium disabled:opacity-40 transition-colors">
                 {confirming ? "Sending..." : "Send proposal"}
               </button>
             </div>
@@ -1613,13 +1613,13 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
             <Loader2 className="w-4 h-4 text-[#2D6A4F] animate-spin" />
           </div>
         ) : messages.length === 0 ? (
-          <p className="text-sm text-black dark:text-white text-center py-10">No messages yet. Say hello.</p>
+          <p className="text-[15px] text-black dark:text-white text-center py-10">No messages yet. Say hello.</p>
         ) : (
           messages.map(msg => {
             const isMe = msg.sender_id === currentUserId;
             return (
               <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[72%] min-w-0 rounded-2xl px-4 py-2.5 text-sm ${
+                <div className={`max-w-[72%] min-w-0 rounded-2xl px-4 py-2.5 text-[15px] ${
                     isMe
                       ? "bg-[#2D6A4F] text-white rounded-br-sm"
                       : "bg-muted text-foreground rounded-bl-sm"
@@ -1640,17 +1640,17 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
      {/* Partner proposal prompt for the responder on initiative-based conversations */}
       {conversation.conversation_type !== "partnership" && !isOwner && proposedRole && (
         <div className="mx-0 mb-3 rounded-xl border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-4 py-3 space-y-2">
-          <p className="text-sm font-medium text-foreground">
+          <p className="text-[15px] font-medium text-foreground">
           Partner proposal: <span className="text-[#2D6A4F]">{rolePartnerPhrase(proposedRole)}</span> on "{conversation.initiative_title}"
           </p>
-          <p className="text-xs text-black dark:text-white">Do you confirm this partnership?</p>
+          <p className="text-[13px] text-black dark:text-white">Do you confirm this partnership?</p>
           <div className="flex gap-2">
             <button type="button" onClick={confirmProposedPartner} disabled={respondingToProposal}
-              className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-xs font-medium disabled:opacity-40 transition-colors">
+              className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[13px] font-medium disabled:opacity-40 transition-colors">
               {respondingToProposal ? "..." : "Confirm partnership"}
             </button>
             <button type="button" onClick={declineProposedPartner} disabled={respondingToProposal}
-              className="flex-1 h-9 rounded-full border border-red-400/40 text-red-500 hover:bg-red-50 text-xs font-medium disabled:opacity-40 transition-colors">
+              className="flex-1 h-9 rounded-full border border-red-400/40 text-red-500 hover:bg-red-50 text-[13px] font-medium disabled:opacity-40 transition-colors">
               Decline
             </button>
           </div>
@@ -1659,17 +1659,17 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
       {/* Partnership confirmation prompt for expresser */}
       {conversation.conversation_type === "partnership" && pendingConfirmation && !partnershipResolved && !isOwner && (
         <div className="mx-0 mb-3 rounded-xl border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-4 py-3 space-y-2">
-          <p className="text-sm font-medium text-foreground">
+          <p className="text-[15px] font-medium text-foreground">
             Partnership proposed: <span className="text-[#2D6A4F]">{pendingConfirmation.partnership_type}</span>
           </p>
-          <p className="text-xs text-black dark:text-white">Do you confirm this partnership?</p>
+          <p className="text-[13px] text-black dark:text-white">Do you confirm this partnership?</p>
           <div className="flex gap-2">
             <button type="button" onClick={confirmPartnershipFromOtherSide} disabled={confirmingPartnership}
-              className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-xs font-medium disabled:opacity-40 transition-colors">
+              className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[13px] font-medium disabled:opacity-40 transition-colors">
               {confirmingPartnership ? "..." : "Confirm partnership"}
             </button>
             <button type="button" onClick={declinePartnershipFromOtherSide} disabled={confirmingPartnership}
-              className="flex-1 h-9 rounded-full border border-red-400/40 text-red-500 hover:bg-red-50 text-xs font-medium disabled:opacity-40 transition-colors">
+              className="flex-1 h-9 rounded-full border border-red-400/40 text-red-500 hover:bg-red-50 text-[13px] font-medium disabled:opacity-40 transition-colors">
               Decline
             </button>
           </div>
@@ -1679,7 +1679,7 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
       {/* Input */}
       {conversation.conversation_type !== "partnership" && (confirmedRole || declinedRole) ? (
         <div className="pt-4 border-t border-border">
-          <p className="text-xs text-black dark:text-white text-center py-2">
+          <p className="text-[13px] text-black dark:text-white text-center py-2">
             {confirmedRole
               ? "Partnership confirmed. This is a first step, not a finished deal. Conversation closed."
               : "Partnership proposal declined. Conversation closed."}
@@ -1687,7 +1687,7 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
         </div>
       ) : conversation.conversation_type === "partnership" && partnershipResolved ? (
         <div className="pt-4 border-t border-border">
-          <p className="text-xs text-black dark:text-white text-center py-2">
+          <p className="text-[13px] text-black dark:text-white text-center py-2">
             {partnershipResolved === "confirmed"
               ? "Partnership intent confirmed by both sides. This is a first step, not a finished deal. Conversation closed."
               : "Partnership declined. Conversation closed."}
@@ -1695,7 +1695,7 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
         </div>
       ) : convStatus === "pending_acceptance" && isOwner ? (
         <div className="pt-4 border-t border-border space-y-2">
-          <p className="text-xs text-black dark:text-white text-center">
+          <p className="text-[13px] text-black dark:text-white text-center">
          {conversation.other_user_name} wants to connect. Open the conversation to start chatting, or decline.
        </p>
           <div className="flex gap-2">
@@ -1715,7 +1715,7 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
                 setConvStatus("open");
                 onUpdate?.(conversation.id, { status: "open" });
               }}
-              className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-xs font-semibold transition-colors">
+              className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[13px] font-semibold transition-colors">
               Open conversation
             </button>
             <button type="button"
@@ -1726,7 +1726,7 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
                 setConvStatus("rejected");
                 onUpdate?.(conversation.id, { status: "rejected" });
               }}
-              className="flex-1 h-9 rounded-full border border-red-300 text-red-500 hover:bg-red-50 text-xs font-semibold transition-colors">
+              className="flex-1 h-9 rounded-full border border-red-300 text-red-500 hover:bg-red-50 text-[13px] font-semibold transition-colors">
               Decline
             </button>
           </div>
@@ -1734,28 +1734,28 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
 
       ) : convStatus === "pending_acceptance" && !isOwner ? (
         <div className="pt-4 border-t border-border">
-          <p className="text-xs text-black dark:text-white text-center py-2">
+          <p className="text-[13px] text-black dark:text-white text-center py-2">
          Waiting for {conversation.other_user_name} to open this conversation.
        </p>
         </div>
       ) : isRejected ? (
         <div className="pt-4 border-t border-border space-y-2">
-          <p className="text-xs text-black dark:text-white text-center py-2">This conversation has been closed.</p>
+          <p className="text-[13px] text-black dark:text-white text-center py-2">This conversation has been closed.</p>
           {isOwner && conversation.conversation_type === "partnership" && (
             <button type="button" onClick={reopenConversation}
-              className="w-full h-9 rounded-full border border-[#2D6A4F]/30 text-[#2D6A4F] text-xs font-semibold hover:bg-[#2D6A4F]/5 transition-colors">
+              className="w-full h-9 rounded-full border border-[#2D6A4F]/30 text-[#2D6A4F] text-[13px] font-semibold hover:bg-[#2D6A4F]/5 transition-colors">
               Reopen conversation
             </button>
           )}
         </div>
       ) : funderClosed ? (
         <div className="pt-4 border-t border-border flex items-center justify-between gap-3">
-          <p className="text-xs text-black dark:text-white">
+          <p className="text-[13px] text-black dark:text-white">
          {isFunder ? "This conversation is archived. Reopen to send messages." : "The funder has paused this conversation."}
        </p>
           {isFunder && (
             <button type="button" onClick={reopenConversation}
-              className="shrink-0 text-xs font-semibold text-[#2D6A4F] hover:underline underline-offset-2 whitespace-nowrap">
+              className="shrink-0 text-[13px] font-semibold text-[#2D6A4F] hover:underline underline-offset-2 whitespace-nowrap">
               Reopen →
             </button>
           )}
@@ -1771,7 +1771,7 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
             }}
             placeholder="Type a message... (Shift+Enter for new line)"
             rows={1}
-            className="flex-1 min-w-0 px-4 py-2.5 rounded-2xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors resize-none"
+            className="flex-1 min-w-0 px-4 py-2.5 rounded-2xl border border-border bg-background text-[15px] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors resize-none"
             style={{ minHeight: "40px", maxHeight: "120px" }}
           />
           <button type="button" onClick={sendMessage} disabled={!body.trim() || sending}

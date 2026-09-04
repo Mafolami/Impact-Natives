@@ -51,7 +51,7 @@ export default function DashboardStrategy() {
         ]).map(({ key, label, icon: Icon }) => (
           <button key={key} type="button"
             onClick={() => setTab(key)}
-            className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-[15px] font-medium transition-colors ${
               tab === key
                 ? "bg-white dark:bg-card text-black dark:text-white shadow-sm"
                 : "text-black dark:text-white hover:text-[#2D6A4F]"

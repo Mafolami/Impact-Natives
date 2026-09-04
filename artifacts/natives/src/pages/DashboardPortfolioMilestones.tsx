@@ -262,14 +262,14 @@ export default function DashboardPortfolioMilestones() {
             <div key={col.key} className={`rounded-xl border ${col.border} overflow-hidden`}>
               <div className={`flex items-center gap-2 px-3 py-2.5 border-b ${col.border} ${col.headerBg}`}>
                 <Icon className={`w-4 h-4 ${col.text}`} />
-                <p className={`text-sm font-semibold ${col.text}`}>{col.label}</p>
-                <span className={`ml-auto text-xs font-semibold px-2 py-0.5 rounded-full border ${col.border} ${col.text} bg-white dark:bg-card`}>
+                <p className={`text-[15px] font-semibold ${col.text}`}>{col.label}</p>
+                <span className={`ml-auto text-[13px] font-semibold px-2 py-0.5 rounded-full border ${col.border} ${col.text} bg-white dark:bg-card`}>
                   {colItems.length}
                 </span>
               </div>
               <div className="p-3 space-y-2 bg-white dark:bg-card min-h-[64px]">
                 {colItems.length === 0 ? (
-                  <p className="text-xs text-black dark:text-white">Nothing here.</p>
+                  <p className="text-[13px] text-black dark:text-white">Nothing here.</p>
                 ) : (
                   colItems.map((m) => (
                     <MilestoneCard key={m.id} milestone={m} onClick={() => setSelectedMilestone(m)} />
@@ -377,14 +377,14 @@ export default function DashboardPortfolioMilestones() {
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <button type="button"
           onClick={() => { setPickerMode("view"); setPickedDocId(scopedDocId ?? ""); setPickerSearch(""); setShowPicker(true); }}
-          className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm text-black dark:text-white hover:border-[#2D6A4F]/40 transition-colors">
+          className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-[15px] text-black dark:text-white hover:border-[#2D6A4F]/40 transition-colors">
           <span>Viewing:</span>
           <span className="font-semibold">{scopedTitle ?? "All agreements"}</span>
           <ChevronDown className="w-3.5 h-3.5" />
         </button>
         {scopedDocId && (
           <button type="button" onClick={() => { setScopedDocId(null); navigate("/dashboard/portfolio/milestones"); }}
-            className="flex items-center gap-1 text-sm text-black dark:text-white hover:underline">
+            className="flex items-center gap-1 text-[15px] text-black dark:text-white hover:underline">
             <X className="w-3.5 h-3.5" /> View all
           </button>
         )}
@@ -394,11 +394,11 @@ export default function DashboardPortfolioMilestones() {
           showing one coherent thing. */}
       <div className="flex items-center gap-1 rounded-full border-2 border-[#2D6A4F] p-1 w-fit">
         <button type="button" onClick={() => setPageView("milestones")}
-          className={`px-5 py-2 rounded-full text-sm font-bold transition-colors ${pageView === "milestones" ? "bg-[#2D6A4F] text-white" : "text-[#2D6A4F]"}`}>
+          className={`px-5 py-2 rounded-full text-[15px] font-bold transition-colors ${pageView === "milestones" ? "bg-[#2D6A4F] text-white" : "text-[#2D6A4F]"}`}>
           Milestones
         </button>
         <button type="button" onClick={() => setPageView("indicators")}
-          className={`px-5 py-2 rounded-full text-sm font-bold transition-colors ${pageView === "indicators" ? "bg-[#2D6A4F] text-white" : "text-[#2D6A4F]"}`}>
+          className={`px-5 py-2 rounded-full text-[15px] font-bold transition-colors ${pageView === "indicators" ? "bg-[#2D6A4F] text-white" : "text-[#2D6A4F]"}`}>
           Indicators
         </button>
       </div>
@@ -414,48 +414,48 @@ export default function DashboardPortfolioMilestones() {
           {showFinancialTiles && (
             <>
               <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
-                <p className="text-xs text-black dark:text-white mb-1">Total committed</p>
-                <p className="text-xl font-medium text-black dark:text-white">{formatCurrencyTotals(stats.totalCommitted)}</p>
+                <p className="text-[13px] text-black dark:text-white mb-1">Total committed</p>
+                <p className="text-[21px] font-medium text-black dark:text-white">{formatCurrencyTotals(stats.totalCommitted)}</p>
               </div>
               <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
-                <p className="text-xs text-black dark:text-white mb-1">Disbursed</p>
-                <p className="text-xl font-medium text-black dark:text-white">{formatCurrencyTotals(stats.disbursed)}</p>
+                <p className="text-[13px] text-black dark:text-white mb-1">Disbursed</p>
+                <p className="text-[21px] font-medium text-black dark:text-white">{formatCurrencyTotals(stats.disbursed)}</p>
               </div>
             </>
           )}
           <div className={`rounded-xl p-4 bg-white dark:bg-card border border-border ${!showFinancialTiles ? "sm:col-span-2" : ""}`}>
-            <p className="text-xs text-black dark:text-white mb-1">On track</p>
-            <p className="text-xl font-medium text-black dark:text-white">{stats.onTrack}</p>
+            <p className="text-[13px] text-black dark:text-white mb-1">On track</p>
+            <p className="text-[21px] font-medium text-black dark:text-white">{stats.onTrack}</p>
           </div>
           <div className={`rounded-xl p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 ${!showFinancialTiles ? "sm:col-span-2" : ""}`}>
-            <p className="text-xs text-amber-600 dark:text-amber-500 mb-1">Overdue</p>
-            <p className="text-xl font-medium text-amber-600 dark:text-amber-500">{stats.overdue}</p>
+            <p className="text-[13px] text-amber-600 dark:text-amber-500 mb-1">Overdue</p>
+            <p className="text-[21px] font-medium text-amber-600 dark:text-amber-500">{stats.overdue}</p>
           </div>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
-            <p className="text-xs text-black dark:text-white mb-1">Agreed</p>
-            <p className="text-xl font-medium text-black dark:text-white">{indicatorStats.agreedCount}</p>
+            <p className="text-[13px] text-black dark:text-white mb-1">Agreed</p>
+            <p className="text-[21px] font-medium text-black dark:text-white">{indicatorStats.agreedCount}</p>
           </div>
           <div className="rounded-xl p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
-            <p className="text-xs text-amber-600 dark:text-amber-500 mb-1">Awaiting evidence</p>
-            <p className="text-xl font-medium text-amber-600 dark:text-amber-500">{indicatorStats.awaitingEvidence}</p>
+            <p className="text-[13px] text-amber-600 dark:text-amber-500 mb-1">Awaiting evidence</p>
+            <p className="text-[21px] font-medium text-amber-600 dark:text-amber-500">{indicatorStats.awaitingEvidence}</p>
           </div>
           <div className="rounded-xl p-4 bg-[#2D6A4F]/[0.06] border border-[#2D6A4F]/20">
-            <p className="text-xs text-[#2D6A4F] mb-1">Verified</p>
-            <p className="text-xl font-medium text-[#2D6A4F]">{indicatorStats.verified}</p>
+            <p className="text-[13px] text-[#2D6A4F] mb-1">Verified</p>
+            <p className="text-[21px] font-medium text-[#2D6A4F]">{indicatorStats.verified}</p>
           </div>
           <div className="rounded-xl p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40">
-            <p className="text-xs text-red-600 dark:text-red-500 mb-1">In dispute</p>
-            <p className="text-xl font-medium text-red-600 dark:text-red-500">{indicatorStats.inDispute}</p>
+            <p className="text-[13px] text-red-600 dark:text-red-500 mb-1">In dispute</p>
+            <p className="text-[21px] font-medium text-red-600 dark:text-red-500">{indicatorStats.inDispute}</p>
           </div>
         </div>
       )}
       {pageView === "milestones" && !scopedDocId && (
         <div className="flex justify-end">
           <button type="button" onClick={() => { setPickerMode("create"); setPickedDocId(""); setPickerSearch(""); setShowPicker(true); }}
-            className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
+            className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-medium transition-colors">
             <Plus className="w-4 h-4" /> New milestone
           </button>
         </div>
@@ -464,13 +464,13 @@ export default function DashboardPortfolioMilestones() {
 {pageView === "milestones" && scopedDocId && (
         <div className="flex justify-end">
           <button type="button" onClick={() => setPickedDocId(scopedDocId)}
-            className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
+            className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-medium transition-colors">
             <Plus className="w-4 h-4" /> New milestone
           </button>
         </div>
       )}
       {(pageView === "milestones" ? milestones.length === 0 : allIndicators.length === 0) ? (
-        <p className="text-sm text-black dark:text-white">
+        <p className="text-[15px] text-black dark:text-white">
           {pageView === "milestones"
             ? "No milestones yet. Use the button above to add one against an executed MoU."
             : "No outcome indicators yet. Add them from the MoU document while it's still in progress."}
@@ -480,7 +480,7 @@ export default function DashboardPortfolioMilestones() {
           {pageView === "milestones" && (
             <div className="flex flex-wrap items-center gap-2">
               <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
-                className="h-9 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white">
+                className="h-9 px-3 rounded-lg border border-border bg-transparent text-[15px] text-black dark:text-white">
                 <option value="all">All statuses</option>
                 <option value="pending">Pending</option>
                 <option value="revision_requested">Revision requested</option>
@@ -491,7 +491,7 @@ export default function DashboardPortfolioMilestones() {
             </div>
           )}
           {partnerGroups.length === 0 ? (
-            <p className="text-sm text-black dark:text-white">
+            <p className="text-[15px] text-black dark:text-white">
               {pageView === "milestones" ? "No milestones for this agreement yet." : "No indicators for this agreement yet."}
             </p>
           ) : (
@@ -499,7 +499,7 @@ export default function DashboardPortfolioMilestones() {
               {partnerGroups.map((group, gi) => (
                 <div key={group.partnerId}>
                   {gi > 0 && <div className="h-[3px] bg-border rounded-full mb-8" />}
-                  <p className="text-base font-semibold text-black dark:text-white mb-4">{group.partnerName}</p>
+                  <p className="text-[17px] font-semibold text-black dark:text-white mb-4">{group.partnerName}</p>
                   <div className="space-y-6">
                     {group.docs.map((doc) => {
                       const title = docTitle(doc) ?? "Partnership";
@@ -512,9 +512,9 @@ export default function DashboardPortfolioMilestones() {
                           <button type="button" onClick={() => toggleCollapse(doc.id)}
                             className="flex items-center gap-2 text-left group mb-2">
                             <ChevronDown className={`w-3.5 h-3.5 text-black dark:text-white transition-transform shrink-0 ${isCollapsed ? "-rotate-90" : ""}`} />
-                            <p className="text-sm text-black dark:text-white group-hover:underline">{title}</p>
+                            <p className="text-[15px] text-black dark:text-white group-hover:underline">{title}</p>
                             {isCollapsed && (
-                              <span className="text-xs text-black dark:text-white">({sectionCount})</span>
+                              <span className="text-[13px] text-black dark:text-white">({sectionCount})</span>
                             )}
                           </button>
                           {!isCollapsed && (pageView === "milestones" ? <KanbanBoard items={docItems} /> : (
@@ -542,16 +542,16 @@ export default function DashboardPortfolioMilestones() {
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowPicker(false)}>
           <div className="bg-white dark:bg-card rounded-t-2xl sm:rounded-2xl border border-border w-full sm:max-w-sm shadow-xl p-6 space-y-4 max-h-[80vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}>
-            <p className="text-base font-bold text-black dark:text-white">
+            <p className="text-[17px] font-bold text-black dark:text-white">
               {pickerMode === "view" ? "Choose which agreement to view" : "Which agreement is this for?"}
             </p>
             {docs.length === 0 ? (
-              <p className="text-sm text-black dark:text-white">No executed MoUs yet -- milestones can only be added once an agreement is fully executed.</p>
+              <p className="text-[15px] text-black dark:text-white">No executed MoUs yet -- milestones can only be added once an agreement is fully executed.</p>
             ) : (
               <>
                 <input type="text" placeholder="Search by partner or title" value={pickerSearch}
                   onChange={(e) => setPickerSearch(e.target.value)}
-                  className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
+                  className="w-full h-10 px-3 rounded-lg border border-border bg-transparent text-[15px] text-black dark:text-white" />
                 {pickerMode === "view" && (
                   // Deliberately outside the scrollable/searchable list and
                   // visually distinct (plain row, no card border) -- this
@@ -568,15 +568,15 @@ export default function DashboardPortfolioMilestones() {
                 )}
                 <div className="overflow-y-auto space-y-1.5 -mx-1 px-1">
                   {pickerOptions.length === 0 && (
-                    <p className="text-sm text-black dark:text-white">No match.</p>
+                    <p className="text-[15px] text-black dark:text-white">No match.</p>
                   )}
                   {pickerOptions.map(({ doc, partnerName, title }) => (
                     <button type="button" key={doc.id} onClick={() => setPickedDocId(doc.id)}
                       className={`w-full text-left rounded-lg border px-3 py-2 transition-colors ${
                         pickedDocId === doc.id ? "border-[#2D6A4F] bg-[#2D6A4F]/[0.06]" : "border-border hover:border-[#2D6A4F]/40"
                       }`}>
-                      <p className="text-sm font-medium text-black dark:text-white">{partnerName}</p>
-                      <p className="text-xs text-black dark:text-white">{title ?? "Partnership"}</p>
+                      <p className="text-[15px] font-medium text-black dark:text-white">{partnerName}</p>
+                      <p className="text-[13px] text-black dark:text-white">{title ?? "Partnership"}</p>
                     </button>
                   ))}
                 </div>
@@ -584,7 +584,7 @@ export default function DashboardPortfolioMilestones() {
             )}
             <div className="flex gap-2">
               <button type="button" onClick={() => { setShowPicker(false); setPickedDocId(""); setPickerSearch(""); }}
-                className="flex-1 h-10 rounded-full border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors">
+                className="flex-1 h-10 rounded-full border border-border text-[15px] text-black dark:text-white hover:border-foreground/30 transition-colors">
                 Cancel
               </button>
               <button type="button" disabled={pickerMode === "create" && !pickedDocId}
@@ -605,7 +605,7 @@ export default function DashboardPortfolioMilestones() {
                     setPickedDocId("");
                   }
                 }}
-                className="flex-1 h-10 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium disabled:opacity-60 transition-colors">
+                className="flex-1 h-10 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-medium disabled:opacity-60 transition-colors">
                 {pickerMode === "view" ? (pickedDocId ? "View" : "View all") : "Continue"}
               </button>
             </div>

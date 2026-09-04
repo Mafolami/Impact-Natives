@@ -258,12 +258,12 @@ function DecisionIcons({
             </button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-72 p-4 space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Reason for passing</p>
+            <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">Reason for passing</p>
             <div className="flex flex-wrap gap-1.5">
               {PASS_REASONS.map(r => (
                 <button key={r} type="button"
                   onClick={() => setReason(r)}
-                  className={`px-2.5 py-1 rounded-full border text-xs font-medium transition-colors ${
+                  className={`px-2.5 py-1 rounded-full border text-[13px] font-medium transition-colors ${
                     reason === r
                       ? "bg-[#C45C26] border-[#C45C26] text-white"
                       : "border-border text-muted-foreground hover:border-foreground/30"
@@ -274,12 +274,12 @@ function DecisionIcons({
             </div>
             <div className="flex justify-end gap-3 pt-1">
               <button type="button" onClick={() => setPickerOpen(false)}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                className="text-[13px] text-muted-foreground hover:text-foreground transition-colors">
                 Cancel
               </button>
               <button type="button" disabled={!reason}
                 onClick={() => { onConfirmPass(reason); setPickerOpen(false); setReason(""); }}
-                className="rounded-full h-7 px-3.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold disabled:opacity-40 transition-colors">
+                className="rounded-full h-7 px-3.5 bg-red-500 hover:bg-red-600 text-white text-[13px] font-semibold disabled:opacity-40 transition-colors">
                 Confirm pass
               </button>
             </div>
@@ -319,7 +319,7 @@ function FilterPanel({
     return (
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-xs font-bold uppercase tracking-wider text-black dark:text-white">{label}</p>
+          <p className="text-[13px] font-bold uppercase tracking-wider text-black dark:text-white">{label}</p>
           {selected.length > 0 && (
             <button type="button" onClick={() => set([])}
               className="text-[10px] text-[#2D6A4F] hover:underline">
@@ -346,17 +346,17 @@ function FilterPanel({
         <div className="relative mb-2">
           <input type="text" value={search} onChange={e => setSearch(e.target.value)}
             placeholder={`Search ${label.toLowerCase()}...`}
-            className="w-full h-8 pl-3 pr-3 rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]/30 bg-muted border border-border" />
+            className="w-full h-8 pl-3 pr-3 rounded-lg text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]/30 bg-muted border border-border" />
         </div>
         <div className="max-h-36 overflow-y-auto space-y-0.5 pr-1">
           {filteredLocationOptions.length === 0 && options === locationOptions && (
-            <p className="text-xs text-black dark:text-white py-1">No results</p>
+            <p className="text-[13px] text-black dark:text-white py-1">No results</p>
           )}
           {(options === sectorOptions ? filteredSectorOptions : filteredLocationOptions).map(o => {
             const on = selected.includes(o);
             return (
               <button key={o} type="button" onClick={() => toggle(selected, o, set)}
-                className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-xs text-left transition-colors ${
+                className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[13px] text-left transition-colors ${
                   on ? "bg-[rgba(45,106,79,0.12)] text-[#2D6A4F] font-semibold" : "text-foreground hover:bg-muted"
                 }`}>
                 <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
@@ -375,9 +375,9 @@ function FilterPanel({
   return (
     <div className="p-5 space-y-5">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-bold text-foreground">Filters</p>
+        <p className="text-[15px] font-bold text-foreground">Filters</p>
         {activeCount > 0 && (
-          <button type="button" onClick={onClear} className="text-xs font-semibold text-[#2D6A4F] hover:underline">
+          <button type="button" onClick={onClear} className="text-[13px] font-semibold text-[#2D6A4F] hover:underline">
             Clear all ({activeCount})
           </button>
         )}
@@ -393,11 +393,11 @@ function FilterPanel({
       />
       <div className="h-px bg-border" />
       <div>
-        <p className="text-xs font-bold uppercase tracking-wider text-black dark:text-white mb-2.5">Budget range</p>
+        <p className="text-[13px] font-bold uppercase tracking-wider text-black dark:text-white mb-2.5">Budget range</p>
         <div className="flex flex-wrap gap-1.5">
           {BUDGET_OPTIONS.map(b => (
             <button key={b.value} type="button" onClick={() => toggle(budgets, b.value, setBudgets)}
-              className={`h-7 px-3 rounded-full text-xs font-medium border transition-colors ${
+              className={`h-7 px-3 rounded-full text-[13px] font-medium border transition-colors ${
                 budgets.includes(b.value)
                   ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
                   : "border-border text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F]"
@@ -409,11 +409,11 @@ function FilterPanel({
       </div>
       <div className="h-px bg-border" />
       <div>
-        <p className="text-xs font-bold uppercase tracking-wider text-black dark:text-white mb-2.5">Partnership sought</p>
+        <p className="text-[13px] font-bold uppercase tracking-wider text-black dark:text-white mb-2.5">Partnership sought</p>
         <div className="flex flex-wrap gap-1.5">
           {PARTNERSHIP_OPTIONS.map(p => (
             <button key={p.value} type="button" onClick={() => toggle(partnerships, p.value, setPartnerships)}
-              className={`h-7 px-3 rounded-full text-xs font-medium border transition-colors ${
+              className={`h-7 px-3 rounded-full text-[13px] font-medium border transition-colors ${
                 partnerships.includes(p.value)
                   ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
                   : "border-border text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F]"
@@ -458,7 +458,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
             </span>
           )}
         </div>
-        <h3 className="text-xl font-bold text-foreground group-hover:text-[#2D6A4F] dark:group-hover:text-[#C45C26] transition-colors leading-snug">
+        <h3 className="text-[21px] font-bold text-foreground group-hover:text-[#2D6A4F] dark:group-hover:text-[#C45C26] transition-colors leading-snug">
           {ini.title}
         </h3>
         {(ini.submitter_org || ini.submitter_name) && (
@@ -469,7 +469,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
                 : `/dashboard/natives?tab=individual&user=${ini.user_id}`
             }
             onClick={e => e.stopPropagation()}
-            className="flex items-center gap-1.5 text-sm font-bold text-black dark:text-white mt-1.5 hover:underline underline-offset-2 transition-colors">
+            className="flex items-center gap-1.5 text-[15px] font-bold text-black dark:text-white mt-1.5 hover:underline underline-offset-2 transition-colors">
             <Building2 className="w-3.5 h-3.5 shrink-0" />
             {ini.submitter_user_type === "organisation" ? ini.submitter_org : ini.submitter_name}
             {ini.submitter_is_verified && <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-[#2D6A4F]" />}
@@ -488,7 +488,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
       </div>
       <div className="min-w-0 flex flex-col sm:border-l sm:border-border sm:pl-6">
         {ini.problem && (
-          <p className="text-base text-foreground leading-relaxed">{ini.problem}</p>
+          <p className="text-[17px] text-foreground leading-relaxed">{ini.problem}</p>
         )}
         <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-border">
           {ini.sectors && ini.sectors.length > 0 && (
@@ -517,7 +517,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
             </div>
           )}
           {ini.locations?.[0] && (
-            <div className="flex items-center gap-2 text-sm text-black dark:text-white">
+            <div className="flex items-center gap-2 text-[15px] text-black dark:text-white">
               <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 22s-8-4.5-8-11.8A8 8 0 0112 2a8 8 0 018 8.2c0 7.3-8 11.8-8 11.8z"/>
                 <circle cx="12" cy="10" r="3"/>
@@ -526,13 +526,13 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
             </div>
           )}
           {ini.budget && (
-            <div className="flex items-center gap-2 text-sm text-black dark:text-white">
+            <div className="flex items-center gap-2 text-[15px] text-black dark:text-white">
               <Wallet className="w-3.5 h-3.5 shrink-0" />
               {ini.budget}
             </div>
           )}
           {ini.submitter_dd_score != null && (
-            <div className="flex items-center gap-2 text-sm text-black dark:text-white">
+            <div className="flex items-center gap-2 text-[15px] text-black dark:text-white">
               <FileCheck className="w-3.5 h-3.5 shrink-0" />
               DD Readiness: {ini.submitter_dd_score}%
               {ini.submitter_trust_tier && <TrustBadge tier={ini.submitter_trust_tier} />}
@@ -555,7 +555,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
           )}
         </div>
         <div className="flex items-center justify-end mt-auto pt-4">
-          <span className="text-sm font-bold text-black dark:text-white">
+          <span className="text-[15px] font-bold text-black dark:text-white">
             {ini.eois} EOI{ini.eois !== 1 ? "s" : ""}
           </span>
         </div>
@@ -752,14 +752,14 @@ export default function DashboardMarketplace() {
     <div className="space-y-6">
       <div className="flex items-center justify-end">
         <button type="button" onClick={() => setShowCreateModal(true)}
-          className="rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors shrink-0">
+          className="rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-medium transition-colors shrink-0">
           + Create Initiative
         </button>
       </div>
       {isFunder && (
         <div className="flex gap-2">
           <button type="button" onClick={toggleStartupPipeline}
-            className={`h-8 px-4 rounded-full border text-xs font-medium transition-colors flex items-center gap-1.5 ${
+            className={`h-8 px-4 rounded-full border text-[13px] font-medium transition-colors flex items-center gap-1.5 ${
               startupPipeline
                 ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
                 : "border-border text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F]"
@@ -768,7 +768,7 @@ export default function DashboardMarketplace() {
             Startup pipeline
           </button>
           <button type="button" onClick={clearFilters}
-            className="h-8 px-4 rounded-full border border-border text-xs text-muted-foreground hover:text-foreground transition-colors">
+            className="h-8 px-4 rounded-full border border-border text-[13px] text-muted-foreground hover:text-foreground transition-colors">
             All initiatives
           </button>
         </div>
@@ -778,7 +778,7 @@ export default function DashboardMarketplace() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input type="text" placeholder="Search by title, problem, location..."
             value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full h-10 pl-9 pr-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
+            className="w-full h-10 pl-9 pr-3 rounded-lg border border-border bg-background text-[15px] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
           {search && (
             <button type="button" onClick={() => setSearch("")}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
@@ -789,7 +789,7 @@ export default function DashboardMarketplace() {
         <Popover open={showFilters} onOpenChange={setShowFilters}>
           <PopoverTrigger asChild>
             <button type="button"
-              className={`h-10 px-4 rounded-lg border text-sm flex items-center gap-2 transition-colors shrink-0 ${
+              className={`h-10 px-4 rounded-lg border text-[15px] flex items-center gap-2 transition-colors shrink-0 ${
                 showFilters || activeFilterCount > 0
                   ? "border-[#2D6A4F] text-[#2D6A4F] bg-[rgba(45,106,79,0.12)]"
                   : "border-border text-muted-foreground hover:border-foreground/30"
@@ -815,7 +815,7 @@ export default function DashboardMarketplace() {
           </PopoverContent>
         </Popover>
         <button type="button" onClick={() => setShowSaved(v => !v)}
-          className={`h-10 px-4 rounded-lg border text-sm flex items-center gap-2 transition-colors shrink-0 ${
+          className={`h-10 px-4 rounded-lg border text-[15px] flex items-center gap-2 transition-colors shrink-0 ${
             showSaved
               ? "border-[#2D6A4F] text-[#2D6A4F] bg-[rgba(45,106,79,0.12)]"
               : "border-border text-muted-foreground hover:border-foreground/30"
@@ -829,7 +829,7 @@ export default function DashboardMarketplace() {
           )}
         </button>
         <button type="button" onClick={() => setShowPassed(v => !v)}
-          className={`h-10 px-4 rounded-lg border text-sm flex items-center gap-2 transition-colors shrink-0 ${
+          className={`h-10 px-4 rounded-lg border text-[15px] flex items-center gap-2 transition-colors shrink-0 ${
             showPassed
               ? "border-border text-foreground bg-muted"
               : "border-border text-muted-foreground hover:border-foreground/30"
@@ -849,17 +849,17 @@ export default function DashboardMarketplace() {
             ...budgets.map(b => BUDGET_OPTIONS.find(o => o.value === b)?.label ?? b),
             ...partnerships.map(p => PARTNERSHIP_OPTIONS.find(o => o.value === p)?.label ?? p),
           ].map(chip => (
-            <span key={chip} className="inline-flex items-center gap-1 h-7 px-3 rounded-full text-xs bg-[rgba(45,106,79,0.12)] text-[#2D6A4F] border border-[#2D6A4F]/20">
+            <span key={chip} className="inline-flex items-center gap-1 h-7 px-3 rounded-full text-[13px] bg-[rgba(45,106,79,0.12)] text-[#2D6A4F] border border-[#2D6A4F]/20">
               {chip}
             </span>
           ))}
-          <button type="button" onClick={clearFilters} className="text-xs text-muted-foreground hover:text-foreground underline">
+          <button type="button" onClick={clearFilters} className="text-[13px] text-muted-foreground hover:text-foreground underline">
             Clear all
           </button>
         </div>
       )}
       {!loading && (
-        <p className="text-xs text-black dark:text-white">
+        <p className="text-[13px] text-black dark:text-white">
           {filtered.length} initiative{filtered.length !== 1 ? "s" : ""}
           {showSaved ? " saved" : showPassed ? " passed" : activeFilterCount > 0 ? " matching filters" : ""}
         </p>
@@ -873,12 +873,12 @@ export default function DashboardMarketplace() {
           <p className="text-foreground font-medium mb-2">
             {initiatives.length === 0 ? "No initiatives published yet." : "No results for those filters."}
           </p>
-          <p className="text-sm text-black dark:text-white max-w-sm mx-auto">
+          <p className="text-[15px] text-black dark:text-white max-w-sm mx-auto">
             {initiatives.length === 0 ? "Check back soon." : "Try adjusting your filters or search term."}
           </p>
           {activeFilterCount > 0 && (
             <button type="button" onClick={() => { clearFilters(); setSearch(""); }}
-              className="mt-5 text-sm text-primary hover:underline">
+              className="mt-5 text-[15px] text-primary hover:underline">
               Clear filters
             </button>
           )}
@@ -1276,7 +1276,7 @@ function MarketplaceDetail({
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <button type="button" onClick={onBack}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-[#C45C26] transition-colors">
+          className="flex items-center gap-1.5 text-[15px] text-muted-foreground hover:text-[#C45C26] transition-colors">
           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
@@ -1285,7 +1285,7 @@ function MarketplaceDetail({
         {isFunder && (
           <button type="button" onClick={generateDealMemo}
             disabled={loadingMemo}
-            className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#2D6A4F]/30 bg-[#2D6A4F]/5 text-sm font-medium text-[#2D6A4F] hover:bg-[#2D6A4F]/10 transition-colors disabled:opacity-50">
+            className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#2D6A4F]/30 bg-[#2D6A4F]/5 text-[15px] font-medium text-[#2D6A4F] hover:bg-[#2D6A4F]/10 transition-colors disabled:opacity-50">
             {loadingMemo
               ? <><Sparkles className="w-3.5 h-3.5 animate-pulse" />Generating memo...</>
               : <><FileText className="w-3.5 h-3.5" />Generate deal memo</>
@@ -1295,7 +1295,7 @@ function MarketplaceDetail({
         {isCorporate && (
           <button type="button" onClick={generateCsrBrief}
             disabled={loadingCsr}
-            className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#2D6A4F]/30 bg-[#2D6A4F]/5 text-sm font-medium text-[#2D6A4F] hover:bg-[#2D6A4F]/10 transition-colors disabled:opacity-50">
+            className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#2D6A4F]/30 bg-[#2D6A4F]/5 text-[15px] font-medium text-[#2D6A4F] hover:bg-[#2D6A4F]/10 transition-colors disabled:opacity-50">
             {loadingCsr
               ? <><Sparkles className="w-3.5 h-3.5 animate-pulse" />Generating brief...</>
               : <><FileText className="w-3.5 h-3.5" />CSR adoption brief</>
@@ -1308,7 +1308,7 @@ function MarketplaceDetail({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#2D6A4F]" />
-              <p className="text-base font-semibold text-foreground">AI Deal Memo</p>
+              <p className="text-[17px] font-semibold text-foreground">AI Deal Memo</p>
               {dealMemo?.match_score != null && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                   style={{
@@ -1322,7 +1322,7 @@ function MarketplaceDetail({
             <div className="flex items-center gap-2">
               {dealMemo && (
                 <button type="button" onClick={generateDealMemo}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                  className="text-[13px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
                   <Sparkles className="w-3 h-3" />
                   Regenerate
                 </button>
@@ -1341,7 +1341,7 @@ function MarketplaceDetail({
             </div>
           ) : dealMemo ? (
             <div className="space-y-4">
-              <p className="text-sm font-medium text-foreground leading-relaxed">{dealMemo.headline}</p>
+              <p className="text-[15px] font-medium text-foreground leading-relaxed">{dealMemo.headline}</p>
               {[
                 { label: "Problem validity", value: dealMemo.problem_validity },
                 { label: "Solution fit", value: dealMemo.solution_fit },
@@ -1350,13 +1350,13 @@ function MarketplaceDetail({
                 { label: "Mandate alignment", value: dealMemo.mandate_alignment },
               ].map(section => (
                 <div key={section.label} className="space-y-1">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">{section.label}</p>
+                  <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">{section.label}</p>
                   <p className="text-[15px] text-foreground leading-relaxed">{section.value}</p>
                 </div>
               ))}
               {dealMemo.risk_flags?.length > 0 && (
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Risk flags</p>
+                  <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">Risk flags</p>
                   <ul className="space-y-1">
                     {dealMemo.risk_flags.map((flag: string, i: number) => (
                       <li key={i} className="flex items-start gap-2 text-[15px] text-foreground">
@@ -1376,26 +1376,26 @@ function MarketplaceDetail({
                   }}>
                   <div className="flex items-center gap-2">
                     <RagIcon action={dealMemo.recommended_action} className="w-4 h-4 shrink-0" />
-                    <p className="text-sm font-bold uppercase tracking-wide"
+                    <p className="text-[15px] font-bold uppercase tracking-wide"
                       style={{ color: ragFor(dealMemo.recommended_action).text }}>
                       Recommended: {dealMemo.recommended_action}
                     </p>
                   </div>
-                  <p className="text-xs text-black dark:text-white pl-6">{dealMemo.recommended_action_reason}</p>
+                  <p className="text-[13px] text-black dark:text-white pl-6">{dealMemo.recommended_action_reason}</p>
                 </div>
               )}
             </div>
           ) : memoRequiresUpgrade ? (
             <div className="text-center py-4">
-              <p className="text-sm font-medium text-foreground mb-1">AI deal memos need an upgrade.</p>
-              <p className="text-xs text-black dark:text-white mb-3">Upgrade to see a full AI-generated deal memo for this initiative.</p>
+              <p className="text-[15px] font-medium text-foreground mb-1">AI deal memos need an upgrade.</p>
+              <p className="text-[13px] text-black dark:text-white mb-3">Upgrade to see a full AI-generated deal memo for this initiative.</p>
               <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
-                className="text-xs font-semibold text-white bg-[#2D6A4F] rounded-full px-4 py-1.5 hover:bg-[#245c43] transition-colors">
+                className="text-[13px] font-semibold text-white bg-[#2D6A4F] rounded-full px-4 py-1.5 hover:bg-[#245c43] transition-colors">
                 Upgrade
               </button>
             </div>
           ) : (
-            <p className="text-sm text-black dark:text-white">Failed to generate memo. Try again.</p>
+            <p className="text-[15px] text-black dark:text-white">Failed to generate memo. Try again.</p>
           )}
         </div>
       )}
@@ -1404,7 +1404,7 @@ function MarketplaceDetail({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#2D6A4F]" />
-              <p className="text-base font-semibold text-foreground">CSR Adoption Brief</p>
+              <p className="text-[17px] font-semibold text-foreground">CSR Adoption Brief</p>
               {csrBrief?.match_score != null && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                   style={{
@@ -1418,7 +1418,7 @@ function MarketplaceDetail({
             <div className="flex items-center gap-2">
               {csrBrief && (
                 <button type="button" onClick={generateCsrBrief}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                  className="text-[13px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
                   <Sparkles className="w-3 h-3" />Regenerate
                 </button>
               )}
@@ -1436,7 +1436,7 @@ function MarketplaceDetail({
             </div>
           ) : csrBrief ? (
             <div className="space-y-4">
-              <p className="text-sm font-medium text-foreground leading-relaxed">{csrBrief.headline}</p>
+              <p className="text-[15px] font-medium text-foreground leading-relaxed">{csrBrief.headline}</p>
              {[
                 { label: "SDG alignment",               value: csrBrief.sdg_alignment },
                 { label: "Local content",               value: csrBrief.local_content },
@@ -1447,13 +1447,13 @@ function MarketplaceDetail({
                 { label: "Implementer readiness",       value: csrBrief.implementer_readiness },
               ].map(section => (
                 <div key={section.label} className="space-y-1">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">{section.label}</p>
+                  <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">{section.label}</p>
                   <p className="text-[15px] text-foreground leading-relaxed">{section.value}</p>
                 </div>
               ))}
               {csrBrief.risk_flags?.length > 0 && (
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Risk flags</p>
+                  <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">Risk flags</p>
                   <ul className="space-y-1">
                     {csrBrief.risk_flags.map((flag: string, i: number) => (
                       <li key={i} className="flex items-start gap-2 text-[15px] text-foreground">
@@ -1473,26 +1473,26 @@ function MarketplaceDetail({
                   }}>
                   <div className="flex items-center gap-2">
                     <RagIcon action={csrBrief.recommended_action} className="w-4 h-4 shrink-0" />
-                    <p className="text-sm font-bold uppercase tracking-wide"
+                    <p className="text-[15px] font-bold uppercase tracking-wide"
                       style={{ color: ragFor(csrBrief.recommended_action).text }}>
                       Recommended: {csrBrief.recommended_action}
                     </p>
                   </div>
-                  <p className="text-xs text-black dark:text-white pl-6">{csrBrief.recommended_action_reason}</p>
+                  <p className="text-[13px] text-black dark:text-white pl-6">{csrBrief.recommended_action_reason}</p>
                 </div>
               )}
             </div>
           ) : csrRequiresUpgrade ? (
             <div className="text-center py-4">
-              <p className="text-sm font-medium text-foreground mb-1">AI CSR briefs need an upgrade.</p>
-              <p className="text-xs text-black dark:text-white mb-3">Upgrade to see a full AI-generated CSR adoption brief for this initiative.</p>
+              <p className="text-[15px] font-medium text-foreground mb-1">AI CSR briefs need an upgrade.</p>
+              <p className="text-[13px] text-black dark:text-white mb-3">Upgrade to see a full AI-generated CSR adoption brief for this initiative.</p>
               <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
-                className="text-xs font-semibold text-white bg-[#2D6A4F] rounded-full px-4 py-1.5 hover:bg-[#245c43] transition-colors">
+                className="text-[13px] font-semibold text-white bg-[#2D6A4F] rounded-full px-4 py-1.5 hover:bg-[#245c43] transition-colors">
                 Upgrade
               </button>
             </div>
           ) : (
-            <p className="text-sm text-black dark:text-white">Failed to generate brief. Try again.</p>
+            <p className="text-[15px] text-black dark:text-white">Failed to generate brief. Try again.</p>
           )}
         </div>
       )}
@@ -1500,28 +1500,28 @@ function MarketplaceDetail({
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-wrap gap-1.5">
             {initiative.sectors?.map(s => (
-              <span key={s} className="text-xs font-medium px-2.5 py-0.5 rounded-full"
+              <span key={s} className="text-[13px] font-medium px-2.5 py-0.5 rounded-full"
                 style={{ background: "rgba(196,92,38,0.12)", color: "#C45C26" }}>{s}</span>
             ))}
             {initiative.esg_alignment && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full"
+              <span className="inline-flex items-center gap-1 text-[13px] font-medium px-2.5 py-0.5 rounded-full"
                 style={{ background: "rgba(46,125,50,0.12)", color: "#2e7d32" }}>
                 <Leaf className="w-3 h-3" />ESG/CSR Friendly
               </span>
             )}
             {initiative.submitter_is_verified && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full"
+              <span className="inline-flex items-center gap-1 text-[13px] font-medium px-2.5 py-0.5 rounded-full"
                 style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
                 <VerifiedBadge />              </span>
             )}
             {(initiative.confirmed_partners ?? []).some(p => p.status === "mou_executed") && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full"
+              <span className="inline-flex items-center gap-1 text-[13px] font-medium px-2.5 py-0.5 rounded-full"
                 style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
                 <Award className="w-3 h-3" />MoU Executed
               </span>
             )}
             {qualityCfg && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full"
+              <span className="inline-flex items-center gap-1 text-[13px] font-medium px-2.5 py-0.5 rounded-full"
                 style={{ background: qualityCfg.bg, color: qualityCfg.color }}>
                 {qualityCfg.label}
               </span>
@@ -1541,8 +1541,8 @@ function MarketplaceDetail({
           </div>
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-white tracking-tight leading-snug">{initiative.title}</h2>
-          <div className="flex items-center gap-3 mt-2 text-xs text-white/70 flex-wrap">
+          <h2 className="text-[25px] font-bold text-white tracking-tight leading-snug">{initiative.title}</h2>
+          <div className="flex items-center gap-3 mt-2 text-[13px] text-white/70 flex-wrap">
             {(initiative.submitter_org || initiative.submitter_name) && (
                 <Link
                 href={
@@ -1568,10 +1568,10 @@ function MarketplaceDetail({
             return (
               <div className="mt-2 border border-red-500/20 rounded-lg p-3 bg-red-500/5">
                 {legalEvidence.blacklistingDetail && (
-                  <p className="text-xs text-white/80"><span className="font-semibold">Blacklisting disclosed:</span> {legalEvidence.blacklistingDetail}</p>
+                  <p className="text-[13px] text-white/80"><span className="font-semibold">Blacklisting disclosed:</span> {legalEvidence.blacklistingDetail}</p>
                 )}
                 {legalEvidence.pendingDisputesDetail && (
-                  <p className="text-xs text-white/80 mt-1"><span className="font-semibold">Pending disputes disclosed:</span> {legalEvidence.pendingDisputesDetail}</p>
+                  <p className="text-[13px] text-white/80 mt-1"><span className="font-semibold">Pending disputes disclosed:</span> {legalEvidence.pendingDisputesDetail}</p>
                 )}
               </div>
             );
@@ -1586,7 +1586,7 @@ function MarketplaceDetail({
           ].map(({ label, value }) => (
             <div key={label} className="rounded-xl border border-border bg-background px-3 py-2.5">
               <p className="text-[10px] text-black dark:text-white uppercase tracking-wide mb-0.5">{label}</p>
-              <p className="text-sm font-medium text-foreground">{value}</p>
+              <p className="text-[15px] font-medium text-foreground">{value}</p>
             </div>
           ))}
         </div>
@@ -1595,13 +1595,13 @@ function MarketplaceDetail({
         <div className="grid gap-3 sm:grid-cols-2">
           {initiative.problem && (
             <div className="rounded-xl border border-border bg-card px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Problem</p>
+              <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Problem</p>
               <p className="text-[15px] text-foreground leading-relaxed">{initiative.problem}</p>
             </div>
           )}
           {initiative.outcome && (
             <div className="rounded-xl border border-border bg-card px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Expected Outcome</p>
+              <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Expected Outcome</p>
               <p className="text-[15px] text-foreground leading-relaxed">{initiative.outcome}</p>
             </div>
           )}
@@ -1609,36 +1609,36 @@ function MarketplaceDetail({
       )}
       {fullDetail?.target_population && (
         <div className="rounded-xl border border-border bg-card px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Who this serves</p>
+          <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Who this serves</p>
           <p className="text-[15px] text-foreground leading-relaxed">{fullDetail.target_population}</p>
         </div>
       )}
       {(fullDetail?.target_beneficiaries || fullDetail?.target_jobs || fullDetail?.target_female_pct || fullDetail?.target_timeline_months) && (
         <div className="rounded-xl border border-border bg-card px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Target impact metrics</p>
+          <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Target impact metrics</p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {fullDetail.target_beneficiaries && (
               <div>
-                <p className="text-xs text-black dark:text-white uppercase tracking-wide mb-0.5">Beneficiaries</p>
-                <p className="text-sm font-semibold text-foreground">{fullDetail.target_beneficiaries.toLocaleString()}</p>
+                <p className="text-[13px] text-black dark:text-white uppercase tracking-wide mb-0.5">Beneficiaries</p>
+                <p className="text-[15px] font-semibold text-foreground">{fullDetail.target_beneficiaries.toLocaleString()}</p>
               </div>
             )}
             {fullDetail.target_jobs && (
               <div>
-                <p className="text-xs text-black dark:text-white uppercase tracking-wide mb-0.5">Jobs</p>
-                <p className="text-sm font-semibold text-foreground">{fullDetail.target_jobs.toLocaleString()}</p>
+                <p className="text-[13px] text-black dark:text-white uppercase tracking-wide mb-0.5">Jobs</p>
+                <p className="text-[15px] font-semibold text-foreground">{fullDetail.target_jobs.toLocaleString()}</p>
               </div>
             )}
             {fullDetail.target_female_pct && (
               <div>
-                <p className="text-xs text-black dark:text-white uppercase tracking-wide mb-0.5">Female %</p>
-                <p className="text-sm font-semibold text-foreground">{fullDetail.target_female_pct}%</p>
+                <p className="text-[13px] text-black dark:text-white uppercase tracking-wide mb-0.5">Female %</p>
+                <p className="text-[15px] font-semibold text-foreground">{fullDetail.target_female_pct}%</p>
               </div>
             )}
             {fullDetail.target_timeline_months && (
               <div>
-                <p className="text-xs text-black dark:text-white uppercase tracking-wide mb-0.5">Timeline</p>
-                <p className="text-sm font-semibold text-foreground">{fullDetail.target_timeline_months} months</p>
+                <p className="text-[13px] text-black dark:text-white uppercase tracking-wide mb-0.5">Timeline</p>
+                <p className="text-[15px] font-semibold text-foreground">{fullDetail.target_timeline_months} months</p>
               </div>
             )}
           </div>
@@ -1646,22 +1646,22 @@ function MarketplaceDetail({
       )}
       {fullDetail?.impact_evidence && (
         <div className="rounded-xl border border-border bg-card px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Impact evidence</p>
+          <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Impact evidence</p>
           <p className="text-[15px] text-foreground leading-relaxed">{fullDetail.impact_evidence}</p>
         </div>
       )}
       {fullDetail?.specific_ask && (
         <div className="rounded-xl border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-5 py-4">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-[#2D6A4F] mb-2">Specific ask</p>
-          <p className="text-sm text-foreground leading-relaxed">{fullDetail.specific_ask}</p>
+          <p className="text-[15px] text-foreground leading-relaxed">{fullDetail.specific_ask}</p>
         </div>
       )}
       {initiative.partnerships && initiative.partnerships.length > 0 && (
         <div className="rounded-xl border border-border bg-card px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Partnerships sought</p>
+          <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Partnerships sought</p>
           <div className="flex flex-wrap gap-2">
             {initiative.partnerships.map(p => (
-              <span key={p} className="px-3 py-1 rounded-full text-xs font-medium border border-border text-foreground capitalize">
+              <span key={p} className="px-3 py-1 rounded-full text-[13px] font-medium border border-border text-foreground capitalize">
                 {PARTNERSHIP_OPTIONS.find(o => o.value === p)?.label ?? p}
               </span>
             ))}
@@ -1672,16 +1672,16 @@ function MarketplaceDetail({
         <div className="grid gap-3 sm:grid-cols-2">
           {fullDetail?.stage && (
             <div className="rounded-xl border border-border bg-card px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Current stage</p>
+              <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Current stage</p>
               <p className="text-[15px] text-foreground">{STAGE_LABELS[fullDetail.stage] ?? fullDetail.stage}</p>
             </div>
           )}
           {fullDetail?.confirmed_assets && fullDetail.confirmed_assets.length > 0 && !fullDetail.confirmed_assets.includes("none") && (
             <div className="rounded-xl border border-border bg-white dark:bg-card px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Already confirmed</p>
+              <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Already confirmed</p>
               <div className="flex flex-wrap gap-1.5">
                 {fullDetail.confirmed_assets.filter(a => a !== "none").map(a => (
-                  <span key={a} className="text-xs px-2.5 py-0.5 rounded-full border border-border text-black dark:text-white capitalize">
+                  <span key={a} className="text-[13px] px-2.5 py-0.5 rounded-full border border-border text-black dark:text-white capitalize">
                     {a.replace(/_/g, " ")}
                   </span>
                 ))}
@@ -1694,13 +1694,13 @@ function MarketplaceDetail({
         <div className="grid gap-3 sm:grid-cols-2">
           {fullDetail.start_date && (
             <div className="rounded-xl border border-border bg-card px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1">Estimated start</p>
+              <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-1">Estimated start</p>
               <p className="text-[15px] text-foreground">{fullDetail.start_date}</p>
             </div>
           )}
           {fullDetail.duration && (
             <div className="rounded-xl border border-border bg-card px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1">Duration</p>
+              <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-1">Duration</p>
               <p className="text-[15px] text-foreground">{fullDetail.duration}</p>
             </div>
           )}
@@ -1708,13 +1708,13 @@ function MarketplaceDetail({
       )}
       {fullDetail?.co_funding_status && (
         <div className="rounded-xl border border-border bg-card px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1">Funding status</p>
+          <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-1">Funding status</p>
           <p className="text-[15px] text-foreground">{CO_FUNDING_LABELS[fullDetail.co_funding_status] ?? fullDetail.co_funding_status}</p>
         </div>
       )}
       {fullDetail?.had_prior_experience !== null && fullDetail?.had_prior_experience !== undefined && (
         <div className="rounded-xl border border-border bg-card px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Track record</p>
+          <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Track record</p>
           <p className="text-[15px] text-foreground mb-2">
             {fullDetail.had_prior_experience ? "The team has led similar initiatives before." : "This is a first initiative of this type for the team."}
           </p>
@@ -1724,10 +1724,10 @@ function MarketplaceDetail({
         </div>      )}
       {fullDetail?.sdg_tags && fullDetail.sdg_tags.length > 0 && (
         <div className="rounded-xl border border-border bg-card px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-3">SDG Alignment</p>
+          <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-3">SDG Alignment</p>
           <div className="flex flex-wrap gap-1.5">
             {fullDetail.sdg_tags.map(s => (
-              <span key={s} className="text-xs px-2.5 py-0.5 rounded-full font-medium"
+              <span key={s} className="text-[13px] px-2.5 py-0.5 rounded-full font-medium"
                 style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>{s}</span>
             ))}
           </div>
@@ -1736,7 +1736,7 @@ function MarketplaceDetail({
       {fullDetail?.detail_content && fullDetail.detail_content !== "<p></p>" && (
         <div className="rounded-xl border border-border bg-card px-5 py-4">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">
+            <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">
               Full initiative description
             </p>
             <button
@@ -1776,7 +1776,7 @@ function MarketplaceDetail({
 </html>`);
   win.document.close();
 }}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#2D6A4F] hover:underline underline-offset-2 transition-colors"
+              className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#2D6A4F] hover:underline underline-offset-2 transition-colors"
             >
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -1807,9 +1807,9 @@ function MarketplaceDetail({
       )}
       {fullDetail?.resource_link && (
         <div className="rounded-xl border border-border bg-card px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Resource</p>
+          <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Resource</p>
           <a href={fullDetail.resource_link} target="_blank" rel="noopener noreferrer"
-            className="text-sm text-primary hover:underline break-all">
+            className="text-[15px] text-primary hover:underline break-all">
             {fullDetail.resource_link.replace(/^https?:\/\//, "")}
           </a>
         </div>
@@ -1819,8 +1819,8 @@ function MarketplaceDetail({
           style={{ borderColor: "#a5d6a7", background: "rgba(46,125,50,0.08)" }}>
           <Leaf className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "#2e7d32" }} />
           <div>
-            <p className="text-sm font-medium" style={{ color: "#1b5e20" }}>Open to corporate ESG/CSR adoption</p>
-            <p className="text-xs mt-0.5" style={{ color: "#388e3c" }}>
+            <p className="text-[15px] font-medium" style={{ color: "#1b5e20" }}>Open to corporate ESG/CSR adoption</p>
+            <p className="text-[13px] mt-0.5" style={{ color: "#388e3c" }}>
               Organisations can adopt this initiative as their CSR or ESG anchor programme.
             </p>
           </div>
@@ -1829,7 +1829,7 @@ function MarketplaceDetail({
       {initiative.tags && initiative.tags.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {initiative.tags.map(t => (
-            <span key={t} className="px-3 py-1 rounded-full text-xs font-medium"
+            <span key={t} className="px-3 py-1 rounded-full text-[13px] font-medium"
               style={{ background: "rgba(196,92,38,0.12)", color: "#C45C26" }}>{t}</span>
           ))}
         </div>
@@ -1841,28 +1841,28 @@ function MarketplaceDetail({
               {!questionOpen ? (
                 <button type="button"
                   onClick={() => setQuestionOpen(true)}
-                  className="w-full rounded-full h-10 border border-[#2D6A4F]/30 text-sm text-[#2D6A4F] hover:bg-[#2D6A4F]/5 transition-colors flex items-center justify-center gap-2">
+                  className="w-full rounded-full h-10 border border-[#2D6A4F]/30 text-[15px] text-[#2D6A4F] hover:bg-[#2D6A4F]/5 transition-colors flex items-center justify-center gap-2">
                   <MessageSquare className="w-3.5 h-3.5" />
                   Ask a question before committing
                 </button>
               ) : (
                 <div className="rounded-xl border border-border bg-card p-4 space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Your question</p>
+                  <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">Your question</p>
                   <textarea
                     value={question}
                     onChange={e => setQuestion(e.target.value)}
                     placeholder="Ask the initiative owner a specific question before expressing interest..."
                     rows={3}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[15px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
                   />
                   <div className="flex gap-2">
                     <button type="button" onClick={() => { setQuestionOpen(false); setQuestion(""); }}
-                      className="flex-1 rounded-full h-9 border border-border text-sm text-muted-foreground hover:text-foreground transition-colors">
+                      className="flex-1 rounded-full h-9 border border-border text-[15px] text-muted-foreground hover:text-foreground transition-colors">
                       Cancel
                     </button>
                     <button type="button" onClick={submitQuestion}
                       disabled={!question.trim() || questionSubmitting}
-                      className="flex-1 rounded-full h-9 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-semibold disabled:opacity-40 transition-colors">
+                      className="flex-1 rounded-full h-9 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-semibold disabled:opacity-40 transition-colors">
                       {questionSubmitting ? "Sending..." : "Send question"}
                     </button>
                   </div>
@@ -1871,7 +1871,7 @@ function MarketplaceDetail({
             </div>
           )}
           {questionSubmitted && (
-            <div className="flex items-center gap-2 justify-center text-xs text-[#2D6A4F] py-1">
+            <div className="flex items-center gap-2 justify-center text-[13px] text-[#2D6A4F] py-1">
               <CheckCircle2 className="w-4 h-4" />
               Question sent. The initiative lead will respond in Messages.
             </div>
@@ -1879,7 +1879,7 @@ function MarketplaceDetail({
           <button type="button"
             onClick={() => { if (!alreadyExpressed) { setEoiOpen(true); } }}
             disabled={alreadyExpressed}
-            className={`w-full rounded-full h-11 text-sm font-semibold transition-all ${
+            className={`w-full rounded-full h-11 text-[15px] font-semibold transition-all ${
               alreadyExpressed
                 ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
                 : "bg-gradient-to-br from-[#3D2618] via-[#33301F] to-[#1B3328] hover:brightness-110 text-white"
@@ -1889,7 +1889,7 @@ function MarketplaceDetail({
         </div>
       )}
       {isOwnInitiative && (
-        <div className="w-full rounded-full h-11 flex items-center justify-center text-sm text-muted-foreground border border-border bg-muted">
+        <div className="w-full rounded-full h-11 flex items-center justify-center text-[15px] text-muted-foreground border border-border bg-muted">
           Your initiative
         </div>
       )}
@@ -1900,35 +1900,35 @@ function MarketplaceDetail({
               <div className="text-center py-4">
                 <CheckCircle2 className="w-10 h-10 text-[#2D6A4F] mx-auto mb-3" />
                 <p className="font-medium text-foreground">Expression submitted</p>
-                <p className="text-sm text-black dark:text-white mt-1">The initiative lead will be notified.</p>
+                <p className="text-[15px] text-black dark:text-white mt-1">The initiative lead will be notified.</p>
                 {profile?.user_type === "organisation" && !profile?.is_verified && (
                   <div className="mt-4 rounded-xl border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-4 py-3 text-left">
-                    <p className="text-xs font-medium text-[#2D6A4F]">Stand out with a verified badge</p>
-                    <p className="text-xs text-black dark:text-white mt-0.5">Verified organisations get a trust badge on all EOIs.</p>
-                    <a href="/verify" className="inline-block mt-2 text-xs font-medium text-[#2D6A4F] hover:underline">Get verified →</a>
+                    <p className="text-[13px] font-medium text-[#2D6A4F]">Stand out with a verified badge</p>
+                    <p className="text-[13px] text-black dark:text-white mt-0.5">Verified organisations get a trust badge on all EOIs.</p>
+                    <a href="/verify" className="inline-block mt-2 text-[13px] font-medium text-[#2D6A4F] hover:underline">Get verified →</a>
                   </div>
                 )}
                 <button type="button"
                   onClick={() => { setEoiOpen(false); setSubmitted(false); setPartnershipTypes([]); setEsgAdoption(false); setMessage(""); hasManuallyEditedRef.current = false; }}
-                  className="mt-5 rounded-full h-10 px-6 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-semibold transition-colors">
+                  className="mt-5 rounded-full h-10 px-6 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-semibold transition-colors">
                   Done
                 </button>
               </div>
             ) : (
               <div className="space-y-5">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-foreground">Express Interest</h3>
+                  <h3 className="text-[17px] font-semibold text-foreground">Express Interest</h3>
                   <button type="button" onClick={() => setEoiOpen(false)} className="p-1.5 rounded-full hover:bg-muted transition-colors">
                     <X className="w-4 h-4 text-muted-foreground" />
                   </button>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-foreground mb-2">Partnership type</p>
+                  <p className="text-[15px] font-medium text-foreground mb-2">Partnership type</p>
                   <div className="flex flex-wrap gap-2">
                     {EOI_PARTNERSHIP_TYPES.map(t => (
                       <button key={t.value} type="button"
                         onClick={() => setPartnershipTypes(prev => prev.includes(t.value) ? prev.filter(x => x !== t.value) : [...prev, t.value])}
-                        className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                        className={`text-[13px] px-3 py-1.5 rounded-full border transition-colors ${
                           partnershipTypes.includes(t.value) ? "bg-[#2D6A4F] text-white border-[#2D6A4F]" : "border-border text-muted-foreground hover:border-[#2D6A4F]"
                         }`}>
                         {t.label}
@@ -1938,32 +1938,32 @@ function MarketplaceDetail({
                 </div>
                 {initiative.esg_alignment && (
                   <div>
-                    <p className="text-sm font-medium text-foreground mb-2">ESG/CSR adoption</p>
+                    <p className="text-[15px] font-medium text-foreground mb-2">ESG/CSR adoption</p>
                     <button type="button" onClick={() => setEsgAdoption(v => !v)}
                       className={`w-full flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${esgAdoption ? "border-[#2e7d32] bg-[rgba(46,125,50,0.08)]" : "border-border hover:border-[#2e7d32]/40"}`}>
                       <div className={`w-4 h-4 mt-0.5 rounded border flex items-center justify-center shrink-0 transition-colors ${esgAdoption ? "bg-[#2e7d32] border-[#2e7d32]" : "border-border"}`}>
                         {esgAdoption && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>}
                       </div>
                       <div>
-                        <p className="text-xs font-medium text-foreground">Adopt as ESG/CSR initiative</p>
-                        <p className="text-xs text-black dark:text-white mt-0.5">Your organisation will adopt this as a CSR or ESG anchor programme.</p>
+                        <p className="text-[13px] font-medium text-foreground">Adopt as ESG/CSR initiative</p>
+                        <p className="text-[13px] text-black dark:text-white mt-0.5">Your organisation will adopt this as a CSR or ESG anchor programme.</p>
                       </div>
                     </button>
                   </div>
                 )}
-                {!canSubmit && <p className="text-xs text-black dark:text-white">Select at least one partnership type{initiative.esg_alignment ? " or choose ESG/CSR adoption" : ""}.</p>}
+                {!canSubmit && <p className="text-[13px] text-black dark:text-white">Select at least one partnership type{initiative.esg_alignment ? " or choose ESG/CSR adoption" : ""}.</p>}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-foreground">Message</label>
+                    <label className="text-[15px] font-medium text-foreground">Message</label>
                     <button type="button" onClick={generateAiMessage} disabled={aiMessageLoading}
-                      className="flex items-center gap-1.5 text-xs font-semibold text-[#2D6A4F] hover:underline disabled:opacity-40 transition-opacity">
+                      className="flex items-center gap-1.5 text-[13px] font-semibold text-[#2D6A4F] hover:underline disabled:opacity-40 transition-opacity">
                       {aiMessageLoading
                         ? <><Loader2 className="w-3 h-3 animate-spin" />Generating...</>
                         : <><Sparkles className="w-3 h-3" />{message ? "Regenerate" : "Generate"}</>}
                     </button>
                   </div>
                   {aiMessageLoading && !message && (
-                    <div className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2.5 h-28 flex items-center justify-center gap-2 text-xs text-black dark:text-white">
+                    <div className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2.5 h-28 flex items-center justify-center gap-2 text-[13px] text-black dark:text-white">
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-[#2D6A4F]" />
                       Drafting your message...
                     </div>
@@ -1977,10 +1977,10 @@ function MarketplaceDetail({
                         : "Generating message..."
                       }
                       rows={5}
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[15px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
                   )}
                   {aiMessageRequiresUpgrade && !message && (
-                    <p className="text-xs text-[#C45C26]">
+                    <p className="text-[13px] text-[#C45C26]">
                       AI-drafted outreach needs an upgrade.{" "}
                       <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")} className="underline font-medium">
                         Upgrade
@@ -1989,12 +1989,12 @@ function MarketplaceDetail({
                     </p>
                   )}
                   {aiMessageFailed && !message && (
-                    <p className="text-xs text-[#C45C26]">AI draft failed. Write your own message above.</p>
+                    <p className="text-[13px] text-[#C45C26]">AI draft failed. Write your own message above.</p>
                   )}
                 </div>
-                {eoiError && <p className="text-sm text-red-600 bg-red-50 rounded-md px-3 py-2">{eoiError}</p>}
+                {eoiError && <p className="text-[15px] text-red-600 bg-red-50 rounded-md px-3 py-2">{eoiError}</p>}
                 <button type="button" onClick={submitEOI} disabled={!canSubmit || submitting}
-                  className="w-full rounded-full h-10 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
+                  className="w-full rounded-full h-10 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
                   {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                   Submit Expression of Interest
                 </button>

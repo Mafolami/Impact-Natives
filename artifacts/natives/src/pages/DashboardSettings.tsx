@@ -213,7 +213,7 @@ export default function DashboardSettings() {
       <div className="flex gap-1 border-b border-border overflow-x-auto scrollbar-hide">
         {TABS.map(({ value, label }) => (
           <button key={value} type="button" onClick={() => setTab(value)}
-            className={`pb-3 px-3 shrink-0 text-sm font-medium border-b-2 transition-colors -mb-px ${
+            className={`pb-3 px-3 shrink-0 text-[15px] font-medium border-b-2 transition-colors -mb-px ${
               tab === value
                 ? "border-[#2D6A4F] text-[#2D6A4F]"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -228,32 +228,32 @@ export default function DashboardSettings() {
         <div className="space-y-4">
           <div className="rounded-xl border border-border bg-white dark:bg-card divide-y divide-border">
             <div className="px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Account information</p>
+              <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Account information</p>
               <div className="space-y-3">
                 <div>
-                  <p className="text-xs text-black dark:text-white mb-0.5">Full name</p>
-                  <p className="text-sm font-medium text-foreground">{profile?.full_name || "—"}</p>
+                  <p className="text-[13px] text-black dark:text-white mb-0.5">Full name</p>
+                  <p className="text-[15px] font-medium text-foreground">{profile?.full_name || "—"}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-black dark:text-white mb-0.5">Email</p>
-                  <p className="text-sm font-medium text-foreground">{user?.email}</p>
-                  <p className="text-xs text-black dark:text-white mt-0.5">Email cannot be changed.</p>
+                  <p className="text-[13px] text-black dark:text-white mb-0.5">Email</p>
+                  <p className="text-[15px] font-medium text-foreground">{user?.email}</p>
+                  <p className="text-[13px] text-black dark:text-white mt-0.5">Email cannot be changed.</p>
                 </div>
               </div>
             </div>
 
             <div className="px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Password</p>
+              <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Password</p>
               {pwSent ? (
-                <p className="text-sm text-[#2D6A4F]">Reset link sent — check your email.</p>
+                <p className="text-[15px] text-[#2D6A4F]">Reset link sent — check your email.</p>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-sm text-black dark:text-white">
+                  <p className="text-[15px] text-black dark:text-white">
                     We'll send a password reset link to <span className="text-foreground">{user?.email}</span>.
                   </p>
-                  {pwError && <p className="text-xs text-red-500">{pwError}</p>}
+                  {pwError && <p className="text-[13px] text-red-500">{pwError}</p>}
                   <Button type="button" variant="outline"
-                    className="rounded-full px-5 text-sm h-9"
+                    className="rounded-full px-5 text-[15px] h-9"
                     onClick={sendPasswordReset}
                     disabled={pwSending}>
                     {pwSending ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-2" />Sending...</> : "Send reset link"}
@@ -263,8 +263,8 @@ export default function DashboardSettings() {
             </div>
 
             <div className="px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1">Profile</p>
-              <p className="text-sm text-black dark:text-white">
+              <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-1">Profile</p>
+              <p className="text-[15px] text-black dark:text-white">
                 To update your photo, bio, or org details,{" "}
                 <Link href="/dashboard/profile" className="text-[#2D6A4F] hover:underline underline-offset-2">
                   visit your profile page
@@ -276,15 +276,15 @@ export default function DashboardSettings() {
           <div className="rounded-xl border border-border bg-white dark:bg-card divide-y divide-border">
             <div className="px-5 py-4 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-foreground">Appearance</p>
-                <p className="text-xs text-black dark:text-white mt-0.5">Switch between light and dark mode</p>
+                <p className="text-[15px] font-medium text-foreground">Appearance</p>
+                <p className="text-[13px] text-black dark:text-white mt-0.5">Switch between light and dark mode</p>
               </div>
               <ThemeToggle />
             </div>
             <div className="px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Session</p>
+              <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Session</p>
               <Button type="button" variant="outline"
-                className="rounded-full px-5 text-sm h-9"
+                className="rounded-full px-5 text-[15px] h-9"
                 onClick={signOut}>
                 Sign out
               </Button>
@@ -297,7 +297,7 @@ export default function DashboardSettings() {
       {tab === "privacy" && (
         <div className="rounded-xl border border-border bg-white dark:bg-card divide-y divide-border">
           <div className="px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-4">Visibility</p>
+            <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-4">Visibility</p>
             <div className="space-y-3">
               {[
                 { value: "public", label: "Public", sub: "Your activity appears on the Impact Natives feed" },
@@ -310,8 +310,8 @@ export default function DashboardSettings() {
                       ? "border-[#2D6A4F] bg-[#2D6A4F]/10"
                       : "border-border hover:border-foreground/20"
                   }`}>
-                  <p className="text-sm font-medium text-foreground">{opt.label}</p>
-                  <p className="text-xs text-black dark:text-white mt-0.5">{opt.sub}</p>
+                  <p className="text-[15px] font-medium text-foreground">{opt.label}</p>
+                  <p className="text-[13px] text-black dark:text-white mt-0.5">{opt.sub}</p>
                 </button>
               ))}
             </div>
@@ -327,7 +327,7 @@ export default function DashboardSettings() {
               all has no use for this toggle; they're shown unconditionally. */}
           {(profile?.user_type === "organisation" || (orgOwnerId && user && orgOwnerId !== user.id)) && (
             <div className="px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Individual profile</p>
+              <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Individual profile</p>
               <button type="button"
                 onClick={() => setShowIndividualProfile(v => !v)}
                 className={`w-full flex items-start gap-3 text-left px-4 py-3.5 rounded-xl border transition-colors ${
@@ -341,8 +341,8 @@ export default function DashboardSettings() {
                   {showIndividualProfile && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-foreground">Also show me as an individual</p>
-                  <p className="text-xs text-black dark:text-white mt-0.5">Your personal profile will also appear in the Natives directory under Individuals, tagged with your organisation.</p>
+                  <p className="text-[15px] font-medium text-foreground">Also show me as an individual</p>
+                  <p className="text-[13px] text-black dark:text-white mt-0.5">Your personal profile will also appear in the Natives directory under Individuals, tagged with your organisation.</p>
                 </div>
               </button>
             </div>
@@ -350,7 +350,7 @@ export default function DashboardSettings() {
 
           <div className="px-5 py-4 flex justify-end">
             <Button type="button" onClick={savePrivacy} disabled={privacySaving}
-              className="bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full px-6 h-9 text-sm">
+              className="bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full px-6 h-9 text-[15px]">
               {privacySaving
                 ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-2" />Saving...</>
                 : privacySaved ? "Saved ✓" : "Save changes"}
@@ -363,13 +363,13 @@ export default function DashboardSettings() {
       {tab === "notifications" && (
         <div className="rounded-xl border border-border bg-white dark:bg-card divide-y divide-border">
           <div className="px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-4">In-app notifications</p>
+            <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-4">In-app notifications</p>
             <div className="space-y-4">
               {NOTIFICATION_LABELS.map(({ key, label, sub }) => (
                 <div key={key} className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-foreground">{label}</p>
-                    <p className="text-xs text-black dark:text-white mt-0.5">{sub}</p>
+                    <p className="text-[15px] font-medium text-foreground">{label}</p>
+                    <p className="text-[13px] text-black dark:text-white mt-0.5">{sub}</p>
                   </div>
                   <button type="button"
                     onClick={() => setNotifPrefs((p) => ({ ...p, [key]: !p[key] }))}
@@ -385,7 +385,7 @@ export default function DashboardSettings() {
 
           <div className="px-5 py-4 flex justify-end">
             <Button type="button" onClick={saveNotifications} disabled={notifSaving}
-              className="bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full px-6 h-9 text-sm">
+              className="bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full px-6 h-9 text-[15px]">
               {notifSaving
                 ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-2" />Saving...</>
                 : notifSaved ? "Saved ✓" : "Save changes"}
@@ -407,20 +407,20 @@ export default function DashboardSettings() {
           {/* Deactivate */}
                     <div className="rounded-xl border border-amber-500 bg-amber-50 dark:bg-amber-950/20 px-5 py-4 space-y-3">
             <div>
-              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Deactivate account</p>
-              <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 leading-relaxed">
+              <p className="text-[15px] font-semibold text-amber-800 dark:text-amber-300">Deactivate account</p>
+              <p className="text-[13px] text-amber-700 dark:text-amber-400 mt-1 leading-relaxed">
                 Your profile will be hidden and you won't be able to sign in. Reactivation requires contacting the Impact Natives team.
               </p>
             </div>
             {!deactivateConfirm ? (
               <Button type="button" variant="outline"
                 onClick={() => setDeactivateConfirm(true)}
-                className="rounded-full px-5 h-9 text-sm border-amber-300 text-amber-800 hover:bg-amber-100">
+                className="rounded-full px-5 h-9 text-[15px] border-amber-300 text-amber-800 hover:bg-amber-100">
                 Deactivate account
               </Button>
             ) : (
               <div className="space-y-3">
-                <p className="text-sm text-amber-800 font-medium">Are you sure? This cannot be undone without contacting us.</p>
+                <p className="text-[15px] text-amber-800 font-medium">Are you sure? This cannot be undone without contacting us.</p>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setDeactivateConfirm(false)}
                     style={{ flex: 1, height: "36px", borderRadius: "9999px", border: "1px solid #92400e", color: "#92400e", background: "transparent", fontSize: "14px", cursor: "pointer" }}>
@@ -438,20 +438,20 @@ export default function DashboardSettings() {
           {/* Delete */}
           <div className="rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-800 px-5 py-4 space-y-3">
             <div>
-              <p className="text-sm font-semibold text-red-700 dark:text-red-400">Delete account</p>
-              <p className="text-xs text-red-600 dark:text-red-400 mt-1 leading-relaxed">
+              <p className="text-[15px] font-semibold text-red-700 dark:text-red-400">Delete account</p>
+              <p className="text-[13px] text-red-600 dark:text-red-400 mt-1 leading-relaxed">
                 Permanently deletes your account, profile, initiatives, and all associated data. This cannot be undone.
               </p>
             </div>
             {!deleteConfirm ? (
               <Button type="button" variant="outline"
                 onClick={() => setDeleteConfirm(true)}
-                className="rounded-full px-5 h-9 text-sm border-red-300 text-red-600 hover:bg-red-100">
+                className="rounded-full px-5 h-9 text-[15px] border-red-300 text-red-600 hover:bg-red-100">
                 Delete account
               </Button>
             ) : (
               <div className="space-y-3">
-                <p className="text-sm text-red-700 font-medium">
+                <p className="text-[15px] text-red-700 font-medium">
                   Type <span className="font-bold">DELETE</span> to confirm.
                 </p>
                 <input
@@ -459,9 +459,9 @@ export default function DashboardSettings() {
                   value={deleteInput}
                   onChange={(e) => setDeleteInput(e.target.value)}
                   placeholder="DELETE"
-                  className="w-full h-10 rounded-lg border border-red-300 bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-200"
+                  className="w-full h-10 rounded-lg border border-red-300 bg-background px-3 text-[15px] focus:outline-none focus:ring-2 focus:ring-red-200"
                 />
-                {deleteError && <p className="text-xs text-red-500">{deleteError}</p>}
+                {deleteError && <p className="text-[13px] text-red-500">{deleteError}</p>}
                 <div className="flex gap-2">
                   <button type="button" onClick={() => { setDeleteConfirm(false); setDeleteInput(""); setDeleteError(null); }}
                     style={{ flex: 1, height: "36px", borderRadius: "9999px", border: "1px solid #b91c1c", color: "#b91c1c", background: "transparent", fontSize: "14px", cursor: "pointer" }}>
@@ -483,44 +483,44 @@ export default function DashboardSettings() {
     {/* Right column */}
     <div className="space-y-4" style={{top: "10rem" }}>
       <div className="rounded-2xl border border-border bg-white dark:bg-card p-5 space-y-4">
-        <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">
+        <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">
           {currentHelp.title}
         </p>
         <div className="space-y-3">
           {currentHelp.items.map((item, i) => (
             <div key={i} className="flex items-start gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F] shrink-0 mt-1.5" />
-              <p className="text-xs text-black dark:text-white leading-relaxed">{item}</p>
+              <p className="text-[13px] text-black dark:text-white leading-relaxed">{item}</p>
             </div>
           ))}
         </div>
       </div>
 
       <div className="rounded-2xl border border-border bg-white dark:bg-card p-5 space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Quick links</p>
-        <Link href="/dashboard/profile" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+        <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Quick links</p>
+        <Link href="/dashboard/profile" className="flex items-center gap-2 text-[13px] text-muted-foreground hover:text-foreground transition-colors py-1">
           <span className="w-1 h-1 rounded-full bg-[#C45C26] shrink-0" />
           Edit your profile
         </Link>
         {profile?.user_type === "organisation" && (
-          <a href="/verification-standard" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+          <a href="/verification-standard" className="flex items-center gap-2 text-[13px] text-muted-foreground hover:text-foreground transition-colors py-1">
             <ArrowRight className="w-3 h-3 text-[#2D6A4F]" />
             Verification standards
           </a>
         )}
         {profile?.user_type !== "organisation" && (
           <>
-            <Link href="/dashboard/marketplace" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+            <Link href="/dashboard/marketplace" className="flex items-center gap-2 text-[13px] text-muted-foreground hover:text-foreground transition-colors py-1">
               <ArrowRight className="w-3 h-3 text-[#2D6A4F]" />
               Browse the marketplace
             </Link>
-            <Link href="/dashboard/natives?tab=organisation" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+            <Link href="/dashboard/natives?tab=organisation" className="flex items-center gap-2 text-[13px] text-muted-foreground hover:text-foreground transition-colors py-1">
               <ArrowRight className="w-3 h-3 text-[#2D6A4F]" />
               Browse organisations
             </Link>
           </>
         )}
-        <Link href="/dashboard/natives" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+        <Link href="/dashboard/natives" className="flex items-center gap-2 text-[13px] text-muted-foreground hover:text-foreground transition-colors py-1">
           <span className="w-1 h-1 rounded-full bg-[#C45C26] shrink-0" />
           View directory
         </Link>

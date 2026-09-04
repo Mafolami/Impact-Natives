@@ -41,7 +41,7 @@ function CountryPicker({ value, onChange }: { value: string; onChange: (v: strin
           {filtered.map((c) => (
             <button key={c} type="button"
               onMouseDown={() => { onChange(c); setSearch(""); setOpen(false); }}
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors ${
+              className={`w-full text-left px-3 py-2 text-[15px] hover:bg-muted transition-colors ${
                 value === c ? "bg-[#2D6A4F]/10 text-[#2D6A4F] font-medium" : "text-foreground"
               }`}>
               {c}
@@ -63,7 +63,7 @@ function SectorChips({ selected, onChange }: { selected: string[]; onChange: (v:
         const active = selected.includes(s);
         return (
           <button key={s} type="button" onClick={() => toggle(s)}
-            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
+            className={`px-3 py-1.5 rounded-full border text-[13px] font-medium transition-all ${
               active ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
                      : "border-border text-black dark:text-white hover:border-foreground/30 hover:text-foreground"
             }`}>
@@ -103,7 +103,7 @@ function ChipPicker({ options, selected, onChange }: { options: string[]; select
         const active = selected.includes(s);
         return (
           <button key={s} type="button" onClick={() => toggle(s)}
-            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
+            className={`px-3 py-1.5 rounded-full border text-[13px] font-medium transition-all ${
               active ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
                      : "border-border text-black dark:text-white hover:border-foreground/30 hover:text-foreground"
             }`}>
@@ -122,7 +122,7 @@ function InfoTooltip({ text }: { text: string }) {
         aria-label="What does this mean?">
         i
       </span>
-      <span className="pointer-events-none absolute left-0 bottom-full mb-1.5 w-64 rounded-lg border border-border bg-white dark:bg-card px-2.5 py-1.5 text-xs text-foreground opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-md">
+      <span className="pointer-events-none absolute left-0 bottom-full mb-1.5 w-64 rounded-lg border border-border bg-white dark:bg-card px-2.5 py-1.5 text-[13px] text-foreground opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-md">
         {text}
       </span>
     </span>
@@ -133,20 +133,20 @@ function PaneHeader({ title, subtitle, info }: { title: string; subtitle?: strin
   return (
     <div className="mb-1">
       <div className="flex items-center gap-1.5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">{title}</p>
+        <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">{title}</p>
         {info && (
           <span className="relative inline-flex group shrink-0">
             <span className="w-3.5 h-3.5 rounded-full border border-muted-foreground/50 text-foreground text-[9px] leading-[13px] font-bold inline-flex items-center justify-center cursor-default"
               aria-label="What does this mean?">
               i
             </span>
-            <span className="pointer-events-none absolute left-0 bottom-full mb-1.5 w-64 rounded-lg border border-border bg-white dark:bg-card px-2.5 py-1.5 text-xs text-foreground opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-md">
+            <span className="pointer-events-none absolute left-0 bottom-full mb-1.5 w-64 rounded-lg border border-border bg-white dark:bg-card px-2.5 py-1.5 text-[13px] text-foreground opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-md">
               {info}
             </span>
           </span>
         )}
       </div>
-      {subtitle && <p className="text-xs text-black dark:text-white mt-1">{subtitle}</p>}
+      {subtitle && <p className="text-[13px] text-black dark:text-white mt-1">{subtitle}</p>}
     </div>
   );
 }
@@ -190,7 +190,7 @@ function SectionCard({ title, titleExtra, headerExtra, onEdit, editable = true, 
       <div className="relative">
         <div className={`w-full flex items-center gap-1.5 px-8 sm:px-12 py-4 hover:bg-[#E2725B]/[0.08] transition-colors ${headerExtra ? "pr-24 sm:pr-28" : "pr-14"}`}>
           <button type="button" onClick={onToggle} className="flex-1 flex items-center gap-1.5 text-left">
-            <p className="text-lg font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
+            <p className="text-[19px] font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
             {titleExtra}
           </button>
           {headerExtra}
@@ -214,7 +214,7 @@ function SectionCard({ title, titleExtra, headerExtra, onEdit, editable = true, 
   return (
     <div className="px-8 sm:px-12 py-4">
       <div className="flex items-center justify-between mb-4">
-        <p className="text-lg font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
+        <p className="text-[19px] font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
         <div className="flex items-center gap-3 shrink-0">
           {headerExtra}
           {editable && (
@@ -235,7 +235,7 @@ function SectionCard({ title, titleExtra, headerExtra, onEdit, editable = true, 
 function SectionGroupHeader({ title, expanded, onToggle }: { title: string; expanded: boolean; onToggle: () => void }) {
   return (
     <button type="button" onClick={onToggle} className="w-full flex items-center justify-between px-8 sm:px-12 py-4 text-left hover:bg-[#E2725B]/[0.08] transition-colors">
-      <p className="text-lg font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
+      <p className="text-[19px] font-bold text-[#111111] dark:text-[#F5F5F5]">{title}</p>
     </button>
   );
 }
@@ -243,7 +243,7 @@ function SectionGroupHeader({ title, expanded, onToggle }: { title: string; expa
 function DisplayField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5] mb-1.5">{label}</p>
+      <p className="text-[15px] font-bold text-[#111111] dark:text-[#F5F5F5] mb-1.5">{label}</p>
       {children}
     </div>
   );
@@ -267,12 +267,12 @@ function socialPlatformIcon(label: string) {
 }
 
 function EmptyValue() {
-  return <p className="text-sm text-[#111111] dark:text-[#F5F5F5] italic opacity-60">Not set yet</p>;
+  return <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5] italic opacity-60">Not set yet</p>;
 }
 
 function FlatTag({ children }: { children: React.ReactNode }) {
   return (
-    <span className="text-sm text-[#111111] dark:text-[#F5F5F5] border border-border px-3 py-1 rounded-md">
+    <span className="text-[15px] text-[#111111] dark:text-[#F5F5F5] border border-border px-3 py-1 rounded-md">
       {children}
     </span>
   );
@@ -287,8 +287,8 @@ function ModalCheckbox({ checked, onChange, label, sub }: { checked: boolean; on
         {checked && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-black dark:text-white"><polyline points="20 6 9 17 4 12" /></svg>}
       </div>
       <div>
-        <p className="text-sm text-black dark:text-white">{label}</p>
-        {sub && <p className="text-xs text-black dark:text-white opacity-60 mt-0.5">{sub}</p>}
+        <p className="text-[15px] text-black dark:text-white">{label}</p>
+        {sub && <p className="text-[13px] text-black dark:text-white opacity-60 mt-0.5">{sub}</p>}
       </div>
     </button>
   );
@@ -299,15 +299,15 @@ function EditModal({ isOpen = true, title, onClose, onSave, saving, children }: 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-lg p-6 space-y-5 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <h3 className="text-lg font-bold text-black dark:text-white">{title}</h3>
+        <h3 className="text-[19px] font-bold text-black dark:text-white">{title}</h3>
         {children}
         <div className="flex gap-2 pt-1">
           <button type="button" onClick={onClose}
-            className="flex-1 h-9 rounded-full border border-border text-sm text-black dark:text-white hover:bg-muted transition-colors">
+            className="flex-1 h-9 rounded-full border border-border text-[15px] text-black dark:text-white hover:bg-muted transition-colors">
             Cancel
           </button>
           <button type="button" onClick={onSave} disabled={saving}
-            className="flex-1 h-9 rounded-full bg-black dark:bg-white text-white dark:text-black text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">
+            className="flex-1 h-9 rounded-full bg-black dark:bg-white text-white dark:text-black text-[15px] font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">
             {saving ? "Saving..." : "Save"}
           </button>
         </div>
@@ -343,18 +343,18 @@ function DeliveryStatsCard({ orgId }: { orgId: string | null }) {
     <div>
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1.5">
-          <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Delivery</p>
+          <p className="text-[21px] font-bold text-[#111111] dark:text-[#F5F5F5]">Delivery</p>
           <InfoTooltip text={PILLAR_INFO.delivery} />
         </div>
-        {hasEnoughData && <p className="text-xl font-bold text-black dark:text-white">{rate}%</p>}
+        {hasEnoughData && <p className="text-[21px] font-bold text-black dark:text-white">{rate}%</p>}
       </div>
-      <p className="text-xs text-black dark:text-white opacity-60 mb-6">Platform-tracked, not editable here.</p>
+      <p className="text-[13px] text-black dark:text-white opacity-60 mb-6">Platform-tracked, not editable here.</p>
       {hasEnoughData ? (
         <>
           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
             <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${rate}%` }} />
           </div>
-          <p className="text-sm text-black dark:text-white mt-3">
+          <p className="text-[15px] text-black dark:text-white mt-3">
             {stats.completed} of {stats.resolved} relationship{stats.resolved !== 1 ? "s" : ""} completed
             {[
               stats.stalled > 0 ? `${stats.stalled} stalled` : null,
@@ -370,9 +370,9 @@ function DeliveryStatsCard({ orgId }: { orgId: string | null }) {
           </p>
         </>
       ) : stats.total === 0 ? (
-        <p className="text-sm text-black dark:text-white">No tracked delivery history yet.</p>
+        <p className="text-[15px] text-black dark:text-white">No tracked delivery history yet.</p>
       ) : (
-        <p className="text-sm text-black dark:text-white">
+        <p className="text-[15px] text-black dark:text-white">
           {stats.total} active relationship{stats.total !== 1 ? "s" : ""}, no completed outcomes yet.
         </p>
       )}
@@ -492,10 +492,10 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-md p-6 space-y-4 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div>
-          <h3 className="text-lg font-bold text-foreground">{item.label}</h3>
-          <p className="text-sm text-black dark:text-white mt-0.5">{item.sub}</p>
+          <h3 className="text-[19px] font-bold text-foreground">{item.label}</h3>
+          <p className="text-[15px] text-black dark:text-white mt-0.5">{item.sub}</p>
           {item.key === "legal_compliance_declaration" && (
-            <p className="text-xs text-black dark:text-white mt-2 border border-border rounded-lg px-3 py-2 bg-muted/30">
+            <p className="text-[13px] text-black dark:text-white mt-2 border border-border rounded-lg px-3 py-2 bg-muted/30">
               If you disclose a blacklisting or pending dispute, funders and corporate partners considering a partnership with you will see the detail you provide — other organisations won't. Give a real, specific answer rather than a placeholder; vague or missing detail will block saving.
             </p>
           )}
@@ -506,28 +506,28 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
           const flagClass = missing ? "border-red-400" : "border-border";
           return (
           <div key={q.key}>
-            <label className={`text-xs font-semibold uppercase tracking-wider mb-1.5 block ${missing ? "text-red-500" : "text-black dark:text-white"}`}>
+            <label className={`text-[13px] font-semibold uppercase tracking-wider mb-1.5 block ${missing ? "text-red-500" : "text-black dark:text-white"}`}>
               {q.label}{q.required !== false && <span className="text-red-500"> *</span>}
             </label>
             {q.type === "text" && (
               <input value={answers[q.key] ?? ""} onChange={e => setAnswer(q.key, e.target.value)}
-                className={`w-full h-9 px-3 rounded-lg border bg-background text-sm text-foreground ${flagClass}`} />
+                className={`w-full h-9 px-3 rounded-lg border bg-background text-[15px] text-foreground ${flagClass}`} />
             )}
             {q.type === "date" && (
               <input type="date" value={answers[q.key] ?? ""} onChange={e => setAnswer(q.key, e.target.value)}
-                className={`w-full h-9 px-3 rounded-lg border bg-background text-sm text-foreground ${flagClass}`} />
+                className={`w-full h-9 px-3 rounded-lg border bg-background text-[15px] text-foreground ${flagClass}`} />
             )}
             {q.type === "select" && (
               <>
                 <select value={answers[q.key] ?? ""} onChange={e => setAnswer(q.key, e.target.value)}
-                  className={`w-full h-9 px-3 rounded-lg border bg-background text-sm text-foreground ${flagClass}`}>
+                  className={`w-full h-9 px-3 rounded-lg border bg-background text-[15px] text-foreground ${flagClass}`}>
                   <option value="">Select...</option>
                   {q.options.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
                 {(answers[q.key] === "Other" || answers[q.key] === "Custom") && (
                   <input value={answers[`${q.key}_custom`] ?? ""} onChange={e => setAnswer(`${q.key}_custom`, e.target.value)}
                     placeholder="Please specify"
-                    className={`w-full h-9 px-3 mt-2 rounded-lg border bg-background text-sm text-foreground ${
+                    className={`w-full h-9 px-3 mt-2 rounded-lg border bg-background text-[15px] text-foreground ${
                       attemptedInvalidSave && !answers[`${q.key}_custom`] ? "border-red-400" : "border-border"
                     }`} />
                 )}
@@ -537,7 +537,7 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
               <>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setAnswer(q.key, true)}
-                    className={`flex-1 h-9 rounded-lg border text-sm font-medium transition-colors ${
+                    className={`flex-1 h-9 rounded-lg border text-[15px] font-medium transition-colors ${
                       answers[q.key] === true ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : `${flagClass} text-black dark:text-white hover:border-[#2D6A4F]`
                     }`}>
                     Yes
@@ -546,7 +546,7 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
                       setAnswer(q.key, false);
                       if (q.followUpIfYes) setAnswer(q.followUpIfYes.key, "");
                     }}
-                    className={`flex-1 h-9 rounded-lg border text-sm font-medium transition-colors ${
+                    className={`flex-1 h-9 rounded-lg border text-[15px] font-medium transition-colors ${
                       answers[q.key] === false ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : `${flagClass} text-black dark:text-white hover:border-[#2D6A4F]`
                     }`}>
                     No
@@ -556,7 +556,7 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
                   <>
                     <input value={answers[q.followUpIfYes.key] ?? ""} onChange={e => setAnswer(q.followUpIfYes!.key, e.target.value)}
                       placeholder={q.followUpIfYes.label}
-                      className={`w-full h-9 px-3 mt-2 rounded-lg border bg-background text-sm text-foreground ${
+                      className={`w-full h-9 px-3 mt-2 rounded-lg border bg-background text-[15px] text-foreground ${
                         attemptedInvalidSave && isQuestionMissing(q) ? "border-red-400" : "border-border"
                       }`} />
                     {(q.key === "hasBlacklisting" || q.key === "hasPendingDisputes") && String(answers[q.followUpIfYes.key] ?? "").trim().length < 20 && (
@@ -574,19 +574,19 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
 
         {orgId && (
           <div className="pt-3 border-t border-border space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Supporting documents</p>
+            <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">Supporting documents</p>
 
             {!docsLoading && documents.length > 0 && (
               <div className="space-y-2">
                 {documents.map(doc => (
                   <div key={doc.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-border bg-muted/20">
                     <button type="button" onClick={() => handleDocView(doc)}
-                      className="text-sm text-foreground hover:underline underline-offset-2 truncate text-left">
+                      className="text-[15px] text-foreground hover:underline underline-offset-2 truncate text-left">
                       {doc.file_name}
                     </button>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <select value={doc.visibility} onChange={e => handleDocVisibilityChange(doc, e.target.value as DDDocument["visibility"])}
-                        className="h-7 text-xs rounded-md border border-border bg-background px-1.5 text-foreground">
+                        className="h-7 text-[13px] rounded-md border border-border bg-background px-1.5 text-foreground">
                         <option value="private">Private</option>
                         <option value="relationship">Connections only</option>
                         <option value="public">Public</option>
@@ -602,17 +602,17 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
 
             {!wantsUpload ? (
               <button type="button" onClick={() => setWantsUpload(true)}
-                className="text-sm text-[#2D6A4F] hover:underline underline-offset-2 font-medium">
+                className="text-[15px] text-[#2D6A4F] hover:underline underline-offset-2 font-medium">
                 + Upload a supporting document
               </button>
             ) : (
               <div className="space-y-2 rounded-lg border border-dashed border-border p-3">
                 <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-1.5 block">Who can view this document?</label>
+                  <label className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-1.5 block">Who can view this document?</label>
                   <div className="flex gap-1.5">
                     {([["private","Only me"],["relationship","Connections"],["public","Public"]] as const).map(([v, label]) => (
                       <button key={v} type="button" onClick={() => setUploadVisibility(v)}
-                        className={`flex-1 h-8 rounded-lg border text-xs font-medium transition-colors ${
+                        className={`flex-1 h-8 rounded-lg border text-[13px] font-medium transition-colors ${
                           uploadVisibility === v ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-border text-black dark:text-white hover:border-[#2D6A4F]"
                         }`}>
                         {label}
@@ -620,11 +620,11 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
                     ))}
                   </div>
                 </div>
-                <label className="flex items-center justify-center gap-2 h-9 rounded-lg border border-border text-sm text-black dark:text-white hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
+                <label className="flex items-center justify-center gap-2 h-9 rounded-lg border border-border text-[15px] text-black dark:text-white hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
                   {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Choose file"}
                   <input type="file" className="sr-only" onChange={handleDocUpload} disabled={uploading} />
                 </label>
-                <button type="button" onClick={() => setWantsUpload(false)} className="text-xs text-black dark:text-white hover:text-foreground">
+                <button type="button" onClick={() => setWantsUpload(false)} className="text-[13px] text-black dark:text-white hover:text-foreground">
                   Cancel
                 </button>
               </div>
@@ -633,18 +633,18 @@ function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave 
         )}
 
         {attemptedInvalidSave && !canSave && (
-          <p className="text-xs text-red-500 font-medium">
+          <p className="text-[13px] text-red-500 font-medium">
             Fill in the required fields (marked *) before saving.
           </p>
         )}
 
         <div className="flex gap-2 pt-1">
           <button type="button" onClick={onClose}
-            className="flex-1 h-9 rounded-full border border-border text-sm text-black dark:text-white hover:text-foreground transition-colors">
+            className="flex-1 h-9 rounded-full border border-border text-[15px] text-black dark:text-white hover:text-foreground transition-colors">
             Cancel
           </button>
           <button type="button" onClick={handleSave}
-            className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors">
+            className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-medium transition-colors">
             Save &amp; check
           </button>
         </div>
@@ -1787,16 +1787,16 @@ export default function DashboardProfile() {
           Save changes
         </Button>
         {saved && (
-          <span className="flex items-center gap-1.5 text-sm text-[#2D6A4F]">
+          <span className="flex items-center gap-1.5 text-[15px] text-[#2D6A4F]">
             <CheckCircle2 className="w-4 h-4" /> Saved
           </span>
         )}
       </div>
       {fullNameInvalid && (
-        <p className="text-xs text-red-500">Full name is required.</p>
+        <p className="text-[13px] text-red-500">Full name is required.</p>
       )}
       {(grantRangeInvalid || saveBlocked) && (
-        <p className="text-xs text-red-500">
+        <p className="text-[13px] text-red-500">
           Max must be greater than or equal to Min. Fix the grant/investment range in{" "}
           <button type="button" onClick={() => setActivePane("mandate")} className="underline underline-offset-2 font-medium">
             Mandate
@@ -1818,7 +1818,7 @@ export default function DashboardProfile() {
             {profile?.avatar_url ? (
               <img src={profile.avatar_url} alt="Personal photo" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-xl font-bold text-black dark:text-white">{(fullName || "?")[0].toUpperCase()}</span>
+              <span className="text-[21px] font-bold text-black dark:text-white">{(fullName || "?")[0].toUpperCase()}</span>
             )}
             {profile?.avatar_url && (
               <button type="button" onClick={handlePersonalPhotoDelete} disabled={personalPhotoUploading}
@@ -1829,14 +1829,14 @@ export default function DashboardProfile() {
             )}
           </div>
         <div>
-          <label className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm text-black dark:text-white hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
+          <label className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border text-[15px] text-black dark:text-white hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
             <Camera className="w-3.5 h-3.5" />
             {profile?.avatar_url ? "Replace photo" : "Upload photo"}
             <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handlePersonalPhotoUpload} />
           </label>
-          <p className="text-xs text-black dark:text-white mt-1.5">PNG, JPG or WebP. Max 2 MB.</p>
+          <p className="text-[13px] text-black dark:text-white mt-1.5">PNG, JPG or WebP. Max 2 MB.</p>
           {personalPhotoUploading && (
-            <p className="text-xs text-[#2D6A4F] mt-1 flex items-center gap-1">
+            <p className="text-[13px] text-[#2D6A4F] mt-1 flex items-center gap-1">
               <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
             </p>
           )}
@@ -1874,13 +1874,13 @@ export default function DashboardProfile() {
       {!isSoloConsultancy && (
         <div className="px-8 sm:px-12 py-10">
           <div className="flex items-center gap-1.5 mb-6">
-            <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Contact</p>
+            <p className="text-[21px] font-bold text-[#111111] dark:text-[#F5F5F5]">Contact</p>
             <InfoTooltip text="Used as your organisation's contact person. If you turn on 'also appear as an individual,' this also becomes your personal profile in the Natives directory." />
           </div>
           <div className="rounded-xl border border-dashed border-border p-4 space-y-3">
             <div>
               <div className="flex items-center gap-1.5">
-                <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Your personal photo</p>
+                <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">Your personal photo</p>
                 <InfoTooltip text='Only shown on your individual profile in the Natives directory if "also appear as an individual" is turned on.' />
               </div>
             </div>
@@ -1900,29 +1900,29 @@ export default function DashboardProfile() {
         {isSoloConsultancy && (
           <div>
             <div className="flex items-center gap-1.5 mb-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Your photo</p>
+              <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">Your photo</p>
               <InfoTooltip text="This is the photo shown on your organisation's listing in the Natives directory." />
             </div>
             {personalPhotoBlockJsx}
           </div>
         )}
         <DisplayField label="Full name">
-          {fullName ? <p className="text-sm text-black dark:text-white">{fullName}</p> : <EmptyValue />}
+          {fullName ? <p className="text-[15px] text-black dark:text-white">{fullName}</p> : <EmptyValue />}
         </DisplayField>
         <DisplayField label="Role / Title">
-          {roleTitle ? <p className="text-sm text-black dark:text-white">{roleTitle}</p> : <EmptyValue />}
+          {roleTitle ? <p className="text-[15px] text-black dark:text-white">{roleTitle}</p> : <EmptyValue />}
         </DisplayField>
         <DisplayField label="Email">
-          <p className="text-sm text-black dark:text-white">{user?.email ?? ""}</p>
-          <p className="text-xs text-black dark:text-white opacity-60 mt-1">Your sign-in email. Cannot be changed here.</p>
+          <p className="text-[15px] text-black dark:text-white">{user?.email ?? ""}</p>
+          <p className="text-[13px] text-black dark:text-white opacity-60 mt-1">Your sign-in email. Cannot be changed here.</p>
         </DisplayField>
         <DisplayField label="Phone">
-          {phone ? <p className="text-sm text-black dark:text-white">{phone}</p> : <EmptyValue />}
+          {phone ? <p className="text-[15px] text-black dark:text-white">{phone}</p> : <EmptyValue />}
         </DisplayField>
         <DisplayField label="LinkedIn">
           {linkedinUrl ? (
             <a href={linkedinUrl} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
+              className="flex items-center gap-2 text-[15px] text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
               <Linkedin className="w-4 h-4 shrink-0" />
               <span className="truncate">{linkedinUrl}</span>
             </a>
@@ -1955,7 +1955,7 @@ export default function DashboardProfile() {
                   ))
                 : panes.map(p => (
                 <button key={p.key} type="button" onClick={() => setActivePane(p.key)}
-                  className={`text-left px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap md:whitespace-normal transition-all shrink-0 ${
+                  className={`text-left px-3 py-2.5 rounded-lg text-[15px] font-medium whitespace-nowrap md:whitespace-normal transition-all shrink-0 ${
                     activePane === p.key
                       ? "text-white shadow-sm"
                       : "text-black dark:text-white hover:bg-muted"
@@ -1977,7 +1977,7 @@ export default function DashboardProfile() {
               {activePane === "basic" && !isOrg && (
                 <SectionCardGroup>
                   <div className="px-8 sm:px-12 py-10">
-                    <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5] mb-6">Profile photo</p>
+                    <p className="text-[21px] font-bold text-[#111111] dark:text-[#F5F5F5] mb-6">Profile photo</p>
                     <div className="flex items-center gap-5">
                       <div className="group relative w-14 h-14">
                         <UserAvatar id={user?.id ?? ""} name={profile?.full_name} avatarUrl={profile?.avatar_url} size="lg" />
@@ -1994,10 +1994,10 @@ export default function DashboardProfile() {
                         </label>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-foreground">Upload a photo</p>
-                        <p className="text-xs text-black dark:text-white mt-0.5">PNG, JPG or WebP. Max 2 MB.</p>
+                        <p className="text-[15px] font-medium text-foreground">Upload a photo</p>
+                        <p className="text-[13px] text-black dark:text-white mt-0.5">PNG, JPG or WebP. Max 2 MB.</p>
                         {avatarUploading && (
-                          <p className="text-xs text-[#2D6A4F] mt-1 flex items-center gap-1">
+                          <p className="text-[13px] text-[#2D6A4F] mt-1 flex items-center gap-1">
                             <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
                           </p>
                         )}
@@ -2012,12 +2012,12 @@ export default function DashboardProfile() {
                         <Building2 className="w-5 h-5 text-[#2D6A4F]" />
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-semibold text-foreground">Represent an organisation?</p>
-                        <p className="text-xs text-black dark:text-white mt-1 leading-relaxed">
+                        <p className="text-[15px] font-semibold text-foreground">Represent an organisation?</p>
+                        <p className="text-[13px] text-black dark:text-white mt-1 leading-relaxed">
                           Register your organisation without losing your individual profile or activity.
                         </p>
                         <Link href="/dashboard/upgrade-organisation"
-                          className="inline-flex items-center gap-1.5 mt-3 text-sm font-semibold text-[#2D6A4F] hover:underline underline-offset-2">
+                          className="inline-flex items-center gap-1.5 mt-3 text-[15px] font-semibold text-[#2D6A4F] hover:underline underline-offset-2">
                           Register an organisation
                         </Link>
                       </div>
@@ -2027,19 +2027,19 @@ export default function DashboardProfile() {
 
                   <SectionCard title="Contact details" onEdit={openIndividualContactModal}>
                     <DisplayField label="Full name">
-                      {fullName ? <p className="text-sm text-black dark:text-white">{fullName}</p> : <EmptyValue />}
+                      {fullName ? <p className="text-[15px] text-black dark:text-white">{fullName}</p> : <EmptyValue />}
                     </DisplayField>
                     <DisplayField label="Country">
-                      {country ? <p className="text-sm text-black dark:text-white">{country}</p> : <EmptyValue />}
+                      {country ? <p className="text-[15px] text-black dark:text-white">{country}</p> : <EmptyValue />}
                     </DisplayField>
                     <DisplayField label="Headline">
-                      {roleTitle ? <p className="text-sm text-black dark:text-white">{roleTitle}</p> : <EmptyValue />}
+                      {roleTitle ? <p className="text-[15px] text-black dark:text-white">{roleTitle}</p> : <EmptyValue />}
                     </DisplayField>
                     <DisplayField label="Phone">
-                      {phone ? <p className="text-sm text-black dark:text-white">{phone}</p> : <EmptyValue />}
+                      {phone ? <p className="text-[15px] text-black dark:text-white">{phone}</p> : <EmptyValue />}
                     </DisplayField>
                     <DisplayField label="Bio">
-                      {bio ? <p className="text-sm text-black dark:text-white leading-relaxed">{bio}</p> : <EmptyValue />}
+                      {bio ? <p className="text-[15px] text-black dark:text-white leading-relaxed">{bio}</p> : <EmptyValue />}
                     </DisplayField>
                   </SectionCard>
                 </SectionCardGroup>
@@ -2068,7 +2068,7 @@ export default function DashboardProfile() {
                     <DisplayField label="LinkedIn">
                       {linkedinUrl ? (
                         <a href={linkedinUrl} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-sm text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
+                          className="flex items-center gap-2 text-[15px] text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
                           <Linkedin className="w-4 h-4 shrink-0" />
                           <span className="truncate">{linkedinUrl}</span>
                         </a>
@@ -2077,7 +2077,7 @@ export default function DashboardProfile() {
                     <DisplayField label="Website or portfolio">
                       {website ? (
                         <a href={website} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-sm text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
+                          className="flex items-center gap-2 text-[15px] text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
                           <Globe className="w-4 h-4 shrink-0" />
                           <span className="truncate">{website.replace(/^https?:\/\//, "")}</span>
                         </a>
@@ -2091,7 +2091,7 @@ export default function DashboardProfile() {
                               const Icon = socialPlatformIcon(s.label);
                               return (
                                 <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
-                                  className="flex items-center gap-2 text-sm text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
+                                  className="flex items-center gap-2 text-[15px] text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
                                   <Icon className="w-4 h-4 shrink-0" />
                                   <span className="truncate">{s.url}</span>
                                 </a>
@@ -2110,26 +2110,26 @@ export default function DashboardProfile() {
                 <EditModal title="Edit basic info" onClose={() => setEditingContactSection(false)} onSave={saveIndividualContactSection} saving={contactSaving}>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-sm font-medium">Full name</Label>
+                      <Label className="text-[15px] font-medium">Full name</Label>
                       <Input value={draftFullName} onChange={e => setDraftFullName(e.target.value)} className="mt-1 h-10" placeholder="e.g. Amara Osei" />
                     </div>
                     <div>
-                      <Label className="text-sm font-medium">Country</Label>
+                      <Label className="text-[15px] font-medium">Country</Label>
                       <CountryPicker value={draftCountry} onChange={setDraftCountry} />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-sm font-medium">Headline</Label>
+                      <Label className="text-[15px] font-medium">Headline</Label>
                       <Input value={draftRoleTitle} onChange={e => setDraftRoleTitle(e.target.value.slice(0, 120))} className="mt-1 h-10" placeholder="e.g. Impact Evaluator & Filmmaker" />
                     </div>
                     <div>
-                      <Label className="text-sm font-medium">Phone</Label>
+                      <Label className="text-[15px] font-medium">Phone</Label>
                       <Input value={draftPhone} onChange={e => setDraftPhone(e.target.value)} className="mt-1 h-10" placeholder="+234 800 000 0000" />
                     </div>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium">Bio</Label>
+                    <Label className="text-[15px] font-medium">Bio</Label>
                     <Textarea value={draftBio} onChange={e => setDraftBio(e.target.value)} className="mt-1 resize-none" rows={3}
                       placeholder="What do you work on? What's your focus area?" />
                   </div>
@@ -2143,19 +2143,19 @@ export default function DashboardProfile() {
               {editingContactSection && isOrg && (
                 <EditModal title="Edit contact person" onClose={() => setEditingContactSection(false)} onSave={saveOrgContactSection} saving={contactSaving}>
                   <div>
-                    <Label className="text-sm font-medium">Full name <span className="text-destructive">*</span></Label>
+                    <Label className="text-[15px] font-medium">Full name <span className="text-destructive">*</span></Label>
                     <Input value={draftFullName} onChange={e => setDraftFullName(e.target.value)} className="mt-1 h-10" placeholder="e.g. Amara Osei" required />
                   </div>
                   <div>
-                    <Label className="text-sm font-medium">Role / Title <span className="text-black dark:text-white font-normal text-xs">(optional)</span></Label>
+                    <Label className="text-[15px] font-medium">Role / Title <span className="text-black dark:text-white font-normal text-[13px]">(optional)</span></Label>
                     <Input value={draftRoleTitle} onChange={e => setDraftRoleTitle(e.target.value)} className="mt-1 h-10" placeholder={isSoloConsultancy ? "e.g. Founder & Principal Consultant, MEL Specialist" : "e.g. Executive Director, Programme Manager"} />
                   </div>
                   <div>
-                    <Label className="text-sm font-medium">Phone <span className="text-black dark:text-white font-normal text-xs">(optional)</span></Label>
+                    <Label className="text-[15px] font-medium">Phone <span className="text-black dark:text-white font-normal text-[13px]">(optional)</span></Label>
                     <Input value={draftPhone} onChange={e => setDraftPhone(e.target.value)} className="mt-1 h-10" placeholder="+234 800 000 0000" />
                   </div>
                   <div>
-                    <Label className="text-sm font-medium">LinkedIn <span className="text-black dark:text-white font-normal text-xs">(optional)</span></Label>
+                    <Label className="text-[15px] font-medium">LinkedIn <span className="text-black dark:text-white font-normal text-[13px]">(optional)</span></Label>
                     <Input value={draftLinkedinUrl} onChange={e => setDraftLinkedinUrl(e.target.value)} className="mt-1 h-10" placeholder="https://linkedin.com/in/..." type="url" />
                   </div>
                 </EditModal>
@@ -2188,7 +2188,7 @@ export default function DashboardProfile() {
                             {logoUrl ? (
                               <img src={logoUrl} alt="Organisation logo" className="w-full h-full object-contain" />
                             ) : (
-                              <span className="text-2xl font-bold text-black dark:text-white">{(orgName || profile?.org_name || "?")[0].toUpperCase()}</span>
+                              <span className="text-[25px] font-bold text-black dark:text-white">{(orgName || profile?.org_name || "?")[0].toUpperCase()}</span>
                             )}
                           </div>
                           {logoUrl && (
@@ -2201,52 +2201,52 @@ export default function DashboardProfile() {
                         </div>
 
                         <div>
-                          <label className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border text-sm text-black dark:text-white hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
+                          <label className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border text-[15px] text-black dark:text-white hover:text-foreground hover:border-foreground/30 transition-colors cursor-pointer">
                             <Camera className="w-3.5 h-3.5" />
                             {logoUrl ? "Replace logo" : "Upload logo"}
                             <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="sr-only" onChange={handleLogoUpload} />
                           </label>
-                          <p className="text-xs text-black dark:text-white mt-1.5">PNG, JPG, WebP or SVG. Max 2 MB.</p>
+                          <p className="text-[13px] text-black dark:text-white mt-1.5">PNG, JPG, WebP or SVG. Max 2 MB.</p>
                           {logoUploading && (
-                            <p className="text-xs text-[#2D6A4F] mt-1 flex items-center gap-1">
+                            <p className="text-[13px] text-[#2D6A4F] mt-1 flex items-center gap-1">
                               <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
                             </p>
                           )}
-                          {logoUrl && !logoUploading && <p className="text-xs text-[#2D6A4F] mt-1">Logo saved.</p>}
+                          {logoUrl && !logoUploading && <p className="text-[13px] text-[#2D6A4F] mt-1">Logo saved.</p>}
                         </div>
                       </div>
                     )}
                     <DisplayField label="Organisation name">
-                      {orgName ? <p className="text-sm text-black dark:text-white">{orgName}</p> : <EmptyValue />}
+                      {orgName ? <p className="text-[15px] text-black dark:text-white">{orgName}</p> : <EmptyValue />}
                     </DisplayField>
                     <DisplayField label="Organisation type">
-                      <p className="text-sm text-black dark:text-white">
+                      <p className="text-[15px] text-black dark:text-white">
                         {ORG_TYPE_OPTIONS.find(o => o.value === (profile?.org_type ?? orgType))?.label ?? "Not set"}
                       </p>
-                      <p className="text-xs text-black dark:text-white opacity-60 mt-1">Cannot be changed. Contact support if this is incorrect.</p>
+                      <p className="text-[13px] text-black dark:text-white opacity-60 mt-1">Cannot be changed. Contact support if this is incorrect.</p>
                     </DisplayField>
                     <DisplayField label="Organisation description">
-                      {orgDescription ? <p className="text-sm text-black dark:text-white leading-relaxed">{orgDescription}</p> : <EmptyValue />}
+                      {orgDescription ? <p className="text-[15px] text-black dark:text-white leading-relaxed">{orgDescription}</p> : <EmptyValue />}
                     </DisplayField>
                     <DisplayField label="Country">
-                      {country ? <p className="text-sm text-black dark:text-white">{country}</p> : <EmptyValue />}
+                      {country ? <p className="text-[15px] text-black dark:text-white">{country}</p> : <EmptyValue />}
                     </DisplayField>
                   </SectionCard>
 
               {editingOrgSection && (
                 <EditModal title="Edit organisation" onClose={() => setEditingOrgSection(false)} onSave={saveOrgSection} saving={orgSectionSaving}>
                   <div>
-                    <Label className="text-sm font-medium">Organisation name</Label>
+                    <Label className="text-[15px] font-medium">Organisation name</Label>
                     <Input value={draftOrgName} onChange={e => setDraftOrgName(e.target.value)} className="mt-1 h-10" placeholder="e.g. Ashoka Foundation" />
                   </div>
                   <div>
-                    <Label className="text-sm font-medium">Organisation description</Label>
+                    <Label className="text-[15px] font-medium">Organisation description</Label>
                     <Textarea value={draftOrgDescription} onChange={e => setDraftOrgDescription(e.target.value)} className="mt-1 resize-none" rows={4}
                       placeholder="What does your organisation do, where does it work, and who does it serve?" />
-                    <p className="text-xs text-black dark:text-white opacity-60 mt-1.5">Shown on your directory profile and used by AI to match you with relevant partners.</p>
+                    <p className="text-[13px] text-black dark:text-white opacity-60 mt-1.5">Shown on your directory profile and used by AI to match you with relevant partners.</p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium">Country</Label>
+                    <Label className="text-[15px] font-medium">Country</Label>
                     <CountryPicker value={draftCountry} onChange={setDraftCountry} />
                   </div>
                 </EditModal>
@@ -2278,52 +2278,52 @@ export default function DashboardProfile() {
                 <EditModal title="Edit legal identity" onClose={() => setEditingLegalIdentityOpen(false)} onSave={saveLegalIdentitySection} saving={legalIdentitySaving}>
                   <div className="space-y-4">
                     <div>
-                      <Label className="text-sm font-medium">Registration type</Label>
-                      <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">e.g. CAC, NGO, Trust, Foundation, LLC</p>
+                      <Label className="text-[15px] font-medium">Registration type</Label>
+                      <p className="text-[13px] text-black dark:text-white opacity-60 mt-0.5 mb-2">e.g. CAC, NGO, Trust, Foundation, LLC</p>
                       <input
                         type="text"
                         value={draftRegistrationType}
                         onChange={e => setDraftRegistrationType(e.target.value)}
                         placeholder="e.g. CAC (Incorporated Trustee)"
-                        className="w-full border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm bg-white dark:bg-white/5 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
+                        className="w-full border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-[15px] bg-white dark:bg-white/5 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
                       />
                     </div>
                     <div>
-                      <Label className="text-sm font-medium">Registration number</Label>
-                      <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">Official number from your registering body</p>
+                      <Label className="text-[15px] font-medium">Registration number</Label>
+                      <p className="text-[13px] text-black dark:text-white opacity-60 mt-0.5 mb-2">Official number from your registering body</p>
                       <input
                         type="text"
                         value={draftRegistrationNumber}
                         onChange={e => setDraftRegistrationNumber(e.target.value)}
                         placeholder="e.g. RC1234567"
-                        className="w-full border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm bg-white dark:bg-white/5 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
+                        className="w-full border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-[15px] bg-white dark:bg-white/5 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
                       />
                     </div>
                     <div>
-                      <Label className="text-sm font-medium">Tax Identification Number (TIN)</Label>
-                      <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">Issued by your national tax authority</p>
+                      <Label className="text-[15px] font-medium">Tax Identification Number (TIN)</Label>
+                      <p className="text-[13px] text-black dark:text-white opacity-60 mt-0.5 mb-2">Issued by your national tax authority</p>
                       <input
                         type="text"
                         value={draftTin}
                         onChange={e => setDraftTin(e.target.value)}
                         placeholder="e.g. 12345678-0001"
-                        className="w-full border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm bg-white dark:bg-white/5 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
+                        className="w-full border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-[15px] bg-white dark:bg-white/5 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
                       />
                     </div>
                     <div>
-                      <Label className="text-sm font-medium">SCUML / AML registration number</Label>
-                      <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">Special Control Unit Against Money Laundering — required for NGOs in Nigeria</p>
+                      <Label className="text-[15px] font-medium">SCUML / AML registration number</Label>
+                      <p className="text-[13px] text-black dark:text-white opacity-60 mt-0.5 mb-2">Special Control Unit Against Money Laundering — required for NGOs in Nigeria</p>
                       <input
                         type="text"
                         value={draftScumlNumber}
                         onChange={e => setDraftScumlNumber(e.target.value)}
                         placeholder="e.g. SCUML/NGO/2024/00123"
-                        className="w-full border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm bg-white dark:bg-white/5 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
+                        className="w-full border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-[15px] bg-white dark:bg-white/5 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
                       />
                     </div>
                     <div>
-                      <Label className="text-sm font-medium">Year founded</Label>
-                      <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">The year your organisation was formally established</p>
+                      <Label className="text-[15px] font-medium">Year founded</Label>
+                      <p className="text-[13px] text-black dark:text-white opacity-60 mt-0.5 mb-2">The year your organisation was formally established</p>
                       <input
                         type="number"
                         value={draftYearFounded}
@@ -2331,7 +2331,7 @@ export default function DashboardProfile() {
                         placeholder="e.g. 2015"
                         min={1900}
                         max={new Date().getFullYear()}
-                        className="w-full border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm bg-white dark:bg-white/5 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
+                        className="w-full border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-[15px] bg-white dark:bg-white/5 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]"
                       />
                     </div>
                   </div>
@@ -2358,7 +2358,7 @@ export default function DashboardProfile() {
                       <DisplayField label="LinkedIn">
                         {linkedinUrl ? (
                           <a href={linkedinUrl} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-sm text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
+                            className="flex items-center gap-2 text-[15px] text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
                             <Linkedin className="w-4 h-4 shrink-0" />
                             <span className="truncate">{linkedinUrl}</span>
                           </a>
@@ -2368,7 +2368,7 @@ export default function DashboardProfile() {
                     <DisplayField label="Website or portfolio">
                       {website ? (
                         <a href={website} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-sm text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
+                          className="flex items-center gap-2 text-[15px] text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
                           <Globe className="w-4 h-4 shrink-0" />
                           <span className="truncate">{website.replace(/^https?:\/\//, "")}</span>
                         </a>
@@ -2382,7 +2382,7 @@ export default function DashboardProfile() {
                               const Icon = socialPlatformIcon(s.label);
                               return (
                                 <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
-                                  className="flex items-center gap-2 text-sm text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
+                                  className="flex items-center gap-2 text-[15px] text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
                                   <Icon className="w-4 h-4 shrink-0" />
                                   <span className="truncate">{s.url}</span>
                                 </a>
@@ -2409,12 +2409,12 @@ export default function DashboardProfile() {
                   >
                     <div>
                     {isSoloConsultancy ? (
-                      <p className="text-xs text-black dark:text-white opacity-60">
+                      <p className="text-[13px] text-black dark:text-white opacity-60">
                         DD Readiness doesn't apply to solo consultancies.
                       </p>
                     ) : (
                       <>
-                    <p className="text-xs text-black dark:text-white opacity-60 mb-6">
+                    <p className="text-[13px] text-black dark:text-white opacity-60 mb-6">
                       Signal to funders that you are investment-ready. Checking an item asks for a few quick details, which appear as a tooltip on your profile once matched.
                     </p>
                     <div className="space-y-3">
@@ -2437,8 +2437,8 @@ export default function DashboardProfile() {
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-black dark:text-white"><polyline points="20 6 9 17 4 12" /></svg>
                           </button>
                           <button type="button" onClick={() => setDdModalKey(item.key)} className="flex-1 min-w-0 text-left">
-                            <p className="text-sm font-medium text-black dark:text-white">{item.label}</p>
-                            <p className="text-xs text-black dark:text-white opacity-60 mt-0.5">{item.sub}</p>
+                            <p className="text-[15px] font-medium text-black dark:text-white">{item.label}</p>
+                            <p className="text-[13px] text-black dark:text-white opacity-60 mt-0.5">{item.sub}</p>
                           </button>
                           <button type="button"
                             onClick={() => markDdItemIncomplete(item.key, item.set)}
@@ -2452,16 +2452,16 @@ export default function DashboardProfile() {
                           className="w-full text-left px-4 py-3 rounded-xl border border-border hover:border-foreground/20 transition-colors flex items-start gap-3">
                           <div className="w-4 h-4 rounded border border-border shrink-0 mt-0.5" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-black dark:text-white">{item.label}</p>
-                            <p className="text-xs text-black dark:text-white opacity-60 mt-0.5">{item.sub}</p>
+                            <p className="text-[15px] font-medium text-black dark:text-white">{item.label}</p>
+                            <p className="text-[13px] text-black dark:text-white opacity-60 mt-0.5">{item.sub}</p>
                           </div>
                         </button>
                       ))}
                     </div>
                     <div className="pt-6 border-t border-border mt-6">
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs text-black dark:text-white">DD Readiness score</p>
-                        <p className="text-xs font-bold text-black dark:text-white">
+                        <p className="text-[13px] text-black dark:text-white">DD Readiness score</p>
+                        <p className="text-[13px] font-bold text-black dark:text-white">
                           {Math.round((ddReadinessItems.filter(Boolean).length / ddReadinessItems.length) * 100)}%
                         </p>
                       </div>
@@ -2519,7 +2519,7 @@ export default function DashboardProfile() {
                     onToggle={() => toggleOrgSection("fdd")}
                   >
                     <div>
-                    <p className="text-xs text-black dark:text-white opacity-60 mb-6">
+                    <p className="text-[13px] text-black dark:text-white opacity-60 mb-6">
                       Signal to implementers that you are a transparent, trustworthy partner. Checking an item asks for a few quick details, which appear as a tooltip on your profile once matched.
                     </p>
                     <div className="space-y-3">
@@ -2539,8 +2539,8 @@ export default function DashboardProfile() {
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-black dark:text-white"><polyline points="20 6 9 17 4 12" /></svg>
                           </button>
                           <button type="button" onClick={() => setDdModalKey(item.key)} className="flex-1 min-w-0 text-left">
-                            <p className="text-sm font-medium text-black dark:text-white">{item.label}</p>
-                            <p className="text-xs text-black dark:text-white opacity-60 mt-0.5">{item.sub}</p>
+                            <p className="text-[15px] font-medium text-black dark:text-white">{item.label}</p>
+                            <p className="text-[13px] text-black dark:text-white opacity-60 mt-0.5">{item.sub}</p>
                           </button>
                           <button type="button"
                             onClick={() => markDdItemIncomplete(item.key, item.set, "fdd")}
@@ -2554,16 +2554,16 @@ export default function DashboardProfile() {
                           className="w-full text-left px-4 py-3 rounded-xl border border-border hover:border-foreground/20 transition-colors flex items-start gap-3">
                           <div className="w-4 h-4 rounded border border-border shrink-0 mt-0.5" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-black dark:text-white">{item.label}</p>
-                            <p className="text-xs text-black dark:text-white opacity-60 mt-0.5">{item.sub}</p>
+                            <p className="text-[15px] font-medium text-black dark:text-white">{item.label}</p>
+                            <p className="text-[13px] text-black dark:text-white opacity-60 mt-0.5">{item.sub}</p>
                           </div>
                         </button>
                       ))}
                     </div>
                     <div className="pt-6 border-t border-border mt-6">
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs text-black dark:text-white">DD Readiness score</p>
-                        <p className="text-xs font-bold text-black dark:text-white">
+                        <p className="text-[13px] text-black dark:text-white">DD Readiness score</p>
+                        <p className="text-[13px] font-bold text-black dark:text-white">
                           {Math.round((fddReadinessItems.filter(Boolean).length / fddReadinessItems.length) * 100)}%
                         </p>
                       </div>
@@ -2637,32 +2637,32 @@ export default function DashboardProfile() {
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
                           {totalBeneficiaries && (
                             <div>
-                              <p className="text-xs text-black dark:text-white opacity-60 mb-0.5">Beneficiaries reached</p>
-                              <p className="text-sm font-semibold text-black dark:text-white">{Number(totalBeneficiaries).toLocaleString()}</p>
+                              <p className="text-[13px] text-black dark:text-white opacity-60 mb-0.5">Beneficiaries reached</p>
+                              <p className="text-[15px] font-semibold text-black dark:text-white">{Number(totalBeneficiaries).toLocaleString()}</p>
                             </div>
                           )}
                           {jobsCreated && (
                             <div>
-                              <p className="text-xs text-black dark:text-white opacity-60 mb-0.5">Jobs created</p>
-                              <p className="text-sm font-semibold text-black dark:text-white">{Number(jobsCreated).toLocaleString()}</p>
+                              <p className="text-[13px] text-black dark:text-white opacity-60 mb-0.5">Jobs created</p>
+                              <p className="text-[15px] font-semibold text-black dark:text-white">{Number(jobsCreated).toLocaleString()}</p>
                             </div>
                           )}
                           {yearsOfOperation && (
                             <div>
-                              <p className="text-xs text-black dark:text-white opacity-60 mb-0.5">Years operating</p>
-                              <p className="text-sm font-semibold text-black dark:text-white">{yearsOfOperation}</p>
+                              <p className="text-[13px] text-black dark:text-white opacity-60 mb-0.5">Years operating</p>
+                              <p className="text-[15px] font-semibold text-black dark:text-white">{yearsOfOperation}</p>
                             </div>
                           )}
                           {femalePct && (
                             <div>
-                              <p className="text-xs text-black dark:text-white opacity-60 mb-0.5">Female beneficiaries</p>
-                              <p className="text-sm font-semibold text-black dark:text-white">{femalePct}%</p>
+                              <p className="text-[13px] text-black dark:text-white opacity-60 mb-0.5">Female beneficiaries</p>
+                              <p className="text-[15px] font-semibold text-black dark:text-white">{femalePct}%</p>
                             </div>
                           )}
                           {youthPct && (
                             <div>
-                              <p className="text-xs text-black dark:text-white opacity-60 mb-0.5">Youth beneficiaries</p>
-                              <p className="text-sm font-semibold text-black dark:text-white">{youthPct}%</p>
+                              <p className="text-[13px] text-black dark:text-white opacity-60 mb-0.5">Youth beneficiaries</p>
+                              <p className="text-[15px] font-semibold text-black dark:text-white">{youthPct}%</p>
                             </div>
                           )}
                         </div>
@@ -2674,20 +2674,20 @@ export default function DashboardProfile() {
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
                           {grantsCount && (
                             <div>
-                              <p className="text-xs text-black dark:text-white opacity-60 mb-0.5">Grants received</p>
-                              <p className="text-sm font-semibold text-black dark:text-white">{grantsCount}</p>
+                              <p className="text-[13px] text-black dark:text-white opacity-60 mb-0.5">Grants received</p>
+                              <p className="text-[15px] font-semibold text-black dark:text-white">{grantsCount}</p>
                             </div>
                           )}
                           {grantsTotalValue && (
                             <div>
-                              <p className="text-xs text-black dark:text-white opacity-60 mb-0.5">Total grant value</p>
-                              <p className="text-sm font-semibold text-black dark:text-white">${Number(grantsTotalValue).toLocaleString()}</p>
+                              <p className="text-[13px] text-black dark:text-white opacity-60 mb-0.5">Total grant value</p>
+                              <p className="text-[15px] font-semibold text-black dark:text-white">${Number(grantsTotalValue).toLocaleString()}</p>
                             </div>
                           )}
                           {grantsOnTimePct && (
                             <div>
-                              <p className="text-xs text-black dark:text-white opacity-60 mb-0.5">Delivered on time</p>
-                              <p className="text-sm font-semibold text-black dark:text-white">{grantsOnTimePct}%</p>
+                              <p className="text-[13px] text-black dark:text-white opacity-60 mb-0.5">Delivered on time</p>
+                              <p className="text-[15px] font-semibold text-black dark:text-white">{grantsOnTimePct}%</p>
                             </div>
                           )}
                         </div>
@@ -2702,7 +2702,7 @@ export default function DashboardProfile() {
 
                     <DisplayField label="Third-party evaluations">
                       {thirdPartyEvaluations
-                        ? <p className="text-sm text-black dark:text-white">✓ Independent audits, impact assessments, or evaluations conducted by external parties</p>
+                        ? <p className="text-[15px] text-black dark:text-white">✓ Independent audits, impact assessments, or evaluations conducted by external parties</p>
                         : <EmptyValue />}
                     </DisplayField>
                 </SectionCard>
@@ -2716,7 +2716,7 @@ export default function DashboardProfile() {
                     {specializations.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
                         {specializations.map(s => (
-                          <span key={s} className="text-xs px-2.5 py-1 rounded-full border border-border text-black dark:text-white">{s}</span>
+                          <span key={s} className="text-[13px] px-2.5 py-1 rounded-full border border-border text-black dark:text-white">{s}</span>
                         ))}
                       </div>
                     ) : <EmptyValue />}
@@ -2725,7 +2725,7 @@ export default function DashboardProfile() {
                     {notableEngagements.length > 0 ? (
                       <ul className="space-y-1.5 list-disc list-inside">
                         {notableEngagements.map((e, i) => (
-                          <li key={i} className="text-sm text-black dark:text-white">{e}</li>
+                          <li key={i} className="text-[15px] text-black dark:text-white">{e}</li>
                         ))}
                       </ul>
                     ) : <EmptyValue />}
@@ -2734,7 +2734,7 @@ export default function DashboardProfile() {
                     {affiliations.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
                         {affiliations.map(a => (
-                          <span key={a} className="text-xs px-2.5 py-1 rounded-full border border-border text-black dark:text-white">{a}</span>
+                          <span key={a} className="text-[13px] px-2.5 py-1 rounded-full border border-border text-black dark:text-white">{a}</span>
                         ))}
                       </div>
                     ) : <EmptyValue />}
@@ -2745,8 +2745,8 @@ export default function DashboardProfile() {
               {editingExpertiseOpen && (
                 <EditModal title="Edit consultant expertise" onClose={() => setEditingExpertiseOpen(false)} onSave={saveExpertiseSection} saving={expertiseSaving}>
                   <div>
-                    <Label className="text-sm font-medium">Specializations</Label>
-                    <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">e.g. MEL design, Grant compliance, Partnership brokering</p>
+                    <Label className="text-[15px] font-medium">Specializations</Label>
+                    <p className="text-[13px] text-black dark:text-white opacity-60 mt-0.5 mb-2">e.g. MEL design, Grant compliance, Partnership brokering</p>
                     <div className="flex gap-2">
                       <Input value={draftSpecializationInput} onChange={e => setDraftSpecializationInput(e.target.value)}
                         onKeyDown={e => {
@@ -2764,14 +2764,14 @@ export default function DashboardProfile() {
                           if (v && !draftSpecializations.includes(v)) setDraftSpecializations(p => [...p, v]);
                           setDraftSpecializationInput("");
                         }}
-                        className="h-10 px-3 rounded-lg border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
+                        className="h-10 px-3 rounded-lg border border-border text-[15px] text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
                         Add
                       </button>
                     </div>
                     {draftSpecializations.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {draftSpecializations.map(s => (
-                          <span key={s} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-black dark:text-white">
+                          <span key={s} className="inline-flex items-center gap-1 text-[13px] px-2.5 py-1 rounded-full border border-border text-black dark:text-white">
                             {s}
                             <button type="button" onClick={() => setDraftSpecializations(p => p.filter(x => x !== s))} className="hover:opacity-70 ml-0.5">×</button>
                           </span>
@@ -2781,8 +2781,8 @@ export default function DashboardProfile() {
                   </div>
 
                   <div className="pt-4 border-t border-border">
-                    <Label className="text-sm font-medium">Notable engagements</Label>
-                    <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">
+                    <Label className="text-[15px] font-medium">Notable engagements</Label>
+                    <p className="text-[13px] text-black dark:text-white opacity-60 mt-0.5 mb-2">
                       Describe what you did, for whom, and in what context -- e.g. "Strategic PM for Icebreaker One, an OFGEM-funded open energy data project", not just a client name alone.
                     </p>
                     <div className="flex gap-2">
@@ -2802,14 +2802,14 @@ export default function DashboardProfile() {
                           if (v && !draftNotableEngagements.includes(v)) setDraftNotableEngagements(p => [...p, v]);
                           setDraftEngagementInput("");
                         }}
-                        className="h-10 px-3 rounded-lg border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
+                        className="h-10 px-3 rounded-lg border border-border text-[15px] text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
                         Add
                       </button>
                     </div>
                     {draftNotableEngagements.length > 0 && (
                       <div className="space-y-1.5 mt-2">
                         {draftNotableEngagements.map((e, i) => (
-                          <div key={i} className="flex items-start justify-between gap-2 text-xs border border-border rounded-lg px-3 py-2">
+                          <div key={i} className="flex items-start justify-between gap-2 text-[13px] border border-border rounded-lg px-3 py-2">
                             <span className="text-black dark:text-white">{e}</span>
                             <button type="button" onClick={() => setDraftNotableEngagements(p => p.filter((_, idx) => idx !== i))} className="text-black dark:text-white hover:opacity-70 shrink-0">×</button>
                           </div>
@@ -2819,8 +2819,8 @@ export default function DashboardProfile() {
                   </div>
 
                   <div className="pt-4 border-t border-border">
-                    <Label className="text-sm font-medium">Affiliations</Label>
-                    <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">Alumni networks, certifications, prior institutional roles -- e.g. PMI-ACP certified, UNITAR traineeship alumnus</p>
+                    <Label className="text-[15px] font-medium">Affiliations</Label>
+                    <p className="text-[13px] text-black dark:text-white opacity-60 mt-0.5 mb-2">Alumni networks, certifications, prior institutional roles -- e.g. PMI-ACP certified, UNITAR traineeship alumnus</p>
                     <div className="flex gap-2">
                       <Input value={draftAffiliationInput} onChange={e => setDraftAffiliationInput(e.target.value)}
                         onKeyDown={e => {
@@ -2838,14 +2838,14 @@ export default function DashboardProfile() {
                           if (v && !draftAffiliations.includes(v)) setDraftAffiliations(p => [...p, v]);
                           setDraftAffiliationInput("");
                         }}
-                        className="h-10 px-3 rounded-lg border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
+                        className="h-10 px-3 rounded-lg border border-border text-[15px] text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
                         Add
                       </button>
                     </div>
                     {draftAffiliations.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {draftAffiliations.map(a => (
-                          <span key={a} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-black dark:text-white">
+                          <span key={a} className="inline-flex items-center gap-1 text-[13px] px-2.5 py-1 rounded-full border border-border text-black dark:text-white">
                             {a}
                             <button type="button" onClick={() => setDraftAffiliations(p => p.filter(x => x !== a))} className="hover:opacity-70 ml-0.5">×</button>
                           </span>
@@ -2859,52 +2859,52 @@ export default function DashboardProfile() {
               {editingTrackRecordOpen && (
                 <EditModal title="Edit impact & track record" onClose={() => setEditingTrackRecordOpen(false)} onSave={saveTrackRecordSection} saving={trackRecordSaving}>
                   <div>
-                    <p className="text-xs font-semibold text-black dark:text-white uppercase tracking-wider mb-3">Cumulative reach</p>
+                    <p className="text-[13px] font-semibold text-black dark:text-white uppercase tracking-wider mb-3">Cumulative reach</p>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label className="text-sm font-medium">Total beneficiaries reached</Label>
+                        <Label className="text-[15px] font-medium">Total beneficiaries reached</Label>
                         <Input value={draftTotalBeneficiaries} onChange={e => setDraftTotalBeneficiaries(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 12400" />
                       </div>
                       <div>
-                        <Label className="text-sm font-medium">Jobs created</Label>
+                        <Label className="text-[15px] font-medium">Jobs created</Label>
                         <Input value={draftJobsCreated} onChange={e => setDraftJobsCreated(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 340" />
                       </div>
                       <div>
-                        <Label className="text-sm font-medium">Female beneficiaries %</Label>
+                        <Label className="text-[15px] font-medium">Female beneficiaries %</Label>
                         <Input value={draftFemalePct} onChange={e => setDraftFemalePct(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 62" />
                       </div>
                       <div>
-                        <Label className="text-sm font-medium">Youth beneficiaries %</Label>
+                        <Label className="text-[15px] font-medium">Youth beneficiaries %</Label>
                         <Input value={draftYouthPct} onChange={e => setDraftYouthPct(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 45" />
                       </div>
                       <div>
-                        <Label className="text-sm font-medium">Years of operation</Label>
+                        <Label className="text-[15px] font-medium">Years of operation</Label>
                         <Input value={draftYearsOfOperation} onChange={e => setDraftYearsOfOperation(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 7" />
                       </div>
                     </div>
                   </div>
 
                   <div className="pt-4 border-t border-border">
-                    <p className="text-xs font-semibold text-black dark:text-white uppercase tracking-wider mb-3">Track record</p>
+                    <p className="text-[13px] font-semibold text-black dark:text-white uppercase tracking-wider mb-3">Track record</p>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label className="text-sm font-medium">Grants/contracts received (count)</Label>
+                        <Label className="text-[15px] font-medium">Grants/contracts received (count)</Label>
                         <Input value={draftGrantsCount} onChange={e => setDraftGrantsCount(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 8" />
                       </div>
                       <div>
-                        <Label className="text-sm font-medium">Total grant value (USD)</Label>
+                        <Label className="text-[15px] font-medium">Total grant value (USD)</Label>
                         <Input value={draftGrantsTotalValue} onChange={e => setDraftGrantsTotalValue(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 2400000" />
                       </div>
                       <div>
-                        <Label className="text-sm font-medium">Delivered on time %</Label>
+                        <Label className="text-[15px] font-medium">Delivered on time %</Label>
                         <Input value={draftGrantsOnTimePct} onChange={e => setDraftGrantsOnTimePct(e.target.value.replace(/[^0-9]/g, ""))} className="mt-1 h-10" placeholder="e.g. 90" />
                       </div>
                     </div>
                   </div>
 
                   <div className="pt-4 border-t border-border">
-                    <Label className="text-sm font-medium">Previous funders / grant-makers</Label>
-                    <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">Names only — e.g. USAID, Ford Foundation, FCDO</p>
+                    <Label className="text-[15px] font-medium">Previous funders / grant-makers</Label>
+                    <p className="text-[13px] text-black dark:text-white opacity-60 mt-0.5 mb-2">Names only — e.g. USAID, Ford Foundation, FCDO</p>
                     <div className="flex gap-2">
                       <Input value={draftFunderInput} onChange={e => setDraftFunderInput(e.target.value)}
                         onKeyDown={e => {
@@ -2922,14 +2922,14 @@ export default function DashboardProfile() {
                           if (v && !draftPreviousFunders.includes(v)) setDraftPreviousFunders(p => [...p, v]);
                           setDraftFunderInput("");
                         }}
-                        className="h-10 px-3 rounded-lg border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
+                        className="h-10 px-3 rounded-lg border border-border text-[15px] text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
                         Add
                       </button>
                     </div>
                     {draftPreviousFunders.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {draftPreviousFunders.map(f => (
-                          <span key={f} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-black dark:text-white">
+                          <span key={f} className="inline-flex items-center gap-1 text-[13px] px-2.5 py-1 rounded-full border border-border text-black dark:text-white">
                             {f}
                             <button type="button" onClick={() => setDraftPreviousFunders(p => p.filter(x => x !== f))} className="hover:opacity-70 ml-0.5">×</button>
                           </span>
@@ -2953,14 +2953,14 @@ export default function DashboardProfile() {
                   <>
                   <SectionCard editable={isOrgOwner} title="Investment thesis" onEdit={openMandateModal}>
                     <DisplayField label="Investment focus">
-                      {investmentThesis ? <p className="text-sm text-black dark:text-white leading-relaxed">{investmentThesis}</p> : <EmptyValue />}
+                      {investmentThesis ? <p className="text-[15px] text-black dark:text-white leading-relaxed">{investmentThesis}</p> : <EmptyValue />}
                     </DisplayField>
                   </SectionCard>
 
                   <SectionCard editable={isOrgOwner} title="Mandate criteria" onEdit={openMandateModal}>
                     <DisplayField label="Grant / investment range">
                       {(grantRangeMin || grantRangeMax) ? (
-                        <p className="text-sm text-black dark:text-white">
+                        <p className="text-[15px] text-black dark:text-white">
                           {grantCurrency} {grantRangeMin ? Number(grantRangeMin).toLocaleString() : "—"} – {grantRangeMax ? Number(grantRangeMax).toLocaleString() : "—"}
                         </p>
                       ) : <EmptyValue />}
@@ -2999,32 +2999,32 @@ export default function DashboardProfile() {
               {editingMandateOpen && (
                 <EditModal title="Edit mandate" onClose={() => setEditingMandateOpen(false)} onSave={saveMandateSection} saving={mandateSaving}>
                   <div>
-                    <Label className="text-sm font-medium">Describe your investment focus</Label>
+                    <Label className="text-[15px] font-medium">Describe your investment focus</Label>
                     <Textarea value={draftInvestmentThesis} onChange={e => setDraftInvestmentThesis(e.target.value)} className="mt-1 resize-none" rows={4}
                       placeholder="e.g. We back early-stage climate adaptation initiatives in Sub-Saharan Africa, with a focus on smallholder agriculture and water security. We deploy grants of $50K–$500K and prioritise organisations with community-validated models..." />
-                    <p className="text-xs text-black dark:text-white opacity-60 mt-1.5">Shown on your directory profile. Helps implementers, startups, and ecosystem actors understand your focus before reaching out. Also used by the AI to improve initiative matching.</p>
+                    <p className="text-[13px] text-black dark:text-white opacity-60 mt-1.5">Shown on your directory profile. Helps implementers, startups, and ecosystem actors understand your focus before reaching out. Also used by the AI to improve initiative matching.</p>
                   </div>
 
                   <div className="pt-4 border-t border-border">
-                    <Label className="text-sm font-medium">Grant / investment range</Label>
+                    <Label className="text-[15px] font-medium">Grant / investment range</Label>
                     <div className="flex gap-2 items-center mt-1">
                       <select value={draftGrantCurrency} onChange={e => setDraftGrantCurrency(e.target.value)}
-                        className="h-10 rounded-lg border border-border bg-background px-2 text-sm w-[80px] shrink-0 focus:outline-none focus:ring-2 focus:ring-primary/20">
+                        className="h-10 rounded-lg border border-border bg-background px-2 text-[15px] w-[80px] shrink-0 focus:outline-none focus:ring-2 focus:ring-primary/20">
                         {["USD", "GBP", "EUR", "NGN", "KES", "GHS", "ZAR"].map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                       <Input value={draftGrantRangeMin} onChange={e => setDraftGrantRangeMin(e.target.value.replace(/[^0-9]/g, ""))} className="h-10 flex-1" placeholder="Min" />
-                      <span className="text-black dark:text-white shrink-0 text-sm">–</span>
+                      <span className="text-black dark:text-white shrink-0 text-[15px]">–</span>
                       <Input value={draftGrantRangeMax} onChange={e => setDraftGrantRangeMax(e.target.value.replace(/[^0-9]/g, ""))}
                         className={`h-10 flex-1 ${draftGrantRangeInvalid ? "border-red-400 focus-visible:ring-red-300" : ""}`}
                         placeholder="Max" />
                     </div>
                     {draftGrantRangeInvalid && (
-                      <p className="text-xs text-red-500 mt-1.5">Max must be greater than or equal to Min.</p>
+                      <p className="text-[13px] text-red-500 mt-1.5">Max must be greater than or equal to Min.</p>
                     )}
                   </div>
 
                   <div className="pt-4 border-t border-border">
-                    <Label className="text-sm font-medium">Funding instruments</Label>
+                    <Label className="text-[15px] font-medium">Funding instruments</Label>
                     <div className="mt-2 space-y-1">
                       {FUNDING_INSTRUMENTS.map(f => (
                         <ModalCheckbox key={f} checked={draftFundingInstruments.includes(f)} label={f}
@@ -3034,8 +3034,8 @@ export default function DashboardProfile() {
                   </div>
 
                   <div className="pt-4 border-t border-border">
-                    <Label className="text-sm font-medium">Sector focus</Label>
-                    <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">Sectors your mandate targets. Separate from the sectors shown on your public profile.</p>
+                    <Label className="text-[15px] font-medium">Sector focus</Label>
+                    <p className="text-[13px] text-black dark:text-white opacity-60 mt-0.5 mb-2">Sectors your mandate targets. Separate from the sectors shown on your public profile.</p>
                     <div className="space-y-1 max-h-56 overflow-y-auto">
                       {SECTOR_OPTIONS.map(s => (
                         <ModalCheckbox key={s} checked={draftMandateSectors.includes(s)} label={s}
@@ -3045,7 +3045,7 @@ export default function DashboardProfile() {
                   </div>
 
                   <div className="pt-4 border-t border-border">
-                    <Label className="text-sm font-medium">SDG priorities</Label>
+                    <Label className="text-[15px] font-medium">SDG priorities</Label>
                     <div className="space-y-1 max-h-56 overflow-y-auto">
                       {SDG_OPTIONS.map(s => (
                         <ModalCheckbox key={s} checked={draftMandateSdgs.includes(s)} label={s}
@@ -3055,7 +3055,7 @@ export default function DashboardProfile() {
                   </div>
 
                   <div className="pt-4 border-t border-border">
-                    <Label className="text-sm font-medium">Stage preference</Label>
+                    <Label className="text-[15px] font-medium">Stage preference</Label>
                     <div className="mt-2 space-y-1">
                       {["Concept / Early stage", "Pilot / Proof of concept", "Growth / Scaling", "Mature / Established", "Core / Unrestricted"].map(s => (
                         <ModalCheckbox key={s} checked={draftStagePreference.includes(s)} label={s}
@@ -3065,7 +3065,7 @@ export default function DashboardProfile() {
                   </div>
 
                   <div className="pt-4 border-t border-border">
-                    <Label className="text-sm font-medium">Geographic focus</Label>
+                    <Label className="text-[15px] font-medium">Geographic focus</Label>
                     <div className="flex gap-2 mt-1">
                       <Input value={draftGeographicInput} onChange={e => setDraftGeographicInput(e.target.value)}
                         onKeyDown={e => {
@@ -3083,14 +3083,14 @@ export default function DashboardProfile() {
                           if (v && !draftGeographicFocus.includes(v)) setDraftGeographicFocus(p => [...p, v]);
                           setDraftGeographicInput("");
                         }}
-                        className="h-10 px-3 rounded-lg border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
+                        className="h-10 px-3 rounded-lg border border-border text-[15px] text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
                         Add
                       </button>
                     </div>
                     {draftGeographicFocus.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {draftGeographicFocus.map(g => (
-                          <span key={g} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-black dark:text-white">
+                          <span key={g} className="inline-flex items-center gap-1 text-[13px] px-2.5 py-1 rounded-full border border-border text-black dark:text-white">
                             {g}
                             <button type="button" onClick={() => setDraftGeographicFocus(p => p.filter(x => x !== g))} className="hover:opacity-70 ml-0.5">×</button>
                           </span>
@@ -3107,13 +3107,13 @@ export default function DashboardProfile() {
                     collapsible expanded={expandedOrgSections.has("csr_esg")} onToggle={() => toggleOrgSection("csr_esg")}>
                     <DisplayField label="CSR/ESG focus statement">
                       {csrFocusStatement
-                        ? <p className="text-sm text-black dark:text-white leading-relaxed">{csrFocusStatement}</p>
+                        ? <p className="text-[15px] text-black dark:text-white leading-relaxed">{csrFocusStatement}</p>
                         : <EmptyValue />}
                     </DisplayField>
 
                     <DisplayField label="Annual CSR/ESG budget range">
                       {csrBudgetRange
-                        ? <p className="text-sm text-black dark:text-white">{csrBudgetRange}</p>
+                        ? <p className="text-[15px] text-black dark:text-white">{csrBudgetRange}</p>
                         : <EmptyValue />}
                     </DisplayField>
 
@@ -3138,8 +3138,8 @@ export default function DashboardProfile() {
                     <DisplayField label="Engagement options">
                         {(employeeEngagement || cobrandingOpen) ? (
                           <div className="space-y-1">
-                            {employeeEngagement && <p className="text-sm text-black dark:text-white">✓ Open to employee engagement opportunities</p>}
-                            {cobrandingOpen && <p className="text-sm text-black dark:text-white">✓ Open to co-branding</p>}
+                            {employeeEngagement && <p className="text-[15px] text-black dark:text-white">✓ Open to employee engagement opportunities</p>}
+                            {cobrandingOpen && <p className="text-[15px] text-black dark:text-white">✓ Open to co-branding</p>}
                           </div>
                         ) : <EmptyValue />}
                     </DisplayField>
@@ -3170,8 +3170,8 @@ export default function DashboardProfile() {
                       <DisplayField label="Sandbox / beta testing">
                         {sandboxReady ? (
                           <div>
-                            <p className="text-sm text-black dark:text-white">✓ Open to sandbox/beta testing partnerships</p>
-                            {sandboxDescription && <p className="text-sm text-black dark:text-white mt-1.5">{sandboxDescription}</p>}
+                            <p className="text-[15px] text-black dark:text-white">✓ Open to sandbox/beta testing partnerships</p>
+                            {sandboxDescription && <p className="text-[15px] text-black dark:text-white mt-1.5">{sandboxDescription}</p>}
                           </div>
                         ) : <EmptyValue />}
                       </DisplayField>
@@ -3184,12 +3184,12 @@ export default function DashboardProfile() {
                     collapsible expanded={expandedOrgSections.has("csr_compliance")} onToggle={() => toggleOrgSection("csr_compliance")}>
                     <DisplayField label="Public interest entity status">
                       {srg1PieSelfDeclared ? (
-                        <p className="text-sm text-black dark:text-white">✓ Declared as a public interest entity under FRC Nigeria SRG1</p>
+                        <p className="text-[15px] text-black dark:text-white">✓ Declared as a public interest entity under FRC Nigeria SRG1</p>
                       ) : <EmptyValue />}
                     </DisplayField>
                     <DisplayField label="Annual revenue (₦)">
                       {srg1AnnualRevenue ? (
-                        <p className="text-sm text-black dark:text-white">{Number(srg1AnnualRevenue).toLocaleString()}</p>
+                        <p className="text-[15px] text-black dark:text-white">{Number(srg1AnnualRevenue).toLocaleString()}</p>
                       ) : <EmptyValue />}
                     </DisplayField>
                     </SectionCard>
@@ -3201,8 +3201,8 @@ export default function DashboardProfile() {
               {editingFocusOpen && (
                 <EditModal title="Edit focus areas" onClose={() => setEditingFocusOpen(false)} onSave={saveFocusSection} saving={focusSaving}>
                   <div>
-                    <Label className="text-sm font-medium">Sectors</Label>
-                    <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">Used to match you with relevant initiatives and partners.</p>
+                    <Label className="text-[15px] font-medium">Sectors</Label>
+                    <p className="text-[13px] text-black dark:text-white opacity-60 mt-0.5 mb-2">Used to match you with relevant initiatives and partners.</p>
                     <div className="mt-2 space-y-1">
                       {SECTOR_OPTIONS.map(s => (
                         <ModalCheckbox key={s} checked={draftSectors.includes(s)} label={s}
@@ -3217,20 +3217,20 @@ export default function DashboardProfile() {
                 <EditModal title="Edit online presence" onClose={() => setEditingPresenceOpen(false)} onSave={savePresenceSection} saving={presenceSaving}>
                   {!isOrg && (
                     <div>
-                      <Label className="text-sm font-medium">LinkedIn</Label>
+                      <Label className="text-[15px] font-medium">LinkedIn</Label>
                       <Input value={draftLinkedinUrl} onChange={e => setDraftLinkedinUrl(e.target.value)} className="mt-1 h-10" placeholder="https://linkedin.com/in/..." type="url" />
                     </div>
                   )}
                   <div>
-                    <Label className="text-sm font-medium">Website or portfolio</Label>
+                    <Label className="text-[15px] font-medium">Website or portfolio</Label>
                     <Input value={draftWebsite} onChange={e => setDraftWebsite(e.target.value)} className="mt-1 h-10" placeholder="https://yourwebsite.org" type="url" />
                   </div>
                   <div>
-                    <Label className="text-sm font-medium">Social profiles</Label>
-                    <p className="text-xs text-black dark:text-white opacity-60 mt-0.5 mb-2">Pick a platform, or choose "Other" for anything else.</p>
+                    <Label className="text-[15px] font-medium">Social profiles</Label>
+                    <p className="text-[13px] text-black dark:text-white opacity-60 mt-0.5 mb-2">Pick a platform, or choose "Other" for anything else.</p>
                     <div className="flex gap-2">
                       <select value={draftSocialLabel} onChange={(e) => setDraftSocialLabel(e.target.value)}
-                        className="h-10 rounded-lg border border-border bg-background px-2 text-sm w-32 shrink-0 focus:outline-none focus:ring-2 focus:ring-primary/20">
+                        className="h-10 rounded-lg border border-border bg-background px-2 text-[15px] w-32 shrink-0 focus:outline-none focus:ring-2 focus:ring-primary/20">
                         <option value="">Platform</option>
                         {SOCIAL_PLATFORMS.map(p => <option key={p.value} value={p.value}>{p.value}</option>)}
                       </select>
@@ -3242,7 +3242,7 @@ export default function DashboardProfile() {
                           setDraftSocialLinks((prev) => [...prev, { label, url: draftSocialUrl.trim() }]);
                           setDraftSocialLabel(""); setDraftSocialCustomLabel(""); setDraftSocialUrl("");
                         }}
-                        className="h-10 px-3 rounded-lg border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
+                        className="h-10 px-3 rounded-lg border border-border text-[15px] text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
                         Add
                       </button>
                     </div>
@@ -3255,7 +3255,7 @@ export default function DashboardProfile() {
                         {draftSocialLinks.map((s, i) => {
                           const Icon = socialPlatformIcon(s.label);
                           return (
-                            <div key={i} className="flex items-center justify-between text-xs border border-border rounded-lg px-3 py-2 bg-muted/30">
+                            <div key={i} className="flex items-center justify-between text-[13px] border border-border rounded-lg px-3 py-2 bg-muted/30">
                               <div className="flex items-center gap-2 min-w-0">
                                 <Icon className="w-3.5 h-3.5 shrink-0 text-black dark:text-white" />
                                 <span className="font-medium text-foreground shrink-0">{s.label}</span>
@@ -3281,10 +3281,10 @@ export default function DashboardProfile() {
                       sub="Applies if your organisation meets FRC Nigeria's public interest entity criteria" />
                   </div>
                   <div>
-                    <Label className="text-sm font-medium">Annual revenue (₦, optional)</Label>
+                    <Label className="text-[15px] font-medium">Annual revenue (₦, optional)</Label>
                     <Input value={draftSrg1AnnualRevenue} onChange={e => setDraftSrg1AnnualRevenue(e.target.value.replace(/[^0-9]/g, ""))}
                       className="mt-1 h-10" placeholder="e.g. 35000000000" />
-                    <p className="text-xs text-black dark:text-white mt-1.5 opacity-60">Orgs at or above ₦30bn annual revenue are automatically flagged as SRG1-subject, regardless of the checkbox above.</p>
+                    <p className="text-[13px] text-black dark:text-white mt-1.5 opacity-60">Orgs at or above ₦30bn annual revenue are automatically flagged as SRG1-subject, regardless of the checkbox above.</p>
                   </div>
                   {(draftSrg1PieSelfDeclared || draftSrg1AnnualRevenue) && (
                     <div className="pt-4 border-t border-border">
@@ -3299,17 +3299,17 @@ export default function DashboardProfile() {
               {editingCsrSection === "csrEsg" && (
                 <EditModal title="CSR & ESG" onClose={() => setEditingCsrSection(null)} onSave={saveCsrEsgSection} saving={csrSectionSaving}>
                   <div>
-                    <Label className="text-sm font-medium">CSR/ESG focus statement</Label>
+                    <Label className="text-[15px] font-medium">CSR/ESG focus statement</Label>
                     <Textarea value={draftCsrFocusStatement} onChange={e => setDraftCsrFocusStatement(e.target.value)} className="mt-1 resize-none" rows={4}
                       placeholder="e.g. We prioritise climate resilience and digital inclusion programmes across West Africa, aligned with our operational footprint. We seek implementing partners with strong community reach and measurable outcomes." />
-                    <p className="text-xs text-black dark:text-white mt-1.5 opacity-60">Used by AI to match your profile with relevant initiatives and implementers.</p>
+                    <p className="text-[13px] text-black dark:text-white mt-1.5 opacity-60">Used by AI to match your profile with relevant initiatives and implementers.</p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium">Annual CSR/ESG budget range</Label>
+                    <Label className="text-[15px] font-medium">Annual CSR/ESG budget range</Label>
                     <Input value={draftCsrBudgetRange} onChange={e => setDraftCsrBudgetRange(e.target.value)} className="mt-1 h-10" placeholder="e.g. $500K–$2M" />
                   </div>
                   <div>
-                    <Label className="text-sm font-medium">ESG reporting frameworks</Label>
+                    <Label className="text-[15px] font-medium">ESG reporting frameworks</Label>
                     <div className="mt-2 space-y-1">
                       {["GRI", "SASB", "UN Global Compact", "B Corp", "TCFD", "SDG Reporting"].map(f => (
                         <ModalCheckbox key={f} checked={draftEsgFrameworks.includes(f)} label={f}
@@ -3324,7 +3324,7 @@ export default function DashboardProfile() {
               {editingCsrSection === "partnership" && (
                 <EditModal title="Partnership preferences" onClose={() => setEditingCsrSection(null)} onSave={savePartnershipSection} saving={csrSectionSaving}>
                   <div>
-                    <Label className="text-sm font-medium">What we bring to partnerships</Label>
+                    <Label className="text-[15px] font-medium">What we bring to partnerships</Label>
                     <div className="mt-2 space-y-1">
                       {["Cash funding", "In-kind technology", "Employee volunteering", "Pro-bono expertise", "Marketing & visibility", "Supply chain access", "Co-branding opportunity", "Logistics support"].map(s => (
                         <ModalCheckbox key={s} checked={draftInkindSupport.includes(s)} label={s}
@@ -3333,7 +3333,7 @@ export default function DashboardProfile() {
                     </div>
                   </div>
                   <div className="pt-4 border-t border-border">
-                    <Label className="text-sm font-medium">Engagement options</Label>
+                    <Label className="text-[15px] font-medium">Engagement options</Label>
                     <div className="mt-2 space-y-1">
                       <ModalCheckbox checked={draftEmployeeEngagement} onChange={() => setDraftEmployeeEngagement(v => !v)}
                         label="Open to employee engagement opportunities" sub="Staff volunteering, mentoring, or pro-bono involvement" />
@@ -3342,7 +3342,7 @@ export default function DashboardProfile() {
                     </div>
                   </div>
                   <div className="pt-4 border-t border-border">
-                    <Label className="text-sm font-medium">Preferred partner types</Label>
+                    <Label className="text-[15px] font-medium">Preferred partner types</Label>
                     <div className="mt-2 space-y-1">
                       {["Registered Charity / NGO", "Social Enterprise / CIC / B Corp", "Research Institution / Academia", "Government / Public Sector", "Individual Practitioner"].map(p => (
                         <ModalCheckbox key={p} checked={draftPartnerTypePreference.includes(p)} label={p}
@@ -3351,7 +3351,7 @@ export default function DashboardProfile() {
                     </div>
                   </div>
                   <div className="pt-4 border-t border-border">
-                    <Label className="text-sm font-medium">Geographic focus</Label>
+                    <Label className="text-[15px] font-medium">Geographic focus</Label>
                     <div className="flex gap-2 mt-1">
                       <Input value={draftGeographicInput} onChange={e => setDraftGeographicInput(e.target.value)}
                         onKeyDown={e => {
@@ -3369,14 +3369,14 @@ export default function DashboardProfile() {
                           if (v && !draftGeographicFocus.includes(v)) setDraftGeographicFocus(p => [...p, v]);
                           setDraftGeographicInput("");
                         }}
-                        className="h-10 px-3 rounded-lg border border-border text-sm text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
+                        className="h-10 px-3 rounded-lg border border-border text-[15px] text-black dark:text-white hover:border-foreground/30 transition-colors shrink-0">
                         Add
                       </button>
                     </div>
                     {draftGeographicFocus.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {draftGeographicFocus.map(g => (
-                          <span key={g} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-black dark:text-white">
+                          <span key={g} className="inline-flex items-center gap-1 text-[13px] px-2.5 py-1 rounded-full border border-border text-black dark:text-white">
                             {g}
                             <button type="button" onClick={() => setDraftGeographicFocus(p => p.filter(x => x !== g))} className="hover:opacity-70 ml-0.5">×</button>
                           </span>
@@ -3391,7 +3391,7 @@ export default function DashboardProfile() {
               {editingCsrSection === "tech" && (
                 <EditModal title="Technology support" onClose={() => setEditingCsrSection(null)} onSave={saveTechSection} saving={csrSectionSaving}>
                   <div>
-                    <Label className="text-sm font-medium">Tech resources we can offer</Label>
+                    <Label className="text-[15px] font-medium">Tech resources we can offer</Label>
                     <div className="mt-2 space-y-1">
                       {["Cloud computing credits", "AI/ML API access", "Software licences", "Pro-bono engineering hours", "Data analytics tools", "Cybersecurity support"].map(t => (
                         <ModalCheckbox key={t} checked={draftTechSupport.includes(t)} label={t}
@@ -3429,39 +3429,39 @@ export default function DashboardProfile() {
                 <SectionCardGroup>
                   <div className="px-8 sm:px-12 py-10">
                     <div className="flex items-center justify-between mb-6">
-                      <p className="text-xl font-bold text-[#111111] dark:text-[#F5F5F5]">Verification</p>
+                      <p className="text-[21px] font-bold text-[#111111] dark:text-[#F5F5F5]">Verification</p>
                       {profile?.is_verified && (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-[#2D6A4F]/10 text-[#2D6A4F]">
+                        <span className="inline-flex items-center gap-1.5 text-[13px] font-medium px-2.5 py-1 rounded-full bg-[#2D6A4F]/10 text-[#2D6A4F]">
                           <ShieldCheck className="w-3.5 h-3.5" /> Verified
                         </span>
                       )}
                     </div>
 
                     {profile?.is_verified ? (
-                      <p className="text-sm text-black dark:text-white">
+                      <p className="text-[15px] text-black dark:text-white">
                         Your organisation is verified. No further action is required for now. A badge appears on your profile, listings, and activity across the platform.
                       </p>
                     ) : profile?.verification_requested ? (
                       <div className="flex items-start gap-3">
                         <ShieldCheck className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                         <div>
-                          <p className="text-sm font-medium text-foreground">Verification pending</p>
-                          <p className="text-sm text-black dark:text-white mt-0.5">Your documents are under review.</p>
+                          <p className="text-[15px] font-medium text-foreground">Verification pending</p>
+                          <p className="text-[15px] text-black dark:text-white mt-0.5">Your documents are under review.</p>
                         </div>
                       </div>
                     ) : profile?.verification_rejection_reason ? (
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <p className="text-sm font-medium text-red-600 dark:text-red-400">Verification not approved</p>
-                          <p className="text-sm text-black dark:text-white mt-1">
+                          <p className="text-[15px] font-medium text-red-600 dark:text-red-400">Verification not approved</p>
+                          <p className="text-[15px] text-black dark:text-white mt-1">
                             {profile.verification_rejection_reason}
                           </p>
-                          <p className="text-sm text-black dark:text-white mt-2">
+                          <p className="text-[15px] text-black dark:text-white mt-2">
                             Fix the issue above and resubmit — most rejections are resolved on the second try.
                           </p>
                         </div>
                         <Link href="/verify">
-                          <Button className="shrink-0 rounded-full px-5 text-sm text-white hover:brightness-110 transition-all border-0"
+                          <Button className="shrink-0 rounded-full px-5 text-[15px] text-white hover:brightness-110 transition-all border-0"
                             style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
                             Fix & resubmit
                           </Button>
@@ -3470,13 +3470,13 @@ export default function DashboardProfile() {
                     ) : (
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <p className="text-sm font-medium text-foreground">Not verified</p>
-                          <p className="text-sm text-black dark:text-white mt-0.5">
+                          <p className="text-[15px] font-medium text-foreground">Not verified</p>
+                          <p className="text-[15px] text-black dark:text-white mt-0.5">
                             Verified organisations get a badge on all activity, priority placement in the partner directory, and a credibility multiplier on Impact Points.
                           </p>
                         </div>
                         <Link href="/verify">
-                          <Button className="shrink-0 rounded-full px-5 text-sm text-white hover:brightness-110 transition-all border-0"
+                          <Button className="shrink-0 rounded-full px-5 text-[15px] text-white hover:brightness-110 transition-all border-0"
                             style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
                             Get verified
                           </Button>
@@ -3498,11 +3498,11 @@ export default function DashboardProfile() {
       <div className="space-y-4 md:flex md:flex-col md:min-h-[calc(100vh-120px)] md:fixed md:top-[96px] md:right-6 md:w-[280px]">
 
         <div className="rounded-b-2xl border-x border-b border-border bg-white dark:bg-card p-5 md:pt-[28px] space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Profile strength</p>
+          <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">Profile strength</p>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-2xl font-bold text-foreground">{strengthScore}%</span>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: `${strengthColor}15`, color: strengthColor }}>
+              <span className="text-[25px] font-bold text-foreground">{strengthScore}%</span>
+              <span className="text-[13px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${strengthColor}15`, color: strengthColor }}>
                 {strengthLabel}
               </span>
             </div>
@@ -3548,7 +3548,7 @@ export default function DashboardProfile() {
                 <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${item.done ? "bg-[#2D6A4F]" : item.partial ? "bg-amber-400" : "bg-muted"}`}>
                   {item.done && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
                 </div>
-                <span className={`text-xs ${item.done ? "text-foreground" : "text-black dark:text-white"}`}>{item.label}</span>
+                <span className={`text-[13px] ${item.done ? "text-foreground" : "text-black dark:text-white"}`}>{item.label}</span>
               </div>
             ))}
           </div>
@@ -3556,43 +3556,43 @@ export default function DashboardProfile() {
 
         {isOrg && (
           <div className="rounded-2xl border border-border bg-white dark:bg-card p-5 space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white">Visibility</p>
+            <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">Visibility</p>
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full shrink-0 ${profile?.is_verified ? "bg-[#2D6A4F]" : "bg-muted-foreground/40"}`} />
-              <span className="text-xs text-foreground">{profile?.is_verified ? "Verified organisation" : "Not yet verified"}</span>
+              <span className="text-[13px] text-foreground">{profile?.is_verified ? "Verified organisation" : "Not yet verified"}</span>
             </div>
             {!profile?.is_verified && (
               profile?.verification_requested ? (
-                <p className="text-xs text-black dark:text-white opacity-50 cursor-not-allowed">Verification pending review</p>
+                <p className="text-[13px] text-black dark:text-white opacity-50 cursor-not-allowed">Verification pending review</p>
               ) : profile?.verification_rejection_reason ? (
-                <a href="/verify" className="text-xs text-red-500 hover:underline underline-offset-2">Not approved — fix & resubmit</a>
+                <a href="/verify" className="text-[13px] text-red-500 hover:underline underline-offset-2">Not approved — fix & resubmit</a>
               ) : (
-                <a href="/verify" className="text-xs text-[#2D6A4F] hover:underline underline-offset-2">Apply for verification</a>
+                <a href="/verify" className="text-[13px] text-[#2D6A4F] hover:underline underline-offset-2">Apply for verification</a>
               )
             )}
           </div>
         )}
 
         <div className="rounded-2xl border border-border bg-white dark:bg-card p-5 space-y-2 md:flex-1">
-          <p className="text-xs font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Quick links</p>
-          <Link href="/dashboard/natives" className="flex items-center gap-2 text-xs text-black dark:text-white hover:text-foreground transition-colors py-1">
+          <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Quick links</p>
+          <Link href="/dashboard/natives" className="flex items-center gap-2 text-[13px] text-black dark:text-white hover:text-foreground transition-colors py-1">
             <ArrowRight className="w-3 h-3 text-[#2D6A4F]" /> View your directory listing
           </Link>
-          <Link href="/dashboard/settings" className="flex items-center gap-2 text-xs text-black dark:text-white hover:text-foreground transition-colors py-1">
+          <Link href="/dashboard/settings" className="flex items-center gap-2 text-[13px] text-black dark:text-white hover:text-foreground transition-colors py-1">
             <ArrowRight className="w-3 h-3 text-[#2D6A4F]" /> Account settings
           </Link>
           {!isOrg && (
             <>
-              <Link href="/dashboard/marketplace" className="flex items-center gap-2 text-xs text-black dark:text-white hover:text-foreground transition-colors py-1">
+              <Link href="/dashboard/marketplace" className="flex items-center gap-2 text-[13px] text-black dark:text-white hover:text-foreground transition-colors py-1">
                 <ArrowRight className="w-3 h-3 text-[#2D6A4F]" /> Browse the marketplace
               </Link>
-              <Link href="/dashboard/natives?tab=organisation" className="flex items-center gap-2 text-xs text-black dark:text-white hover:text-foreground transition-colors py-1">
+              <Link href="/dashboard/natives?tab=organisation" className="flex items-center gap-2 text-[13px] text-black dark:text-white hover:text-foreground transition-colors py-1">
                 <ArrowRight className="w-3 h-3 text-[#2D6A4F]" /> Browse organisations
               </Link>
             </>
           )}
           {isOrg && (
-            <a href="/verification-standard" className="flex items-center gap-2 text-xs text-black dark:text-white hover:text-foreground transition-colors py-1">
+            <a href="/verification-standard" className="flex items-center gap-2 text-[13px] text-black dark:text-white hover:text-foreground transition-colors py-1">
               <ArrowRight className="w-3 h-3 text-[#2D6A4F]" /> Verification standards
             </a>
           )}
