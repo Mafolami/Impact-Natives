@@ -118,10 +118,10 @@ const ROLES = [
 ]
 
 const STATS = [
-  { value: '92%', label: 'Reputation drives partnerships', sub: 'Top reason corporates partner with NGOs', bridge: 'On Natives, your credibility is verified, visible, and travels with you.', src: 'C&E Barometer 2025', color: '#2db87a' },
-  { value: '88%', label: 'Funding is the top motivator', sub: 'Top motivator for nonprofits to partner', bridge: 'Post your initiative on the marketplace. The right people find you.', src: 'C&E Barometer 2025', color: '#2d7ad4' },
-  { value: '30%', label: 'Failed ties trace to mismatched due diligence', sub: 'Share of partnerships that fail on weak vetting', bridge: 'Readiness scoring catches the mismatch before the money moves.', src: 'C&E Barometer 2025', color: '#a84dd4' },
-  { value: '50%', label: 'Corporates now use AI in partnerships', sub: 'Up from 11% the year before', bridge: 'Natives is built AI-native for exactly this shift.', src: 'C&E Barometer 2025', color: '#c45c26' },
+  { value: '92%', label: 'Reputation drives partnerships', sub: 'Top reason corporates partner with NGOs', bridge: "On Natives, your organisation's profile, readiness, and track record are structured and visible to potential partners.", src: 'C&E Barometer 2025 · Global', color: '#2db87a' },
+  { value: '88%', label: 'Funding is the top motivator', sub: 'Top motivator for nonprofits to partner', bridge: 'Post your initiative on the marketplace. The right people find you.', src: 'C&E Barometer 2025 · Global', color: '#2d7ad4' },
+  { value: '30%', label: 'Failed ties trace to mismatched due diligence', sub: 'Share of partnerships that fail on weak vetting', bridge: 'Readiness scoring catches the mismatch before commitments are made.', src: 'C&E Barometer 2025 · Global', color: '#a84dd4' },
+  { value: '50%', label: 'Corporates now use AI in partnerships', sub: 'Up from 11% the year before', bridge: 'Natives is built AI-native for exactly this shift.', src: 'C&E Barometer 2025 · Global', color: '#c45c26' },
 ]
 
 const FEATURES = [
@@ -157,7 +157,7 @@ const FEATURES = [
   },
   {
     num: '04', title: 'Build your strategy, then find delivery', sub: 'Turn an ESG or CSI commitment into a fundable plan.',
-    desc: 'Build your impact strategy from scratch or upload an existing one and convert it into structured pillars, then push your chosen initiatives to the marketplace where verified implementers can find them.',
+    desc: 'Build your impact strategy from scratch or upload an existing one and convert it into structured pillars, then push your chosen initiatives to the marketplace where suitable implementers can find them.',
     image: '/commission-lab.webp',
     Illustration: IllustrationLab,
     tint: 'rgba(168,77,212,0.05)', borderTint: 'rgba(168,77,212,0.12)',
@@ -717,7 +717,7 @@ export default function HomePage() {
               Impact Natives is the infrastructure where NGOs, funders, corporates, and ecosystem builders find each other, verify readiness, and form partnerships that work, without the email chains and multi-month delays.
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.875rem' }}>
-              <a href={window.location.hostname === "impactnatives.com" ? "https://app.impactnatives.com/signup" : "/platform/partnership-os"}>
+              <a href={window.location.hostname === "impactnatives.com" ? "https://app.impactnatives.com/signup" : "/platform/partnership-os"} target={window.location.hostname === "impactnatives.com" ? "_blank" : undefined} rel="noreferrer">
                 <button className="hp-btn-primary">
                   Find a Partner
                   <ArrowRight style={{ width: '1rem', height: '1rem' }} />
@@ -832,7 +832,7 @@ export default function HomePage() {
             </div>
             <h2 style={{ ...S.h2, marginBottom: '0.75rem' }}>Why unified partnership management matters</h2>
             <p style={{ color: T.textDimmer, fontSize: '1rem', maxWidth: '500px', margin: '0 auto', lineHeight: 1.65 }}>
-              Across NGOs, founders, government, DFIs, and corporate partners
+              Across NGOs, startups, government, funders, and corporate partners
             </p>
           </div>
           <div className="hp-section-wrap" style={S.contentMax}>
@@ -884,10 +884,10 @@ export default function HomePage() {
               {/* Years */}
               <div style={{ padding: '1.5rem 1.75rem', borderRadius: '0.875rem', background: T.surfaceMd, border: `1px solid ${T.border}` }}>
                 <div style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: 'clamp(2rem, 4vw, 2.75rem)', fontWeight: 800, letterSpacing: '-0.04em', color: T.text, lineHeight: 1, marginBottom: '0.5rem' }}>
-                  9+
+                  10+
                 </div>
                 <div style={{ fontSize: '0.875rem', color: T.textDimmer, lineHeight: 1.5 }}>
-                  Years building and working in Africa's impact sector
+                  Years working across Africa's impact sector
                 </div>
               </div>
               {/* ALIGN */}
