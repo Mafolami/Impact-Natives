@@ -187,7 +187,7 @@ const isCorporate = ["corporation", "technology_company", "public_sector"].inclu
     <aside
     className={cn(
       "fixed left-0 top-0 h-screen flex flex-col z-40 transition-all duration-200 border-r border-sidebar-border bg-sidebar",
-      collapsed ? "w-16" : "w-72"
+      collapsed ? "w-16" : "w-60"
     )}
     >
       
@@ -234,7 +234,7 @@ const isCorporate = ["corporation", "technology_company", "public_sector"].inclu
                     <Link href={href!}>
                       <span
                         className={cn(
-                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[12px] font-light transition-colors cursor-pointer w-full",
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-light transition-colors cursor-pointer w-full",
                           collapsed && "justify-center px-2",
                           isActive(href!)
                             ? "bg-sidebar-accent text-sidebar-accent-foreground"
