@@ -162,7 +162,7 @@ function CloseInitiativeButton({ initiative, onClosed }: { initiative: Initiativ
   if (!confirming) {
     return (
       <button type="button" onClick={() => setConfirming(true)}
-        className="w-full rounded-xl border border-border bg-white dark:bg-card px-5 py-3 text-[16px] text-black dark:text-white hover:text-[#2D6A4F] hover:border-foreground/30 transition-colors text-left">
+        className="w-full rounded-xl border border-border bg-white dark:bg-card px-5 py-3 text-[15px] text-black dark:text-white hover:text-[#2D6A4F] hover:border-foreground/30 transition-colors text-left">
         Found a partner? <span className="text-foreground font-medium">Close this initiative →</span>
       </button>
     );
@@ -170,17 +170,17 @@ function CloseInitiativeButton({ initiative, onClosed }: { initiative: Initiativ
 
   return (
     <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 px-5 py-4 space-y-3">
-      <p className="text-[16px] text-amber-800 dark:text-amber-300 font-medium">Close this initiative?</p>
-      <p className="text-[14px] text-amber-700 dark:text-amber-400 leading-relaxed">
+      <p className="text-[15px] text-amber-800 dark:text-amber-300 font-medium">Close this initiative?</p>
+      <p className="text-[13px] text-amber-700 dark:text-amber-400 leading-relaxed">
         It will stay visible in the marketplace with a "Partner found" badge. This cannot be undone.
       </p>
       <div className="flex gap-2">
         <button type="button" onClick={() => setConfirming(false)}
-          className="flex-1 h-9 rounded-full border border-border text-[16px] text-muted-foreground hover:text-foreground transition-colors">
+          className="flex-1 h-9 rounded-full border border-border text-[15px] text-muted-foreground hover:text-foreground transition-colors">
           Cancel
         </button>
         <button type="button" onClick={closeInitiative} disabled={closing}
-          className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[16px] font-medium disabled:opacity-40 transition-colors">
+          className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-medium disabled:opacity-40 transition-colors">
           {closing ? "Closing..." : "Yes, close it"}
         </button>
       </div>
@@ -220,7 +220,7 @@ function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeR
   if (!editing) {
     return (
       <button type="button" onClick={() => setEditing(true)}
-        className="w-full rounded-xl border border-[#C45C26]/40 bg-[rgba(196,92,38,0.08)] px-5 py-3 text-[16px] text-left hover:border-[#C45C26]/70 transition-colors">
+        className="w-full rounded-xl border border-[#C45C26]/40 bg-[rgba(196,92,38,0.08)] px-5 py-3 text-[15px] text-left hover:border-[#C45C26]/70 transition-colors">
         <span className="text-foreground font-medium">Review and publish this AI-generated RFP →</span>
       </button>
     );
@@ -228,34 +228,34 @@ function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeR
 
   return (
     <div className="rounded-xl border border-[#C45C26]/40 bg-[rgba(196,92,38,0.08)] px-5 py-4 space-y-4">
-      <p className="text-[16px] font-medium text-foreground">Review before publishing</p>
+      <p className="text-[15px] font-medium text-foreground">Review before publishing</p>
 
       <div>
-        <label className="text-[14px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2 block">
+        <label className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2 block">
           Problem statement
         </label>
         <textarea
           value={problem}
           onChange={e => setProblem(e.target.value)}
           rows={3}
-          className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[16px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+          className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[15px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
         />
       </div>
 
       <div>
-        <label className="text-[14px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2 block">
+        <label className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2 block">
           Expected outcome
         </label>
         <textarea
           value={outcome}
           onChange={e => setOutcome(e.target.value)}
           rows={3}
-          className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[16px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+          className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[15px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
         />
       </div>
 
       <div>
-        <label className="text-[14px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2 block">
+        <label className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2 block">
           Specific ask
         </label>
         <textarea
@@ -263,18 +263,18 @@ function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeR
           onChange={e => setSpecificAsk(e.target.value)}
           rows={2}
           placeholder="What would a partner actually do?"
-          className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[16px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+          className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[15px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
         />
       </div>
 
       <div>
-        <label className="text-[14px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2 block">
+        <label className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2 block">
           Partnership types needed
         </label>
         <div className="flex flex-wrap gap-2">
           {PARTNERSHIP_OPTIONS.map(opt => (
             <button key={opt.value} type="button" onClick={() => toggle(opt.value)}
-              className={`px-3 py-1.5 rounded-full border text-[14px] font-medium transition-all ${
+              className={`px-3 py-1.5 rounded-full border text-[13px] font-medium transition-all ${
                 partnerships.includes(opt.value)
                   ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
                   : "border-border text-muted-foreground hover:border-foreground/30"
@@ -287,11 +287,11 @@ function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeR
 
       <div className="flex gap-2">
         <button type="button" onClick={() => setEditing(false)}
-          className="flex-1 h-9 rounded-full border border-border text-[16px] text-muted-foreground hover:text-foreground transition-colors">
+          className="flex-1 h-9 rounded-full border border-border text-[15px] text-muted-foreground hover:text-foreground transition-colors">
           Cancel
         </button>
         <button type="button" onClick={publish} disabled={publishing || !problem.trim() || !outcome.trim() || partnerships.length === 0}
-          className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[16px] font-medium disabled:opacity-40 transition-colors">
+          className="flex-1 h-9 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-medium disabled:opacity-40 transition-colors">
           {publishing ? "Publishing..." : "Publish to marketplace"}
         </button>
       </div>
@@ -318,20 +318,20 @@ function InitiativeDetail({ initiative, onBack, onRequestEdit }: { initiative: I
   return (
     <div className="space-y-6">
       <button type="button" onClick={onBack}
-        className="flex items-center gap-1.5 text-[16px] text-muted-foreground hover:text-[#C45C26] transition-colors">
+        className="flex items-center gap-1.5 text-[15px] text-muted-foreground hover:text-[#C45C26] transition-colors">
         <ArrowLeft className="w-3.5 h-3.5" /> Back
       </button>
 
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-[26px] font-bold text-foreground tracking-tight">{initiative.title}</h2>
+          <h2 className="text-[25px] font-bold text-foreground tracking-tight">{initiative.title}</h2>
           <div className="flex items-center gap-2 mt-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 text-[14px] font-medium px-3 py-1 rounded-full"
+            <span className="inline-flex items-center gap-1.5 text-[13px] font-medium px-3 py-1 rounded-full"
               style={{ background: s.bg, color: s.dot }}>
               <span className="w-1.5 h-1.5 rounded-full" style={{ background: s.dot }} />
               {s.label}
             </span>
-            <span className="text-[14px] text-black dark:text-white flex items-center gap-1">
+            <span className="text-[13px] text-black dark:text-white flex items-center gap-1">
               <Users className="w-3 h-3" />
               {initiative.eois} expression{initiative.eois !== 1 ? "s" : ""} of interest
             </span>
@@ -346,25 +346,25 @@ function InitiativeDetail({ initiative, onBack, onRequestEdit }: { initiative: I
           { label: "Budget",    value: initiative.budget                || "—" },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-xl border border-border bg-white dark:bg-card px-4 py-3">
-            <p className="text-[14px] text-black dark:text-white mb-0.5">{label}</p>
-            <p className="text-[16px] font-medium text-foreground">{value}</p>
+            <p className="text-[13px] text-black dark:text-white mb-0.5">{label}</p>
+            <p className="text-[15px] font-medium text-foreground">{value}</p>
           </div>
         ))}
       </div>
 
       {passData && passData.count > 0 && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 px-4 py-3 space-y-2">
-          <p className="text-[14px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+          <p className="text-[13px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
             Funder feedback — {passData.count} funder{passData.count !== 1 ? "s" : ""} passed
           </p>
           <div className="flex flex-wrap gap-2">
             {Object.entries(passData.reasons).sort((a, b) => b[1] - a[1]).map(([reason, count]) => (
-              <span key={reason} className="text-[14px] px-2.5 py-1 rounded-full border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-400">
+              <span key={reason} className="text-[13px] px-2.5 py-1 rounded-full border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-400">
                 {reason} ({count})
               </span>
             ))}
           </div>
-          <p className="text-[14px] text-amber-600 dark:text-amber-500">
+          <p className="text-[13px] text-amber-600 dark:text-amber-500">
             Use this to strengthen your brief before your next outreach.
           </p>
         </div>
@@ -374,13 +374,13 @@ function InitiativeDetail({ initiative, onBack, onRequestEdit }: { initiative: I
         <div className="grid gap-3 sm:grid-cols-2">
           {initiative.problem && (
             <div className="rounded-xl border border-border bg-white dark:bg-card px-5 py-4">
-              <p className="text-[14px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Problem</p>
+              <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Problem</p>
               <p className="text-[15px] text-foreground leading-relaxed">{initiative.problem}</p>
             </div>
           )}
           {initiative.outcome && (
             <div className="rounded-xl border border-border bg-white dark:bg-card px-5 py-4">
-              <p className="text-[14px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Outcome</p>
+              <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Outcome</p>
               <p className="text-[15px] text-foreground leading-relaxed">{initiative.outcome}</p>
             </div>
           )}
@@ -390,7 +390,7 @@ function InitiativeDetail({ initiative, onBack, onRequestEdit }: { initiative: I
       {initiative.tags && initiative.tags.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {initiative.tags.map(t => (
-            <span key={t} className="px-3 py-1 rounded-full text-[14px] font-medium"
+            <span key={t} className="px-3 py-1 rounded-full text-[13px] font-medium"
               style={{ background: "rgba(196,92,38,0.12)", color: "#C45C26" }}>{t}</span>
           ))}
         </div>
@@ -398,7 +398,7 @@ function InitiativeDetail({ initiative, onBack, onRequestEdit }: { initiative: I
 
       {initiative.detail_content && initiative.detail_content !== "<p></p>" && (
         <div className="rounded-xl border border-border bg-white dark:bg-card px-5 py-4">
-          <p className="text-[14px] font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Full description</p>
+          <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Full description</p>
           <div className="prose prose-sm dark:prose-invert max-w-none text-foreground"
             dangerouslySetInnerHTML={{ __html: initiative.detail_content }} />
         </div>
@@ -406,15 +406,15 @@ function InitiativeDetail({ initiative, onBack, onRequestEdit }: { initiative: I
 
       {initiative.confirmed_partners && initiative.confirmed_partners.filter(p => isActiveConfirmedStatus(p.status)).length > 0 && (
         <div className="rounded-xl border border-[#2D6A4F]/30 bg-[rgba(45,106,79,0.12)] px-5 py-4">
-          <p className="text-[14px] font-semibold uppercase tracking-wider text-[#2D6A4F] mb-3">Confirmed Partners</p>
+          <p className="text-[13px] font-semibold uppercase tracking-wider text-[#2D6A4F] mb-3">Confirmed Partners</p>
           <div className="flex flex-col gap-2">
             {initiative.confirmed_partners.filter(p => isActiveConfirmedStatus(p.status)).map(p => (
               <div key={p.user_id} className="flex items-center justify-between gap-3">
-                <a href={p.profile_link} className="text-[16px] font-medium text-foreground hover:text-[#2D6A4F] transition-colors">{p.name}</a>
+                <a href={p.profile_link} className="text-[15px] font-medium text-foreground hover:text-[#2D6A4F] transition-colors">{p.name}</a>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[14px] px-2.5 py-0.5 rounded-full capitalize" style={{ background: "rgba(6,95,70,0.12)", color: "#065f46" }}>{p.role}</span>
+                  <span className="text-[13px] px-2.5 py-0.5 rounded-full capitalize" style={{ background: "rgba(6,95,70,0.12)", color: "#065f46" }}>{p.role}</span>
                   {p.status === "mou_executed" && (
-                    <span className="inline-flex items-center gap-1 text-[14px] px-2.5 py-0.5 rounded-full" style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
+                    <span className="inline-flex items-center gap-1 text-[13px] px-2.5 py-0.5 rounded-full" style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
                       <Award className="w-3 h-3" />MoU Executed
                     </span>
                   )}
@@ -427,7 +427,7 @@ function InitiativeDetail({ initiative, onBack, onRequestEdit }: { initiative: I
 
 {initiative.status !== "closed" && (
         <button type="button" onClick={() => onRequestEdit(initiative.id)}
-          className="w-full rounded-xl border border-border bg-white dark:bg-card px-5 py-3 text-[16px] text-black dark:text-white hover:text-[#2D6A4F] hover:border-foreground/30 transition-colors text-left">
+          className="w-full rounded-xl border border-border bg-white dark:bg-card px-5 py-3 text-[15px] text-black dark:text-white hover:text-[#2D6A4F] hover:border-foreground/30 transition-colors text-left">
           Need to update something? <span className="text-foreground font-medium">Edit this initiative →</span>
         </button>
       )}
@@ -442,14 +442,14 @@ function InitiativeDetail({ initiative, onBack, onRequestEdit }: { initiative: I
 
       {initiative.status === "pending" && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 px-5 py-4">
-          <p className="text-[16px] text-amber-800 dark:text-amber-300 leading-relaxed">
+          <p className="text-[15px] text-amber-800 dark:text-amber-300 leading-relaxed">
             Your request is under review. It will be listed in the Marketplace once approved.
           </p>
         </div>
       )}
       {initiative.status === "rejected" && (
         <div className="rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-800 px-5 py-4">
-          <p className="text-[16px] text-red-800 dark:text-red-300 leading-relaxed">
+          <p className="text-[15px] text-red-800 dark:text-red-300 leading-relaxed">
             This initiative was not approved. Reach out to the team for feedback.
           </p>
         </div>
@@ -512,7 +512,7 @@ function InterestsExpressedTab({ orgOwnerId }: { orgOwnerId: string | null | und
     <div className="rounded-2xl border border-border bg-white dark:bg-card p-12 text-center">
       <UserCheck className="w-8 h-8 text-muted-foreground/40 mx-auto mb-4" />
       <p className="text-foreground font-medium mb-2">No interests expressed yet.</p>
-      <p className="text-[16px] text-black dark:text-white max-w-sm mx-auto">
+      <p className="text-[15px] text-black dark:text-white max-w-sm mx-auto">
         When you express interest in initiatives on the Marketplace, they appear here.
       </p>
     </div>
@@ -534,11 +534,11 @@ function InterestsExpressedTab({ orgOwnerId }: { orgOwnerId: string | null | und
             <div className="flex items-start justify-between gap-3">
               <div>
                 <Link href={`/dashboard/marketplace?initiative=${eoi.initiative_id}`}
-                  className="text-[16px] font-medium text-foreground hover:text-[#2D6A4F] transition-colors hover:underline underline-offset-2">
+                  className="text-[15px] font-medium text-foreground hover:text-[#2D6A4F] transition-colors hover:underline underline-offset-2">
                   {eoi.initiative_title}
                 </Link>
               </div>
-              <span className="text-[14px] text-black dark:text-white shrink-0">{timeAgo(eoi.created_at)}</span>
+              <span className="text-[13px] text-black dark:text-white shrink-0">{timeAgo(eoi.created_at)}</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
               <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
@@ -635,7 +635,7 @@ function ConfirmedPartnersTab({ orgOwnerId, actorUserId }: { orgOwnerId: string 
     <div className="rounded-2xl border border-border bg-white dark:bg-card p-12 text-center">
       <Users className="w-8 h-8 text-muted-foreground/40 mx-auto mb-4" />
       <p className="text-foreground font-medium mb-2">No confirmed partnerships yet.</p>
-      <p className="text-[16px] text-black dark:text-white max-w-sm mx-auto">
+      <p className="text-[15px] text-black dark:text-white max-w-sm mx-auto">
         Partnerships appear here once an initiative creator confirms a partner from a conversation.
       </p>
     </div>
@@ -645,23 +645,23 @@ function ConfirmedPartnersTab({ orgOwnerId, actorUserId }: { orgOwnerId: string 
     <div className="space-y-6">
       {creatorConfirmed.length > 0 && (
         <div className="space-y-3">
-          <p className="text-[14px] font-semibold uppercase tracking-widest text-black dark:text-white">Partners on your initiatives</p>
+          <p className="text-[13px] font-semibold uppercase tracking-widest text-black dark:text-white">Partners on your initiatives</p>
           <div className="rounded-xl border border-border bg-white dark:bg-card overflow-hidden">
             <div className="px-5 py-3 border-b border-border flex items-center justify-between gap-3">
-              <p className="text-[16px] font-semibold text-foreground">Confirmed partners</p>
+              <p className="text-[15px] font-semibold text-foreground">Confirmed partners</p>
               <button type="button" onClick={() => {
                 const rows = [["Initiative","Name","Role","Email","Phone","LinkedIn","Confirmed"],...creatorConfirmed.flatMap(card => card.partners.map(p => [card.initiative_title,p.name,partnershipLabel(p.role),p.email,p.phone??"",p.linkedin??"",new Date(p.confirmed_at).toLocaleDateString("en-GB")]))];
                 const csv = rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
                 const blob = new Blob([csv],{type:"text/csv"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="confirmed_partners.csv";a.click();URL.revokeObjectURL(url);
-              }} className="shrink-0 flex items-center gap-1.5 text-[14px] text-black dark:text-white hover:text-[#2D6A4F] border border-border rounded-full px-3 py-1.5 transition-colors">
+              }} className="shrink-0 flex items-center gap-1.5 text-[13px] text-black dark:text-white hover:text-[#2D6A4F] border border-border rounded-full px-3 py-1.5 transition-colors">
                 <Download className="w-3 h-3" /> Export
               </button>
             </div>
-            <table className="w-full text-[16px]">
+            <table className="w-full text-[15px]">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
                   {["Name","Initiative","Role","Contact","Confirmed",""].map(h => (
-                    <th key={h} className="text-left px-5 py-2.5 text-[14px] font-semibold text-black dark:text-white">{h}</th>
+                    <th key={h} className="text-left px-5 py-2.5 text-[13px] font-semibold text-black dark:text-white">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -669,9 +669,9 @@ function ConfirmedPartnersTab({ orgOwnerId, actorUserId }: { orgOwnerId: string 
                 {creatorConfirmed.flatMap(card => card.partners.map(p => (
                   <tr key={`${card.initiative_id}-${p.user_id}`}>
                     <td className="px-5 py-3">
-                      <Link href={`/dashboard/natives?user=${p.user_id}`} className="text-[16px] font-medium text-foreground hover:text-[#2D6A4F] transition-colors hover:underline underline-offset-2">{p.name}</Link>
+                      <Link href={`/dashboard/natives?user=${p.user_id}`} className="text-[15px] font-medium text-foreground hover:text-[#2D6A4F] transition-colors hover:underline underline-offset-2">{p.name}</Link>
                     </td>
-                    <td className="px-5 py-3 text-[14px] text-black dark:text-white">{card.initiative_title}</td>
+                    <td className="px-5 py-3 text-[13px] text-black dark:text-white">{card.initiative_title}</td>
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{background:"rgba(45,106,79,0.12)",color:"#2D6A4F"}}>{partnershipLabel(p.role)}</span>
@@ -684,12 +684,12 @@ function ConfirmedPartnersTab({ orgOwnerId, actorUserId }: { orgOwnerId: string 
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex flex-wrap gap-3">
-                        {p.email && <a href={`mailto:${p.email}`} className="text-[14px] text-[#2D6A4F] hover:underline underline-offset-2">{p.email}</a>}
-                        {p.phone && <a href={`tel:${p.phone}`} className="text-[14px] text-black dark:text-white hover:text-[#2D6A4F] transition-colors">{p.phone}</a>}
-                        {p.linkedin && <a href={p.linkedin} target="_blank" rel="noopener noreferrer" className="text-[14px] text-black dark:text-white hover:text-[#2D6A4F] transition-colors">LinkedIn ↗</a>}
+                        {p.email && <a href={`mailto:${p.email}`} className="text-[13px] text-[#2D6A4F] hover:underline underline-offset-2">{p.email}</a>}
+                        {p.phone && <a href={`tel:${p.phone}`} className="text-[13px] text-black dark:text-white hover:text-[#2D6A4F] transition-colors">{p.phone}</a>}
+                        {p.linkedin && <a href={p.linkedin} target="_blank" rel="noopener noreferrer" className="text-[13px] text-black dark:text-white hover:text-[#2D6A4F] transition-colors">LinkedIn ↗</a>}
                       </div>
                     </td>
-                    <td className="px-5 py-3 text-[14px] text-black dark:text-white whitespace-nowrap">{timeAgo(p.confirmed_at)}</td>
+                    <td className="px-5 py-3 text-[13px] text-black dark:text-white whitespace-nowrap">{timeAgo(p.confirmed_at)}</td>
                     <td className="px-5 py-3">
                       <ActionsDropdown actions={[
                         { label: "MoU", href: `/dashboard/portfolio/mou?newForUserId=${p.user_id}&partnerName=${encodeURIComponent(p.name)}&initiativeId=${card.initiative_id}&initiativeTitle=${encodeURIComponent(card.initiative_title)}` },
@@ -705,13 +705,13 @@ function ConfirmedPartnersTab({ orgOwnerId, actorUserId }: { orgOwnerId: string 
 
       {expresserConfirmed.length > 0 && (
         <div className="space-y-3">
-          <p className="text-[14px] font-semibold uppercase tracking-widest text-black dark:text-white">Initiatives you've been confirmed on</p>
+          <p className="text-[13px] font-semibold uppercase tracking-widest text-black dark:text-white">Initiatives you've been confirmed on</p>
           <div className="rounded-xl border border-border bg-white dark:bg-card overflow-hidden">
-            <table className="w-full text-[16px]">
+            <table className="w-full text-[15px]">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
                   {["Creator","Initiative","Your role",""].map(h => (
-                    <th key={h} className="text-left px-5 py-2.5 text-[14px] font-semibold text-black dark:text-white">{h}</th>
+                    <th key={h} className="text-left px-5 py-2.5 text-[13px] font-semibold text-black dark:text-white">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -719,10 +719,10 @@ function ConfirmedPartnersTab({ orgOwnerId, actorUserId }: { orgOwnerId: string 
                 {expresserConfirmed.map(row => (
                   <tr key={`${row.initiative_id}-${row.creator_user_id}`}>
                     <td className="px-5 py-3">
-                      <Link href={`/dashboard/natives?user=${row.creator_user_id}`} className="text-[16px] font-medium text-foreground hover:text-[#2D6A4F] transition-colors hover:underline underline-offset-2">{row.creator_name}</Link>
+                      <Link href={`/dashboard/natives?user=${row.creator_user_id}`} className="text-[15px] font-medium text-foreground hover:text-[#2D6A4F] transition-colors hover:underline underline-offset-2">{row.creator_name}</Link>
                     </td>
                     <td className="px-5 py-3">
-                      <Link href={`/dashboard/marketplace?initiative=${row.initiative_id}`} className="text-[16px] text-foreground hover:text-[#2D6A4F] transition-colors hover:underline underline-offset-2">{row.initiative_title}</Link>
+                      <Link href={`/dashboard/marketplace?initiative=${row.initiative_id}`} className="text-[15px] text-foreground hover:text-[#2D6A4F] transition-colors hover:underline underline-offset-2">{row.initiative_title}</Link>
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-1.5 flex-wrap">
@@ -894,7 +894,7 @@ export default function DashboardInitiatives() {
             {/* Table / Tabs view toggle */}
             <div className="flex gap-1 p-1 rounded-xl bg-muted">
               <button type="button" onClick={() => setViewMode("table")} title="Table view"
-                className={`h-9 px-3 rounded-lg text-[16px] font-semibold transition-all flex items-center gap-1.5 ${
+                className={`h-9 px-3 rounded-lg text-[15px] font-semibold transition-all flex items-center gap-1.5 ${
                   viewMode === "table"
                     ? "bg-white dark:bg-card text-black dark:text-white shadow-sm"
                     : "text-black dark:text-white hover:text-[#2D6A4F]"
@@ -903,7 +903,7 @@ export default function DashboardInitiatives() {
                 <span className="hidden sm:inline">Table</span>
               </button>
               <button type="button" onClick={() => setViewMode("tabs")} title="Tabs view"
-                className={`h-9 px-3 rounded-lg text-[16px] font-semibold transition-all flex items-center gap-1.5 ${
+                className={`h-9 px-3 rounded-lg text-[15px] font-semibold transition-all flex items-center gap-1.5 ${
                   viewMode === "tabs"
                     ? "bg-white dark:bg-card text-black dark:text-white shadow-sm"
                     : "text-black dark:text-white hover:text-[#2D6A4F]"
@@ -926,7 +926,7 @@ export default function DashboardInitiatives() {
             { key: "partnerships" as const, label: "Partnerships" },
           ].map(({ key, label }) => (
             <button key={key} type="button" onClick={() => setTopTab(key)}
-              className={`h-9 px-6 rounded-lg text-[16px] font-semibold transition-all ${
+              className={`h-9 px-6 rounded-lg text-[15px] font-semibold transition-all ${
                 topTab === key
                   ? "bg-white dark:bg-card text-black dark:text-white shadow-sm"
                   : "text-black dark:text-white hover:text-[#2D6A4F]"
@@ -942,7 +942,7 @@ export default function DashboardInitiatives() {
             <div className="flex gap-1.5 p-1 rounded-xl bg-muted w-fit">
               {initSubTabs.map(({ value, label}) => (
                 <button key={value} type="button" onClick={() => setInitSubTab(value)}
-                  className={`h-8 px-4 rounded-lg text-[14px] font-semibold transition-all ${
+                  className={`h-8 px-4 rounded-lg text-[13px] font-semibold transition-all ${
                     initSubTab === value
                       ? "bg-white dark:bg-card text-black dark:text-white shadow-sm"
                       : "text-black dark:text-white hover:text-[#2D6A4F]"
@@ -962,11 +962,11 @@ export default function DashboardInitiatives() {
                 ) : initiatives.length === 0 ? (
                   <div className="rounded-2xl border border-border bg-white dark:bg-card p-12 text-center">
                     <p className="text-foreground font-medium mb-2">No initiatives yet.</p>
-                    <p className="text-[16px] text-black dark:text-white mb-6 max-w-sm mx-auto">
+                    <p className="text-[15px] text-black dark:text-white mb-6 max-w-sm mx-auto">
                       Create an initiative and let funders, partners, and implementers discover it.
                     </p>
                     <button type="button" onClick={() => setShowModal(true)}
-                      className="rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[16px] font-medium transition-colors">
+                      className="rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-medium transition-colors">
                       + New Initiative
                     </button>
                   </div>
@@ -987,7 +987,7 @@ export default function DashboardInitiatives() {
                                     <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.dot }} />
                                     {s.label}
                                   </span>
-                                  <span className="text-[14px] text-black dark:text-white">
+                                  <span className="text-[13px] text-black dark:text-white">
                                     {ini.eois} EOI{ini.eois !== 1 ? "s" : ""}
                                   </span>
                                 </div>
