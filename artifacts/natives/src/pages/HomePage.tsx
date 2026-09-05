@@ -820,6 +820,80 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── HOW IT WORKS (Process Architecture) ────────────── */}
+      <section className="hp-reveal" style={{ ...S.reveal, padding: 'clamp(3rem, 6vw, 5rem) 0' }}>
+        <div className="hp-section-wrap hp-hero">
+          <div style={{
+            borderRadius: '14px', padding: 'clamp(2rem, 5vw, 2.75rem) clamp(1.25rem, 3vw, 2rem)', position: 'relative', overflow: 'hidden',
+            background: isDark ? '#0a0d11' : '#eef0f2',
+          }}>
+            <div style={{
+              position: 'absolute', inset: 0, opacity: isDark ? 0.35 : 0.5, pointerEvents: 'none',
+              backgroundImage: `linear-gradient(${isDark ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.035)'} 1px, transparent 1px), linear-gradient(90deg, ${isDark ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.035)'} 1px, transparent 1px)`,
+              backgroundSize: '36px 36px',
+            }} />
+            <span style={{ position: 'absolute', top: '1rem', left: '1.25rem', fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', letterSpacing: '0.1em', color: isDark ? 'rgba(224,131,79,.55)' : 'rgba(196,92,38,.7)' }}>
+              LAT 6.5244°N · LON 3.3792°E
+            </span>
+            <span style={{ position: 'absolute', top: '1rem', right: '1.25rem', fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', letterSpacing: '0.1em', color: isDark ? 'rgba(247,243,237,.3)' : 'rgba(58,58,58,.4)' }}>
+              REV.05
+            </span>
+
+            <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', fontWeight: 500, letterSpacing: '0.22em', textTransform: 'uppercase', color: isDark ? '#e0834f' : '#C45C26' }}>
+                // process_architecture
+              </div>
+              <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, letterSpacing: '-0.02em', fontSize: 'clamp(1.25rem, 2.5vw, 1.5rem)', color: isDark ? '#f7f3ed' : '#0a0a0a', margin: '0.5rem 0 0.4rem' }}>
+                From discovery to a verified outcome
+              </p>
+              <p style={{ fontSize: '0.8125rem', lineHeight: 1.55, maxWidth: '400px', margin: '0 auto', color: isDark ? 'rgba(247,243,237,.45)' : '#3a3a3a' }}>
+                Every partnership on Natives moves through the same five-stage circuit.
+              </p>
+            </div>
+
+            <div className="hp-lifecycle-svg" style={{ position: 'relative', zIndex: 1 }}>
+              <svg viewBox="0 0 560 200" width="100%" style={{ display: 'block', overflow: 'visible' }}>
+                <path d="M60,60 L150,60 L150,140 L240,140 L240,60 L330,60 L330,140 L420,140 L420,60 L500,60" fill="none" stroke={isDark ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.12)'} strokeWidth="1.5" />
+                {[
+                  { x: 60, y: 60, n: '01', label: 'FIND', desc: 'Discover partners', final: false },
+                  { x: 240, y: 140, n: '02', label: 'MATCH', desc: 'Ranked recommendations', final: false },
+                  { x: 330, y: 60, n: '03', label: 'CONNECT', desc: 'Message inside Natives', final: false },
+                  { x: 420, y: 140, n: '04', label: 'AGREE', desc: 'Structured MoU', final: false },
+                  { x: 500, y: 60, n: '05', label: 'PROVE', desc: 'Verified evidence', final: true },
+                ].map((node) => (
+                  <g key={node.n}>
+                    <circle cx={node.x} cy={node.y} r="20" fill={isDark ? '#0a0d11' : '#eef0f2'} stroke={node.final ? 'rgba(224,131,79,.9)' : 'rgba(196,92,38,.5)'} strokeWidth={node.final ? 2 : 1.5} />
+                    <circle cx={node.x} cy={node.y} r="14" fill="none" stroke={node.final ? 'rgba(224,131,79,1)' : 'rgba(196,92,38,.7)'} strokeWidth={node.final ? 1.2 : 1} />
+                    <text x={node.x} y={node.y + 5} textAnchor="middle" fontSize="12" fontFamily="'JetBrains Mono', monospace" fill={isDark ? '#e0834f' : '#C45C26'}>{node.n}</text>
+                    <text x={node.x} y={node.y + (node.y === 60 ? 35 : -30)} textAnchor="middle" fontSize="11" fontWeight="700" fontFamily="'Bricolage Grotesque', sans-serif" fill={isDark ? '#f7f3ed' : '#0a0a0a'}>{node.label}</text>
+                    <text x={node.x} y={node.y + (node.y === 60 ? 50 : -15)} textAnchor="middle" fontSize="8.5" fill={isDark ? 'rgba(247,243,237,.4)' : '#3a3a3a'}>{node.desc}</text>
+                  </g>
+                ))}
+              </svg>
+              <div className="hp-lifecycle-pulse" style={{ position: 'absolute', top: 0, left: 0, width: '6px', height: '6px', borderRadius: '50%', background: '#e0834f', boxShadow: '0 0 8px 2px rgba(224,131,79,.6)' }} />
+            </div>
+
+            <div className="hp-lifecycle-mobile" style={{ display: 'none', flexDirection: 'column', gap: '0.75rem', position: 'relative', zIndex: 1 }}>
+              {[
+                { n: '01', label: 'Find', desc: 'Discover organisations, initiatives, and partnership opportunities.' },
+                { n: '02', label: 'Match', desc: 'Describe what you need and get relevant partner recommendations.' },
+                { n: '03', label: 'Connect', desc: 'Express interest and continue the conversation inside Natives.' },
+                { n: '04', label: 'Agree', desc: 'Turn the relationship into a structured agreement with an MoU.' },
+                { n: '05', label: 'Prove', desc: 'Track agreed outcomes, submit evidence, and move through verification.' },
+              ].map((s) => (
+                <div key={s.n} style={{ display: 'flex', gap: '0.875rem', alignItems: 'flex-start', padding: '0.875rem 1rem', borderRadius: '0.75rem', background: isDark ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.02)', border: `1px solid ${isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.08)'}` }}>
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: isDark ? '#e0834f' : '#C45C26', flexShrink: 0, paddingTop: '0.125rem' }}>{s.n}</span>
+                  <div>
+                    <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 700, fontSize: '0.875rem', color: isDark ? '#f7f3ed' : '#0a0a0a', margin: '0 0 0.25rem' }}>{s.label}</p>
+                    <p style={{ fontSize: '0.75rem', lineHeight: 1.5, color: isDark ? 'rgba(247,243,237,.5)' : '#3a3a3a', margin: 0 }}>{s.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── STATS ─────────────────────────────────────────── */}
       <section className="hp-light-section" style={{ ...S.sectionPad, position: 'relative', borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}`, background: T.surface, overflow: 'hidden' }}>
         <div style={{ position: 'absolute', width: '60vw', height: '50vh', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: 'radial-gradient(ellipse, rgba(196,92,38,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
@@ -853,6 +927,64 @@ export default function HomePage() {
         </div>
         <div style={{ border: `1px solid ${T.border}`, borderRadius: '1.25rem', overflow: 'hidden' }}>
           {FEATURES.map((feat, i) => <FeatureRow key={i} feat={feat} i={i} />)}
+        </div>
+      </section>
+
+      {/* ── TRUST LAYERS (Exploded Stack) ────────────────────── */}
+      <section className="hp-reveal" style={{ ...S.reveal, padding: 'clamp(3rem, 6vw, 5rem) 0' }}>
+        <div className="hp-section-wrap hp-hero">
+          <div style={{
+            borderRadius: '14px', padding: 'clamp(2rem, 5vw, 2.75rem) clamp(1.25rem, 3vw, 2rem)', position: 'relative', overflow: 'hidden',
+            background: isDark ? '#0a0d11' : '#eef0f2',
+          }}>
+            <div style={{
+              position: 'absolute', inset: 0, opacity: isDark ? 0.3 : 0.45, pointerEvents: 'none',
+              backgroundImage: `linear-gradient(${isDark ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.035)'} 1px, transparent 1px), linear-gradient(90deg, ${isDark ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.035)'} 1px, transparent 1px)`,
+              backgroundSize: '36px 36px',
+            }} />
+            <span style={{ position: 'absolute', top: '1rem', right: '1.25rem', fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', letterSpacing: '0.1em', color: isDark ? 'rgba(247,243,237,.3)' : 'rgba(58,58,58,.4)' }}>
+              STACK.3
+            </span>
+
+            <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', marginBottom: '2rem' }}>
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', fontWeight: 500, letterSpacing: '0.22em', textTransform: 'uppercase', color: isDark ? '#e0834f' : '#C45C26' }}>
+                // trust_architecture
+              </div>
+              <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, letterSpacing: '-0.02em', fontSize: 'clamp(1.125rem, 2.25vw, 1.375rem)', color: isDark ? '#f7f3ed' : '#0a0a0a', margin: '0.5rem 0 0.4rem' }}>
+                Three different things, on purpose
+              </p>
+              <p style={{ fontSize: '0.8125rem', lineHeight: 1.55, maxWidth: '400px', margin: '0 auto', color: isDark ? 'rgba(247,243,237,.45)' : '#3a3a3a' }}>
+                Natives keeps these separate so you always know what you&apos;re looking at.
+              </p>
+            </div>
+
+            <div className="hp-trust-stack" style={{ position: 'relative', height: '230px', zIndex: 1 }}>
+              <div className="hp-trust-slab" style={{
+                position: 'absolute', top: 0, left: '2%', width: '64%', borderRadius: '10px', padding: '1.1rem 1.4rem', transform: 'rotate(-0.6deg)',
+                background: isDark ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.02)', border: `1px solid ${isDark ? 'rgba(255,255,255,.09)' : 'rgba(0,0,0,.08)'}`,
+              }}>
+                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', letterSpacing: '0.1em', color: isDark ? 'rgba(224,131,79,.6)' : 'rgba(196,92,38,.7)', marginBottom: '0.4rem' }}>LAYER_03 · TOP</div>
+                <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 700, fontSize: '0.875rem', color: isDark ? '#f7f3ed' : '#0a0a0a', margin: '0 0 0.35rem' }}>Impact Verification</p>
+                <p style={{ fontSize: '0.75rem', lineHeight: 1.5, color: isDark ? 'rgba(247,243,237,.48)' : '#3a3a3a', margin: 0 }}>Evidence against agreed outcomes, reviewed and tracked over time.</p>
+              </div>
+              <div className="hp-trust-slab" style={{
+                position: 'absolute', top: '76px', left: '20%', width: '64%', borderRadius: '10px', padding: '1.1rem 1.4rem', transform: 'rotate(0.4deg)',
+                background: isDark ? 'rgba(255,255,255,.045)' : 'rgba(0,0,0,.028)', border: `1px solid ${isDark ? 'rgba(255,255,255,.11)' : 'rgba(0,0,0,.1)'}`,
+              }}>
+                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', letterSpacing: '0.1em', color: isDark ? 'rgba(224,131,79,.6)' : 'rgba(196,92,38,.7)', marginBottom: '0.4rem' }}>LAYER_02 · MID</div>
+                <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 700, fontSize: '0.875rem', color: isDark ? '#f7f3ed' : '#0a0a0a', margin: '0 0 0.35rem' }}>Due Diligence Readiness</p>
+                <p style={{ fontSize: '0.75rem', lineHeight: 1.5, color: isDark ? 'rgba(247,243,237,.48)' : '#3a3a3a', margin: 0 }}>Self-reported institutional readiness. Not independently audited.</p>
+              </div>
+              <div className="hp-trust-slab" style={{
+                position: 'absolute', top: '152px', left: '2%', width: '64%', borderRadius: '10px', padding: '1.1rem 1.4rem',
+                background: isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.04)', border: `1px solid ${isDark ? 'rgba(196,92,38,.35)' : 'rgba(196,92,38,.3)'}`,
+              }}>
+                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', letterSpacing: '0.1em', color: isDark ? '#e0834f' : '#C45C26', marginBottom: '0.4rem' }}>LAYER_01 · BASE</div>
+                <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 700, fontSize: '0.875rem', color: isDark ? '#f7f3ed' : '#0a0a0a', margin: '0 0 0.35rem' }}>Verification status</p>
+                <p style={{ fontSize: '0.75rem', lineHeight: 1.5, color: isDark ? 'rgba(247,243,237,.48)' : '#3a3a3a', margin: 0 }}>Confirms who the organisation is, and their consent to show it.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
