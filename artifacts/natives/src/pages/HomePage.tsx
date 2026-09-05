@@ -777,10 +777,18 @@ export default function HomePage() {
 
       {/* ── PROBLEM ───────────────────────────────────────── */}
       <section className="hp-reveal" style={{ ...S.sectionPad, ...S.reveal, position: 'relative', overflow: 'hidden' }}>
+        <div style={{
+          position: 'absolute', inset: 0, opacity: isDark ? 0.15 : 0.25, pointerEvents: 'none',
+          backgroundImage: `linear-gradient(${isDark ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.025)'} 1px, transparent 1px), linear-gradient(90deg, ${isDark ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.025)'} 1px, transparent 1px)`,
+          backgroundSize: '40px 40px',
+        }} />
         <div style={{ position: 'absolute', width: '500px', height: '500px', top: '-50px', left: '-150px', background: 'radial-gradient(circle, rgba(45,122,212,0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
-        <div className="hp-section-wrap hp-hero">
+        <div className="hp-section-wrap hp-hero" style={{ position: 'relative', zIndex: 1 }}>
           <div className="hp-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'clamp(2.5rem, 6vw, 6rem)', alignItems: 'center' }}>
             <div className="hp-mobile-text-first">
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C45C26', marginBottom: '0.5rem' }}>
+                // the_challenge
+              </div>
               <div style={S.sectionLabel}>The Challenge</div>
               <h2 style={{ ...S.h2, marginBottom: '1.5rem' }}>
                 Not short of capital or ideas. Short of{' '}
@@ -796,8 +804,8 @@ export default function HomePage() {
                   'Every partnership starts from scratch: no shared coordination memory, no unified assessment standard, no common infrastructure',
                 ].map((point, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', padding: '0.875rem 1.125rem', borderRadius: '0.875rem', background: T.surfaceMd, border: `1px solid ${T.border}` }}>
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#C45C26', flexShrink: 0, marginTop: '0.45em' }} />
-                    <span style={{ fontSize: '0.9375rem', color: T.textDim, lineHeight: 1.6 }}>{point}</span>
+                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.6875rem', fontWeight: 600, letterSpacing: '0.05em', color: '#C45C26', flexShrink: 0, paddingTop: '0.15rem' }}>{String(i + 1).padStart(2, '0')}</span>
+                    <span style={{ fontSize: '1.0625rem', color: T.textDim, lineHeight: 1.6 }}>{point}</span>
                   </div>
                 ))}
                 <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -808,6 +816,10 @@ export default function HomePage() {
               </div>
             </div>
             <div className="hp-mobile-img-below" style={{ borderRadius: '1.25rem', overflow: 'hidden', border: `1px solid ${T.borderMd}`, aspectRatio: '4/3', position: 'relative', background: T.surfaceMd }}>
+              <div style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', width: '1.1rem', height: '1.1rem', borderTop: '2px solid #C45C26', borderLeft: '2px solid #C45C26', zIndex: 2 }} />
+              <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', width: '1.1rem', height: '1.1rem', borderTop: '2px solid #C45C26', borderRight: '2px solid #C45C26', zIndex: 2 }} />
+              <div style={{ position: 'absolute', bottom: '0.75rem', left: '0.75rem', width: '1.1rem', height: '1.1rem', borderBottom: '2px solid #C45C26', borderLeft: '2px solid #C45C26', zIndex: 2 }} />
+              <div style={{ position: 'absolute', bottom: '0.75rem', right: '0.75rem', width: '1.1rem', height: '1.1rem', borderBottom: '2px solid #C45C26', borderRight: '2px solid #C45C26', zIndex: 2 }} />
               <ImgFallback
                 src="/homepage1.jpeg" alt="Africa impact coordination"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
