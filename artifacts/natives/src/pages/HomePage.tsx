@@ -245,16 +245,6 @@ function StatCell({ stat, i, isVisible }: { stat: typeof STATS[0]; i: number; is
         }}>
           {stat.label}
         </div>
-        <span style={{
-          display: 'inline-block', marginTop: '0.75rem',
-          padding: '0.2rem 0.75rem', borderRadius: '9999px',
-          fontSize: '0.625rem', fontWeight: 600, letterSpacing: '0.06em',
-          background: isDark ? 'rgba(255,252,248,0.06)' : 'rgba(0,0,0,0.06)',
-          border: `1px solid ${isDark ? 'rgba(255,252,248,0.1)' : 'rgba(0,0,0,0.1)'}`,
-          color: isDark ? 'rgba(247,243,237,0.38)' : '#2a2a2a',
-        }}>
-          {stat.src}
-        </span>
         <p style={{
           fontSize: '0.75rem', maxWidth: '160px', margin: '0.5rem auto 0', lineHeight: 1.5,
           fontWeight: 600,
@@ -262,6 +252,15 @@ function StatCell({ stat, i, isVisible }: { stat: typeof STATS[0]; i: number; is
         }}>
           {stat.bridge}
         </p>
+        <div style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: '0.625rem', letterSpacing: '0.06em',
+          marginTop: '0.75rem', paddingTop: '0.6rem',
+          borderTop: `1px dashed ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'}`,
+          color: isDark ? 'rgba(247,243,237,0.38)' : '#3a3a3a',
+        }}>
+          {stat.src}
+        </div>
       </div>
     </div>
   )
@@ -889,6 +888,11 @@ export default function HomePage() {
 
       {/* ── STATS ─────────────────────────────────────────── */}
       <section className="hp-light-section" style={{ ...S.sectionPad, position: 'relative', borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}`, background: T.surface, overflow: 'hidden' }}>
+        <div style={{
+          position: 'absolute', inset: 0, opacity: isDark ? 0.15 : 0.25, pointerEvents: 'none',
+          backgroundImage: `linear-gradient(${isDark ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.025)'} 1px, transparent 1px), linear-gradient(90deg, ${isDark ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.025)'} 1px, transparent 1px)`,
+          backgroundSize: '40px 40px',
+        }} />
         <div style={{ position: 'absolute', width: '60vw', height: '50vh', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: 'radial-gradient(ellipse, rgba(196,92,38,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <div ref={statsRef} style={{ position: 'relative', zIndex: 1 }}>
           <div className="hp-section-wrap" style={{ ...S.contentMax, textAlign: 'center', marginBottom: '3.5rem' }}>
