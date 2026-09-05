@@ -52,7 +52,7 @@ const ROLES = [
   {
     role: 'NGO / Non-Profit',
     intent: 'Get found by the funders and partners already looking for you.',
-    desc: "Your delivery capacity exists. Your credibility exists. The gap is visibility. Natives gives you a verified profile in a structured ecosystem so the right funders, corporates, and implementers can find you without warm intros.",
+    desc: "Your delivery capacity exists. Your credibility exists. The gap is visibility. Natives gives you a structured profile in a structured ecosystem so the right funders, corporates, and implementers can find you without warm intros.",
     bg: 'linear-gradient(135deg, #071a10 0%, #0d2d1a 100%)',
     bgLight: 'linear-gradient(135deg, #eaf7f0 0%, #f2faf6 100%)',
     accent: '#2db87a',
@@ -63,7 +63,7 @@ const ROLES = [
   {
     role: 'Corporation',
     intent: 'Turn ESG and CSR commitments into verified delivery.',
-    desc: "Finding credible, verified implementation partners shouldn't take months of manual due diligence. Natives gives you a searchable directory of verified NGOs and social enterprises.",
+    desc: "Finding credible implementation partners shouldn't take months of manual due diligence. Natives gives you a searchable directory of NGOs and social enterprises with structured profiles and readiness information.",
     bg: 'linear-gradient(135deg, #0d0c1c 0%, #16143a 100%)',
     bgLight: 'linear-gradient(135deg, #efedf9 0%, #f4f3fd 100%)',
     accent: '#7b6dd4',
@@ -74,7 +74,7 @@ const ROLES = [
   {
     role: 'Funder / Donor',
     intent: 'Find credible pipeline. Deploy capital with confidence.',
-    desc: "Capital is available. The bottleneck is finding verified, credible organisations to deploy it through. Natives gives you structured access to a verified ecosystem, reducing discovery time and due diligence burden before the first conversation.",
+    desc: "Capital is available. The bottleneck is finding credible organisations to deploy it through. Natives gives you structured access to the ecosystem, reducing discovery time and due diligence burden before the first conversation.",
     bg: 'linear-gradient(135deg, #071218 0%, #0d2130 100%)',
     bgLight: 'linear-gradient(135deg, #eaf4f9 0%, #f2f8fc 100%)',
     accent: '#2d9dd4',
@@ -85,7 +85,7 @@ const ROLES = [
   {
     role: 'Startup / Social Enterprise',
     intent: 'From validated model to institutional partner.',
-    desc: "You have a thesis and early evidence. What you need is the connective tissue: NGO co-development partners, corporate co-funders, and a structured pathway to capital. Natives gives you access to all three.",
+    desc: "You have a thesis and early evidence. What you need is the connective tissue: NGO co-development partners, corporate co-funders, and a structured pathway to relevant funders and partners. Natives gives you access to all three.",
     bg: 'linear-gradient(135deg, #12100a 0%, #26220d 100%)',
     bgLight: 'linear-gradient(135deg, #fdf6e3 0%, #fdf9ee 100%)',
     accent: '#d4a82d',
@@ -96,7 +96,7 @@ const ROLES = [
   {
     role: 'Individual / Creative',
     intent: 'Your expertise belongs in the ecosystem.',
-    desc: "You don't need an organisation to participate. As a consultant, researcher, creative, or advocate, you can build a profile, post initiatives, and connect with the organisations and funders already looking for what you bring.",
+    desc: "You don't need an organisation to participate. As a consultant, researcher, creative, or advocate, you can build a profile, post initiatives, and connect with the organisations and funders already looking for what you bring. Consultants who need partnership matching, MoUs, and a track record can upgrade their profile into a consultancy organisation, without losing what they've already built.",
     bg: 'linear-gradient(135deg, #1c0e0e 0%, #2d1a0d 100%)',
     bgLight: 'linear-gradient(135deg, #fdf0e8 0%, #fdf5ef 100%)',
     accent: '#c45c26',
@@ -127,7 +127,7 @@ const STATS = [
 const FEATURES = [
   {
     num: '01', title: 'Find the right partners', sub: 'You know what you need. We help you find who.',
-    desc: 'Every organisation is scored against your actual mandate, not just your sector. Geography, focus, stage, budget, and the kind of support on offer all factor into a criteria match, so your shortlist is ranked by real fit before you send a single message.',
+    desc: 'When you use Get Matched, every eligible organisation actively listed and seeking a partnership is scored against your actual mandate, not just your sector. Geography, focus, stage, budget, and the kind of support on offer all factor into a criteria match, so your shortlist is ranked by real fit before you send a single message.',
     image: '/find-partners.webp',
     Illustration: IllustrationPartner,
     tint: 'rgba(45,184,122,0.05)', borderTint: 'rgba(45,184,122,0.12)',
@@ -136,8 +136,8 @@ const FEATURES = [
     flip: false,
   },
   {
-    num: '02', title: "Know they're ready to deliver", sub: 'A strong programme with weak governance stalls after the money moves.',
-    desc: 'Every implementing organisation is assessed for due-diligence readiness alongside sector fit. Readiness is built into the match score and caps it when it falls short, so a high fit score never hides an organisation that is not actually ready to receive funding.',
+    num: '02', title: "See whether they're ready to deliver", sub: 'A strong programme with weak governance stalls after the money moves.',
+    desc: "Due-diligence readiness is built into the match score. A high fit on sector, geography, and need-offer alignment is capped when readiness falls short, so a strong match on paper never hides an organisation that isn't actually ready to deliver, whether the partnership involves funding or in-kind support.",
     image: '/build-trust.webp',
     Illustration: IllustrationVerification,
     tint: 'rgba(45,122,212,0.05)', borderTint: 'rgba(45,122,212,0.12)',
@@ -147,7 +147,7 @@ const FEATURES = [
   },
   {
     num: '03', title: 'See the honest picture first', sub: 'Read the risks before the first conversation, not after.',
-    desc: 'Generate a deal memo or CSR brief on any match. It does not repeat the organisation\'s pitch back to you. It flags claims that are not supported and names the risk areas a manual review would take weeks to surface.',
+    desc: "Generate a deal memo or CSR brief from a potential partnership, drawing on Natives profile data and public sources, organised into the key fit, opportunity, and risk areas for review. It does not repeat the organisation's pitch back to you. It flags where a stated outcome doesn't hold up against the initiative's own numbers, and surfaces in minutes what would otherwise mean piecing information together by hand.",
     image: '/create-initiative.webp',
     Illustration: IllustrationMarketplace,
     tint: 'rgba(196,92,38,0.05)', borderTint: 'rgba(196,92,38,0.12)',
@@ -714,7 +714,7 @@ export default function HomePage() {
               </span>
             </h1>
             <p style={{ fontSize: 'clamp(1rem, 2vw, 1.1875rem)', lineHeight: 1.72, color: T.textDim, maxWidth: '520px', marginBottom: '2.5rem' }}>
-              Impact Natives is the infrastructure where NGOs, funders, corporates, and ecosystem builders find each other, verify readiness, and form partnerships that work, without the email chains and multi-month delays.
+              Natives is the coordination infrastructure where NGOs, funders, corporates, and other impact organisations find partners, assess readiness, and move from opportunity to agreement, without starting every relationship from scratch.
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.875rem' }}>
               <a href={window.location.hostname === "impactnatives.com" ? "https://app.impactnatives.com/signup" : "/platform/partnership-os"} target={window.location.hostname === "impactnatives.com" ? "_blank" : undefined} rel="noreferrer">
@@ -788,13 +788,13 @@ export default function HomePage() {
                 <em style={{ fontStyle: 'normal', color: '#e07a4a' }}>coordination.</em>
               </h2>
               <p style={{ fontSize: '1.0625rem', lineHeight: 1.75, color: T.textDim, marginBottom: '1.25rem' }}>
-                The right organisations exist. The funding exists. The intention exists. What breaks down is the match: finding the right partner, knowing they're credible, and moving from interest to action.
+                The right organisations exist. The funding exists. The intention exists. What breaks down is the match: finding the right partner, assessing their readiness, and moving from interest to action.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {[
-                  'No shared infrastructure for discovering and vetting partners',
+                  'No shared infrastructure for discovering and assessing partners',
                   'Capital sits idle while credible implementers go unfunded',
-                  'Every partnership starts from scratch: no shared coordination memory, no unified vetting standard, no common infrastructure',
+                  'Every partnership starts from scratch: no shared coordination memory, no unified assessment standard, no common infrastructure',
                 ].map((point, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', padding: '0.875rem 1.125rem', borderRadius: '0.875rem', background: T.surfaceMd, border: `1px solid ${T.border}` }}>
                     <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#C45C26', flexShrink: 0, marginTop: '0.45em' }} />
@@ -933,8 +933,8 @@ export default function HomePage() {
             {[
               {
                 icon: Network, title: 'I want to find partners',
-                desc: 'Search and connect with verified NGOs, funders, founders, corporates, and implementers, tailored to your needs.',
-                points: ['NGO to funder matching', 'Founder to pilot partner', 'Corporate to implementer'],
+                desc: 'Search and connect with NGOs, funders, startups, and corporates, tailored to your needs.',
+                points: ['NGO to funder matching', 'Startup to pilot partner', 'Corporate to implementer'],
                 href: '/platform/partnership-os', cta: 'Get Matched', featured: true,
               },
               {
@@ -946,7 +946,7 @@ export default function HomePage() {
               {
                 icon: Handshake, title: 'I want to post an initiative',
                 desc: "Post your initiative to the marketplace and connect with the funders, implementers, and partners already looking for what you're building.",
-                points: ['Marketplace visibility', 'Direct expressions of interest', 'Confirmed partnership tracking'],
+                points: ['Marketplace visibility', 'Direct expressions of interest', 'Partnership and outcome tracking'],
                 href: '/platform/impact-marketplace', cta: 'Create Initiative', featured: false,
               },
             ].map((item, i) => (
