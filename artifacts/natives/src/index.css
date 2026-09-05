@@ -409,26 +409,10 @@
   100% { background-position: 200% center; }
 }
 
-@keyframes hp-pulse-travel {
-  0%   { offset-distance: 0%; opacity: 0; }
-  8%   { opacity: 1; }
-  92%  { opacity: 1; }
-  100% { offset-distance: 100%; opacity: 0; }
-}
-.hp-lifecycle-pulse {
-  offset-path: path('M60,60 L150,60 L150,140 L240,140 L240,60 L330,60 L330,140 L420,140 L420,60 L500,60');
-  animation: hp-pulse-travel 4.5s linear infinite;
-}
 @media (max-width: 768px) {
   .hp-lifecycle-svg { display: none !important; }
   .hp-lifecycle-mobile { display: flex !important; }
-  .hp-trust-stack { height: auto !important; }
-  .hp-trust-slab {
-    position: static !important;
-    width: 100% !important;
-    transform: none !important;
-    margin-bottom: 0.75rem;
-  }
+  .hp-trust-row { grid-template-columns: 1fr !important; }
 }
 
 /* Scroll reveal */
