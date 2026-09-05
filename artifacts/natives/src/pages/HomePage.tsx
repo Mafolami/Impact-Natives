@@ -333,6 +333,16 @@ function FeatureRow({ feat, i }: { feat: typeof FEATURES[0]; i: number }) {
               <div key={ci} style={{ position: 'absolute', width: '22px', height: '22px', opacity: 0.7, ...corner }} />
             ))}
           </div>
+          <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 2 }}>
+            {[
+              { top: -1, left: -1, borderTop: `2px solid ${feat.illustrationColor}`, borderLeft: `2px solid ${feat.illustrationColor}` },
+              { top: -1, right: -1, borderTop: `2px solid ${feat.illustrationColor}`, borderRight: `2px solid ${feat.illustrationColor}` },
+              { bottom: -1, left: -1, borderBottom: `2px solid ${feat.illustrationColor}`, borderLeft: `2px solid ${feat.illustrationColor}` },
+              { bottom: -1, right: -1, borderBottom: `2px solid ${feat.illustrationColor}`, borderRight: `2px solid ${feat.illustrationColor}` },
+            ].map((corner, ci) => (
+              <div key={ci} style={{ position: 'absolute', width: '22px', height: '22px', opacity: 0.7, ...corner }} />
+            ))}
+          </div>
           <img
             src={feat.image}
             alt={feat.title}
@@ -508,26 +518,26 @@ function IllustrationLab({ color, isDark }: { color: string; isDark: boolean }) 
   )
 }
 
-/* ── ROLES CAROUSEL ────────────────────────────────────── */
+/* ── ROLES STACK (sticky scroll reveal) ──────────────────── */
 function RolesStack() {
   const isDark = useIsDark()
   return (
-    <Swiper
-      modules={[Navigation]}
-      slidesPerView={1}
-      speed={750}
-      loop
-      grabCursor
-      navigation={{ nextEl: '.roles-next', prevEl: '.roles-prev' }}
-      style={{ width: '100%' }}
-    >
-      {ROLES.map((item) => (
-        <SwiperSlide key={item.role}>
+    <div style={{ position: 'relative' }}>
+      {ROLES.map((item, i) => (
+        <div
+          key={item.role}
+          style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: i + 1,
+          }}
+        >
           <div style={{
             background: isDark ? item.bg : item.bgLight,
             minHeight: 'clamp(360px, 62vh, 520px)',
             display: 'flex', alignItems: 'center',
             padding: 'clamp(2.5rem, 5vw, 5rem) clamp(1.25rem, 3vw, 3rem)',
+            boxShadow: i > 0 ? '0 -24px 48px rgba(0,0,0,0.28)' : 'none',
           }}>
             <div style={{ maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
               <div className="hp-roles-grid" style={{ display: 'grid', gridTemplateColumns: '1fr clamp(200px, 28vw, 340px)', gap: '3rem', alignItems: 'center' }}>
@@ -556,26 +566,6 @@ function RolesStack() {
                         Learn more
                       </button>
                     </Link>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button type="button" className="roles-prev" style={{
-                        width: '2.375rem', height: '2.375rem', borderRadius: '50%',
-                        border: `1px solid ${isDark ? 'rgba(255,252,248,0.14)' : 'rgba(20,17,13,0.18)'}`,
-                        background: isDark ? 'rgba(255,252,248,0.05)' : 'rgba(20,17,13,0.05)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', color: isDark ? '#f7f3ed' : '#14110d', transition: 'all 0.2s ease',
-                      }}>
-                        <ArrowLeft style={{ width: '0.8125rem', height: '0.8125rem' }} />
-                      </button>
-                      <button type="button" className="roles-next" style={{
-                        width: '2.375rem', height: '2.375rem', borderRadius: '50%',
-                        border: `1px solid ${item.accent}50`,
-                        background: `${item.accent}20`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', color: item.accent, transition: 'all 0.2s ease',
-                      }}>
-                        <ArrowRight style={{ width: '0.8125rem', height: '0.8125rem' }} />
-                      </button>
-                    </div>
                   </div>
                 </div>
                 <div className="hp-roles-img" style={{
@@ -619,9 +609,9 @@ function RolesStack() {
               </div>
             </div>
           </div>
-        </SwiperSlide>
+        </div>
       ))}
-    </Swiper>
+    </div>
   )
 }
 
