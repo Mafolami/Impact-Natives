@@ -776,7 +776,7 @@ export default function HomePage() {
       </section>
 
       {/* ── PROBLEM ───────────────────────────────────────── */}
-      <section className="hp-reveal" style={{ ...S.sectionPad, ...S.reveal, position: 'relative', overflow: 'hidden' }}>
+      <section className="hp-reveal" style={{ ...S.sectionPad, ...S.reveal, transition: 'opacity 0.35s ease, transform 0.35s ease', position: 'relative', overflow: 'hidden' }}>
         <div style={{
           position: 'absolute', inset: 0, opacity: isDark ? 0.15 : 0.25, pointerEvents: 'none',
           backgroundImage: `linear-gradient(${isDark ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.025)'} 1px, transparent 1px), linear-gradient(90deg, ${isDark ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.025)'} 1px, transparent 1px)`,
@@ -789,7 +789,6 @@ export default function HomePage() {
               <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C45C26', marginBottom: '0.5rem' }}>
                 // the_challenge
               </div>
-              <div style={S.sectionLabel}>The Challenge</div>
               <h2 style={{ ...S.h2, marginBottom: '1.5rem' }}>
                 Not short of capital or ideas. Short of{' '}
                 <em style={{ fontStyle: 'normal', color: '#e07a4a' }}>coordination.</em>
