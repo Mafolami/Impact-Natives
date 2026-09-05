@@ -855,8 +855,8 @@ export default function HomePage() {
                 <g key={node.n} fontFamily="'JetBrains Mono', monospace">
                   <circle cx={node.x} cy={node.y} r={node.final ? 29 : 26} fill={T.bg} stroke="#C45C26" strokeWidth={node.final ? 3.2 : 2.5} filter={node.final ? 'url(#hpGlow)' : undefined} />
                   <text x={node.x} y={node.y + 6} textAnchor="middle" fontSize={node.final ? 17 : 16} fontWeight={node.final ? 800 : 700} fill="#C45C26">{node.n}</text>
-                  <text x={node.x} y={node.y + (node.y === 60 ? 42 : -35)} textAnchor="middle" fontSize="16" fontWeight="800" fontFamily="'Bricolage Grotesque', sans-serif" fill={T.text}>{node.label}</text>
-                  <text x={node.x} y={node.y + (node.y === 60 ? 61 : -16)} textAnchor="middle" fontSize="12" fontWeight="500" fill={T.textDimmer}>{node.desc}</text>
+                  <text x={node.x} y={node.y + (node.y === 60 ? 42 : -42)} textAnchor="middle" fontSize="16" fontWeight="800" fontFamily="'Bricolage Grotesque', sans-serif" fill={T.text}>{node.label}</text>
+                  <text x={node.x} y={node.y + (node.y === 60 ? 61 : -61)} textAnchor="middle" fontSize="12" fontWeight="500" fill={T.textDimmer}>{node.desc}</text>
                 </g>
               ))}
               <circle r="7" fill="#C45C26" filter="url(#hpGlow)">
@@ -963,8 +963,8 @@ export default function HomePage() {
               ].map((l, i) => (
                 <div key={l.tag} style={{ padding: '1.4rem 0', borderBottom: i < 2 ? `1.5px solid ${T.border}` : 'none' }}>
                   <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', fontWeight: 600, letterSpacing: '0.12em', color: '#C45C26', opacity: l.op, marginBottom: '0.4rem' }}>{l.tag}</div>
-                  <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: '1.3125rem', color: T.text, margin: '0 0 0.35rem' }}>{l.title}</p>
-                  <p style={{ fontSize: '0.9375rem', lineHeight: 1.55, color: T.textDimmer, margin: 0 }}>{l.desc}</p>
+                  <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: '1.5rem', color: T.text, margin: '0 0 0.35rem' }}>{l.title}</p>
+                  <p style={{ fontSize: '1.125rem', lineHeight: 1.6, color: T.textDimmer, margin: 0 }}>{l.desc}</p>
                 </div>
               ))}
             </div>
