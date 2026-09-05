@@ -7,7 +7,7 @@ import { Navigation } from 'swiper/modules'
 import 'swiper/css'
 import {
   Network, ArrowRight, FlaskConical, Handshake,
-  ChevronDown, ArrowLeft, Zap,
+  ChevronDown, ArrowLeft, Zap, ShieldCheck, ClipboardCheck, TrendingUp,
 } from 'lucide-react'
 import { NewsletterSignup } from '@/components/platform/NewsletterSignup'
 
@@ -953,20 +953,20 @@ export default function HomePage() {
 
           <div className="hp-trust-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
             {[
-              { tag: 'LAYER_01 · BASE', op: 1, title: 'Verification status', desc: 'Confirms who the organisation is, and their consent to show it.' },
-              { tag: 'LAYER_02 · MID', op: 0.75, title: 'Due Diligence Readiness', desc: 'Self-reported institutional readiness. Not independently audited.' },
-              { tag: 'LAYER_03 · TOP', op: 0.55, title: 'Impact Verification', desc: 'Evidence against agreed outcomes, reviewed and tracked over time.' },
+              { Icon: ShieldCheck, op: 1, title: 'Verification status', desc: 'Confirms who the organisation is, and their consent to show it.' },
+              { Icon: ClipboardCheck, op: 0.75, title: 'Due Diligence Readiness', desc: 'Self-reported institutional readiness. Not independently audited.' },
+              { Icon: TrendingUp, op: 0.55, title: 'Impact Verification', desc: 'Evidence against agreed outcomes, reviewed and tracked over time.' },
             ].map((l) => (
-              <div key={l.tag} style={{
+              <div key={l.title} style={{
                 padding: '1.75rem 1.5rem',
                 borderRadius: '1rem',
                 border: `1px solid ${T.border}`,
                 borderTop: `3px solid rgba(196,92,38,${l.op})`,
                 background: T.surface,
               }}>
-                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', fontWeight: 600, letterSpacing: '0.12em', color: '#C45C26', opacity: l.op, marginBottom: '0.6rem' }}>{l.tag}</div>
-                <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: '1.375rem', color: T.text, margin: '0 0 0.5rem' }}>{l.title}</p>
-                <p style={{ fontSize: '1rem', lineHeight: 1.6, color: T.textDimmer, margin: 0 }}>{l.desc}</p>
+                <l.Icon style={{ width: '48px', height: '48px', color: '#C45C26', opacity: 1, marginBottom: '1rem' }} />
+                <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: '30px', color: T.text, margin: '0 0 0.5rem' }}>{l.title}</p>
+                <p style={{ fontSize: '22px', lineHeight: 1.6, color: T.textDimmer, margin: 0 }}>{l.desc}</p>
               </div>
             ))}
           </div>
