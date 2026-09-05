@@ -888,11 +888,6 @@ export default function HomePage() {
 
       {/* ── STATS ─────────────────────────────────────────── */}
       <section className="hp-light-section" style={{ ...S.sectionPad, position: 'relative', borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}`, background: T.surface, overflow: 'hidden' }}>
-        <div style={{
-          position: 'absolute', inset: 0, opacity: isDark ? 0.15 : 0.25, pointerEvents: 'none',
-          backgroundImage: `linear-gradient(${isDark ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.025)'} 1px, transparent 1px), linear-gradient(90deg, ${isDark ? 'rgba(255,255,255,.03)' : 'rgba(0,0,0,.025)'} 1px, transparent 1px)`,
-          backgroundSize: '40px 40px',
-        }} />
         <div style={{ position: 'absolute', width: '60vw', height: '50vh', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: 'radial-gradient(ellipse, rgba(196,92,38,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <div ref={statsRef} style={{ position: 'relative', zIndex: 1 }}>
           <div className="hp-section-wrap" style={{ ...S.contentMax, textAlign: 'center', marginBottom: '3.5rem' }}>
@@ -907,7 +902,14 @@ export default function HomePage() {
             </p>
           </div>
           <div className="hp-section-wrap" style={S.contentMax}>
-            <div className="hp-stats-card" style={{ borderRadius: '1.25rem', border: `1px solid ${T.borderMd}`, background: T.statsCard, backdropFilter: 'blur(32px)', overflow: 'hidden' }}>
+            <div className="hp-stats-card" style={{
+              borderRadius: '1.25rem', border: `1px solid ${T.borderMd}`, overflow: 'hidden', position: 'relative',
+              background: isDark
+                ? `linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px), ${T.statsCard}`
+                : `linear-gradient(rgba(0,0,0,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,.03) 1px, transparent 1px), ${T.statsCard}`,
+              backgroundSize: '40px 40px, 40px 40px, 100% 100%',
+              backdropFilter: 'blur(32px)',
+            }}>
               <div className="hp-stats-inner" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
                 {STATS.map((stat, i) => <StatCell key={i} stat={stat} i={i} isVisible={statsVisible} />)}
               </div>
