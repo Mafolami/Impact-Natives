@@ -791,9 +791,6 @@ export default function HomePage() {
         <div className="hp-section-wrap hp-hero" style={{ position: 'relative', zIndex: 1 }}>
           <div className="hp-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'clamp(2.5rem, 6vw, 6rem)', alignItems: 'center' }}>
             <div className="hp-mobile-text-first">
-              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C45C26', marginBottom: '0.5rem' }}>
-                // the_challenge
-              </div>
               <h2 style={{ ...S.h2, marginBottom: '1.5rem' }}>
                 Not short of capital or ideas. Short of{' '}
                 <em style={{ fontStyle: 'normal', color: '#e07a4a' }}>coordination.</em>
@@ -839,9 +836,6 @@ export default function HomePage() {
       <section className="hp-reveal" style={{ ...S.reveal, padding: 'clamp(3.5rem, 7vw, 6rem) 0' }}>
         <div className="hp-section-wrap hp-hero">
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '14px', fontWeight: 600, letterSpacing: '0.28em', textTransform: 'uppercase', color: '#C45C26' }}>
-              // process_architecture
-            </div>
             <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, letterSpacing: '-0.03em', fontSize: 'clamp(1.75rem, 4vw, 2.375rem)', color: T.text, margin: '0.75rem 0 0.6rem', lineHeight: 1.05 }}>
               From discovery to a verified outcome
             </p>
@@ -936,13 +930,9 @@ export default function HomePage() {
 
       {/* ── FEATURES ──────────────────────────────────────── */}
       <section style={S.sectionPad}>
-        <div className="hp-reveal hp-section-wrap hp-hero" style={{ ...S.reveal, textAlign: 'center', marginBottom: '3.5rem' }}>
-          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '14px', fontWeight: 600, letterSpacing: '0.28em', textTransform: 'uppercase', color: '#C45C26' }}>
-            // how_it_works
-          </div>
-          <h2 style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, letterSpacing: '-0.03em', fontSize: 'clamp(1.5rem, 3.5vw, 2rem)', color: T.text, margin: '0.75rem 0 0.6rem', lineHeight: 1.1 }}>
-            How Natives helps you
-          </h2>
+        <div className="hp-reveal hp-section-wrap hp-hero" style={{ ...S.reveal, marginBottom: '3.5rem' }}>
+          <div style={S.sectionLabel}>Platform Features</div>
+          <h2 style={S.h2}>How Natives helps you</h2>
         </div>
         <div style={{ border: `1px solid ${T.border}`, borderRadius: '1.25rem', overflow: 'hidden' }}>
           {FEATURES.map((feat, i) => <FeatureRow key={i} feat={feat} i={i} />)}
@@ -953,9 +943,6 @@ export default function HomePage() {
       <section className="hp-reveal" style={{ ...S.reveal, padding: 'clamp(3.5rem, 7vw, 6rem) 0' }}>
         <div className="hp-section-wrap hp-hero">
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '14px', fontWeight: 600, letterSpacing: '0.28em', textTransform: 'uppercase', color: '#C45C26' }}>
-              // trust_architecture
-            </div>
             <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, letterSpacing: '-0.03em', fontSize: 'clamp(1.5rem, 3.5vw, 2rem)', color: T.text, margin: '0.75rem 0 0.6rem', lineHeight: 1.1 }}>
               Three different things, on purpose
             </p>
@@ -964,36 +951,24 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="hp-trust-row" style={{ display: 'grid', gridTemplateColumns: '48% 52%', gap: '2.5rem', alignItems: 'center' }}>
-            <svg viewBox="0 0 320 260" width="100%" style={{ display: 'block', overflow: 'visible' }}>
-              <polygon points="30,205 310,205 275,170 -5,170" fill="#C45C26" fillOpacity="0.88" stroke="#C45C26" strokeWidth="2" />
-              <polygon points="30,205 30,226 -5,191 -5,170" fill="#C45C26" fillOpacity="0.65" />
-              <text x="170" y="193" textAnchor="middle" fontFamily="'JetBrains Mono', monospace" fontSize="26" fontWeight="800" fill="#fff">01</text>
-
-              <polygon points="66,130 310,130 275,95 30,95" fill="#C45C26" fillOpacity="0.5" stroke="#C45C26" strokeWidth="2" />
-              <polygon points="66,130 66,151 30,116 30,95" fill="#C45C26" fillOpacity="0.35" />
-              <text x="182" y="118" textAnchor="middle" fontFamily="'JetBrains Mono', monospace" fontSize="26" fontWeight="800" fill="#7a3a1a">02</text>
-
-              <polygon points="102,55 310,55 275,20 66,20" fill="#C45C26" fillOpacity="0.22" stroke="#C45C26" strokeWidth="2" />
-              <polygon points="102,55 102,76 66,41 66,20" fill="#C45C26" fillOpacity="0.15" />
-              <text x="194" y="43" textAnchor="middle" fontFamily="'JetBrains Mono', monospace" fontSize="26" fontWeight="800" fill="#C45C26">03</text>
-
-              <line x1="5" y1="240" x2="5" y2="8" stroke={T.textFaint} strokeOpacity="0.3" strokeWidth="1.5" strokeDasharray="3 4" />
-            </svg>
-
-            <div>
-              {[
-                { tag: 'LAYER_01 · BASE', op: 1, title: 'Verification status', desc: 'Confirms who the organisation is, and their consent to show it.' },
-                { tag: 'LAYER_02 · MID', op: 0.75, title: 'Due Diligence Readiness', desc: 'Self-reported institutional readiness. Not independently audited.' },
-                { tag: 'LAYER_03 · TOP', op: 0.55, title: 'Impact Verification', desc: 'Evidence against agreed outcomes, reviewed and tracked over time.' },
-              ].map((l, i) => (
-                <div key={l.tag} style={{ padding: '1.4rem 0', borderBottom: i < 2 ? `1.5px solid ${T.border}` : 'none' }}>
-                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', fontWeight: 600, letterSpacing: '0.12em', color: '#C45C26', opacity: l.op, marginBottom: '0.4rem' }}>{l.tag}</div>
-                  <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: '1.5rem', color: T.text, margin: '0 0 0.35rem' }}>{l.title}</p>
-                  <p style={{ fontSize: '1.125rem', lineHeight: 1.6, color: T.textDimmer, margin: 0 }}>{l.desc}</p>
-                </div>
-              ))}
-            </div>
+          <div className="hp-trust-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
+            {[
+              { tag: 'LAYER_01 · BASE', op: 1, title: 'Verification status', desc: 'Confirms who the organisation is, and their consent to show it.' },
+              { tag: 'LAYER_02 · MID', op: 0.75, title: 'Due Diligence Readiness', desc: 'Self-reported institutional readiness. Not independently audited.' },
+              { tag: 'LAYER_03 · TOP', op: 0.55, title: 'Impact Verification', desc: 'Evidence against agreed outcomes, reviewed and tracked over time.' },
+            ].map((l) => (
+              <div key={l.tag} style={{
+                padding: '1.75rem 1.5rem',
+                borderRadius: '1rem',
+                border: `1px solid ${T.border}`,
+                borderTop: `3px solid rgba(196,92,38,${l.op})`,
+                background: T.surface,
+              }}>
+                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', fontWeight: 600, letterSpacing: '0.12em', color: '#C45C26', opacity: l.op, marginBottom: '0.6rem' }}>{l.tag}</div>
+                <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: '1.375rem', color: T.text, margin: '0 0 0.5rem' }}>{l.title}</p>
+                <p style={{ fontSize: '1rem', lineHeight: 1.6, color: T.textDimmer, margin: 0 }}>{l.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -1052,7 +1027,7 @@ export default function HomePage() {
             <div className="hp-about-cta" style={{ gridColumn: 'span 2' }}>
               <Link href="/about">
                 <button className="hp-btn-outline">
-                  Learn more about us
+                  Read more about us
                 </button>
               </Link>
             </div>
