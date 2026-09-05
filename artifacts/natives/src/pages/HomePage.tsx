@@ -285,13 +285,18 @@ function FeatureRow({ feat, i }: { feat: typeof FEATURES[0]; i: number }) {
       }}>
         {/* Text */}
         <div style={{ order: feat.flip ? 2 : 1, maxWidth: '520px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>
             <span style={{
               fontFamily: "'Bricolage Grotesque', sans-serif",
               fontSize: '3rem', fontWeight: 800, letterSpacing: '-0.05em',
               color: isDark ? 'rgba(247,243,237,0.08)' : 'rgba(0,0,0,0.08)', lineHeight: 1,
             }}>{feat.num}</span>
             <div style={{ width: '1.5px', height: '2.25rem', background: isDark ? feat.borderTint : feat.borderTintLight }} />
+            <span style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: '11px', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase',
+              color: feat.illustrationColor,
+            }}>FEATURE_{feat.num}</span>
           </div>
           <h3 style={{
             fontFamily: "'Bricolage Grotesque', sans-serif",
@@ -318,6 +323,16 @@ function FeatureRow({ feat, i }: { feat: typeof FEATURES[0]; i: number }) {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           position: 'relative' as const,
         }}>
+          <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 2 }}>
+            {[
+              { top: -1, left: -1, borderTop: `2px solid ${feat.illustrationColor}`, borderLeft: `2px solid ${feat.illustrationColor}` },
+              { top: -1, right: -1, borderTop: `2px solid ${feat.illustrationColor}`, borderRight: `2px solid ${feat.illustrationColor}` },
+              { bottom: -1, left: -1, borderBottom: `2px solid ${feat.illustrationColor}`, borderLeft: `2px solid ${feat.illustrationColor}` },
+              { bottom: -1, right: -1, borderBottom: `2px solid ${feat.illustrationColor}`, borderRight: `2px solid ${feat.illustrationColor}` },
+            ].map((corner, ci) => (
+              <div key={ci} style={{ position: 'absolute', width: '22px', height: '22px', opacity: 0.7, ...corner }} />
+            ))}
+          </div>
           <img
             src={feat.image}
             alt={feat.title}
@@ -931,9 +946,13 @@ export default function HomePage() {
 
       {/* ── FEATURES ──────────────────────────────────────── */}
       <section style={S.sectionPad}>
-        <div className="hp-reveal hp-section-wrap hp-hero" style={{ ...S.reveal, marginBottom: '3.5rem' }}>
-          <div style={S.sectionLabel}>Platform Features</div>
-          <h2 style={S.h2}>How Natives helps you</h2>
+        <div className="hp-reveal hp-section-wrap hp-hero" style={{ ...S.reveal, textAlign: 'center', marginBottom: '3.5rem' }}>
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '14px', fontWeight: 600, letterSpacing: '0.28em', textTransform: 'uppercase', color: '#C45C26' }}>
+            // how_it_works
+          </div>
+          <h2 style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, letterSpacing: '-0.03em', fontSize: 'clamp(1.5rem, 3.5vw, 2rem)', color: T.text, margin: '0.75rem 0 0.6rem', lineHeight: 1.1 }}>
+            How Natives helps you
+          </h2>
         </div>
         <div style={{ border: `1px solid ${T.border}`, borderRadius: '1.25rem', overflow: 'hidden' }}>
           {FEATURES.map((feat, i) => <FeatureRow key={i} feat={feat} i={i} />)}
