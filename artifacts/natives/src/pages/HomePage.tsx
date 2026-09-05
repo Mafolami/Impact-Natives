@@ -999,7 +999,7 @@ export default function HomePage() {
       </section>
 
       {/* ── WHO IT'S FOR ──────────────────────────────────── */}
-      <section style={{ borderTop: `1px solid ${T.border}`, overflow: 'hidden' }}>
+      <section style={{ borderTop: `1px solid ${T.border}` }}>
         <div className="hp-reveal hp-section-wrap hp-hero" style={{ ...S.reveal, paddingTop: '5rem', paddingBottom: '2.5rem' }}>
           <div style={S.sectionLabel}>Who it's for</div>
           <h2 style={S.h2}>Natives</h2>
