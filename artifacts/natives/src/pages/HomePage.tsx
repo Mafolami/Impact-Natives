@@ -747,22 +747,11 @@ export default function HomePage() {
               border: `1px solid ${T.borderMd}`, aspectRatio: '4/3', background: T.surfaceMd,
               boxShadow: isDark ? 'none' : '0 20px 60px -20px rgba(0,0,0,0.15)',
             }}>
-            <video
-              autoPlay muted loop playsInline
-              aria-hidden="true"
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(18px) brightness(0.35)', transform: 'scale(1.15)', display: 'block' }}
-            >
-              <source src="/hero-matching-demo.webm" type="video/webm" />
-              <source src="/hero-matching-demo.mp4" type="video/mp4" />
-            </video>
-            <video
-              autoPlay muted loop playsInline
-              poster="/hero-poster.jpg"
+            <img
+              src="/workspace.webp"
+              alt="Natives workspace"
               style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
-            >
-              <source src="/hero-matching-demo.webm" type="video/webm" />
-              <source src="/hero-matching-demo.mp4" type="video/mp4" />
-            </video>
+            />
             </div>
           </div>
         </div>
@@ -784,7 +773,7 @@ export default function HomePage() {
               <div style={{ position: 'absolute', bottom: '0.75rem', left: '0.75rem', width: '1.1rem', height: '1.1rem', borderBottom: '2px solid #C45C26', borderLeft: '2px solid #C45C26', zIndex: 2 }} />
               <div style={{ position: 'absolute', bottom: '0.75rem', right: '0.75rem', width: '1.1rem', height: '1.1rem', borderBottom: '2px solid #C45C26', borderRight: '2px solid #C45C26', zIndex: 2 }} />
               <ImgFallback
-                src="/homepage1.jpeg" alt="Africa impact coordination"
+                src="/gap2.webp" alt="Africa impact coordination"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 FallbackIcon={Network}
               />
@@ -903,8 +892,8 @@ export default function HomePage() {
 
       {/* ── FEATURES ──────────────────────────────────────── */}
       <section style={{ ...S.sectionPad, background: isDark ? T.bg : '#ffffff' }}>
-        <div className="hp-reveal hp-section-wrap hp-hero" style={{ ...S.reveal, marginBottom: '3.5rem' }}>
-          <div style={S.sectionLabel}>Platform Features</div>
+        <div className="hp-reveal hp-section-wrap hp-hero" style={{ ...S.reveal, marginBottom: '3.5rem', textAlign: 'center' }}>
+          <div style={{ ...S.sectionLabel, justifyContent: 'center' }}>Platform Features</div>
           <h2 style={S.h2}>How Natives helps you</h2>
         </div>
         <div style={{ border: `1px solid ${T.border}`, borderRadius: '1.25rem', overflow: 'hidden' }}>
@@ -917,7 +906,7 @@ export default function HomePage() {
         <div className="hp-section-wrap hp-hero">
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, letterSpacing: '-0.03em', fontSize: 'clamp(1.5rem, 3.5vw, 2rem)', color: T.text, margin: '0.75rem 0 0.6rem', lineHeight: 1.1 }}>
-              Three Layers of Trust
+              Why Natives
             </p>
             <p style={{ fontSize: '1.0625rem', lineHeight: 1.55, maxWidth: '560px', margin: '0 auto', color: T.textDim }}>
               Natives separates identity, due diligence readiness, and impact evidence so you can see what has been verified, what information is available for assessment, and what evidence supports the work.
@@ -948,8 +937,8 @@ export default function HomePage() {
 
       {/* ── WHO IT'S FOR ──────────────────────────────────── */}
       <section style={{ borderTop: `1px solid ${T.border}` }}>
-        <div className="hp-reveal hp-section-wrap hp-hero" style={{ ...S.reveal, paddingTop: '5rem', paddingBottom: '2.5rem' }}>
-          <div style={S.sectionLabel}>Who it's for</div>
+        <div className="hp-reveal hp-section-wrap hp-hero" style={{ ...S.reveal, paddingTop: '5rem', paddingBottom: '2.5rem', textAlign: 'center' }}>
+          <div style={{ ...S.sectionLabel, justifyContent: 'center' }}>Who it's for</div>
           <h2 style={S.h2}>Natives</h2>
         </div>
         <RolesStack />
