@@ -85,75 +85,89 @@ const TIERS: TierDef[] = [
 
 const CTA_URL = "https://app.impactnatives.com/signup";
 
+// Forest-green family for Free/Plus/Pro; Compliance keeps its dark register untouched.
+const PALETTE: Record<TierDef["register"], {
+  bg: string; text: string; textDim: string; chip: string; icon: string; button: string; buttonText: string;
+}> = {
+  quiet: {
+    bg: "#EAF7F0",
+    text: "#0D2B1A",
+    textDim: "#0D2B1ACC",
+    chip: "#2D6A4F1F",
+    icon: "#2D6A4F",
+    button: "#14110d",
+    buttonText: "#ffffff",
+  },
+  primary: {
+    bg: "#2D6A4F",
+    text: "#ffffff",
+    textDim: "#ffffffB3",
+    chip: "#ffffff26",
+    icon: "#ffffff",
+    button: "#ffffff",
+    buttonText: "#2D6A4F",
+  },
+  accent: {
+    bg: "#173C2C",
+    text: "#ffffff",
+    textDim: "#ffffffB3",
+    chip: "#ffffff26",
+    icon: "#ffffff",
+    button: "#ffffff",
+    buttonText: "#173C2C",
+  },
+  dark: {
+    bg: "#14110d",
+    text: "#ffffff",
+    textDim: "#ffffffB3",
+    chip: "#ffffff1A",
+    icon: "#ffffff",
+    button: "#ffffff",
+    buttonText: "#14110d",
+  },
+};
+
 function TierBlock({ tier }: { tier: TierDef }) {
-  const isDark = tier.register === "dark";
-  const isElevated = tier.register === "primary";
-
-  const cardStyle =
-    tier.register === "dark"
-      ? "bg-[#14110d] border-[#14110d] text-white"
-      : tier.register === "primary"
-      ? "border-primary bg-primary/5 dark:bg-primary/10"
-      : tier.register === "accent"
-      ? "border-[#C45C26]/40 bg-card"
-      : "border-border bg-card";
-
-  const accentChip =
-    tier.register === "dark"
-      ? "bg-white/10"
-      : tier.register === "primary"
-      ? "bg-primary/10"
-      : tier.register === "accent"
-      ? "bg-[#C45C26]/10"
-      : "bg-muted";
-
-  const accentIcon =
-    tier.register === "dark"
-      ? "text-white"
-      : tier.register === "primary"
-      ? "text-primary"
-      : tier.register === "accent"
-      ? "text-[#C45C26]"
-      : "text-foreground";
-
-  // Button contrast follows the card's own background, not the tier register:
-  // dark card -> light button; light card -> dark button. Matches the reference.
-  const buttonStyle = isDark
-    ? "bg-white text-[#14110d] hover:bg-white/90"
-    : "bg-[#14110d] text-white hover:bg-[#14110d]/90";
+  const p = PALETTE[tier.register];
 
   return (
     <div className="grid md:grid-cols-[minmax(280px,32%)_1fr] gap-6 items-stretch">
       {/* Left: standalone info card */}
-      <div className={`rounded-2xl border flex flex-col px-8 py-9 min-h-[420px] ${cardStyle}`}>
+      <div
+        className="rounded-2xl flex flex-col px-8 py-9"
+        style={{ background: p.bg, border: `1px solid ${p.bg}`, boxShadow: "0 12px 32px -12px rgba(0,0,0,0.22)" }}
+      >
         {tier.badge && (
           <div
-            className={`inline-flex items-center gap-1 self-start mb-4 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${accentChip} ${isDark ? "text-white" : "text-foreground"}`}
+            className="inline-flex items-center gap-1 self-start mb-4 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"
+            style={{ background: p.chip, color: p.text }}
           >
             {tier.badge}
           </div>
         )}
-        <p className={`font-extrabold tracking-tight text-3xl mb-3 ${isDark ? "text-white" : "text-foreground"}`}>
+        <p className="font-extrabold tracking-tight text-3xl mb-3" style={{ color: p.text }}>
           {tier.name}
         </p>
-        <p className={`text-base mb-8 leading-relaxed ${isDark ? "text-white/60" : "text-muted-foreground"}`}>
+        <p className="text-base mb-8 leading-relaxed" style={{ color: p.textDim }}>
           {tier.blurb}
         </p>
         <div className="mt-auto">
-          <p className={`font-extrabold tracking-tight text-5xl mb-1 ${isDark ? "text-white" : "text-foreground"}`}>
-            {tier.priceNgn === 0 ? "Free" : `₦${tier.priceNgn.toLocaleString()}`}
-            {tier.priceNgn > 0 && (
-              <span className={`text-base font-medium ml-1 ${isDark ? "text-white/50" : "text-muted-foreground"}`}>/mo</span>
-            )}
+          <p className="font-extrabold tracking-tight text-5xl mb-1" style={{ color: p.text }}>
+            {`₦${tier.priceNgn.toLocaleString()}`}
+            <span className="text-base font-medium ml-1" style={{ color: p.textDim }}>/mo</span>
           </p>
-          {tier.priceNgn > 0 && (
-            <p className={`text-sm mb-6 ${isDark ? "text-white/40" : "text-muted-foreground"}`}>
+          {tier.priceNgn > 0 ? (
+            <p className="text-sm mb-6" style={{ color: p.textDim }}>
               ≈ ${tier.priceUsdRef} USD reference
             </p>
+          ) : (
+            <div className="mb-6" />
           )}
-          {tier.priceNgn === 0 && <div className="mb-6" />}
           <a href={CTA_URL} target="_blank" rel="noreferrer">
-            <button className={`w-full h-12 rounded-full text-base font-semibold transition-all duration-150 ${buttonStyle}`}>
+            <button
+              className="w-full h-12 rounded-full text-base font-semibold transition-opacity duration-150 hover:opacity-90"
+              style={{ background: p.button, color: p.buttonText }}
+            >
               {tier.priceNgn === 0 ? "Get started free" : "Get started"}
             </button>
           </a>
@@ -161,17 +175,20 @@ function TierBlock({ tier }: { tier: TierDef }) {
       </div>
 
       {/* Right: standalone features card */}
-      <div className={`rounded-2xl border px-8 py-9 min-h-[420px] ${cardStyle}`}>
-        <p className={`text-xs font-bold uppercase tracking-widest mb-5 ${isDark ? "text-white/50" : "text-muted-foreground"}`}>
+      <div
+        className="rounded-2xl px-8 py-9"
+        style={{ background: p.bg, border: `1px solid ${p.bg}`, boxShadow: "0 12px 32px -12px rgba(0,0,0,0.22)" }}
+      >
+        <p className="text-xs font-bold uppercase tracking-widest mb-5" style={{ color: p.textDim }}>
           Features
         </p>
-        <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
+        <div className="flex flex-col gap-4">
           {tier.features.map((f) => (
             <div key={f} className="flex items-start gap-2.5">
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${accentChip}`}>
-                <Check className={`w-3 h-3 ${accentIcon}`} strokeWidth={3} />
+              <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: p.chip }}>
+                <Check className="w-3 h-3" style={{ color: p.icon }} strokeWidth={3} />
               </div>
-              <p className={`text-base ${isDark ? "text-white/85" : "text-foreground"}`}>{f}</p>
+              <p className="text-base" style={{ color: p.text }}>{f}</p>
             </div>
           ))}
         </div>
@@ -219,7 +236,7 @@ export default function PricingPage() {
             <TierBlock key={tier.value} tier={tier} />
           ))}
         </div>
-        <p className="text-center text-base text-muted-foreground mt-10">
+        <p className="text-center text-base mt-10" style={{ color: "#00000099" }}>
           Prices shown in Naira. USD figures are a reference only. Billing is processed in NGN.
         </p>
       </div>
