@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { navigateToAuth } from "@/lib/authLinks";
 import { useParams } from "wouter";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -222,7 +223,7 @@ const [showLabModal, setShowLabModal] = useState(false);
 
   function handleOrgClick(orgName: string) {
     if (!session) {
-      setLocation("/login");
+      navigateToAuth("/login", setLocation);
     } else {
       setLocation(`/org/${orgName.toLowerCase().replace(/\s+/g, "-")}`);
     }

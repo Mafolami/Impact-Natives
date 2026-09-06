@@ -3,7 +3,7 @@ import { SECTOR_OPTIONS as SECTORS } from "@/lib/sectors";
 import { ORG_TYPE_OPTIONS } from "@/lib/orgTypes";
 import { supabase } from "@/lib/supabase";
 import { Link, useLocation } from "wouter";
-import { getAuthLinkProps } from "@/lib/authLinks";
+import { getAuthLinkProps, navigateToAuth } from "@/lib/authLinks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -98,7 +98,7 @@ export function FindPartnerModal({ onClose }: { onClose: () => void }) {
 
   async function goToSignUp() {
     await supabase.from("organizations").update({ verification_status: "pending" }).eq("email", form.email);
-    setLocation("/signup");
+    navigateToAuth("/signup", setLocation);
   }
 
   const steps = [

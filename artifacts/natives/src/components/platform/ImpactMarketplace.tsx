@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { navigateToAuth } from "@/lib/authLinks";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -856,7 +857,7 @@ function ViewMoreButton() {
       type="button"
       onClick={() => user
         ? navigate("/dashboard/marketplace")
-        : navigate("/signup")
+        : navigateToAuth("/signup", navigate)
       }
       className="inline-flex items-center gap-2 h-12 px-8 rounded-full border border-primary text-primary font-semibold text-sm hover:bg-primary hover:text-white transition-colors"
     >
