@@ -1,4 +1,5 @@
 import { Check, Sparkles } from "lucide-react";
+import { getAuthLinkProps } from "@/lib/authLinks";
 
 interface TierDef {
   value: "free" | "plus" | "pro" | "compliance";
@@ -94,7 +95,6 @@ const TIERS: TierDef[] = [
   },
 ];
 
-const CTA_URL = "https://app.impactnatives.com/signup";
 const TIER_ORDER: TierDef["value"][] = ["free", "plus", "pro", "compliance"];
 
 function includesTier(introducedAt: TierDef["value"], col: TierDef["value"]) {
@@ -226,7 +226,7 @@ function TierCard({ t }: { t: TierDef }) {
         ))}
       </div>
 
-      <a href={CTA_URL} target="_blank" rel="noreferrer">
+      <a {...getAuthLinkProps("/signup")}>
         <button
           type="button"
           className={`w-full h-12 rounded-full text-base font-semibold transition-all duration-150 ${

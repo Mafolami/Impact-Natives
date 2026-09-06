@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react"
+import { getAuthLinkProps } from "@/lib/authLinks";
 import { useEditor, EditorContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Placeholder from "@tiptap/extension-placeholder"
@@ -813,10 +814,10 @@ export default function CreateInitiativeModal({
                 Sign in or create an account to track your submission and express interest in others.
               </p>
               <div className="flex gap-2">
-                <a href="/signin" className="flex-1 text-center rounded-full h-8 px-4 bg-primary hover:bg-primary/90 text-white text-xs font-semibold transition-colors flex items-center justify-center">
+                <a {...getAuthLinkProps("/signin")} className="flex-1 text-center rounded-full h-8 px-4 bg-primary hover:bg-primary/90 text-white text-xs font-semibold transition-colors flex items-center justify-center">
                   Sign in
                 </a>
-                <a href="/signup" className="flex-1 text-center rounded-full h-8 px-4 border border-primary text-primary hover:bg-primary/5 text-xs font-semibold transition-colors flex items-center justify-center">
+                <a {...getAuthLinkProps("/signup")} className="flex-1 text-center rounded-full h-8 px-4 border border-primary text-primary hover:bg-primary/5 text-xs font-semibold transition-colors flex items-center justify-center">
                   Create account
                 </a>
               </div>

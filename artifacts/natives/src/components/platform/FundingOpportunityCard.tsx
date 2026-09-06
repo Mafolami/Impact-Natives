@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { getAuthLinkProps } from "@/lib/authLinks";
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,11 +57,11 @@ export const FundingOpportunityCard: React.FC<FundingOpportunityCardProps> = ({
         </div>
       </CardContent>
       <CardFooter>
-        <Link href="/signup">
+        <a {...getAuthLinkProps("/signup")}>
           <Button variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/5">
             Express Interest
           </Button>
-        </Link>
+        </a>
       </CardFooter>
     </Card>
   );

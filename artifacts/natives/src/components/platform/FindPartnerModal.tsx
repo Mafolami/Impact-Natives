@@ -3,6 +3,7 @@ import { SECTOR_OPTIONS as SECTORS } from "@/lib/sectors";
 import { ORG_TYPE_OPTIONS } from "@/lib/orgTypes";
 import { supabase } from "@/lib/supabase";
 import { Link, useLocation } from "wouter";
+import { getAuthLinkProps } from "@/lib/authLinks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -131,8 +132,8 @@ export function FindPartnerModal({ onClose }: { onClose: () => void }) {
       <h2 className="text-3xl font-semibold">You're in the ecosystem.</h2>
       <p className="text-muted-foreground max-w-sm">Your profile has been submitted. The team will be in touch within 5 business days.</p>
       <div className="flex gap-3 flex-wrap justify-center">
-        <Link href="/signup"><Button>Create account</Button></Link>
-        <Link href="/login"><Button variant="outline">Sign in</Button></Link>
+        <a {...getAuthLinkProps("/signup")}><Button>Create account</Button></a>
+        <a {...getAuthLinkProps("/login")}><Button variant="outline">Sign in</Button></a>
         <Button variant="outline" onClick={onClose}>Close</Button>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { Link, useLocation } from "wouter";
+import { getAuthLinkProps } from "@/lib/authLinks";
 import { Menu, X } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -421,14 +422,14 @@ const isHomePage = location === "/" || location === "/labs/commission"
                 </>
               ) : (
                 <>
-                  <Link href="/signin" onClick={() => setMobileOpen(false)}>
+                  <a {...getAuthLinkProps("/signin")} onClick={() => setMobileOpen(false)}>
                     <Button variant="outline" className="w-full">Log In</Button>
-                  </Link>
-                  <Link href="/signup" onClick={() => setMobileOpen(false)}>
+                  </a>
+                  <a {...getAuthLinkProps("/signup")} onClick={() => setMobileOpen(false)}>
                     <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
                       Create Account
                     </Button>
-                  </Link>
+                  </a>
                 </>
               )}
             </div>

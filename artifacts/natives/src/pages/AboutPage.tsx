@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { getAuthLinkProps } from "@/lib/authLinks";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ShieldCheck, AlignJustify, Lock } from "lucide-react";
@@ -120,11 +121,11 @@ export default function AboutPage() {
         connects capital, talent, and ideas — so anyone, anywhere on the continent, with a credible idea and the drive to see it through, 
         can find the right partners and get to work.
         </p>
-        <Link href="/signup">
+        <a {...getAuthLinkProps("/signup")}>
           <Button size="lg" className="bg-primary text-white hover:bg-primary/90 rounded-full px-8">
             Join the Mission →
           </Button>
-        </Link>
+        </a>
       </div>
       <div className="rounded-3xl p-12 flex flex-col items-center justify-center text-center min-h-[360px]"
         style={{ background: 'rgba(45,106,79,0.08)', border: '1px solid rgba(45,106,79,0.15)' }}>
@@ -206,11 +207,11 @@ export default function AboutPage() {
             </li>
           ))}
         </ul>
-        <Link href="/signup" className="mt-8">
+        <a {...getAuthLinkProps("/signup")} className="mt-8">
           <Button variant="outline" className="w-full text-white border-white/30 bg-transparent hover:bg-white/10">
             Create Free Account
           </Button>
-        </Link>
+        </a>
       </div>
       <div className="rounded-2xl p-6 md:p-8 flex flex-col relative overflow-hidden" style={{ background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.45)", backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3)' }}>
         <div className="absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-1/2 translate-x-1/2" style={{ background: "rgba(255,255,255,0.03)" }} />
@@ -238,11 +239,11 @@ export default function AboutPage() {
             </li>
           ))}
         </ul>
-        <Link href="/signup" className="mt-8">
+        <a {...getAuthLinkProps("/signup")} className="mt-8">
           <Button className="w-full text-white font-semibold" style={{ background: "rgba(196,92,38,0.85)", border: "none" }}>
             Join as a Founding Member
           </Button>
-        </Link>
+        </a>
       </div>
     </div>
   </div>
@@ -306,11 +307,11 @@ export default function AboutPage() {
       <Link href="/partner">
         <Button size="lg" className="bg-primary text-white hover:bg-primary/90">Partner With Us</Button>
       </Link>
-      <Link href="/signup">
+      <a {...getAuthLinkProps("/signup")}>
         <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 bg-transparent">
           Join as a Founding Member
         </Button>
-      </Link>
+      </a>
     </div>
   </div>
 </div>

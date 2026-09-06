@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { getAuthLinkProps } from "@/lib/authLinks";
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { FindPartnerSection } from "@/components/platform/FindPartnerSection";
@@ -143,9 +144,9 @@ export default function PlatformPage() {
           {/* Hero */}
           <section data-reveal className="mb-12 text-center">
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">Create and access funding opportunities</h1>
-            <Link href="/signup">
+            <a {...getAuthLinkProps("/signup")}>
               <Button className="bg-primary hover:bg-primary/90 text-white px-8 py-4">Get Started</Button>
-            </Link>
+            </a>
           </section>
 
           {/* Instrument Types */}
@@ -283,9 +284,9 @@ export default function PlatformPage() {
       <div className="border rounded-lg overflow-hidden max-w-7xl mx-auto content-padding py-8">
             <div className="bg-muted p-4 border-b flex justify-between items-center">
               <h3 className="font-semibold">Active Funding Opportunities</h3>
-              <Link href="/signup">
+              <a {...getAuthLinkProps("/signup")}>
                 <Button size="sm" className="bg-primary text-white">Create Opportunity</Button>
-              </Link>
+              </a>
             </div>
             <div className="divide-y">
               {/* Funding opportunity cards — kept for future use

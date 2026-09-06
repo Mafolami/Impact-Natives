@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getAuthLinkProps } from "@/lib/authLinks";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
@@ -304,12 +305,12 @@ const [form, setForm] = useState({
                 Create an account to follow your lab request status and receive updates directly on the platform.
               </p>
               <div className="flex gap-2 justify-center">
-                <a href="/signup">
+                <a {...getAuthLinkProps("/signup")}>
                   <Button size="sm" className="bg-[#2D6A4F] hover:bg-[#245c43] text-white">
                     Create account
                   </Button>
                 </a>
-                <a href="/signin">
+                <a {...getAuthLinkProps("/signin")}>
                   <Button size="sm" variant="outline">Sign in</Button>
                 </a>
               </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getAuthLinkProps } from "@/lib/authLinks";
 import { ArrowRight, ShieldCheck, Zap, Network, Search, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes"
@@ -234,7 +235,7 @@ export function FindPartnerSection() {
               ) : filtered.length === 0 ? (
                 <div className="py-12 text-center px-6 space-y-2">
                   <p className="text-sm font-medium text-foreground">No organisations match your search.</p>
-                  <p className="text-sm text-muted-foreground">Try adjusting your filters, or <a href="/signup" className="text-[#2D6A4F] hover:underline underline-offset-2 font-medium">create an account</a> to see the full directory.</p>
+                  <p className="text-sm text-muted-foreground">Try adjusting your filters, or <a {...getAuthLinkProps("/signup")} className="text-[#2D6A4F] hover:underline underline-offset-2 font-medium">create an account</a> to see the full directory.</p>
                 </div>
               ) : (
                 <div className="relative">
