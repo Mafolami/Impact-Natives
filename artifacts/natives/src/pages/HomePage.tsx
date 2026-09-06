@@ -939,8 +939,8 @@ export default function HomePage() {
       {/* ── WHO IT'S FOR ──────────────────────────────────── */}
       <section style={{ borderTop: `1px solid ${T.border}` }}>
         <div className="hp-reveal hp-section-wrap hp-hero" style={{ ...S.reveal, paddingTop: '5rem', paddingBottom: '2.5rem', textAlign: 'center' }}>
-          <div style={{ ...S.sectionLabel, justifyContent: 'center' }}>Who it's for</div>
-          <h2 style={{ ...S.h2, marginBottom: '0.875rem' }}>Natives</h2>
+          <div style={{ ...S.sectionLabel, justifyContent: 'center' }}>Natives</div>
+          <h2 style={{ ...S.h2, marginBottom: '0.875rem' }}>Who Is it for?</h2>
           <p style={{ fontSize: '1.0625rem', color: T.textDimmer, maxWidth: '700px', lineHeight: 1.65, margin: '0 auto' }}>
             Natives is built for the organisations and people that make Africa's impact sector work: NGOs, funders, companies, social enterprises, public institutions, and others working across shared goals.
           </p>
