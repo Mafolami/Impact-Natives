@@ -1,4 +1,4 @@
-import { Check, Sparkles, Minus } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 
 interface TierDef {
   value: "free" | "plus" | "pro" | "compliance";
@@ -237,7 +237,7 @@ function TierCard({ t }: { t: TierDef }) {
               : "bg-gradient-to-b from-[#d4713d] to-[#C45C26] text-white shadow-[0_4px_14px_-2px_rgba(196,92,38,0.4)] hover:shadow-[0_6px_20px_-2px_rgba(196,92,38,0.55)] hover:-translate-y-0.5 active:translate-y-0"
           }`}
         >
-          {t.priceNgn === 0 ? "Get started free" : "Get started"}
+          Get started
         </button>
       </a>
     </div>
@@ -262,7 +262,7 @@ function CompareTable() {
           {CATEGORIES.map((group) => (
             <>
               <tr key={group.category}>
-                <td colSpan={TIERS.length + 1} className="text-sm font-bold uppercase tracking-wider text-[#2D6A4F] pt-7 pb-2 px-4">
+                <td colSpan={TIERS.length + 1} className="text-sm font-bold uppercase tracking-wider text-[#14110d] dark:text-white pt-7 pb-2 px-4">
                   {group.category}
                 </td>
               </tr>
@@ -275,9 +275,7 @@ function CompareTable() {
                         <span className="text-base font-semibold text-foreground">{row.values[t.value]}</span>
                       ) : includesTier(row.introducedAt, t.value) ? (
                         <Check className="w-5 h-5 text-[#2D6A4F] mx-auto" strokeWidth={3} />
-                      ) : (
-                        <Minus className="w-5 h-5 text-foreground/20 mx-auto" strokeWidth={2} />
-                      )}
+                      ) : null}
                     </td>
                   ))}
                 </tr>
@@ -332,7 +330,7 @@ export default function PricingPage() {
 
         {/* ── COMPARE ALL FEATURES ── */}
         <div className="mt-20">
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-8 text-center">
+          <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground mb-8 text-center">
             Compare all features
           </h2>
           <CompareTable />
