@@ -650,7 +650,7 @@ export default function HomePage() {
 
   // Theme-responsive tokens
   const T = {
-    bg:         isDark ? 'hsl(193,20%,7%)'          : '#f7f3ed',
+    bg:         isDark ? 'hsl(193,20%,7%)'          : '#ffffff',
     text:       isDark ? '#f7f3ed'                   : '#0a0a0a',
     textDim:    isDark ? 'rgba(247,243,237,0.55)'    : '#1a1a1a',
     textDimmer: isDark ? 'rgba(247,243,237,0.45)'    : '#2a2a2a',
