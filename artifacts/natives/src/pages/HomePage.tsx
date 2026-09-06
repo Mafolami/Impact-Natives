@@ -835,8 +835,8 @@ export default function HomePage() {
           </div>
 
           <div className="hp-lifecycle-svg" style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '1rem 0 2rem' }}>
-            <div style={{ position: 'absolute', top: '7px', left: '10%', right: '10%', height: '2px', background: 'linear-gradient(90deg, rgba(196,92,38,0.2), rgba(196,92,38,0.65))', zIndex: 0 }} />
-            <div style={{ position: 'absolute', top: '0px', width: '14px', height: '14px', borderRadius: '50%', background: '#C45C26', boxShadow: '0 0 8px rgba(196,92,38,0.6)', zIndex: 1, transform: 'translateX(-50%)', animation: 'hp-lifecycle-loop 4s linear infinite' }} />
+            <div style={{ position: 'absolute', top: '17px', left: '10%', right: '10%', height: '2px', background: 'linear-gradient(90deg, rgba(196,92,38,0.2), rgba(196,92,38,0.65))', zIndex: 0 }} />
+            <div style={{ position: 'absolute', top: '11px', width: '14px', height: '14px', borderRadius: '50%', background: '#C45C26', boxShadow: '0 0 8px rgba(196,92,38,0.6)', zIndex: 1, transform: 'translateX(-50%)', animation: 'hp-lifecycle-loop 4s linear infinite' }} />
             {[
               { Icon: Search, label: 'FIND', desc: 'Discover partners' },
               { Icon: Target, label: 'MATCH', desc: 'Ranked matches' },
