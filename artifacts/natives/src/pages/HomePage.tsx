@@ -692,7 +692,7 @@ export default function HomePage() {
         <div style={{ position: 'absolute', inset: 0, zIndex: 0, background: isDark ? 'hsl(193,20%,7%)' : '#ffffff' }} />
         <div style={{ position: 'absolute', width: '70vw', height: '70vh', top: '-15%', right: '-10%', background: 'radial-gradient(ellipse, rgba(196,92,38,0.08) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 1 }} />
         <div style={{ position: 'absolute', width: '50vw', height: '50vh', bottom: '0', left: '10%', background: 'radial-gradient(ellipse, rgba(45,184,122,0.04) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 1 }} />
-        <div className="hp-mobile-stack" style={{ position: 'relative', zIndex: 10, maxWidth: '1440px', margin: '0 auto', paddingTop: '7rem', paddingBottom: '6rem', paddingLeft: 'clamp(1.25rem, 3vw, 3rem)', paddingRight: 'clamp(1.25rem, 3vw, 3rem)', width: '100%', boxSizing: 'border-box', display: 'grid', gridTemplateColumns: 'minmax(320px, 1fr) minmax(0, 770px)', gap: 'clamp(2.5rem, 5vw, 4rem)', alignItems: 'center' }}>
+        <div className="hp-mobile-stack" style={{ position: 'relative', zIndex: 10, maxWidth: '1440px', margin: '0 auto', paddingTop: '7rem', paddingBottom: '6rem', paddingLeft: 'clamp(1.25rem, 3vw, 3rem)', paddingRight: 'clamp(1.25rem, 3vw, 3rem)', width: '100%', boxSizing: 'border-box', display: 'grid', gridTemplateColumns: 'minmax(400px, 1fr) minmax(0, 640px)', gap: 'clamp(2.5rem, 5vw, 4rem)', alignItems: 'center' }}>
           <div style={{ textAlign: 'left', minWidth: 0 }}>
             <h1 style={{
               fontFamily: "'Bricolage Grotesque', sans-serif",
@@ -744,7 +744,7 @@ export default function HomePage() {
             </svg>
             <div style={{
               borderRadius: '1.25rem', overflow: 'hidden', position: 'relative', zIndex: 1,
-              border: `1px solid ${T.borderMd}`, width: '100%', maxWidth: '770px', height: '100%', maxHeight: '778px', background: T.surfaceMd,
+              border: `1px solid ${T.borderMd}`, width: '100%', maxWidth: '640px', height: '100%', maxHeight: '860px', background: T.surfaceMd,
               boxShadow: isDark ? 'none' : '0 20px 60px -20px rgba(0,0,0,0.15)',
             }}>
             <img
