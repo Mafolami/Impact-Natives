@@ -940,22 +940,22 @@ export default function HomePage() {
       </section>
 
       {/* ── TRUST LAYERS (Isometric Stack) ──────────────────── */}
-      <section className="hp-reveal" style={{ ...S.reveal, padding: 'clamp(3.5rem, 7vw, 6rem) 0' }}>
+      <section className="hp-reveal" style={{ ...S.reveal, padding: 'clamp(3.5rem, 7vw, 6rem) 0', background: isDark ? T.bg : '#ffffff' }}>
         <div className="hp-section-wrap hp-hero">
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, letterSpacing: '-0.03em', fontSize: 'clamp(1.5rem, 3.5vw, 2rem)', color: T.text, margin: '0.75rem 0 0.6rem', lineHeight: 1.1 }}>
-              Three different things, on purpose
+              Three layers of trust
             </p>
             <p style={{ fontSize: '1.0625rem', lineHeight: 1.55, maxWidth: '560px', margin: '0 auto', color: T.textDim }}>
-              Natives keeps these separate so you always know exactly what you&apos;re looking at.
+              Natives separates identity, due diligence, and impact evidence so you can see exactly what has been verified and what supports it.
             </p>
           </div>
 
           <div className="hp-trust-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
             {[
-              { Icon: ShieldCheck, op: 1, title: 'Verification status', desc: 'Confirms who the organisation is, and their consent to show it.' },
-              { Icon: ClipboardCheck, op: 0.75, title: 'Due Diligence Readiness', desc: 'Self-reported institutional readiness. Not independently audited.' },
-              { Icon: TrendingUp, op: 0.55, title: 'Impact Verification', desc: 'Evidence against agreed outcomes, reviewed and tracked over time.' },
+              { Icon: ShieldCheck, op: 1, title: 'Verification Status', desc: "Confirms the organisation's identity and key organisational information." },
+              { Icon: ClipboardCheck, op: 0.75, title: 'Due Diligence Readiness', desc: "Shows the organisation's readiness for due diligence, based on the information and documentation available on Natives." },
+              { Icon: TrendingUp, op: 0.55, title: 'Impact Verification', desc: 'Shows evidence supporting agreed outcomes, reviewed and tracked over time.' },
             ].map((l) => (
               <div key={l.title} style={{
                 padding: '1.75rem 1.5rem',
@@ -965,8 +965,8 @@ export default function HomePage() {
                 background: T.surface,
               }}>
                 <l.Icon style={{ width: '48px', height: '48px', color: '#C45C26', opacity: 1, marginBottom: '1rem' }} />
-                <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: '30px', color: T.text, margin: '0 0 0.5rem' }}>{l.title}</p>
-                <p style={{ fontSize: '22px', lineHeight: 1.6, color: T.textDimmer, margin: 0 }}>{l.desc}</p>
+                <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: '28px', color: T.text, margin: '0 0 0.5rem' }}>{l.title}</p>
+                <p style={{ fontSize: '18px', lineHeight: 1.6, color: T.textDimmer, margin: 0 }}>{l.desc}</p>
               </div>
             ))}
           </div>
