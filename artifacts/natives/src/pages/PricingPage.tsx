@@ -85,7 +85,7 @@ const TIERS: TierDef[] = [
 
 const CTA_URL = "https://app.impactnatives.com/signup";
 
-function TierRow({ tier }: { tier: TierDef }) {
+function TierBlock({ tier }: { tier: TierDef }) {
   const isDark = tier.register === "dark";
   const isElevated = tier.register === "primary";
 
@@ -116,55 +116,56 @@ function TierRow({ tier }: { tier: TierDef }) {
       ? "text-[#C45C26]"
       : "text-foreground";
 
+  // Button contrast follows the card's own background, not the tier register:
+  // dark card -> light button; light card -> dark button. Matches the reference.
+  const buttonStyle = isDark
+    ? "bg-white text-[#14110d] hover:bg-white/90"
+    : "bg-[#14110d] text-white hover:bg-[#14110d]/90";
+
   return (
-    <div className={`rounded-2xl border flex flex-col md:flex-row gap-8 md:gap-10 px-8 py-8 md:py-10 ${cardStyle}`}>
-      {/* Left: name, blurb, price, CTA */}
-      <div className="md:w-[34%] flex flex-col shrink-0">
+    <div className="grid md:grid-cols-[minmax(280px,32%)_1fr] gap-6 items-stretch">
+      {/* Left: standalone info card */}
+      <div className={`rounded-2xl border flex flex-col px-8 py-9 min-h-[420px] ${cardStyle}`}>
         {tier.badge && (
           <div
-            className={`inline-flex items-center gap-1 self-start mb-3 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${accentChip} ${isDark ? "text-white" : "text-foreground"}`}
+            className={`inline-flex items-center gap-1 self-start mb-4 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${accentChip} ${isDark ? "text-white" : "text-foreground"}`}
           >
             {tier.badge}
           </div>
         )}
-        <p className={`font-extrabold tracking-tight text-3xl mb-2 ${isDark ? "text-white" : "text-foreground"}`}>
+        <p className={`font-extrabold tracking-tight text-3xl mb-3 ${isDark ? "text-white" : "text-foreground"}`}>
           {tier.name}
         </p>
-        <p className={`text-base mb-6 leading-snug ${isDark ? "text-white/60" : "text-muted-foreground"}`}>
+        <p className={`text-base mb-8 leading-relaxed ${isDark ? "text-white/60" : "text-muted-foreground"}`}>
           {tier.blurb}
         </p>
-        <div className="mb-7">
-          <p className={`font-extrabold tracking-tight text-5xl ${isDark ? "text-white" : "text-foreground"}`}>
-            {tier.priceNgn === 0 ? "₦0" : `₦${tier.priceNgn.toLocaleString()}`}
-            <span className={`text-base font-medium ml-1 ${isDark ? "text-white/50" : "text-muted-foreground"}`}>/mo</span>
+        <div className="mt-auto">
+          <p className={`font-extrabold tracking-tight text-5xl mb-1 ${isDark ? "text-white" : "text-foreground"}`}>
+            {tier.priceNgn === 0 ? "Free" : `₦${tier.priceNgn.toLocaleString()}`}
+            {tier.priceNgn > 0 && (
+              <span className={`text-base font-medium ml-1 ${isDark ? "text-white/50" : "text-muted-foreground"}`}>/mo</span>
+            )}
           </p>
           {tier.priceNgn > 0 && (
-            <p className={`text-sm mt-1 ${isDark ? "text-white/40" : "text-muted-foreground"}`}>
+            <p className={`text-sm mb-6 ${isDark ? "text-white/40" : "text-muted-foreground"}`}>
               ≈ ${tier.priceUsdRef} USD reference
             </p>
           )}
+          {tier.priceNgn === 0 && <div className="mb-6" />}
+          <a href={CTA_URL} target="_blank" rel="noreferrer">
+            <button className={`w-full h-12 rounded-full text-base font-semibold transition-all duration-150 ${buttonStyle}`}>
+              {tier.priceNgn === 0 ? "Get started free" : "Get started"}
+            </button>
+          </a>
         </div>
-        <a href={CTA_URL} target="_blank" rel="noreferrer" className="mt-auto">
-          <button
-            className={`w-full h-12 rounded-full text-base font-semibold transition-all duration-150 ${
-              isDark
-                ? "bg-white text-[#14110d] hover:bg-white/90"
-                : isElevated
-                ? "bg-primary text-white hover:bg-primary/90"
-                : "border border-border hover:bg-muted"
-            }`}
-          >
-            {tier.priceNgn === 0 ? "Get started free" : "Get started"}
-          </button>
-        </a>
       </div>
 
-      {/* Right: features */}
-      <div className="flex-1">
-        <p className={`text-xs font-bold uppercase tracking-widest mb-4 ${isDark ? "text-white/50" : "text-muted-foreground"}`}>
+      {/* Right: standalone features card */}
+      <div className={`rounded-2xl border px-8 py-9 min-h-[420px] ${cardStyle}`}>
+        <p className={`text-xs font-bold uppercase tracking-widest mb-5 ${isDark ? "text-white/50" : "text-muted-foreground"}`}>
           Features
         </p>
-        <div className="grid sm:grid-cols-2 gap-x-6 gap-y-3.5">
+        <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
           {tier.features.map((f) => (
             <div key={f} className="flex items-start gap-2.5">
               <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${accentChip}`}>
@@ -213,9 +214,9 @@ export default function PricingPage() {
 
       {/* ── PLANS ── */}
       <div className="max-w-screen-2xl mx-auto content-padding hp-hero py-16 md:py-24">
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-8">
           {TIERS.map((tier) => (
-            <TierRow key={tier.value} tier={tier} />
+            <TierBlock key={tier.value} tier={tier} />
           ))}
         </div>
         <p className="text-center text-base text-muted-foreground mt-10">

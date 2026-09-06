@@ -165,6 +165,7 @@ const isHomePage = location === "/" || location === "/labs/commission"
                 <div
                   key={item.label}
                   className="relative"
+                  style={{ order: item.label === "Platform" ? 1 : item.label === "Solutions" ? 2 : 4 }}
                   onMouseEnter={(e) => {
                     isHovering.current = true;
                     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -241,6 +242,7 @@ const isHomePage = location === "/" || location === "/labs/commission"
                 className={`nav-trigger inline-flex h-7 items-center justify-center rounded-md px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors focus:outline-none ${
                   scrolled || !isHomePage || !isDark ? "text-foreground" : "text-white"
                 } ${location.startsWith("/pricing") ? "active" : ""}`}
+                style={{ order: 3 }}
               >
                 Pricing
               </Link>
@@ -249,6 +251,7 @@ const isHomePage = location === "/" || location === "/labs/commission"
                 className={`nav-trigger inline-flex h-7 items-center justify-center rounded-md px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors focus:outline-none ${
                   scrolled || !isHomePage || !isDark ? "text-foreground" : "text-white"
                 } ${location.startsWith("/partner") ? "active" : ""}`}
+                style={{ order: 5 }}
               >
                 Partner With Us
               </Link>
