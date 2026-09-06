@@ -286,19 +286,6 @@ function FeatureRow({ feat, i }: { feat: typeof FEATURES[0]; i: number }) {
       }}>
         {/* Text */}
         <div style={{ order: feat.flip ? 2 : 1, maxWidth: '520px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>
-            <span style={{
-              fontFamily: "'Bricolage Grotesque', sans-serif",
-              fontSize: '3rem', fontWeight: 800, letterSpacing: '-0.05em',
-              color: isDark ? 'rgba(247,243,237,0.08)' : 'rgba(0,0,0,0.08)', lineHeight: 1,
-            }}>{feat.num}</span>
-            <div style={{ width: '1.5px', height: '2.25rem', background: isDark ? feat.borderTint : feat.borderTintLight }} />
-            <span style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: '11px', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase',
-              color: feat.illustrationColor,
-            }}>FEATURE_{feat.num}</span>
-          </div>
           <h3 style={{
             fontFamily: "'Bricolage Grotesque', sans-serif",
             fontSize: 'clamp(1.25rem, 2.5vw, 1.75rem)', fontWeight: 700,
@@ -680,7 +667,7 @@ export default function HomePage() {
     sectionPadSm: { padding: 'clamp(2.5rem, 5vw, 4rem) 0' } as React.CSSProperties,
     contentMax:   {} as React.CSSProperties,
     sectionLabel: {
-      fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.2em',
+      fontSize: '16px', fontWeight: 700, letterSpacing: '0.2em',
       textTransform: 'uppercase' as const, color: '#C45C26',
       marginBottom: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.625rem',
     },
@@ -890,9 +877,7 @@ export default function HomePage() {
         <div ref={statsRef} style={{ position: 'relative', zIndex: 1 }}>
           <div className="hp-section-wrap" style={{ ...S.contentMax, textAlign: 'center', marginBottom: '3.5rem' }}>
             <div style={{ ...S.sectionLabel, justifyContent: 'center' }}>
-              <span style={{ width: '1.5rem', height: '1.5px', background: '#C45C26', display: 'block' }} />
               The ROI Case
-              <span style={{ width: '1.5rem', height: '1.5px', background: '#C45C26', display: 'block' }} />
             </div>
             <h2 style={{ ...S.h2, marginBottom: '0.75rem' }}>Why unified partnership management matters</h2>
             <p style={{ color: T.textDimmer, fontSize: '1rem', maxWidth: '500px', margin: '0 auto', lineHeight: 1.65 }}>
@@ -917,7 +902,7 @@ export default function HomePage() {
       </section>
 
       {/* ── FEATURES ──────────────────────────────────────── */}
-      <section style={S.sectionPad}>
+      <section style={{ ...S.sectionPad, background: isDark ? T.bg : '#ffffff' }}>
         <div className="hp-reveal hp-section-wrap hp-hero" style={{ ...S.reveal, marginBottom: '3.5rem' }}>
           <div style={S.sectionLabel}>Platform Features</div>
           <h2 style={S.h2}>How Natives helps you</h2>
@@ -932,10 +917,10 @@ export default function HomePage() {
         <div className="hp-section-wrap hp-hero">
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, letterSpacing: '-0.03em', fontSize: 'clamp(1.5rem, 3.5vw, 2rem)', color: T.text, margin: '0.75rem 0 0.6rem', lineHeight: 1.1 }}>
-              Three layers of trust
+              Three Layers of Trust
             </p>
             <p style={{ fontSize: '1.0625rem', lineHeight: 1.55, maxWidth: '560px', margin: '0 auto', color: T.textDim }}>
-              Natives separates identity, due diligence, and impact evidence so you can see exactly what has been verified and what supports it.
+              Natives separates identity, due diligence readiness, and impact evidence so you can see what has been verified, what information is available for assessment, and what evidence supports the work.
             </p>
           </div>
 
