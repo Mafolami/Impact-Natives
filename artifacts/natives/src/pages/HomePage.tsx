@@ -855,17 +855,16 @@ export default function HomePage() {
               </defs>
               <path id="hpCircuitPath" d="M55,60 L120,60 L120,150 L185,150 L250,150 L250,60 L320,60 L385,60 L385,150 L450,150 L515,150 L515,60 L585,60" fill="none" stroke="url(#hpPathGrad)" strokeWidth="3.5" />
               {[
-                { x: 55, y: 60, n: '01', label: 'FIND', desc: 'Discover partners', final: false },
-                { x: 185, y: 150, n: '02', label: 'MATCH', desc: 'Ranked matches', final: false },
-                { x: 320, y: 60, n: '03', label: 'CONNECT', desc: 'Message inside', final: false },
-                { x: 450, y: 150, n: '04', label: 'AGREE', desc: 'Structured MoU', final: false },
-                { x: 585, y: 60, n: '05', label: 'PROVE', desc: 'Verified evidence', final: true },
+                { x: 55, y: 60, label: 'FIND', desc: 'Discover partners', final: false },
+                { x: 185, y: 150, label: 'MATCH', desc: 'Ranked matches', final: false },
+                { x: 320, y: 60, label: 'CONNECT', desc: 'Message inside', final: false },
+                { x: 450, y: 150, label: 'AGREE', desc: 'Structured MoU', final: false },
+                { x: 585, y: 60, label: 'PROVE', desc: 'Verified evidence', final: true },
               ].map((node) => (
-                <g key={node.n} fontFamily="'JetBrains Mono', monospace">
-                  <circle cx={node.x} cy={node.y} r={node.final ? 29 : 26} fill={T.bg} stroke="#C45C26" strokeWidth={node.final ? 3.2 : 2.5} filter={node.final ? 'url(#hpGlow)' : undefined} />
-                  <text x={node.x} y={node.y + 6} textAnchor="middle" fontSize={node.final ? 17 : 16} fontWeight={node.final ? 800 : 700} fill="#C45C26">{node.n}</text>
+                <g key={node.label} fontFamily="'Poppins', sans-serif">
+                  <circle cx={node.x} cy={node.y} r={node.final ? 20 : 17} fill={T.bg} stroke="#C45C26" strokeWidth={node.final ? 3.2 : 2.5} filter={node.final ? 'url(#hpGlow)' : undefined} />
                   <text x={node.x} y={node.y + (node.y === 60 ? 42 : -42)} textAnchor="middle" fontSize="16" fontWeight="800" fontFamily="'Bricolage Grotesque', sans-serif" fill={T.text}>{node.label}</text>
-                  <text x={node.x} y={node.y + (node.y === 60 ? 61 : -61)} textAnchor="middle" fontSize="12" fontWeight="500" fill={T.textDimmer}>{node.desc}</text>
+                  <text x={node.x} y={node.y + (node.y === 60 ? 61 : -61)} textAnchor="middle" fontSize="16" fontWeight="500" fill={T.textDimmer}>{node.desc}</text>
                 </g>
               ))}
               <circle r="7" fill="#C45C26" filter="url(#hpGlow)">
@@ -878,18 +877,15 @@ export default function HomePage() {
 
           <div className="hp-lifecycle-mobile" style={{ display: 'none', flexDirection: 'column', gap: '0.75rem' }}>
             {[
-              { n: '01', label: 'Find', desc: 'Discover organisations, initiatives, and partnership opportunities.' },
-              { n: '02', label: 'Match', desc: 'Describe what you need and get relevant partner recommendations.' },
-              { n: '03', label: 'Connect', desc: 'Express interest and continue the conversation inside Natives.' },
-              { n: '04', label: 'Agree', desc: 'Turn the relationship into a structured agreement with an MoU.' },
-              { n: '05', label: 'Prove', desc: 'Track agreed outcomes, submit evidence, and move through verification.' },
+              { label: 'Find', desc: 'Discover organisations, initiatives, and partnership opportunities.' },
+              { label: 'Match', desc: 'Describe what you need and get relevant partner recommendations.' },
+              { label: 'Connect', desc: 'Express interest and continue the conversation inside Natives.' },
+              { label: 'Agree', desc: 'Turn the relationship into a structured agreement with an MoU.' },
+              { label: 'Prove', desc: 'Track agreed outcomes, submit evidence, and move through verification.' },
             ].map((s) => (
-              <div key={s.n} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', padding: '1rem 1.125rem', borderRadius: '0.875rem', background: T.surfaceMd, border: `1px solid ${T.border}` }}>
-                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '14px', fontWeight: 700, color: '#C45C26', flexShrink: 0, paddingTop: '0.125rem' }}>{s.n}</span>
-                <div>
-                  <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: '1rem', color: T.text, margin: '0 0 0.3rem' }}>{s.label}</p>
-                  <p style={{ fontSize: '0.875rem', lineHeight: 1.55, color: T.textDimmer, margin: 0 }}>{s.desc}</p>
-                </div>
+              <div key={s.label} style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', padding: '1rem 1.125rem', borderRadius: '0.875rem', background: T.surfaceMd, border: `1px solid ${T.border}` }}>
+                <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: '1rem', color: T.text, margin: 0 }}>{s.label}</p>
+                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '16px', lineHeight: 1.55, color: T.textDimmer, margin: 0 }}>{s.desc}</p>
               </div>
             ))}
           </div>
