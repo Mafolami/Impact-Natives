@@ -844,35 +844,22 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="hp-lifecycle-svg" style={{ position: 'relative' }}>
-            <svg viewBox="0 0 640 220" width="100%" style={{ display: 'block', overflow: 'visible' }}>
-              <defs>
-                <linearGradient id="hpPathGrad" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#C45C26" stopOpacity="0.2" />
-                  <stop offset="100%" stopColor="#C45C26" stopOpacity="0.65" />
-                </linearGradient>
-                <filter id="hpGlow"><feGaussianBlur stdDeviation="4" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
-              </defs>
-              <path id="hpCircuitPath" d="M55,60 L120,60 L120,150 L185,150 L250,150 L250,60 L320,60 L385,60 L385,150 L450,150 L515,150 L515,60 L585,60" fill="none" stroke="url(#hpPathGrad)" strokeWidth="3.5" />
-              {[
-                { x: 55, y: 60, label: 'FIND', desc: 'Discover partners', final: false },
-                { x: 185, y: 150, label: 'MATCH', desc: 'Ranked matches', final: false },
-                { x: 320, y: 60, label: 'CONNECT', desc: 'Message inside', final: false },
-                { x: 450, y: 150, label: 'AGREE', desc: 'Structured MoU', final: false },
-                { x: 585, y: 60, label: 'PROVE', desc: 'Verified evidence', final: true },
-              ].map((node) => (
-                <g key={node.label} fontFamily="'Poppins', sans-serif">
-                  <circle cx={node.x} cy={node.y} r={node.final ? 20 : 17} fill={T.bg} stroke="#C45C26" strokeWidth={node.final ? 3.2 : 2.5} filter={node.final ? 'url(#hpGlow)' : undefined} />
-                  <text x={node.x} y={node.y + (node.y === 60 ? 42 : -42)} textAnchor="middle" fontSize="16" fontWeight="800" fontFamily="'Bricolage Grotesque', sans-serif" fill={T.text}>{node.label}</text>
-                  <text x={node.x} y={node.y + (node.y === 60 ? 61 : -61)} textAnchor="middle" fontSize="16" fontWeight="500" fill={T.textDimmer}>{node.desc}</text>
-                </g>
-              ))}
-              <circle r="7" fill="#C45C26" filter="url(#hpGlow)">
-                <animateMotion dur="4s" repeatCount="indefinite">
-                  <mpath href="#hpCircuitPath" />
-                </animateMotion>
-              </circle>
-            </svg>
+          <div className="hp-lifecycle-svg" style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '1rem 0 2rem' }}>
+            <div style={{ position: 'absolute', top: '7px', left: '10%', right: '10%', height: '2px', background: 'linear-gradient(90deg, rgba(196,92,38,0.2), rgba(196,92,38,0.65))', zIndex: 0 }} />
+            <div style={{ position: 'absolute', top: '0px', width: '14px', height: '14px', borderRadius: '50%', background: '#C45C26', boxShadow: '0 0 8px rgba(196,92,38,0.6)', zIndex: 1, transform: 'translateX(-50%)', animation: 'hp-lifecycle-loop 4s linear infinite' }} />
+            {[
+              { label: 'FIND', desc: 'Discover partners' },
+              { label: 'MATCH', desc: 'Ranked matches' },
+              { label: 'CONNECT', desc: 'Message inside' },
+              { label: 'AGREE', desc: 'Structured MoU' },
+              { label: 'PROVE', desc: 'Verified evidence' },
+            ].map((node) => (
+              <div key={node.label} style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', flex: '1 1 0', padding: '0 0.5rem' }}>
+                <div style={{ width: '14px', height: '14px', borderRadius: '50%', background: T.bg, border: '2.5px solid #C45C26', marginBottom: '1.5rem' }} />
+                <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: '16px', color: T.text, margin: '0 0 0.3rem' }}>{node.label}</p>
+                <p style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 500, fontSize: '16px', color: T.textDimmer, margin: 0 }}>{node.desc}</p>
+              </div>
+            ))}
           </div>
 
           <div className="hp-lifecycle-mobile" style={{ display: 'none', flexDirection: 'column', gap: '0.75rem' }}>

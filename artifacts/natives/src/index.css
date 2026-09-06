@@ -831,3 +831,8 @@ h1 {
 :root:not(.dark) #main-header .theme-toggle-wrap {
   color: #0a0a0a !important;
 }
+
+@keyframes hp-lifecycle-loop {
+  0% { left: 10%; }
+  100% { left: 90%; }
+}
