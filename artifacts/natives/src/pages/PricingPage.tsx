@@ -12,7 +12,8 @@ interface TierDef {
 }
 
 // Kept in sync manually with TIERS in src/components/dashboard/BillingTab.tsx —
-// update both if pricing changes.
+// update both if pricing changes. Listing/seat caps below are new product limits
+// (not yet enforced in the backend as of this page's creation).
 const TIERS: TierDef[] = [
   {
     value: "free",
@@ -23,7 +24,8 @@ const TIERS: TierDef[] = [
     register: "quiet",
     features: [
       "Directory & marketplace access",
-      "Manual initiative listings",
+      "2 initiative listings",
+      "1 partnership listing",
       "Self-attested DD readiness",
       "Trust Score & verified badge",
       "Inbound messaging",
@@ -42,6 +44,9 @@ const TIERS: TierDef[] = [
     register: "primary",
     features: [
       "Everything in Free",
+      "15 initiative listings",
+      "3 partnership listings",
+      "Up to 3 team seats",
       "AI-parsed initiative creation",
       "AI brief quality scoring",
       "Full AI organisation-to-organisation matching",
@@ -60,6 +65,9 @@ const TIERS: TierDef[] = [
     register: "accent",
     features: [
       "Everything in Plus",
+      "50 initiative listings",
+      "7 partnership listings",
+      "Up to 15 team seats",
       "AI deal memo / CSR brief",
       "Evaluate candidate ESG Snapshots",
       "AI-drafted EOI outreach",
@@ -75,6 +83,9 @@ const TIERS: TierDef[] = [
     register: "dark",
     features: [
       "Everything in Pro",
+      "Unlimited initiative listings",
+      "Up to 15 partnership listings",
+      "Unlimited team seats",
       "Strategy Builder",
       "Unlimited ESG reports",
       "SRG1 deadline tracking",
@@ -84,59 +95,77 @@ const TIERS: TierDef[] = [
 ];
 
 const CTA_URL = "https://app.impactnatives.com/signup";
-
-// Cumulative feature matrix derived from each tier's "Everything in X" inheritance.
-// Grouped by the tier each feature was introduced at.
-const FEATURE_GROUPS: { introducedAt: TierDef["value"]; items: string[] }[] = [
-  {
-    introducedAt: "free",
-    items: [
-      "Directory & marketplace access",
-      "Manual initiative listings",
-      "Self-attested DD readiness",
-      "Trust Score & verified badge",
-      "Inbound messaging",
-      "MoU receiving & signing",
-      "Milestone tracking",
-      "Weekly & monthly digests",
-    ],
-  },
-  {
-    introducedAt: "plus",
-    items: [
-      "AI-parsed initiative creation",
-      "AI brief quality scoring",
-      "Full AI organisation-to-organisation matching",
-      "Instant AI fit analysis",
-      "AI-drafted outreach messages",
-      "MoU origination",
-      "Self-view ESG Snapshot",
-    ],
-  },
-  {
-    introducedAt: "pro",
-    items: [
-      "AI deal memo / CSR brief",
-      "Evaluate candidate ESG Snapshots",
-      "AI-drafted EOI outreach",
-    ],
-  },
-  {
-    introducedAt: "compliance",
-    items: [
-      "Strategy Builder",
-      "Unlimited ESG reports",
-      "SRG1 deadline tracking",
-      "Audit-ready DD export",
-    ],
-  },
-];
-
 const TIER_ORDER: TierDef["value"][] = ["free", "plus", "pro", "compliance"];
 
 function includesTier(introducedAt: TierDef["value"], col: TierDef["value"]) {
   return TIER_ORDER.indexOf(col) >= TIER_ORDER.indexOf(introducedAt);
 }
+
+type BoolRow = { kind: "bool"; feature: string; introducedAt: TierDef["value"] };
+type ValueRow = { kind: "value"; feature: string; values: Record<TierDef["value"], string> };
+type Row = BoolRow | ValueRow;
+
+const CATEGORIES: { category: string; rows: Row[] }[] = [
+  {
+    category: "Capacity",
+    rows: [
+      { kind: "value", feature: "Initiative listings", values: { free: "2", plus: "15", pro: "50", compliance: "Unlimited" } },
+      { kind: "value", feature: "Partnership listings", values: { free: "1", plus: "3", pro: "7", compliance: "Up to 15" } },
+      { kind: "value", feature: "Team seats", values: { free: "—", plus: "Up to 3", pro: "Up to 15", compliance: "Unlimited" } },
+    ],
+  },
+  {
+    category: "Matching & Discovery",
+    rows: [
+      { kind: "bool", feature: "Directory & marketplace access", introducedAt: "free" },
+      { kind: "bool", feature: "AI-parsed initiative creation", introducedAt: "plus" },
+      { kind: "bool", feature: "Full AI organisation-to-organisation matching", introducedAt: "plus" },
+      { kind: "bool", feature: "Instant AI fit analysis", introducedAt: "plus" },
+    ],
+  },
+  {
+    category: "Trust & Verification",
+    rows: [
+      { kind: "bool", feature: "Self-attested DD readiness", introducedAt: "free" },
+      { kind: "bool", feature: "Trust Score & verified badge", introducedAt: "free" },
+    ],
+  },
+  {
+    category: "Partnerships & Agreements",
+    rows: [
+      { kind: "bool", feature: "Inbound messaging", introducedAt: "free" },
+      { kind: "bool", feature: "MoU receiving & signing", introducedAt: "free" },
+      { kind: "bool", feature: "Milestone tracking", introducedAt: "free" },
+      { kind: "bool", feature: "MoU origination", introducedAt: "plus" },
+    ],
+  },
+  {
+    category: "AI Outreach",
+    rows: [
+      { kind: "bool", feature: "AI-drafted outreach messages", introducedAt: "plus" },
+      { kind: "bool", feature: "AI brief quality scoring", introducedAt: "plus" },
+      { kind: "bool", feature: "AI-drafted EOI outreach", introducedAt: "pro" },
+    ],
+  },
+  {
+    category: "Reporting & Evidence",
+    rows: [
+      { kind: "bool", feature: "Weekly & monthly digests", introducedAt: "free" },
+      { kind: "bool", feature: "Self-view ESG Snapshot", introducedAt: "plus" },
+      { kind: "bool", feature: "Evaluate candidate ESG Snapshots", introducedAt: "pro" },
+      { kind: "bool", feature: "AI deal memo / CSR brief", introducedAt: "pro" },
+      { kind: "bool", feature: "Unlimited ESG reports", introducedAt: "compliance" },
+    ],
+  },
+  {
+    category: "Compliance & Strategy",
+    rows: [
+      { kind: "bool", feature: "Strategy Builder", introducedAt: "compliance" },
+      { kind: "bool", feature: "SRG1 deadline tracking", introducedAt: "compliance" },
+      { kind: "bool", feature: "Audit-ready DD export", introducedAt: "compliance" },
+    ],
+  },
+];
 
 function TierCard({ t }: { t: TierDef }) {
   const isElevated = t.register === "primary";
@@ -155,44 +184,44 @@ function TierCard({ t }: { t: TierDef }) {
   const accentChip = isDark ? "bg-[#C9A227]/20" : isElevated ? "bg-[#2D6A4F]/15" : "bg-[#C45C26]/10";
 
   return (
-    <div className={`${cardBase} ${cardStyle} px-7 ${isElevated ? "py-8" : "py-7"}`}>
+    <div className={`${cardBase} ${cardStyle} px-7 ${isElevated ? "py-9" : "py-8"}`}>
       {t.badge && (
-        <div className={`inline-flex items-center gap-1 self-start mb-3 text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+        <div className={`inline-flex items-center gap-1 self-start mb-4 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
           isElevated
             ? "bg-gradient-to-b from-[#3a8560] to-[#2D6A4F] text-white shadow-sm"
             : isDark
             ? "bg-[#C9A227]/15 text-[#D9B94A] border border-[#C9A227]/30"
             : "bg-[#C45C26]/10 text-[#C45C26]"
         }`}>
-          {isElevated && <Sparkles className="w-3 h-3" />}
+          {isElevated && <Sparkles className="w-3.5 h-3.5" />}
           {t.badge}
         </div>
       )}
 
-      <p className={`font-bold tracking-tight mb-1 ${isElevated ? "text-2xl" : "text-xl"} ${isDark ? "text-white" : "text-foreground"}`}>
+      <p className={`font-bold tracking-tight mb-1 ${isElevated ? "text-3xl" : "text-2xl"} ${isDark ? "text-white" : "text-foreground"}`}>
         {t.name}
       </p>
-      <p className={`text-sm mb-4 leading-snug ${isDark ? "text-white/60" : "text-black dark:text-white"}`}>
+      <p className={`text-base mb-5 leading-snug ${isDark ? "text-white/60" : "text-black dark:text-white"}`}>
         {t.blurb}
       </p>
 
-      <div className="mb-5">
-        <p className={`font-extrabold tracking-tight ${isElevated ? "text-4xl" : "text-3xl"} ${isDark ? "text-white" : "text-foreground"}`}>
+      <div className="mb-6">
+        <p className={`font-extrabold tracking-tight ${isElevated ? "text-5xl" : "text-4xl"} ${isDark ? "text-white" : "text-foreground"}`}>
           {t.priceNgn === 0 ? "₦0" : `₦${t.priceNgn.toLocaleString()}`}
-          <span className={`text-sm font-medium ml-1 ${isDark ? "text-white/50" : "text-black dark:text-white"}`}>/mo</span>
+          <span className={`text-base font-medium ml-1 ${isDark ? "text-white/50" : "text-black dark:text-white"}`}>/mo</span>
         </p>
         {t.priceUsdRef > 0 && (
-          <p className={`text-xs mt-1 ${isDark ? "text-white/40" : "text-black dark:text-white"}`}>≈ ${t.priceUsdRef} USD reference</p>
+          <p className={`text-sm mt-1 ${isDark ? "text-white/40" : "text-black dark:text-white"}`}>≈ ${t.priceUsdRef} USD reference</p>
         )}
       </div>
 
-      <div className="space-y-2.5 mb-6 flex-1">
+      <div className="space-y-3 mb-7 flex-1">
         {t.features.map((f) => (
           <div key={f} className="flex items-center gap-2.5">
-            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${accentChip}`}>
-              <Check className={`w-2.5 h-2.5 ${accentIcon}`} strokeWidth={3} />
+            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${accentChip}`}>
+              <Check className={`w-3 h-3 ${accentIcon}`} strokeWidth={3} />
             </div>
-            <p className={`text-sm ${isDark ? "text-white/85" : "text-foreground"}`}>{f}</p>
+            <p className={`text-base ${isDark ? "text-white/85" : "text-foreground"}`}>{f}</p>
           </div>
         ))}
       </div>
@@ -200,7 +229,7 @@ function TierCard({ t }: { t: TierDef }) {
       <a href={CTA_URL} target="_blank" rel="noreferrer">
         <button
           type="button"
-          className={`w-full h-11 rounded-full text-sm font-semibold transition-all duration-150 ${
+          className={`w-full h-12 rounded-full text-base font-semibold transition-all duration-150 ${
             isDark
               ? "bg-gradient-to-b from-[#D9B94A] to-[#C9A227] text-[#0E1512] shadow-[0_4px_14px_-2px_rgba(201,162,39,0.5)] hover:shadow-[0_6px_20px_-2px_rgba(201,162,39,0.65)] hover:-translate-y-0.5 active:translate-y-0"
               : isElevated
@@ -218,34 +247,36 @@ function TierCard({ t }: { t: TierDef }) {
 function CompareTable() {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse min-w-[720px]">
+      <table className="w-full border-collapse min-w-[760px]">
         <thead>
           <tr>
-            <th className="text-left text-sm font-semibold text-foreground py-4 px-4 border-b border-border">Feature</th>
+            <th className="text-left text-base font-semibold text-foreground py-4 px-4 border-b border-border">Feature</th>
             {TIERS.map((t) => (
-              <th key={t.value} className="text-center text-sm font-semibold text-foreground py-4 px-4 border-b border-border">
+              <th key={t.value} className="text-center text-base font-semibold text-foreground py-4 px-4 border-b border-border">
                 {t.name}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {FEATURE_GROUPS.map((group) => (
+          {CATEGORIES.map((group) => (
             <>
-              <tr key={`${group.introducedAt}-heading`}>
-                <td colSpan={TIERS.length + 1} className="text-xs font-bold uppercase tracking-wider text-[#2D6A4F] pt-6 pb-2 px-4">
-                  {TIERS.find((t) => t.value === group.introducedAt)?.name} features
+              <tr key={group.category}>
+                <td colSpan={TIERS.length + 1} className="text-sm font-bold uppercase tracking-wider text-[#2D6A4F] pt-7 pb-2 px-4">
+                  {group.category}
                 </td>
               </tr>
-              {group.items.map((feature) => (
-                <tr key={feature} className="border-b border-border">
-                  <td className="text-sm text-foreground py-3 px-4">{feature}</td>
+              {group.rows.map((row) => (
+                <tr key={row.feature} className="border-b border-border">
+                  <td className="text-base text-foreground py-3.5 px-4">{row.feature}</td>
                   {TIERS.map((t) => (
-                    <td key={t.value} className="text-center py-3 px-4">
-                      {includesTier(group.introducedAt, t.value) ? (
-                        <Check className="w-4 h-4 text-[#2D6A4F] mx-auto" strokeWidth={3} />
+                    <td key={t.value} className="text-center py-3.5 px-4">
+                      {row.kind === "value" ? (
+                        <span className="text-base font-semibold text-foreground">{row.values[t.value]}</span>
+                      ) : includesTier(row.introducedAt, t.value) ? (
+                        <Check className="w-5 h-5 text-[#2D6A4F] mx-auto" strokeWidth={3} />
                       ) : (
-                        <Minus className="w-4 h-4 text-foreground/20 mx-auto" strokeWidth={2} />
+                        <Minus className="w-5 h-5 text-foreground/20 mx-auto" strokeWidth={2} />
                       )}
                     </td>
                   ))}
@@ -301,13 +332,13 @@ export default function PricingPage() {
 
         {/* ── COMPARE ALL FEATURES ── */}
         <div className="mt-20">
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-8 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-8 text-center">
             Compare all features
           </h2>
           <CompareTable />
         </div>
 
-        <p className="text-center text-sm text-black/60 dark:text-white/50 mt-10">
+        <p className="text-center text-base text-black/60 dark:text-white/50 mt-10">
           Prices shown in Naira. USD figures are a reference only. Billing is processed in NGN.
         </p>
       </div>
