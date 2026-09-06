@@ -838,6 +838,7 @@ export default function HomePage() {
       <section className="hp-reveal" style={{ ...S.reveal, padding: 'clamp(3.5rem, 7vw, 6rem) 0', background: T.surface }}>
         <div className="hp-section-wrap hp-hero">
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+            <div style={{ ...S.sectionLabel, justifyContent: 'center' }}>How It Works</div>
             <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, letterSpacing: '-0.03em', fontSize: 'clamp(1.75rem, 4vw, 2.375rem)', color: T.text, margin: '0.75rem 0 0.6rem', lineHeight: 1.05 }}>
               From discovery to a verified outcome
             </p>
