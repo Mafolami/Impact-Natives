@@ -902,7 +902,7 @@ export default function HomePage() {
       </section>
 
       {/* ── TRUST LAYERS (Isometric Stack) ──────────────────── */}
-      <section className="hp-reveal" style={{ ...S.reveal, padding: 'clamp(3.5rem, 7vw, 6rem) 0', background: isDark ? T.bg : '#ffffff' }}>
+      <section className="hp-reveal" style={{ ...S.reveal, paddingTop: '1.5rem', paddingBottom: 'clamp(3.5rem, 7vw, 6rem)', background: isDark ? T.bg : '#ffffff' }}>
         <div className="hp-section-wrap hp-hero">
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <div style={{ ...S.sectionLabel, justifyContent: 'center' }}>Three Layers of Trust</div>
@@ -940,7 +940,10 @@ export default function HomePage() {
       <section style={{ borderTop: `1px solid ${T.border}` }}>
         <div className="hp-reveal hp-section-wrap hp-hero" style={{ ...S.reveal, paddingTop: '5rem', paddingBottom: '2.5rem', textAlign: 'center' }}>
           <div style={{ ...S.sectionLabel, justifyContent: 'center' }}>Who it's for</div>
-          <h2 style={S.h2}>Natives</h2>
+          <h2 style={{ ...S.h2, marginBottom: '0.875rem' }}>Natives</h2>
+          <p style={{ fontSize: '1.0625rem', color: T.textDimmer, maxWidth: '700px', lineHeight: 1.65, margin: '0 auto' }}>
+            Natives is built for the organisations and people that make Africa's impact sector work: NGOs, funders, companies, social enterprises, public institutions, and others working across shared goals.
+          </p>
         </div>
         <RolesStack />
       </section>
