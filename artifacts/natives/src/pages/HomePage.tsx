@@ -744,7 +744,7 @@ export default function HomePage() {
             </svg>
             <div style={{
               borderRadius: '1.25rem', overflow: 'hidden', position: 'relative', zIndex: 1,
-              border: `1px solid ${T.borderMd}`, width: '100%', maxWidth: '640px', height: '100%', maxHeight: '860px', background: T.surfaceMd,
+              border: `1px solid ${T.borderMd}`, width: '100%', maxWidth: '640px', height: 'clamp(480px, 60vh, 860px)', background: T.surfaceMd,
               boxShadow: isDark ? 'none' : '0 20px 60px -20px rgba(0,0,0,0.15)',
             }}>
             <img
