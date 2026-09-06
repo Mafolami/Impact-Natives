@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRoute, useLocation, Link } from "wouter";
+import { navigateToAuth } from "@/lib/authLinks";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -155,7 +156,7 @@ export default function InitiativeDetail() {
   function handleExpressInterest() {
     if (!user) {
       sessionStorage.setItem("redirectAfterAuth", `/initiatives/${id}`);
-      navigate(`/signin?redirect=/initiatives/${id}`);
+      navigateToAuth(`/signin?redirect=/initiatives/${id}`, navigate);
       return;
     }
     setEoiOpen(true);

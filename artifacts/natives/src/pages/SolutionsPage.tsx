@@ -1,5 +1,13 @@
-import { Link, useParams } from "wouter";
+import { Link as WouterLink, useParams } from "wouter";
 import { ArrowRight, ShieldCheck, Users, Handshake, FlaskConical, Lightbulb, Globe, Network, Search } from "lucide-react";
+import { getAuthLinkProps } from "@/lib/authLinks";
+
+function Link({ href, children, ...props }: { href: string; children: React.ReactNode; [key: string]: any }) {
+  if (href === "/signup" || href === "/signin" || href === "/login") {
+    return <a {...getAuthLinkProps(href)} {...props}>{children}</a>;
+  }
+  return <WouterLink href={href} {...props}>{children}</WouterLink>;
+}
 
 const TABS = [
   { id: "ngos", label: "NGOs & Non-Profits" },

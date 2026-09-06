@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getAuthLinkProps } from "@/lib/authLinks";
+import { getAuthLinkProps, navigateToAuth } from "@/lib/authLinks";
 import { ArrowRight, ShieldCheck, Zap, Network, Search, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes"
@@ -266,14 +266,14 @@ export function FindPartnerSection() {
                           </p>
                           <div className="flex flex-col sm:flex-row gap-3 justify-center">
                             <Button
-                              onClick={() => navigate('/signup')}                              
+                              onClick={() => navigateToAuth('/signup', navigate)}                              
                               className="px-6 py-2.5 text-white font-semibold rounded-full text-sm bg-[#2D6A4F] border-none hover:bg-[#245c43]"
                             >
                               See all partners
                             </Button>
                             <Button
                               variant="outline"
-                              onClick={() => navigate('/signin')}
+                              onClick={() => navigateToAuth('/signin', navigate)}
                               className="px-6 py-2.5 font-semibold rounded-full text-sm"
                             >
                               Sign in

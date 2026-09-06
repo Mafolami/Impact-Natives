@@ -436,7 +436,7 @@ function InitiativeCard({ initiative }: { initiative: Initiative }) {
   function handleView() {
     if (!user) {
       sessionStorage.setItem("redirectAfterAuth", `/initiatives/${initiative.id}`)
-      navigate(`/signin?redirect=/initiatives/${initiative.id}`)
+      navigateToAuth(`/signin?redirect=/initiatives/${initiative.id}`, navigate)
       return
     }
     navigate(`/initiatives/${initiative.id}`)
@@ -445,7 +445,7 @@ function InitiativeCard({ initiative }: { initiative: Initiative }) {
   function handleExpressInterest() {
     if (!user) {
       sessionStorage.setItem("redirectAfterAuth", `/initiatives/${initiative.id}`)
-      navigate(`/signin?redirect=/initiatives/${initiative.id}`)
+      navigateToAuth(`/signin?redirect=/initiatives/${initiative.id}`, navigate)
       return
     }
     navigate(`/initiatives/${initiative.id}`)
