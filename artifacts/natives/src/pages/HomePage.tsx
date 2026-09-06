@@ -833,7 +833,7 @@ export default function HomePage() {
       </section>
 
       {/* ── HOW IT WORKS (Process Architecture) ────────────── */}
-      <section className="hp-reveal" style={{ ...S.reveal, padding: 'clamp(3.5rem, 7vw, 6rem) 0' }}>
+      <section className="hp-reveal" style={{ ...S.reveal, padding: 'clamp(3.5rem, 7vw, 6rem) 0', background: T.surface }}>
         <div className="hp-section-wrap hp-hero">
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, letterSpacing: '-0.03em', fontSize: 'clamp(1.75rem, 4vw, 2.375rem)', color: T.text, margin: '0.75rem 0 0.6rem', lineHeight: 1.05 }}>
@@ -856,8 +856,8 @@ export default function HomePage() {
             ].map((node) => (
               <div key={node.label} style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', flex: '1 1 0', padding: '0 0.5rem' }}>
                 <div style={{ width: '14px', height: '14px', borderRadius: '50%', background: T.bg, border: '2.5px solid #C45C26', marginBottom: '1.5rem' }} />
-                <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: '16px', color: T.text, margin: '0 0 0.3rem' }}>{node.label}</p>
-                <p style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 500, fontSize: '16px', color: T.textDimmer, margin: 0 }}>{node.desc}</p>
+                <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: '20px', color: T.text, margin: '0 0 0.4rem' }}>{node.label}</p>
+                <p style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 500, fontSize: '18px', color: T.textDimmer, margin: 0 }}>{node.desc}</p>
               </div>
             ))}
           </div>
