@@ -237,6 +237,14 @@ const isHomePage = location === "/" || location === "/labs/commission"
                 </div>
               ))}
              <Link
+                href="/pricing"
+                className={`nav-trigger inline-flex h-7 items-center justify-center rounded-md px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors focus:outline-none ${
+                  scrolled || !isHomePage || !isDark ? "text-foreground" : "text-white"
+                } ${location.startsWith("/pricing") ? "active" : ""}`}
+              >
+                Pricing
+              </Link>
+              <Link
                 href="/partner"
                 className={`nav-trigger inline-flex h-7 items-center justify-center rounded-md px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors focus:outline-none ${
                   scrolled || !isHomePage || !isDark ? "text-foreground" : "text-white"
@@ -391,6 +399,7 @@ const isHomePage = location === "/" || location === "/labs/commission"
             */}
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground py-2 pt-4">Company</p>
             <Link href="/about" className="text-sm font-medium py-2 text-foreground hover:text-primary transition-colors" onClick={() => setMobileOpen(false)}>About</Link>
+            <Link href="/pricing" className="text-sm font-medium py-2 text-foreground hover:text-primary transition-colors" onClick={() => setMobileOpen(false)}>Pricing</Link>
             <Link href="/partner" className="text-sm font-medium py-2 text-foreground hover:text-primary transition-colors" onClick={() => setMobileOpen(false)}>Partner With Us</Link>
             <Link href="/faq" className="text-sm font-medium py-2 text-foreground hover:text-primary transition-colors" onClick={() => setMobileOpen(false)}>FAQ</Link>
             <Link href="/about" className="text-sm font-medium py-2 text-foreground hover:text-primary transition-colors" onClick={() => setMobileOpen(false)}>Contact Us</Link>

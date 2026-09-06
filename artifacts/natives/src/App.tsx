@@ -22,6 +22,7 @@ const SolutionsPage = lazy(() => import("@/pages/SolutionsPage"));
 const LabsPage = lazy(() => import("@/pages/LabsPage"));
 const InsightsPage = lazy(() => import("@/pages/InsightsPage"));
 const PartnerPage = lazy(() => import("@/pages/PartnerPage"));
+const PricingPage = lazy(() => import("@/pages/PricingPage"));
 const FAQPage = lazy(() => import("@/pages/FAQPage"));
 const AboutPage = lazy(() => import("@/pages/AboutPage"));
 const ContactPage = lazy(() => import("@/pages/contact"));
@@ -217,6 +218,7 @@ if (isAdmin) {
           <Route path="/insights" component={InsightsPage} />
           <Route path="/insights/:tab" component={InsightsPage} />
           <Route path="/partner" component={PartnerPage} />
+          <Route path="/pricing" component={PricingPage} />
           <Route path="/faq" component={FAQPage} />
           <Route path="/about" component={AboutPage} />
           <Route path="/initiatives/:id" component={InitiativeDetail} />
