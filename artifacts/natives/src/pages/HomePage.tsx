@@ -8,6 +8,7 @@ import 'swiper/css'
 import {
   Network, ArrowRight, FlaskConical, Handshake,
   ChevronDown, ArrowLeft, Zap, ShieldCheck, ClipboardCheck, TrendingUp,
+  Search, Target, MessageCircle, FileCheck, BadgeCheck,
 } from 'lucide-react'
 import { NewsletterSignup } from '@/components/platform/NewsletterSignup'
 
@@ -848,14 +849,16 @@ export default function HomePage() {
             <div style={{ position: 'absolute', top: '7px', left: '10%', right: '10%', height: '2px', background: 'linear-gradient(90deg, rgba(196,92,38,0.2), rgba(196,92,38,0.65))', zIndex: 0 }} />
             <div style={{ position: 'absolute', top: '0px', width: '14px', height: '14px', borderRadius: '50%', background: '#C45C26', boxShadow: '0 0 8px rgba(196,92,38,0.6)', zIndex: 1, transform: 'translateX(-50%)', animation: 'hp-lifecycle-loop 4s linear infinite' }} />
             {[
-              { label: 'FIND', desc: 'Discover partners' },
-              { label: 'MATCH', desc: 'Ranked matches' },
-              { label: 'CONNECT', desc: 'Message inside' },
-              { label: 'AGREE', desc: 'Structured MoU' },
-              { label: 'PROVE', desc: 'Verified evidence' },
+              { Icon: Search, label: 'FIND', desc: 'Discover partners' },
+              { Icon: Target, label: 'MATCH', desc: 'Ranked matches' },
+              { Icon: MessageCircle, label: 'CONNECT', desc: 'Message inside' },
+              { Icon: FileCheck, label: 'AGREE', desc: 'Structured MoU' },
+              { Icon: BadgeCheck, label: 'PROVE', desc: 'Verified evidence' },
             ].map((node) => (
               <div key={node.label} style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', flex: '1 1 0', padding: '0 0.5rem' }}>
-                <div style={{ width: '14px', height: '14px', borderRadius: '50%', background: T.bg, border: '2.5px solid #C45C26', marginBottom: '1.5rem' }} />
+                <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: T.bg, border: '2.5px solid #C45C26', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <node.Icon style={{ width: '18px', height: '18px', color: '#C45C26' }} />
+                </div>
                 <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, fontSize: '20px', color: T.text, margin: '0 0 0.4rem' }}>{node.label}</p>
                 <p style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 500, fontSize: '18px', color: T.textDimmer, margin: 0 }}>{node.desc}</p>
               </div>
