@@ -791,7 +791,20 @@ export default function HomePage() {
         <div style={{ position: 'absolute', width: '500px', height: '500px', top: '-50px', left: '-150px', background: 'radial-gradient(circle, rgba(45,122,212,0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <div className="hp-section-wrap hp-hero" style={{ position: 'relative', zIndex: 1 }}>
           <div className="hp-mobile-stack" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'clamp(2.5rem, 6vw, 6rem)', alignItems: 'center' }}>
+            <div className="hp-mobile-img-below" style={{ borderRadius: '1.25rem', overflow: 'hidden', border: `1px solid ${T.borderMd}`, aspectRatio: '4/3', position: 'relative', background: T.surfaceMd }}>
+              <div style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', width: '1.1rem', height: '1.1rem', borderTop: '2px solid #C45C26', borderLeft: '2px solid #C45C26', zIndex: 2 }} />
+              <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', width: '1.1rem', height: '1.1rem', borderTop: '2px solid #C45C26', borderRight: '2px solid #C45C26', zIndex: 2 }} />
+              <div style={{ position: 'absolute', bottom: '0.75rem', left: '0.75rem', width: '1.1rem', height: '1.1rem', borderBottom: '2px solid #C45C26', borderLeft: '2px solid #C45C26', zIndex: 2 }} />
+              <div style={{ position: 'absolute', bottom: '0.75rem', right: '0.75rem', width: '1.1rem', height: '1.1rem', borderBottom: '2px solid #C45C26', borderRight: '2px solid #C45C26', zIndex: 2 }} />
+              <ImgFallback
+                src="/homepage1.jpeg" alt="Africa impact coordination"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                FallbackIcon={Network}
+              />
+              <div style={{ position: 'absolute', inset: 0, background: isDark ? 'linear-gradient(to top, rgba(9,8,10,0.5) 0%, transparent 55%)' : 'linear-gradient(to top, rgba(247,243,237,0.3) 0%, transparent 55%)' }} />
+            </div>
             <div className="hp-mobile-text-first">
+              <div style={S.sectionLabel}>The Gap</div>
               <h2 style={{ ...S.h2, marginBottom: '1.5rem' }}>
                 Not short of capital or ideas. Short of{' '}
                 <em style={{ fontStyle: 'normal', color: '#e07a4a' }}>coordination.</em>
@@ -816,18 +829,6 @@ export default function HomePage() {
                   </p>
                 </div>
               </div>
-            </div>
-            <div className="hp-mobile-img-below" style={{ borderRadius: '1.25rem', overflow: 'hidden', border: `1px solid ${T.borderMd}`, aspectRatio: '4/3', position: 'relative', background: T.surfaceMd }}>
-              <div style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', width: '1.1rem', height: '1.1rem', borderTop: '2px solid #C45C26', borderLeft: '2px solid #C45C26', zIndex: 2 }} />
-              <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', width: '1.1rem', height: '1.1rem', borderTop: '2px solid #C45C26', borderRight: '2px solid #C45C26', zIndex: 2 }} />
-              <div style={{ position: 'absolute', bottom: '0.75rem', left: '0.75rem', width: '1.1rem', height: '1.1rem', borderBottom: '2px solid #C45C26', borderLeft: '2px solid #C45C26', zIndex: 2 }} />
-              <div style={{ position: 'absolute', bottom: '0.75rem', right: '0.75rem', width: '1.1rem', height: '1.1rem', borderBottom: '2px solid #C45C26', borderRight: '2px solid #C45C26', zIndex: 2 }} />
-              <ImgFallback
-                src="/homepage1.jpeg" alt="Africa impact coordination"
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                FallbackIcon={Network}
-              />
-              <div style={{ position: 'absolute', inset: 0, background: isDark ? 'linear-gradient(to top, rgba(9,8,10,0.5) 0%, transparent 55%)' : 'linear-gradient(to top, rgba(247,243,237,0.3) 0%, transparent 55%)' }} />
             </div>
           </div>
         </div>
