@@ -292,10 +292,10 @@ function FeatureRow({ feat, i }: { feat: typeof FEATURES[0]; i: number }) {
             letterSpacing: '-0.025em', lineHeight: 1.15, marginBottom: '0.5rem',
             color: isDark ? '#f7f3ed' : '#14110d',
           }}>{feat.title}</h3>
-          <p style={{ fontSize: '0.8125rem', fontStyle: 'italic', color: isDark ? 'rgba(247,243,237,0.38)' : '#3a3a3a', marginBottom: '1.125rem', letterSpacing: '0.01em' }}>
+          <p style={{ fontSize: '1rem', fontStyle: 'italic', color: isDark ? 'rgba(247,243,237,0.38)' : '#3a3a3a', marginBottom: '1.125rem', letterSpacing: '0.01em' }}>
             {feat.sub}
           </p>
-          <p style={{ fontSize: '1rem', color: isDark ? 'rgba(247,243,237,0.55)' : '#1a1a1a', lineHeight: 1.75, maxWidth: '440px' }}>
+          <p style={{ fontSize: '1.125rem', color: isDark ? 'rgba(247,243,237,0.55)' : '#1a1a1a', lineHeight: 1.75, maxWidth: '440px' }}>
             {feat.desc}
           </p>
         </div>
@@ -744,13 +744,13 @@ export default function HomePage() {
             </svg>
             <div style={{
               borderRadius: '1.25rem', overflow: 'hidden', position: 'relative', zIndex: 1,
-              border: `1px solid ${T.borderMd}`, aspectRatio: '4/3', background: T.surfaceMd,
+              border: `1px solid ${T.borderMd}`, width: '100%', maxWidth: '770px', height: '100%', maxHeight: '778px', background: T.surfaceMd,
               boxShadow: isDark ? 'none' : '0 20px 60px -20px rgba(0,0,0,0.15)',
             }}>
             <img
               src="/workspace.webp"
               alt="Natives workspace"
-              style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+              style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             />
             </div>
           </div>
@@ -905,6 +905,7 @@ export default function HomePage() {
       <section className="hp-reveal" style={{ ...S.reveal, padding: 'clamp(3.5rem, 7vw, 6rem) 0', background: isDark ? T.bg : '#ffffff' }}>
         <div className="hp-section-wrap hp-hero">
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+            <div style={{ ...S.sectionLabel, justifyContent: 'center' }}>Three Layers of Trust</div>
             <p style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, letterSpacing: '-0.03em', fontSize: 'clamp(1.5rem, 3.5vw, 2rem)', color: T.text, margin: '0.75rem 0 0.6rem', lineHeight: 1.1 }}>
               Why Natives
             </p>
@@ -1001,10 +1002,10 @@ export default function HomePage() {
       <section className="hp-reveal hp-light-section" style={{ ...S.sectionPad, ...S.reveal, borderTop: `1px solid ${T.border}`, position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', width: '700px', height: '700px', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', background: 'radial-gradient(ellipse, rgba(196,92,38,0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <div className="hp-section-wrap hp-hero" style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ marginBottom: '3.5rem' }}>
-            <div style={S.sectionLabel}>Choose Your Path</div>
+          <div style={{ marginBottom: '3.5rem', textAlign: 'center' }}>
+            <div style={{ ...S.sectionLabel, justifyContent: 'center' }}>Choose Your Path</div>
             <h2 style={{ ...S.h2, marginBottom: '0.875rem' }}>What would you like to do?</h2>
-            <p style={{ fontSize: '1.0625rem', color: T.textDimmer, maxWidth: '1000px', lineHeight: 1.65 }}>
+            <p style={{ fontSize: '1.0625rem', color: T.textDimmer, maxWidth: '1000px', lineHeight: 1.65, margin: '0 auto' }}>
               Natives serves three distinct purposes. Choose the one that fits your intent. Tell us what you're trying to do and we'll route you to the right place.
             </p>
           </div>

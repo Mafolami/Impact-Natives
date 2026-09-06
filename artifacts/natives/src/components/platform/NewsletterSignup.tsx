@@ -82,11 +82,11 @@ export function NewsletterSignup({ variant = "section" }: { variant?: "section" 
   return (
     <section className="py-20 border-t border-border">
       <div className="max-w-2xl mx-auto px-6 text-center">
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+        <p className="text-[16px] font-semibold uppercase tracking-widest mb-3" style={{ color: '#C45C26' }}>
           Native Signal
         </p>
-        <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-3">
-          Native Signal: Stay close to what's moving in Africa's impact economy.
+        <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight mb-3" style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>
+          Stay close to what's moving in Africa's impact economy.
         </h2>
         <p className="text-muted-foreground mb-8 max-w-md mx-auto">
           Partnership signals, ecosystem updates, and platform news delivered straight to your inbox.
