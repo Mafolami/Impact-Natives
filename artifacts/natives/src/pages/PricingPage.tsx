@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, Sparkles, Minus } from "lucide-react";
 
 interface TierDef {
   value: "free" | "plus" | "pro" | "compliance";
@@ -85,114 +85,176 @@ const TIERS: TierDef[] = [
 
 const CTA_URL = "https://app.impactnatives.com/signup";
 
-// Forest-green family for Free/Plus/Pro; Compliance keeps its dark register untouched.
-const PALETTE: Record<TierDef["register"], {
-  bg: string; text: string; textDim: string; chip: string; icon: string; button: string; buttonText: string;
-}> = {
-  quiet: {
-    bg: "#EAF7F0",
-    text: "#0D2B1A",
-    textDim: "#0D2B1ACC",
-    chip: "#2D6A4F1F",
-    icon: "#2D6A4F",
-    button: "#14110d",
-    buttonText: "#ffffff",
+// Cumulative feature matrix derived from each tier's "Everything in X" inheritance.
+// Grouped by the tier each feature was introduced at.
+const FEATURE_GROUPS: { introducedAt: TierDef["value"]; items: string[] }[] = [
+  {
+    introducedAt: "free",
+    items: [
+      "Directory & marketplace access",
+      "Manual initiative listings",
+      "Self-attested DD readiness",
+      "Trust Score & verified badge",
+      "Inbound messaging",
+      "MoU receiving & signing",
+      "Milestone tracking",
+      "Weekly & monthly digests",
+    ],
   },
-  primary: {
-    bg: "#2D6A4F",
-    text: "#ffffff",
-    textDim: "#ffffffB3",
-    chip: "#ffffff26",
-    icon: "#ffffff",
-    button: "#ffffff",
-    buttonText: "#2D6A4F",
+  {
+    introducedAt: "plus",
+    items: [
+      "AI-parsed initiative creation",
+      "AI brief quality scoring",
+      "Full AI organisation-to-organisation matching",
+      "Instant AI fit analysis",
+      "AI-drafted outreach messages",
+      "MoU origination",
+      "Self-view ESG Snapshot",
+    ],
   },
-  accent: {
-    bg: "#173C2C",
-    text: "#ffffff",
-    textDim: "#ffffffB3",
-    chip: "#ffffff26",
-    icon: "#ffffff",
-    button: "#ffffff",
-    buttonText: "#173C2C",
+  {
+    introducedAt: "pro",
+    items: [
+      "AI deal memo / CSR brief",
+      "Evaluate candidate ESG Snapshots",
+      "AI-drafted EOI outreach",
+    ],
   },
-  dark: {
-    bg: "#14110d",
-    text: "#ffffff",
-    textDim: "#ffffffB3",
-    chip: "#ffffff1A",
-    icon: "#ffffff",
-    button: "#ffffff",
-    buttonText: "#14110d",
+  {
+    introducedAt: "compliance",
+    items: [
+      "Strategy Builder",
+      "Unlimited ESG reports",
+      "SRG1 deadline tracking",
+      "Audit-ready DD export",
+    ],
   },
-};
+];
 
-function TierBlock({ tier }: { tier: TierDef }) {
-  const p = PALETTE[tier.register];
+const TIER_ORDER: TierDef["value"][] = ["free", "plus", "pro", "compliance"];
+
+function includesTier(introducedAt: TierDef["value"], col: TierDef["value"]) {
+  return TIER_ORDER.indexOf(col) >= TIER_ORDER.indexOf(introducedAt);
+}
+
+function TierCard({ t }: { t: TierDef }) {
+  const isElevated = t.register === "primary";
+  const isDark = t.register === "dark";
+
+  const cardBase = "rounded-2xl flex flex-col transition-all duration-200";
+  const cardStyle = isDark
+    ? "bg-[#0E1512] border border-[#2A3B33] text-white"
+    : isElevated
+    ? "bg-white dark:bg-card border-2 border-[#2D6A4F] shadow-[0_12px_32px_-8px_rgba(45,106,79,0.35)]"
+    : t.register === "accent"
+    ? "bg-white dark:bg-card border-2 border-[#C45C26]/40"
+    : "bg-white dark:bg-card border border-border";
+
+  const accentIcon = isDark ? "text-[#D9B94A]" : isElevated ? "text-[#2D6A4F]" : "text-[#C45C26]";
+  const accentChip = isDark ? "bg-[#C9A227]/20" : isElevated ? "bg-[#2D6A4F]/15" : "bg-[#C45C26]/10";
 
   return (
-    <div className="grid md:grid-cols-[minmax(280px,32%)_1fr] gap-6 items-stretch">
-      {/* Left: standalone info card */}
-      <div
-        className="rounded-2xl flex flex-col px-8 py-9"
-        style={{ background: p.bg, border: `1px solid ${p.bg}`, boxShadow: "0 12px 32px -12px rgba(0,0,0,0.22)" }}
-      >
-        {tier.badge && (
-          <div
-            className="inline-flex items-center gap-1 self-start mb-4 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"
-            style={{ background: p.chip, color: p.text }}
-          >
-            {tier.badge}
-          </div>
-        )}
-        <p className="font-extrabold tracking-tight text-3xl mb-3" style={{ color: p.text }}>
-          {tier.name}
-        </p>
-        <p className="text-base mb-8 leading-relaxed" style={{ color: p.textDim }}>
-          {tier.blurb}
-        </p>
-        <div className="mt-auto">
-          <p className="font-extrabold tracking-tight text-5xl mb-1" style={{ color: p.text }}>
-            {`₦${tier.priceNgn.toLocaleString()}`}
-            <span className="text-base font-medium ml-1" style={{ color: p.textDim }}>/mo</span>
-          </p>
-          {tier.priceNgn > 0 ? (
-            <p className="text-sm mb-6" style={{ color: p.textDim }}>
-              ≈ ${tier.priceUsdRef} USD reference
-            </p>
-          ) : (
-            <div className="mb-6" />
-          )}
-          <a href={CTA_URL} target="_blank" rel="noreferrer">
-            <button
-              className="w-full h-12 rounded-full text-base font-semibold transition-opacity duration-150 hover:opacity-90"
-              style={{ background: p.button, color: p.buttonText }}
-            >
-              {tier.priceNgn === 0 ? "Get started free" : "Get started"}
-            </button>
-          </a>
+    <div className={`${cardBase} ${cardStyle} px-7 ${isElevated ? "py-8" : "py-7"}`}>
+      {t.badge && (
+        <div className={`inline-flex items-center gap-1 self-start mb-3 text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+          isElevated
+            ? "bg-gradient-to-b from-[#3a8560] to-[#2D6A4F] text-white shadow-sm"
+            : isDark
+            ? "bg-[#C9A227]/15 text-[#D9B94A] border border-[#C9A227]/30"
+            : "bg-[#C45C26]/10 text-[#C45C26]"
+        }`}>
+          {isElevated && <Sparkles className="w-3 h-3" />}
+          {t.badge}
         </div>
+      )}
+
+      <p className={`font-bold tracking-tight mb-1 ${isElevated ? "text-2xl" : "text-xl"} ${isDark ? "text-white" : "text-foreground"}`}>
+        {t.name}
+      </p>
+      <p className={`text-sm mb-4 leading-snug ${isDark ? "text-white/60" : "text-black dark:text-white"}`}>
+        {t.blurb}
+      </p>
+
+      <div className="mb-5">
+        <p className={`font-extrabold tracking-tight ${isElevated ? "text-4xl" : "text-3xl"} ${isDark ? "text-white" : "text-foreground"}`}>
+          {t.priceNgn === 0 ? "₦0" : `₦${t.priceNgn.toLocaleString()}`}
+          <span className={`text-sm font-medium ml-1 ${isDark ? "text-white/50" : "text-black dark:text-white"}`}>/mo</span>
+        </p>
+        {t.priceUsdRef > 0 && (
+          <p className={`text-xs mt-1 ${isDark ? "text-white/40" : "text-black dark:text-white"}`}>≈ ${t.priceUsdRef} USD reference</p>
+        )}
       </div>
 
-      {/* Right: standalone features card */}
-      <div
-        className="rounded-2xl px-8 py-9"
-        style={{ background: p.bg, border: `1px solid ${p.bg}`, boxShadow: "0 12px 32px -12px rgba(0,0,0,0.22)" }}
-      >
-        <p className="text-xs font-bold uppercase tracking-widest mb-5" style={{ color: p.textDim }}>
-          Features
-        </p>
-        <div className="flex flex-col gap-4">
-          {tier.features.map((f) => (
-            <div key={f} className="flex items-start gap-2.5">
-              <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: p.chip }}>
-                <Check className="w-3 h-3" style={{ color: p.icon }} strokeWidth={3} />
-              </div>
-              <p className="text-base" style={{ color: p.text }}>{f}</p>
+      <div className="space-y-2.5 mb-6 flex-1">
+        {t.features.map((f) => (
+          <div key={f} className="flex items-center gap-2.5">
+            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${accentChip}`}>
+              <Check className={`w-2.5 h-2.5 ${accentIcon}`} strokeWidth={3} />
             </div>
-          ))}
-        </div>
+            <p className={`text-sm ${isDark ? "text-white/85" : "text-foreground"}`}>{f}</p>
+          </div>
+        ))}
       </div>
+
+      <a href={CTA_URL} target="_blank" rel="noreferrer">
+        <button
+          type="button"
+          className={`w-full h-11 rounded-full text-sm font-semibold transition-all duration-150 ${
+            isDark
+              ? "bg-gradient-to-b from-[#D9B94A] to-[#C9A227] text-[#0E1512] shadow-[0_4px_14px_-2px_rgba(201,162,39,0.5)] hover:shadow-[0_6px_20px_-2px_rgba(201,162,39,0.65)] hover:-translate-y-0.5 active:translate-y-0"
+              : isElevated
+              ? "bg-gradient-to-b from-[#3a8560] to-[#2D6A4F] text-white shadow-[0_4px_14px_-2px_rgba(45,106,79,0.5)] hover:shadow-[0_6px_20px_-2px_rgba(45,106,79,0.65)] hover:-translate-y-0.5 active:translate-y-0"
+              : "bg-gradient-to-b from-[#d4713d] to-[#C45C26] text-white shadow-[0_4px_14px_-2px_rgba(196,92,38,0.4)] hover:shadow-[0_6px_20px_-2px_rgba(196,92,38,0.55)] hover:-translate-y-0.5 active:translate-y-0"
+          }`}
+        >
+          {t.priceNgn === 0 ? "Get started free" : "Get started"}
+        </button>
+      </a>
+    </div>
+  );
+}
+
+function CompareTable() {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse min-w-[720px]">
+        <thead>
+          <tr>
+            <th className="text-left text-sm font-semibold text-foreground py-4 px-4 border-b border-border">Feature</th>
+            {TIERS.map((t) => (
+              <th key={t.value} className="text-center text-sm font-semibold text-foreground py-4 px-4 border-b border-border">
+                {t.name}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {FEATURE_GROUPS.map((group) => (
+            <>
+              <tr key={`${group.introducedAt}-heading`}>
+                <td colSpan={TIERS.length + 1} className="text-xs font-bold uppercase tracking-wider text-[#2D6A4F] pt-6 pb-2 px-4">
+                  {TIERS.find((t) => t.value === group.introducedAt)?.name} features
+                </td>
+              </tr>
+              {group.items.map((feature) => (
+                <tr key={feature} className="border-b border-border">
+                  <td className="text-sm text-foreground py-3 px-4">{feature}</td>
+                  {TIERS.map((t) => (
+                    <td key={t.value} className="text-center py-3 px-4">
+                      {includesTier(group.introducedAt, t.value) ? (
+                        <Check className="w-4 h-4 text-[#2D6A4F] mx-auto" strokeWidth={3} />
+                      ) : (
+                        <Minus className="w-4 h-4 text-foreground/20 mx-auto" strokeWidth={2} />
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -229,14 +291,23 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* ── PLANS ── */}
+      {/* ── PLANS (2x2) ── */}
       <div className="max-w-screen-2xl mx-auto content-padding hp-hero py-16 md:py-24">
-        <div className="flex flex-col gap-8">
-          {TIERS.map((tier) => (
-            <TierBlock key={tier.value} tier={tier} />
+        <div className="grid md:grid-cols-2 gap-6">
+          {TIERS.map((t) => (
+            <TierCard key={t.value} t={t} />
           ))}
         </div>
-        <p className="text-center text-base mt-10" style={{ color: "#00000099" }}>
+
+        {/* ── COMPARE ALL FEATURES ── */}
+        <div className="mt-20">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-8 text-center">
+            Compare all features
+          </h2>
+          <CompareTable />
+        </div>
+
+        <p className="text-center text-sm text-black/60 dark:text-white/50 mt-10">
           Prices shown in Naira. USD figures are a reference only. Billing is processed in NGN.
         </p>
       </div>
