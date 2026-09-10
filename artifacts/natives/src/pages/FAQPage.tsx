@@ -283,15 +283,15 @@ export default function FAQPage() {
       <div className="border-b border-border py-16">
         <div className="w-full">
           <p
-            className="text-xs font-semibold uppercase tracking-widest mb-4"
+            className="text-sm font-semibold uppercase tracking-widest mb-4"
             style={{ color: ORANGE }}
           >
             Support
           </p>
-          <h1 className="text-4xl font-bold text-foreground mb-4">
+          <h1 className="text-5xl font-bold text-foreground mb-4">
             Frequently Asked Questions
           </h1>
-          <p className="text-muted-foreground text-lg max-w-20xl">
+          <p className="text-foreground text-xl max-w-20xl">
             Everything you need to know about Natives — the coordination
             infrastructure for Africa's impact economy.
           </p>
@@ -309,7 +309,7 @@ export default function FAQPage() {
                   setActiveSection(i);
                   setOpenItem(null);
                 }}
-                className="text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150"
+                className="text-left px-4 py-2.5 rounded-lg text-base font-medium transition-colors duration-150"
                 style={
                   activeSection === i
                     ? {
@@ -317,7 +317,7 @@ export default function FAQPage() {
                         color: GREEN,
                         borderLeft: `3px solid ${GREEN}`,
                       }
-                    : { color: "var(--color-muted-foreground)" }
+                    : { color: "var(--color-foreground)" }
                 }
               >
                 {f.section}
@@ -328,7 +328,7 @@ export default function FAQPage() {
 
         {/* Accordion */}
         <main className="flex-1 max-w-3xl">
-          <h2 className="text-xl font-semibold text-foreground mb-6">
+          <h2 className="text-2xl font-semibold text-foreground mb-6">
             {faqs[activeSection].section}
           </h2>
           <div className="divide-y divide-border">
@@ -338,13 +338,13 @@ export default function FAQPage() {
                   onClick={() => setOpenItem(openItem === i ? null : i)}
                   className="w-full flex justify-between items-start text-left gap-4"
                 >
-                  <span className="text-sm font-medium text-foreground">
+                  <span className="text-base font-medium text-foreground">
                     {item.q}
                   </span>
                   <span
                     className="text-lg leading-none shrink-0 mt-0.5 transition-transform duration-200"
                     style={{
-                      color: openItem === i ? ORANGE : "var(--color-muted-foreground)",
+                      color: openItem === i ? ORANGE : "var(--color-foreground)",
                       transform:
                         openItem === i ? "rotate(45deg)" : "rotate(0deg)",
                     }}
@@ -353,7 +353,7 @@ export default function FAQPage() {
                   </span>
                 </button>
                 {openItem === i && (
-                  <p className="mt-3 text-sm text-muted-foreground leading-relaxed pr-8">
+                  <p className="mt-3 text-base text-foreground leading-relaxed pr-8">
                     {item.a}
                   </p>
                 )}
