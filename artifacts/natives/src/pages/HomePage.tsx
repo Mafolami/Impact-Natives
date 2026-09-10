@@ -29,24 +29,24 @@ function useIsDark() {
 /* ── DATA ──────────────────────────────────────────────── */
 const FAQS = [
   {
-    q: 'What is Natives?',
-    a: "Natives is coordination infrastructure for Africa's impact ecosystem. It connects verified organisations, funders, and implementers so they can find each other, verify readiness, and move resources more effectively.",
+    q: "What is Natives?",
+    a: "Natives is coordination infrastructure for Africa's impact sector. It helps organisations find relevant partners, assess available information, formalise agreements, and track evidence of the work that follows.",
   },
   {
-    q: 'Who can join Natives?',
-    a: "Natives is open to NGOs, corporates, donors, DFIs, government agencies, founders, and ecosystem experts working in or with Africa's development and impact sectors.",
+    q: "Who is Natives for?",
+    a: "Natives is built for NGOs, social enterprises, funders, DFIs, corporates, consultants, creatives, founders, public institutions, and research organisations working across Africa's impact sector.",
   },
   {
-    q: 'What does verification mean on Natives?',
-    a: 'Verified organisations have passed a structured review covering legal registration, programme delivery capacity, and financial credibility where applicable. Verification signals institutional trust to potential partners and funders.',
+    q: "Is Natives a directory?",
+    a: "Natives includes a directory and marketplace for discovering organisations, initiatives, and partnership opportunities. Discovery is the starting point. Users can express interest, communicate, agree terms, formalise partnerships, and track milestones and evidence within the platform.",
   },
   {
-    q: 'What is an Innovation Lab?',
-    a: 'An Innovation Lab is a structured, time-bound process where Natives convenes stakeholders around a specific systemic challenge. It is a managed service, not a self-service product.',
+    q: "Is Natives free?",
+    a: "Natives offers four plans: Free (directory access, initiative listings, messaging, and milestone tracking), Plus, Pro, and Compliance, which add AI-assisted matching, evaluation, and audit-ready compliance tools as you scale. See our Pricing page for full details.",
   },
   {
-    q: 'How is Find Partnership different from Partner With Natives?',
-    a: 'Find Partnership is about connecting with other ecosystem actors through the Natives network. Partner With Natives is about working directly with Impact Natives as an institution on strategic collaboration, research, or platform integration.',
+    q: "How is Natives different from LinkedIn or a directory?",
+    a: "Natives is structured around the partnership itself: who is involved, what they are working on, what has been agreed, and what evidence follows. The platform keeps that information connected from discovery through to outcomes.",
   },
 ]
 
