@@ -8,35 +8,31 @@ const faqs = [
     items: [
       {
         q: "What is Natives?",
-        a: "Natives is a coordination platform for Africa's social impact ecosystem. It connects NGOs, social enterprises, funders, corporates, and ecosystem experts — helping them find each other, verify credibility, form partnerships, and move resources more effectively.",
+        a: "Natives is coordination infrastructure for Africa's impact sector. It helps organisations find relevant partners, assess available information, formalise agreements, and track evidence of the work that follows.",
       },
       {
         q: "Who is Natives for?",
-        a: "Natives serves NGOs, social enterprises, funders and DFIs, corporates with ESG or CSR mandates, social enterprise founders, individual creatives and consultants, and research institutions. Each actor type has a tailored profile and platform experience.",
+        a: "Natives is built for NGOs, social enterprises, funders, DFIs, corporates, consultants, creatives, founders, public institutions, and research organisations working across Africa's impact sector.",
       },
       {
-        q: "Is Natives a directory or grant listing site?",
-        a: "No. Discovery is one part of what the platform enables. The core function is helping the right actors find each other, verify credibility, and form partnerships that lead to real work. Natives uses AI to match initiatives to mandates, generate partnership briefs, and surface the most relevant opportunities for each user.",
+        q: "Is Natives a directory?",
+        a: "Natives includes a directory and marketplace for discovering organisations, initiatives, and partnership opportunities. Discovery is the starting point. Users can express interest, communicate, agree terms, formalise partnerships, and track milestones and evidence within the platform.",
       },
       {
-        q: "How does AI work on the platform?",
-        a: "AI is built into the core workflows — matching, brief generation, and partnership assessment. It surfaces the right opportunities faster and reduces the manual work on both sides of a partnership. Outputs are editable and designed to support decisions, not replace judgement.",
+        q: "How does Natives use AI?",
+        a: "AI supports partner matching, initiative creation, brief generation, partner assessment, and outreach. Recommendations and generated content are based on information available on the platform and remain editable by users.",
       },
       {
-        q: "What geographies does Natives cover?",
-        a: "Natives is open to organisations and individuals worldwide. The platform focuses on impact work delivered across Africa — funders, corporates, and partners based anywhere can participate.",
+        q: "Where does Natives operate?",
+        a: "Natives is open to organisations and individuals globally, with a focus on partnerships and impact work across Africa.",
       },
       {
-        q: "Is the platform free?",
-        a: "Free accounts can browse, post, and save initiatives, and access the full directory. Paid plans unlock expressions of interest, messaging, AI briefs, Get Matched, and partnership confirmation. Join now to lock in founding member rates.",
+        q: "Is Natives free?",
+        a: "Natives offers four plans: Free (directory access, initiative listings, messaging, and milestone tracking), Plus, Pro, and Compliance, which add AI-assisted matching, evaluation, and audit-ready compliance tools as you scale. See our Pricing page for full details.",
       },
       {
         q: "How is Natives different from LinkedIn or a directory?",
-        a: "LinkedIn and directories surface contacts. Natives is built for structured coordination. Profiles are verified, initiatives are posted with intent, and connections move toward confirmed partnerships with records on both sides. The platform also generates AI-powered outputs — deal memos, CSR briefs, partnership summaries — that accelerate decision-making on both sides.",
-      },
-      {
-        q: "I need more information. How do I get in touch?",
-        a: "Visit our Contact page and send us a message. We respond to all enquiries.",
+        a: "Natives is structured around the partnership itself: who is involved, what they are working on, what has been agreed, and what evidence follows. The platform keeps that information connected from discovery through to outcomes.",
       },
     ],
   },
@@ -44,111 +40,24 @@ const faqs = [
     section: "Getting Started",
     items: [
       {
-        q: "What should I do first after creating an account?",
-        a: "Complete your profile — organisation name, sector, country, description, and what you need or offer. Then get verified if you're an NGO or social enterprise. Once verified, post your first initiative on the marketplace or use Get Matched to find a partner. The more complete your profile, the better your AI matches.",
+        q: "What should I do first?",
+        a: "Create your profile, add your organisation or individual information, and specify your areas of work, capabilities, needs, and partnership interests. You can then create initiatives, explore opportunities, or use matching to find relevant partners.",
       },
       {
-        q: "What is verification and do I need it?",
-        a: "Verification is a review by the Natives team that confirms your organisation's legal registration, delivery capacity, and operational credibility. Verified organisations receive a trust badge on all activity — profiles, initiative listings, expressions of interest, and partnership cards. It is not required to join, but it significantly increases your chances of being taken seriously by funders and corporates.",
+        q: "What is verification?",
+        a: "Verification confirms an organisation's identity and key organisational information through Natives' review process. Verified organisations receive a verification status on their profile.",
+      },
+      {
+        q: "Do I need to be verified?",
+        a: "You can create an account and participate on Natives without completing verification. Verification provides an additional trust signal and supports stronger partner assessment.",
       },
       {
         q: "How long does verification take?",
-        a: "Verification is typically completed within a few business days of submitting your documents.",
+        a: "Verification is completed after the required information and supporting documentation have been submitted. Review times depend on the completeness of the information provided.",
       },
       {
-        q: "Can I join as an individual without an organisation?",
-        a: "Yes. Individuals — consultants, researchers, creatives, advocates — can join with a personal profile. You can post initiatives, express interest in others' work, and be discovered by organisations looking for specific expertise.",
-      },
-    ],
-  },
-  {
-    section: "For NGOs & Social Enterprises",
-    items: [
-      {
-        q: "How does Natives help my organisation get found by funders and partners?",
-        a: "A verified profile gives your organisation visibility to funders and corporates actively looking for implementation partners. You can also post initiatives on the marketplace, which are then surfaced to matched funders and corporates via AI. Verified organisations appear with a trust badge that signals credibility before the first conversation.",
-      },
-      {
-        q: "How do I post an initiative?",
-        a: "From your Portfolio, click Create Initiative. Describe your initiative in plain language and the AI will structure it into a full brief — problem statement, expected outcome, target population, sector, SDG alignment, budget, and partnership ask. You can also fill it in manually. Once submitted, it is published to the marketplace.",
-      },
-      {
-        q: "How does Get Matched work?",
-        a: "Get Matched is a self-serve AI matching feature. Give your partnership request a title, describe what you're looking for in plain language, and the AI structures your profile and runs a match against all listed partners. You can choose to list yourself publicly in the Partnerships directory and receive inbound expressions of interest from other organisations.",
-      },
-      {
-        q: "What is the Partnerships feature?",
-        a: "Partnerships is a separate directory where organisations can list themselves as actively seeking a partner for a specific purpose. Other organisations can browse listings and express interest. Once both sides confirm, the partnership is recorded in your Portfolio with the partner's name, role, and contact details. You can manage the full lifecycle — from listing to confirmed partnership — without leaving the platform.",
-      },
-      {
-        q: "How do I show funders my track record?",
-        a: "Your Impact Profile lets you record cumulative reach — total beneficiaries, jobs created, female beneficiary percentage, years of operation, and previous funders. You can also note the total value of grants received and your on-time delivery rate. This data is automatically pulled into deal memos and CSR briefs that funders and corporates generate when reviewing your initiatives.",
-      },
-      {
-        q: "Can small or community-based NGOs join?",
-        a: "Yes. Verification is based on evidence of real delivery, not organisational size or budget.",
-      },
-      {
-        q: "Is Natives free for NGOs?",
-        a: "NGOs and social enterprises join for free, with no hidden costs. Access to certain features will require an upgrade.",
-      },
-    ],
-  },
-  {
-    section: "For Corporates",
-    items: [
-      {
-        q: "What does my dashboard show as a corporate?",
-        a: "Your home dashboard shows an AI-matched feed of ESG and CSR-aligned initiatives, filtered to your sector focus and geographic priorities. You also see a pipeline view of initiatives you've expressed interest in, active conversations, and confirmed ESG adoptions. The dashboard is oriented around discovery and decision-making, not content creation.",
-      },
-      {
-        q: "How do we find the right CSR or ESG implementation partners?",
-        a: "Natives maintains a verified directory of NGOs and social enterprises across Africa. You can search by sector, geography, and focus area, or rely on the AI-matched feed on your home dashboard that surfaces initiatives aligned to your ESG mandate. Every verified organisation has gone through a structured review, reducing the time and cost of initial due diligence.",
-      },
-      {
-        q: "How do we quickly evaluate whether an initiative fits our CSR mandate?",
-        a: "From any initiative page, corporates can generate a CSR Adoption Brief — an AI assessment that evaluates the initiative against your ESG frameworks, priorities, and geographic focus. It ends with a recommended action: Adopt, Explore, or Pass.",
-      },
-      {
-        q: "What ESG frameworks does the platform support?",
-        a: "You can specify your ESG frameworks in your mandate settings — GRI, UN Global Compact, TCFD, or others. The AI matching and CSR brief generation use these to evaluate initiative fit.",
-      },
-      {
-        q: "How do we set up our CSR mandate?",
-        a: "In your profile settings, complete the Mandate Criteria section. Add your preferred ESG frameworks, annual CSR budget range, geographic focus, sector priorities, SDG alignments, and preferred partner types. This data is used for AI matching on your home dashboard and for CSR brief generation.",
-      },
-      {
-        q: "How do we start on Natives?",
-        a: "Create an account, select Corporate as your organisation type, complete your profile including your CSR mandate, and get verified. Once verified, your home dashboard activates with AI-matched initiatives. You can then generate CSR briefs, express interest in initiatives, and open conversations with implementers.",
-      },
-    ],
-  },
-  {
-    section: "For Funders & DFIs",
-    items: [
-      {
-        q: "What does my dashboard show as a funder?",
-        a: "Your home dashboard shows an AI-matched feed of initiatives from across the marketplace, ranked by relevance to your mandate. The better you complete your mandate settings, the more accurate your matches.",
-      },
-      {
-        q: "How does Natives help us find credible organisations to fund?",
-        a: "Every verified organisation on Natives has been reviewed for legal registration, delivery capacity, and operational credibility. You can see each organisation's DD readiness score assessed over critical self-reported indicator criteria. This reduces the time and cost of initial due diligence.",
-      },
-      {
-        q: "How do we quickly assess an initiative?",
-        a: "From any initiative detail page, funders can generate an AI Deal Memo, evaluating the initiative against your mandate. The memo covers problem validity, solution fit, team credibility, financial assessment, mandate alignment, risk flags, and a recommended action.",
-      },
-      {
-        q: "How do we know if an organisation is investment-ready?",
-        a: "Each verified organisation's profile shows a DD Readiness Score, a percentage based on five self-reported indicators including impact measurement framework in place. Organisations with higher scores have signalled readiness to proceed to due diligence.",
-      },
-      {
-        q: "Can we set a funding mandate?",
-        a: "Yes. In your profile settings, you can define your grant range, funding instruments, geographic focus, stage preference, sector priorities, and SDG alignments. This mandate is used to power your AI-matched initiative feed and deal memo generation. Mandate criteria are private and not shown publicly.",
-      },
-      {
-        q: "Can we track our pipeline?",
-        a: "Yes. Expressions of interest, saved initiatives, active conversations, and confirmed partnerships are all tracked on the platform. You can pass on initiatives with a reason logged, save for later review, or move to active conversation — all from the initiative detail view.",
+        q: "Can I join as an individual?",
+        a: "Yes. Individuals can create a profile, post initiatives, express interest in opportunities, and connect with organisations and funders. AI-assisted matching, MoUs, and milestone tracking require a contracting organisation — individuals who need those can convert their profile into a consultancy organisation.",
       },
     ],
   },
@@ -156,113 +65,143 @@ const faqs = [
     section: "Partnerships",
     items: [
       {
-        q: "What is the Partnerships feature?",
-        a: "Partnerships is a dedicated space for organisations actively seeking a specific type of partner. Rather than browsing the full marketplace, you list your partnership request — what you need, what you offer, your sector and SDG focus — and other organisations express interest. Both sides manage the full lifecycle on the platform, from first expression to confirmed partnership.",
+        q: "How do partnerships work on Natives?",
+        a: "Partnerships move through a structured process: find relevant organisations or initiatives, express interest, communicate, agree terms, formalise the partnership, and track the work that follows.",
       },
       {
-        q: "How do I list my organisation as seeking a partner?",
-        a: "Use the Get Matched feature. Give your request a title, describe what you're looking for in plain language, and the AI structures your listing. You can choose to list publicly in the Partnerships directory. Once listed, other organisations can express interest in you directly.",
+        q: "How do I find a partner?",
+        a: "You can search the directory and marketplace or use AI-assisted matching. Matching considers factors such as mandate, geography, sector, focus, stage, budget, and available support.",
       },
       {
-        q: "How does a partnership get confirmed?",
-        a: "Accept an inbound expression of interest and a conversation opens in Messages. From there, both sides agree on a partnership type and confirm. Once confirmed, the partnership is recorded in your Portfolio.",
+        q: "What is a Partnership Request?",
+        a: "A Partnership Request lets you specify the kind of organisation, capability, funding, expertise, or support you are looking for. Natives uses this information to identify relevant potential partners.",
       },
       {
-        q: "What happens after I've formed a partnership?",
-        a: "Your partnership is confirmed and recorded on the platform — both sides have a clear record of what was agreed and who is delivering. Your listing stays visible so others can see you've successfully formed partnerships. When you're ready to find a new partner, start a fresh request.",
+        q: "What happens after I find a potential partner?",
+        a: "You can express interest and communicate with the organisation through Natives. If both parties want to proceed, you can agree the terms of the collaboration and formalise them through an MoU.",
       },
       {
-        q: "Where do I see all my partnerships?",
-        a: "In your Portfolio under Partnerships. Active listings, inbound expressions, and confirmed partnerships are all tracked in one place.",
-      },
-    ],
-  },
-  {
-    section: "For Founders",
-    items: [
-      {
-        q: "I am building a social enterprise. Is Natives relevant to me?",
-        a: "Yes. You don't need a large organisation behind you to participate. Build a profile, post initiatives, use Get Matched to find partners, and receive inbound expressions of interest from verified NGOs, corporates, and funders.",
+        q: "Can Natives help with MoUs?",
+        a: "Yes. Natives supports MoU origination, review, finalisation, receiving, and signing, depending on the users and plans involved.",
       },
       {
-        q: "I do not have a registered organisation yet. Can I still join?",
-        a: "Yes. Founders can join with an individual profile and participate in the ecosystem. You can build a profile, post initiatives, and connect with other actors on the platform. Verification as an organisation becomes available once you have your legal registration in place.",
+        q: "What happens after a partnership is agreed?",
+        a: "The partnership can move into milestone tracking and evidence submission. Agreed outcomes and supporting evidence can be recorded and reviewed over time.",
       },
       {
-        q: "Can I find a co-founder or technical partner on Natives?",
-        a: "Yes. Individual profiles are searchable by sector, expertise, and focus area, making you discoverable to other founders, NGOs, and organisations looking for specific capabilities.",
+        q: "Where can I see my partnerships?",
+        a: "Partnership activity and confirmed collaborations are accessible through your Natives account and relevant portfolio or partnership views.",
       },
     ],
   },
   {
-    section: "For Individuals & Creatives",
+    section: "For Organisations",
     items: [
       {
-        q: "Do I need an organisation to join Natives?",
-        a: "No. Individuals can join with a personal profile.",
+        q: "How can an NGO or social enterprise get discovered?",
+        a: "Complete your organisation profile, describe your work and capabilities, and create relevant initiatives. This gives potential partners information they can use when assessing your organisation and enables AI-assisted matching.",
       },
       {
-        q: "What can I do on the platform as an individual?",
-        a: "As a consultant, researcher, creative, or advocate, you can build a profile, post initiatives on the marketplace, express interest in initiatives posted by other organisations, and connect with organisations and funders looking for what you bring. Organisations can also find and reach out to you based on your profile.",
+        q: "How do I create an initiative?",
+        a: "You can create an initiative manually or use AI-assisted creation. Add information about the work, intended outcomes, sector, geography, budget, and the type of partnership or support you need.",
       },
       {
-        q: "How do I get discovered by organisations and funders?",
-        a: "Complete your profile with your sector focus, areas of expertise, and country. The more specific your profile, the easier it is for the right organisations to find you.",
+        q: "How does AI matching work for organisations?",
+        a: "Natives compares your organisation or initiative with available partner information and ranks potential matches based on relevant criteria such as mandate, geography, sector, stage, budget, and support requirements.",
+      },
+      {
+        q: "Can I show my organisation's track record?",
+        a: "Yes. Your profile and initiatives provide structured information about your organisation, programmes, capabilities, and work. Where relevant, this information can support partner assessment and AI-generated briefs.",
+      },
+      {
+        q: "Can community-based or smaller organisations join?",
+        a: "Yes. Organisations of different sizes and structures can participate. Verification and partner assessment are based on the information and documentation available for review.",
+      },
+      {
+        q: "Can founders, consultants, creatives, and researchers join?",
+        a: "Yes. Natives supports individuals and specialist organisations whose expertise, services, research, or capabilities are relevant to partnership opportunities.",
+      },
+      {
+        q: "Is Natives free for organisations?",
+        a: "Organisations can join on the Free plan. Paid plans provide additional AI-assisted matching, evaluation, outreach, and other capabilities.",
       },
     ],
   },
   {
-    section: "For Research Institutions",
+    section: "For Funders & Corporates",
     items: [
       {
-        q: "How does Natives help research institutions?",
-        a: "Natives connects research institutions to NGOs, corporates, and funders who can translate evidence into programme design, policy advocacy, and delivery. You can post research initiatives and find implementation partners directly.",
+        q: "How can funders find potential partners?",
+        a: "Funders can search the directory, explore initiatives, define funding criteria, and use AI-assisted matching to identify organisations and opportunities aligned with their mandate.",
       },
       {
-        q: "How does partner matching work for research institutions?",
-        a: "Verified research institutions can use the Get Matched feature to describe their partnership needs and have the AI match them against relevant organisations in the directory. You can also list publicly in the Partnerships directory and receive inbound expressions of interest.",
+        q: "How can corporates find CSR or ESG partners?",
+        a: "Corporates can define their priorities, geography, sectors, budget, frameworks, and preferred partner types, then use the directory and AI-assisted matching to identify relevant organisations and initiatives.",
+      },
+      {
+        q: "How can I assess a potential partner?",
+        a: "Natives brings together available organisational information, Verification Status, Due Diligence Readiness, supporting documentation, and relevant initiative information to support assessment.",
+      },
+      {
+        q: "What is an AI Deal Memo?",
+        a: "An AI Deal Memo structures information about a potential partnership or funding opportunity, including mandate alignment, available organisational information, delivery considerations, financial information where available, and potential risks. Users can review and edit the resulting brief.",
+      },
+      {
+        q: "What is Due Diligence Readiness?",
+        a: "Due Diligence Readiness indicates how prepared an organisation is for due diligence based on the information and documentation available on Natives. It does not represent completed due diligence.",
+      },
+      {
+        q: "Can I define a funding or CSR mandate?",
+        a: "Yes. You can specify criteria such as funding range, geography, sectors, stage, SDGs, partner types, and other relevant priorities.",
+      },
+      {
+        q: "Can I manage a partnership pipeline?",
+        a: "Yes. You can keep track of initiatives, expressions of interest, conversations, and confirmed partnerships through your Natives account.",
       },
     ],
   },
   {
-    section: "Trust & Verification",
+    section: "Trust, Verification & Data",
     items: [
       {
-        q: "How does verification work?",
-        a: "Verification is conducted by the Natives platform team. Organisations are assessed based on legal registration, delivery capacity, and operational credibility relevant to their type. The process typically takes a few business days from document submission.",
+        q: "What are the three layers of trust on Natives?",
+        a: "Natives separates three distinct areas: Verification Status confirms the organisation's identity and key organisational information. Due Diligence Readiness shows the organisation's readiness for due diligence, based on the information and documentation available on Natives. Impact Verification shows evidence supporting agreed outcomes, reviewed and tracked over time.",
       },
       {
-        q: "What does the verified badge mean?",
-        a: "A verified badge means the Natives team has reviewed your organisation's legal registration, programme delivery capacity, and operational credibility. It appears on your directory profile, initiative listings, expressions of interest, and partnership cards — signalling institutional credibility to potential partners before the first conversation.",
+        q: "What does the Verified badge mean?",
+        a: "A Verified badge means the organisation has completed Natives' verification process and its identity and key organisational information have been reviewed.",
       },
       {
-        q: "Who can verify an organisation?",
-        a: "Verification is currently handled by the Natives team. The long-term model will introduce trusted ecosystem partners and anchor institutions as verification partners.",
+        q: "Does a Verified badge mean the organisation has passed due diligence?",
+        a: "No. Verification and due diligence are separate. The Verified badge confirms the scope of Natives' verification process. Due Diligence Readiness indicates the information and documentation available for further assessment.",
       },
       {
-        q: "What if our circumstances change after verification?",
-        a: "Organisations can update their profiles and submit new supporting documentation at any time. Verification status may be reviewed periodically as the platform matures.",
-      },
-    ],
-  },
-  {
-    section: "Data & Privacy",
-    items: [
-      {
-        q: "Who can see my profile?",
-        a: "Your public profile — organisation name, description, sector, country, needs, offers, and SDG alignment — is visible to all logged-in users on the platform. Your investment thesis and mandate criteria (for funders and corporates) are private and used only for AI matching.",
+        q: "Does Due Diligence Readiness mean due diligence is complete?",
+        a: "No. It indicates the organisation's readiness for a due diligence process based on the information available on Natives.",
       },
       {
-        q: "Is my mandate or CSR criteria visible publicly?",
-        a: "No. Mandate criteria — grant range, stage preference, sector focus, ESG frameworks, and geographic priorities — are private. They are used for AI matching and brief generation but are never shown on your public profile.",
+        q: "What is Impact Verification?",
+        a: "Impact Verification records and reviews evidence supporting agreed milestones or outcomes during a partnership. It creates a traceable record of the work and evidence submitted over time.",
       },
       {
-        q: "Who sees my expressions of interest?",
-        a: "Expressions of interest are visible to the initiative owner only. They are not shown to other users on the platform.",
+        q: "Who conducts verification?",
+        a: "Verification is currently conducted through Natives' review process. Natives may work with trusted ecosystem partners as the verification system develops.",
       },
       {
-        q: "Can I control whether my partnership listing is public?",
-        a: "Yes. When using Get Matched, you can choose to list publicly in the Partnerships directory or run AI matching privately without appearing in the directory.",
+        q: "What happens if an organisation's information changes?",
+        a: "Organisations can update relevant information and documentation. Information may also be subject to further review when circumstances or partnership requirements change.",
+      },
+      {
+        q: "Who can see my information?",
+        a: "Some profile information is available to logged-in Natives users to support discovery and matching. Users control information submitted through private partnership activity, and access to specific partnership or assessment information depends on the relevant workflow and permissions.",
+      },
+      {
+        q: "Are partnership details public?",
+        a: "Partnership information can be managed according to the relevant visibility settings and workflow. Private discussions, expressions of interest, and sensitive assessment information are handled within the platform.",
+      },
+      {
+        q: "How does Natives protect user data?",
+        a: "Natives uses account controls, access permissions, and platform security measures to protect information submitted by users. Users should only provide information appropriate for the intended purpose and audience.",
       },
     ],
   },
