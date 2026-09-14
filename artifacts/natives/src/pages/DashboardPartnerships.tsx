@@ -94,7 +94,7 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave, mouExecuted }
 export default function DashboardPartnerships() {
   const { user, orgOwnerId } = useAuth();
   const autoOpenOrgId = new URLSearchParams(window.location.search).get("org");
-  const [orgs, setOrgs]                       = useState<OrgRow[]>([]);
+  const [orgs, setOrgs]                       = useState<(OrgRow & { listing_id: string })[]>([]);
   const [loading, setLoading]                 = useState(true);
   const [showModal, setShowModal]             = useState(false);
   const [search, setSearch]                   = useState("");
@@ -115,7 +115,7 @@ export default function DashboardPartnerships() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-  const [selectedOrg, setSelectedOrg]         = useState<OrgRow | null>(null);
+  const [selectedOrg, setSelectedOrg]         = useState<(OrgRow & { listing_id: string }) | null>(null);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const [deepLinkMissing, setDeepLinkMissing] = useState(false);
   // Which listed orgs have at least one direct-connection MoU fully executed.
@@ -127,30 +127,62 @@ export default function DashboardPartnerships() {
   useEffect(() => { if (user) loadAll(); }, [user]);
 
   async function loadAll() {
-    const uid = user?.id ?? null;
-    const { data } = await supabase.from("organizations")
-      .select("id,organisation_name,description,sector,country,organisation_type,website,email,needs,offers,sdgs,partnership_sought,partnership_title,verification_status,status,user_id,partnership_listed,partnership_formed,partnership_stage,partnership_duration,partnership_budget,partnership_decision_timeline,partnership_success_definition,partnership_funding_status,partnership_exclusivity,partnership_working_style,partnership_financial_transfer,partnership_reporting,partnership_ip_ownership,partnership_legal_type,partnership_team_capacity,partnership_contact_seniority,partnership_geo_specificity,partnership_theory_of_change,partnership_prior_attempts,partnership_constraints,partnership_dd_financial_model,partnership_dd_audited_accounts,partnership_dd_safeguarding_policy,partnership_dd_data_policy,partnership_dd_governance_doc,partnership_prior_experience,partnership_prior_experience_detail,partnership_physically_present,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,specializations,notable_engagements,affiliations")
-      .eq("status", "published").eq("partnership_listed", true).order("created_at", { ascending: false });
+    const { data: listingsData } = await supabase.from("partnership_listings")
+      .select("*").eq("status", "published").order("created_at", { ascending: false });
 
-    if (data) {
-      setOrgs(data as OrgRow[]);
-      const deepLinked = autoOpenOrgId ? (data as OrgRow[]).find(o => o.id === autoOpenOrgId) : null;
-      if (deepLinked) {
-        setSelectedOrg(deepLinked);
-      } else if (autoOpenOrgId) {
-        // A specific org was requested via ?org= but isn't published/partnership-listed right now.
-        // Don't silently substitute a different org — flag it instead.
-        setDeepLinkMissing(true);
-      } else if (data.length > 0) {
-        setSelectedOrg(data[0] as OrgRow);
-      }
+    if (!listingsData || listingsData.length === 0) { setOrgs([]); setLoading(false); return; }
 
-      const orgIds = (data as OrgRow[]).map(o => o.id);
-      if (orgIds.length > 0) {
-        const { data: executedIds } = await supabase
-          .rpc("get_mou_executed_org_ids", { org_ids: orgIds });
-        setMouExecutedOrgIds(new Set<string>(executedIds ?? []));
-      }
+    const userIds = [...new Set(listingsData.map(l => l.user_id))];
+    const { data: orgsData } = await supabase.from("organizations")
+      .select("id,user_id,organisation_name,description,organisation_type,website,email,verification_status,status,partnership_formed,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,specializations,notable_engagements,affiliations")
+      .in("user_id", userIds);
+
+    const orgByUserId = new Map((orgsData ?? []).map((o: any) => [o.user_id, o]));
+
+    // Merge: .id is the ORG's real id (unchanged meaning everywhere it's
+    // already used); listing_id is the new, listing-specific identity
+    // used for React keys, selection, and expressInterest's new param.
+    const merged: (OrgRow & { listing_id: string })[] = listingsData
+      .map((l: any) => {
+        const org = orgByUserId.get(l.user_id);
+        if (!org || org.status !== "published") return null;
+        return {
+          ...org,
+          listing_id: l.id,
+          partnership_listed: true,
+          sector: l.sector, country: l.country, needs: l.needs, offers: l.offers, sdgs: l.sdgs,
+          partnership_sought: l.sought, partnership_title: l.title,
+          partnership_stage: l.stage, partnership_duration: l.duration, partnership_budget: l.budget,
+          partnership_decision_timeline: l.decision_timeline, partnership_success_definition: l.success_definition,
+          partnership_funding_status: l.funding_status, partnership_exclusivity: l.exclusivity,
+          partnership_working_style: l.working_style, partnership_financial_transfer: l.financial_transfer,
+          partnership_reporting: l.reporting, partnership_ip_ownership: l.ip_ownership,
+          partnership_legal_type: l.legal_type, partnership_team_capacity: l.team_capacity,
+          partnership_contact_seniority: l.contact_seniority, partnership_geo_specificity: l.geo_specificity,
+          partnership_theory_of_change: l.theory_of_change, partnership_prior_attempts: l.prior_attempts,
+          partnership_constraints: l.constraints_note, partnership_prior_experience: l.prior_experience,
+          partnership_prior_experience_detail: l.prior_experience_detail, partnership_physically_present: l.physically_present,
+        } as OrgRow & { listing_id: string };
+      })
+      .filter((r): r is OrgRow & { listing_id: string } => r !== null);
+
+    setOrgs(merged);
+    const deepLinked = autoOpenOrgId ? merged.find(o => o.id === autoOpenOrgId) : null;
+    if (deepLinked) {
+      setSelectedOrg(deepLinked);
+    } else if (autoOpenOrgId) {
+      // A specific org was requested via ?org= but isn't published/partnership-listed right now.
+      // Don't silently substitute a different org — flag it instead.
+      setDeepLinkMissing(true);
+    } else if (merged.length > 0) {
+      setSelectedOrg(merged[0]);
+    }
+
+    const orgIds = [...new Set(merged.map(o => o.id))];
+    if (orgIds.length > 0) {
+      const { data: executedIds } = await supabase
+        .rpc("get_mou_executed_org_ids", { org_ids: orgIds });
+      setMouExecutedOrgIds(new Set<string>(executedIds ?? []));
     }
     setLoading(false);
   }
@@ -357,9 +389,9 @@ export default function DashboardPartnerships() {
         ) : (
           <div className="flex min-h-0 overflow-hidden" style={{ flex: 1 }}>            {/* Left list */}
             <div className={`w-full lg:w-72 xl:w-80 shrink-0 overflow-y-auto border-r-2 border-border bg-muted/40 ${mobileDetailOpen ? "hidden lg:block" : "block"}`}>
-              {filtered.map(org => (
-                <ListCard key={org.id} org={org}
-                  selected={selectedOrg?.id === org.id}
+              {filtered.map((org: any) => (
+                <ListCard key={org.listing_id} org={org}
+                  selected={selectedOrg?.listing_id === org.listing_id}
                   onClick={() => { setSelectedOrg(org); setMobileDetailOpen(true); }}
                   isSaved={savedOrgs.has(org.id)}
                   onToggleSave={e => toggleSave(org.id, e)}
@@ -377,7 +409,7 @@ export default function DashboardPartnerships() {
                 isOrg={!!user}
                 alreadySent={selectedOrg ? sentInterests.has(selectedOrg.id) : false}
                 sending={selectedOrg ? sendingInterest === selectedOrg.id : false}
-                onExpressInterest={e => selectedOrg && expressInterest(selectedOrg, e)}
+                onExpressInterest={e => selectedOrg && expressInterest(selectedOrg, e, selectedOrg.listing_id)}
                 onBack={() => setMobileDetailOpen(false)}
                 viewerOrg={viewerOrg}
                 viewerOrgLoading={viewerOrgLoading}                

@@ -71,7 +71,12 @@ export function useOrgActions(orgOwnerId: string | null | undefined, actorUserId
     }
   }
 
-  async function expressInterest(org: OrgRow, e: React.MouseEvent) {
+  // listingId: optional -- which SPECIFIC listing this interest is about,
+  // now that an org can have several. Existing callers that don't pass it
+  // (pre-multi-listing call sites not yet updated) keep working exactly as
+  // before; receiver_listing_id just stays null for those, same as it did
+  // for every connection before this column existed.
+  async function expressInterest(org: OrgRow, e: React.MouseEvent, listingId?: string | null) {
     e.stopPropagation();
     if (!orgOwnerId || !actorUserId || sentInterests.has(org.id) || org.partnership_formed) return;
     let senderOrgId = currentUserOrgId;
@@ -91,6 +96,7 @@ export function useOrgActions(orgOwnerId: string | null | undefined, actorUserId
       // sender_org_id is null for individuals expressing interest.
       const { data: inserted, error } = await supabase.from("partnership_connections").insert({
         sender_org_id: senderOrgId, receiver_org_id: org.id,
+        receiver_listing_id: listingId ?? null,
         sender_user_id: actorUserId, source: "browse", status: "pending",
       }).select("id").single();
       if (error && !error.message.includes("unique")) throw error;
