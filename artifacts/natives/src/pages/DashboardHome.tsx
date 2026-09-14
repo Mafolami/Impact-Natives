@@ -10,6 +10,7 @@ import CorporateHome from "./DashboardCorporateHome";
 import { Button } from "@/components/ui/button";
 import CreateInitiativeModal from "@/components/platform/CreateInitiativeModal";
 import ImplementerMatches from "@/components/platform/ImplementerMatches";
+import InitiativeMatchesForImplementer from "@/components/platform/InitiativeMatchesForImplementer";
 
 // ---------------------------------------------------------------------------
 // Hooks
@@ -532,7 +533,10 @@ export default function DashboardHome() {
 
         {/* AI-matched partners -- primary AI feature for implementers.
             Free-tier orgs see an upgrade prompt instead of real matches. */}
-        <ImplementerMatches orgId={orgId} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <InitiativeMatchesForImplementer orgId={orgId} />
+          <ImplementerMatches orgId={orgId} />
+        </div>
 
         {/* Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap">

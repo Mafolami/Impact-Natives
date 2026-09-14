@@ -5,40 +5,22 @@
 // v7: subscription_tier gate added, same reasoning as v23 of
 // refresh-initiative-matches (the interactive sibling) and v9 of
 // refresh-partnership-matches-for-org (the equivalent worker on the
-// partnership side). Skipping here also means the nightly sweep never
-// spends a Groq call scoring initiatives for a Free-tier org at all.
+// partnership side).
 //
-// v6: flagged_visibility_hold, both directions. (a) Self-exclusion: if the
-// funder/corporate org this worker computes matches FOR is itself under a
-// "Serious"-severity admin hold, skip entirely -- mirrors v8 of
-// refresh-partnership-matches-for-org. (b) Candidate-exclusion: initiatives
-// submitted by a held org are dropped from the published pool before
-// scoring -- a held implementer shouldn't be recommended to funders/
-// corporates as a candidate while under review, mirrors v32 of
-// match-orgs-for-partnership. match-initiatives-to-funder itself never
-// touches the DB (mandate/initiatives arrive as plain JSON from whichever
-// caller invoked it), so both checks have to live here, not there.
+// v6: flagged_visibility_hold, both directions.
 //
 // v5: CRITERIA_VERSION moved out of a local hardcoded constant into the
-// `criteria_versions` table (match_type='initiative') -- see
-// refresh-initiative-matches v20 for the full reasoning. This function's
-// copy of the constant had already drifted from the other two once
-// (stuck at 5 while refresh-initiative-matches moved to 6); reading from
-// one shared table removes that failure mode entirely.
+// `criteria_versions` table (match_type='initiative').
 //
-// v4: mirrors refresh-initiative-matches v19 -- mandate_sectors legacy
-// fallback fix (parseLegacySector) + batch retry on transient failure.
+// v4: mirrors refresh-initiative-matches v19.
 //
 // Exists so each org's matching work gets its OWN full edge-function
 // execution-time budget, rather than sharing one budget across several
 // orgs processed in a single invocation.
 //
-// v3: mirrors refresh-initiative-matches v14-v16 -- open_to_remote_partnerships
-// and csr_focus_statement now flow into the mandate/initiative data used
-// for scoring, and minScore is no longer a cache-write filter.
+// v3: mirrors refresh-initiative-matches v14-v16.
 //
-// v2: STOP FULL-CACHE CHURN. Only initiatives NOT YET in this org's cache
-// get scored.
+// v2: STOP FULL-CACHE CHURN.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -52,7 +34,6 @@ const CORS_HEADERS = {
 };
 
 const CACHE_TTL_HOURS = 12;
-// Fallback only -- real value read from criteria_versions at request time.
 const CRITERIA_VERSION_FALLBACK = 6;
 const BATCH_SIZE = 15;
 const FETCH_SAFETY_CAP = 300;
@@ -93,7 +74,7 @@ function parseLegacySector(raw: string | null | undefined): string[] {
   }
 }
 
-function buildMandate(org: any, isFunder: boolean): any {
+function buildMandate(org: any, isFunder: boolean, isCorporate: boolean): any {
   if (isFunder) {
     return {
       org_type: org.organisation_type,
@@ -108,24 +89,30 @@ function buildMandate(org: any, isFunder: boolean): any {
       mandate_sdgs: org.mandate_sdgs,
     };
   }
-  return {
-    org_type: org.organisation_type,
-    investment_thesis: org.esg_frameworks?.length
-      ? `ESG-aligned corporate seeking implementation partners across: ${org.esg_frameworks.join(", ")}`
-      : "Corporate seeking ESG and CSR implementation partners",
-    funding_instruments: ["partnership", "csr_funding"],
-    grant_currency: "NGN",
-    grant_range_min: null,
-    grant_range_max: null,
-    stage_preference: ["pilot", "growth", "scale"],
-    geographic_focus: org.geographic_focus ?? (org.country ? [org.country] : ["Nigeria"]),
-    mandate_sectors: org.mandate_sectors ?? parseLegacySector(org.sector),
-    mandate_sdgs: org.mandate_sdgs ?? [],
-    esg_frameworks: org.esg_frameworks,
-    csr_focus_statement: org.csr_focus_statement,
-    csr_budget_range: org.csr_budget_range,
-    partnership_types: ESG_PARTNERSHIP_TYPES,
-  };
+  if (isCorporate) {
+    return {
+      org_type: org.organisation_type,
+      investment_thesis: org.esg_frameworks?.length
+        ? `ESG-aligned corporate seeking implementation partners across: ${org.esg_frameworks.join(", ")}`
+        : "Corporate seeking ESG and CSR implementation partners",
+      funding_instruments: ["partnership", "csr_funding"],
+      grant_currency: "NGN",
+      grant_range_min: null,
+      grant_range_max: null,
+      stage_preference: ["pilot", "growth", "scale"],
+      geographic_focus: org.geographic_focus ?? (org.country ? [org.country] : ["Nigeria"]),
+      mandate_sectors: org.mandate_sectors ?? parseLegacySector(org.sector),
+      mandate_sdgs: org.mandate_sdgs ?? [],
+      esg_frameworks: org.esg_frameworks,
+      csr_focus_statement: org.csr_focus_statement,
+      csr_budget_range: org.csr_budget_range,
+      partnership_types: ESG_PARTNERSHIP_TYPES,
+    };
+  }
+  // Implementer: no synthetic mandate -- match-initiatives-for-implementer
+  // takes the org's own profile directly, same convention as
+  // match-orgs-for-partnership's submitting_org.
+  return org;
 }
 
 Deno.serve(async (req: Request) => {
@@ -156,11 +143,7 @@ Deno.serve(async (req: Request) => {
 
     const isFunder = FUNDER_TYPES.includes(org.organisation_type);
     const isCorporate = CORPORATE_TYPES.includes(org.organisation_type);
-    if (!isFunder && !isCorporate) {
-      return new Response(JSON.stringify({ error: "org_type_not_supported" }), {
-        status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
-      });
-    }
+    const isImplementer = !isFunder && !isCorporate;
 
     if (org.flagged_visibility_hold) {
       return new Response(JSON.stringify({ org_id, error: "flagged_visibility_hold" }), {
@@ -168,16 +151,13 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // AI-powered initiative matching is a Plus+ feature (see billing
-    // scoping notes). Skip before any AI compute -- this is the cron path,
-    // so this also means Free-tier orgs never cost a Groq call here at all.
     if (org.subscription_tier === "free") {
       return new Response(JSON.stringify({ org_id, skipped: "requires_upgrade" }), {
         status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
       });
     }
 
-    const mandate = buildMandate(org, isFunder);
+    const mandate = buildMandate(org, isFunder, isCorporate);
 
     const { data: existingCache } = await serviceClient
       .from("initiative_match_cache")
@@ -228,12 +208,15 @@ Deno.serve(async (req: Request) => {
       return rows.map((i: any) => ({ ...i, dd_readiness_score: ddMap.get(i.user_id) ?? 0 }));
     }
 
+    const scoringEndpoint = isImplementer ? "match-initiatives-for-implementer" : "match-initiatives-to-funder";
+    const scoringBodyKey = isImplementer ? "submitting_org" : "mandate";
+
     async function attemptBatch(batchInitiatives: any[], b: number, totalBatches: number, attempt: number): Promise<any[]> {
       try {
-        const matchRes = await fetch(`${SUPABASE_URL}/functions/v1/match-initiatives-to-funder`, {
+        const matchRes = await fetch(`${SUPABASE_URL}/functions/v1/${scoringEndpoint}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mandate, initiatives: batchInitiatives }),
+          body: JSON.stringify({ [scoringBodyKey]: mandate, initiatives: batchInitiatives }),
         });
         if (!matchRes.ok) {
           const errText = await matchRes.text();

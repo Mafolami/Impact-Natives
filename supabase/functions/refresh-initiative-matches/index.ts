@@ -11,79 +11,26 @@
 //
 // v22: org lookup now goes through resolve_org_owner_id() instead of
 // user.id directly -- same fix, same reasoning as
-// refresh-partnership-matches v16. Previously looked up organizations by
-// the caller's own auth id, correct for an Owner but a guaranteed 404 for
-// an active Team Member (their own id has no organizations row; their
-// Owner's does). No Members exist in production yet so this hadn't
-// fired, but it would have broken the moment Team invites went live.
+// refresh-partnership-matches v16.
 //
-// v21: flagged_visibility_hold, both directions -- mirrors v6 of
-// refresh-initiative-matches-for-org exactly (self-exclusion for the
-// caller's own org if held, candidate-exclusion of initiatives submitted
-// by a held org from the published pool). Held-org lookup uses
-// serviceClient rather than callerClient to avoid any RLS uncertainty on
-// an authenticated non-admin session reading organizations.
+// v21: flagged_visibility_hold, both directions.
 //
 // v20: CRITERIA_VERSION moved out of a local hardcoded constant into the
 // `criteria_versions` table (match_type='initiative'), read once per
-// request. Three files independently hardcoded this same number
-// (refresh-initiative-matches, refresh-initiative-matches-for-org,
-// sweep-stale-initiative-matches) and had already silently drifted apart
-// once -- the sweep's copy was stuck at 3 while the other two had moved to
-// 5 then 6, causing the sweep to treat every org's cache as permanently
-// schema-stale. A single DB-backed source of truth makes that class of
-// drift structurally impossible: change the row once, every consumer
-// picks it up on its next request, no redeploy-and-hope-you-got-all-three
-// required. Falls back to the last-known value (6) if the table read ever
-// fails, so a transient DB hiccup degrades to "maybe one unnecessary
-// rescore" rather than breaking matching outright.
+// request.
 //
-// v19: TWO FIXES.
-// (a) mandate_sectors legacy fallback was doing `[org.sector]` where
-// org.sector is a JSON-stringified TEXT column (e.g. the literal string
-// '["Health"]'), not a real array. Wrapping that string in an array
-// produced mandate_sectors = ['["Health"]'] -- a single garbage string
-// containing literal brackets and quotes, not ["Health"]. This corrupted
-// sector_fit judgments for every corporate org relying on the legacy
-// `sector` column instead of `mandate_sectors`. Now parsed properly via
-// parseLegacySector(), which JSON.parses the column and falls back to
-// treating it as a plain string only if parsing fails.
-// (b) scoreInitiatives silently dropped an entire batch (up to
-// BATCH_SIZE=15 initiatives) on any transient failure -- a timeout, rate
-// limit, or malformed model response returned [] with no retry, degrading
-// the visible match count with no recovery attempt and no signal beyond a
-// server log. Now retries a failed batch once before giving up.
+// v19: mandate_sectors legacy fallback fix + batch retry on transient
+// failure.
 //
-// v17: CRITERIA_VERSION bumped 4 -> 5. The csr_focus_statement fix (below,
-// v15) shipped in the same v4 cache generation as the deterministic-scoring
-// change (also v4) -- no version bump happened between them, so caches
-// already on v4 had no way to signal whether they predated the prompt fix
-// or postdated it. Confirmed live: an org whose CSR focus statement read
-// "climate resilience" still showed esg_fit: no_match on a climate
-// initiative, because its cache was written before the fix reached the
-// actual prompt, and the v16 churn-protection fix correctly (if
-// unhelpfully, here) left it untouched since nothing about its age or
-// version looked stale. This bump is the only way to force everyone
-// through one clean recompute under the corrected prompt.
+// v17: CRITERIA_VERSION bumped 4 -> 5.
 //
-// v16: minScore is no longer a cache-write filter. Previously anything
-// scoring below minScore (35 corporate / 40 funder) was thrown away before
-// it ever reached the cache -- a genuinely promising early-stage
-// initiative that's simply light on formal diligence got the exact same
-// treatment as a real mismatch: invisible. Now every scored initiative is
-// cached (still capped at MAX_CACHED_MATCHES, still ranked by score).
-// minScore is returned in the response as min_score so callers can group
-// into "strong" vs "other" for display -- it's a label now, not a gate.
+// v16: minScore is no longer a cache-write filter.
 //
 // v15: csr_focus_statement now included in the corporate mandate object.
 //
-// v14: STOP FULL-CACHE CHURN. Only initiatives NOT YET in this org's cache
-// get scored. Existing cached rows are carried over byte-for-byte unless a
-// genuine full recompute is warranted (cache TTL expired, criteria_version
-// bumped, or cache empty).
+// v14: STOP FULL-CACHE CHURN.
 //
-// v11: PAGINATED FETCH. Fetches ALL published initiatives (capped at
-// FETCH_SAFETY_CAP).
+// v11: PAGINATED FETCH.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -99,9 +46,6 @@ const CORS_HEADERS = {
 
 const CACHE_TTL_HOURS = 12;
 const MAX_CACHED_MATCHES = 30;
-// Fallback only -- the real value is read from criteria_versions at
-// request time. Kept in sync manually as a safety net for the rare case
-// the table read fails; not the source of truth.
 const CRITERIA_VERSION_FALLBACK = 6;
 const BATCH_SIZE = 15;
 const FETCH_SAFETY_CAP = 300;
@@ -141,16 +85,22 @@ function parseLegacySector(raw: string | null | undefined): string[] {
   }
 }
 
-async function scoreInitiatives(mandate: any, initiatives: any[]): Promise<any[]> {
+// engine: "funder" calls the existing funder/corporate-specific scorer
+// unchanged; "implementer" calls the new generic five-criteria scorer
+// (match-initiatives-for-implementer), which takes submitting_org directly
+// rather than a synthetic funder-style mandate object.
+async function scoreInitiatives(mandateOrOrg: any, initiatives: any[], engine: "funder" | "implementer" = "funder"): Promise<any[]> {
   if (initiatives.length === 0) return [];
   const batches = chunk(initiatives, BATCH_SIZE);
+  const endpoint = engine === "implementer" ? "match-initiatives-for-implementer" : "match-initiatives-to-funder";
+  const bodyKey = engine === "implementer" ? "submitting_org" : "mandate";
 
   async function attemptBatch(batchInitiatives: any[], b: number, attempt: number): Promise<any[]> {
     try {
-      const matchRes = await fetch(`${SUPABASE_URL}/functions/v1/match-initiatives-to-funder`, {
+      const matchRes = await fetch(`${SUPABASE_URL}/functions/v1/${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mandate, initiatives: batchInitiatives }),
+        body: JSON.stringify({ [bodyKey]: mandateOrOrg, initiatives: batchInitiatives }),
       });
       if (!matchRes.ok) {
         const errText = await matchRes.text();
@@ -197,8 +147,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Owner -> own id. Active Member -> their Owner's id. Neither -> own id
-    // (fallback, matches the client-side resolveOrgOwnerId() default).
     const { data: ownerId, error: ownerIdError } = await callerClient.rpc("resolve_org_owner_id");
     if (ownerIdError || !ownerId) {
       console.error(`[refresh-initiative-matches] resolve_org_owner_id failed for user ${user.id}: ${ownerIdError?.message}`);
@@ -222,11 +170,11 @@ Deno.serve(async (req: Request) => {
     const orgTypeForGate = org.organisation_type;
     const isFunder = FUNDER_TYPES.includes(orgTypeForGate);
     const isCorporate = CORPORATE_TYPES.includes(orgTypeForGate);
-    if (!isFunder && !isCorporate) {
-      return new Response(JSON.stringify({ eligible: false, reason: "org_type_not_supported" }), {
-        status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
-      });
-    }
+    // Implementer = anything else (NGOs, social enterprises, startups).
+    // Peer-to-peer initiative discovery uses a different scoring engine
+    // (see scoreInitiatives' engine param) since match-initiatives-to-funder
+    // has no equivalent for a viewer with no grant range or CSR budget.
+    const isImplementer = !isFunder && !isCorporate;
 
     if (org.flagged_visibility_hold) {
       return new Response(JSON.stringify({ eligible: false, reason: "flagged_visibility_hold" }), {
@@ -234,11 +182,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // AI-powered initiative matching is a Plus+ feature (see billing
-    // scoping notes) -- same gate, same reasoning as v17 of
-    // refresh-partnership-matches. Applied here too since this is a
-    // separate pipeline (match-initiatives-to-funder, not
-    // match-orgs-for-partnership) that wasn't covered by that earlier fix.
     if (org.subscription_tier === "free") {
       return new Response(JSON.stringify({ eligible: false, reason: "requires_upgrade", required_tier: "plus" }), {
         status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
@@ -278,7 +221,7 @@ Deno.serve(async (req: Request) => {
         mandate_sectors: org.mandate_sectors,
         mandate_sdgs: org.mandate_sdgs,
       };
-    } else {
+    } else if (isCorporate) {
       minScore = 35;
       selectCols = "id,title,sectors,locations,status,created_at,problem,outcome,budget,esg_alignment,specific_ask,stage,sdg_tags,submitter_org,user_id,open_to_remote_partnerships";
       mandate = {
@@ -299,6 +242,14 @@ Deno.serve(async (req: Request) => {
         csr_budget_range: org.csr_budget_range,
         partnership_types: ESG_PARTNERSHIP_TYPES,
       };
+    } else {
+      // Implementer: no synthetic mandate object -- match-initiatives-for-
+      // implementer takes the org's own profile fields directly (same
+      // convention as match-orgs-for-partnership's submitting_org), since
+      // there's no grant range or CSR budget to translate into one.
+      minScore = 45;
+      selectCols = "id,title,sectors,locations,status,created_at,problem,outcome,specific_ask,stage,sdg_tags,target_population,submitter_org,user_id,open_to_remote_partnerships";
+      mandate = org;
     }
 
     const { data: heldOrgs } = await serviceClient
@@ -332,7 +283,7 @@ Deno.serve(async (req: Request) => {
 
     if (isFullStale) {
       initiatives = await fetchPublished(q => q);
-      if (!isFunder && initiatives) {
+      if (isCorporate && initiatives) {
         initiatives = [...initiatives].sort((a: any, b: any) => {
           if (a.esg_alignment && !b.esg_alignment) return -1;
           if (!a.esg_alignment && b.esg_alignment) return 1;
@@ -347,7 +298,7 @@ Deno.serve(async (req: Request) => {
       }
 
       initiatives = await attachDD(initiatives);
-      const allRanked = await scoreInitiatives(mandate, initiatives);
+      const allRanked = await scoreInitiatives(mandate, initiatives, isImplementer ? "implementer" : "funder");
       const anyBatchSucceeded = allRanked.length > 0;
 
       if (!anyBatchSucceeded) {
@@ -402,7 +353,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const missingWithDD = await attachDD(missing);
-    const freshlyRanked = await scoreInitiatives(mandate, missingWithDD);
+    const freshlyRanked = await scoreInitiatives(mandate, missingWithDD, isImplementer ? "implementer" : "funder");
     const now = new Date().toISOString();
     const newRows = freshlyRanked
       .map((r: any) => ({
