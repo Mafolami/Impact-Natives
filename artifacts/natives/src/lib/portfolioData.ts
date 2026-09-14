@@ -74,7 +74,7 @@ export interface PortfolioRow {
     // submitted_by_user_id).
     | { kind: "initiative_eoi"; initiativeId: string; eoiId: string; conversationId: string | null; partnerUserId: string; partnerActorUserId: string | null }
     | { kind: "partnership_connection"; connectionId: string; orgId: string | null }
-    | { kind: "partnership_listing"; orgId: string };
+    | { kind: "partnership_listing"; orgId: string; listingId?: string };
 }
 
 // ── Label maps ──────────────────────────────────────────────────────────
@@ -252,7 +252,7 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
   // concurrently instead of strictly sequentially. This was the main cause
   // of slow loads: several genuinely independent query chains were running
   // one after another with no real data dependency forcing that order.
-  const [{ data: myOrg }, { data: myInitiatives }, { data: myEois }] = await Promise.all([
+  const [{ data: myOrg }, { data: myInitiatives }, { data: myEois }, { data: myListings }] = await Promise.all([
     supabase
       .from("organizations")
       .select("id, organisation_name, partnership_sought, partnership_title, partnership_listed, partnership_formed, needs, email, updated_at")
@@ -267,6 +267,14 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
       .from("expressions_of_interest")
       .select("id, initiative_id, partnership_type, created_at, conversation_id")
       .eq("user_id", orgOwnerId),
+    // One row per listing now, not the single legacy organizations
+    // columns -- an org with several listings needs several "Mine" rows,
+    // not one that only ever shows whichever was saved most recently.
+    supabase
+      .from("partnership_listings")
+      .select("id, title, sought, status, created_at")
+      .eq("user_id", orgOwnerId)
+      .eq("status", "published"),
   ]);
 
   const myOrgName = myOrg?.organisation_name ?? "You";
@@ -437,12 +445,34 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
       : { data: [] };
     const counterpartMap = new Map((counterpartOrgs ?? []).map(o => [o.id, o]));
 
+    // Which SPECIFIC listing each connection was actually about, using
+    // receiver_listing_id (Batch 1) -- without this, every connection's
+    // row showed whichever listing the counterpart happened to save MOST
+    // RECENTLY, which can be a completely different, unrelated listing
+    // from the one this specific relationship was ever about. Falls back
+    // to the counterpart's dual-written partnership_sought (already
+    // fetched above) for older connections made before this column
+    // existed.
+    const listingIds = [
+      ...(sent ?? []).map((c: any) => c.receiver_listing_id),
+      ...(received ?? []).map((c: any) => c.receiver_listing_id),
+    ].filter(Boolean);
+    const { data: connListings } = listingIds.length
+      ? await supabase.from("partnership_listings").select("id, title, sought").in("id", [...new Set(listingIds)])
+      : { data: [] };
+    const listingMap = new Map((connListings ?? []).map((l: any) => [l.id, l]));
+    function resolveConnectionTitle(conn: any, fallbackOrg: any): string {
+      const listing = conn.receiver_listing_id ? listingMap.get(conn.receiver_listing_id) : null;
+      if (listing?.sought) return listing.sought;
+      return resolvePartnershipTitle(fallbackOrg, conn.partnership_title ?? listing?.title);
+    }
+
     for (const conn of sent ?? []) {
       const counterpart = counterpartMap.get(conn.receiver_org_id);
       const status = conn.mou_executed_at ? "MoU Executed" : (PARTNERSHIP_STATUS_MAP[conn.status] ?? conn.status);
       rows.push({
         id: `partner-out-${conn.id}`,
-        title: resolvePartnershipTitle(counterpart, conn.partnership_title),
+        title: resolveConnectionTitle(conn, counterpart),
         titleHref: counterpart ? `/dashboard/portfolio/exchanges/partner/${counterpart.id}` : null,
         organisation: counterpart?.organisation_name ?? "Unknown",
         organisationHref: counterpart?.user_id ? `/dashboard/natives?tab=organisation&user=${counterpart.user_id}` : null,
@@ -463,9 +493,7 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
     for (const conn of received ?? []) {
       const counterpart = counterpartMap.get(conn.sender_org_id);
       const status = conn.mou_executed_at ? "MoU Executed" : (PARTNERSHIP_STATUS_MAP[conn.status] ?? conn.status);
-      const title = myOrg.partnership_sought
-        ? resolvePartnershipTitle(myOrg, myOrg.partnership_title)
-        : resolvePartnershipTitle(counterpart, conn.partnership_title);
+      const title = resolveConnectionTitle(conn, myOrg.partnership_sought ? myOrg : counterpart);
       rows.push({
         id: `partner-in-${conn.id}`,
         title,
@@ -486,9 +514,36 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
       });
     }
 
-    // ── 5. My own partnership listing ("Mine") ─────────────────────────────
-    if (myOrg.partnership_listed || myOrg.partnership_sought) {
-      const pendingInboundCount = (received ?? []).filter((c: any) => c.status === "pending").length;
+    // ── 5. My own partnership listings ("Mine") ────────────────────────────
+    // One row per listing now, not a single row for the whole org -- an
+    // org with 3 published listings needs 3 "Mine" rows, each linking to
+    // its own detail view, not 1 row that only ever reflected whichever
+    // listing happened to be saved most recently.
+    const pendingInboundCount = (received ?? []).filter((c: any) => c.status === "pending").length;
+    for (const listing of myListings ?? []) {
+      rows.push({
+        id: `partner-mine-${listing.id}`,
+        title: listing.sought || listing.title || "Partnership inquiry",
+        titleHref: `/dashboard/portfolio/exchanges/partner/${myOrg.id}?listing=${listing.id}`,
+        organisation: myOrgName,
+        organisationHref: myProfileHref,
+        type: "Partnership",
+        supportType: null,
+        direction: "Mine",
+        eoiCount: pendingInboundCount,
+        contactEmail: null,
+        contactPhone: null,
+        status: myOrg.partnership_formed ? "Partnership formed" : "Listed",
+        date: listing.created_at,
+        outcome: null,
+        timeline: [{ label: "Listed", date: listing.created_at }],
+        raw: { kind: "partnership_listing", orgId: myOrg.id, listingId: listing.id },
+      });
+    }
+    // Legacy fallback: an org that somehow has no row in partnership_listings
+    // yet (shouldn't happen post-Batch-1 migration, but cheap insurance)
+    // but does have the old single-listing columns populated.
+    if ((myListings ?? []).length === 0 && (myOrg.partnership_listed || myOrg.partnership_sought)) {
       rows.push({
         id: `partner-mine-${myOrg.id}`,
         title: resolvePartnershipTitle(myOrg, myOrg.partnership_title),
