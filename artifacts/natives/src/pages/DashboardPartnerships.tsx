@@ -121,7 +121,12 @@ export default function DashboardPartnerships() {
   // Which listed orgs have at least one direct-connection MoU fully executed.
   // This lives on partnership_connections (per relationship), not on the
   // org row itself, so it's a separate lookup rather than a selected column.
-  const [mouExecutedOrgIds, setMouExecutedOrgIds] = useState<Set<string>>(new Set());
+  // Renamed from mouExecutedOrgIds -- now tracks which specific LISTING
+  // has an executed MoU, not which org. An org-level check made the
+  // badge show on every one of an org's listing cards once ANY one of
+  // them had an executed MoU, which is wrong now that one org can have
+  // several distinct listings.
+  const [mouExecutedListingIds, setMouExecutedListingIds] = useState<Set<string>>(new Set());
   const { viewerOrg, viewerOrgLoading, savedOrgs, sentInterests, sendingInterest, toggleSave, expressInterest } = useOrgActions(orgOwnerId, user?.id);
 
   useEffect(() => { if (user) loadAll(); }, [user]);
@@ -181,8 +186,8 @@ export default function DashboardPartnerships() {
     const orgIds = [...new Set(merged.map(o => o.id))];
     if (orgIds.length > 0) {
       const { data: executedIds } = await supabase
-        .rpc("get_mou_executed_org_ids", { org_ids: orgIds });
-      setMouExecutedOrgIds(new Set<string>(executedIds ?? []));
+        .rpc("get_mou_executed_listing_ids", { org_ids: orgIds });
+      setMouExecutedListingIds(new Set<string>(executedIds ?? []));
     }
     setLoading(false);
   }
@@ -395,7 +400,7 @@ export default function DashboardPartnerships() {
                   onClick={() => { setSelectedOrg(org); setMobileDetailOpen(true); }}
                   isSaved={savedOrgs.has(org.id)}
                   onToggleSave={e => toggleSave(org.id, e)}
-                  mouExecuted={mouExecutedOrgIds.has(org.id)}
+                  mouExecuted={mouExecutedListingIds.has(org.listing_id)}
                 />
               ))}
             </div>
@@ -413,7 +418,7 @@ export default function DashboardPartnerships() {
                 onBack={() => setMobileDetailOpen(false)}
                 viewerOrg={viewerOrg}
                 viewerOrgLoading={viewerOrgLoading}                
-                mouExecuted={selectedOrg ? mouExecutedOrgIds.has(selectedOrg.id) : false}
+                mouExecuted={selectedOrg ? mouExecutedListingIds.has(selectedOrg.listing_id) : false}
               />
             </div>
           </div>
