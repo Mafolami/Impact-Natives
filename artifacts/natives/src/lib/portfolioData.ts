@@ -427,10 +427,10 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
     if (!myOrg?.id) return;
     const [{ data: sent }, { data: received }] = await Promise.all([
       supabase.from("partnership_connections")
-        .select("id, receiver_org_id, status, partnership_type, partnership_title, created_at, updated_at, accepted_at, formed_at, declined_at, mou_executed_at")
+        .select("id, receiver_org_id, receiver_listing_id, status, partnership_type, partnership_title, created_at, updated_at, accepted_at, formed_at, declined_at, mou_executed_at")
         .eq("sender_org_id", myOrg.id),
       supabase.from("partnership_connections")
-        .select("id, sender_org_id, status, partnership_type, partnership_title, created_at, updated_at, accepted_at, formed_at, declined_at, mou_executed_at")
+        .select("id, sender_org_id, receiver_listing_id, status, partnership_type, partnership_title, created_at, updated_at, accepted_at, formed_at, declined_at, mou_executed_at")
         .eq("receiver_org_id", myOrg.id),
     ]);
 
