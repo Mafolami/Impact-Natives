@@ -17,6 +17,28 @@ import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 import { normalizeArr } from "@/lib/normalizeArr";
 
 const RATE_LIMIT_ENABLED = false;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+
+// Draft persistence -- previously nonexistent. The org-load effect below
+// unconditionally reset the form to EMPTY_FORM on every modal open with
+// no attempt to check for in-progress work first, so leaving mid-fill and
+// coming back lost everything. Keyed per-user so it can't leak between
+// accounts sharing a browser; only ever holds the NEW-listing draft (not
+// used in editMode, which has its own prefill-from-existing-listing path).
+type DraftShape = { form: PrefillData; partnershipTitle: string; freeText: string; listPublicly: boolean; formStep: number };
+function draftKey(userId: string) { return `getMatchedDraft:${userId}`; }
+function readDraft(userId: string): DraftShape | null {
+  try {
+    const raw = localStorage.getItem(draftKey(userId));
+    return raw ? JSON.parse(raw) as DraftShape : null;
+  } catch { return null; }
+}
+function writeDraft(userId: string, draft: DraftShape) {
+  try { localStorage.setItem(draftKey(userId), JSON.stringify(draft)); } catch { /* storage unavailable/full -- non-critical, just skip persisting this tick */ }
+}
+function clearDraft(userId: string) {
+  try { localStorage.removeItem(draftKey(userId)); } catch { /* nothing to clean up if this fails */ }
+}
 
 const NEEDS_OPTIONS = [
   "Funding","Technical assistance","Research capacity","Field access",
@@ -438,7 +460,7 @@ export function FindPartnerModalDashboard({
   const [,navigate]=useLocation();
   const {user}=useAuth();
   const [formStep,setFormStep]=useState(0);
-  const [appState,setAppState]=useState<"form"|"matching"|"results"|"no_org"|"requires_upgrade"|"rate_limited"|"new_request_prompt">("form");
+  const [appState,setAppState]=useState<"form"|"matching"|"results"|"no_org"|"listed_free"|"rate_limited"|"new_request_prompt">("form");
   const [freeText,setFreeText]=useState("");
   const [partnershipTitle,setPartnershipTitle]=useState("");
   const [prefilling,setPrefilling]=useState(false);
@@ -544,6 +566,15 @@ export function FindPartnerModalDashboard({
         fdd_esg_framework:data.fdd_esg_framework??false,
         fdd_legal_registration:data.fdd_legal_registration??false,
       });
+      if(!editMode){
+        const draft=readDraft(user!.id);
+        if(draft){
+          setForm(draft.form);setPartnershipTitle(draft.partnershipTitle);
+          setFreeText(draft.freeText);setListPublicly(draft.listPublicly);
+          setFormStep(draft.formStep);
+          return;
+        }
+      }
       if(!editMode&&data.partnership_formed){setAppState("new_request_prompt");return;}
       if(RATE_LIMIT_ENABLED){
         const cutoff=new Date(Date.now()-7*60*60*1000).toISOString();
@@ -589,6 +620,17 @@ export function FindPartnerModalDashboard({
     loadOrg();
   },[user,isOpen]);
 
+  // Autosave -- writes the draft on every change while actively on the
+  // form (not editMode, which edits a real existing listing directly and
+  // shouldn't also spawn a separate stray draft entry). Runs after the
+  // load effect above finishes restoring (if there was one), so this
+  // won't immediately overwrite a just-restored draft with itself --
+  // same values in, same values out.
+  useEffect(()=>{
+    if(!user||!isOpen||editMode||appState!=="form") return;
+    writeDraft(user.id,{form,partnershipTitle,freeText,listPublicly,formStep});
+  },[user,isOpen,editMode,appState,form,partnershipTitle,freeText,listPublicly,formStep]);
+
   if(!isOpen) return null;
 
   async function runPrefill(){
@@ -603,8 +645,15 @@ export function FindPartnerModalDashboard({
         body.document_base64=b64;body.document_type=uploadedFile.type;
         if(freeText.trim()) body.free_text=freeText;
       } else {body.free_text=freeText;}
-      const{data,error}=await supabase.functions.invoke("prefill-partnership-form",{body});
-      if(error||!data?.prefilled) throw new Error(error?.message??"Prefill failed");
+      const{data:{session}}=await supabase.auth.getSession();
+      const res=await fetch(`${SUPABASE_URL}/functions/v1/prefill-partnership-form`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json",...(session?{Authorization:`Bearer ${session.access_token}`}:{})},
+        body:JSON.stringify(body),
+      });
+      const data=await res.json();
+      if(data.requires_upgrade){setPrefillError("Get Matched's AI prefill is a Plus feature. Upgrade to unlock it, or fill in the form manually.");return;}
+      if(!res.ok||!data?.prefilled) throw new Error(data?.error??"Prefill failed");
       const p=data.prefilled;
       setForm(prev=>({...prev,
         country:p.country??[],sectors:p.sectors??[],sdgs:p.sdgs??[],
@@ -637,8 +686,11 @@ export function FindPartnerModalDashboard({
       const orgId=freshOrg?.id??orgProfile?.id;
       if(!orgId){setAppState("form");setSubmitting(false);return;}
       const tier=freshOrg?.subscription_tier??orgProfile?.subscription_tier??"";
-      if(!["plus","pro","compliance"].includes(tier)){setAppState("requires_upgrade");setSubmitting(false);return;}
       const isFunder=["philanthropic_foundation","venture_capital"].includes(form.organisation_type||orgProfile?.organisation_type||"");
+      // Save ALWAYS happens here, before any tier check -- this is the fix.
+      // The listing itself (and being publicly listed/discoverable) is a
+      // Free-tier feature; only the AI-matched-partners step below is
+      // gated to Plus+.
       await supabase.from("organizations").update({
         country:form.country,sector:form.sectors,sdgs:form.sdgs,
         organisation_type:form.organisation_type,needs:form.needs,offers:form.offers,
@@ -677,9 +729,19 @@ export function FindPartnerModalDashboard({
         partnership_dd_governance_doc:isFunder?ddState.fdd_governance_doc:ddState.dd_governance_doc,
         ...(listPublicly?{status:"published"}:{}),
       }).eq("id",orgId).eq("user_id",user.id);
+
+      if(!["plus","pro","compliance"].includes(tier)){
+        // Listing is saved and live (if listPublicly was checked) -- only
+        // the AI-matched-partners step is gated. Distinct from the old
+        // "requires_upgrade" state, which implied nothing happened at all.
+        if(user) clearDraft(user.id);
+        setAppState("listed_free");setSubmitting(false);return;
+      }
+
       const{data:matchData}=await supabase.functions.invoke("match-orgs-for-partnership",{
         body:{submitting_org:{...orgProfile,...form,sector:form.sectors},user_id:user.id},
       });
+      if(user) clearDraft(user.id);
       setMatches(matchData?.matches??[]);
       setAppState("results");
     } catch{setAppState("results");}
@@ -834,11 +896,15 @@ export function FindPartnerModalDashboard({
             <button type="button" onClick={onClose} className="h-10 px-6 rounded-full bg-[#2D6A4F] text-white text-[15px] font-semibold">Close</button>
           </div>
         )}
-        {appState==="requires_upgrade"&&(
+        {appState==="listed_free"&&(
           <div className="flex flex-col items-center justify-center flex-1 gap-5 text-center px-8">
-            <h2 className="text-[21px] font-bold text-foreground">Get Matched is a Plus feature</h2>
+            <CheckCircle2 className="w-10 h-10 text-[#2D6A4F]" />
+            <h2 className="text-[21px] font-bold text-foreground">Your listing is live</h2>
             <p className="text-foreground max-w-sm text-[15px]">
-              AI-powered partnership matching is available on Plus and above. Upgrade your plan to see your matches.
+              {listPublicly
+                ? "Your partnership request is saved and visible to other organisations on Impact Natives."
+                : "Your partnership request is saved. Enable \"list publicly\" to make it visible to others."}
+              {" "}Upgrade to Plus to see AI-matched partners for this listing.
             </p>
             <Link href="/dashboard/settings?tab=billing" onClick={onClose}
               className="h-10 px-6 rounded-full bg-[#2D6A4F] text-white text-[15px] font-semibold flex items-center justify-center">
