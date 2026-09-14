@@ -883,9 +883,25 @@ export function FindPartnerModalDashboard({
         setAppState("listed_free");setSubmitting(false);return;
       }
 
-      const{data:matchData}=await supabase.functions.invoke("match-orgs-for-partnership",{
-        body:{submitting_org:{...orgProfile,...form,sector:form.sectors},user_id:user.id},
+      // Switched from supabase.functions.invoke() to a raw authenticated
+      // fetch -- invoke() is supposed to auto-attach the session token,
+      // but confirmed in production this was NOT happening (console:
+      // "UNAUTHORIZED_NO_AUTH_HEADER", 500). Same fix, same reasoning as
+      // runPrefill() above: get the session explicitly, attach it
+      // ourselves, don't rely on invoke()'s automatic behavior. Also now
+      // actually checks for a failed response, which the old code never
+      // did -- matchData was silently used as {} on any failure before,
+      // showing "no matches" instead of a real error.
+      const{data:{session}}=await supabase.auth.getSession();
+      const matchRes=await fetch(`${SUPABASE_URL}/functions/v1/match-orgs-for-partnership`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json",...(session?{Authorization:`Bearer ${session.access_token}`}:{})},
+        body:JSON.stringify({submitting_org:{...orgProfile,...form,sector:form.sectors},user_id:user.id}),
       });
+      const matchData=await matchRes.json();
+      if(!matchRes.ok){
+        console.error("match-orgs-for-partnership failed:",matchData);
+      }
       if(user) clearDraft(user.id);
       setMatches(matchData?.matches??[]);
       setAppState("results");
@@ -914,28 +930,41 @@ export function FindPartnerModalDashboard({
         const{data:rp}=await supabase.from("profiles").select("full_name").eq("id",receiverOrgRow.user_id).maybeSingle();
         receiverContactName=rp?.full_name??null;
       }
-      const{data,error}=await supabase.functions.invoke("generate-partnership-invite",{body:{
-        sender_org_name:orgProfile.organisation_name,
-        sender_contact_name:senderProfile?.full_name??null,
-        receiver_contact_name:receiverContactName,
-        sender_description:orgProfile.description??null,
-        sender_offers:form.offers??[],sender_needs:form.needs??[],
-        partnership_title:partnershipTitle,partnership_sought:form.partnership_sought,
-        partnership_stage:form.partnership_stage,partnership_duration:form.partnership_duration,
-        partnership_budget:form.partnership_budget,
-        partnership_decision_timeline:form.partnership_decision_timeline,
-        partnership_working_style:form.partnership_working_style,
-        partnership_financial_transfer:form.partnership_financial_transfer,
-        partnership_team_capacity:form.partnership_team_capacity,
-        receiver_org_name:match.org.organisation_name,
-        receiver_description:match.org.description??null,
-        receiver_needs:match.org.needs??[],receiver_offers:match.org.offers??[],
-        receiver_partnership_sought:(match.org as any).partnership_sought??null,
-        match_rationale:match.rationale,key_synergy:match.key_synergy,fit_score:match.fit_score,
-      }});
-      if(!error&&data?.message){setDraftMessage(data.message);}
+      // Same fix as the match-orgs-for-partnership call above --
+      // supabase.functions.invoke() confirmed unreliable at attaching the
+      // session's auth header in this file, so this uses the same raw
+      // authenticated fetch instead.
+      const{data:{session}}=await supabase.auth.getSession();
+      const inviteRes=await fetch(`${SUPABASE_URL}/functions/v1/generate-partnership-invite`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json",...(session?{Authorization:`Bearer ${session.access_token}`}:{})},
+        body:JSON.stringify({
+          sender_org_name:orgProfile.organisation_name,
+          sender_contact_name:senderProfile?.full_name??null,
+          receiver_contact_name:receiverContactName,
+          sender_description:orgProfile.description??null,
+          sender_offers:form.offers??[],sender_needs:form.needs??[],
+          partnership_title:partnershipTitle,partnership_sought:form.partnership_sought,
+          partnership_stage:form.partnership_stage,partnership_duration:form.partnership_duration,
+          partnership_budget:form.partnership_budget,
+          partnership_decision_timeline:form.partnership_decision_timeline,
+          partnership_working_style:form.partnership_working_style,
+          partnership_financial_transfer:form.partnership_financial_transfer,
+          partnership_team_capacity:form.partnership_team_capacity,
+          receiver_org_name:match.org.organisation_name,
+          receiver_description:match.org.description??null,
+          receiver_needs:match.org.needs??[],receiver_offers:match.org.offers??[],
+          receiver_partnership_sought:(match.org as any).partnership_sought??null,
+          match_rationale:match.rationale,key_synergy:match.key_synergy,fit_score:match.fit_score,
+        }),
+      });
+      const data=await inviteRes.json();
+      if(inviteRes.ok&&data?.message){setDraftMessage(data.message);}
       else if(data?.requires_upgrade){setDraftRequiresUpgrade(true);}
-      else{setDraftFailed(true);setDraftMessage(fallbackInviteMessage(match));}
+      else{
+        console.error("generate-partnership-invite failed:",data);
+        setDraftFailed(true);setDraftMessage(fallbackInviteMessage(match));
+      }
     } catch{setDraftFailed(true);setDraftMessage(fallbackInviteMessage(match));}
     finally{setDraftLoading(false);}
   }
