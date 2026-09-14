@@ -455,8 +455,13 @@ function SectionLabel({label}:{label:string;}){
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export function FindPartnerModalDashboard({
-  isOpen,onClose,editMode=false,
-}:{isOpen:boolean;onClose:()=>void;editMode?:boolean;}){
+  isOpen,onClose,editMode=false,editListingId=null,
+}:{isOpen:boolean;onClose:()=>void;editMode?:boolean;editListingId?:string|null;}){
+  // editListingId: opens directly into editing ONE SPECIFIC listing,
+  // skipping the picker AND the legacy editMode shim (which just edits
+  // whichever listing loaded first) -- used by PortfolioTable.tsx's Edit
+  // button, so Edit actually opens the listing you clicked, not always
+  // the same one regardless of which row it was.
   // Partnership listing capacity, matching the Pricing page (same caps
   // already enforced for initiatives). Checked against COUNT of
   // 'published' listings only -- a draft in progress doesn't occupy a
@@ -651,6 +656,14 @@ export function FindPartnerModalDashboard({
       // rework, deferred separately) -- as an interim shim, it edits the
       // most recently created one directly, skipping the picker, matching
       // its old behavior as closely as possible until that's built.
+      if(editListingId){
+        const targeted=myListings.find((l:any)=>l.id===editListingId);
+        if(targeted){openListingForEdit(targeted);return;}
+        // Listing id was passed but isn't in this org's own listings (a
+        // stale reference, or the listing was deleted since) -- fall
+        // through to the picker rather than silently editing the wrong
+        // one or crashing.
+      }
       if(editMode&&myListings.length>0){openListingForEdit(myListings[0]);return;}
       if(!editMode) setHasDraft(!!readDraft(user!.id));
       // Otherwise: land on the picker (default appState set above), which
@@ -660,7 +673,7 @@ export function FindPartnerModalDashboard({
       // partnership_formed.
     }
     loadOrg();
-  },[user,isOpen]);
+  },[user,isOpen,editListingId]);
 
   // Autosave -- writes the draft on every change while actively on the
   // form (not editMode, which edits a real existing listing directly and

@@ -138,19 +138,33 @@ export async function acceptPartnershipWithType(
 }
 
 /**
- * Marks the org's partnership listing as formed and closes it. This is
- * NOT a simple status flip -- it sets organizations.partnership_formed,
- * snapshots the listing's partnership_title onto any connections already
- * at "formed" status (so the title survives future edits to the listing),
- * auto-declines every other still-pending inbound request so competing
- * orgs aren't left hanging indefinitely, and notifies each declined
- * party. Any caller closing a listing MUST go through this function --
- * a lighter reimplementation would silently skip the auto-decline and
- * notification steps.
+ * Marks ONE SPECIFIC LISTING's partnership as formed and closes it. This
+ * is NOT a simple status flip -- it sets organizations.partnership_formed
+ * (a permanent "has this org ever formed a partnership" historical
+ * marker, org-wide by design and unaffected by which listing this call
+ * is about), snapshots the listing's title onto any connections already
+ * at "formed" status for THIS listing (so the title survives future
+ * edits to the listing), auto-declines every other still-pending inbound
+ * request FOR THIS SAME LISTING so competing orgs aren't left hanging
+ * indefinitely, and notifies each declined party. Any caller closing a
+ * listing MUST go through this function -- a lighter reimplementation
+ * would silently skip the auto-decline and notification steps.
+ *
+ * listingId scopes which connections this touches -- confirmed bug fixed
+ * here: before this, "mark formed" declined EVERY pending inbound
+ * connection across the whole org, regardless of which listing they were
+ * about. In a one-listing-per-org world that was correct (there was only
+ * ever one listing to be about); now that an org can have several, that
+ * would have auto-declined real interest in a completely unrelated
+ * listing just because a different one happened to close. Connections
+ * with no receiver_listing_id at all (made before that column existed)
+ * are treated as belonging to whichever listing is passed in, matching
+ * the single-listing assumption they were created under.
  */
 export async function markPartnershipFormed(
   myOrgId: string,
-  inboundConnections: { id: string; status: string; conversation_id?: string | null }[],
+  listingId: string,
+  inboundConnections: { id: string; status: string; conversation_id?: string | null; receiver_listing_id?: string | null }[],
   myOrgName: string,
   myPartnershipTitle: string | null
 ): Promise<void> {
@@ -158,14 +172,18 @@ export async function markPartnershipFormed(
     .update({ partnership_formed: true })
     .eq("id", myOrgId);
 
-  const formedIds = inboundConnections.filter(c => c.status === "formed").map(c => c.id);
+  const forThisListing = inboundConnections.filter(
+    c => c.receiver_listing_id === listingId || c.receiver_listing_id == null
+  );
+
+  const formedIds = forThisListing.filter(c => c.status === "formed").map(c => c.id);
   if (formedIds.length > 0 && myPartnershipTitle) {
     await supabase.from("partnership_connections")
       .update({ partnership_title: myPartnershipTitle })
       .in("id", formedIds);
   }
 
-  const pendingConnections = inboundConnections.filter(c => c.status === "pending");
+  const pendingConnections = forThisListing.filter(c => c.status === "pending");
   const pendingIds = pendingConnections.map(c => c.id);
   if (pendingIds.length > 0) {
     const { error: declineError } = await supabase.from("partnership_connections")
@@ -213,21 +231,33 @@ export async function markPartnershipFormed(
  * request; that flow stays in its modal since it also drives that
  * modal's own form-state transitions.)
  */
-export async function unlistPartnership(myOrgId: string): Promise<void> {
-  await supabase.from("organizations")
-    .update({ partnership_listed: false })
-    .eq("id", myOrgId);
+// Unlists ONE SPECIFIC listing (sets its own row's status to "draft" in
+// partnership_listings), not the whole org. Previously this flipped
+// organizations.partnership_listed, a single org-wide flag that made
+// sense when an org could only ever have one listing -- unlisting it
+// meant unlisting everything, because there was only ever one thing to
+// unlist. Now that an org can have several, that would have silently
+// unlisted every listing at once when the intent was to unlist just one.
+// Also refreshes the org-wide legacy flag as a cheap backward-compat
+// signal (true if ANY listing remains published) for the handful of
+// older surfaces that still read it directly.
+export async function unlistPartnership(myOrgId: string, listingId: string): Promise<void> {
+  await supabase.from("partnership_listings").update({ status: "draft" }).eq("id", listingId);
+  const { data: org } = await supabase.from("organizations").select("user_id").eq("id", myOrgId).maybeSingle();
+  if (org?.user_id) {
+    const { count } = await supabase.from("partnership_listings")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", org.user_id).eq("status", "published");
+    await supabase.from("organizations").update({ partnership_listed: (count ?? 0) > 0 }).eq("id", myOrgId);
+  }
 }
 
 /**
- * Re-lists a previously unlisted partnership listing. Only touches
- * partnership_listed -- if the listing had already been fully reset via
- * the "start fresh" flow (partnership_sought cleared to null), relisting
- * alone won't bring back a description; the org would need to fill the
- * form in again via FindPartnerModalDashboard in that case.
+ * Re-lists ONE SPECIFIC previously-unlisted listing (sets its own row's
+ * status back to "published"). Same scoping fix as unlistPartnership --
+ * only touches the one listing, not every listing the org has.
  */
-export async function relistPartnership(myOrgId: string): Promise<void> {
-  await supabase.from("organizations")
-    .update({ partnership_listed: true })
-    .eq("id", myOrgId);
+export async function relistPartnership(myOrgId: string, listingId: string): Promise<void> {
+  await supabase.from("partnership_listings").update({ status: "published" }).eq("id", listingId);
+  await supabase.from("organizations").update({ partnership_listed: true }).eq("id", myOrgId);
 }

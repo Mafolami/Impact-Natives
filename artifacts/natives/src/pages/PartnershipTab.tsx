@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import {
   updateConnectionStatus, acceptPartnershipWithType,
-  markPartnershipFormed, unlistPartnership,
+  markPartnershipFormed, unlistPartnership, relistPartnership,
 } from "@/lib/partnershipActions";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -32,6 +32,18 @@ type MyListing = {
   sdgs: number[];
   sector: string | string[];
   status: string;
+};
+
+// One of an org's (possibly several) real partnership listings, from
+// partnership_listings -- not the legacy single set of columns on
+// organizations, which only ever reflected whichever one was saved most
+// recently.
+type MyOrgListing = {
+  id: string;
+  title: string | null;
+  sought: string | null;
+  status: "draft" | "published";
+  created_at: string;
 };
 
 type ConnectionRow = {
@@ -136,6 +148,7 @@ export function PartnershipTab() {
   const [loading, setLoading]         = useState(true);
   const [myOrgId, setMyOrgId]         = useState<string | null>(null);
   const [myListing, setMyListing]     = useState<MyListing | null>(null);
+  const [myListings, setMyListings]   = useState<MyOrgListing[]>([]);
   const [inbound, setInbound]         = useState<ConnectionRow[]>([]);
   const [outbound, setOutbound]       = useState<ConnectionRow[]>([]);
   const [activeView, setActiveView] = useState<PartnershipView>(() => {
@@ -168,6 +181,12 @@ export function PartnershipTab() {
     if (!myOrg) { setLoading(false); return; }
     setMyOrgId(myOrg.id);
     setMyListing(myOrg as MyListing);
+
+    const { data: listingsData } = await supabase.from("partnership_listings")
+      .select("id, title, sought, status, created_at")
+      .eq("user_id", orgOwnerId!)
+      .order("created_at", { ascending: false });
+    setMyListings((listingsData ?? []) as MyOrgListing[]);
 
     const [inboundRes, outboundRes] = await Promise.all([
       supabase.from("partnership_connections").select("*, conversation_id")
@@ -259,11 +278,11 @@ export function PartnershipTab() {
   }
 
   // Mark Partnership Formed — closes entire listing
-  async function markFormed() {
+  async function markFormed(listingId: string, listingTitle: string | null) {
     if (!myOrgId || formingAll) return;
     setFormingAll(true);
 
-    await markPartnershipFormed(myOrgId, inbound, myListing?.organisation_name ?? "", myListing?.partnership_title ?? null);
+    await markPartnershipFormed(myOrgId, listingId, inbound, myListing?.organisation_name ?? "", listingTitle);
 
     setFormingAll(false);
     await load();
@@ -293,7 +312,6 @@ export function PartnershipTab() {
   const acceptedInbound  = inbound.filter(c => c.status === "accepted");
   const confirmedInbound = inbound.filter(c => c.status === "formed");
   const confirmedOutbound = outbound.filter(c => c.status === "formed");
-  const isListed         = myListing?.partnership_listed;
 
   const subTabs: { key: PartnershipView; label: string }[] = [
     { key: "requested", label: "Requested" },
@@ -321,61 +339,94 @@ export function PartnershipTab() {
       {/* ── Requested ── */}
       {activeView === "requested" && (
         <>
-          {!isListed ? (
+          {myListings.length === 0 ? (
             <EmptyState
               icon={Briefcase}
               title="You're not listed yet."
               body="Go to the Partnerships page and use Get Matched to list your organisation for discovery."
             />
           ) : (
-            <div className="rounded-xl border border-border bg-card px-5 py-4 space-y-3">
+            // One block per listing now, not one block for the whole org --
+            // an org with 3 listings needs 3 independent Mark Formed /
+            // Unlist controls and 3 independent pending/accepted counts,
+            // not one that only ever reflected whichever listing was saved
+            // most recently. Connections with no receiver_listing_id at all
+            // (made before that column existed) are attributed to the
+            // FIRST (most recently created) listing only, matching the
+            // single-listing assumption they were created under -- same
+            // convention as markPartnershipFormed's own fallback.
+            <div className="space-y-4">
+            {myListings.map((listing, i) => {
+              const forThisListing = (c: ConnectionRow & { receiver_listing_id?: string | null }) =>
+                c.receiver_listing_id === listing.id || (i === 0 && c.receiver_listing_id == null);
+              const listingPendingInbound = pendingInbound.filter(forThisListing);
+              const listingAcceptedInbound = acceptedInbound.filter(forThisListing);
+              const listingFormed = inbound.some(c => forThisListing(c) && c.status === "formed");
+              return (
+            <div key={listing.id} className="rounded-xl border border-border bg-card px-5 py-4 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-semibold text-foreground">{myListing?.organisation_name}</p>
+                  <p className="font-semibold text-foreground">{listing.title || myListing?.organisation_name}</p>
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block"
-                    style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
-                    Listed publicly
+                    style={listing.status === "published"
+                      ? { background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }
+                      : { background: "rgba(0,0,0,0.06)", color: "#6b7280" }}>
+                    {listing.status === "published" ? "Listed publicly" : "Unlisted"}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  {myListing?.partnership_formed ? (
+                  {listingFormed ? (
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                       style={{ background: "rgba(3,105,161,0.12)", color: "#0369a1" }}>
                       Partnership formed
                     </span>
                   ) : (
-                    <button type="button" onClick={markFormed} disabled={formingAll}
+                    <button type="button" onClick={() => markFormed(listing.id, listing.title)} disabled={formingAll}
                       className="text-xs px-3 py-1.5 rounded-full border border-[#2D6A4F]/40 text-[#2D6A4F] hover:bg-[#2D6A4F]/5 disabled:opacity-40 transition-colors">
                       {formingAll ? "Closing..." : "Mark formed"}
                     </button>
                   )}
-                  <button type="button"
-                    onClick={async () => {
-                      await unlistPartnership(myOrgId!);
-                      await load();
-                    }}
-                    className="text-xs text-muted-foreground hover:text-red-500 transition-colors border border-border rounded-full px-3 py-1.5">
-                    Unlist
-                  </button>
+                  {listing.status === "published" ? (
+                    <button type="button"
+                      onClick={async () => {
+                        await unlistPartnership(myOrgId!, listing.id);
+                        await load();
+                      }}
+                      className="text-xs text-muted-foreground hover:text-red-500 transition-colors border border-border rounded-full px-3 py-1.5">
+                      Unlist
+                    </button>
+                  ) : (
+                    <button type="button"
+                      onClick={async () => {
+                        await relistPartnership(myOrgId!, listing.id);
+                        await load();
+                      }}
+                      className="text-xs text-[#2D6A4F] hover:underline underline-offset-2 border border-border rounded-full px-3 py-1.5">
+                      Relist
+                    </button>
+                  )}
                 </div>
               </div>
-              {myListing?.partnership_sought && (
+              {listing.sought && (
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  {myListing.partnership_sought}
+                  {listing.sought}
                 </p>
               )}
               <div className="pt-2 border-t border-border flex items-center justify-between gap-3">
                 <div className="text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground">{pendingInbound.length}</span> pending ·{" "}
-                  <span className="font-medium text-foreground">{acceptedInbound.length}</span> accepted
+                  <span className="font-medium text-foreground">{listingPendingInbound.length}</span> pending ·{" "}
+                  <span className="font-medium text-foreground">{listingAcceptedInbound.length}</span> accepted
                 </div>
-                {(pendingInbound.length > 0 || acceptedInbound.length > 0) && (
+                {(listingPendingInbound.length > 0 || listingAcceptedInbound.length > 0) && (
                   <button type="button" onClick={() => setActiveView("inbound")}
                     className="text-xs text-[#2D6A4F] hover:underline underline-offset-2">
                     View inbound →
                   </button>
                 )}
               </div>
+            </div>
+              );
+            })}
             </div>
           )}
         </>

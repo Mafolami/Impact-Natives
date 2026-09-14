@@ -516,7 +516,11 @@ export function PortfolioTable() {
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [actioningId, setActioningId] = useState<string | null>(null);
-  const [editingListing, setEditingListing] = useState(false);
+  // Holds the SPECIFIC listing id being edited, not just a boolean --
+  // previously "Edit" always opened whichever listing loaded first
+  // (FindPartnerModalDashboard's legacy editMode shim), regardless of
+  // which row you actually clicked.
+  const [editingListing, setEditingListing] = useState<string | null>(null);
   const [outcomeEditingRow, setOutcomeEditingRow] = useState<PortfolioRow | null>(null);
   const [timelineRow, setTimelineRow] = useState<PortfolioRow | null>(null);
   const [notesRow, setNotesRow] = useState<PortfolioRow | null>(null);
@@ -626,10 +630,16 @@ export function PortfolioTable() {
     setActioningId(null);
   }
 
+  // All three of these now use row.raw.listingId (added when the "Mine"
+  // rows became one-per-listing) to scope the action to the SPECIFIC
+  // listing that row represents. Falls back to the row's own orgId only
+  // for the legacy no-listings-row edge case (see the fallback branch in
+  // portfolioData.ts) -- shouldn't be reachable post-Batch-1 migration,
+  // kept only as cheap insurance.
   async function handleUnlist(row: PortfolioRow) {
     if (row.raw.kind !== "partnership_listing") return;
     setActioningId(row.id);
-    await unlistPartnership(row.raw.orgId);
+    await unlistPartnership(row.raw.orgId, row.raw.listingId ?? row.raw.orgId);
     await load(false);
     setActioningId(null);
   }
@@ -637,20 +647,26 @@ export function PortfolioTable() {
   async function handleRelist(row: PortfolioRow) {
     if (row.raw.kind !== "partnership_listing") return;
     setActioningId(row.id);
-    await relistPartnership(row.raw.orgId);
+    await relistPartnership(row.raw.orgId, row.raw.listingId ?? row.raw.orgId);
     await load(false);
     setActioningId(null);
   }
 
   async function handleMarkFormed(row: PortfolioRow) {
-    if (row.raw.kind !== "partnership_listing" || !user || !orgOwnerId) return;
+    if (row.raw.kind !== "partnership_listing" || !user || !orgOwnerId || !row.raw.listingId) return;
     setActioningId(row.id);
     const { data: myOrg } = await supabase.from("organizations")
-      .select("id, organisation_name, partnership_title").eq("user_id", orgOwnerId).maybeSingle();
+      .select("id, organisation_name").eq("user_id", orgOwnerId).maybeSingle();
+    const { data: listing } = await supabase.from("partnership_listings")
+      .select("title").eq("id", row.raw.listingId).maybeSingle();
+    // receiver_listing_id is what markPartnershipFormed uses to scope its
+    // auto-decline to just this listing -- must be selected here (this
+    // exact class of bug -- forgetting to select a column a fix depends
+    // on -- already cost real debugging time once this session).
     const { data: inbound } = await supabase.from("partnership_connections")
-      .select("id, status").eq("receiver_org_id", row.raw.orgId);
+      .select("id, status, receiver_listing_id").eq("receiver_org_id", row.raw.orgId);
     await markPartnershipFormed(
-      row.raw.orgId, inbound ?? [], myOrg?.organisation_name ?? "", myOrg?.partnership_title ?? null
+      row.raw.orgId, row.raw.listingId, inbound ?? [], myOrg?.organisation_name ?? "", listing?.title ?? null
     );
     await load(false);
     setActioningId(null);
@@ -816,7 +832,7 @@ export function PortfolioTable() {
                         actions.push({ label: "Mark formed", onClick: () => handleMarkFormed(row) });
                       }
                       if (row.raw.kind === "partnership_listing") {
-                        actions.push({ label: "Edit", onClick: () => setEditingListing(true) });
+                        actions.push({ label: "Edit", onClick: () => setEditingListing(row.raw.kind === "partnership_listing" ? row.raw.listingId ?? null : null) });
                       }
                       if (row.raw.kind === "partnership_listing" && row.status === "Unlisted") {
                         actions.push({ label: "Relist", onClick: () => handleRelist(row) });
@@ -836,9 +852,9 @@ export function PortfolioTable() {
       )}
 
       <FindPartnerModalDashboard
-        isOpen={editingListing}
-        editMode={true}
-        onClose={() => { setEditingListing(false); load(false); }}
+        isOpen={!!editingListing}
+        editListingId={editingListing}
+        onClose={() => { setEditingListing(null); load(false); }}
       />
 
       {outcomeEditingRow && user && (
