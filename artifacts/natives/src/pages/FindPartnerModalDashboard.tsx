@@ -457,10 +457,20 @@ function SectionLabel({label}:{label:string;}){
 export function FindPartnerModalDashboard({
   isOpen,onClose,editMode=false,
 }:{isOpen:boolean;onClose:()=>void;editMode?:boolean;}){
+  // Partnership listing capacity, matching the Pricing page (same caps
+  // already enforced for initiatives). Checked against COUNT of
+  // 'published' listings only -- a draft in progress doesn't occupy a
+  // slot yet, same convention as the initiative cap.
+  const PARTNERSHIP_CAPS:Record<string,number>={free:1,plus:3,pro:7,compliance:15};
   const [,navigate]=useLocation();
   const {user}=useAuth();
   const [formStep,setFormStep]=useState(0);
-  const [appState,setAppState]=useState<"form"|"matching"|"results"|"no_org"|"listed_free"|"rate_limited"|"new_request_prompt">("form");
+  // "picker": browse/manage your listings, land here by default now that
+  // an org can have more than one. "capacity_blocked": hit your plan's
+  // listing cap when trying to create a new one. "new_request_prompt" is
+  // gone -- the picker already shows existing listings + a "+ New" option,
+  // which is exactly what that old nudge was trying to prompt.
+  const [appState,setAppState]=useState<"picker"|"form"|"matching"|"results"|"no_org"|"listed_free"|"capacity_blocked"|"rate_limited">("picker");
   const [freeText,setFreeText]=useState("");
   const [partnershipTitle,setPartnershipTitle]=useState("");
   const [prefilling,setPrefilling]=useState(false);
@@ -477,6 +487,10 @@ export function FindPartnerModalDashboard({
   const [draftLoading,setDraftLoading]=useState(false);
   const [draftFailed,setDraftFailed]=useState(false);
   const [orgProfile,setOrgProfile]=useState<any>(null);
+  const [listings,setListings]=useState<any[]>([]);
+  const [activeListingId,setActiveListingId]=useState<string|null>(null);
+  const [capacityInfo,setCapacityInfo]=useState<{limit:number;tier:string}|null>(null);
+  const [listingsLoading,setListingsLoading]=useState(true);
   const [form,setForm]=useState<PrefillData>(EMPTY_FORM);
   // Profile DD state — tracks the org's actual dd_* / fdd_* columns separately
   // from the form, so updates here write to profile DD, not partnership_dd_*.
@@ -513,26 +527,73 @@ export function FindPartnerModalDashboard({
   }
   function goToStep(n:number){setFormStep(n);}
 
+  function listingToForm(l:any):PrefillData{
+    return {
+      country:l.country?[l.country]:[],sectors:Array.isArray(l.sector)?l.sector:(l.sector?[l.sector]:[]),
+      sdgs:l.sdgs??[],organisation_type:orgProfile?.organisation_type??"",
+      needs:l.needs??[],offers:l.offers??[],description:orgProfile?.description??"",
+      partnership_sought:l.sought??"",partnership_stage:l.stage??"",
+      partnership_duration:l.duration??"",
+      partnership_geo_specificity:l.geo_specificity??"",
+      partnership_budget:l.budget??"",
+      partnership_decision_timeline:l.decision_timeline??"",
+      partnership_success_definition:l.success_definition??"",
+      partnership_legal_type:l.legal_type??[],
+      partnership_exclusivity:l.exclusivity??"",
+      partnership_language:l.language??[],
+      partnership_team_capacity:l.team_capacity??"",
+      partnership_funding_status:l.funding_status??"",
+      partnership_financial_transfer:l.financial_transfer??"",
+      partnership_working_style:l.working_style??"",
+      partnership_reporting:l.reporting??[],
+      partnership_ip_ownership:l.ip_ownership??"",
+      partnership_constraints:l.constraints_note??"",
+      partnership_prior_attempts:l.prior_attempts??"",
+      partnership_decision_maker_confirmed:l.decision_maker_confirmed??false,
+      partnership_prior_experience:l.prior_experience??null,
+      partnership_prior_experience_detail:l.prior_experience_detail??"",
+      partnership_contact_seniority:l.contact_seniority??"",
+      partnership_physically_present:l.physically_present??null,
+      partnership_funding_status_readiness:"",
+      partnership_theory_of_change:l.theory_of_change??"",
+    };
+  }
+
+  function openListingForEdit(l:any){
+    setForm(listingToForm(l));setPartnershipTitle(l.title??"");
+    setListPublicly(l.status==="published");setActiveListingId(l.id);
+    setAppState("form");goToStep(1);
+  }
+
+  function openNewListingCheck(){
+    const tier=orgProfile?.subscription_tier??"free";
+    const limit=PARTNERSHIP_CAPS[tier]??PARTNERSHIP_CAPS.free;
+    const publishedCount=listings.filter(l=>l.status==="published").length;
+    if(publishedCount>=limit){setCapacityInfo({limit,tier});setAppState("capacity_blocked");return;}
+    if(user){
+      const draft=readDraft(user.id);
+      if(draft){
+        setForm(draft.form);setPartnershipTitle(draft.partnershipTitle);
+        setFreeText(draft.freeText);setListPublicly(draft.listPublicly);
+        setFormStep(draft.formStep);setActiveListingId(null);setAppState("form");
+        return;
+      }
+    }
+    setForm(EMPTY_FORM);setPartnershipTitle("");setFreeText("");setListPublicly(true);
+    setActiveListingId(null);setFormStep(0);setAppState("form");
+  }
+
   useEffect(()=>{
     if(!user||!isOpen) return;
-    setFormStep(0);setAppState("form");setFreeText("");setPartnershipTitle("");
+    setFormStep(0);setAppState("picker");setFreeText("");setPartnershipTitle("");
     setPrefillError("");setMatches([]);setSentInvites(new Set());
     setForm(EMPTY_FORM);setUploadedFile(null);setUploadMode("text");
-    setDdConfirmedEmpty(false);
+    setDdConfirmedEmpty(false);setActiveListingId(null);setListingsLoading(true);
     async function loadOrg(){
-      const [orgRes,profileRes]=await Promise.all([
+      const [orgRes,profileRes,listingsRes]=await Promise.all([
         supabase.from("organizations").select(`
           id,organisation_name,description,sector,country,organisation_type,needs,offers,sdgs,
-          website,email,verification_status,partnership_listed,partnership_formed,partnership_title,
-          partnership_sought,partnership_stage,partnership_duration,partnership_geo_specificity,
-          partnership_budget,partnership_decision_timeline,partnership_success_definition,
-          partnership_legal_type,partnership_exclusivity,partnership_language,partnership_team_capacity,
-          partnership_funding_status,
-          partnership_financial_transfer,partnership_working_style,partnership_reporting,
-          partnership_ip_ownership,partnership_constraints,partnership_prior_attempts,
-          partnership_decision_maker_confirmed,partnership_prior_experience,
-          partnership_prior_experience_detail,partnership_contact_seniority,
-          partnership_physically_present,partnership_theory_of_change,
+          website,email,verification_status,partnership_formed,subscription_tier,
           dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,
           dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,
           dd_legal_registration,dd_legal_compliance_declaration,
@@ -540,6 +601,7 @@ export function FindPartnerModalDashboard({
           fdd_governance_doc,fdd_esg_framework,fdd_legal_registration
         `).eq("user_id",user!.id).maybeSingle(),
         supabase.from("profiles").select("org_name").eq("id",user!.id).maybeSingle(),
+        supabase.from("partnership_listings").select("*").eq("user_id",user!.id).order("created_at",{ascending:false}),
       ]);
       const data=orgRes.data;
       if(data&&profileRes.data?.org_name&&data.organisation_name!==profileRes.data.org_name){
@@ -548,7 +610,12 @@ export function FindPartnerModalDashboard({
       }
       if(!data){setAppState("no_org");return;}
       setOrgProfile(data);
-      // Seed ddState from current profile DD columns
+      const myListings=listingsRes.data??[];
+      setListings(myListings);setListingsLoading(false);
+      // Seed ddState from current profile DD columns -- these stay
+      // org-level (financial model, audited accounts don't vary per
+      // listing), unlike the partnership_* fields which now live per-row
+      // in partnership_listings.
       setDdState({
         dd_financial_model:data.dd_financial_model??false,
         dd_audited_accounts:data.dd_audited_accounts??false,
@@ -566,56 +633,31 @@ export function FindPartnerModalDashboard({
         fdd_esg_framework:data.fdd_esg_framework??false,
         fdd_legal_registration:data.fdd_legal_registration??false,
       });
-      if(!editMode){
-        const draft=readDraft(user!.id);
-        if(draft){
-          setForm(draft.form);setPartnershipTitle(draft.partnershipTitle);
-          setFreeText(draft.freeText);setListPublicly(draft.listPublicly);
-          setFormStep(draft.formStep);
-          return;
-        }
-      }
-      if(!editMode&&data.partnership_formed){setAppState("new_request_prompt");return;}
       if(RATE_LIMIT_ENABLED){
         const cutoff=new Date(Date.now()-7*60*60*1000).toISOString();
         const{data:recent}=await supabase.from("partnership_connections").select("created_at").eq("sender_user_id",user!.id).gte("created_at",cutoff).limit(1);
         if(recent&&recent.length>0){setAppState("rate_limited");return;}
       }
-      if(editMode&&data.partnership_sought){
-        setForm({
-          country:Array.isArray(data.country)?data.country:(data.country?[data.country]:[]),
-          sectors:Array.isArray(data.sector)?data.sector:(data.sector?[data.sector]:[]),
-          sdgs:data.sdgs??[],organisation_type:data.organisation_type??"",
-          needs:data.needs??[],offers:data.offers??[],description:data.description??"",
-          partnership_sought:data.partnership_sought??"",partnership_stage:data.partnership_stage??"",
-          partnership_duration:data.partnership_duration??"",
-          partnership_geo_specificity:data.partnership_geo_specificity??"",
-          partnership_budget:data.partnership_budget??"",
-          partnership_decision_timeline:data.partnership_decision_timeline??"",
-          partnership_success_definition:data.partnership_success_definition??"",
-          partnership_legal_type:data.partnership_legal_type??[],
-          partnership_exclusivity:data.partnership_exclusivity??"",
-          partnership_language:data.partnership_language??[],
-          partnership_team_capacity:data.partnership_team_capacity??"",
-          partnership_funding_status:data.partnership_funding_status??"",
-          partnership_financial_transfer:data.partnership_financial_transfer??"",
-          partnership_working_style:data.partnership_working_style??"",
-          partnership_reporting:data.partnership_reporting??[],
-          partnership_ip_ownership:data.partnership_ip_ownership??"",
-          partnership_constraints:data.partnership_constraints??"",
-          partnership_prior_attempts:data.partnership_prior_attempts??"",
-          partnership_decision_maker_confirmed:data.partnership_decision_maker_confirmed??false,
-          partnership_prior_experience:data.partnership_prior_experience??null,
-          partnership_prior_experience_detail:data.partnership_prior_experience_detail??"",
-          partnership_contact_seniority:data.partnership_contact_seniority??"",
-          partnership_physically_present:data.partnership_physically_present??null,
-          partnership_funding_status_readiness:"",
-          partnership_theory_of_change:data.partnership_theory_of_change??"",
-        });
-        setPartnershipTitle(data.partnership_title??"");
-        setListPublicly(data.partnership_listed??true);
-        goToStep(1);
+      // editMode is the legacy PortfolioTable "Edit" entry point, from
+      // back when an org could only ever have one listing. It doesn't yet
+      // know which listing to edit (that's the PortfolioTable multi-row
+      // rework, deferred separately) -- as an interim shim, it edits the
+      // most recently created one directly, skipping the picker, matching
+      // its old behavior as closely as possible until that's built.
+      if(editMode&&myListings.length>0){openListingForEdit(myListings[0]);return;}
+      if(!editMode){
+        const draft=readDraft(user!.id);
+        if(draft){
+          setForm(draft.form);setPartnershipTitle(draft.partnershipTitle);
+          setFreeText(draft.freeText);setListPublicly(draft.listPublicly);
+          setFormStep(draft.formStep);setActiveListingId(null);setAppState("form");
+          return;
+        }
       }
+      // Otherwise: land on the picker (default appState set above), which
+      // is already what shows "your listings + a way to create another"
+      // -- the old new_request_prompt nudge is redundant now that this
+      // exists and always shows regardless of partnership_formed.
     }
     loadOrg();
   },[user,isOpen]);
@@ -627,9 +669,13 @@ export function FindPartnerModalDashboard({
   // won't immediately overwrite a just-restored draft with itself --
   // same values in, same values out.
   useEffect(()=>{
-    if(!user||!isOpen||editMode||appState!=="form") return;
+    // Only autosaves a NEW-listing draft (activeListingId null) -- editing
+    // an existing listing already has its own real row to save to, and
+    // shouldn't also spawn a stray "new listing" draft that gets wrongly
+    // offered the next time someone actually starts a new one.
+    if(!user||!isOpen||editMode||appState!=="form"||activeListingId!==null) return;
     writeDraft(user.id,{form,partnershipTitle,freeText,listPublicly,formStep});
-  },[user,isOpen,editMode,appState,form,partnershipTitle,freeText,listPublicly,formStep]);
+  },[user,isOpen,editMode,appState,activeListingId,form,partnershipTitle,freeText,listPublicly,formStep]);
 
   if(!isOpen) return null;
 
@@ -687,14 +733,84 @@ export function FindPartnerModalDashboard({
       if(!orgId){setAppState("form");setSubmitting(false);return;}
       const tier=freshOrg?.subscription_tier??orgProfile?.subscription_tier??"";
       const isFunder=["philanthropic_foundation","venture_capital"].includes(form.organisation_type||orgProfile?.organisation_type||"");
-      // Save ALWAYS happens here, before any tier check -- this is the fix.
-      // The listing itself (and being publicly listed/discoverable) is a
-      // Free-tier feature; only the AI-matched-partners step below is
-      // gated to Plus+.
+      const listingStatus=listPublicly?"published":"draft";
+
+      // Defensive re-check: the picker already checked capacity before
+      // opening the form, but time has passed and another tab/session
+      // could have published a listing meanwhile. Only matters for a
+      // brand-new listing going live -- editing an existing one, or
+      // saving as a draft, never changes how many published slots are
+      // used.
+      if(activeListingId===null&&listingStatus==="published"){
+        const{count}=await supabase.from("partnership_listings").select("id",{count:"exact",head:true}).eq("user_id",user.id).eq("status","published");
+        const limit=PARTNERSHIP_CAPS[tier]??PARTNERSHIP_CAPS.free;
+        if((count??0)>=limit){
+          setCapacityInfo({limit,tier});setAppState("capacity_blocked");setSubmitting(false);return;
+        }
+      }
+
+      // The actual listing -- this is now the source of truth, one row
+      // per specific ask, instead of the single set of columns bolted
+      // onto organizations. sector/needs/offers/country/sdgs are
+      // per-listing (a climate-program ask and a health-program ask from
+      // the same org can have genuinely different values here).
+      const listingRow={
+        user_id:user.id,status:listingStatus,
+        title:partnershipTitle||null,sought:form.partnership_sought||null,
+        stage:form.partnership_stage||null,duration:form.partnership_duration||null,
+        budget:form.partnership_budget||null,decision_timeline:form.partnership_decision_timeline||null,
+        legal_type:form.partnership_legal_type.length>0?form.partnership_legal_type:null,
+        exclusivity:form.partnership_exclusivity||null,
+        language:form.partnership_language.length>0?form.partnership_language:null,
+        team_capacity:form.partnership_team_capacity||null,
+        funding_status:form.partnership_funding_status||null,
+        geo_specificity:form.partnership_geo_specificity||null,
+        success_definition:form.partnership_success_definition||null,
+        theory_of_change:form.partnership_theory_of_change||null,
+        prior_attempts:form.partnership_prior_attempts||null,
+        constraints_note:form.partnership_constraints||null,
+        financial_transfer:form.partnership_financial_transfer||null,
+        working_style:form.partnership_working_style||null,
+        reporting:form.partnership_reporting.length>0?form.partnership_reporting:null,
+        ip_ownership:form.partnership_ip_ownership||null,
+        decision_maker_confirmed:form.partnership_decision_maker_confirmed,
+        prior_experience:form.partnership_prior_experience,
+        prior_experience_detail:form.partnership_prior_experience_detail||null,
+        contact_seniority:form.partnership_contact_seniority||null,
+        physically_present:form.partnership_physically_present,
+        sector:form.sectors,needs:form.needs,offers:form.offers,
+        // Matches the exact loose typing the legacy organizations.country
+        // write already used (form.country is string[], the column is
+        // plain text) -- preserving that as-is rather than introducing a
+        // new, different conversion here.
+        country:form.country as any,sdgs:form.sdgs,
+      };
+
+      let savedListingId=activeListingId;
+      if(activeListingId){
+        await supabase.from("partnership_listings").update(listingRow).eq("id",activeListingId).eq("user_id",user.id);
+      } else {
+        const{data:inserted}=await supabase.from("partnership_listings").insert(listingRow).select("id").single();
+        savedListingId=inserted?.id??null;
+      }
+      if(savedListingId) setActiveListingId(savedListingId);
+
+      // Org-level fields: identity facts (organisation_type, description)
+      // and DD readiness, which genuinely don't vary per listing. This
+      // ALSO mirrors this same listing's data back onto the legacy
+      // organizations.partnership_* columns -- DashboardPartnerships.tsx,
+      // PartnershipTab.tsx, and DashboardPortfolio.tsx still read those
+      // directly and haven't been updated to the new table. Without this
+      // mirror they'd show frozen, stale data the moment someone edits or
+      // creates a listing here. Known limitation, not a silent bug: if an
+      // org has more than one listing, those three pages only ever show
+      // whichever one was saved most recently -- updating them to read
+      // every listing is separate, deferred work.
       await supabase.from("organizations").update({
+        organisation_type:form.organisation_type,description:form.description,
         country:form.country,sector:form.sectors,sdgs:form.sdgs,
-        organisation_type:form.organisation_type,needs:form.needs,offers:form.offers,
-        description:form.description,partnership_sought:form.partnership_sought,
+        needs:form.needs,offers:form.offers,
+        partnership_sought:form.partnership_sought,
         partnership_title:partnershipTitle,partnership_listed:listPublicly,
         partnership_stage:form.partnership_stage||null,
         partnership_duration:form.partnership_duration||null,
@@ -729,6 +845,13 @@ export function FindPartnerModalDashboard({
         partnership_dd_governance_doc:isFunder?ddState.fdd_governance_doc:ddState.dd_governance_doc,
         ...(listPublicly?{status:"published"}:{}),
       }).eq("id",orgId).eq("user_id",user.id);
+
+      // Refresh the local listings list so the picker reflects this save
+      // if the user navigates back to it without reopening the modal.
+      setListings(prev=>{
+        const withoutThis=prev.filter(l=>l.id!==savedListingId);
+        return [{...listingRow,id:savedListingId,created_at:new Date().toISOString()},...withoutThis];
+      });
 
       if(!["plus","pro","compliance"].includes(tier)){
         // Listing is saved and live (if listPublicly was checked) -- only
@@ -860,24 +983,56 @@ export function FindPartnerModalDashboard({
       <div className="flex-1 overflow-hidden flex min-h-0">
 
         {/* Utility states */}
-        {appState==="new_request_prompt"&&(
-          <div className="flex flex-col items-center justify-center flex-1 gap-8 text-center px-8">
-            <div className="w-16 h-16 rounded-2xl bg-[#2D6A4F]/10 flex items-center justify-center">
-              <Sparkles className="w-8 h-8 text-[#2D6A4F]"/>
-            </div>
-            <div className="max-w-md">
-              <h2 className="text-[25px] font-bold text-foreground mb-3">Start a new partnership request?</h2>
-              <p className="text-[15px] text-foreground leading-relaxed">You've recently formed a partnership. Starting fresh replaces your current listing. Confirmed partners stay saved in Portfolio.</p>
-            </div>
-            <div className="flex gap-3 w-full max-w-xs">
-              <button type="button" onClick={onClose} className="flex-1 h-11 rounded-full border border-border text-[15px] font-medium text-foreground hover:text-foreground transition-colors">Cancel</button>
-              <button type="button" onClick={async()=>{
-                if(!orgProfile) return;
-                await supabase.from("organizations").update({partnership_formed:false,partnership_listed:false,partnership_title:null,partnership_sought:null}).eq("id",orgProfile.id);
-                const{data:freshOrg}=await supabase.from("organizations").select("id,organisation_name,description,sector,country,organisation_type,needs,offers,sdgs,website,email,verification_status,partnership_listed,partnership_formed,partnership_title").eq("id",orgProfile.id).single();
-                setOrgProfile(freshOrg);setPartnershipTitle("");setFreeText("");setAppState("form");goToStep(0);
-              }} className="flex-1 h-11 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-semibold transition-colors">Start fresh</button>
-            </div>
+        {appState==="picker"&&(
+          <div className="flex-1 overflow-y-auto px-6 py-6">
+            <h2 className="text-[21px] font-bold text-foreground mb-4">Your partnership listings</h2>
+            {listingsLoading?(
+              <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-[#2D6A4F]"/></div>
+            ):listings.length===0?(
+              <div className="text-center py-10">
+                <p className="text-[15px] text-foreground mb-4">You haven't created a partnership listing yet.</p>
+                <button type="button" onClick={openNewListingCheck}
+                  className="h-10 px-6 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-semibold transition-colors">
+                  + New listing
+                </button>
+              </div>
+            ):(
+              <div className="space-y-3">
+                {listings.map(l=>(
+                  <div key={l.id} className="rounded-xl border border-border p-4 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[15px] font-semibold text-foreground truncate">{l.title||"Untitled listing"}</p>
+                      <p className="text-xs text-muted-foreground">{l.status==="published"?"Published":"Draft"}</p>
+                    </div>
+                    <button type="button" onClick={()=>openListingForEdit(l)}
+                      className="shrink-0 text-[13px] font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors">
+                      Edit
+                    </button>
+                  </div>
+                ))}
+                <button type="button" onClick={openNewListingCheck}
+                  className="w-full h-10 rounded-full border border-dashed border-[#2D6A4F]/40 text-[#2D6A4F] text-[15px] font-semibold hover:bg-[#2D6A4F]/5 transition-colors">
+                  + New listing
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {appState==="capacity_blocked"&&capacityInfo&&(
+          <div className="flex flex-col items-center justify-center flex-1 gap-5 text-center px-8">
+            <h2 className="text-[21px] font-bold text-foreground">You've reached your plan's limit</h2>
+            <p className="text-foreground max-w-sm text-[15px]">
+              Your {capacityInfo.tier} plan allows {capacityInfo.limit} partnership {capacityInfo.limit===1?"listing":"listings"}.
+              {capacityInfo.tier!=="compliance"&&" Upgrade to publish more."}
+            </p>
+            {capacityInfo.tier!=="compliance"&&(
+              <Link href="/dashboard/settings?tab=billing" onClick={onClose}
+                className="h-10 px-6 rounded-full bg-[#2D6A4F] text-white text-[15px] font-semibold flex items-center justify-center">
+                View plans
+              </Link>
+            )}
+            <button type="button" onClick={()=>setAppState("picker")} className="h-10 px-6 rounded-full border border-border text-[15px] font-semibold">Back</button>
           </div>
         )}
 
