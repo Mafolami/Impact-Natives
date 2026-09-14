@@ -529,6 +529,17 @@ export default function Onboarding() {
     return "/dashboard";
   }
 
+  // Mirrors getRedirectPath's read-once-then-clear pattern. Set by SignUp.tsx on
+  // mount from the ?ref= param carried across from the marketing domain (see
+  // authLinks.ts appendRefParam). Feeds organizations.signup_source below, which
+  // auto_grant_outreach_trial (DB trigger) checks to auto-grant the 15-day trial
+  // to outreach-campaign signups, capped at 200 published profiles.
+  function getSignupSource() {
+    const stored = sessionStorage.getItem("signupSource");
+    if (stored) { sessionStorage.removeItem("signupSource"); return stored; }
+    return null;
+  }
+
   function applyExtracted(data: ExtractedProfile) {
     setExtracted(data);
     setExtractionDone(true);
@@ -673,6 +684,7 @@ export default function Onboarding() {
         country:           country      || null,
         sector:            sectors.length > 0 ? JSON.stringify(sectors) : null,
         organisation_type: orgType      || null,
+        signup_source:     getSignupSource(),
         is_solo_consultancy: orgType === "consultancy",
         description:       description  || null,
         needs:             needs.length > 0 ? needs : null,

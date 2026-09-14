@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { Loader2, CheckCircle2 } from "lucide-react";
@@ -6,6 +6,11 @@ import { Loader2, CheckCircle2 } from "lucide-react";
 export default function SignUp() {
   const [, navigate] = useLocation();
   const { signUp, signInWithGoogle } = useAuth();
+
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    if (ref) sessionStorage.setItem("signupSource", ref);
+  }, []);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
