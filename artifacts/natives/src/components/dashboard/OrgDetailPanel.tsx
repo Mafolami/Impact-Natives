@@ -53,6 +53,7 @@ export interface OrgRow {
   fdd_conflict_disclosure?: boolean; fdd_governance_doc?: boolean; fdd_esg_framework?: boolean;
   fdd_legal_registration?: boolean;
   specializations?: string[]; notable_engagements?: string[]; affiliations?: string[];
+  subscription_tier?: string;
 }
 
 export type FitResult = {
@@ -208,12 +209,14 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
   const ref = useRef<HTMLDivElement>(null);
   const [fit, setFit] = useState<FitResult | null>(null);
   const [fitLoading, setFitLoading] = useState(false);
+  const [fitLocked, setFitLocked] = useState(false);
   const [openingMsg, setOpeningMsg] = useState<string | null>(null);
   const [msgEditing, setMsgEditing] = useState(false);
 
   useEffect(() => {
     if (org && ref.current) ref.current.scrollTop = 0;
     setFit(null);
+    setFitLocked(false);
     setOpeningMsg(null);
     setMsgEditing(false);
     if (org && viewerOrg && org.user_id !== viewerOrg.user_id && org.id !== viewerOrg.id) {
@@ -223,6 +226,17 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
   }, [org?.id, viewerOrg?.id]);
 
   async function loadFit(listing: OrgRow, viewer: OrgRow) {
+    // Free-tier viewers never get a real score from this endpoint --
+    // score-partnership-fit itself already gates on subscription_tier and
+    // returns requires_upgrade, but calling it anyway just to get told no
+    // means burning a network round trip AND showing a loading spinner
+    // for a feature the viewer can't use, with nothing explaining why it
+    // never resolves. Check first; skip the call and the spinner entirely.
+    if (viewer.subscription_tier === "free") {
+      setFitLocked(true);
+      return;
+    }
+
     setFitLoading(true);
     try {
       const { data: cached } = await supabase
@@ -244,6 +258,11 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
       if (!error && data?.result) {
         setFit(data.result);
         setOpeningMsg(data.result.opening_message ?? null);
+      } else if ((error as any)?.context?.body?.requires_upgrade || (data as any)?.requires_upgrade) {
+        // Defensive fallback -- viewer.subscription_tier should have
+        // caught this above, but if it was ever stale or missing, the
+        // server's own gate is the actual source of truth.
+        setFitLocked(true);
       }
     } catch (e) {
       console.error("Fit score error:", e);
@@ -307,6 +326,12 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                 <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-muted text-muted-foreground border border-border">
                   <Loader2 className="w-3 h-3 animate-spin" />Scoring fit...
                 </span>
+              )}
+              {fitLocked && (
+                <Link href="/dashboard/settings?tab=billing"
+                  className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-muted text-muted-foreground border border-border hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] transition-colors">
+                  <Sparkles className="w-3 h-3" />AI fit score — upgrade
+                </Link>
               )}
               {fit && !fitLoading && (
                 <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0"
@@ -395,6 +420,12 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
 
             {fitLoading && (
               <p className="text-xs text-black dark:text-white">Analysing compatibility with your organisation profile...</p>
+            )}
+            {fitLocked && (
+              <p className="text-xs text-black dark:text-white">
+                AI fit scoring is a Plus feature.{" "}
+                <Link href="/dashboard/settings?tab=billing" className="text-[#2D6A4F] font-medium hover:underline">Upgrade to unlock</Link>.
+              </p>
             )}
 
             {fit && !fitLoading && (
@@ -737,6 +768,12 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                 <Loader2 className="w-3 h-3 animate-spin" />Scoring fit...
               </span>
             )}
+            {fitLocked && (
+              <Link href="/dashboard/settings?tab=billing"
+                className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-muted text-muted-foreground border border-border hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] transition-colors">
+                <Sparkles className="w-3 h-3" />AI fit score — upgrade
+              </Link>
+            )}
             {fit && !fitLoading && (
               <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0"
                 style={{
@@ -826,6 +863,12 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
 
             {fitLoading && (
               <p className="text-xs text-black dark:text-white">Analysing compatibility with your organisation profile...</p>
+            )}
+            {fitLocked && (
+              <p className="text-xs text-black dark:text-white">
+                AI fit scoring is a Plus feature.{" "}
+                <Link href="/dashboard/settings?tab=billing" className="text-[#2D6A4F] font-medium hover:underline">Upgrade to unlock</Link>.
+              </p>
             )}
 
             {fit && !fitLoading && (

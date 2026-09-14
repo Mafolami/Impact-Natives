@@ -238,6 +238,8 @@ export function AIDescriptionGenerator({
       const data = await res.json()
       if (data.description) {
         onGenerated(data.description)
+      } else if (data.requires_upgrade) {
+        setError("AI description generation is a Plus feature. Upgrade to unlock it, or write the description manually below.")
       } else {
         setError("Generation failed. You can write the description manually below.")
       }
@@ -282,6 +284,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
   const [error, setError]                     = useState<string | null>(null)
   const [assessment, setAssessment]           = useState<BriefAssessment | null>(null)
   const [assessingBrief, setAssessingBrief]   = useState(false)
+  const [assessError, setAssessError]         = useState<string | null>(null)
   const [descriptionGenerated, setDescriptionGenerated] = useState(false)
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
   const editor = useEditor({
@@ -346,12 +349,17 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
     if (!plainDescription.trim()) return
     setExtracting(true); setExtractError(null)
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch(`${supabaseUrl}/functions/v1/generate-initiative-brief`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({ plain_description: plainDescription }),
       })
       const result = await res.json()
+      if (result.requires_upgrade) { setExtractError("AI brief extraction is a Plus feature. Upgrade to unlock it, or fill in the fields manually below."); return }
       if (!res.ok || result.error) { setExtractError(result.error ?? "Extraction failed. Try again or fill in manually."); return }
       const d = result.data
       setForm(f => ({
@@ -382,11 +390,15 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
   }
   // ── AI quality assessment ─────────────────────────────────────────────────
   async function assessBrief() {
-    setAssessingBrief(true)
+    setAssessingBrief(true); setAssessError(null)
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch(`${supabaseUrl}/functions/v1/assess-initiative-brief`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({
           title: form.title, problem: form.problem, outcome: form.outcome,
           specific_ask: form.specificAsk || null, partnerships: form.partnerships,
@@ -398,9 +410,12 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
         }),
       })
       const result = await res.json()
-      if (result.data) setAssessment(result.data as BriefAssessment)
-    } catch { /* silent */ }
-    finally { setAssessingBrief(false) }
+      if (result.data) { setAssessment(result.data as BriefAssessment); return }
+      if (result.requires_upgrade) { setAssessError("Brief quality assessment is a Plus feature. Upgrade to unlock it."); return }
+      setAssessError("Couldn't assess this brief right now. Try again shortly.")
+    } catch {
+      setAssessError("Couldn't assess this brief right now. Try again shortly.")
+    } finally { setAssessingBrief(false) }
   }
   // ── Submit ────────────────────────────────────────────────────────────────
   async function handleSubmit() {
@@ -871,6 +886,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     How does this brief look to a funder?
                   </button>
                 )}
+                {assessError && <p className="text-xs text-red-600">{assessError}</p>}
                 {assessingBrief && (
                   <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-border">
                     <Loader2 className="w-4 h-4 animate-spin text-[#2D6A4F]" />

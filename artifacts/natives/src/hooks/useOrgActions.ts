@@ -12,7 +12,8 @@ import type { OrgRow } from "@/components/dashboard/OrgDetailPanel";
 const VIEWER_ORG_SELECT =
   "id,user_id,organisation_name,description,sector,country,organisation_type,needs,offers,sdgs," +
   "partnership_working_style,partnership_dd_financial_model,partnership_dd_audited_accounts," +
-  "partnership_dd_safeguarding_policy,partnership_dd_data_policy,partnership_dd_governance_doc";
+  "partnership_dd_safeguarding_policy,partnership_dd_data_policy,partnership_dd_governance_doc," +
+  "subscription_tier";
 
 export function useOrgActions(orgOwnerId: string | null | undefined, actorUserId: string | null | undefined) {
   const [viewerOrg, setViewerOrg] = useState<OrgRow | null>(null);
