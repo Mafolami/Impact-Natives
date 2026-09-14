@@ -784,7 +784,7 @@ export default function DashboardInitiatives() {
       navigateWouter("/dashboard/portfolio/exchanges" + window.location.search);
     }
   }, []);
-  const [selectedPartnerOrg, setSelectedPartnerOrg] = useState<OrgRow | null>(null);
+  const [selectedPartnerOrg, setSelectedPartnerOrg] = useState<(OrgRow & { listing_id?: string }) | null>(null);
   const [partnerOrgMouExecuted, setPartnerOrgMouExecuted] = useState(false);
   const { viewerOrg, viewerOrgLoading, savedOrgs, sentInterests, sendingInterest, toggleSave, expressInterest } = useOrgActions(orgOwnerId, user?.id);
 
@@ -832,18 +832,66 @@ export default function DashboardInitiatives() {
 
   useEffect(() => {
     if (!partnerOrgId) { setSelectedPartnerOrg(null); setPartnerOrgMouExecuted(false); return; }
-    supabase.from("organizations")
-      .select("id,organisation_name,description,sector,country,organisation_type,website,email,needs,offers,sdgs,partnership_sought,partnership_title,verification_status,status,user_id,partnership_listed,partnership_formed,partnership_stage,partnership_duration,partnership_budget,partnership_decision_timeline,partnership_success_definition,partnership_funding_status,partnership_exclusivity,partnership_working_style,partnership_financial_transfer,partnership_reporting,partnership_ip_ownership,partnership_legal_type,partnership_team_capacity,partnership_contact_seniority,partnership_geo_specificity,partnership_theory_of_change,partnership_prior_attempts,partnership_constraints,partnership_dd_financial_model,partnership_dd_audited_accounts,partnership_dd_safeguarding_policy,partnership_dd_data_policy,partnership_dd_governance_doc,partnership_prior_experience,partnership_prior_experience_detail,partnership_physically_present,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,specializations,notable_engagements,affiliations")
-      .eq("id", partnerOrgId)
-      .maybeSingle()
-      .then(({ data }) => { if (data) setSelectedPartnerOrg(data as OrgRow); });
+    (async () => {
+      const { data: org } = await supabase.from("organizations")
+        .select("id,organisation_name,description,organisation_type,website,email,verification_status,status,user_id,partnership_formed,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,specializations,notable_engagements,affiliations")
+        .eq("id", partnerOrgId).maybeSingle();
+      if (!org) { setSelectedPartnerOrg(null); return; }
+
+      // Which SPECIFIC listing this relationship is actually about, using
+      // receiver_listing_id (Batch 1) from whichever connection exists
+      // between the current user's org and this partner -- rather than
+      // just whatever's most recently in the partner's legacy dual-write
+      // columns, which may not be the listing this relationship was ever
+      // about. Falls back to the partner's most recent published listing
+      // if no connection has a receiver_listing_id (e.g. a connection
+      // made before Batch 1 shipped).
+      let listing: any = null;
+      if (viewerOrg?.id) {
+        const { data: conns } = await supabase.from("partnership_connections")
+          .select("receiver_listing_id, created_at")
+          .or(`and(sender_org_id.eq.${viewerOrg.id},receiver_org_id.eq.${partnerOrgId}),and(sender_org_id.eq.${partnerOrgId},receiver_org_id.eq.${viewerOrg.id})`)
+          .not("receiver_listing_id", "is", null)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        if (conns?.[0]?.receiver_listing_id) {
+          const { data: l } = await supabase.from("partnership_listings").select("*").eq("id", conns[0].receiver_listing_id).maybeSingle();
+          listing = l;
+        }
+      }
+      if (!listing) {
+        const { data: l } = await supabase.from("partnership_listings").select("*")
+          .eq("user_id", org.user_id).eq("status", "published")
+          .order("created_at", { ascending: false }).limit(1).maybeSingle();
+        listing = l;
+      }
+
+      setSelectedPartnerOrg({
+        ...org,
+        listing_id: listing?.id,
+        partnership_listed: !!listing,
+        sector: listing?.sector, country: listing?.country, needs: listing?.needs, offers: listing?.offers, sdgs: listing?.sdgs,
+        partnership_sought: listing?.sought, partnership_title: listing?.title,
+        partnership_stage: listing?.stage, partnership_duration: listing?.duration, partnership_budget: listing?.budget,
+        partnership_decision_timeline: listing?.decision_timeline, partnership_success_definition: listing?.success_definition,
+        partnership_funding_status: listing?.funding_status, partnership_exclusivity: listing?.exclusivity,
+        partnership_working_style: listing?.working_style, partnership_financial_transfer: listing?.financial_transfer,
+        partnership_reporting: listing?.reporting, partnership_ip_ownership: listing?.ip_ownership,
+        partnership_legal_type: listing?.legal_type, partnership_team_capacity: listing?.team_capacity,
+        partnership_contact_seniority: listing?.contact_seniority, partnership_geo_specificity: listing?.geo_specificity,
+        partnership_theory_of_change: listing?.theory_of_change, partnership_prior_attempts: listing?.prior_attempts,
+        partnership_constraints: listing?.constraints_note, partnership_prior_experience: listing?.prior_experience,
+        partnership_prior_experience_detail: listing?.prior_experience_detail, partnership_physically_present: listing?.physically_present,
+      } as OrgRow & { listing_id?: string });
+    })();
+
     supabase.from("partnership_connections")
       .select("mou_executed_at")
       .eq("status", "formed")
       .not("mou_executed_at", "is", null)
       .or(`sender_org_id.eq.${partnerOrgId},receiver_org_id.eq.${partnerOrgId}`)
       .then(({ data }) => { setPartnerOrgMouExecuted((data ?? []).length > 0); });
-  }, [partnerOrgId]);
+  }, [partnerOrgId, viewerOrg?.id]);
 
   if (selectedPartnerOrg) {
     return (
@@ -854,7 +902,7 @@ export default function DashboardInitiatives() {
         isOrg={!!user}
         alreadySent={sentInterests.has(selectedPartnerOrg.id)}
         sending={sendingInterest === selectedPartnerOrg.id}
-        onExpressInterest={e => expressInterest(selectedPartnerOrg, e)}
+        onExpressInterest={e => expressInterest(selectedPartnerOrg, e, selectedPartnerOrg.listing_id)}
         onBack={() => navigate("/dashboard/portfolio/exchanges")}
         backLabel="Back"
         viewerOrg={viewerOrg}
