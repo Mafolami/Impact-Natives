@@ -491,6 +491,7 @@ export function FindPartnerModalDashboard({
   const [activeListingId,setActiveListingId]=useState<string|null>(null);
   const [capacityInfo,setCapacityInfo]=useState<{limit:number;tier:string}|null>(null);
   const [listingsLoading,setListingsLoading]=useState(true);
+  const [hasDraft,setHasDraft]=useState(false);
   const [form,setForm]=useState<PrefillData>(EMPTY_FORM);
   // Profile DD state — tracks the org's actual dd_* / fdd_* columns separately
   // from the form, so updates here write to profile DD, not partnership_dd_*.
@@ -565,20 +566,26 @@ export function FindPartnerModalDashboard({
     setAppState("form");goToStep(1);
   }
 
+  function resumeDraft(){
+    if(!user) return;
+    const draft=readDraft(user.id);
+    if(!draft) return;
+    setForm(draft.form);setPartnershipTitle(draft.partnershipTitle);
+    setFreeText(draft.freeText);setListPublicly(draft.listPublicly);
+    setFormStep(draft.formStep);setActiveListingId(null);setAppState("form");
+  }
+
+  // "+ New listing" always starts genuinely blank now -- resuming a draft
+  // is its own explicit button in the picker (resumeDraft above). Clears
+  // any stale draft immediately so it can't reappear as "Continue draft"
+  // after they've deliberately chosen to start fresh instead.
   function openNewListingCheck(){
     const tier=orgProfile?.subscription_tier??"free";
     const limit=PARTNERSHIP_CAPS[tier]??PARTNERSHIP_CAPS.free;
     const publishedCount=listings.filter(l=>l.status==="published").length;
     if(publishedCount>=limit){setCapacityInfo({limit,tier});setAppState("capacity_blocked");return;}
-    if(user){
-      const draft=readDraft(user.id);
-      if(draft){
-        setForm(draft.form);setPartnershipTitle(draft.partnershipTitle);
-        setFreeText(draft.freeText);setListPublicly(draft.listPublicly);
-        setFormStep(draft.formStep);setActiveListingId(null);setAppState("form");
-        return;
-      }
-    }
+    if(user) clearDraft(user.id);
+    setHasDraft(false);
     setForm(EMPTY_FORM);setPartnershipTitle("");setFreeText("");setListPublicly(true);
     setActiveListingId(null);setFormStep(0);setAppState("form");
   }
@@ -645,19 +652,12 @@ export function FindPartnerModalDashboard({
       // most recently created one directly, skipping the picker, matching
       // its old behavior as closely as possible until that's built.
       if(editMode&&myListings.length>0){openListingForEdit(myListings[0]);return;}
-      if(!editMode){
-        const draft=readDraft(user!.id);
-        if(draft){
-          setForm(draft.form);setPartnershipTitle(draft.partnershipTitle);
-          setFreeText(draft.freeText);setListPublicly(draft.listPublicly);
-          setFormStep(draft.formStep);setActiveListingId(null);setAppState("form");
-          return;
-        }
-      }
+      if(!editMode) setHasDraft(!!readDraft(user!.id));
       // Otherwise: land on the picker (default appState set above), which
-      // is already what shows "your listings + a way to create another"
-      // -- the old new_request_prompt nudge is redundant now that this
-      // exists and always shows regardless of partnership_formed.
+      // shows "your listings + a way to create another" plus a "Continue
+      // draft" option if one exists -- the old new_request_prompt nudge is
+      // redundant now that this exists and always shows regardless of
+      // partnership_formed.
     }
     loadOrg();
   },[user,isOpen]);
@@ -986,6 +986,16 @@ export function FindPartnerModalDashboard({
         {appState==="picker"&&(
           <div className="flex-1 overflow-y-auto px-6 py-6">
             <h2 className="text-[21px] font-bold text-foreground mb-4">Your partnership listings</h2>
+            {hasDraft&&(
+              <button type="button" onClick={resumeDraft}
+                className="w-full flex items-center justify-between gap-3 rounded-xl border border-dashed border-[#C45C26]/50 bg-[#C45C26]/5 px-4 py-3 mb-4 text-left hover:bg-[#C45C26]/10 transition-colors">
+                <div>
+                  <p className="text-[15px] font-semibold text-foreground">Continue your unsaved draft</p>
+                  <p className="text-xs text-muted-foreground">You have a partnership request in progress that hasn't been saved yet.</p>
+                </div>
+                <span className="shrink-0 text-[13px] font-semibold text-[#C45C26]">Continue →</span>
+              </button>
+            )}
             {listingsLoading?(
               <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-[#2D6A4F]"/></div>
             ):listings.length===0?(
