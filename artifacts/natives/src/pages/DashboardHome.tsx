@@ -320,6 +320,9 @@ export default function DashboardHome() {
   const [loadingPersonal, setLoadingPersonal]     = useState(true);
   const [showSkeleton, setShowSkeleton]           = useState(false);
   const [orgId, setOrgId] = useState<string | null>(null);
+  const [orgTier, setOrgTier] = useState<string | null>(null);
+  const [profileScore, setProfileScore] = useState(0);
+  const [missingProfileFields, setMissingProfileFields] = useState<string[]>([]);
 
   const [showCreateModal, setShowCreateModal]     = useState(false);
   const [allMyInits, setAllMyInits]               = useState<{id: string; status: string}[]>([]);
@@ -488,10 +491,35 @@ export default function DashboardHome() {
   // holds).
   useEffect(() => {
     if (!orgOwnerId) return;
-    supabase.from("organizations").select("id").eq("user_id", orgOwnerId).maybeSingle()
+    supabase.from("organizations")
+      .select("id, subscription_tier, description, sector, needs, offers, country, mandate_sdgs")
+      .eq("user_id", orgOwnerId).maybeSingle()
       .then(
-        ({ data }) => setOrgId(data?.id ?? null),
-        () => setOrgId(null),
+        ({ data }) => {
+          setOrgId(data?.id ?? null);
+          setOrgTier(data?.subscription_tier ?? "free");
+          if (data) {
+            const weightedFields: [string, boolean, number][] = [
+              ["a description", !!data.description, 25],
+              ["your sector", (() => {
+                const raw = data.sector;
+                if (Array.isArray(raw)) return raw.length > 0;
+                if (typeof raw === "string" && raw.trim()) {
+                  try { const parsed = JSON.parse(raw); return Array.isArray(parsed) ? parsed.length > 0 : !!parsed; }
+                  catch { return true; }
+                }
+                return false;
+              })(), 20],
+              ["what you need", (data.needs?.length ?? 0) > 0, 20],
+              ["what you offer", (data.offers?.length ?? 0) > 0, 15],
+              ["your country", !!data.country, 10],
+              ["SDG priorities", (data.mandate_sdgs?.length ?? 0) > 0, 10],
+            ];
+            setProfileScore(Math.round(weightedFields.reduce((sum, [, done, weight]) => sum + (done ? weight : 0), 0)));
+            setMissingProfileFields(weightedFields.filter(([, done]) => !done).sort((a, b) => b[2] - a[2]).map(([label]) => label));
+          }
+        },
+        () => { setOrgId(null); setOrgTier("free"); },
       );
   }, [orgOwnerId]);
 
@@ -531,13 +559,6 @@ export default function DashboardHome() {
     <>
       <div className="space-y-10">
 
-        {/* AI-matched partners -- primary AI feature for implementers.
-            Free-tier orgs see an upgrade prompt instead of real matches. */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <InitiativeMatchesForImplementer orgId={orgId} />
-          <ImplementerMatches orgId={orgId} />
-        </div>
-
         {/* Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
@@ -549,6 +570,43 @@ export default function DashboardHome() {
           </div>
           
         </div>
+
+        {/* AI-matched partners -- primary AI feature for implementers.
+            Free-tier orgs see an upgrade prompt instead of real matches. */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <InitiativeMatchesForImplementer orgId={orgId} />
+          <ImplementerMatches orgId={orgId} />
+        </div>
+
+        {/* Profile completion -- same visual pattern as FunderHome/
+            CorporateHome's Mandate/CSR-profile completion bar. Weights
+            mirror implementerCompleteness() in refresh-partnership-matches
+            and refresh-initiative-matches exactly. */}
+        {profileScore < 100 && (
+          <div className="rounded-xl border border-dashed border-[#2D6A4F]/30 bg-[#2D6A4F]/5 px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex-1 min-w-[200px]">
+              <div className="flex items-center gap-3 mb-2">
+                <p className="text-[15px] font-semibold text-foreground">Profile {profileScore}% complete</p>
+                <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden max-w-[120px]">
+                  <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500"
+                    style={{ width: `${profileScore}%` }} />
+                </div>
+              </div>
+              {missingProfileFields.length > 0 && (
+                <p className="text-[13px] text-black dark:text-white">
+                  Add {missingProfileFields.length === 1 ? missingProfileFields[0]
+                    : missingProfileFields.length === 2 ? `${missingProfileFields[0]} and ${missingProfileFields[1]}`
+                    : `${missingProfileFields.slice(0, -1).join(", ")}, and ${missingProfileFields[missingProfileFields.length - 1]}`}
+                  {profileScore < 80 ? ". 80% also unlocks AI matches." : "."}
+                </p>
+              )}
+            </div>
+            <button type="button" onClick={() => navigate("/dashboard/profile")}
+              className="shrink-0 text-[13px] font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors whitespace-nowrap">
+              Complete profile
+            </button>
+          </div>
+        )}
 
         {/* Metrics strip — 3 tiles; dropped the platform-wide "In Marketplace"
             count, which had no connection to the user's own activity */}
@@ -592,8 +650,12 @@ export default function DashboardHome() {
         )}
 
         {/* Dormant — 2nd+ login, still zero activity: live matches instead
-            of a static checklist with nothing else to show */}
-        {!loadingPersonal && isDormant && (
+            of a static checklist with nothing else to show. Free tier
+            only -- Plus+ orgs already get the real AI-matched sections
+            above; showing this too would be a redundant, lower-quality
+            duplicate sitting right next to the thing it's supposed to
+            make you want to upgrade for. */}
+        {!loadingPersonal && isDormant && orgTier === "free" && (
           <MissedMatchesForYou userSectors={profile?.sectors ?? []} />
         )}
 

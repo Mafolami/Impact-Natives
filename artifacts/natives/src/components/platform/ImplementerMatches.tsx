@@ -147,7 +147,7 @@ export default function ImplementerMatches({ orgId }: { orgId: string | null }) 
             style={{ background: "#2D6A4F", color: "#ffffff" }}>
             <Sparkles className="w-3 h-3" /> AI-matched partners
           </h3>
-          <p className="text-[13px] text-black dark:text-white mt-1">Funders and corporates matched to your profile</p>
+          <p className="text-[13px] text-black dark:text-white mt-1">Partners matched to your profile</p>
         </div>
         {state === "ready" && matches.length > 0 && (
           <button type="button" onClick={() => navigate("/dashboard/partnerships")}
