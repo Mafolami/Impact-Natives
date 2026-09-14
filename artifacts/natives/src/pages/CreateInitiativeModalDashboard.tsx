@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react"
+import { Link } from "wouter"
 import { useEditor, EditorContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Placeholder from "@tiptap/extension-placeholder"
@@ -287,6 +288,17 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
   const [assessError, setAssessError]         = useState<string | null>(null)
   const [descriptionGenerated, setDescriptionGenerated] = useState(false)
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+  // Capacity gate -- checked the instant the modal opens, before any step
+  // renders, so a maxed-out org sees the limit immediately rather than
+  // filling out the whole form only to have the submit silently rejected.
+  // Caps match what's already publicly listed on the Pricing page (Free 2,
+  // Plus 15, Pro 50, Compliance unlimited) but were never enforced anywhere
+  // until now. Counts "pending" (awaiting admin review) and "published"
+  // (live) -- not "draft" (not submitted yet) or "closed" (no longer using
+  // a slot), since pending/published are the two states that represent a
+  // real, submitted listing occupying capacity.
+  const [capacityState, setCapacityState] = useState<"checking" | "ok" | "blocked">("checking")
+  const [capacityInfo, setCapacityInfo] = useState<{ limit: number; tier: string } | null>(null)
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -294,6 +306,22 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
     ],
     onUpdate: ({ editor }) => { setForm(f => ({ ...f, detailContent: editor.getHTML() })) },
   })
+  useEffect(() => {
+    if (!isOpen || !orgOwnerId) return
+    setCapacityState("checking")
+    ;(async () => {
+      const { data: org } = await supabase.from("organizations").select("subscription_tier").eq("user_id", orgOwnerId).maybeSingle()
+      const tier = org?.subscription_tier ?? "free"
+      const limit = INITIATIVE_CAPS[tier] ?? INITIATIVE_CAPS.free
+      if (limit === Infinity) { setCapacityState("ok"); return }
+      const { count } = await supabase.from("initiative_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", orgOwnerId).in("status", ["pending", "published"])
+      if ((count ?? 0) >= limit) { setCapacityInfo({ limit, tier }); setCapacityState("blocked") }
+      else setCapacityState("ok")
+    })()
+  }, [isOpen, orgOwnerId])
+
   useEffect(() => {
     if (!user || !orgOwnerId || profileLoaded) return
     async function loadProfile() {
@@ -324,6 +352,9 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
     loadProfile()
   }, [user, orgOwnerId, profileLoaded])
   if (!isOpen) return null
+
+  const INITIATIVE_CAPS: Record<string, number> = { free: 2, plus: 15, pro: 50, compliance: Infinity }
+
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm(prev => ({ ...prev, [key]: value }))
     // Reset assessment when any field changes so it reflects the updated brief
@@ -476,6 +507,38 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
   const totalBars = mode === "ai" ? 3 : mode === "manual" ? 6 : 1
   const currentBar = mode === "ai" ? aiStep : mode === "manual" ? manualStep : 0
   // ── Render ────────────────────────────────────────────────────────────────
+  if (capacityState === "checking") {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="bg-background rounded-2xl border border-border w-full max-w-lg shadow-xl flex items-center justify-center" style={{ height: "min(90vh, 780px)" }}>
+          <Loader2 className="w-6 h-6 animate-spin text-[#2D6A4F]" />
+        </div>
+      </div>
+    )
+  }
+
+  if (capacityState === "blocked" && capacityInfo) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+        onClick={e => e.target === e.currentTarget && handleClose()}>
+        <div className="bg-background rounded-2xl border border-border w-full max-w-lg shadow-xl flex flex-col items-center justify-center gap-5 text-center px-8" style={{ height: "min(90vh, 780px)" }}>
+          <h2 className="text-[21px] font-bold text-foreground">You've reached your plan's limit</h2>
+          <p className="text-foreground max-w-sm text-[15px]">
+            Your {capacityInfo.tier} plan allows {capacityInfo.limit} initiative {capacityInfo.limit === 1 ? "listing" : "listings"}.
+            {capacityInfo.tier !== "compliance" && " Upgrade to post more."}
+          </p>
+          {capacityInfo.tier !== "compliance" && (
+            <Link href="/dashboard/settings?tab=billing" onClick={handleClose}
+              className="h-10 px-6 rounded-full bg-[#2D6A4F] text-white text-[15px] font-semibold flex items-center justify-center">
+              View plans
+            </Link>
+          )}
+          <button type="button" onClick={handleClose} className="h-10 px-6 rounded-full border border-border text-[15px] font-semibold">Close</button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto"
       onClick={e => e.target === e.currentTarget && handleClose()}>
