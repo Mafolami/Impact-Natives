@@ -1,4 +1,3 @@
-
 // supabase/functions/refresh-partnership-matches-for-org/index.ts
 // Internal-only worker: recomputes partnership matches for exactly ONE
 // org, given its org_id.
@@ -85,6 +84,13 @@
 // was computed by a real single-pair click-through (score-partnership-fit),
 // bulk mode never writes that field, so protected rows must survive every
 // future bulk refresh untouched.
+//
+// v11: extended to implementers/NGOs, mirroring refresh-partnership-matches
+// v18 -- same reasoning: match-orgs-for-partnership was already fully
+// type-agnostic, only this wrapper's gate was artificially funder/
+// corporate-only. implementerCompleteness() added using onboarding-collected
+// fields (description, sector, needs, offers, country, mandate_sdgs), same
+// as the interactive sibling. Consultancies stay excluded for now.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -148,6 +154,31 @@ function corporateCompleteness(org: any): number {
   return Math.round(weightedFields.reduce((sum, [done, weight]) => sum + (done ? weight : 0), 0));
 }
 
+function arrLen(raw: any): number {
+  if (Array.isArray(raw)) return raw.length;
+  if (typeof raw === "string" && raw.trim()) {
+    try { const parsed = JSON.parse(raw); return Array.isArray(parsed) ? parsed.length : (parsed ? 1 : 0); }
+    catch { return raw.trim() ? 1 : 0; }
+  }
+  return 0;
+}
+
+// Mirrors implementerCompleteness in refresh-partnership-matches (the
+// interactive sibling) -- must stay identical to that copy or the cron
+// sweep and an on-demand click could disagree about the same org's
+// eligibility.
+function implementerCompleteness(org: any): number {
+  const weightedFields: [boolean, number][] = [
+    [!!org.description, 25],
+    [arrLen(org.sector) > 0, 20],
+    [(org.needs?.length ?? 0) > 0, 20],
+    [(org.offers?.length ?? 0) > 0, 15],
+    [!!org.country, 10],
+    [(org.mandate_sdgs?.length ?? 0) > 0, 10],
+  ];
+  return Math.round(weightedFields.reduce((sum, [done, weight]) => sum + (done ? weight : 0), 0));
+}
+
 async function attemptMatchCall(org: any): Promise<{ ok: boolean; matches?: any[]; errText?: string }> {
   const matchRes = await fetch(`${SUPABASE_URL}/functions/v1/match-orgs-for-partnership`, {
     method: "POST",
@@ -189,7 +220,9 @@ Deno.serve(async (req: Request) => {
 
     const isFunder = FUNDER_TYPES.includes(org.organisation_type);
     const isCorporate = CORPORATE_TYPES.includes(org.organisation_type);
-    if (!isFunder && !isCorporate) {
+    const isConsultancy = org.organisation_type === "consultancy";
+    const isImplementer = !isFunder && !isCorporate && !isConsultancy;
+    if (!isFunder && !isCorporate && !isImplementer) {
       return new Response(JSON.stringify({ org_id, skipped: "org_type_not_supported" }), {
         status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
       });
@@ -210,7 +243,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const completeness = isFunder ? funderCompleteness(org) : corporateCompleteness(org);
+    const completeness = isFunder ? funderCompleteness(org) : isCorporate ? corporateCompleteness(org) : implementerCompleteness(org);
     if (completeness < COMPLETENESS_THRESHOLD) {
       return new Response(JSON.stringify({ org_id, skipped: "below_completeness_threshold", completeness }), {
         status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },

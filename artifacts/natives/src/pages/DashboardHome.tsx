@@ -9,6 +9,7 @@ import FunderHome from "./DashboardFunderHome";
 import CorporateHome from "./DashboardCorporateHome";
 import { Button } from "@/components/ui/button";
 import CreateInitiativeModal from "@/components/platform/CreateInitiativeModal";
+import ImplementerMatches from "@/components/platform/ImplementerMatches";
 
 // ---------------------------------------------------------------------------
 // Hooks
@@ -317,6 +318,7 @@ export default function DashboardHome() {
   const [snapshot, setSnapshot] = useState<ActivitySnapshot>({ openConversations: 0, pendingEOIs: 0, openEnquiries: 0, unreadMessages: 0 });
   const [loadingPersonal, setLoadingPersonal]     = useState(true);
   const [showSkeleton, setShowSkeleton]           = useState(false);
+  const [orgId, setOrgId] = useState<string | null>(null);
 
   const [showCreateModal, setShowCreateModal]     = useState(false);
   const [allMyInits, setAllMyInits]               = useState<{id: string; status: string}[]>([]);
@@ -480,6 +482,18 @@ export default function DashboardHome() {
     setLoadingPersonal(false);
   }, [user?.id, orgOwnerId]);
 
+  // Org row id -- needed by ImplementerMatches (partnership_match_cache is
+  // keyed by organizations.id, not the auth user id orgOwnerId already
+  // holds).
+  useEffect(() => {
+    if (!orgOwnerId) return;
+    supabase.from("organizations").select("id").eq("user_id", orgOwnerId).maybeSingle()
+      .then(
+        ({ data }) => setOrgId(data?.id ?? null),
+        () => setOrgId(null),
+      );
+  }, [orgOwnerId]);
+
   useEffect(() => {
     if (!user?.id) return;
     const skeletonTimer = setTimeout(() => setShowSkeleton(true), 300);
@@ -515,6 +529,10 @@ export default function DashboardHome() {
   return (
     <>
       <div className="space-y-10">
+
+        {/* AI-matched partners -- primary AI feature for implementers.
+            Free-tier orgs see an upgrade prompt instead of real matches. */}
+        <ImplementerMatches orgId={orgId} />
 
         {/* Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap">

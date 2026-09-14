@@ -710,10 +710,9 @@ export default function HomePage() {
               Natives is the coordination infrastructure where NGOs, funders, corporates, and other impact organisations find partners, assess readiness, and move from opportunity to agreement, without starting every relationship from scratch.
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.875rem' }}>
-              <a href={!IS_APP_DOMAIN ? appendRefParam("https://app.impactnatives.com/signup") : "/platform/partnership-os"} target={!IS_APP_DOMAIN ? "_blank" : undefined} rel="noreferrer">
+            <a href="https://www.impactnatives.com/platform/partnership-os">
                 <button className="hp-btn-primary">
                   Find a Partner
-                  <ArrowRight style={{ width: '1rem', height: '1rem' }} />
                 </button>
               </a>
               <Link href="/platform/impact-marketplace">
