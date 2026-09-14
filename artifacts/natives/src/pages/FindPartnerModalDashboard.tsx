@@ -726,6 +726,7 @@ export function FindPartnerModalDashboard({
 
   async function submitAndMatch(){
     if(!user||!orgProfile) return;
+    setPrefillError("");
     setSubmitting(true);setAppState("matching");
     try{
       const{data:freshOrg}=await supabase.from("organizations").select("id,subscription_tier").eq("user_id",user.id).maybeSingle();
@@ -786,14 +787,35 @@ export function FindPartnerModalDashboard({
         country:form.country as any,sdgs:form.sdgs,
       };
 
+      // This save was previously silent on failure -- if the insert/update
+      // was rejected for any reason (RLS, a bad value, anything), the
+      // error was never checked, savedListingId stayed null, and
+      // execution just continued into the unrelated organizations dual-
+      // write below, which succeeded independently. That made it LOOK
+      // like the whole submission worked while the actual listing row
+      // was never created at all. Confirmed in production: a real
+      // submission updated organizations.partnership_sought correctly
+      // but never created a corresponding partnership_listings row.
+      // Now: any failure here stops the flow and surfaces a real error
+      // instead of a false "success."
       let savedListingId=activeListingId;
       if(activeListingId){
-        await supabase.from("partnership_listings").update(listingRow).eq("id",activeListingId).eq("user_id",user.id);
+        const{error:updateError}=await supabase.from("partnership_listings").update(listingRow).eq("id",activeListingId).eq("user_id",user.id);
+        if(updateError){
+          console.error("partnership_listings update failed:",updateError);
+          setPrefillError(`Couldn't save your listing: ${updateError.message}`);
+          setAppState("form");setSubmitting(false);return;
+        }
       } else {
-        const{data:inserted}=await supabase.from("partnership_listings").insert(listingRow).select("id").single();
-        savedListingId=inserted?.id??null;
+        const{data:inserted,error:insertError}=await supabase.from("partnership_listings").insert(listingRow).select("id").single();
+        if(insertError||!inserted){
+          console.error("partnership_listings insert failed:",insertError);
+          setPrefillError(`Couldn't save your listing: ${insertError?.message??"unknown error"}`);
+          setAppState("form");setSubmitting(false);return;
+        }
+        savedListingId=inserted.id;
       }
-      if(savedListingId) setActiveListingId(savedListingId);
+      setActiveListingId(savedListingId);
 
       // Org-level fields: identity facts (organisation_type, description)
       // and DD readiness, which genuinely don't vary per listing. This
@@ -1784,6 +1806,19 @@ export function FindPartnerModalDashboard({
 
                 </div>
               </div>
+
+              {/* Save/submit error banner -- visible regardless of which
+                  step you're on, unlike the step-0-only prefillError
+                  block above. Needed because submitAndMatch can now fail
+                  and needs to be seen on step 5 (Confirm), where it
+                  actually runs. */}
+              {prefillError&&formStep===5&&(
+                <div className="shrink-0 px-4 sm:px-6 pt-2">
+                  <p className="text-[14px] text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded-lg px-4 py-3 border border-red-200 dark:border-red-800">
+                    {prefillError}
+                  </p>
+                </div>
+              )}
 
               {/* Mobile step indicator */}
               <div className="sm:hidden shrink-0 px-4 py-2 border-t border-border bg-background flex items-center gap-2 overflow-x-auto">
