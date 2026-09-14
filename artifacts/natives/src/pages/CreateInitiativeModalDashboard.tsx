@@ -953,6 +953,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                 urlValid={urlValid}
                 assessment={assessment}
                 assessingBrief={assessingBrief}
+                assessError={assessError}
                 assessBrief={assessBrief}
                 supabaseUrl={supabaseUrl}
                 orgProfile={orgProfile}
@@ -1037,7 +1038,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
   )
 }
 // ─── Manual Steps Component ───────────────────────────────────────────────────
-function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, assessment, assessingBrief, assessBrief, supabaseUrl, orgProfile }: {
+function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, assessment, assessingBrief, assessError, assessBrief, supabaseUrl, orgProfile }: {
   step: number
   form: FormState
   set: <K extends keyof FormState>(key: K, value: FormState[K]) => void
@@ -1047,6 +1048,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
   urlValid: (url: string) => boolean
   assessment: BriefAssessment | null
   assessingBrief: boolean
+  assessError: string | null
   assessBrief: () => void
   supabaseUrl: string
   orgProfile?: Record<string, any> | null
@@ -1390,6 +1392,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
               How does this brief look to a funder?
             </button>
           )}
+          {assessError && <p className="text-xs text-red-600">{assessError}</p>}
           {assessingBrief && (
             <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-border">
               <Loader2 className="w-4 h-4 animate-spin text-[#2D6A4F]" />
