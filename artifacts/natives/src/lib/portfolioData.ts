@@ -434,10 +434,18 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
         .eq("receiver_org_id", myOrg.id),
     ]);
 
+    // .filter(Boolean) matters here -- an individual (no org profile) can
+    // express interest, and that connection's sender_org_id is null by
+    // design (sender_user_id carries their identity instead). Without
+    // filtering, a literal "null" lands in the .in("id", [...]) list
+    // below, and PostgREST rejects the ENTIRE request with a 400 --
+    // failing every org in the batch, not just the null one. Confirmed
+    // in production: this was silently breaking every counterpart lookup
+    // on a page that had even ONE individual-sender connection mixed in.
     const counterpartIds = [
       ...(sent ?? []).map((c: any) => c.receiver_org_id),
       ...(received ?? []).map((c: any) => c.sender_org_id),
-    ];
+    ].filter(Boolean);
     const { data: counterpartOrgs } = counterpartIds.length
       ? await supabase.from("organizations")
           .select("id, user_id, organisation_name, partnership_sought, needs, email")
