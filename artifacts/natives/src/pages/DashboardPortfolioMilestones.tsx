@@ -6,7 +6,7 @@ import { Loader2, Plus, X, Clock, Eye, CheckCircle2, PartyPopper, ChevronDown } 
 import {
   MouMilestone, OrgRef, isMilestoneOverdue,
 } from "@/lib/milestones";
-import { resolveMouDocTitle } from "@/lib/mouTitle";
+import { resolveMouDocTitle, buildConnectionListingMap, type MouTitleListingRef } from "@/lib/mouTitle";
 import MilestoneCard from "@/components/mou/MilestoneCard";
 import MilestoneCreateModal from "@/components/mou/MilestoneCreateModal";
 import MilestoneDetailModal from "@/components/mou/MilestoneDetailModal";
@@ -36,6 +36,7 @@ export default function DashboardPortfolioMilestones() {
   const [myOrgId, setMyOrgId] = useState<string | null>(null);
   const [docs, setDocs] = useState<ExecutedDoc[]>([]);
   const [orgMap, setOrgMap] = useState<Record<string, OrgRef>>({});
+  const [connectionListingMap, setConnectionListingMap] = useState<Record<string, MouTitleListingRef | undefined>>({});
   const [initiativeTitleMap, setInitiativeTitleMap] = useState<Record<string, string>>({});
   const [milestones, setMilestones] = useState<MouMilestone[]>([]);
 
@@ -104,6 +105,11 @@ export default function DashboardPortfolioMilestones() {
       setInitiativeTitleMap(titleMap);
     }
 
+    // Which SPECIFIC listing each connection-based doc's MoU was actually
+    // about -- see mouTitle.ts for the full reasoning.
+    const connectionIds = [...new Set((docRows ?? []).map((d: any) => d.connection_id).filter((x: any): x is string => !!x))];
+    setConnectionListingMap(await buildConnectionListingMap(connectionIds));
+
     const docIds = (docRows ?? []).map((d: any) => d.id);
     if (docIds.length > 0) {
       const { data: msRows } = await supabase
@@ -138,7 +144,7 @@ export default function DashboardPortfolioMilestones() {
   // so fall back to the listing owner's (org_a's) own partnership_sought
   // text, same resolution used for the MoU picker on the MoUs page.
   function docTitle(doc: ExecutedDoc): string | null {
-    return resolveMouDocTitle(doc, orgMap, initiativeTitleMap);
+    return resolveMouDocTitle(doc, orgMap, initiativeTitleMap, connectionListingMap);
   }
 
   const pickerOptions = useMemo(() => {
@@ -151,7 +157,7 @@ export default function DashboardPortfolioMilestones() {
     const q = pickerSearch.trim().toLowerCase();
     if (!q) return opts;
     return opts.filter((o) => o.partnerName.toLowerCase().includes(q) || (o.title ?? "").toLowerCase().includes(q));
-  }, [docs, orgMap, myOrgId, initiativeTitleMap, pickerSearch]);
+  }, [docs, orgMap, myOrgId, initiativeTitleMap, connectionListingMap, pickerSearch]);
 
   // Status is the only cross-cutting milestone-level filter now -- which
   // agreement(s) show is decided by scopedDocId below, at the section
@@ -300,7 +306,7 @@ export default function DashboardPortfolioMilestones() {
       const bName = orgMap[partnerOrgIdFor(b)]?.organisation_name ?? "";
       return aName.localeCompare(bName) || (docTitle(a) ?? "").localeCompare(docTitle(b) ?? "");
     });
-  }, [docs, scopedDocId, pageView, docsWithAnyMilestone, docsWithAnyIndicator, orgMap, initiativeTitleMap, myOrgId]);
+  }, [docs, scopedDocId, pageView, docsWithAnyMilestone, docsWithAnyIndicator, orgMap, initiativeTitleMap, connectionListingMap, myOrgId]);
 
   const partnerGroups = useMemo(() => {
     const groups: { partnerId: string; partnerName: string; docs: ExecutedDoc[] }[] = [];

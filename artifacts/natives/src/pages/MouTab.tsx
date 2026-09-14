@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Loader2, FileText, PenLine, Upload, Plus, X, Trash2, Target, Search, ListFilter } from "lucide-react";
 import CreateMouModal from "./CreateMouModal";
 import MouDocumentDetail from "./MouDocumentDetail";
-import { resolveMouDocTitle } from "@/lib/mouTitle";
+import { resolveMouDocTitle, buildConnectionListingMap, type MouTitleListingRef } from "@/lib/mouTitle";
 
 interface MouDocRow {
   id: string;
@@ -107,6 +107,7 @@ export default function MouTab() {
   const [orgMap, setOrgMap] = useState<Record<string, OrgLite>>({});
   const [openDocId, setOpenDocId] = useState<string | null>(null);
   const [initiativeTitleMap, setInitiativeTitleMap] = useState<Record<string, string>>({});
+  const [connectionListingMap, setConnectionListingMap] = useState<Record<string, MouTitleListingRef | undefined>>({});
   const [showPicker, setShowPicker] = useState(false);
   const [partnerOptions, setPartnerOptions] = useState<PartnerOption[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
@@ -165,6 +166,13 @@ export default function MouTab() {
       (inits ?? []).forEach((i: any) => { titleMap[i.id] = i.title; });
       setInitiativeTitleMap(titleMap);
     }
+    // Which SPECIFIC listing each connection-based MoU was actually
+    // about -- without this, every connection-based MoU's title showed
+    // whichever listing org_a happened to save most recently, which can
+    // be a completely different, unrelated listing from the one this MoU
+    // was ever about.
+    const connectionIds = [...new Set((docRows ?? []).map((d) => d.connection_id).filter((x): x is string => !!x))];
+    setConnectionListingMap(await buildConnectionListingMap(connectionIds));
     setDocs(docRows ?? []);
     setLoading(false);
   }
@@ -190,6 +198,7 @@ export default function MouTab() {
     if (connOrgIds.length > 0) {
       const { data: connOrgs } = await supabase.from("organizations").select("id, organisation_name, user_id").in("id", connOrgIds);
       const connOrgMap = new Map((connOrgs ?? []).map((o: any) => [o.id, o]));
+      const pickerListingMap = await buildConnectionListingMap((inboundFormed ?? []).map((c: any) => c.id));
       for (const c of inboundFormed ?? []) {
         const org = connOrgMap.get(c.sender_org_id);
         if (org && !seenOrgIds.has(org.id)) {
@@ -197,7 +206,8 @@ export default function MouTab() {
           const subtitle = resolveMouDocTitle(
             { initiative_id: null, connection_id: c.id, org_a_id: myOrgId },
             { [myOrgId]: { id: myOrgId, partnership_sought: myOrgListing?.partnership_sought ?? null } },
-            {}
+            {},
+            pickerListingMap
           ) ?? "Direct partnership";
           options.push({ orgId: org.id, userId: org.user_id, name: org.organisation_name, initiativeId: null, initiativeTitle: subtitle, connectionId: c.id });
         }
@@ -221,18 +231,18 @@ export default function MouTab() {
       if (statusFilter === "in_progress" && (d.status === "draft" || d.status === "fully_executed")) return false;
       if (!q) return true;
       const partnerName = otherOrg(d)?.organisation_name ?? "";
-      const title = resolveMouDocTitle(d, orgMap, initiativeTitleMap) ?? "";
+      const title = resolveMouDocTitle(d, orgMap, initiativeTitleMap, connectionListingMap) ?? "";
       return partnerName.toLowerCase().includes(q) || title.toLowerCase().includes(q);
     });
-  }, [docs, searchQuery, statusFilter, selectedDocIds, orgMap, initiativeTitleMap, myOrgId]);
+  }, [docs, searchQuery, statusFilter, selectedDocIds, orgMap, initiativeTitleMap, connectionListingMap, myOrgId]);
 
   const selectPickerOptions = useMemo(() => {
     const q = selectPickerSearch.trim().toLowerCase();
     return docs
-      .map((d) => ({ doc: d, partnerName: otherOrg(d)?.organisation_name ?? "Deleted organisation", title: resolveMouDocTitle(d, orgMap, initiativeTitleMap) }))
+      .map((d) => ({ doc: d, partnerName: otherOrg(d)?.organisation_name ?? "Deleted organisation", title: resolveMouDocTitle(d, orgMap, initiativeTitleMap, connectionListingMap) }))
       .filter((o) => !q || o.partnerName.toLowerCase().includes(q) || (o.title ?? "").toLowerCase().includes(q))
       .sort((a, b) => a.partnerName.localeCompare(b.partnerName));
-  }, [docs, orgMap, initiativeTitleMap, selectPickerSearch, myOrgId]);
+  }, [docs, orgMap, initiativeTitleMap, connectionListingMap, selectPickerSearch, myOrgId]);
 
   function openSelectPicker() {
     setTempSelectedIds(selectedDocIds ? new Set(selectedDocIds) : new Set());

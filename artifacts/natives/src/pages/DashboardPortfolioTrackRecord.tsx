@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Loader2, Handshake, PartyPopper, ShieldCheck, AlertTriangle, Users, ChevronDown } from "lucide-react";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
-import { resolveMouDocTitle } from "@/lib/mouTitle";
+import { resolveMouDocTitle, buildConnectionListingMap, type MouTitleListingRef } from "@/lib/mouTitle";
 import { PartnershipIndicator, isIndicatorAgreed, fetchIndicatorsForDocuments } from "@/lib/indicators";
 import { ImpactClaim, fetchClaimsForIndicators } from "@/lib/impactClaims";
 
@@ -51,6 +51,7 @@ export default function DashboardPortfolioTrackRecord() {
   const [myOrgId, setMyOrgId] = useState<string | null>(null);
   const [docs, setDocs] = useState<ExecutedDoc[]>([]);
   const [orgMap, setOrgMap] = useState<Record<string, OrgRef>>({});
+  const [connectionListingMap, setConnectionListingMap] = useState<Record<string, MouTitleListingRef | undefined>>({});
   const [initiativeTitleMap, setInitiativeTitleMap] = useState<Record<string, string>>({});
   const [allIndicators, setAllIndicators] = useState<PartnershipIndicator[]>([]);
   const [allClaims, setAllClaims] = useState<ImpactClaim[]>([]);
@@ -96,6 +97,11 @@ export default function DashboardPortfolioTrackRecord() {
       setInitiativeTitleMap(titleMap);
     }
 
+    // Which SPECIFIC listing each connection-based doc's MoU was actually
+    // about -- see mouTitle.ts for the full reasoning.
+    const connectionIds = [...new Set(docList.map((d) => d.connection_id).filter((x): x is string => !!x))];
+    setConnectionListingMap(await buildConnectionListingMap(connectionIds));
+
     const docIds = docList.map((d) => d.id);
     const indicatorRows = docIds.length > 0 ? await fetchIndicatorsForDocuments(docIds) : [];
     setAllIndicators(indicatorRows);
@@ -123,9 +129,9 @@ export default function DashboardPortfolioTrackRecord() {
 
   const agreementOptions = useMemo(() => {
     return docs
-      .map((d) => ({ id: d.id, label: `${orgMap[partnerOrgIdFor(d)]?.organisation_name ?? "Partner"} — ${resolveMouDocTitle(d, orgMap, initiativeTitleMap) ?? "Partnership"}` }))
+      .map((d) => ({ id: d.id, label: `${orgMap[partnerOrgIdFor(d)]?.organisation_name ?? "Partner"} — ${resolveMouDocTitle(d, orgMap, initiativeTitleMap, connectionListingMap) ?? "Partnership"}` }))
       .sort((a, b) => a.label.localeCompare(b.label));
-  }, [docs, orgMap, initiativeTitleMap, myOrgId]);
+  }, [docs, orgMap, initiativeTitleMap, connectionListingMap, myOrgId]);
 
   // Indicator options narrow to the selected agreement, if one is picked
   // -- otherwise every agreed indicator across the org.
