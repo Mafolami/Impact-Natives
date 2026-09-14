@@ -140,14 +140,14 @@ export default function ImplementerMatches({ orgId }: { orgId: string | null }) 
   if (state === "error") return null; // fail quiet -- rest of the homepage still works
 
   return (
-    <section className="rounded-2xl bg-[#2D6A4F]/[0.03] border border-[#2D6A4F]/10 p-4">
+    <section className="rounded-2xl bg-muted/30 border border-border p-4">
       <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <div>
           <h3 className="inline-flex items-center gap-1.5 text-[13px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full"
-            style={{ background: "#2D6A4F", color: "#ffffff" }}>
-            <Sparkles className="w-3 h-3" /> AI-matched partners
+            style={{ background: "#C45C26", color: "#ffffff" }}>
+            <Building2 className="w-3.5 h-3.5" /> Partnership matches
           </h3>
-          <p className="text-[13px] text-black dark:text-white mt-1">Partners matched to your profile</p>
+          <p className="text-[13px] text-black dark:text-white mt-1">Top 3 organisations to partner with</p>
         </div>
         {state === "ready" && matches.length > 0 && (
           <button type="button" onClick={() => navigate("/dashboard/partnerships")}
@@ -158,11 +158,11 @@ export default function ImplementerMatches({ orgId }: { orgId: string | null }) 
       </div>
 
       {state === "loading" ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {[1, 2].map(i => <div key={i} className="h-[180px] rounded-xl border border-border bg-white dark:bg-card animate-pulse" />)}
+        <div className="space-y-2">
+          {[1, 2].map(i => <div key={i} className="h-16 rounded-xl border border-border bg-white dark:bg-card animate-pulse" />)}
         </div>
       ) : state === "locked_incomplete" ? (
-        <div className="rounded-xl border border-dashed border-border bg-white dark:bg-card p-6 text-center flex flex-col items-center justify-center min-h-[160px]">
+        <div className="rounded-xl border border-dashed border-border bg-white dark:bg-card p-6 text-center flex flex-col items-center justify-center min-h-[220px]">
           <Building2 className="w-6 h-6 text-muted-foreground/20 mb-3" />
           <p className="text-[13px] font-medium text-black dark:text-white mb-1">Unlocks at 80% profile completion</p>
           <p className="text-[13px] text-black dark:text-white mb-3">You're at {completeness}%. Add your description, sectors, needs and offers to unlock matches.</p>
@@ -172,7 +172,7 @@ export default function ImplementerMatches({ orgId }: { orgId: string | null }) 
           </button>
         </div>
       ) : state === "locked_free" ? (
-        <div className="rounded-xl border border-border bg-white dark:bg-card p-6 text-center flex flex-col items-center justify-center min-h-[160px]">
+        <div className="rounded-xl border border-border bg-white dark:bg-card p-6 text-center flex flex-col items-center justify-center min-h-[220px]">
           <Sparkles className="w-6 h-6 text-[#2D6A4F]/40 mb-3" />
           <p className="text-[13px] font-medium text-black dark:text-white mb-1">AI-matched partners need an upgrade</p>
           <p className="text-[13px] text-black dark:text-white mb-3">Upgrade to Plus to see funders and corporates matched to your organisation.</p>
@@ -186,11 +186,11 @@ export default function ImplementerMatches({ orgId }: { orgId: string | null }) 
           <p className="text-[13px] text-black dark:text-white">No matches yet. Check back soon.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="space-y-2">
           {matches.map((m: any) => (
             <button key={m.matched_org_id} type="button"
               onClick={() => navigate(`/dashboard/partnerships?org=${m.org?.id ?? ""}`)}
-              className="w-full text-left rounded-xl border border-border bg-white dark:bg-card px-4 py-3 hover:border-[#2D6A4F]/30 transition-colors group flex flex-col min-h-[180px]">
+              className="w-full text-left rounded-xl border border-border bg-white dark:bg-card px-4 py-3 hover:border-[#2D6A4F]/30 transition-colors group flex flex-col min-h-[220px]">
               <p className="text-[15px] font-semibold text-black dark:text-white group-hover:text-[#2D6A4F] transition-colors break-words mb-1">
                 {m.org?.organisation_name ?? "Organisation"}
               </p>

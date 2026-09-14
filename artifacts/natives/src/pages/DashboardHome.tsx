@@ -559,7 +559,8 @@ export default function DashboardHome() {
     <>
       <div className="space-y-10">
 
-        {/* Header */}
+        {/* Header -- Browse Initiatives button added to match
+            FunderHome/CorporateHome's header row exactly. */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <p className="text-[13px] text-black dark:text-white mb-1 uppercase tracking-widest">{greeting}</p>
@@ -568,14 +569,41 @@ export default function DashboardHome() {
               <p className="text-black dark:text-white mt-1 text-[15px]">{getStatusLine()}</p>
             )}
           </div>
-          
+          <button type="button" onClick={() => navigate("/dashboard/marketplace")}
+            className="rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-medium transition-colors">
+            Browse Initiatives
+          </button>
         </div>
 
-        {/* AI-matched partners -- primary AI feature for implementers.
-            Free-tier orgs see an upgrade prompt instead of real matches. */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <InitiativeMatchesForImplementer orgId={orgId} />
-          <ImplementerMatches orgId={orgId} />
+        {/* Metrics strip — 3 tiles; dropped the platform-wide "In Marketplace"
+            count, which had no connection to the user's own activity */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <MetricCard
+            label="My Initiatives"
+            value={loadingPersonal ? "—" : allMyInits.length}
+            sub={allMyInits.filter(i => i.status === "published").length > 0
+              ? `${allMyInits.filter(i => i.status === "published").length} live`
+              : "none live yet"}
+            onClick={() => navigate("/dashboard/portfolio/exchanges")}
+            accent={false}
+            showSkeleton={showSkeleton}
+          />
+          <MetricCard
+            label="Pending EOIs"
+            value={loadingPersonal ? "—" : snapshot.pendingEOIs}
+            sub={snapshot.pendingEOIs > 0 ? "needs your review" : "all clear"}
+            onClick={() => navigate("/dashboard/messages")}
+            accent={snapshot.pendingEOIs > 0}
+            showSkeleton={showSkeleton}
+          />
+          <MetricCard
+            label="Messages"
+            value={loadingPersonal ? "—" : snapshot.unreadMessages}
+            sub={snapshot.unreadMessages > 0 ? "unread" : "all caught up"}
+            onClick={() => navigate("/dashboard/messages")}
+            accent={snapshot.unreadMessages > 0}
+            showSkeleton={showSkeleton}
+          />
         </div>
 
         {/* Profile completion -- same visual pattern as FunderHome/
@@ -608,35 +636,13 @@ export default function DashboardHome() {
           </div>
         )}
 
-        {/* Metrics strip — 3 tiles; dropped the platform-wide "In Marketplace"
-            count, which had no connection to the user's own activity */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <MetricCard
-            label="My Initiatives"
-            value={loadingPersonal ? "—" : allMyInits.length}
-            sub={allMyInits.filter(i => i.status === "published").length > 0
-              ? `${allMyInits.filter(i => i.status === "published").length} live`
-              : "none live yet"}
-            onClick={() => navigate("/dashboard/portfolio/exchanges")}
-            accent={false}
-            showSkeleton={showSkeleton}
-          />
-          <MetricCard
-            label="Pending EOIs"
-            value={loadingPersonal ? "—" : snapshot.pendingEOIs}
-            sub={snapshot.pendingEOIs > 0 ? "needs your review" : "all clear"}
-            onClick={() => navigate("/dashboard/messages")}
-            accent={snapshot.pendingEOIs > 0}
-            showSkeleton={showSkeleton}
-          />
-          <MetricCard
-            label="Messages"
-            value={loadingPersonal ? "—" : snapshot.unreadMessages}
-            sub={snapshot.unreadMessages > 0 ? "unread" : "all caught up"}
-            onClick={() => navigate("/dashboard/messages")}
-            accent={snapshot.unreadMessages > 0}
-            showSkeleton={showSkeleton}
-          />
+        {/* AI-matched sections -- same two-column layout as FunderHome/
+            CorporateHome (gap-6, side by side on large screens). Initiative
+            matches (green, primary) on the left, partnership matches
+            (orange, secondary) on the right. */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <InitiativeMatchesForImplementer orgId={orgId} />
+          <ImplementerMatches orgId={orgId} />
         </div>
 
         {/* Getting Started — first login only */}
