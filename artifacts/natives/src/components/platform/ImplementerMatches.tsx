@@ -148,10 +148,18 @@ export default function ImplementerMatches({ orgId }: { orgId: string | null }) 
       // 45-point floor matches match-orgs-for-partnership's bulk-mode
       // inclusion threshold; single-pair "instant AI fit" lookups have no
       // such floor and would otherwise show up here as if they qualified.
+      // Fix 5: added .not("submitting_listing_id", "is", null) -- without
+      // it, this query could grab any row above 45 regardless of source,
+      // including stale rows written by score-partnership-fit's own,
+      // separate, unfiltered path (directory listing clicks). The backend
+      // (refresh-partnership-matches) already restricts its real results
+      // to rows with a real submitting_listing_id; this brings the local
+      // cache-paint query in line with that same restriction.
       const { data: cached } = await supabase
         .from("partnership_match_cache")
         .select("matched_org_id, matched_listing_id, fit_score, rationale, key_synergy, criteria, computed_at")
         .eq("org_id", orgId)
+        .not("submitting_listing_id", "is", null)
         .gte("fit_score", 45)
         .order("fit_score", { ascending: false })
         .limit(3);
