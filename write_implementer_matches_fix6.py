@@ -1,4 +1,25 @@
-// src/components/platform/ImplementerMatches.tsx
+#!/usr/bin/env python3
+"""
+Fix 6: refresh-partnership-matches v23 replaced the single "eligible: false"
+completeness gate with two distinct states -- reason: "no_published_listing"
+(org has zero published listings) and reason: "listings_incomplete" (a
+listing exists but scores below 80% on the new listing-based formula).
+Both come back with eligible: true now, not false, so the old
+`if (result?.eligible === false) setState("locked_incomplete")` branch
+never fires for these anymore -- it would just fall through to "empty"
+with no explanation. Added two new states with copy that matches what's
+actually being checked now (the listing's own fields), not the old
+org-profile-description/sectors/SDGs copy, which no longer describes what
+the gate looks at.
+"""
+
+import sys
+from pathlib import Path
+
+SEARCH_ROOT = Path.home() / "Downloads"
+TARGET_NAME = "ImplementerMatches.tsx"
+
+NEW_CONTENT = '''// src/components/platform/ImplementerMatches.tsx
 //
 // AI-matched funders/corporates for implementer (NGO/social enterprise)
 // homepages. Mirrors the partnership-match section already shipping in
@@ -326,3 +347,34 @@ export default function ImplementerMatches({ orgId }: { orgId: string | null }) 
     </section>
   );
 }
+'''
+
+
+def main():
+    matches = list(SEARCH_ROOT.rglob(TARGET_NAME))
+    if not matches:
+        print(f"No file named {TARGET_NAME} found under {SEARCH_ROOT}.")
+        sys.exit(1)
+    if len(matches) > 1:
+        print(f"Found {len(matches)} copies of {TARGET_NAME}:")
+        for m in matches:
+            print(f"  {m}")
+        print("Refusing to guess which one is live.")
+        sys.exit(1)
+
+    file_path = matches[0]
+    current = file_path.read_text()
+    if current == NEW_CONTENT:
+        print(f"{file_path} already matches the fix. Nothing to do.")
+        return
+
+    file_path.write_text(NEW_CONTENT)
+    print(f"Wrote fixed file to: {file_path}")
+    print()
+    print("Next steps:")
+    print('  cd "/Users/mac/Downloads/Impact Natives/Natives"')
+    print("  npm run build")
+
+
+if __name__ == "__main__":
+    main()
