@@ -1,4 +1,21 @@
-// src/components/platform/ImplementerMatches.tsx
+#!/usr/bin/env python3
+"""
+Writes the corrected ImplementerMatches.tsx: adds the 45-point fit_score
+floor and drops the cache-paint limit from 5 to 3, matching the fix
+already deployed backend-side (refresh-partnership-matches v20).
+
+Searches under SEARCH_ROOT for the file instead of assuming a path --
+we've hit two wrong-path guesses already. If it finds more than one copy,
+it lists them and stops rather than guessing which is live.
+"""
+
+import sys
+from pathlib import Path
+
+SEARCH_ROOT = Path.home() / "Downloads"  # widen to Path.home() if this doesn't find it
+TARGET_NAME = "ImplementerMatches.tsx"
+
+NEW_CONTENT = '''// src/components/platform/ImplementerMatches.tsx
 //
 // AI-matched funders/corporates for implementer (NGO/social enterprise)
 // homepages. Mirrors the partnership-match section already shipping in
@@ -262,3 +279,36 @@ export default function ImplementerMatches({ orgId }: { orgId: string | null }) 
     </section>
   );
 }
+'''
+
+
+def main():
+    matches = list(SEARCH_ROOT.rglob(TARGET_NAME))
+    if not matches:
+        print(f"No file named {TARGET_NAME} found under {SEARCH_ROOT}.")
+        print('Edit SEARCH_ROOT near the top of this script (e.g. to Path.home()) and rerun.')
+        sys.exit(1)
+    if len(matches) > 1:
+        print(f"Found {len(matches)} copies of {TARGET_NAME}:")
+        for m in matches:
+            print(f"  {m}")
+        print("Refusing to guess which one is live. Tell me which path, or clean up the stale copies.")
+        sys.exit(1)
+
+    file_path = matches[0]
+    current = file_path.read_text()
+    if current == NEW_CONTENT:
+        print(f"{file_path} already matches the fix. Nothing to do.")
+        return
+
+    file_path.write_text(NEW_CONTENT)
+    print(f"Wrote fixed file to: {file_path}")
+    print()
+    print("Next steps (yours, not this script's):")
+    print(f'  cd "{file_path.parent.parent.parent.parent}"   # or wherever your repo root is')
+    print("  npm run build")
+    print("  # paste the build output back to me")
+
+
+if __name__ == "__main__":
+    main()
