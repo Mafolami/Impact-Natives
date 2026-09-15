@@ -116,7 +116,7 @@ function stepComplete(step:number, form:PrefillData, partnershipTitle:string, fr
   switch(step){
     case 0: return partnershipTitle.trim().length>0 && (freeText.trim().length>0 || !!uploadedFile);
     case 1: return form.partnership_sought.trim().length>0 && form.partnership_stage.length>0;
-    case 2: return form.country.length>0;
+    case 2: return form.country.length>0 && form.partnership_budget.length>0;
     case 3: return form.sectors.length>0 && form.needs.length>0 && form.offers.length>0 && form.partnership_success_definition.trim().length>0;
     case 4: return true; // all optional
     case 5: return true;
@@ -909,7 +909,7 @@ export function FindPartnerModalDashboard({
       const matchRes=await fetch(`${SUPABASE_URL}/functions/v1/match-orgs-for-partnership`,{
         method:"POST",
         headers:{"Content-Type":"application/json",...(session?{Authorization:`Bearer ${session.access_token}`}:{})},
-        body:JSON.stringify({submitting_org:{...orgProfile,...form,sector:form.sectors},user_id:user.id}),
+        body:JSON.stringify({submitting_listing_id:savedListingId}),
       });
       const matchData=await matchRes.json();
       if(!matchRes.ok){
