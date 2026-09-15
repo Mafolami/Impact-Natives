@@ -13,8 +13,20 @@
 // becomes its own small card (rounded-xl border bg-card) instead of one
 // continuous divided panel. Used by DashboardPortfolio.tsx's in-state view.
 //
-// Logic (loadFit, the CTA states, save/interest wiring) is unchanged from the
-// original DetailPanel -- only layout/container classes vary by variant.
+// Fit analysis (loadFit) rewritten for score-partnership-fit v10:
+// - Sends { viewer_org_id, target_listing_id } instead of whole org objects.
+//   target_listing_id comes from org.listing_id -- already present on every
+//   row DashboardPartnerships.tsx builds. If it's ever missing (a caller that
+//   hasn't been updated to pass it), the fit box just doesn't render, same
+//   as when viewerOrg was missing before.
+// - The backend now scores the target against EVERY one of the viewer's own
+//   open listings, not one guessed one, and returns the best as `primary`
+//   plus any others that also cleared the bar as `also_fits`. Clicking an
+//   "Also fits" line reads that specific pair straight from
+//   partnership_match_cache -- no second AI call, since v10 caches every
+//   qualifying result, not just the winner.
+// - `no_published_listing` fails quiet (no listing to compare against) --
+//   same fail-quiet convention as before when nothing was eligible to score.
 
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
@@ -32,6 +44,10 @@ export interface OrgRow {
   needs?: string[]; offers?: string[]; sdgs?: string[];
   partnership_sought?: string; verification_status: string;
   status: string; user_id: string; partnership_listed: boolean;
+  // The specific published listing this row represents, when the caller has
+  // one (DashboardPartnerships.tsx's merged rows always do). Drives which
+  // listing gets sent to score-partnership-fit as the comparison target.
+  listing_id?: string;
   partnership_formed?: boolean; partnership_title?: string;
   partnership_stage?: string; partnership_duration?: string;
   partnership_budget?: string; partnership_decision_timeline?: string;
@@ -57,12 +73,18 @@ export interface OrgRow {
 }
 
 export type FitResult = {
+  listing_id: string;
+  listing_title: string;
   fit_score: number;
   reasons: string[];
   gaps: string[];
   rationale: string;
   opening_message: string;
+  key_synergy?: string | null;
+  criteria?: any;
 };
+
+type AlsoFit = { listing_id: string; listing_title: string; fit_score: number };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -194,6 +216,24 @@ function Section({ children, className = "" }: { children: React.ReactNode; clas
   return <div className={`rounded-xl border border-border bg-card px-5 py-4 ${className}`}>{children}</div>;
 }
 
+// "Also fits" footnote -- shown inside the existing fit-analysis box, not as
+// a separate card, since it's the same fit story, just noting there's more
+// of it. Clicking swaps the whole box to that listing's own analysis via a
+// plain cache read (no AI call -- v10 caches every qualifying result).
+function AlsoFitsFootnote({ items, onSelect }: { items: AlsoFit[]; onSelect: (item: AlsoFit) => void }) {
+  if (items.length === 0) return null;
+  return (
+    <div className="pt-3 mt-1 border-t border-border/60 space-y-1.5">
+      {items.map(af => (
+        <button key={af.listing_id} type="button" onClick={() => onSelect(af)}
+          className="block text-xs text-muted-foreground hover:text-[#2D6A4F] transition-colors underline underline-offset-2 text-left">
+          Also a fit: {af.listing_title} ({af.fit_score}%)
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ─── Main panel ─────────────────────────────────────────────────────────────────
 
 export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, onExpressInterest, onBack, backLabel, viewerOrg, viewerOrgLoading, variant = "panel", mouExecuted = false }: {
@@ -210,6 +250,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
   const [fit, setFit] = useState<FitResult | null>(null);
   const [fitLoading, setFitLoading] = useState(false);
   const [fitLocked, setFitLocked] = useState(false);
+  const [alsoFits, setAlsoFits] = useState<AlsoFit[]>([]);
   const [openingMsg, setOpeningMsg] = useState<string | null>(null);
   const [msgEditing, setMsgEditing] = useState(false);
 
@@ -217,6 +258,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
     if (org && ref.current) ref.current.scrollTop = 0;
     setFit(null);
     setFitLocked(false);
+    setAlsoFits([]);
     setOpeningMsg(null);
     setMsgEditing(false);
     if (org && viewerOrg && org.user_id !== viewerOrg.user_id && org.id !== viewerOrg.id) {
@@ -228,47 +270,70 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
   async function loadFit(listing: OrgRow, viewer: OrgRow) {
     // Free-tier viewers never get a real score from this endpoint --
     // score-partnership-fit itself already gates on subscription_tier and
-    // returns requires_upgrade, but calling it anyway just to get told no
-    // means burning a network round trip AND showing a loading spinner
-    // for a feature the viewer can't use, with nothing explaining why it
-    // never resolves. Check first; skip the call and the spinner entirely.
+    // returns eligible:false/requires_upgrade, but calling it anyway just
+    // to get told no means burning a network round trip AND showing a
+    // loading spinner for a feature the viewer can't use. Check first;
+    // skip the call and the spinner entirely.
     if (viewer.subscription_tier === "free") {
       setFitLocked(true);
       return;
     }
 
+    // No specific listing to compare against -- fails quiet, same
+    // convention as before when the viewer org itself was missing.
+    if (!listing.listing_id) return;
+
     setFitLoading(true);
     try {
-      const { data: cached } = await supabase
-        .from("partnership_match_cache")
-        .select("fit_score, reasons, gaps, rationale, opening_message")
-        .eq("org_id", viewer.id)
-        .eq("matched_org_id", listing.id)
-        .maybeSingle();
-
-      if (cached && cached.fit_score != null) {
-        setFit({ ...cached, reasons: cached.reasons ?? [], gaps: cached.gaps ?? [] } as any);
-        setOpeningMsg(cached.opening_message ?? null);
-        setFitLoading(false);
-      }
-
       const { data, error } = await supabase.functions.invoke("score-partnership-fit", {
-        body: { viewer_org: viewer, listing_org: listing },
+        body: { viewer_org_id: viewer.id, target_listing_id: listing.listing_id },
       });
-      if (!error && data?.result) {
-        setFit(data.result);
-        setOpeningMsg(data.result.opening_message ?? null);
-      } else if ((error as any)?.context?.body?.requires_upgrade || (data as any)?.requires_upgrade) {
-        // Defensive fallback -- viewer.subscription_tier should have
-        // caught this above, but if it was ever stale or missing, the
-        // server's own gate is the actual source of truth.
-        setFitLocked(true);
+      if (error) { console.error("Fit score error:", error); return; }
+      if (data?.reason === "requires_upgrade") { setFitLocked(true); return; }
+      if (data?.reason === "no_published_listing") return; // fail quiet -- viewer has no listing to compare with
+      if (data?.eligible && data?.primary) {
+        setFit(data.primary);
+        setAlsoFits(data.also_fits ?? []);
+        setOpeningMsg(data.primary.opening_message ?? null);
       }
     } catch (e) {
       console.error("Fit score error:", e);
     } finally {
       setFitLoading(false);
     }
+  }
+
+  // Swaps the displayed fit to a listing named in "Also fits" -- reads the
+  // already-cached pair directly, no AI call. The listing being swapped
+  // away from goes back into the also-fits list so it isn't lost.
+  async function swapToAlsoFit(target: AlsoFit) {
+    if (!org?.listing_id) return;
+    const { data } = await supabase
+      .from("partnership_match_cache")
+      .select("matched_org_id, fit_score, rationale, key_synergy, criteria, reasons, gaps, opening_message")
+      .eq("submitting_listing_id", target.listing_id)
+      .eq("matched_listing_id", org.listing_id)
+      .maybeSingle();
+    if (!data) return;
+
+    setAlsoFits(prev => {
+      const rest = prev.filter(x => x.listing_id !== target.listing_id);
+      if (fit) rest.push({ listing_id: fit.listing_id, listing_title: fit.listing_title, fit_score: fit.fit_score });
+      return rest.sort((a, b) => b.fit_score - a.fit_score);
+    });
+    setFit({
+      listing_id: target.listing_id,
+      listing_title: target.listing_title,
+      fit_score: data.fit_score,
+      rationale: data.rationale,
+      key_synergy: data.key_synergy ?? null,
+      criteria: data.criteria ?? null,
+      reasons: data.reasons ?? [],
+      gaps: data.gaps ?? [],
+      opening_message: data.opening_message,
+    });
+    setOpeningMsg(data.opening_message ?? null);
+    setMsgEditing(false);
   }
   if (!org) {
     return (
@@ -397,7 +462,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         {(fit || fitLoading) && org.user_id !== viewerOrg?.user_id && (
           <div className="rounded-xl border border-border bg-card px-5 py-4"
             style={{ background: "linear-gradient(135deg, rgba(13,43,26,0.04) 0%, rgba(26,74,46,0.02) 100%)" }}>
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-1">
               <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 bg-[#2D6A4F]">
                 <Sparkles className="w-3.5 h-3.5 text-white" />
               </div>
@@ -417,12 +482,15 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                 </div>
               )}
             </div>
+            {fit && !fitLoading && fit.listing_title && (
+              <p className="text-[11px] text-muted-foreground mb-3">Based on your "{fit.listing_title}" listing</p>
+            )}
 
             {fitLoading && (
-              <p className="text-xs text-black dark:text-white">Analysing compatibility with your organisation profile...</p>
+              <p className="text-xs text-black dark:text-white mt-3">Analysing compatibility with your organisation profile...</p>
             )}
             {fitLocked && (
-              <p className="text-xs text-black dark:text-white">
+              <p className="text-xs text-black dark:text-white mt-3">
                 AI fit scoring is a Plus feature.{" "}
                 <Link href="/dashboard/settings?tab=billing" className="text-[#2D6A4F] font-medium hover:underline">Upgrade to unlock</Link>.
               </p>
@@ -459,6 +527,8 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                     </div>
                   </div>
                 )}
+
+                <AlsoFitsFootnote items={alsoFits} onSelect={swapToAlsoFit} />
               </div>
             )}
           </div>
@@ -840,7 +910,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         {(fit || fitLoading) && org.user_id !== viewerOrg?.user_id && (
           <div className="px-8 py-6 border-t border-b border-border"
             style={{ background: "linear-gradient(135deg, rgba(13,43,26,0.04) 0%, rgba(26,74,46,0.02) 100%)" }}>
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-1">
               <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 bg-[#2D6A4F]">
                 <Sparkles className="w-3.5 h-3.5 text-white" />
               </div>
@@ -860,12 +930,15 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                 </div>
               )}
             </div>
+            {fit && !fitLoading && fit.listing_title && (
+              <p className="text-[11px] text-muted-foreground mb-3">Based on your "{fit.listing_title}" listing</p>
+            )}
 
             {fitLoading && (
-              <p className="text-xs text-black dark:text-white">Analysing compatibility with your organisation profile...</p>
+              <p className="text-xs text-black dark:text-white mt-3">Analysing compatibility with your organisation profile...</p>
             )}
             {fitLocked && (
-              <p className="text-xs text-black dark:text-white">
+              <p className="text-xs text-black dark:text-white mt-3">
                 AI fit scoring is a Plus feature.{" "}
                 <Link href="/dashboard/settings?tab=billing" className="text-[#2D6A4F] font-medium hover:underline">Upgrade to unlock</Link>.
               </p>
@@ -902,6 +975,8 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                     </div>
                   </div>
                 )}
+
+                <AlsoFitsFootnote items={alsoFits} onSelect={swapToAlsoFit} />
               </div>
             )}
           </div>
