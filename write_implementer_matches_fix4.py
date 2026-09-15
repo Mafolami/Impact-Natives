@@ -1,4 +1,19 @@
-// src/components/platform/ImplementerMatches.tsx
+#!/usr/bin/env python3
+"""
+Fix 4: adds the 6th criteria row, Budget, to ImplementerMatches.tsx's match
+card. match-orgs-for-partnership v38+ now computes budget_fit deterministically
+(bucket-adjacency comparison, never asked of the AI) and includes it in every
+match's criteria object alongside the original five. The card was still only
+rendering five rows and silently dropping budget_fit from display.
+"""
+
+import sys
+from pathlib import Path
+
+SEARCH_ROOT = Path.home() / "Downloads"
+TARGET_NAME = "ImplementerMatches.tsx"
+
+NEW_CONTENT = '''// src/components/platform/ImplementerMatches.tsx
 //
 // AI-matched funders/corporates for implementer (NGO/social enterprise)
 // homepages. Mirrors the partnership-match section already shipping in
@@ -319,3 +334,34 @@ export default function ImplementerMatches({ orgId }: { orgId: string | null }) 
     </section>
   );
 }
+'''
+
+
+def main():
+    matches = list(SEARCH_ROOT.rglob(TARGET_NAME))
+    if not matches:
+        print(f"No file named {TARGET_NAME} found under {SEARCH_ROOT}.")
+        sys.exit(1)
+    if len(matches) > 1:
+        print(f"Found {len(matches)} copies of {TARGET_NAME}:")
+        for m in matches:
+            print(f"  {m}")
+        print("Refusing to guess which one is live.")
+        sys.exit(1)
+
+    file_path = matches[0]
+    current = file_path.read_text()
+    if current == NEW_CONTENT:
+        print(f"{file_path} already matches the fix. Nothing to do.")
+        return
+
+    file_path.write_text(NEW_CONTENT)
+    print(f"Wrote fixed file to: {file_path}")
+    print()
+    print("Next steps:")
+    print('  cd "/Users/mac/Downloads/Impact Natives/Natives"')
+    print("  npm run build")
+
+
+if __name__ == "__main__":
+    main()
