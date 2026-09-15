@@ -1,4 +1,26 @@
-// src/components/platform/ImplementerMatches.tsx
+#!/usr/bin/env python3
+"""
+Fix 3: ImplementerMatches.tsx was displaying the matched org's stale,
+legacy-mirrored organizations.partnership_sought/stage/budget fields
+instead of the actual listing that got matched. Confirmed live on
+Impact Natives: organizations.partnership_sought still said "Technology
+partnership for accelerator" (a draft listing's leftover mirror), while
+the org's only real published listing is about a Kano State digital
+health data programme. The backend (refresh-partnership-matches v22)
+now correctly scores against the real published listing and returns
+matched_listing_id on every match -- this fix makes the card show that
+listing's own sought/stage/budget/needs instead of the stale org-level
+mirror. Org-level fields (name, type, country) still come from
+organizations, since those are genuinely org-level, not per-listing.
+"""
+
+import sys
+from pathlib import Path
+
+SEARCH_ROOT = Path.home() / "Downloads"
+TARGET_NAME = "ImplementerMatches.tsx"
+
+NEW_CONTENT = '''// src/components/platform/ImplementerMatches.tsx
 //
 // AI-matched funders/corporates for implementer (NGO/social enterprise)
 // homepages. Mirrors the partnership-match section already shipping in
@@ -317,3 +339,34 @@ export default function ImplementerMatches({ orgId }: { orgId: string | null }) 
     </section>
   );
 }
+'''
+
+
+def main():
+    matches = list(SEARCH_ROOT.rglob(TARGET_NAME))
+    if not matches:
+        print(f"No file named {TARGET_NAME} found under {SEARCH_ROOT}.")
+        sys.exit(1)
+    if len(matches) > 1:
+        print(f"Found {len(matches)} copies of {TARGET_NAME}:")
+        for m in matches:
+            print(f"  {m}")
+        print("Refusing to guess which one is live.")
+        sys.exit(1)
+
+    file_path = matches[0]
+    current = file_path.read_text()
+    if current == NEW_CONTENT:
+        print(f"{file_path} already matches the fix. Nothing to do.")
+        return
+
+    file_path.write_text(NEW_CONTENT)
+    print(f"Wrote fixed file to: {file_path}")
+    print()
+    print("Next steps:")
+    print('  cd "/Users/mac/Downloads/Impact Natives/Natives"')
+    print("  npm run build")
+
+
+if __name__ == "__main__":
+    main()
