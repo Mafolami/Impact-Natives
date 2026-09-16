@@ -323,7 +323,7 @@ export function PartnershipTab() {
   return (
     <div className="space-y-8">
       {/* Sub-tabs — pill style */}
-      <div className="flex gap-1.5 p-1 rounded-xl bg-muted w-fit overflow-x-auto">
+      <div className="flex gap-1.5 p-1 rounded-xl bg-muted w-fit max-w-full overflow-x-auto">
         {subTabs.map(({ key, label}) => (
           <button key={key} type="button" onClick={() => setActiveView(key)}
             className={`h-8 px-4 rounded-lg text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 ${
@@ -646,6 +646,7 @@ export function PartnershipTab() {
                         {conns.length} confirmed partner{conns.length !== 1 ? "s" : ""}
                       </p>
                     </div>
+                    <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-border bg-muted/30">
@@ -708,6 +709,7 @@ export function PartnershipTab() {
                         })}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 ));
               })()}
@@ -722,6 +724,7 @@ export function PartnershipTab() {
                     {confirmedOutbound.length} confirmed partner{confirmedOutbound.length !== 1 ? "s" : ""}
                   </p>
                 </div>
+                <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-muted/30">
@@ -770,6 +773,7 @@ export function PartnershipTab() {
                     })}
                   </tbody>
                 </table>
+                </div>
               </div>
               )}
             </div>
