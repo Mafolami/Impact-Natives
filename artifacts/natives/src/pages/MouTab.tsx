@@ -382,10 +382,11 @@ export default function MouTab() {
                   role="button" tabIndex={0}
                   onClick={() => setOpenDocId(d.id)}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpenDocId(d.id); } }}
-                  className="flex items-stretch w-full cursor-pointer hover:bg-muted/30 transition-colors">
+                  className="flex flex-col sm:flex-row sm:items-stretch w-full cursor-pointer hover:bg-muted/30 transition-colors">
 
-                  {/* Left — org info, capped at 42% so tracker shifts inward */}
-                  <div className="min-w-0 px-4 sm:px-6 py-9 flex flex-col justify-center gap-3" style={{ width: "42%" }}>
+                  {/* Left — org info, full width on mobile, capped at 42% on
+                      larger screens so the tracker shifts inward */}
+                  <div className="min-w-0 px-4 sm:px-6 py-6 sm:py-9 flex flex-col justify-center gap-3 w-full sm:w-[42%]">
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <div className="p-1.5 rounded-lg bg-[#2D6A4F]/10 shrink-0">
                         <SourceIcon className="w-3.5 h-3.5 text-[#2D6A4F]" />
@@ -431,11 +432,12 @@ export default function MouTab() {
                     </div>
                   </div>
 
-                  {/* Vertical separator */}
-                  <div className="w-px bg-border shrink-0" />
+                  {/* Separator — horizontal divider when stacked on mobile,
+                      vertical divider alongside the tracker from sm: up */}
+                  <div className="w-full h-px bg-border sm:w-px sm:h-auto shrink-0" />
 
                   {/* Right — tracker takes remaining space */}
-                  <div className="flex-1 min-w-0 px-6 py-9 flex items-start">
+                  <div className="flex-1 min-w-0 px-4 sm:px-6 py-6 sm:py-9 flex items-start w-full">
                     {isDraft ? (
                       <p className="text-[13px] text-muted-foreground italic mt-1">
                         Open to start filling in details.
