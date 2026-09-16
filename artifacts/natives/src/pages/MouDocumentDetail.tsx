@@ -78,9 +78,10 @@ interface Props {
   // flagging, and indicator negotiation. Signing, finalizing, confirming
   // no-objection, marking the partnership executed, and voiding/
   // reopening stay gated to the literal account owner only
-  // (isLiteralOwnerA/isLiteralOwnerB below) -- deliberately narrower than
-  // what the database itself currently permits, as an explicit
-  // placeholder until a real, delegatable "MoU signer" permission exists.
+  // (isLiteralOwnerA/isLiteralOwnerB below) -- the literal account owner
+  // or their designated MoU signer (org_members.is_mou_signer), a real
+  // delegatable permission enforced server-side (can_edit_org_profile /
+  // can_confirm_mou_for_org, plus a mou_documents table trigger).
   orgOwnerId: string | null;
   onClose: () => void;
 }
@@ -170,12 +171,32 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
   // was purely a frontend gap.
   const isViewerOrgA = !!orgOwnerId && orgA?.user_id === orgOwnerId;
   const isViewerOrgB = !!orgOwnerId && orgB?.user_id === orgOwnerId;
-  // NOT broadened -- deliberately the literal account owner only, for
-  // signing, finalizing, confirming no-objection, marking the
-  // partnership executed, and voiding/reopening. See the Props comment
-  // above for why.
-  const isLiteralOwnerA = orgA?.user_id === myUserId;
-  const isLiteralOwnerB = orgB?.user_id === myUserId;
+  // The literal account owner, OR their designated MoU signer
+  // (org_members.is_mou_signer) -- the delegatable permission the Props
+  // comment above used to describe as not existing yet. Signing,
+  // finalizing, confirming no-objection, marking the partnership
+  // executed, and voiding/reopening all gate on this. The backend
+  // enforces the same rule independently via a mou_documents trigger, so
+  // this lookup is purely about not hiding controls the backend would
+  // actually allow.
+  const [amMouSignerA, setAmMouSignerA] = useState(false);
+  const [amMouSignerB, setAmMouSignerB] = useState(false);
+  useEffect(() => {
+    const orgIds = [orgA?.id, orgB?.id].filter(Boolean) as string[];
+    if (orgIds.length === 0) return;
+    supabase.from("org_members")
+      .select("org_id, is_mou_signer")
+      .eq("user_id", myUserId)
+      .eq("status", "active")
+      .in("org_id", orgIds)
+      .then(({ data }) => {
+        const rows = data ?? [];
+        setAmMouSignerA(!!rows.find((r) => r.org_id === orgA?.id)?.is_mou_signer);
+        setAmMouSignerB(!!rows.find((r) => r.org_id === orgB?.id)?.is_mou_signer);
+      });
+  }, [orgA?.id, orgB?.id, myUserId]);
+  const isLiteralOwnerA = orgA?.user_id === myUserId || amMouSignerA;
+  const isLiteralOwnerB = orgB?.user_id === myUserId || amMouSignerB;
   const [nearTop, setNearTop] = useState(true);
   useEffect(() => {
     function handleScroll() {

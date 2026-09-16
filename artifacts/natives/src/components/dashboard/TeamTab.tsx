@@ -31,6 +31,7 @@ interface RosterRow {
   invited_email: string;
   created_at: string;
   accepted_at: string | null;
+  is_mou_signer: boolean;
   profile: { full_name: string | null; email: string | null; avatar_url: string | null } | null;
 }
 
@@ -49,6 +50,7 @@ interface MemberInfo {
   org_logo: string | null;
   seat_label: string;
   accepted_at: string | null;
+  is_mou_signer: boolean;
 }
 
 function fmtDate(iso: string | null) {
@@ -134,7 +136,7 @@ export function TeamTab() {
       if (ownerOrg) {
         const { data: myRow } = await supabase
           .from("org_members")
-          .select("seat_label, accepted_at")
+          .select("seat_label, accepted_at, is_mou_signer")
           .eq("org_id", ownerOrg.id)
           .eq("user_id", user.id)
           .maybeSingle();
@@ -143,6 +145,7 @@ export function TeamTab() {
           org_logo: ownerOrg.logo_url,
           seat_label: myRow?.seat_label ?? "Associate",
           accepted_at: myRow?.accepted_at ?? null,
+          is_mou_signer: myRow?.is_mou_signer ?? false,
         });
         setRole("member");
         return;
@@ -155,7 +158,7 @@ export function TeamTab() {
   async function loadRoster(orgId: string) {
     const { data: rows } = await supabase
       .from("org_members")
-      .select("id, user_id, seat_label, status, invited_email, created_at, accepted_at")
+      .select("id, user_id, seat_label, status, invited_email, created_at, accepted_at, is_mou_signer")
       .eq("org_id", orgId)
       .order("created_at", { ascending: false });
 
@@ -174,6 +177,7 @@ export function TeamTab() {
   // ── Owner: invite ──────────────────────────────────────────────────────
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteSeat, setInviteSeat] = useState("Associate");
+  const [inviteIsMouSigner, setInviteIsMouSigner] = useState(false);
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
 
@@ -182,7 +186,11 @@ export function TeamTab() {
     setInviting(true);
     setInviteError(null);
     const { data, error } = await supabase.functions.invoke("invite-team-member", {
-      body: { invited_email: inviteEmail.trim(), seat_label: inviteSeat.trim() || "Associate" },
+      body: {
+        invited_email: inviteEmail.trim(),
+        seat_label: inviteSeat.trim() || "Associate",
+        is_mou_signer: inviteIsMouSigner,
+      },
     });
     setInviting(false);
     if (error || data?.error) {
@@ -191,6 +199,7 @@ export function TeamTab() {
     }
     setInviteEmail("");
     setInviteSeat("Associate");
+    setInviteIsMouSigner(false);
     if (ownedOrgId) await loadRoster(ownedOrgId);
   }
 
@@ -198,6 +207,16 @@ export function TeamTab() {
   async function revokeMember(row: RosterRow) {
     setActingOn(row.id);
     await supabase.from("org_members").update({ status: "revoked" }).eq("id", row.id);
+    if (ownedOrgId) await loadRoster(ownedOrgId);
+    setActingOn(null);
+  }
+
+  // ── Owner: toggle designated MoU signer ──────────────────────────────
+  // Direct table write -- org_members_owner_update RLS already restricts
+  // this to the org owner, no edge function needed.
+  async function toggleMouSigner(row: RosterRow) {
+    setActingOn(row.id);
+    await supabase.from("org_members").update({ is_mou_signer: !row.is_mou_signer }).eq("id", row.id);
     if (ownedOrgId) await loadRoster(ownedOrgId);
     setActingOn(null);
   }
@@ -212,7 +231,7 @@ export function TeamTab() {
     setActingOn(row.id);
     setResendError(null);
     const { data, error } = await supabase.functions.invoke("invite-team-member", {
-      body: { invited_email: row.invited_email, seat_label: row.seat_label },
+      body: { invited_email: row.invited_email, seat_label: row.seat_label, is_mou_signer: row.is_mou_signer },
     });
     if (error || data?.error) {
       setResendError(data?.error || error?.message || "Could not resend invite.");
@@ -288,6 +307,11 @@ export function TeamTab() {
             <p className="text-xs text-black dark:text-white mt-0.5">
               {memberInfo.seat_label} · Joined {fmtDate(memberInfo.accepted_at)}
             </p>
+            {memberInfo.is_mou_signer && (
+              <span className="inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-medium bg-[#2D6A4F]/10 text-[#2D6A4F]">
+                Authorized signatory
+              </span>
+            )}
           </div>
         </div>
         <p className="text-xs text-black dark:text-white mt-4">
@@ -334,6 +358,14 @@ export function TeamTab() {
               {inviting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><UserPlus className="w-3.5 h-3.5 mr-1.5" />Invite</>}
             </Button>
           </div>
+          <label className="flex items-center gap-2 mt-2 cursor-pointer">
+            <input type="checkbox" checked={inviteIsMouSigner}
+              onChange={(e) => setInviteIsMouSigner(e.target.checked)}
+              className="accent-[#2D6A4F]" />
+            <span className="text-xs text-black dark:text-white">
+              Authorized signatory — can confirm/sign MoUs and edit the org profile
+            </span>
+          </label>
           {inviteError && <p className="text-xs text-red-500 mt-2">{inviteError}</p>}
         </div>
       </div>
@@ -363,6 +395,17 @@ export function TeamTab() {
               </div>
             </div>
             <div className="flex items-center gap-3 shrink-0">
+              <button type="button"
+                onClick={() => toggleMouSigner(row)}
+                disabled={actingOn === row.id}
+                title="Can confirm/sign MoUs and edit the org profile"
+                className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
+                  row.is_mou_signer
+                    ? "bg-[#2D6A4F]/10 text-[#2D6A4F]"
+                    : "border border-border text-muted-foreground hover:border-[#2D6A4F]/50"
+                }`}>
+                {row.is_mou_signer ? "Signatory" : "Make signatory"}
+              </button>
               <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_STYLES[row.status]}`}>
                 {row.status === "pending" ? "Pending" : "Active"}
               </span>
