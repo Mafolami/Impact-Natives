@@ -1222,22 +1222,34 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
       .from("profiles").select("user_type, org_name, full_name").eq("id", conversation.other_user_id).single();
     const otherDisplayName = otherProfile?.user_type === "organisation" && otherProfile?.org_name
       ? otherProfile.org_name : otherProfile?.full_name ?? conversation.other_user_name;
+    // Team-seat fix: conversation.other_user_id is whichever specific
+    // individual is in this chat, not necessarily their org's owner --
+    // messaging is correctly team-wide now, so this could be any active
+    // team member. confirmed_partners.user_id needs to be the OWNER id,
+    // the same convention every other identity field in this app uses,
+    // or CreateMouModal's later org lookup finds nothing and silently
+    // treats a real, confirmed partner as if their org doesn't exist.
+    const { data: resolvedOtherOrgOwnerId } = await supabase
+      .rpc("resolve_org_owner_id_for", { target_user_id: conversation.other_user_id });
+    const otherOrgOwnerId = resolvedOtherOrgOwnerId ?? conversation.other_user_id;
     const { data: iniData } = await supabase
       .from("initiative_requests").select("confirmed_partners, title").eq("id", conversation.initiative_id).single();
     const existing = (iniData?.confirmed_partners as any[]) ?? [];
     const proposalEntry = {
-      user_id:        conversation.other_user_id,
+      user_id:        otherOrgOwnerId,
       name:           otherDisplayName,
       role:           confirmRole,
+      // Points at the actual chatting individual's profile -- a
+      // navigation detail, not an identity check, so this is left as-is.
       profile_link:   `/dashboard/natives?user=${conversation.other_user_id}`,
       proposed_at:    new Date().toISOString(),
       confirmed_at:   null,
       public_on_feed: publicOnFeed,
       status:         "pending",
     };
-    const alreadyThere = existing.find(p => p.user_id === conversation.other_user_id);
+    const alreadyThere = existing.find(p => p.user_id === otherOrgOwnerId);
     const updatedList = alreadyThere
-      ? existing.map(p => p.user_id === conversation.other_user_id ? proposalEntry : p)
+      ? existing.map(p => p.user_id === otherOrgOwnerId ? proposalEntry : p)
       : [...existing, proposalEntry];
     await supabase.from("initiative_requests")
       .update({ confirmed_partners: updatedList }).eq("id", conversation.initiative_id);
