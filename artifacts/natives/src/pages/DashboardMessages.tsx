@@ -1058,10 +1058,14 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
         schema: "public",
         table: "initiative_requests",
         filter: `id=eq.${conversation.initiative_id}`,
-      }, payload => {
+      }, async payload => {
         const updated = payload.new as any;
         const partners = (updated.confirmed_partners as any[]) ?? [];
-        const match = partners.find(p => p.user_id === conversation.other_user_id || p.user_id === currentUserId);
+        // Team-seat fix: same org-owner-id matching as checkIfConfirmed.
+        const { data: resolvedOtherOrgOwnerId } = await supabase
+          .rpc("resolve_org_owner_id_for", { target_user_id: conversation.other_user_id });
+        const otherOwnerId = resolvedOtherOrgOwnerId ?? conversation.other_user_id;
+        const match = partners.find(p => p.user_id === otherOwnerId || p.user_id === orgOwnerId);
         const status = match?.status ?? (match ? "confirmed" : null);
         if (status === "confirmed") { setConfirmedRole(match.role); setProposedRole(null); setDeclinedRole(null); }
         if (status === "declined")  { setDeclinedRole(match.role); setProposedRole(null); }
@@ -1141,7 +1145,16 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
       .eq("id", conversation.initiative_id).single();
     if (data?.confirmed_partners) {
       const partners = data.confirmed_partners as any[];
-      const match = partners.find(p => p.user_id === conversation.other_user_id || p.user_id === currentUserId);
+      // Team-seat fix: entries are keyed by org owner id (see proposePartner
+      // below), never the raw individual id of whoever happens to be
+      // chatting -- so "my side" compares against orgOwnerId, and "their
+      // side" needs the conversation partner's org owner id resolved the
+      // same way, or a team member sees no status at all on their own
+      // proposal.
+      const { data: resolvedOtherOrgOwnerId } = await supabase
+        .rpc("resolve_org_owner_id_for", { target_user_id: conversation.other_user_id });
+      const otherOwnerId = resolvedOtherOrgOwnerId ?? conversation.other_user_id;
+      const match = partners.find(p => p.user_id === otherOwnerId || p.user_id === orgOwnerId);
       const status = match?.status ?? (match ? "confirmed" : null);
       if (status === "confirmed") setConfirmedRole(match.role);
       if (status === "pending")   setProposedRole(match.role);
@@ -1284,7 +1297,7 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
       setRespondingToProposal(false);
       return;
     }
-    const myEntry = (updatedPartners as any[] ?? []).find(p => p.user_id === currentUserId);
+    const myEntry = (updatedPartners as any[] ?? []).find(p => p.user_id === orgOwnerId);
     const { data: iniData } = await supabase
       .from("initiative_requests").select("title").eq("id", conversation.initiative_id).single();
     await supabase.from("conversations").update({ status: "confirmed", confirmed_at: new Date().toISOString() }).eq("id", conversation.id);
