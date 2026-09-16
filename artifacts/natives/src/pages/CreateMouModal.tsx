@@ -30,6 +30,14 @@ interface OrgLite {
 
 interface Props {
   myUserId: string;
+  // Team-seat fix: resolves which owner's org this logged-in person
+  // belongs to (themself if they're the owner, their org's owner's id if
+  // they're an active team member). organizations.user_id and
+  // initiative_requests.user_id are always the OWNER's id, never
+  // whoever's logged in, so identity checks below use this instead of
+  // myUserId. myUserId itself is kept for created_by and the storage
+  // upload path, which are genuinely per-person, not org-identity checks.
+  orgOwnerId: string | null;
   partnerUserId?: string;
   partnerOrgId?: string;
   partnerName: string;
@@ -42,7 +50,7 @@ interface Props {
   onOpenDocument: (documentId: string) => void;
 }
 export default function CreateMouModal({
-  myUserId, partnerUserId, partnerOrgId, partnerName, initiativeId, initiativeTitle, connectionId, onClose, onOpenDocument,
+  myUserId, orgOwnerId, partnerUserId, partnerOrgId, partnerName, initiativeId, initiativeTitle, connectionId, onClose, onOpenDocument,
 }: Props) {
   const [, navigate] = useLocation();
   const [loadingOrgs, setLoadingOrgs] = useState(true);
@@ -78,8 +86,12 @@ export default function CreateMouModal({
   async function init() {
     setLoadingOrgs(true);
     setCheckingExisting(true);
+    // Team-seat fix: was .eq("user_id", myUserId) -- organizations.user_id
+    // is always the OWNER's id, so a team member's own id never matched
+    // this row, and every save path below silently did nothing as a
+    // result (each one guards on !myOrg).
     const { data: mineData } = await supabase
-      .from("organizations").select("id, organisation_name, subscription_tier").eq("user_id", myUserId).maybeSingle();
+      .from("organizations").select("id, organisation_name, subscription_tier").eq("user_id", orgOwnerId).maybeSingle();
     setMyOrg(mineData ?? null);
     let theirs: OrgLite | null = null;
     if (partnerOrgId) {
@@ -95,7 +107,11 @@ export default function CreateMouModal({
     setLoadingOrgs(false);
     if (initiativeId) {
       const { data: ini } = await supabase.from("initiative_requests").select("user_id").eq("id", initiativeId).maybeSingle();
-      if (ini && ini.user_id !== myUserId) {
+      // Team-seat fix: was ini.user_id !== myUserId -- initiative_requests
+      // .user_id is also owner-scoped, so a team member of the actual
+      // initiative-owning org was always wrongly told they couldn't start
+      // this MoU, not just silently blocked.
+      if (ini && ini.user_id !== orgOwnerId) {
         setNotInitiativeCreator(true);
         setCheckingExisting(false);
         return;

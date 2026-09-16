@@ -648,6 +648,7 @@ export default function MouTab() {
       {mouTarget && (
         <CreateMouModal
           myUserId={userId}
+          orgOwnerId={orgOwnerId}
           partnerUserId={mouTarget.partnerUserId}
           partnerOrgId={mouTarget.partnerOrgId}
           partnerName={mouTarget.partnerName}
