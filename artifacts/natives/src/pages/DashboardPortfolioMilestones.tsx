@@ -637,6 +637,7 @@ export default function DashboardPortfolioMilestones() {
           orgA={orgsForMilestone(selectedMilestone).orgA}
           orgB={orgsForMilestone(selectedMilestone).orgB}
           myUserId={userId}
+          orgOwnerId={orgOwnerId}
           onClose={() => setSelectedMilestone(null)}
           onChanged={load}
         />

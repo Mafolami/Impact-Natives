@@ -3,11 +3,18 @@ import { supabase } from "@/lib/supabase";
 import { X, Loader2, Upload, Download } from "lucide-react";
 import { MouMilestone, MilestoneEvidenceRow, WorkflowComment, OrgRef, actorLabel, MILESTONE_STATUS_LABEL, MILESTONE_STATUS_PILL_STYLES } from "@/lib/milestones";
 
-export default function MilestoneDetailModal({ milestone, orgA, orgB, myUserId, onClose, onChanged }: {
+export default function MilestoneDetailModal({ milestone, orgA, orgB, myUserId, orgOwnerId, onClose, onChanged }: {
   milestone: MouMilestone;
   orgA: OrgRef | null;
   orgB: OrgRef | null;
   myUserId: string;
+  // Team-seat fix: resolves which owner's org this logged-in person
+  // belongs to. Broadens verify/decline eligibility to any active team
+  // member (participant-level, matches the database's own
+  // is_mou_participant() rule). Deliberately NOT used for canDisburse --
+  // releasing a payment stays literal-owner-only. See isPayerLiteralOwner
+  // below.
+  orgOwnerId: string | null;
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -82,15 +89,28 @@ export default function MilestoneDetailModal({ milestone, orgA, orgB, myUserId, 
 
   // The database trigger is the real authority check -- these mirror it
   // client-side only so the right buttons show up, not to duplicate the rule.
-  const isPayerOwner =
+  //
+  // Team-seat fix: isDocParticipant and isPayerOrgMember broadened to
+  // include any active team member of either org, not just the literal
+  // account owner -- the database already permits this
+  // (is_mou_participant() already includes is_org_member() for both
+  // sides). isPayerLiteralOwner is kept narrow deliberately: releasing a
+  // disbursement is the one genuinely financial action here, and stays
+  // restricted to the literal account owner until a real, delegatable
+  // permission exists for it.
+  const isPayerOrgMember =
+    (current.payer_org_id === orgA?.id && !!orgOwnerId && orgA?.user_id === orgOwnerId) ||
+    (current.payer_org_id === orgB?.id && !!orgOwnerId && orgB?.user_id === orgOwnerId);
+  const isPayerLiteralOwner =
     (current.payer_org_id === orgA?.id && myUserId === orgA?.user_id) ||
     (current.payer_org_id === orgB?.id && myUserId === orgB?.user_id);
-  const isDocParticipant = myUserId === orgA?.user_id || myUserId === orgB?.user_id;
+  const isDocParticipant =
+    !!orgOwnerId && (orgA?.user_id === orgOwnerId || orgB?.user_id === orgOwnerId);
   const canVerify =
     current.status !== "verified" && current.status !== "disbursed" &&
-    (current.payer_org_id ? isPayerOwner : isDocParticipant);
+    (current.payer_org_id ? isPayerOrgMember : isDocParticipant);
   const canDecline = canVerify && current.status !== "revision_requested";
-  const canDisburse = current.status === "verified" && current.payer_org_id !== null && isPayerOwner;
+  const canDisburse = current.status === "verified" && current.payer_org_id !== null && isPayerLiteralOwner;
   const canDelete = (current.status === "pending" || current.status === "revision_requested") && isDocParticipant;
 
   async function transitionTo(status: "verified" | "disbursed" | "revision_requested") {

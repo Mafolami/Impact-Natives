@@ -71,6 +71,17 @@ interface MouDoc {
 interface Props {
   documentId: string;
   myUserId: string;
+  // Team-seat fix: resolves which owner's org this logged-in person
+  // belongs to (themself if they're the owner, their org's owner's id if
+  // they're an active team member). Used to broaden isViewerOrgA/
+  // isViewerOrgB to include team members for viewing, field-filling,
+  // flagging, and indicator negotiation. Signing, finalizing, confirming
+  // no-objection, marking the partnership executed, and voiding/
+  // reopening stay gated to the literal account owner only
+  // (isLiteralOwnerA/isLiteralOwnerB below) -- deliberately narrower than
+  // what the database itself currently permits, as an explicit
+  // placeholder until a real, delegatable "MoU signer" permission exists.
+  orgOwnerId: string | null;
   onClose: () => void;
 }
 function fieldKeysIn(text: string): string[] {
@@ -89,7 +100,7 @@ const PAYMENT_SCHEDULE_OPTIONS = [
 const REPORTING_FREQUENCY_OPTIONS = ["Weekly", "Monthly", "Quarterly", "Bi-annually", "Annually", "Ad hoc / as needed"];
 const NOTICE_DAYS_OPTIONS = ["3", "7", "14", "30", "60", "90"];
 const GOVERNING_JURISDICTION_OPTIONS = ["Federal Republic of Nigeria", "Lagos State, Nigeria", "United Kingdom", "Ghana", "Kenya", "South Africa"];
-export default function MouDocumentDetail({ documentId, myUserId, onClose }: Props) {
+export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, onClose }: Props) {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [doc, setDoc] = useState<MouDoc | null>(null);
@@ -151,8 +162,20 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   // as a secondary text link, not a competing button.
   const [composingSignature, setComposingSignature] = useState(false);
   const [showUploadWarning, setShowUploadWarning] = useState(false);
-  const isViewerOrgA = orgA?.user_id === myUserId;
-  const isViewerOrgB = orgB?.user_id === myUserId;
+  // Broadened for team-seat support: any active team member of the
+  // owning org counts as that org's viewer for participation purposes
+  // (viewing, filling fields, flagging, negotiating indicators). The
+  // database already permits this (is_mou_participant() and
+  // mou_documents' own RLS both already include is_org_member()) -- this
+  // was purely a frontend gap.
+  const isViewerOrgA = !!orgOwnerId && orgA?.user_id === orgOwnerId;
+  const isViewerOrgB = !!orgOwnerId && orgB?.user_id === orgOwnerId;
+  // NOT broadened -- deliberately the literal account owner only, for
+  // signing, finalizing, confirming no-objection, marking the
+  // partnership executed, and voiding/reopening. See the Props comment
+  // above for why.
+  const isLiteralOwnerA = orgA?.user_id === myUserId;
+  const isLiteralOwnerB = orgB?.user_id === myUserId;
   const [nearTop, setNearTop] = useState(true);
   useEffect(() => {
     function handleScroll() {
@@ -908,8 +931,11 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
       p_link: `/dashboard/portfolio/mou`,
     });
   }
+  // Broadened alongside isViewerOrgA/isViewerOrgB above -- used only for
+  // indicator negotiation (agree/suggest/reject), which is participant-
+  // level, not a signing action.
   function myOrgIdFor(): string | null {
-    return orgA?.user_id === myUserId ? orgA.id : orgB?.user_id === myUserId ? orgB.id : null;
+    return orgA?.user_id === orgOwnerId ? orgA.id : orgB?.user_id === orgOwnerId ? orgB.id : null;
   }
   // Refinement starts from the indicator's currently-live checklist, not
   // an empty one -- the proposer edits the existing set of proof points
@@ -1787,7 +1813,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const orgAHasSigned = doc.source_type === "uploaded_pdf" ? !!doc.signed_files?.[doc.org_a_id ?? ""] : !!doc.signature_org_a_path;
   const orgBConfirmationPending = isBindingMou && !doc.org_b_finalization_confirmed;
   const orgBCanConfirmFinalization =
-    isViewerOrgB && doc.status === "pending_org_a_final_review" && !hasUnresolvedOrgAFlags && orgBConfirmationPending;
+    isLiteralOwnerB && doc.status === "pending_org_a_final_review" && !hasUnresolvedOrgAFlags && orgBConfirmationPending;
   const finalizeBlockedOnOrgBConfirmation = doc.status === "pending_org_a_final_review" && !hasUnresolvedOrgAFlags && orgBConfirmationPending;
   // Toggles change the actual clause text, so once either party has signed
   // anything, changing them would silently alter what was already agreed
@@ -1795,7 +1821,11 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
   const togglesEditable = isViewerOrgA && doc.status !== "fully_executed" && !doc.signature_org_a_path && !doc.signature_org_b_path;  // Same underlying condition as previewLocked/togglesEditable -- once any
   // signature exists, content is frozen. Void & Reset is the only way back,
   // and it's unavailable once the document is fully executed.
-  const canVoidAndReopen = previewLocked && doc.status !== "fully_executed";
+  // Fix: previously had NO owner check at all -- anyone who could open
+  // this document could void both parties' signatures. Restricted to the
+  // literal account owner of either side, matching every other
+  // signing-adjacent action in this file.
+  const canVoidAndReopen = (isLiteralOwnerA || isLiteralOwnerB) && previewLocked && doc.status !== "fully_executed";
   // pdf-lib can only append a page to an actual PDF -- a .doc/.docx
   // original has no such capability, so those go straight to the
   // upload-and-verify fallback with no inline option offered at all.
@@ -2355,7 +2385,10 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
             )}
             {(() => {
               const canSaveProgress = doc.source_type === "template" && (orgADetailsEditable || orgBFieldsEditable);
-              const canSend = isViewerOrgA && doc.status === "draft";
+              // Sending locks Org A's submission in as final and formally
+              // notifies the other party -- kept to the literal owner
+              // only, same reasoning as signing itself.
+              const canSend = isLiteralOwnerA && doc.status === "draft";
               if (!canSaveProgress && !canSend && !canVoidAndReopen) return null;
               return (
                 <div className="flex flex-wrap items-center gap-2">
@@ -2424,8 +2457,13 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                     <p className="text-sm text-red-800">{uploadIndicatorError}</p>
                   </div>
                 )}
-                {(isViewerOrgA || isViewerOrgB) && (() => {
-                  const myAlreadySigned = isViewerOrgA ? !!doc.signed_files?.[doc.org_a_id ?? ""] : !!doc.signed_files?.[doc.org_b_id ?? ""];
+                {/* Narrowed to the literal owner -- composeAndSignPdf/
+                    uploadSignedCopy below resolve the signer by literal
+                    myUserId equality internally, so showing this to a
+                    team member would render working-looking controls
+                    that silently do nothing when clicked. */}
+                {(isLiteralOwnerA || isLiteralOwnerB) && (() => {
+                  const myAlreadySigned = isLiteralOwnerA ? !!doc.signed_files?.[doc.org_a_id ?? ""] : !!doc.signed_files?.[doc.org_b_id ?? ""];
                   if (myAlreadySigned) {
                     return (
                       <div className="border-t border-border pt-4">
@@ -2553,7 +2591,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               </div>
             )}
           </SectionCard>
-          {isViewerOrgA && doc.source_type === "template" && doc.signature_org_a_path && missingFieldLabels.length === 0 && dateValidationErrors.length === 0 && (
+          {isLiteralOwnerA && doc.source_type === "template" && doc.signature_org_a_path && missingFieldLabels.length === 0 && dateValidationErrors.length === 0 && (
               <button type="button" onClick={completeOrgADetails}
               disabled={saving || (doc.details_completed_by_org_a && !hasUnresolvedOrgBFlags)}
               className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3 text-base font-medium transition-colors disabled:opacity-60">
@@ -2562,7 +2600,7 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
                   : (saving ? "Submitting..." : `Submit — notify ${orgB?.organisation_name ?? "partner"}`)}
               </button>
             )}
-          {isViewerOrgA && doc.status === "pending_org_a_final_review" && (
+          {isLiteralOwnerA && doc.status === "pending_org_a_final_review" && (
             <div className="space-y-2">
               {!doc.signed_at_org_a && (
                 <InfoBanner tone="locked" icon={PenLine}>
@@ -2601,12 +2639,12 @@ export default function MouDocumentDetail({ documentId, myUserId, onClose }: Pro
               </button>
             </div>
           )}
-          {isViewerOrgB && doc.status === "pending_org_a_final_review" && !hasUnresolvedOrgAFlags && isBindingMou && doc.org_b_finalization_confirmed && (
+          {isLiteralOwnerB && doc.status === "pending_org_a_final_review" && !hasUnresolvedOrgAFlags && isBindingMou && doc.org_b_finalization_confirmed && (
             <InfoBanner tone="success" icon={CheckCircle2}>
               You've confirmed no objection. Waiting for {orgA?.organisation_name ?? "the other party"} to finalize.
             </InfoBanner>
           )}
-          {isViewerOrgA && doc.status === "fully_executed" && !doc.partnership_status_confirmed && (
+          {isLiteralOwnerA && doc.status === "fully_executed" && !doc.partnership_status_confirmed && (
             <div className="space-y-2">
               <InfoBanner tone="celebrate" icon={PartyPopper}>
                 This MoU is fully executed. Mark the {doc.initiative_id ? "initiative" : "partnership"} as executed so it's reflected wherever this relationship is shown.

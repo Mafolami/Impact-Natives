@@ -98,7 +98,11 @@ function computeStages(d: MouDocRow, orgAName: string, orgBName: string): { key:
 }
 
 export default function MouTab() {
-  const { user } = useAuth();
+  // Team-seat fix: organizations.user_id is always the OWNER's id, not
+  // whoever's logged in -- resolving via orgOwnerId (not user.id) is
+  // what lets a team member see and act on the org's real MoUs instead
+  // of silently seeing "No MoUs yet".
+  const { user, orgOwnerId } = useAuth();
   const userId = user?.id;
   const [location, navigate] = useLocation();
   const [loading, setLoading] = useState(true);
@@ -123,7 +127,7 @@ export default function MouTab() {
     partnerUserId?: string; partnerOrgId?: string; partnerName: string; initiativeId: string | null; initiativeTitle: string; connectionId: string | null;
   } | null>(null);
 
-  useEffect(() => { if (userId) load(); }, [userId]);
+  useEffect(() => { if (userId) load(); }, [userId, orgOwnerId]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.includes("?") ? location.split("?")[1] : "");
@@ -142,9 +146,12 @@ export default function MouTab() {
   }, [location]);
 
   async function load() {
-    if (!userId) return;
+    if (!userId || !orgOwnerId) return;
     setLoading(true);
-    const { data: myOrg } = await supabase.from("organizations").select("id").eq("user_id", userId).maybeSingle();
+    // Team-seat fix: query by orgOwnerId (the org's real owner id), not
+    // userId (the acting person) -- organizations.user_id is always the
+    // owner's id, so a team member's own id never matched this row.
+    const { data: myOrg } = await supabase.from("organizations").select("id").eq("user_id", orgOwnerId).maybeSingle();
     if (!myOrg) { setLoading(false); return; }
     setMyOrgId(myOrg.id);
     const { data: docRows } = await supabase
@@ -182,7 +189,9 @@ export default function MouTab() {
     setLoadingOptions(true);
     if (!myOrgId || !userId) { setLoadingOptions(false); return; }
     const [{ data: myInits }, { data: inboundFormed }, { data: myOrgListing }] = await Promise.all([
-      supabase.from("initiative_requests").select("id, title, confirmed_partners").eq("user_id", userId).not("confirmed_partners", "is", null),
+      // Team-seat fix: initiative_requests.user_id is also owner-scoped,
+      // same convention as organizations -- orgOwnerId, not userId.
+      supabase.from("initiative_requests").select("id, title, confirmed_partners").eq("user_id", orgOwnerId!).not("confirmed_partners", "is", null),
       supabase.from("partnership_connections").select("id, sender_org_id, partnership_title").eq("receiver_org_id", myOrgId).eq("status", "formed"),
       supabase.from("organizations").select("partnership_sought").eq("id", myOrgId).maybeSingle(),
     ]);
@@ -269,7 +278,7 @@ export default function MouTab() {
 
   if (openDocId) {
     return (
-      <MouDocumentDetail documentId={openDocId} myUserId={userId} onClose={() => { setOpenDocId(null); load(); }} />
+      <MouDocumentDetail documentId={openDocId} myUserId={userId} orgOwnerId={orgOwnerId} onClose={() => { setOpenDocId(null); load(); }} />
     );
   }
 
