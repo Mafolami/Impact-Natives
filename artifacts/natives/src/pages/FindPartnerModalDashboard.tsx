@@ -2,6 +2,27 @@
 // Redesigned Get Matched flow.
 // editMode={true}: skip Step 0, pre-populate from existing listing (PortfolioTable Edit).
 // editMode={false}: always start at Step 0, even for returning orgs.
+//
+// Team-seat fix: every query and write in this file used to be scoped to
+// `user.id`, the literal logged-in person -- but organizations.user_id and
+// partnership_listings.user_id are both the ORG OWNER's id, not whoever's
+// acting. A team member opening Get Matched matched nothing at all
+// (organizations.select returned empty -> "Get Matched is for
+// organisations", the same dead-end shown to someone with no org),
+// couldn't see the owner's listings, and any listing a member did create
+// would have been keyed to their own id -- invisible to
+// DashboardPartnerships.tsx's directory, which looks orgs up strictly by
+// owner id, and would fail the plan's published-listing cap check for the
+// same reason. Verified against the actual RLS before this fix: both
+// insert_partnership_listings and update_partnership_listings already
+// allow `is_member_of_owner(user_id)`, so partnership_listings was always
+// designed to support this -- the bug was purely that this file never
+// used orgOwnerId. organizations writes are a separate, confirmed
+// limitation: its UPDATE policy is owner-only with no member clause at
+// all, so the legacy dual-write mirror below will keep silently affecting
+// zero rows for a team member regardless of this fix -- that's a
+// deliberate database policy, not something this file can route around,
+// and changing it is a separate decision.
 import { useState, useEffect, useRef } from "react";
 import { useLocation, Link } from "wouter";
 import { supabase } from "@/lib/supabase";
@@ -468,7 +489,15 @@ export function FindPartnerModalDashboard({
   // slot yet, same convention as the initiative cap.
   const PARTNERSHIP_CAPS:Record<string,number>={free:1,plus:3,pro:7,compliance:15};
   const [,navigate]=useLocation();
-  const {user}=useAuth();
+  // orgOwnerId: team-seat fix -- organizations.user_id and
+  // partnership_listings.user_id are always the ORG OWNER's id, never the
+  // acting person's. Every query and write below is keyed to orgOwnerId,
+  // not user.id, so a team member correctly sees and can act on the
+  // org's real, shared listings instead of hitting an empty result keyed
+  // to an id that never appears as a row owner. See the file-header note
+  // for what's still NOT fixed by this (organizations table writes,
+  // owner-only at the RLS layer).
+  const {user,orgOwnerId}=useAuth();
   const [formStep,setFormStep]=useState(0);
   // "picker": browse/manage your listings, land here by default now that
   // an org can have more than one. "capacity_blocked": hit your plan's
@@ -602,7 +631,12 @@ export function FindPartnerModalDashboard({
     setForm(EMPTY_FORM);setUploadedFile(null);setUploadMode("text");
     setDdConfirmedEmpty(false);setActiveListingId(null);setListingsLoading(true);
     async function loadOrg(){
+      if(!orgOwnerId){setAppState("no_org");return;}
       const [orgRes,profileRes,listingsRes]=await Promise.all([
+        // Team-seat fix: was .eq("user_id",user!.id) -- organizations.user_id
+        // is always the OWNER's id, so a team member's own id matched
+        // nothing here and fell straight into the "no_org" dead-end below,
+        // identical to someone with no organisation at all.
         supabase.from("organizations").select(`
           id,organisation_name,description,sector,country,organisation_type,needs,offers,sdgs,
           website,email,verification_status,partnership_formed,subscription_tier,
@@ -611,9 +645,17 @@ export function FindPartnerModalDashboard({
           dd_legal_registration,dd_legal_compliance_declaration,
           fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,
           fdd_governance_doc,fdd_esg_framework,fdd_legal_registration
-        `).eq("user_id",user!.id).maybeSingle(),
-        supabase.from("profiles").select("org_name").eq("id",user!.id).maybeSingle(),
-        supabase.from("partnership_listings").select("*").eq("user_id",user!.id).order("created_at",{ascending:false}),
+        `).eq("user_id",orgOwnerId).maybeSingle(),
+        // Reads the OWNER's profile.org_name specifically -- this value is
+        // only ever used below to keep organizations.organisation_name in
+        // sync with it, so it must be the owner's own name, not whichever
+        // team member happens to be the one logged in right now.
+        supabase.from("profiles").select("org_name").eq("id",orgOwnerId).maybeSingle(),
+        // Team-seat fix: was .eq("user_id",user!.id) -- a team member's own
+        // id never matches a listing row (all listings are keyed to the
+        // owner's id), so this returned an empty picker for anyone but the
+        // owner even once the organizations fetch above is fixed.
+        supabase.from("partnership_listings").select("*").eq("user_id",orgOwnerId).order("created_at",{ascending:false}),
       ]);
       const data=orgRes.data;
       if(data&&profileRes.data?.org_name&&data.organisation_name!==profileRes.data.org_name){
@@ -673,7 +715,7 @@ export function FindPartnerModalDashboard({
       // partnership_formed.
     }
     loadOrg();
-  },[user,isOpen,editListingId]);
+  },[user,orgOwnerId,isOpen,editListingId]);
 
   // Autosave -- writes the draft on every change while actively on the
   // form (not editMode, which edits a real existing listing directly and
@@ -738,11 +780,14 @@ export function FindPartnerModalDashboard({
   }
 
   async function submitAndMatch(){
-    if(!user||!orgProfile) return;
+    if(!user||!orgProfile||!orgOwnerId) return;
     setPrefillError("");
     setSubmitting(true);setAppState("matching");
     try{
-      const{data:freshOrg}=await supabase.from("organizations").select("id,subscription_tier").eq("user_id",user.id).maybeSingle();
+      // Team-seat fix: was .eq("user_id",user.id) -- must resolve the ORG's
+      // own row (owner-keyed), not attempt to look one up under the
+      // acting team member's id.
+      const{data:freshOrg}=await supabase.from("organizations").select("id,subscription_tier").eq("user_id",orgOwnerId).maybeSingle();
       const orgId=freshOrg?.id??orgProfile?.id;
       if(!orgId){setAppState("form");setSubmitting(false);return;}
       const tier=freshOrg?.subscription_tier??orgProfile?.subscription_tier??"";
@@ -754,9 +799,14 @@ export function FindPartnerModalDashboard({
       // could have published a listing meanwhile. Only matters for a
       // brand-new listing going live -- editing an existing one, or
       // saving as a draft, never changes how many published slots are
-      // used.
+      // used. Team-seat fix: was .eq("user_id",user.id), which only ever
+      // counted the ACTING person's own published listings -- two
+      // different team members could each independently publish up to
+      // the plan's cap, silently doubling the org's real total past what
+      // its tier allows. Counting by orgOwnerId counts the org's actual
+      // total regardless of who created each one.
       if(activeListingId===null&&listingStatus==="published"){
-        const{count}=await supabase.from("partnership_listings").select("id",{count:"exact",head:true}).eq("user_id",user.id).eq("status","published");
+        const{count}=await supabase.from("partnership_listings").select("id",{count:"exact",head:true}).eq("user_id",orgOwnerId).eq("status","published");
         const limit=PARTNERSHIP_CAPS[tier]??PARTNERSHIP_CAPS.free;
         if((count??0)>=limit){
           setCapacityInfo({limit,tier});setAppState("capacity_blocked");setSubmitting(false);return;
@@ -768,8 +818,22 @@ export function FindPartnerModalDashboard({
       // onto organizations. sector/needs/offers/country/sdgs are
       // per-listing (a climate-program ask and a health-program ask from
       // the same org can have genuinely different values here).
+      //
+      // Team-seat fix: user_id here was previously the ACTING person's
+      // own id (user.id). RLS already allowed a team member to write a
+      // row under the owner's id (is_member_of_owner(user_id) on both
+      // insert and update) -- this file just never took advantage of it.
+      // Keeping user_id consistently equal to the owner's id, regardless
+      // of who authored the listing, is also what makes
+      // DashboardPartnerships.tsx's directory find it at all: that page
+      // looks organisations up strictly by matching listing.user_id to
+      // organizations.user_id (the owner). A listing saved under a team
+      // member's own id would have matched no organisation there and
+      // silently vanished from the public directory even though it would
+      // still have scored normally in the backend matching functions
+      // (which resolve org-wide user ids independently).
       const listingRow={
-        user_id:user.id,status:listingStatus,
+        user_id:orgOwnerId,status:listingStatus,
         title:partnershipTitle||null,sought:form.partnership_sought||null,
         stage:form.partnership_stage||null,duration:form.partnership_duration||null,
         budget:form.partnership_budget||null,decision_timeline:form.partnership_decision_timeline||null,
@@ -811,9 +875,17 @@ export function FindPartnerModalDashboard({
       // but never created a corresponding partnership_listings row.
       // Now: any failure here stops the flow and surfaces a real error
       // instead of a false "success."
+      //
+      // Team-seat fix, update path specifically: was
+      // .eq("id",activeListingId).eq("user_id",user.id) -- since the
+      // row's real user_id is the OWNER's, a team member editing an
+      // existing listing would have matched zero rows here. Supabase
+      // doesn't error on an update matching nothing, it just silently
+      // changes nothing, so this would have looked identical to a
+      // successful save while doing absolutely nothing.
       let savedListingId=activeListingId;
       if(activeListingId){
-        const{error:updateError}=await supabase.from("partnership_listings").update(listingRow).eq("id",activeListingId).eq("user_id",user.id);
+        const{error:updateError}=await supabase.from("partnership_listings").update(listingRow).eq("id",activeListingId).eq("user_id",orgOwnerId);
         if(updateError){
           console.error("partnership_listings update failed:",updateError);
           setPrefillError(`Couldn't save your listing: ${updateError.message}`);
@@ -841,6 +913,19 @@ export function FindPartnerModalDashboard({
       // org has more than one listing, those three pages only ever show
       // whichever one was saved most recently -- updating them to read
       // every listing is separate, deferred work.
+      //
+      // Team-seat fix, PARTIAL: filter now correctly targets orgOwnerId
+      // rather than user.id, matching every other write in this file.
+      // This is NOT a full fix, though, and must not be read as one:
+      // organizations' UPDATE policy is owner-only at the RLS layer, with
+      // no member clause at all (verified directly against the database,
+      // unlike partnership_listings which already had one). For a team
+      // member, this write will still be silently rejected and affect
+      // zero rows no matter what this filter says -- their real listing
+      // (in partnership_listings, fixed above) is saved and fully
+      // functional, but this specific legacy mirror won't reflect it.
+      // Extending organizations' RLS to permit members is a deliberate,
+      // separate security decision, not something to fold into this fix.
       await supabase.from("organizations").update({
         organisation_type:form.organisation_type,description:form.description,
         country:form.country,sector:form.sectors,sdgs:form.sdgs,
@@ -879,7 +964,7 @@ export function FindPartnerModalDashboard({
         partnership_dd_data_policy:isFunder?false:ddState.dd_legal_compliance_declaration,
         partnership_dd_governance_doc:isFunder?ddState.fdd_governance_doc:ddState.dd_governance_doc,
         ...(listPublicly?{status:"published"}:{}),
-      }).eq("id",orgId).eq("user_id",user.id);
+      }).eq("id",orgId).eq("user_id",orgOwnerId);
 
       // Refresh the local listings list so the picker reflects this save
       // if the user navigates back to it without reopening the modal.
