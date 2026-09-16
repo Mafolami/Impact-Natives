@@ -54,6 +54,46 @@ function formatMissingList(items: string[]): string {
   return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }
 
+// Merges a matched org's identity fields (organizations) with its SPECIFIC
+// matched listing's own ask fields (partnership_listings). Fix, part of the
+// per-listing matching rebuild: this card used to be built entirely from
+// organizations.partnership_sought/stage/budget -- the legacy org-wide
+// mirror that only ever reflects whichever listing was saved most recently.
+// Falls back to the org row alone if matched_listing_id is missing for any
+// reason, rather than throwing.
+function mergeOrgAndListing(org: any, listing: any | undefined) {
+  if (!org) return org;
+  return {
+    id: org.id,
+    organisation_name: org.organisation_name,
+    organisation_type: org.organisation_type,
+    country: org.country,
+    partnership_sought: listing?.sought,
+    partnership_stage: listing?.stage,
+    partnership_budget: listing?.budget,
+    needs: listing?.needs,
+  };
+}
+
+async function fetchOrgAndListingMaps(matches: any[]) {
+  const orgIds = [...new Set(matches.map((m: any) => m.matched_org_id).filter(Boolean))];
+  const listingIds = [...new Set(matches.map((m: any) => m.matched_listing_id).filter(Boolean))];
+
+  const [{ data: orgs }, { data: listings }] = await Promise.all([
+    supabase.from("organizations").select("id, organisation_name, organisation_type, country").in("id", orgIds),
+    listingIds.length
+      ? supabase.from("partnership_listings").select("id, sought, stage, budget, needs").in("id", listingIds)
+      : Promise.resolve({ data: [] as any[] }),
+  ]);
+
+  return {
+    orgMap: new Map((orgs ?? []).map((o: any) => [o.id, o])),
+    listingMap: new Map((listings ?? []).map((l: any) => [l.id, l])),
+  };
+}
+
+type PartnershipState = "loading" | "no_listing" | "listing_incomplete" | "locked_free" | "empty" | "ready";
+
 export default function FunderHome({ profile }: { profile: any }) {
   const [, navigate] = useLocation();
   const [matchedInitiatives, setMatchedInitiatives] = useState<any[]>([]);
@@ -76,9 +116,25 @@ export default function FunderHome({ profile }: { profile: any }) {
 
   // Partnership matches — secondary here, since a funder's core action is
   // funding initiatives, not partnering with peer organisations directly.
+  //
+  // Fix, per-listing matching rebuild: this section used to gate entirely
+  // on a CLIENT-SIDE, org-profile-based completeness score (mandateScore
+  // < 80) computed from investment_thesis/geographic_focus/etc -- the
+  // exact formula that was deliberately REMOVED from the backend
+  // (refresh-partnership-matches) when eligibility moved to a per-listing
+  // basis. That local pre-gate never got updated to match, so a funder
+  // with a mostly-empty org profile but a fully complete, published
+  // listing was told "locked" and the real, correct backend was never
+  // even asked. Now calls refresh-partnership-matches unconditionally and
+  // trusts its own eligible/reason/completeness response -- the same
+  // pattern ImplementerMatches.tsx already uses correctly. `completeness`
+  // in that response is now LISTING completeness, not org completeness --
+  // it is a genuinely different number from mandateScore and must never
+  // be written into mandateScore (the old code did exactly that, which
+  // would have corrupted the unrelated mandate-completion banner above).
   const [partnershipMatches, setPartnershipMatches] = useState<any[]>([]);
-  const [partnershipEligible, setPartnershipEligible] = useState(false);
-  const [partnershipsRequireUpgrade, setPartnershipsRequireUpgrade] = useState(false);
+  const [partnershipState, setPartnershipState] = useState<PartnershipState>("loading");
+  const [partnershipListingCompleteness, setPartnershipListingCompleteness] = useState(0);
   const [loadingPartnerships, setLoadingPartnerships] = useState(true);
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
@@ -101,13 +157,14 @@ export default function FunderHome({ profile }: { profile: any }) {
       if (orgData) {
         setOrgId(orgData.id);
         // Weighted, not equal-share — must stay identical to
-        // funderCompleteness() in refresh-partnership-matches so the % never
-        // drifts between the client estimate and the server's source of
-        // truth. Sector focus and geography carry the most weight since
-        // match-orgs-for-partnership and generate-deal-memo lean on them
-        // hardest; investment thesis is weighted high enough that its
-        // absence alone can block the 80% partnership-unlock gate even with
-        // every other field filled.
+        // funderCompleteness() in refresh-initiative-matches (initiative
+        // matching only -- partnership matching's eligibility gate moved
+        // to a per-listing formula and no longer uses this at all) so the
+        // % never drifts between the client estimate and the server's
+        // source of truth for initiative matching. Sector focus and
+        // geography carry the most weight since generate-deal-memo leans
+        // on them hardest; investment thesis is weighted high enough that
+        // its absence alone meaningfully dents this score.
         const weightedFields: [string, boolean, number][] = [
           ["sector focus", (orgData.mandate_sectors?.length ?? 0) > 0, 25],
           ["geographic focus", (orgData.geographic_focus?.length ?? 0) > 0, 20],
@@ -290,60 +347,91 @@ export default function FunderHome({ profile }: { profile: any }) {
 
   // Partnership matches — read cache directly, background refresh only.
   // Secondary feature here, so it stays compact (max 2, single-line cards).
+  //
+  // Fix, per-listing matching rebuild: no more client-side mandateScore
+  // pre-gate (see the comment on partnershipState above). Runs as soon as
+  // orgId is known, every time -- refresh-partnership-matches itself
+  // decides eligibility now, based on the org's published listings, not
+  // this component's own stale copy of a formula that no longer applies
+  // here.
   useEffect(() => {
     if (!orgId) return;
-
-    if (mandateScore < 80) {
-      setPartnershipEligible(false);
-      setLoadingPartnerships(false);
-      return;
-    }
-    setPartnershipEligible(true);
 
     let cancelled = false;
 
     (async () => {
+      setLoadingPartnerships(true);
+
+      // 45-point floor matches match-orgs-for-partnership's bulk-mode
+      // inclusion threshold. submitting_listing_id filter keeps
+      // score-partnership-fit's separate, unfiltered single-pair rows
+      // (directory listing clicks) out of this paint entirely -- without
+      // it, a stale or off-topic instant-fit result could flash here
+      // exactly as it did on the implementer homepage.
       const { data: cached } = await supabase
         .from("partnership_match_cache")
-        .select("matched_org_id, fit_score, rationale, key_synergy, criteria, computed_at")
+        .select("matched_org_id, matched_listing_id, fit_score, rationale, key_synergy, criteria, computed_at")
         .eq("org_id", orgId)
+        .not("submitting_listing_id", "is", null)
+        .gte("fit_score", 45)
         .order("fit_score", { ascending: false })
         .limit(2);
 
+      let paintedMatches: any[] = [];
       if (cached && cached.length > 0) {
-        const orgIds = cached.map((m: any) => m.matched_org_id);
-        const { data: orgs } = await supabase
-          .from("organizations")
-          .select("id, user_id, organisation_name, organisation_type, country, partnership_stage, partnership_budget, partnership_sought, needs")
-          .in("id", orgIds);
-        const orgMap = new Map((orgs ?? []).map((o: any) => [o.id, o]));
+        const { orgMap, listingMap } = await fetchOrgAndListingMaps(cached);
         if (!cancelled) {
-          setPartnershipMatches(cached.map((m: any) => ({ ...m, org: orgMap.get(m.matched_org_id) })));
+          paintedMatches = cached.map((m: any) => ({
+            ...m,
+            org: mergeOrgAndListing(orgMap.get(m.matched_org_id), listingMap.get(m.matched_listing_id)),
+          }));
+          setPartnershipMatches(paintedMatches);
+          setPartnershipState("ready");
         }
       }
       if (!cancelled) setLoadingPartnerships(false);
 
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        fetch(`${supabaseUrl}/functions/v1/refresh-partnership-matches`, {
+      if (!session) {
+        if (!cancelled && paintedMatches.length === 0) setPartnershipState("empty");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${supabaseUrl}/functions/v1/refresh-partnership-matches`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}` },
-        }).then(res => res.json()).then(result => {
-          if (cancelled) return;
-          // The client-side score above is only a first-paint estimate.
-          // The server computes completeness independently. If the two
-          // formulas ever drift apart, this keeps what's on screen honest
-          // rather than trusting a locally duplicated calculation forever.
-          if (typeof result?.completeness === "number" && result.completeness !== mandateScore) {
-            setMandateScore(result.completeness);
-          }
-          setPartnershipsRequireUpgrade(result?.reason === "requires_upgrade");
-        }).catch(() => {});
+        });
+        const result = await res.json();
+        if (cancelled) return;
+
+        if (result?.reason === "requires_upgrade") { setPartnershipState("locked_free"); return; }
+        if (result?.eligible === false) { setPartnershipState(paintedMatches.length > 0 ? "ready" : "empty"); return; }
+        if (result?.reason === "no_published_listing") { setPartnershipState("no_listing"); return; }
+        if (result?.reason === "listings_incomplete") {
+          setPartnershipListingCompleteness(typeof result.completeness === "number" ? result.completeness : 0);
+          setPartnershipState("listing_incomplete");
+          return;
+        }
+
+        const freshMatches = result?.matches ?? [];
+        if (freshMatches.length === 0) { setPartnershipState(paintedMatches.length > 0 ? "ready" : "empty"); return; }
+
+        const { orgMap, listingMap } = await fetchOrgAndListingMaps(freshMatches);
+        if (!cancelled) {
+          setPartnershipMatches(freshMatches.map((m: any) => ({
+            ...m,
+            org: mergeOrgAndListing(orgMap.get(m.matched_org_id), listingMap.get(m.matched_listing_id)),
+          })));
+          setPartnershipState("ready");
+        }
+      } catch {
+        if (!cancelled) setPartnershipState(paintedMatches.length > 0 ? "ready" : "empty");
       }
     })();
 
     return () => { cancelled = true; };
-  }, [orgId, mandateScore]);
+  }, [orgId]);
 
   const metricTiles = [
     {
@@ -432,7 +520,7 @@ export default function FunderHome({ profile }: { profile: any }) {
             </div>
             <p className="text-[13px] text-black dark:text-white">
               {missingMandateFields.length > 0
-                ? `Add ${formatMissingList(missingMandateFields)}${mandateScore < 80 ? ". 80% also unlocks partnership matches." : "."}`
+                ? `Add ${formatMissingList(missingMandateFields)}. This helps sharpen your initiative matches.`
                 : ""}
             </p>
           </div>
@@ -627,15 +715,31 @@ export default function FunderHome({ profile }: { profile: any }) {
             </button>
           </div>
 
-          {!partnershipEligible ? (
+          {partnershipState === "no_listing" ? (
             <div className="rounded-xl border border-dashed border-border bg-white dark:bg-card p-6 text-center flex flex-col items-center justify-center min-h-[220px]">
               <Building2 className="w-6 h-6 text-muted-foreground/20 mb-3" />
-              <p className="text-[13px] font-medium text-black dark:text-white mb-1">Locked for now</p>
-              <p className="text-[13px] text-black dark:text-white">
-                Unlocks at 80% mandate completion. You're at {mandateScore}%.
+              <p className="text-[13px] font-medium text-black dark:text-white mb-1">Publish a partnership listing to get matched</p>
+              <p className="text-[13px] text-black dark:text-white mb-3">
+                AI matching compares your specific ask to other organisations — you'll need at least one published listing first.
               </p>
+              <button type="button" onClick={() => navigate("/dashboard/partnerships")}
+                className="text-[13px] font-semibold text-white bg-[#2D6A4F] rounded-full px-4 py-1.5 hover:bg-[#245c43] transition-colors">
+                Get Matched
+              </button>
             </div>
-          ) : partnershipsRequireUpgrade ? (
+          ) : partnershipState === "listing_incomplete" ? (
+            <div className="rounded-xl border border-dashed border-border bg-white dark:bg-card p-6 text-center flex flex-col items-center justify-center min-h-[220px]">
+              <Building2 className="w-6 h-6 text-muted-foreground/20 mb-3" />
+              <p className="text-[13px] font-medium text-black dark:text-white mb-1">Your listing needs a bit more detail</p>
+              <p className="text-[13px] text-black dark:text-white mb-3">
+                You're at {partnershipListingCompleteness}%. Add what you're seeking, your budget, sector, stage, and country to unlock matches.
+              </p>
+              <button type="button" onClick={() => navigate("/dashboard/partnerships")}
+                className="text-[13px] font-semibold text-white bg-[#2D6A4F] rounded-full px-4 py-1.5 hover:bg-[#245c43] transition-colors">
+                Complete listing
+              </button>
+            </div>
+          ) : partnershipState === "locked_free" ? (
             <div className="rounded-xl border border-border bg-white dark:bg-card p-6 text-center flex flex-col items-center justify-center min-h-[220px]">
               <Building2 className="w-6 h-6 text-muted-foreground/20 mb-3" />
               <p className="text-[13px] font-medium text-black dark:text-white mb-1">AI-matched partners need an upgrade.</p>
@@ -678,7 +782,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                     <div className="flex flex-col gap-1 mb-2">
                       {[
                         ["sector_fit", "Sector"], ["geography_fit", "Geography"], ["need_offer_fit", "Need/offer"],
-                        ["working_style_fit", "Style"], ["stage_readiness_fit", "Stage"],
+                        ["budget_fit", "Budget"], ["working_style_fit", "Style"], ["stage_readiness_fit", "Stage"],
                       ].map(([key, label]) => (
                         <div key={key} className="flex items-center justify-between">
                           <span className="text-[13px] text-black dark:text-white">{label}</span>

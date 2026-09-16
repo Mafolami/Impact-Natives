@@ -63,6 +63,44 @@ function formatMissingList(items: string[]): string {
   return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }
 
+// Merges a matched org's identity fields (organizations) with its SPECIFIC
+// matched listing's own ask fields (partnership_listings). Fix, part of the
+// per-listing matching rebuild: this card used to be built entirely from
+// organizations.partnership_sought/stage/budget -- the legacy org-wide
+// mirror that only ever reflects whichever listing was saved most recently.
+function mergeOrgAndListing(org: any, listing: any | undefined) {
+  if (!org) return org;
+  return {
+    id: org.id,
+    organisation_name: org.organisation_name,
+    organisation_type: org.organisation_type,
+    country: org.country,
+    partnership_sought: listing?.sought,
+    partnership_stage: listing?.stage,
+    partnership_budget: listing?.budget,
+    needs: listing?.needs,
+  };
+}
+
+async function fetchOrgAndListingMaps(matches: any[]) {
+  const orgIds = [...new Set(matches.map((m: any) => m.matched_org_id).filter(Boolean))];
+  const listingIds = [...new Set(matches.map((m: any) => m.matched_listing_id).filter(Boolean))];
+
+  const [{ data: orgs }, { data: listings }] = await Promise.all([
+    supabase.from("organizations").select("id, organisation_name, organisation_type, country").in("id", orgIds),
+    listingIds.length
+      ? supabase.from("partnership_listings").select("id, sought, stage, budget, needs").in("id", listingIds)
+      : Promise.resolve({ data: [] as any[] }),
+  ]);
+
+  return {
+    orgMap: new Map((orgs ?? []).map((o: any) => [o.id, o])),
+    listingMap: new Map((listings ?? []).map((l: any) => [l.id, l])),
+  };
+}
+
+type PartnershipState = "loading" | "no_listing" | "listing_incomplete" | "locked_free" | "empty" | "ready";
+
 export default function CorporateHome({ profile }: { profile: any }) {
   const [, navigate] = useLocation();
 
@@ -97,9 +135,22 @@ export default function CorporateHome({ profile }: { profile: any }) {
   const [orgData, setOrgData]           = useState<any>(null);
 
   // Partnership matches
+  //
+  // Fix, per-listing matching rebuild: this section used to gate entirely
+  // on a CLIENT-SIDE, org-profile-based completeness score (csrCompleteness
+  // < 80) -- the exact formula that was deliberately REMOVED from the
+  // backend (refresh-partnership-matches) when eligibility moved to a
+  // per-listing basis. A corporate with a mostly-empty CSR profile but a
+  // fully complete, published listing was told "locked" and the real,
+  // correct backend was never even asked. Now calls
+  // refresh-partnership-matches unconditionally and trusts its own
+  // eligible/reason/completeness response. `completeness` in that response
+  // is now LISTING completeness -- a different number from csrCompleteness
+  // -- and must never be written into completenessOverride (the old code
+  // did exactly that, corrupting the unrelated CSR-completion banner).
   const [partnershipMatches, setPartnershipMatches] = useState<any[]>([]);
-  const [partnershipEligible, setPartnershipEligible] = useState(false);
-  const [partnershipsRequireUpgrade, setPartnershipsRequireUpgrade] = useState(false);
+  const [partnershipState, setPartnershipState] = useState<PartnershipState>("loading");
+  const [partnershipListingCompleteness, setPartnershipListingCompleteness] = useState(0);
   const [loadingPartnerships, setLoadingPartnerships] = useState(true);
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
@@ -327,18 +378,16 @@ export default function CorporateHome({ profile }: { profile: any }) {
     }
   }
 
-  // First-paint estimate only. The refresh-partnership-matches edge
-  // function computes this same 7-field formula independently server-side —
-  // rather than trusting two separately-maintained copies to never drift
-  // (the exact bug pattern that caused the org_type mismatch earlier),
-  // completenessOverride gets set from the server's answer once it responds,
-  // and displayedCompleteness prefers that over the local estimate.
-  // Weighted, not equal-share — must stay identical to
-  // corporateCompleteness() in refresh-partnership-matches. Focus statement
-  // carries the most weight (generate-csr-brief's recommendation pivots on
-  // it), geography and sector tied next since both have dedicated
-  // anti-fabrication rules in that prompt, then a taper for supporting
-  // fields with no equivalent guardrail built around them.
+  // First-paint estimate only. This score gates INITIATIVE matching (via
+  // refresh-initiative-matches) -- it no longer has any bearing on
+  // partnership-matches eligibility, which moved to a per-listing formula
+  // entirely (see the partnershipState comment above). Weighted, not
+  // equal-share — must stay identical to corporateCompleteness() in
+  // refresh-initiative-matches. Focus statement carries the most weight
+  // (generate-csr-brief's recommendation pivots on it), geography and
+  // sector tied next since both have dedicated anti-fabrication rules in
+  // that prompt, then a taper for supporting fields with no equivalent
+  // guardrail built around them.
   const csrWeightedFields: [string, boolean, number][] = [
     ["a CSR/ESG focus statement", !!orgData?.csr_focus_statement, 25],
     ["geographic focus", (orgData?.geographic_focus?.length ?? 0) > 0, 20],
@@ -350,65 +399,91 @@ export default function CorporateHome({ profile }: { profile: any }) {
   ];
   const csrCompleteness = Math.round(csrWeightedFields.reduce((sum, [, done, weight]) => sum + (done ? weight : 0), 0));
   const missingCsrFields = csrWeightedFields.filter(([, done]) => !done).sort((a, b) => b[2] - a[2]).map(([label]) => label);
-  const [completenessOverride, setCompletenessOverride] = useState<number | null>(null);
-  const displayedCompleteness = completenessOverride ?? csrCompleteness;
 
   // Partnership matches — read the cache directly (fast), and fire a
-  // background refresh (not awaited) to keep it warm for next visit. Only
-  // runs once the org clears the 80% completeness bar.
+  // background refresh (not awaited) to keep it warm for next visit.
+  //
+  // Fix, per-listing matching rebuild: no more client-side csrCompleteness
+  // pre-gate. Runs as soon as orgData is known, every time --
+  // refresh-partnership-matches itself decides eligibility now, based on
+  // the org's published listings, not this component's own stale copy of
+  // a formula that no longer applies here.
   useEffect(() => {
     if (!orgData?.id) return;
-
-    if (csrCompleteness < 80) {
-      setPartnershipEligible(false);
-      setLoadingPartnerships(false);
-      return;
-    }
-    setPartnershipEligible(true);
 
     let cancelled = false;
 
     (async () => {
+      setLoadingPartnerships(true);
+
+      // 45-point floor matches match-orgs-for-partnership's bulk-mode
+      // inclusion threshold. submitting_listing_id filter keeps
+      // score-partnership-fit's separate, unfiltered single-pair rows
+      // (directory listing clicks) out of this paint entirely.
       const { data: cached } = await supabase
         .from("partnership_match_cache")
-        .select("matched_org_id, fit_score, rationale, key_synergy, criteria, computed_at")
+        .select("matched_org_id, matched_listing_id, fit_score, rationale, key_synergy, criteria, computed_at")
         .eq("org_id", orgData.id)
+        .not("submitting_listing_id", "is", null)
+        .gte("fit_score", 45)
         .order("fit_score", { ascending: false })
         .limit(3);
 
+      let paintedMatches: any[] = [];
       if (cached && cached.length > 0) {
-        const orgIds = cached.map((m: any) => m.matched_org_id);
-        const { data: orgs } = await supabase
-          .from("organizations")
-          .select("id, user_id, organisation_name, organisation_type, country, partnership_stage, partnership_budget, partnership_sought, needs")
-          .in("id", orgIds);
-        const orgMap = new Map((orgs ?? []).map((o: any) => [o.id, o]));
+        const { orgMap, listingMap } = await fetchOrgAndListingMaps(cached);
         if (!cancelled) {
-          setPartnershipMatches(cached.map((m: any) => ({ ...m, org: orgMap.get(m.matched_org_id) })));
+          paintedMatches = cached.map((m: any) => ({
+            ...m,
+            org: mergeOrgAndListing(orgMap.get(m.matched_org_id), listingMap.get(m.matched_listing_id)),
+          }));
+          setPartnershipMatches(paintedMatches);
+          setPartnershipState("ready");
         }
       }
       if (!cancelled) setLoadingPartnerships(false);
 
-      // Background refresh, fire-and-forget for the match data — but still
-      // read completeness back from the response, so the server's answer
-      // (single source of truth) can correct the client-side estimate.
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        fetch(`${supabaseUrl}/functions/v1/refresh-partnership-matches`, {
+      if (!session) {
+        if (!cancelled && paintedMatches.length === 0) setPartnershipState("empty");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${supabaseUrl}/functions/v1/refresh-partnership-matches`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}` },
-        }).then(res => res.json()).then(result => {
-          if (cancelled) return;
-          if (typeof result?.completeness === "number") {
-            setCompletenessOverride(result.completeness);
-          }
-          setPartnershipsRequireUpgrade(result?.reason === "requires_upgrade");
-        }).catch(() => {});
+        });
+        const result = await res.json();
+        if (cancelled) return;
+
+        if (result?.reason === "requires_upgrade") { setPartnershipState("locked_free"); return; }
+        if (result?.eligible === false) { setPartnershipState(paintedMatches.length > 0 ? "ready" : "empty"); return; }
+        if (result?.reason === "no_published_listing") { setPartnershipState("no_listing"); return; }
+        if (result?.reason === "listings_incomplete") {
+          setPartnershipListingCompleteness(typeof result.completeness === "number" ? result.completeness : 0);
+          setPartnershipState("listing_incomplete");
+          return;
+        }
+
+        const freshMatches = result?.matches ?? [];
+        if (freshMatches.length === 0) { setPartnershipState(paintedMatches.length > 0 ? "ready" : "empty"); return; }
+
+        const { orgMap, listingMap } = await fetchOrgAndListingMaps(freshMatches);
+        if (!cancelled) {
+          setPartnershipMatches(freshMatches.map((m: any) => ({
+            ...m,
+            org: mergeOrgAndListing(orgMap.get(m.matched_org_id), listingMap.get(m.matched_listing_id)),
+          })));
+          setPartnershipState("ready");
+        }
+      } catch {
+        if (!cancelled) setPartnershipState(paintedMatches.length > 0 ? "ready" : "empty");
       }
     })();
 
     return () => { cancelled = true; };
-  }, [orgData?.id, csrCompleteness]);
+  }, [orgData?.id]);
 
   const metricTiles = [
     {
@@ -470,7 +545,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
           <p className="text-[13px] text-black dark:text-white mb-1 uppercase tracking-widest">{greeting}</p>
           <h2 className="text-[25px] font-bold text-black dark:text-white tracking-tight">{firstName}.</h2>
           <p className="text-[15px] text-black dark:text-white mt-1">
-            {displayedCompleteness >= 60
+            {csrCompleteness >= 60
               ? `Your profile is active. Discover potential initiatives and partnerships for ${orgName}.`
               : "Complete your profile to get better matched initiatives."}
           </p>
@@ -501,19 +576,19 @@ export default function CorporateHome({ profile }: { profile: any }) {
       </div>
 
       {/* CSR profile nudge */}
-      {displayedCompleteness < 100 && (
+      {csrCompleteness < 100 && (
         <div className="rounded-xl border border-dashed border-[#2D6A4F]/30 bg-[#2D6A4F]/5 px-5 py-4 flex items-center justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <p className="text-[15px] font-semibold text-foreground">CSR profile {displayedCompleteness}% complete</p>
+              <p className="text-[15px] font-semibold text-foreground">CSR profile {csrCompleteness}% complete</p>
               <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden max-w-[120px]">
                 <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500"
-                  style={{ width: `${displayedCompleteness}%` }} />
+                  style={{ width: `${csrCompleteness}%` }} />
               </div>
             </div>
             <p className="text-[13px] text-black dark:text-white">
               {missingCsrFields.length > 0
-                ? `Add ${formatMissingList(missingCsrFields)}${displayedCompleteness < 80 ? ". 80% also unlocks partnership matches." : "."}`
+                ? `Add ${formatMissingList(missingCsrFields)}. This helps sharpen your initiative matches.`
                 : ""}
             </p>
           </div>
@@ -724,19 +799,31 @@ export default function CorporateHome({ profile }: { profile: any }) {
             </button>
           </div>
 
-          {!partnershipEligible ? (
+          {partnershipState === "no_listing" ? (
             <div className="rounded-2xl border border-dashed border-border bg-white dark:bg-card p-8 text-center flex flex-col items-center justify-center min-h-[300px]">
               <Building2 className="w-8 h-8 text-muted-foreground/20 mb-4" />
-              <p className="text-[15px] font-medium text-black dark:text-white mb-1">Partnership matches are locked</p>
+              <p className="text-[15px] font-medium text-black dark:text-white mb-1">Publish a partnership listing to get matched</p>
               <p className="text-[13px] text-black dark:text-white max-w-[220px] mb-4">
-                Unlocks once your CSR profile hits 80%. You're at {displayedCompleteness}%.
+                AI matching compares your specific ask to other organisations — you'll need at least one published listing first.
               </p>
-              <button type="button" onClick={() => navigate("/dashboard/profile")}
+              <button type="button" onClick={() => navigate("/dashboard/partnerships")}
                 className="text-[13px] font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors">
-                Complete profile
+                Get Matched
               </button>
             </div>
-          ) : partnershipsRequireUpgrade ? (
+          ) : partnershipState === "listing_incomplete" ? (
+            <div className="rounded-2xl border border-dashed border-border bg-white dark:bg-card p-8 text-center flex flex-col items-center justify-center min-h-[300px]">
+              <Building2 className="w-8 h-8 text-muted-foreground/20 mb-4" />
+              <p className="text-[15px] font-medium text-black dark:text-white mb-1">Your listing needs a bit more detail</p>
+              <p className="text-[13px] text-black dark:text-white max-w-[220px] mb-4">
+                You're at {partnershipListingCompleteness}%. Add what you're seeking, your budget, sector, stage, and country to unlock matches.
+              </p>
+              <button type="button" onClick={() => navigate("/dashboard/partnerships")}
+                className="text-[13px] font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors">
+                Complete listing
+              </button>
+            </div>
+          ) : partnershipState === "locked_free" ? (
             <div className="rounded-2xl border border-border bg-white dark:bg-card p-8 text-center flex flex-col items-center justify-center min-h-[300px]">
               <Building2 className="w-8 h-8 text-muted-foreground/20 mb-4" />
               <p className="text-[15px] font-medium text-black dark:text-white mb-1">AI-matched partners need an upgrade.</p>
@@ -783,7 +870,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
                     <div className="flex flex-col gap-1 mb-2">
                       {[
                         ["sector_fit", "Sector"], ["geography_fit", "Geography"], ["need_offer_fit", "Need/offer"],
-                        ["working_style_fit", "Working style"], ["stage_readiness_fit", "Stage readiness"],
+                        ["budget_fit", "Budget"], ["working_style_fit", "Working style"], ["stage_readiness_fit", "Stage readiness"],
                       ].map(([key, label]) => (
                         <div key={key} className="flex items-center justify-between">
                           <span className="text-[13px] text-black dark:text-white">{label}</span>
