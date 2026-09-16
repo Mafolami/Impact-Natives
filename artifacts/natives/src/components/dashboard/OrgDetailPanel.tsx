@@ -788,7 +788,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                   disabled={sending}
                   className="w-full h-11 rounded-full text-white text-sm font-bold disabled:opacity-40 transition-all hover:brightness-110 active:scale-[0.98]"
                   style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
-                  {sending ? "Sending..." : fitLoading ? "Express interest" : `Express interest${fit ? ` · ${fit.fit_score}% fit` : ""}`}
+                  {sending ? "Sending..." : "Express interest"}
                 </button>
               </>
             )}
@@ -806,7 +806,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
       <div className="shrink-0 px-8 pt-7 pb-6 border-b-2 border-border"
         style={{ background: "linear-gradient(to bottom, rgba(45,106,79,0.06), transparent)" }}>
         {backLabel && (
-          <div className="flex justify-between mb-4">
+          <div className="flex justify-between mb-4 lg:hidden">
             <button type="button" onClick={onBack}
               className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-[#C45C26] transition-colors">
               <ArrowLeft className="w-3.5 h-3.5" /> {backLabel}
@@ -1125,7 +1125,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         {(org.partnership_theory_of_change || org.partnership_prior_attempts || org.partnership_constraints) && (
           <div className="px-8 py-6">
             <Eyebrow>Context</Eyebrow>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {org.partnership_theory_of_change && (
                 <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
                   <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Approach to change</p>
@@ -1242,7 +1242,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                   disabled={sending}
                   className="w-full h-11 rounded-full text-white text-sm font-bold disabled:opacity-40 transition-all hover:brightness-110 active:scale-[0.98]"
                   style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
-                  {sending ? "Sending..." : fitLoading ? "Express interest" : `Express interest${fit ? ` · ${fit.fit_score}% fit` : ""}`}
+                  {sending ? "Sending..." : "Express interest"}
                 </button>
               </>
             )}

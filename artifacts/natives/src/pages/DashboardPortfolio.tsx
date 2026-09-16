@@ -657,6 +657,7 @@ function ConfirmedPartnersTab({ orgOwnerId, actorUserId }: { orgOwnerId: string 
                 <Download className="w-3 h-3" /> Export
               </button>
             </div>
+            <div className="overflow-x-auto">
             <table className="w-full text-[15px]">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
@@ -699,6 +700,7 @@ function ConfirmedPartnersTab({ orgOwnerId, actorUserId }: { orgOwnerId: string 
                 )))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}
@@ -707,6 +709,7 @@ function ConfirmedPartnersTab({ orgOwnerId, actorUserId }: { orgOwnerId: string 
         <div className="space-y-3">
           <p className="text-[13px] font-semibold uppercase tracking-widest text-black dark:text-white">Initiatives you've been confirmed on</p>
           <div className="rounded-xl border border-border bg-white dark:bg-card overflow-hidden">
+            <div className="overflow-x-auto">
             <table className="w-full text-[15px]">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
@@ -743,6 +746,7 @@ function ConfirmedPartnersTab({ orgOwnerId, actorUserId }: { orgOwnerId: string 
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}

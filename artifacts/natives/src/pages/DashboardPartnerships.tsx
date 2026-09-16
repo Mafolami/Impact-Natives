@@ -216,13 +216,13 @@ export default function DashboardPartnerships() {
     <>
       <div className="flex flex-col -mx-4 sm:-mx-6" style={{ height: "100vh", maxHeight: "100vh", overflow: "hidden" }}>
         {/* Top bar */}
-        <div className="shrink-0 px-5 py-3 flex items-center gap-2 bg-background border-b border-border">
-          <div className="relative flex-1 max-w-sm">
+        <div className="shrink-0 px-5 py-3 flex flex-wrap items-center gap-2 bg-background border-b border-border">
+          <div className="relative flex-1 max-w-sm min-w-[180px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <input type="text" placeholder="Search listings..." value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full h-9 pl-9 pr-3 rounded-lg text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#452A1D]/25 transition-colors bg-muted border border-border" />          </div>
-          <div ref={filterBarRef} className="flex items-center gap-1.5 relative">
+          <div ref={filterBarRef} className="flex flex-wrap items-center gap-1.5 relative">
             {([
               {
                 key: "sector",
@@ -362,7 +362,7 @@ export default function DashboardPartnerships() {
           <div className="flex-1" />
           {user && (
             <button type="button" onClick={() => setShowModal(true)}
-              className="h-9 px-4 rounded-full text-white text-[13px] font-bold transition-all hover:brightness-110 active:scale-[0.98]"
+              className="h-9 px-4 rounded-full text-white text-[13px] font-bold transition-all hover:brightness-110 active:scale-[0.98] shrink-0 whitespace-nowrap"
               style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
               + Get Matched
             </button>
@@ -416,6 +416,7 @@ export default function DashboardPartnerships() {
                 sending={selectedOrg ? sendingInterest === selectedOrg.id : false}
                 onExpressInterest={e => selectedOrg && expressInterest(selectedOrg, e, selectedOrg.listing_id)}
                 onBack={() => setMobileDetailOpen(false)}
+                backLabel="Back to listings"
                 viewerOrg={viewerOrg}
                 viewerOrgLoading={viewerOrgLoading}                
                 mouExecuted={selectedOrg ? mouExecutedListingIds.has(selectedOrg.listing_id) : false}
