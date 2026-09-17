@@ -7,6 +7,7 @@ import {
   MouMilestone, OrgRef, isMilestoneOverdue,
 } from "@/lib/milestones";
 import { resolveMouDocTitle, buildConnectionListingMap, type MouTitleListingRef } from "@/lib/mouTitle";
+import { fetchLatestListingMirror } from "@/lib/listingMirror";
 import MilestoneCard from "@/components/mou/MilestoneCard";
 import MilestoneCreateModal from "@/components/mou/MilestoneCreateModal";
 import MilestoneDetailModal from "@/components/mou/MilestoneDetailModal";
@@ -91,9 +92,10 @@ export default function DashboardPortfolioMilestones() {
 
     const orgIds = [...new Set((docRows ?? []).flatMap((d: any) => [d.org_a_id, d.org_b_id]))];
     if (orgIds.length > 0) {
-      const { data: orgs } = await supabase.from("organizations").select("id, user_id, organisation_name, partnership_sought").in("id", orgIds);
+      const { data: orgs } = await supabase.from("organizations").select("id, user_id, organisation_name").in("id", orgIds);
+      const mirrorMap = await fetchLatestListingMirror((orgs ?? []).map((o: any) => o.user_id));
       const map: Record<string, OrgRef> = {};
-      (orgs ?? []).forEach((o: any) => { map[o.id] = o; });
+      (orgs ?? []).forEach((o: any) => { map[o.id] = { ...o, partnership_sought: mirrorMap.get(o.user_id)?.partnership_sought ?? null }; });
       setOrgMap(map);
     }
 

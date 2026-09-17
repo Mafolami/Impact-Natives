@@ -22,6 +22,7 @@
 //    a fake unified vocabulary that would match neither source.
 
 import { supabase } from "@/lib/supabase";
+import { fetchLatestListingMirror } from "@/lib/listingMirror";
 
 export type PortfolioRowType = "Initiative" | "Partnership";
 export type PortfolioDirection = "Mine" | "Outbound" | "Inbound";
@@ -252,10 +253,10 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
   // concurrently instead of strictly sequentially. This was the main cause
   // of slow loads: several genuinely independent query chains were running
   // one after another with no real data dependency forcing that order.
-  const [{ data: myOrg }, { data: myInitiatives }, { data: myEois }, { data: myListings }] = await Promise.all([
+  const [{ data: myOrg }, { data: myInitiatives }, { data: myEois }, { data: myListings }, myOrgMirrorMap] = await Promise.all([
     supabase
       .from("organizations")
-      .select("id, organisation_name, partnership_sought, partnership_title, partnership_listed, partnership_formed, needs, email, updated_at")
+      .select("id, organisation_name, partnership_formed, needs, email, updated_at")
       .eq("user_id", orgOwnerId)
       .maybeSingle(),
     supabase
@@ -275,7 +276,9 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
       .select("id, title, sought, status, created_at")
       .eq("user_id", orgOwnerId)
       .eq("status", "published"),
+    fetchLatestListingMirror([orgOwnerId]),
   ]);
+  const myMirror = myOrgMirrorMap.get(orgOwnerId);
 
   const myOrgName = myOrg?.organisation_name ?? "You";
   const myProfileHref = `/dashboard/natives?tab=organisation&user=${orgOwnerId}`;
@@ -501,7 +504,7 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
     for (const conn of received ?? []) {
       const counterpart = counterpartMap.get(conn.sender_org_id);
       const status = conn.mou_executed_at ? "MoU Executed" : (PARTNERSHIP_STATUS_MAP[conn.status] ?? conn.status);
-      const title = resolveConnectionTitle(conn, myOrg.partnership_sought ? myOrg : counterpart);
+      const title = resolveConnectionTitle(conn, myMirror?.partnership_sought ? { ...myOrg, partnership_sought: myMirror.partnership_sought } : counterpart);
       rows.push({
         id: `partner-in-${conn.id}`,
         title,
@@ -551,10 +554,10 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
     // Legacy fallback: an org that somehow has no row in partnership_listings
     // yet (shouldn't happen post-Batch-1 migration, but cheap insurance)
     // but does have the old single-listing columns populated.
-    if ((myListings ?? []).length === 0 && (myOrg.partnership_listed || myOrg.partnership_sought)) {
+    if ((myListings ?? []).length === 0 && (myMirror?.partnership_listed || myMirror?.partnership_sought)) {
       rows.push({
         id: `partner-mine-${myOrg.id}`,
-        title: resolvePartnershipTitle(myOrg, myOrg.partnership_title),
+        title: resolvePartnershipTitle({ ...myOrg, partnership_sought: myMirror?.partnership_sought }, myMirror?.partnership_title ?? null),
         titleHref: `/dashboard/portfolio/exchanges/partner/${myOrg.id}`,
         organisation: myOrgName,
         organisationHref: myProfileHref,
@@ -564,7 +567,7 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
         eoiCount: pendingInboundCount,
         contactEmail: null,
         contactPhone: null,
-        status: myOrg.partnership_formed ? "Partnership formed" : myOrg.partnership_listed ? "Listed" : "Unlisted",
+        status: myOrg.partnership_formed ? "Partnership formed" : myMirror?.partnership_listed ? "Listed" : "Unlisted",
         date: myOrg.updated_at,
         outcome: null,
         timeline: [{ label: "Listed", date: myOrg.updated_at }],

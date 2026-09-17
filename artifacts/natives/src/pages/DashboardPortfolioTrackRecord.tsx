@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Loader2, Handshake, PartyPopper, ShieldCheck, AlertTriangle, Users, ChevronDown } from "lucide-react";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { resolveMouDocTitle, buildConnectionListingMap, type MouTitleListingRef } from "@/lib/mouTitle";
+import { fetchLatestListingMirror } from "@/lib/listingMirror";
 import { PartnershipIndicator, isIndicatorAgreed, fetchIndicatorsForDocuments } from "@/lib/indicators";
 import { ImpactClaim, fetchClaimsForIndicators } from "@/lib/impactClaims";
 
@@ -83,9 +84,10 @@ export default function DashboardPortfolioTrackRecord() {
 
     const orgIds = [...new Set(docList.flatMap((d) => [d.org_a_id, d.org_b_id]))];
     if (orgIds.length > 0) {
-      const { data: orgs } = await supabase.from("organizations").select("id, user_id, organisation_name, partnership_sought").in("id", orgIds);
+      const { data: orgs } = await supabase.from("organizations").select("id, user_id, organisation_name").in("id", orgIds);
+      const mirrorMap = await fetchLatestListingMirror((orgs ?? []).map((o: any) => o.user_id));
       const map: Record<string, OrgRef> = {};
-      (orgs ?? []).forEach((o: any) => { map[o.id] = o; });
+      (orgs ?? []).forEach((o: any) => { map[o.id] = { ...o, partnership_sought: mirrorMap.get(o.user_id)?.partnership_sought ?? null }; });
       setOrgMap(map);
     }
 
