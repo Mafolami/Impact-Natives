@@ -6,6 +6,7 @@ import { Loader2, FileText, PenLine, Upload, Plus, X, Trash2, Target, Search, Li
 import CreateMouModal from "./CreateMouModal";
 import MouDocumentDetail from "./MouDocumentDetail";
 import { resolveMouDocTitle, buildConnectionListingMap, type MouTitleListingRef } from "@/lib/mouTitle";
+import { fetchLatestListingMirror } from "@/lib/listingMirror";
 
 interface MouDocRow {
   id: string;
@@ -161,9 +162,10 @@ export default function MouTab() {
       .order("updated_at", { ascending: false });
     const orgIds = [...new Set((docRows ?? []).flatMap((d) => [d.org_a_id, d.org_b_id]))];
     if (orgIds.length > 0) {
-      const { data: orgs } = await supabase.from("organizations").select("id, organisation_name, user_id, partnership_sought").in("id", orgIds);
+      const { data: orgs } = await supabase.from("organizations").select("id, organisation_name, user_id").in("id", orgIds);
+      const mirrorMap = await fetchLatestListingMirror((orgs ?? []).map((o: any) => o.user_id));
       const map: Record<string, OrgLite> = {};
-      (orgs ?? []).forEach((o: any) => { map[o.id] = o; });
+      (orgs ?? []).forEach((o: any) => { map[o.id] = { ...o, partnership_sought: mirrorMap.get(o.user_id)?.partnership_sought ?? null }; });
       setOrgMap(map);
     }
     const initIds = [...new Set((docRows ?? []).map((d) => d.initiative_id).filter((x): x is string => !!x))];
@@ -188,12 +190,12 @@ export default function MouTab() {
     setShowPicker(true);
     setLoadingOptions(true);
     if (!myOrgId || !userId) { setLoadingOptions(false); return; }
-    const [{ data: myInits }, { data: inboundFormed }, { data: myOrgListing }] = await Promise.all([
+    const [{ data: myInits }, { data: inboundFormed }, myOrgMirrorMap] = await Promise.all([
       // Team-seat fix: initiative_requests.user_id is also owner-scoped,
       // same convention as organizations -- orgOwnerId, not userId.
       supabase.from("initiative_requests").select("id, title, confirmed_partners").eq("user_id", orgOwnerId!).not("confirmed_partners", "is", null),
       supabase.from("partnership_connections").select("id, sender_org_id, partnership_title").eq("receiver_org_id", myOrgId).eq("status", "formed"),
-      supabase.from("organizations").select("partnership_sought").eq("id", myOrgId).maybeSingle(),
+      fetchLatestListingMirror([orgOwnerId!]),
     ]);
     const options: PartnerOption[] = [];
     const seenOrgIds = new Set<string>();
@@ -214,7 +216,7 @@ export default function MouTab() {
           seenOrgIds.add(org.id);
           const subtitle = resolveMouDocTitle(
             { initiative_id: null, connection_id: c.id, org_a_id: myOrgId },
-            { [myOrgId]: { id: myOrgId, partnership_sought: myOrgListing?.partnership_sought ?? null } },
+            { [myOrgId]: { id: myOrgId, partnership_sought: myOrgMirrorMap.get(orgOwnerId!)?.partnership_sought ?? null } },
             {},
             pickerListingMap
           ) ?? "Direct partnership";
