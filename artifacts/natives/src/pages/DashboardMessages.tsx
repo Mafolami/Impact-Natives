@@ -149,7 +149,7 @@ export default function DashboardMessages() {
         if (!convo) return;
         const { data: participants } = await supabase
           .rpc("get_conversation_participants", { p_conversation_ids: [convo.id] });
-        const otherId = (participants ?? []).find((p: any) => p.user_id !== user.id)?.user_id ?? "";
+        const otherId = (participants ?? []).find((p: any) => p.user_id !== user.id && p.user_id !== orgOwnerId)?.user_id ?? "";
         const { data: otherProfile } = otherId
           ? await supabase.from("profiles").select("full_name").eq("id", otherId).maybeSingle()
           : { data: null };
@@ -266,19 +266,16 @@ export default function DashboardMessages() {
 
   async function loadConversationsList(): Promise<Conversation[]> {
     if (!user) return [];
-    const { data: myConvos } = await supabase
-      .from("conversation_participants")
-      .select("conversation_id")
-      .eq("user_id", user.id);
-    const myConvoIds = (myConvos ?? []).map((c: any) => c.conversation_id);
-    if (myConvoIds.length === 0) {
-      setConversations([]);
-      return [];
-    }
+    // Team-seat fix: no longer pre-filters by a literal conversation_participants
+    // row for user.id -- that silently returned nothing for a team member who
+    // isn't personally the inserted participant (accept_partnership_connection
+    // only ever inserts the literal sender/owner, never every teammate).
+    // conversations RLS is now org-scoped (matches by resolved org owner id
+    // across any existing participant), so querying conversations directly and
+    // letting RLS filter is both correct and simpler.
     const { data: convoData } = await supabase
     .from("conversations")
     .select("id, initiative_id, status, initiative_owner_id, conversation_type, funder_closed_at")
-    .in("id", myConvoIds)
     .in("status", ["open", "rejected", "pending_acceptance", "confirmed"])
     .or("initiative_id.not.is.null,conversation_type.eq.partnership");
     if (!convoData || convoData.length === 0) {
@@ -291,8 +288,11 @@ export default function DashboardMessages() {
     const initTitleMap = new Map((inits ?? []).map((i: any) => [i.id, i.title]));
     const { data: allParticipants } = await supabase
       .rpc("get_conversation_participants", { p_conversation_ids: convoData.map((c: any) => c.id) });
+    // Team-seat fix: also exclude MY org's own participant row, not just my
+    // literal id -- see note above on why the inserted row for "my side" is
+    // usually the literal owner, not necessarily me.
     const otherUserIds = [...new Set(
-      (allParticipants ?? []).filter((p: any) => p.user_id !== user.id).map((p: any) => p.user_id)
+      (allParticipants ?? []).filter((p: any) => p.user_id !== user.id && p.user_id !== orgOwnerId).map((p: any) => p.user_id)
     )];
     const { data: otherProfiles } = await supabase
       .from("profiles").select("id, full_name").in("id", otherUserIds);
@@ -308,7 +308,7 @@ export default function DashboardMessages() {
     });
     const participantMap = new Map<string, string>();
     (allParticipants ?? []).forEach((p: any) => {
-      if (p.user_id !== user.id) participantMap.set(p.conversation_id, p.user_id);
+      if (p.user_id !== user.id && p.user_id !== orgOwnerId) participantMap.set(p.conversation_id, p.user_id);
     });
     const partnershipOwnerIds = convoData
       .filter((c: any) => c.conversation_type === "partnership" && c.initiative_owner_id)
@@ -1172,7 +1172,7 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
     const { data: participants } = await supabase
       .rpc("get_conversation_participants", { p_conversation_ids: [conversation.id] });
 
-    const otherIds = (participants ?? []).map((p: any) => p.user_id).filter((id: string) => id !== currentUserId);
+    const otherIds = (participants ?? []).map((p: any) => p.user_id).filter((id: string) => id !== currentUserId && id !== orgOwnerId);
     const { data: profiles } = await supabase
       .from("profiles").select("id, full_name, user_type").in("id", otherIds);
     const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p.full_name]));
