@@ -7,6 +7,7 @@ import { X, Loader2, Download, Upload, CheckCircle2, Send, ArrowLeft, PenLine, F
 import SignaturePad from "@/components/dashboard/SignaturePad";
 import IndicatorForm from "@/components/mou/IndicatorForm";
 import { fetchProofPoints, type ProofPoint } from "@/lib/proofPoints";
+import { fetchLatestListingMirror } from "@/lib/listingMirror";
 import {
   PartnershipIndicator, fetchIndicators, agreeToIndicator, rejectIndicator,
   proposeIndicatorRefinement, acceptIndicatorRefinement, dismissIndicatorRefinement, hasPendingSuggestion,
@@ -221,7 +222,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
     setFieldValues((docRow.field_values as Record<string, string>) ?? {});
     setCustomContent(docRow.custom_content ?? "");
     const [{ data: orgRows }, initRes, connRes] = await Promise.all([
-      supabase.from("organizations").select("id, user_id, organisation_name, country, organisation_type, partnership_budget, partnership_sought")
+      supabase.from("organizations").select("id, user_id, organisation_name, country, organisation_type")
         .in("id", [docRow.org_a_id, docRow.org_b_id]),
       docRow.initiative_id
         ? supabase.from("initiative_requests").select("title, problem").eq("id", docRow.initiative_id).maybeSingle()
@@ -230,8 +231,10 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
         ? supabase.from("partnership_connections").select("receiver_org_id, receiver_listing_id").eq("id", docRow.connection_id).maybeSingle()
         : Promise.resolve({ data: null }),
     ]);
-    const a = (orgRows ?? []).find((o: any) => o.id === docRow.org_a_id) ?? null;
-    const b = (orgRows ?? []).find((o: any) => o.id === docRow.org_b_id) ?? null;
+    const mirrorMap = await fetchLatestListingMirror((orgRows ?? []).map((o: any) => o.user_id));
+    const withMirror = (o: any) => o && { ...o, ...(mirrorMap.get(o.user_id) ?? {}) };
+    const a = withMirror((orgRows ?? []).find((o: any) => o.id === docRow.org_a_id) ?? null);
+    const b = withMirror((orgRows ?? []).find((o: any) => o.id === docRow.org_b_id) ?? null);
     setOrgA(a);
     setOrgB(b);
     setInitiative((initRes as any)?.data ?? null);
