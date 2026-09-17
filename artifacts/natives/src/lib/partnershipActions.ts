@@ -168,9 +168,12 @@ export async function markPartnershipFormed(
   myOrgName: string,
   myPartnershipTitle: string | null
 ): Promise<void> {
-  await supabase.from("organizations")
-    .update({ partnership_formed: true })
-    .eq("id", myOrgId);
+  // Was a direct .update() -- organizations' UPDATE RLS is owner-or-signer
+  // only, so this silently affected zero rows for a regular team member.
+  // mark_org_partnership_formed is a SECURITY DEFINER RPC that checks
+  // (owner OR active org member) internally and only ever touches this
+  // one column.
+  await supabase.rpc("mark_org_partnership_formed", { p_org_id: myOrgId });
 
   const forThisListing = inboundConnections.filter(
     c => c.receiver_listing_id === listingId || c.receiver_listing_id == null
