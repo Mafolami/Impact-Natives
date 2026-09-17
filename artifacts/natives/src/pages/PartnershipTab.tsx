@@ -23,10 +23,6 @@ type PartnershipView = "requested" | "inbound" | "outbound" | "confirmed";
 type MyListing = {
   id: string;
   organisation_name: string;
-  partnership_sought: string | null;
-  partnership_title: string | null;
-  partnership_listed: boolean;
-  partnership_formed: boolean;
   needs: string[];
   offers: string[];
   sdgs: number[];
@@ -44,6 +40,7 @@ type MyOrgListing = {
   sought: string | null;
   status: "draft" | "published";
   created_at: string;
+  updated_at: string;
 };
 
 type ConnectionRow = {
@@ -174,7 +171,7 @@ export function PartnershipTab() {
 
     const { data: myOrg } = await supabase
       .from("organizations")
-      .select("id, organisation_name, partnership_sought, partnership_title, partnership_listed, partnership_formed, needs, offers, sdgs, sector, status")
+      .select("id, organisation_name, needs, offers, sdgs, sector, status")
       .eq("user_id", orgOwnerId!)
       .maybeSingle();
 
@@ -183,9 +180,9 @@ export function PartnershipTab() {
     setMyListing(myOrg as MyListing);
 
     const { data: listingsData } = await supabase.from("partnership_listings")
-      .select("id, title, sought, status, created_at")
+      .select("id, title, sought, status, created_at, updated_at")
       .eq("user_id", orgOwnerId!)
-      .order("created_at", { ascending: false });
+      .order("updated_at", { ascending: false });
     setMyListings((listingsData ?? []) as MyOrgListing[]);
 
     const [inboundRes, outboundRes] = await Promise.all([
@@ -632,7 +629,7 @@ export function PartnershipTab() {
               {/* Group confirmed partners by partnership_title */}
               {(() => {
                 const grouped = confirmedInbound.reduce((acc, conn) => {
-                  const title = conn.partnership_title ?? myListing?.partnership_title ?? "Partnership request";
+                  const title = conn.partnership_title ?? myListings[0]?.title ?? "Partnership request";
                   if (!acc[title]) acc[title] = [];
                   acc[title].push(conn);
                   return acc;
@@ -700,7 +697,7 @@ export function PartnershipTab() {
                               <td className="px-5 py-3">
                                 {org?.id && (
                                   <ActionsDropdown actions={[
-                                    { label: "MoU", href: `/dashboard/portfolio/mou?newForOrgId=${org.id}&partnerName=${encodeURIComponent(org.organisation_name ?? "Partner")}&initiativeTitle=${encodeURIComponent(myListing?.partnership_title ?? "")}&connectionId=${conn.id}` },
+                                    { label: "MoU", href: `/dashboard/portfolio/mou?newForOrgId=${org.id}&partnerName=${encodeURIComponent(org.organisation_name ?? "Partner")}&initiativeTitle=${encodeURIComponent(myListings[0]?.title ?? "")}&connectionId=${conn.id}` },
                                   ]} />
                                 )}
                               </td>
