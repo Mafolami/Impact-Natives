@@ -36,7 +36,7 @@ import { SECTOR_OPTIONS as SECTORS } from "@/lib/sectors";
 import { COUNTRIES } from "@/lib/countries";
 import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 import { normalizeArr } from "@/lib/normalizeArr";
-import { DD_ITEMS, FUNDER_DD_ITEMS, DOCUMENT_REQUIRED_KEYS, persistDdItemAnswers } from "@/lib/ddItems";
+import { DD_ITEMS, FUNDER_DD_ITEMS, DOCUMENT_REQUIRED_KEYS, persistDdItemAnswers, clearDdItemConfirmation } from "@/lib/ddItems";
 import DDEvidenceModal from "@/components/dashboard/DDEvidenceModal";
 
 const RATE_LIMIT_ENABLED = false;
@@ -1837,6 +1837,10 @@ export function FindPartnerModalDashboard({
                                     setDdEvidence(updatedEvidence);
                                     setDdState(p=>({...p,[prefixedKey]:true}));
                                     setDdEvidenceModalKey(null);
+                                  }}
+                                  onMarkIncomplete={async()=>{
+                                    await clearDdItemConfirmation(orgOwnerId!,ddEvidenceModalKey,prefix);
+                                    setDdState(p=>({...p,[prefixedKey]:false}));
                                   }}
                                 />
                               );

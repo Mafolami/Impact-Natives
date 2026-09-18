@@ -603,8 +603,13 @@ export default function DashboardProfile() {
       alert(`Couldn't save: ${err.message}`);
     }
   }
-  async function markDdItemIncomplete(key: string, setter: (v: boolean) => void, prefix: string = "dd") {
-    if (!confirm("Mark this item as not complete? You'll need to re-verify it later.")) return;
+  async function markDdItemIncomplete(key: string, setter: (v: boolean) => void, prefix: string = "dd", skipConfirm: boolean = false) {
+    // skipConfirm is used only when DDEvidenceModal's own delete-guard
+    // confirm() already ran (deleting the last required document) --
+    // avoids stacking a second, redundant confirmation on top of it.
+    // The standalone "mark incomplete" (X) button elsewhere in this file
+    // never passes it, so its confirmation is completely unaffected.
+    if (!skipConfirm && !confirm("Mark this item as not complete? You'll need to re-verify it later.")) return;
     setter(false);
     // Drop the confirmation timestamp -- the item is no longer currently
     // attested, so a stale "confirmed on X" would be misleading on an
@@ -2346,6 +2351,7 @@ export default function DashboardProfile() {
                     userId={user?.id ?? ""}
                     onClose={() => setDdModalKey(null)}
                     onSave={(answers) => saveDdItem(ddModalKey, answers, setterMap[ddModalKey], prefix)}
+                    onMarkIncomplete={() => markDdItemIncomplete(ddModalKey, setterMap[ddModalKey], prefix, true)}
                   />
                 );
               })()}

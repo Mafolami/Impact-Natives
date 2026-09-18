@@ -298,3 +298,23 @@ export async function persistDdItemAnswers(
   await saveOrgFields(orgOwnerId, fields);
   return { ddEvidence: updatedEvidence, ddConfirmedAt: updatedConfirmedAt };
 }
+
+
+// Companion to persistDdItemAnswers, for the same reason: the listing
+// editor has no existing "mark incomplete" flow to reuse (unlike
+// DashboardProfile.tsx's markDdItemIncomplete). Clears the confirmation
+// timestamp the same way, so an audit export doesn't show a stale
+// "confirmed on X" for an item that's no longer actually attested.
+export async function clearDdItemConfirmation(
+  orgOwnerId: string,
+  key: string,
+  prefix: "dd" | "fdd",
+): Promise<void> {
+  const { data } = await supabase.from("organizations")
+    .select("dd_confirmed_at").eq("user_id", orgOwnerId).maybeSingle();
+  const updatedConfirmedAt = { ...(data?.dd_confirmed_at ?? {}) };
+  delete updatedConfirmedAt[`${prefix}_${key}`];
+  const fields: Record<string, any> = { dd_confirmed_at: updatedConfirmedAt };
+  fields[`${prefix}_${key}`] = false;
+  await saveOrgFields(orgOwnerId, fields);
+}

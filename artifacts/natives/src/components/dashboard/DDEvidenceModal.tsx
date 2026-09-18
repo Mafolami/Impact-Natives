@@ -3,9 +3,16 @@ import { Trash2, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { DDItemDef, DDDocument, DOCUMENT_REQUIRED_KEYS } from "@/lib/ddItems";
 
-export default function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave }: {
+export default function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave, onMarkIncomplete }: {
   item: DDItemDef; initialAnswers: Record<string, any>; orgId: string; userId: string;
   onClose: () => void; onSave: (answers: Record<string, any>) => void;
+  // Called when the user deletes the LAST remaining document for a
+  // DOCUMENT_REQUIRED_KEYS item that currently has one -- lets the
+  // caller flip the item back to incomplete instead of leaving a
+  // checked box with zero evidence behind it. Optional so callers that
+  // don't need this (there are none currently, but this keeps the type
+  // honest) aren't forced to pass a no-op.
+  onMarkIncomplete?: () => void;
 }) {
   const [answers, setAnswers] = useState<Record<string, any>>(initialAnswers ?? {});
   const [attemptedInvalidSave, setAttemptedInvalidSave] = useState(false);
@@ -57,11 +64,16 @@ export default function DDEvidenceModal({ item, initialAnswers, orgId, userId, o
   }
 
   async function handleDocDelete(doc: DDDocument) {
-    if (!confirm(`Remove "${doc.file_name}"?`)) return;
+    const isLastRequiredDoc = DOCUMENT_REQUIRED_KEYS.includes(item.key) && documents.length === 1;
+    const confirmMsg = isLastRequiredDoc
+      ? `This is the only supporting document for this item. Removing it will mark the item as incomplete. Remove "${doc.file_name}"?`
+      : `Remove "${doc.file_name}"?`;
+    if (!confirm(confirmMsg)) return;
     await supabase.storage.from("dd-evidence-docs").remove([doc.file_path]);
     const { error } = await supabase.from("dd_evidence_documents").delete().eq("id", doc.id);
     if (error) { alert(`Couldn't remove document: ${error.message}`); return; }
     setDocuments(prev => prev.filter(d => d.id !== doc.id));
+    if (isLastRequiredDoc) onMarkIncomplete?.();
   }
 
   function setAnswer(key: string, value: any) {
