@@ -5,6 +5,8 @@
 // public profile). Kept in one place so the two never drift out of sync.
 
 import { COUNTRIES } from "@/lib/countries";
+import { supabase } from "@/lib/supabase";
+import { saveOrgFields } from "@/lib/orgFields";
 
 export type DDQuestion =
   | { key: string; label: string; type: "text"; required?: boolean; showIf?: { key: string; equals: boolean } }
@@ -257,3 +259,42 @@ export const FUNDER_DD_ITEMS: DDItemDef[] = [
       ],
     },
   ];
+
+// audited_accounts, legal_registration, governance_doc are the three DD
+// items a funder is most likely to treat as a hard fact rather than a
+// soft signal, and the three most likely to already exist as a real
+// file on the org's computer -- so requiring an upload isn't asking for
+// net-new work. Applies wherever these keys appear (DD_ITEMS and, for
+// governance_doc/legal_registration, FUNDER_DD_ITEMS too) -- the other
+// six DD_ITEMS entries and the rest of FUNDER_DD_ITEMS stay
+// questionnaire-only, no upload required.
+export const DOCUMENT_REQUIRED_KEYS = ["audited_accounts", "legal_registration", "governance_doc"];
+
+// Single write path for confirming a DD item's questionnaire answers,
+// used by the partnership-listing editor's DD checklist (which doesn't
+// otherwise track dd_evidence/dd_confirmed_at at all). Fetches the org's
+// CURRENT dd_evidence/dd_confirmed_at fresh rather than trusting a
+// caller-supplied copy, so two screens editing at slightly different
+// times can't clobber each other's other items' evidence.
+// DashboardProfile.tsx's own saveDdItem keeps its existing optimistic
+// local-state update and does not use this -- it already has an
+// in-memory copy of dd_evidence, and behavioural risk to that
+// already-working flow wasn't worth taking for this fix.
+export async function persistDdItemAnswers(
+  orgOwnerId: string,
+  key: string,
+  answers: Record<string, any>,
+  prefix: "dd" | "fdd",
+): Promise<{ ddEvidence: Record<string, any>; ddConfirmedAt: Record<string, any> }> {
+  const { data } = await supabase.from("organizations")
+    .select("dd_evidence, dd_confirmed_at").eq("user_id", orgOwnerId).maybeSingle();
+  const updatedEvidence = { ...(data?.dd_evidence ?? {}), [key]: answers };
+  const updatedConfirmedAt = {
+    ...(data?.dd_confirmed_at ?? {}),
+    [`${prefix}_${key}`]: { at: new Date().toISOString(), approx: false },
+  };
+  const fields: Record<string, any> = { dd_evidence: updatedEvidence, dd_confirmed_at: updatedConfirmedAt };
+  fields[`${prefix}_${key}`] = true;
+  await saveOrgFields(orgOwnerId, fields);
+  return { ddEvidence: updatedEvidence, ddConfirmedAt: updatedConfirmedAt };
+}

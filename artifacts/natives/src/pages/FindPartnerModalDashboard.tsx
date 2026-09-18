@@ -36,6 +36,8 @@ import { SECTOR_OPTIONS as SECTORS } from "@/lib/sectors";
 import { COUNTRIES } from "@/lib/countries";
 import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 import { normalizeArr } from "@/lib/normalizeArr";
+import { DD_ITEMS, FUNDER_DD_ITEMS, DOCUMENT_REQUIRED_KEYS, persistDdItemAnswers } from "@/lib/ddItems";
+import DDEvidenceModal from "@/components/dashboard/DDEvidenceModal";
 
 const RATE_LIMIT_ENABLED = false;
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -549,6 +551,11 @@ export function FindPartnerModalDashboard({
     fdd_legal_registration:false,
   });
   function toggleDd(key:keyof DdState){setDdState(p=>({...p,[key]:!p[key]}));}
+  const [ddEvidence,setDdEvidence]=useState<Record<string,any>>({});
+  // Which DOCUMENT_REQUIRED_KEYS item's evidence modal is open, if any --
+  // holds the bare item key (e.g. "audited_accounts"), not the prefixed
+  // ddState key (e.g. "dd_audited_accounts").
+  const [ddEvidenceModalKey,setDdEvidenceModalKey]=useState<string|null>(null);
   const [uploadedFile,setUploadedFile]=useState<File|null>(null);
   const [uploadMode,setUploadMode]=useState<"text"|"doc">("text");
   const fileRef=useRef<HTMLInputElement>(null);
@@ -644,7 +651,8 @@ export function FindPartnerModalDashboard({
           dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,
           dd_legal_registration,dd_legal_compliance_declaration,
           fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,
-          fdd_governance_doc,fdd_esg_framework,fdd_legal_registration
+          fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,
+          dd_evidence
         `).eq("user_id",orgOwnerId).maybeSingle(),
         // Reads the OWNER's profile.org_name specifically -- this value is
         // only ever used below to keep organizations.organisation_name in
@@ -687,6 +695,12 @@ export function FindPartnerModalDashboard({
         fdd_esg_framework:data.fdd_esg_framework??false,
         fdd_legal_registration:data.fdd_legal_registration??false,
       });
+      // Prefills DDEvidenceModal's questionnaire when opened from here for
+      // one of the DOCUMENT_REQUIRED_KEYS items -- without this, someone
+      // who already answered these questions on their profile page would
+      // see a blank form when editing the same item from the listing
+      // editor instead.
+      setDdEvidence(data.dd_evidence ?? {});
       if(RATE_LIMIT_ENABLED){
         const cutoff=new Date(Date.now()-7*60*60*1000).toISOString();
         const{data:recent}=await supabase.from("partnership_connections").select("created_at").eq("sender_user_id",user!.id).gte("created_at",cutoff).limit(1);
@@ -1778,21 +1792,55 @@ export function FindPartnerModalDashboard({
                                 const on=ddState[key];
                                 return (
                                   <label key={key} className="flex items-start gap-3 py-2 cursor-pointer group">
+                                    {(()=>{
+                                  const bareKey=key.replace(/^f?dd_/,"");
+                                  const isGated=DOCUMENT_REQUIRED_KEYS.includes(bareKey);
+                                  // Gated + currently off: opening the real DDEvidenceModal is
+                                  // the only way to turn it on (questionnaire + document
+                                  // required, same gate as the profile page). Turning an
+                                  // already-on gated item off, and every non-gated item in
+                                  // either direction, stays the plain instant toggle.
+                                  const handleClick=isGated&&!on?()=>setDdEvidenceModalKey(bareKey):()=>toggleDd(key);
+                                  return (<>
                                     <div className={`mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
                                       on?"bg-[#2D6A4F] border-[#2D6A4F]":"border-border group-hover:border-[#2D6A4F]/50"
-                                    }`} onClick={()=>toggleDd(key)}>
+                                    }`} onClick={handleClick}>
                                       {on&&<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>}
                                     </div>
                                     <div className="flex-1">
                                       <p className={`text-[13.5px] leading-snug ${on?"font-semibold text-[#2D6A4F]":"text-foreground"}`}>{label}</p>
                                       <p className="text-[13px] text-foreground/60 mt-0.5">{sub}</p>
+                                      {isGated&&!on&&<p className="text-[12px] text-foreground/50 mt-0.5">Requires a supporting document</p>}
                                     </div>
-                                    <input type="checkbox" checked={on} onChange={()=>toggleDd(key)} className="sr-only"/>
+                                    <input type="checkbox" checked={on} onChange={handleClick} className="sr-only"/>
+                                  </>);
+                                })()}
                                   </label>
                                 );
                               })}
                             </div>
                             <p className="text-[13px] text-foreground/50 mt-3">Updating this also updates your organisation profile's DD readiness score.</p>
+                            {ddEvidenceModalKey&&(()=>{
+                              const modalItem=(isFunder?FUNDER_DD_ITEMS:DD_ITEMS).find(i=>i.key===ddEvidenceModalKey);
+                              if(!modalItem||!orgProfile)return null;
+                              const prefix=isFunder?"fdd":"dd";
+                              const prefixedKey=`${prefix}_${ddEvidenceModalKey}` as keyof DdState;
+                              return (
+                                <DDEvidenceModal
+                                  item={modalItem}
+                                  initialAnswers={ddEvidence[ddEvidenceModalKey]??{}}
+                                  orgId={orgProfile.id??""}
+                                  userId={user?.id??""}
+                                  onClose={()=>setDdEvidenceModalKey(null)}
+                                  onSave={async(answers)=>{
+                                    const{ddEvidence:updatedEvidence}=await persistDdItemAnswers(orgOwnerId!,ddEvidenceModalKey,answers,prefix);
+                                    setDdEvidence(updatedEvidence);
+                                    setDdState(p=>({...p,[prefixedKey]:true}));
+                                    setDdEvidenceModalKey(null);
+                                  }}
+                                />
+                              );
+                            })()}
                           </Field>
                         );
                       })()}
