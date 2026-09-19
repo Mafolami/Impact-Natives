@@ -35,6 +35,7 @@ import { Loader2, ShieldCheck, Sparkles, CheckCircle2, ArrowUpRight, ArrowLeft, 
 import type { LucideIcon } from "lucide-react";
 import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 import VerifiedOutcomesSection from "@/components/dashboard/VerifiedOutcomesSection";
+import OrgDocumentsList from "@/components/dashboard/OrgDocumentsList";
 import { ShareButton } from "@/components/dashboard/ShareButton";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -1061,6 +1062,10 @@ function ProfileTabPanels({ org, variant, tab, viewerOrgId, dd, overviewAfterSuc
       <div className={body}>
         <TabBlock variant={variant}>
           <DueDiligenceReadiness org={org} score={dd.score} ddTotal={dd.total} ddDocs={dd.docs} />
+        </TabBlock>
+        <TabBlock variant={variant}>
+          <Eyebrow>Supporting documents</Eyebrow>
+          <OrgDocumentsList orgId={org.id} isOwnOrg={viewerOrgId === org.id} labels={dd.docs} />
         </TabBlock>
       </div>
     );
