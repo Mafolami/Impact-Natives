@@ -710,6 +710,87 @@ function AlsoFitsFootnote({ items, onSelect }: { items: AlsoFit[]; onSelect: (it
   );
 }
 
+// Shared by both variants (and the page rail in the next step). The wrapper
+// differs per variant; the content inside is identical, so it lives here once.
+function FitAnalysisContent({ fit, fitLoading, fitLocked, alsoFits, onSelectAlsoFit }: {
+  fit: FitResult | null; fitLoading: boolean; fitLocked: boolean;
+  alsoFits: AlsoFit[]; onSelectAlsoFit: (item: AlsoFit) => void;
+}) {
+  return (
+    <>
+      <div className="flex items-center gap-2 mb-1">
+        <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 bg-[#2D6A4F]">
+          <Sparkles className="w-3.5 h-3.5 text-white" />
+        </div>
+        <p className="text-xs font-black uppercase tracking-widest text-[#2D6A4F]">Your fit analysis</p>
+        {fitLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#2D6A4F] ml-auto" />}
+        {fit && !fitLoading && (
+          <div className="ml-auto flex items-center gap-2">
+            <div className="h-1.5 w-24 rounded-full overflow-hidden bg-muted">
+              <div className="h-full rounded-full transition-all" style={{
+                width: `${fit.fit_score}%`,
+                background: fit.fit_score >= 70 ? "#2D6A4F" : fit.fit_score >= 50 ? "#F59E0B" : "#EF4444"
+              }} />
+            </div>
+            <span className="text-sm font-black" style={{
+              color: fit.fit_score >= 70 ? "#065F46" : fit.fit_score >= 50 ? "#92400E" : "#991B1B"
+            }}>{fit.fit_score}%</span>
+          </div>
+        )}
+      </div>
+      {fit && !fitLoading && fit.listing_title && (
+        <p className="text-[11px] text-black dark:text-white mb-3">Based on your "{fit.listing_title}" listing</p>
+      )}
+
+      {fitLoading && (
+        <p className="text-xs text-black dark:text-white mt-3">Analysing compatibility with your organisation profile...</p>
+      )}
+      {fitLocked && (
+        <p className="text-xs text-black dark:text-white mt-3">
+          AI fit scoring is a Plus feature.{" "}
+          <Link href="/dashboard/settings?tab=billing" className="text-[#2D6A4F] font-medium hover:underline">Upgrade to unlock</Link>.
+        </p>
+      )}
+
+      {fit && !fitLoading && (
+        <div className="space-y-4">
+          <p className="text-[15px] text-foreground leading-relaxed">{fit.rationale}</p>
+
+          {fit.reasons.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {fit.reasons.map((r, i) => (
+                <div key={i} className="flex items-start gap-2.5">
+                  <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "rgba(6,95,70,0.12)" }}>
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#065F46" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <span className="text-xs text-foreground leading-relaxed">{r}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {fit.gaps.length > 0 && (
+            <div className="rounded-xl px-4 py-3.5 space-y-2"
+              style={{ background: "rgba(146,64,14,0.08)", border: "1px solid rgba(146,64,14,0.3)" }}>
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#92400E]">Gaps to address before reaching out</p>
+              <div className="flex flex-col gap-1.5">
+                {fit.gaps.map((g, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <span className="mt-1 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#F59E0B" }} />
+                    <p className="text-xs text-[#92400E] leading-relaxed">{g}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <AlsoFitsFootnote items={alsoFits} onSelect={onSelectAlsoFit} />
+        </div>
+      )}
+    </>
+  );
+}
+
 // ─── Main panel ─────────────────────────────────────────────────────────────────
 
 export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, onExpressInterest, onBack, backLabel, viewerOrg, viewerOrgLoading, variant = "panel", mouExecuted = false }: {
@@ -865,75 +946,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         {(fit || fitLoading) && org.user_id !== viewerOrg?.user_id && (
           <div className="rounded-xl border border-border bg-card px-5 py-4"
             style={{ background: "linear-gradient(135deg, rgba(13,43,26,0.04) 0%, rgba(26,74,46,0.02) 100%)" }}>
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 bg-[#2D6A4F]">
-                <Sparkles className="w-3.5 h-3.5 text-white" />
-              </div>
-              <p className="text-xs font-black uppercase tracking-widest text-[#2D6A4F]">Your fit analysis</p>
-              {fitLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#2D6A4F] ml-auto" />}
-              {fit && !fitLoading && (
-                <div className="ml-auto flex items-center gap-2">
-                  <div className="h-1.5 w-24 rounded-full overflow-hidden bg-muted">
-                    <div className="h-full rounded-full transition-all" style={{
-                      width: `${fit.fit_score}%`,
-                      background: fit.fit_score >= 70 ? "#2D6A4F" : fit.fit_score >= 50 ? "#F59E0B" : "#EF4444"
-                    }} />
-                  </div>
-                  <span className="text-sm font-black" style={{
-                    color: fit.fit_score >= 70 ? "#065F46" : fit.fit_score >= 50 ? "#92400E" : "#991B1B"
-                  }}>{fit.fit_score}%</span>
-                </div>
-              )}
-            </div>
-            {fit && !fitLoading && fit.listing_title && (
-              <p className="text-[11px] text-black dark:text-white mb-3">Based on your "{fit.listing_title}" listing</p>
-            )}
-
-            {fitLoading && (
-              <p className="text-xs text-black dark:text-white mt-3">Analysing compatibility with your organisation profile...</p>
-            )}
-            {fitLocked && (
-              <p className="text-xs text-black dark:text-white mt-3">
-                AI fit scoring is a Plus feature.{" "}
-                <Link href="/dashboard/settings?tab=billing" className="text-[#2D6A4F] font-medium hover:underline">Upgrade to unlock</Link>.
-              </p>
-            )}
-
-            {fit && !fitLoading && (
-              <div className="space-y-4">
-                <p className="text-[15px] text-foreground leading-relaxed">{fit.rationale}</p>
-
-                {fit.reasons.length > 0 && (
-                  <div className="flex flex-col gap-2">
-                    {fit.reasons.map((r, i) => (
-                      <div key={i} className="flex items-start gap-2.5">
-                        <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "rgba(6,95,70,0.12)" }}>
-                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#065F46" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-                        </div>
-                        <span className="text-xs text-foreground leading-relaxed">{r}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {fit.gaps.length > 0 && (
-                  <div className="rounded-xl px-4 py-3.5 space-y-2"
-                    style={{ background: "rgba(146,64,14,0.08)", border: "1px solid rgba(146,64,14,0.3)" }}>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-[#92400E]">Gaps to address before reaching out</p>
-                    <div className="flex flex-col gap-1.5">
-                      {fit.gaps.map((g, i) => (
-                        <div key={i} className="flex items-start gap-2">
-                          <span className="mt-1 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#F59E0B" }} />
-                          <p className="text-xs text-[#92400E] leading-relaxed">{g}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <AlsoFitsFootnote items={alsoFits} onSelect={swapToAlsoFit} />
-              </div>
-            )}
+            <FitAnalysisContent fit={fit} fitLoading={fitLoading} fitLocked={fitLocked} alsoFits={alsoFits} onSelectAlsoFit={swapToAlsoFit} />
           </div>
         )}
 
@@ -1065,75 +1078,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         {(fit || fitLoading) && org.user_id !== viewerOrg?.user_id && (
           <div className="px-8 py-6 border-t border-b border-border"
             style={{ background: "linear-gradient(135deg, rgba(13,43,26,0.04) 0%, rgba(26,74,46,0.02) 100%)" }}>
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 bg-[#2D6A4F]">
-                <Sparkles className="w-3.5 h-3.5 text-white" />
-              </div>
-              <p className="text-xs font-black uppercase tracking-widest text-[#2D6A4F]">Your fit analysis</p>
-              {fitLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#2D6A4F] ml-auto" />}
-              {fit && !fitLoading && (
-                <div className="ml-auto flex items-center gap-2">
-                  <div className="h-1.5 w-24 rounded-full overflow-hidden bg-muted">
-                    <div className="h-full rounded-full transition-all" style={{
-                      width: `${fit.fit_score}%`,
-                      background: fit.fit_score >= 70 ? "#2D6A4F" : fit.fit_score >= 50 ? "#F59E0B" : "#EF4444"
-                    }} />
-                  </div>
-                  <span className="text-sm font-black" style={{
-                    color: fit.fit_score >= 70 ? "#065F46" : fit.fit_score >= 50 ? "#92400E" : "#991B1B"
-                  }}>{fit.fit_score}%</span>
-                </div>
-              )}
-            </div>
-            {fit && !fitLoading && fit.listing_title && (
-              <p className="text-[11px] text-black dark:text-white mb-3">Based on your "{fit.listing_title}" listing</p>
-            )}
-
-            {fitLoading && (
-              <p className="text-xs text-black dark:text-white mt-3">Analysing compatibility with your organisation profile...</p>
-            )}
-            {fitLocked && (
-              <p className="text-xs text-black dark:text-white mt-3">
-                AI fit scoring is a Plus feature.{" "}
-                <Link href="/dashboard/settings?tab=billing" className="text-[#2D6A4F] font-medium hover:underline">Upgrade to unlock</Link>.
-              </p>
-            )}
-
-            {fit && !fitLoading && (
-              <div className="space-y-4">
-                <p className="text-[15px] text-foreground leading-relaxed">{fit.rationale}</p>
-
-                {fit.reasons.length > 0 && (
-                  <div className="flex flex-col gap-2">
-                    {fit.reasons.map((r, i) => (
-                      <div key={i} className="flex items-start gap-2.5">
-                        <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "rgba(6,95,70,0.12)" }}>
-                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#065F46" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-                        </div>
-                        <span className="text-xs text-foreground leading-relaxed">{r}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {fit.gaps.length > 0 && (
-                  <div className="rounded-xl px-4 py-3.5 space-y-2"
-                    style={{ background: "rgba(146,64,14,0.08)", border: "1px solid rgba(146,64,14,0.3)" }}>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-[#92400E]">Gaps to address before reaching out</p>
-                    <div className="flex flex-col gap-1.5">
-                      {fit.gaps.map((g, i) => (
-                        <div key={i} className="flex items-start gap-2">
-                          <span className="mt-1 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#F59E0B" }} />
-                          <p className="text-xs text-[#92400E] leading-relaxed">{g}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <AlsoFitsFootnote items={alsoFits} onSelect={swapToAlsoFit} />
-              </div>
-            )}
+            <FitAnalysisContent fit={fit} fitLoading={fitLoading} fitLocked={fitLocked} alsoFits={alsoFits} onSelectAlsoFit={swapToAlsoFit} />
           </div>
         )}
 
