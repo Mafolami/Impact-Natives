@@ -434,30 +434,14 @@ function listingShareMessage(org: OrgRow): string {
 // Brand-green band behind the identity block. One definition so both variants match.
 const IDENTITY_BAND = "linear-gradient(to bottom, rgba(45,106,79,0.06), transparent)";
 
-// First sentence of a text, or null when it is too short or too long to read as a
-// one-line opener (a cut-off sentence looks worse than no line).
-function firstSentence(text: string | null | undefined): string | null {
-  const t = (text ?? "").trim().replace(/\s+/g, " ");
-  if (!t) return null;
-  const m = t.match(/^.+?(?<!\b(?:Inc|Ltd|Co|Corp|Dr|Mr|Mrs|Ms|St|vs|etc|e\.g|i\.e))[.!?](?=\s|$)/);
-  const s = (m ? m[0] : t).trim();
-  return s.length >= 20 && s.length <= 180 ? s : null;
-}
-
-// Editorial opening line: taken from the org's own words, never invented.
-function openingLine(org: OrgRow): string | null {
-  return firstSentence(org.partnership_sought) ?? firstSentence(org.description);
-}
-
 // Shared by both variants. Each variant supplies its own outer wrapper (page: a
 // bordered band card; panel: the full-width band strip with the mobile back button).
 // The variant prop only sets the type/countries text size, as before.
-function IdentityHeader({ org, variant, countries, sectors, isVerified, mouExecuted, fitLoading, fitLocked, fit, isSaved, onToggleSave, hideSectorsOnXl = false }: {
+function IdentityHeader({ org, variant, countries, sectors, isVerified, mouExecuted, fitLoading, fitLocked, fit, isSaved, onToggleSave, hideSectorsOnXl = false, showShare = true }: {
   org: OrgRow; variant: "page" | "panel"; countries: string[]; sectors: string[];
   isVerified: boolean; mouExecuted: boolean; fitLoading: boolean; fitLocked: boolean; fit: FitResult | null;
-  isSaved: boolean; onToggleSave: (e: React.MouseEvent) => void; hideSectorsOnXl?: boolean;
+  isSaved: boolean; onToggleSave: (e: React.MouseEvent) => void; hideSectorsOnXl?: boolean; showShare?: boolean;
 }) {
-  const line = openingLine(org);
   return (
     <>
       <div className="flex items-start gap-4 sm:gap-5">
@@ -471,7 +455,7 @@ function IdentityHeader({ org, variant, countries, sectors, isVerified, mouExecu
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              {org.listing_id && !org.partnership_formed && (
+              {showShare && org.listing_id && !org.partnership_formed && (
                 <ShareButton label="Share" url={listingShareUrl(org)} message={listingShareMessage(org)} />
               )}
               <SaveButton isSaved={isSaved} onToggleSave={onToggleSave} />
@@ -482,7 +466,6 @@ function IdentityHeader({ org, variant, countries, sectors, isVerified, mouExecu
               <SectorTags sectors={sectors} />
             </div>
           )}
-          {line && <p className="mt-4 text-lg font-semibold text-foreground leading-snug">{line}</p>}
         </div>
       </div>
     </>
@@ -848,8 +831,8 @@ function ProfileTabs({ tabs, active, onChange, variant }: {
   tabs: ProfileTab[]; active: ProfileTab; onChange: (t: ProfileTab) => void; variant: "page" | "panel";
 }) {
   const wrap = variant === "panel"
-    ? "sticky top-0 z-10 bg-background px-8 flex gap-6 overflow-x-auto"
-    : "flex gap-6 overflow-x-auto border-b border-[#2D6A4F]/20";
+    ? "sticky top-0 z-10 bg-background px-8 flex flex-wrap gap-x-6 border-b border-[#2D6A4F]/20"
+    : "flex flex-wrap gap-x-6 border-b border-[#2D6A4F]/20";
   return (
     <div role="tablist" className={wrap}>
       {tabs.map(t => (
@@ -980,7 +963,7 @@ function FundingTabContent({ org, variant }: { org: OrgRow; variant: "page" | "p
   const inkind = !funder ? listOf(org.inkind_support) : [];
   const hasFacts = !!(grant || instruments.length || stages.length || where.length || csrBudget);
   return (
-    <div className={variant === "page" ? "space-y-6" : "divide-y divide-[#2D6A4F]/20"}>
+    <div className={variant === "page" ? "space-y-6" : ""}>
       {statement && (
         <TabBlock variant={variant}>
           <Eyebrow>{funder ? "Investment thesis" : "CSR focus"}</Eyebrow>
@@ -1014,7 +997,7 @@ function ProfileTabPanels({ org, variant, tab, viewerOrgId, dd, overviewAfterSuc
   dd: { score: number; total: number; docs: { key: keyof OrgRow; label: string }[] };
   overviewAfterSuccess?: React.ReactNode; overviewAfterSignals?: React.ReactNode;
 }) {
-  const body = variant === "page" ? "space-y-6" : "divide-y divide-[#2D6A4F]/20";
+  const body = variant === "page" ? "space-y-6" : "";
 
   if (tab === "impact") {
     return (
@@ -1067,9 +1050,12 @@ function ProfileTabPanels({ org, variant, tab, viewerOrgId, dd, overviewAfterSuc
 
   return (
     <div className={body}>
-      {org.description && (
+      {(org.partnership_title?.trim() || org.description) && (
         <TabBlock variant={variant}>
-          <p className="text-[15px] text-foreground leading-relaxed">{org.description}</p>
+          {org.partnership_title?.trim() && (
+            <p className={`text-lg font-bold text-foreground leading-snug ${org.description ? "mb-3" : ""}`}>{org.partnership_title.trim()}</p>
+          )}
+          {org.description && <p className="text-[15px] text-foreground leading-relaxed">{org.description}</p>}
         </TabBlock>
       )}
       <SeekingAndSuccess org={org} variant={variant} />
@@ -1118,6 +1104,23 @@ function useMinWidth(px: number): boolean {
   return matches;
 }
 
+// One row per item, each with the section's icon. No chips, borders or fills.
+function RailList({ title, icon: Icon, items }: { title: string; icon: LucideIcon; items: string[] }) {
+  return (
+    <div>
+      <Eyebrow>{title}</Eyebrow>
+      <ul className="space-y-2.5">
+        {items.map(item => (
+          <li key={item} className="flex items-start gap-2.5 text-sm text-foreground leading-snug">
+            <Icon className="w-4 h-4 mt-0.5 shrink-0 text-[#2D6A4F]" aria-hidden="true" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function OrgDecisionRail({ org, sectors, countries, viewerOrg, viewerOrgLoading, isOrg, alreadySent, sending, onExpressInterest,
   openingMsg, setOpeningMsg, msgEditing, setMsgEditing, fit, fitLoading, fitLocked, fitNoListing, alsoFits, onSelectAlsoFit, onOpenListing }: {
   org: OrgRow; sectors: string[]; countries: string[]; viewerOrg: OrgRow | null; viewerOrgLoading: boolean; isOrg: boolean;
@@ -1138,98 +1141,77 @@ function OrgDecisionRail({ org, sectors, countries, viewerOrg, viewerOrgLoading,
 
   return (
     <>
-      <div className="rounded-xl border border-[#2D6A4F]/30 bg-[#2D6A4F]/[0.07] px-5 py-5 space-y-5">
-        {viewerOrgLoading ? (
-          <LoadingIndicator />
-        ) : own ? (
-          <OwnListingBanner />
-        ) : (
-          <>
-            {showFit && (
-              <div>
-                <Eyebrow>Partnership fit</Eyebrow>
-                {fitLoading && (
-                  <div className="flex items-center gap-2 text-xs text-black dark:text-white">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#2D6A4F]" />Scoring fit...
-                  </div>
-                )}
-                {fit && !fitLoading && (
-                  <div className="flex items-center gap-4">
-                    <FitGauge score={fit.fit_score} />
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-foreground">{fitBandLabel(fit.fit_score)}</p>
-                      {fit.listing_title && (
-                        <p className="text-[11px] text-black dark:text-white mt-0.5">Based on your "{fit.listing_title}" listing</p>
-                      )}
-                      <button type="button" onClick={() => setAnalysisOpen(v => !v)} aria-expanded={analysisOpen}
-                        className="mt-2 text-xs font-semibold text-[#2D6A4F] hover:underline underline-offset-2">
-                        {analysisOpen ? "Hide analysis" : "View analysis"}
-                      </button>
+      {/* The whole sidebar is one card, the same look as the listing header card. */}
+      <div className="rounded-xl border border-[#2D6A4F]/20 px-5 py-5 space-y-6" style={{ background: IDENTITY_BAND }}>
+        {/* Partnership fit, Express interest and Share listing share one border. */}
+        <div className="rounded-xl border border-[#2D6A4F]/30 bg-[#2D6A4F]/[0.07] px-5 py-5 space-y-5">
+          {viewerOrgLoading ? (
+            <LoadingIndicator />
+          ) : own ? (
+            <OwnListingBanner />
+          ) : (
+            <>
+              {showFit && (
+                <div>
+                  <Eyebrow>Partnership fit</Eyebrow>
+                  {fitLoading && (
+                    <div className="flex items-center gap-2 text-xs text-black dark:text-white">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#2D6A4F]" />Scoring fit...
                     </div>
-                  </div>
-                )}
-                {fit && !fitLoading && analysisOpen && (
-                  <div className="mt-4">
-                    <FitAnalysisContent compact fit={fit} fitLoading={fitLoading} fitLocked={fitLocked} alsoFits={alsoFits} onSelectAlsoFit={onSelectAlsoFit} />
-                  </div>
-                )}
-                {fitLocked && !fit && !fitLoading && (
-                  <p className="text-xs text-black dark:text-white leading-relaxed">
-                    AI fit scoring is a Plus feature.{" "}
-                    <Link href="/dashboard/settings?tab=billing" className="text-[#2D6A4F] font-medium hover:underline">Upgrade to unlock</Link>.
-                  </p>
-                )}
-                {fitNoListing && !fit && !fitLoading && (
-                  <p className="text-sm text-foreground leading-relaxed">Publish a partnership listing to see how well you fit with this organisation.</p>
-                )}
-              </div>
-            )}
-            {closed ? (
-              <PartnershipFormedBanner />
-            ) : isOrg ? (
-              <div className="space-y-3">
-                <ExpressInterestPanel alreadySent={alreadySent} openingMsg={openingMsg} setOpeningMsg={setOpeningMsg}
-                  msgEditing={msgEditing} setMsgEditing={setMsgEditing} sending={sending} onExpressInterest={onExpressInterest} />
-              </div>
-            ) : null}
-          </>
-        )}
-        {canShare && (
-          <ShareButton label="Share listing" fullWidth url={listingShareUrl(org)} message={listingShareMessage(org)} />
-        )}
+                  )}
+                  {fit && !fitLoading && (
+                    <div className="flex items-center gap-4">
+                      <FitGauge score={fit.fit_score} />
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-foreground">{fitBandLabel(fit.fit_score)}</p>
+                        {fit.listing_title && (
+                          <p className="text-[11px] text-black dark:text-white mt-0.5">Based on your "{fit.listing_title}" listing</p>
+                        )}
+                        <button type="button" onClick={() => setAnalysisOpen(v => !v)} aria-expanded={analysisOpen}
+                          className="mt-2 text-xs font-semibold text-[#2D6A4F] hover:underline underline-offset-2">
+                          {analysisOpen ? "Hide analysis" : "View analysis"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {fit && !fitLoading && analysisOpen && (
+                    <div className="mt-4">
+                      <FitAnalysisContent compact fit={fit} fitLoading={fitLoading} fitLocked={fitLocked} alsoFits={alsoFits} onSelectAlsoFit={onSelectAlsoFit} />
+                    </div>
+                  )}
+                  {fitLocked && !fit && !fitLoading && (
+                    <p className="text-xs text-black dark:text-white leading-relaxed">
+                      AI fit scoring is a Plus feature.{" "}
+                      <Link href="/dashboard/settings?tab=billing" className="text-[#2D6A4F] font-medium hover:underline">Upgrade to unlock</Link>.
+                    </p>
+                  )}
+                  {fitNoListing && !fit && !fitLoading && (
+                    <p className="text-sm text-foreground leading-relaxed">Publish a partnership listing to see how well you fit with this organisation.</p>
+                  )}
+                </div>
+              )}
+              {closed ? (
+                <PartnershipFormedBanner />
+              ) : isOrg ? (
+                <div className="space-y-3">
+                  <ExpressInterestPanel alreadySent={alreadySent} openingMsg={openingMsg} setOpeningMsg={setOpeningMsg}
+                    msgEditing={msgEditing} setMsgEditing={setMsgEditing} sending={sending} onExpressInterest={onExpressInterest} />
+                </div>
+              ) : null}
+            </>
+          )}
+          {canShare && (
+            <ShareButton label="Share listing" fullWidth url={listingShareUrl(org)} message={listingShareMessage(org)} />
+          )}
+        </div>
+
+        {sectors.length > 0 && <RailList title="Key focus areas" icon={Target} items={sectors} />}
+        {offers.length > 0 && <RailList title="What they bring" icon={CheckCircle2} items={offers} />}
+        {needs.length > 0 && <RailList title="Looking for" icon={Compass} items={needs} />}
+
+        {/* Similar listings draws the one divider in the sidebar, above itself, and renders nothing when there are none. */}
+        <SimilarListings listingId={org.listing_id} orgUserId={org.user_id} sectors={sectors} countries={countries} onOpen={onOpenListing} />
       </div>
-
-      {sectors.length > 0 && (
-        <Section>
-          <Eyebrow>Key focus areas</Eyebrow>
-          <SectorTags sectors={sectors} />
-        </Section>
-      )}
-
-      {offers.length > 0 && (
-        <Section>
-          <Eyebrow>What they bring</Eyebrow>
-          <div className="flex flex-wrap gap-1.5">
-            {offers.map(o => (
-              <span key={o} className="text-xs font-bold px-3 py-1.5 rounded-lg"
-                style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>{o}</span>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {needs.length > 0 && (
-        <Section>
-          <Eyebrow>Looking for</Eyebrow>
-          <div className="flex flex-wrap gap-1.5">
-            {needs.map(n => (
-              <span key={n} className="text-xs font-semibold px-3 py-1.5 rounded-lg text-foreground bg-card border border-[#2D6A4F]/20">{n}</span>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      <SimilarListings listingId={org.listing_id} orgUserId={org.user_id} sectors={sectors} countries={countries} onOpen={onOpenListing} />
 
       <DiscoverNativesCard />
     </>
@@ -1375,14 +1357,14 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
       <div className="space-y-6">
         {backLabel && <BackButton onBack={onBack} backLabel={backLabel} />}
 
-        {/* Identity -- brand-green band card, shared IdentityHeader */}
-        <div className="rounded-xl border border-[#2D6A4F]/20 px-6 py-5" style={{ background: IDENTITY_BAND }}>
-          <IdentityHeader org={org} variant="page" countries={countries} sectors={sectors} hideSectorsOnXl isVerified={isVerified} mouExecuted={mouExecuted}
-            fitLoading={fitLoading} fitLocked={fitLocked} fit={fit} isSaved={isSaved} onToggleSave={onToggleSave} />
-        </div>
-
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
           <div className="space-y-6 min-w-0">
+            {/* Identity -- brand-green band card, shared IdentityHeader */}
+            <div className="rounded-xl border border-[#2D6A4F]/20 px-6 py-5" style={{ background: IDENTITY_BAND }}>
+              <IdentityHeader org={org} variant="page" countries={countries} sectors={sectors} hideSectorsOnXl showShare={false} isVerified={isVerified} mouExecuted={mouExecuted}
+                fitLoading={fitLoading} fitLocked={fitLocked} fit={fit} isSaved={isSaved} onToggleSave={onToggleSave} />
+            </div>
+
             <ProfileTabs tabs={tabs} active={activeTab} onChange={setTab} variant="page" />
             <ProfileTabPanels org={org} variant="page" tab={activeTab} viewerOrgId={viewerOrg?.id}
               dd={{ score, total: ddTotal, docs: ddDocs }} />
@@ -1395,42 +1377,50 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
     );
   }
 
-  // ── Panel variant: unchanged split-pane look ──
+  // ── Panel variant: the Partnerships split pane ──
+  const panelHeader = (
+    <IdentityHeader org={org} variant="panel" countries={countries} sectors={wide ? [] : sectors} isVerified={isVerified} mouExecuted={mouExecuted}
+      fitLoading={fitLoading} fitLocked={fitLocked} fit={fit} isSaved={isSaved} onToggleSave={onToggleSave} showShare={!wide} />
+  );
+
+  // Wide: the header card sits in the main column and the sidebar runs from the very top beside it.
+  if (wide) {
+    return (
+      <div ref={ref} className="h-full overflow-y-auto bg-background">
+        <div className="grid grid-cols-[minmax(0,1fr)_340px] gap-6 pr-6 py-6 items-start">
+          <div className="min-w-0">
+            <div className="mx-8 mb-6 rounded-xl border border-[#2D6A4F]/20 px-6 py-5" style={{ background: IDENTITY_BAND }}>
+              {panelHeader}
+            </div>
+            <ProfileTabs tabs={tabs} active={activeTab} onChange={setTab} variant="panel" />
+            <ProfileTabPanels org={org} variant="panel" tab={activeTab} viewerOrgId={viewerOrg?.id}
+              dd={{ score, total: ddTotal, docs: ddDocs }} />
+          </div>
+          <aside className="min-w-0">
+            <OrgDecisionRail {...railProps} />
+          </aside>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div ref={ref} className="flex flex-col h-full overflow-y-auto bg-background">
-
-      {/* ── Identity block ── */}
-      <div className="shrink-0 px-8 pt-7 pb-6 border-b-2 border-[#2D6A4F]/20"
-        style={{ background: IDENTITY_BAND }}>
+      <div className="shrink-0 px-8 pt-7 pb-6" style={{ background: IDENTITY_BAND }}>
         {backLabel && (
           <div className="flex justify-between mb-4 lg:hidden">
             <BackButton onBack={onBack} backLabel={backLabel} />
           </div>
         )}
-
-        <IdentityHeader org={org} variant="panel" countries={countries} sectors={wide ? [] : sectors} isVerified={isVerified} mouExecuted={mouExecuted}
-          fitLoading={fitLoading} fitLocked={fitLocked} fit={fit} isSaved={isSaved} onToggleSave={onToggleSave} />
+        {panelHeader}
       </div>
 
-      {/* ── Scrollable content ── */}
-      {wide ? (
-        <div className="flex-1 grid grid-cols-[minmax(0,1fr)_340px] gap-6 pr-6 items-start">
-          <div className="min-w-0 divide-y divide-[#2D6A4F]/20">
-            <ProfileTabs tabs={tabs} active={activeTab} onChange={setTab} variant="panel" />
-            <ProfileTabPanels org={org} variant="panel" tab={activeTab} viewerOrgId={viewerOrg?.id}
-              dd={{ score, total: ddTotal, docs: ddDocs }} />
-          </div>
-          <aside className="space-y-4 min-w-0 py-6">
-            <OrgDecisionRail {...railProps} />
-          </aside>
-        </div>
-      ) : (
-      <div className="flex-1 divide-y divide-[#2D6A4F]/20">
+      <div className="flex-1">
         <ProfileTabs tabs={tabs} active={activeTab} onChange={setTab} variant="panel" />
         <ProfileTabPanels org={org} variant="panel" tab={activeTab} viewerOrgId={viewerOrg?.id}
           dd={{ score, total: ddTotal, docs: ddDocs }}
           overviewAfterSuccess={(fit || fitLoading) && org.user_id !== viewerOrg?.user_id ? (
-            <div className="px-8 py-6 border-t border-b border-[#2D6A4F]/20"
+            <div className="px-8 py-6"
               style={{ background: "linear-gradient(135deg, rgba(13,43,26,0.04) 0%, rgba(26,74,46,0.02) 100%)" }}>
               <FitAnalysisContent fit={fit} fitLoading={fitLoading} fitLocked={fitLocked} alsoFits={alsoFits} onSelectAlsoFit={swapToAlsoFit} />
             </div>
@@ -1438,25 +1428,24 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
           overviewAfterSignals={<PanelNeedsOffers org={org} />} />
 
         {viewerOrgLoading ? (
-          <div className="px-8 py-4 border-t border-[#2D6A4F]/20">
+          <div className="px-8 py-4">
             <LoadingIndicator />
           </div>
         ) : org.user_id === viewerOrg?.user_id ? (
-          <div className="px-8 py-6 sticky bottom-0 bg-background border-t border-[#2D6A4F]/20">
+          <div className="px-8 py-6 sticky bottom-0 bg-background">
             <OwnListingBanner />
           </div>
         ) : org.partnership_formed ? (
-          <div className="px-8 py-6 sticky bottom-0 bg-background border-t border-[#2D6A4F]/20">
+          <div className="px-8 py-6 sticky bottom-0 bg-background">
             <PartnershipFormedBanner />
           </div>
         ) : isOrg && (
-          <div className="px-8 py-6 sticky bottom-0 bg-background space-y-3 border-t border-[#2D6A4F]/20">
+          <div className="px-8 py-6 sticky bottom-0 bg-background space-y-3">
             <ExpressInterestPanel alreadySent={alreadySent} openingMsg={openingMsg} setOpeningMsg={setOpeningMsg}
               msgEditing={msgEditing} setMsgEditing={setMsgEditing} sending={sending} onExpressInterest={onExpressInterest} />
           </div>
         )}
       </div>
-      )}
     </div>
   );
 }
