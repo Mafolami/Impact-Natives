@@ -209,6 +209,26 @@ function BentoCell({ label, value, accent }: { label: string; value: string; acc
   );
 }
 
+// Shared by both the "page" and "panel" variants -- confirmed byte-identical
+// content in each, differing only in the outer wrapper element each variant
+// uses. Extracted here so there's exactly one copy of this grid to edit
+// going forward, instead of two that could silently drift apart.
+function PartnershipSignalsGrid({ org }: { org: OrgRow }) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+      {org.partnership_stage && <BentoCell label="Stage" value={STAGE_LABELS[org.partnership_stage] ?? org.partnership_stage} accent />}
+      {org.partnership_duration && <BentoCell label="Duration" value={DURATION_LABELS[org.partnership_duration] ?? org.partnership_duration} />}
+      {org.partnership_budget && <BentoCell label="Budget" value={BUDGET_LABELS[org.partnership_budget] ?? org.partnership_budget} />}
+      {org.partnership_decision_timeline && <BentoCell label="Timeline" value={TIMELINE_LABELS[org.partnership_decision_timeline] ?? org.partnership_decision_timeline} />}
+      {org.partnership_funding_status && <BentoCell label="Funding status" value={FUNDING_STATUS_LABELS[org.partnership_funding_status] ?? org.partnership_funding_status} />}
+      {org.partnership_exclusivity && <BentoCell label="Exclusivity" value={org.partnership_exclusivity === "one_dedicated_partner" ? "One partner only" : "Open to multiple"} />}
+      {org.partnership_geo_specificity && <BentoCell label="Location focus" value={org.partnership_geo_specificity} />}
+      {org.partnership_team_capacity && <BentoCell label="Team capacity" value={org.partnership_team_capacity.replace(/_/g, " ").replace(/(\d) (\d)/g, "$1–$2")} />}
+      {org.partnership_contact_seniority && <BentoCell label="Lead contact" value={org.partnership_contact_seniority.replace(/_/g, " ")} />}
+    </div>
+  );
+}
+
 // Wraps a content section: in "page" mode each section becomes its own card,
 // matching InitiativeDetail's Sectors/Locations/Budget card treatment exactly
 // (rounded-xl border bg-card, px-5 py-4).
@@ -226,7 +246,7 @@ function AlsoFitsFootnote({ items, onSelect }: { items: AlsoFit[]; onSelect: (it
     <div className="pt-3 mt-1 border-t border-border/60 space-y-1.5">
       {items.map(af => (
         <button key={af.listing_id} type="button" onClick={() => onSelect(af)}
-          className="block text-xs text-muted-foreground hover:text-[#2D6A4F] transition-colors underline underline-offset-2 text-left">
+          className="block text-xs text-black dark:text-white hover:text-[#2D6A4F] transition-colors underline underline-offset-2 text-left">
           Also a fit: {af.listing_title} ({af.fit_score}%)
         </button>
       ))}
@@ -362,7 +382,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
       <div className="space-y-6">
         {backLabel && (
           <button type="button" onClick={onBack}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-[#C45C26] transition-colors">
+            className="flex items-center gap-1.5 text-sm text-black dark:text-white hover:text-[#C45C26] transition-colors">
             <ArrowLeft className="w-3.5 h-3.5" /> {backLabel}
           </button>
         )}
@@ -388,13 +408,13 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                 </span>
               )}
               {fitLoading && (
-                <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-muted text-muted-foreground border border-border">
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-muted text-black dark:text-white border border-border">
                   <Loader2 className="w-3 h-3 animate-spin" />Scoring fit...
                 </span>
               )}
               {fitLocked && (
                 <Link href="/dashboard/settings?tab=billing"
-                  className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-muted text-muted-foreground border border-border hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] transition-colors">
+                  className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-muted text-black dark:text-white border border-border hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] transition-colors">
                   <Sparkles className="w-3 h-3" />AI fit score — upgrade
                 </Link>
               )}
@@ -483,7 +503,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
               )}
             </div>
             {fit && !fitLoading && fit.listing_title && (
-              <p className="text-[11px] text-muted-foreground mb-3">Based on your "{fit.listing_title}" listing</p>
+              <p className="text-[11px] text-black dark:text-white mb-3">Based on your "{fit.listing_title}" listing</p>
             )}
 
             {fitLoading && (
@@ -537,17 +557,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         {(org.partnership_stage || org.partnership_duration || org.partnership_budget || org.partnership_decision_timeline || org.partnership_funding_status || org.partnership_exclusivity) && (
           <Section>
             <Eyebrow>Partnership signals</Eyebrow>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-              {org.partnership_stage && <BentoCell label="Stage" value={STAGE_LABELS[org.partnership_stage] ?? org.partnership_stage} accent />}
-              {org.partnership_duration && <BentoCell label="Duration" value={DURATION_LABELS[org.partnership_duration] ?? org.partnership_duration} />}
-              {org.partnership_budget && <BentoCell label="Budget" value={BUDGET_LABELS[org.partnership_budget] ?? org.partnership_budget} />}
-              {org.partnership_decision_timeline && <BentoCell label="Timeline" value={TIMELINE_LABELS[org.partnership_decision_timeline] ?? org.partnership_decision_timeline} />}
-              {org.partnership_funding_status && <BentoCell label="Funding status" value={FUNDING_STATUS_LABELS[org.partnership_funding_status] ?? org.partnership_funding_status} />}
-              {org.partnership_exclusivity && <BentoCell label="Exclusivity" value={org.partnership_exclusivity === "one_dedicated_partner" ? "One partner only" : "Open to multiple"} />}
-              {org.partnership_geo_specificity && <BentoCell label="Location focus" value={org.partnership_geo_specificity} />}
-              {org.partnership_team_capacity && <BentoCell label="Team capacity" value={org.partnership_team_capacity.replace(/_/g, " ").replace(/(\d) (\d)/g, "$1–$2")} />}
-              {org.partnership_contact_seniority && <BentoCell label="Lead contact" value={org.partnership_contact_seniority.replace(/_/g, " ")} />}
-            </div>
+            <PartnershipSignalsGrid org={org} />
           </Section>
         )}
 
@@ -705,7 +715,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
               <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${org.partnership_prior_experience ? "bg-[#2D6A4F]" : "bg-muted"}`}>
                 {org.partnership_prior_experience
                   ? <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-                  : <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-muted-foreground"><path d="M18 6L6 18M6 6l12 12"/></svg>}
+                  : <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-black dark:text-white"><path d="M18 6L6 18M6 6l12 12"/></svg>}
               </div>
               <div>
                 <p className="text-sm font-semibold text-foreground">
@@ -757,7 +767,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                     <div className="flex items-center justify-between">
                       <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">AI-drafted opening message</p>
                       <button type="button" onClick={() => setMsgEditing(true)}
-                        className="text-[10px] font-semibold text-muted-foreground hover:text-foreground underline underline-offset-2">
+                        className="text-[10px] font-semibold text-black dark:text-white hover:text-foreground underline underline-offset-2">
                         Edit
                       </button>
                     </div>
@@ -769,7 +779,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                     <div className="flex items-center justify-between">
                       <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Edit opening message</p>
                       <button type="button" onClick={() => setMsgEditing(false)}
-                        className="text-[10px] font-semibold text-muted-foreground hover:text-foreground underline underline-offset-2">
+                        className="text-[10px] font-semibold text-black dark:text-white hover:text-foreground underline underline-offset-2">
                         Done
                       </button>
                     </div>
@@ -808,7 +818,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         {backLabel && (
           <div className="flex justify-between mb-4 lg:hidden">
             <button type="button" onClick={onBack}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-[#C45C26] transition-colors">
+              className="flex items-center gap-1.5 text-sm text-black dark:text-white hover:text-[#C45C26] transition-colors">
               <ArrowLeft className="w-3.5 h-3.5" /> {backLabel}
             </button>
           </div>
@@ -834,13 +844,13 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
               </span>
             )}
             {fitLoading && (
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-muted text-muted-foreground border border-border">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-muted text-black dark:text-white border border-border">
                 <Loader2 className="w-3 h-3 animate-spin" />Scoring fit...
               </span>
             )}
             {fitLocked && (
               <Link href="/dashboard/settings?tab=billing"
-                className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-muted text-muted-foreground border border-border hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] transition-colors">
+                className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-muted text-black dark:text-white border border-border hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] transition-colors">
                 <Sparkles className="w-3 h-3" />AI fit score — upgrade
               </Link>
             )}
@@ -931,7 +941,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
               )}
             </div>
             {fit && !fitLoading && fit.listing_title && (
-              <p className="text-[11px] text-muted-foreground mb-3">Based on your "{fit.listing_title}" listing</p>
+              <p className="text-[11px] text-black dark:text-white mb-3">Based on your "{fit.listing_title}" listing</p>
             )}
 
             {fitLoading && (
@@ -985,17 +995,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         {(org.partnership_stage || org.partnership_duration || org.partnership_budget || org.partnership_decision_timeline || org.partnership_funding_status || org.partnership_exclusivity) && (
           <div className="px-8 py-6">
             <Eyebrow>Partnership signals</Eyebrow>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-              {org.partnership_stage && <BentoCell label="Stage" value={STAGE_LABELS[org.partnership_stage] ?? org.partnership_stage} accent />}
-              {org.partnership_duration && <BentoCell label="Duration" value={DURATION_LABELS[org.partnership_duration] ?? org.partnership_duration} />}
-              {org.partnership_budget && <BentoCell label="Budget" value={BUDGET_LABELS[org.partnership_budget] ?? org.partnership_budget} />}
-              {org.partnership_decision_timeline && <BentoCell label="Timeline" value={TIMELINE_LABELS[org.partnership_decision_timeline] ?? org.partnership_decision_timeline} />}
-              {org.partnership_funding_status && <BentoCell label="Funding status" value={FUNDING_STATUS_LABELS[org.partnership_funding_status] ?? org.partnership_funding_status} />}
-              {org.partnership_exclusivity && <BentoCell label="Exclusivity" value={org.partnership_exclusivity === "one_dedicated_partner" ? "One partner only" : "Open to multiple"} />}
-              {org.partnership_geo_specificity && <BentoCell label="Location focus" value={org.partnership_geo_specificity} />}
-              {org.partnership_team_capacity && <BentoCell label="Team capacity" value={org.partnership_team_capacity.replace(/_/g, " ").replace(/(\d) (\d)/g, "$1–$2")} />}
-              {org.partnership_contact_seniority && <BentoCell label="Lead contact" value={org.partnership_contact_seniority.replace(/_/g, " ")} />}
-            </div>
+            <PartnershipSignalsGrid org={org} />
           </div>
         )}
 
@@ -1155,7 +1155,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
               <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${org.partnership_prior_experience ? "bg-[#2D6A4F]" : "bg-muted"}`}>
                 {org.partnership_prior_experience
                   ? <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-                  : <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-muted-foreground"><path d="M18 6L6 18M6 6l12 12"/></svg>}
+                  : <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-black dark:text-white"><path d="M18 6L6 18M6 6l12 12"/></svg>}
               </div>
               <div>
                 <p className="text-sm font-semibold text-foreground">
@@ -1212,7 +1212,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                     <div className="flex items-center justify-between">
                       <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">AI-drafted opening message</p>
                       <button type="button" onClick={() => setMsgEditing(true)}
-                        className="text-[10px] font-semibold text-muted-foreground hover:text-foreground underline underline-offset-2">
+                        className="text-[10px] font-semibold text-black dark:text-white hover:text-foreground underline underline-offset-2">
                         Edit
                       </button>
                     </div>
@@ -1223,7 +1223,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                     <div className="flex items-center justify-between">
                       <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Edit opening message</p>
                       <button type="button" onClick={() => setMsgEditing(false)}
-                        className="text-[10px] font-semibold text-muted-foreground hover:text-foreground underline underline-offset-2">
+                        className="text-[10px] font-semibold text-black dark:text-white hover:text-foreground underline underline-offset-2">
                         Done
                       </button>
                     </div>
