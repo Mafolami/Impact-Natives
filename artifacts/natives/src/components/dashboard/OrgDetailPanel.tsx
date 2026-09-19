@@ -31,7 +31,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import { supabase } from "@/lib/supabase";
-import { Loader2, ShieldCheck, Sparkles, CheckCircle2, ArrowUpRight, ArrowLeft, Award, Layers, Clock, Wallet, CalendarDays, Coins, Lock, MapPin, Users, User } from "lucide-react";
+import { Loader2, ShieldCheck, Sparkles, CheckCircle2, ArrowUpRight, ArrowLeft, Award, Layers, Clock, Wallet, CalendarDays, Coins, Lock, MapPin, Users, User, Compass, Banknote, FileText, ClipboardList, Scale, Building2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 import VerifiedOutcomesSection from "@/components/dashboard/VerifiedOutcomesSection";
@@ -201,14 +201,14 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   );
 }
 
-function BentoCell({ label, value, accent, icon: Icon }: { label: string; value: string; accent?: boolean; icon?: LucideIcon }) {
+function BentoCell({ label, value, accent, capitalize, icon: Icon }: { label: string; value: string; accent?: boolean; capitalize?: boolean; icon?: LucideIcon }) {
   return (
-    <div className="rounded-xl p-3.5 bg-muted border border-border">
+    <div className="rounded-xl p-3.5 bg-card border border-border">
       <div className="flex items-center gap-1.5 mb-1">
         {Icon && <Icon className="w-3 h-3 shrink-0 text-[#2D6A4F]" />}
         <p className="text-[9px] font-black uppercase tracking-widest text-black dark:text-white">{label}</p>
       </div>
-      <p className={`text-sm font-bold leading-snug ${accent ? "text-[#2D6A4F]" : "text-foreground"}`}>{value}</p>
+      <p className={`text-sm font-bold leading-snug ${accent ? "text-[#2D6A4F]" : "text-foreground"}${capitalize ? " capitalize" : ""}`}>{value}</p>
     </div>
   );
 }
@@ -546,10 +546,29 @@ function DueDiligenceReadiness({ org, score, ddTotal, ddDocs }: { org: OrgRow; s
   );
 }
 
-function WorkingExpectationsList({ org, variant }: { org: OrgRow; variant: "page" | "panel" }) {
-  const rowBorderClass = variant === "page" ? "border-b border-border last:border-b-0" : "border-b border-border";
+// Section guards -- one definition per section so page and panel can't drift.
+// Cover every field the grids can render (the old inline guards skipped geo,
+// team capacity, lead contact and physical presence).
+function hasPartnershipSignals(org: OrgRow): boolean {
+  return !!(org.partnership_stage || org.partnership_duration || org.partnership_budget || org.partnership_decision_timeline || org.partnership_funding_status || org.partnership_exclusivity || org.partnership_geo_specificity || org.partnership_team_capacity || org.partnership_contact_seniority);
+}
+
+function hasWorkingExpectations(org: OrgRow): boolean {
+  return !!(org.partnership_working_style || org.partnership_financial_transfer || org.partnership_legal_type?.length || org.partnership_reporting?.length || org.partnership_ip_ownership || (org.partnership_physically_present !== null && org.partnership_physically_present !== undefined));
+}
+
+const WORKING_EXPECTATION_ICONS: Record<string, LucideIcon> = {
+  "Working style": Compass,
+  "Financial arrangement": Banknote,
+  "Partnership type": FileText,
+  "Reporting": ClipboardList,
+  "IP ownership": Scale,
+  "Physical presence": Building2,
+};
+
+function WorkingExpectationsList({ org }: { org: OrgRow }) {
   return (
-    <div className="space-y-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
       {[
         org.partnership_working_style     && { label: "Working style",       value: WORKING_STYLE_LABELS[org.partnership_working_style] ?? org.partnership_working_style },
         org.partnership_financial_transfer && { label: "Financial arrangement", value: FINANCIAL_TRANSFER_LABELS[org.partnership_financial_transfer] ?? org.partnership_financial_transfer },
@@ -558,10 +577,7 @@ function WorkingExpectationsList({ org, variant }: { org: OrgRow; variant: "page
         org.partnership_ip_ownership      && { label: "IP ownership",        value: org.partnership_ip_ownership.replace(/_/g, " ") },
         org.partnership_physically_present !== null && org.partnership_physically_present !== undefined && { label: "Physical presence", value: org.partnership_physically_present ? "On the ground" : "Remote" },
       ].filter(Boolean).map((row: any) => (
-        <div key={row.label} className={`flex items-start justify-between gap-6 py-2.5 ${rowBorderClass}`}>
-          <span className="text-xs text-black dark:text-white shrink-0">{row.label}</span>
-          <span className="text-xs font-semibold text-foreground text-right capitalize">{row.value}</span>
-        </div>
+        <BentoCell key={row.label} label={row.label} value={row.value} icon={WORKING_EXPECTATION_ICONS[row.label]} capitalize />
       ))}
     </div>
   );
@@ -852,17 +868,17 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
           </div>
         )}
 
-        {(org.partnership_stage || org.partnership_duration || org.partnership_budget || org.partnership_decision_timeline || org.partnership_funding_status || org.partnership_exclusivity) && (
+        {hasPartnershipSignals(org) && (
           <Section>
             <Eyebrow>Partnership signals</Eyebrow>
             <PartnershipSignalsGrid org={org} />
           </Section>
         )}
 
-        {(org.partnership_working_style || org.partnership_financial_transfer || (org.partnership_legal_type && org.partnership_legal_type.length > 0) || (org.partnership_reporting && org.partnership_reporting.length > 0) || org.partnership_ip_ownership) && (
+        {hasWorkingExpectations(org) && (
           <Section>
             <Eyebrow>Working expectations</Eyebrow>
-            <WorkingExpectationsList org={org} variant="page" />
+            <WorkingExpectationsList org={org} />
           </Section>
         )}
 
@@ -1070,17 +1086,17 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
           </div>
         )}
 
-        {(org.partnership_stage || org.partnership_duration || org.partnership_budget || org.partnership_decision_timeline || org.partnership_funding_status || org.partnership_exclusivity) && (
+        {hasPartnershipSignals(org) && (
           <div className="px-8 py-6">
             <Eyebrow>Partnership signals</Eyebrow>
             <PartnershipSignalsGrid org={org} />
           </div>
         )}
 
-        {(org.partnership_working_style || org.partnership_financial_transfer || (org.partnership_legal_type && org.partnership_legal_type.length > 0) || (org.partnership_reporting && org.partnership_reporting.length > 0) || org.partnership_ip_ownership) && (
+        {hasWorkingExpectations(org) && (
           <div className="px-8 py-6">
             <Eyebrow>Working expectations</Eyebrow>
-            <WorkingExpectationsList org={org} variant="panel" />
+            <WorkingExpectationsList org={org} />
           </div>
         )}
 
