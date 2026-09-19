@@ -218,6 +218,93 @@ function BentoCell({ label, value, accent }: { label: string; value: string; acc
 // ddDocs, and ddTotal are computed once above the page/panel branch
 // point, so they're passed in rather than recomputed here.
 // Shared by both variants -- confirmed byte-identical content.
+function ConsultantExpertiseContent({ org }: { org: OrgRow }) {
+  return (
+    <>
+      <Eyebrow>Consultant expertise</Eyebrow>
+      {org.specializations && org.specializations.length > 0 && (
+        <div className="mt-3">
+          <p className="text-xs text-black dark:text-white mb-1.5">Specializations</p>
+          <div className="flex flex-wrap gap-2">
+            {org.specializations.map(s => (
+              <span key={s} className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-muted text-foreground border border-border">{s}</span>
+            ))}
+          </div>
+        </div>
+      )}
+      {org.notable_engagements && org.notable_engagements.length > 0 && (
+        <div className="mt-3">
+          <p className="text-xs text-black dark:text-white mb-1.5">Notable engagements</p>
+          <ul className="text-sm text-foreground space-y-1 list-disc list-inside">
+            {org.notable_engagements.map(e => <li key={e}>{e}</li>)}
+          </ul>
+        </div>
+      )}
+      {org.affiliations && org.affiliations.length > 0 && (
+        <p className="text-sm text-foreground mt-3"><span className="font-semibold">Affiliations: </span>{org.affiliations.join(", ")}</p>
+      )}
+    </>
+  );
+}
+
+// Shared by both variants -- confirmed byte-identical content.
+function ContextGrid({ org }: { org: OrgRow }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {org.partnership_theory_of_change && (
+        <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
+          <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Approach to change</p>
+          <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_theory_of_change}</p>
+        </div>
+      )}
+      {org.partnership_prior_attempts && (
+        <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
+          <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Previous attempts</p>
+          <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_prior_attempts}</p>
+        </div>
+      )}
+      {org.partnership_constraints && (
+        <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
+          <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Constraints</p>
+          <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_constraints}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Shared by both variants -- confirmed byte-identical content.
+function TrackRecordContent({ org }: { org: OrgRow }) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${org.partnership_prior_experience ? "bg-[#2D6A4F]" : "bg-muted"}`}>
+        {org.partnership_prior_experience
+          ? <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+          : <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-black dark:text-white"><path d="M18 6L6 18M6 6l12 12"/></svg>}
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-foreground">
+          {org.partnership_prior_experience ? "Has completed a partnership before" : "No prior completed partnerships"}
+        </p>
+        {org.partnership_prior_experience && org.partnership_prior_experience_detail && (
+          <p className="text-sm text-foreground leading-relaxed mt-1">{org.partnership_prior_experience_detail}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Shared by both variants -- confirmed byte-identical content.
+function WebsiteLink({ org }: { org: OrgRow }) {
+  return (
+    <a href={org.website!} target="_blank" rel="noopener noreferrer"
+      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2D6A4F] hover:underline">
+      <ArrowUpRight className="w-3.5 h-3.5" />
+      {org.website!.replace(/^https?:\/\//, "")}
+    </a>
+  );
+}
+
 function SdgAlignmentGrid({ org }: { org: OrgRow }) {
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -675,28 +762,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         </Section>
               {isConsultancyOrg(org) && !!(org.specializations?.length || org.notable_engagements?.length || org.affiliations?.length) && (
                 <Section>
-                  <Eyebrow>Consultant expertise</Eyebrow>
-                  {org.specializations && org.specializations.length > 0 && (
-                    <div className="mt-3">
-                      <p className="text-xs text-black dark:text-white mb-1.5">Specializations</p>
-                      <div className="flex flex-wrap gap-2">
-                        {org.specializations.map(s => (
-                          <span key={s} className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-muted text-foreground border border-border">{s}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {org.notable_engagements && org.notable_engagements.length > 0 && (
-                    <div className="mt-3">
-                      <p className="text-xs text-black dark:text-white mb-1.5">Notable engagements</p>
-                      <ul className="text-sm text-foreground space-y-1 list-disc list-inside">
-                        {org.notable_engagements.map(e => <li key={e}>{e}</li>)}
-                      </ul>
-                    </div>
-                  )}
-                  {org.affiliations && org.affiliations.length > 0 && (
-                    <p className="text-sm text-foreground mt-3"><span className="font-semibold">Affiliations: </span>{org.affiliations.join(", ")}</p>
-                  )}
+                  <ConsultantExpertiseContent org={org} />
                 </Section>
               )}
               <VerifiedOutcomesSection orgId={org.id} variant="page" isOwnOrg={viewerOrg?.id === org.id} />
@@ -710,56 +776,19 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         {(org.partnership_theory_of_change || org.partnership_prior_attempts || org.partnership_constraints) && (
           <Section>
             <Eyebrow>Context</Eyebrow>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {org.partnership_theory_of_change && (
-                <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Approach to change</p>
-                  <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_theory_of_change}</p>
-                </div>
-              )}
-              {org.partnership_prior_attempts && (
-                <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Previous attempts</p>
-                  <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_prior_attempts}</p>
-                </div>
-              )}
-              {org.partnership_constraints && (
-                <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Constraints</p>
-                  <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_constraints}</p>
-                </div>
-              )}
-            </div>
+            <ContextGrid org={org} />
           </Section>
         )}
 
         {org.partnership_prior_experience !== null && org.partnership_prior_experience !== undefined && (
           <Section>
             <Eyebrow>Track record</Eyebrow>
-            <div className="flex items-start gap-3">
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${org.partnership_prior_experience ? "bg-[#2D6A4F]" : "bg-muted"}`}>
-                {org.partnership_prior_experience
-                  ? <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-                  : <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-black dark:text-white"><path d="M18 6L6 18M6 6l12 12"/></svg>}
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">
-                  {org.partnership_prior_experience ? "Has completed a partnership before" : "No prior completed partnerships"}
-                </p>
-                {org.partnership_prior_experience && org.partnership_prior_experience_detail && (
-                  <p className="text-sm text-foreground leading-relaxed mt-1">{org.partnership_prior_experience_detail}</p>
-                )}
-              </div>
-            </div>
+            <TrackRecordContent org={org} />
           </Section>
         )}
 
         {org.website && org.website !== "https://" && (
-          <a href={org.website} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2D6A4F] hover:underline">
-            <ArrowUpRight className="w-3.5 h-3.5" />
-            {org.website.replace(/^https?:\/\//, "")}
-          </a>
+          <WebsiteLink org={org} />
         )}
 
         {viewerOrgLoading ? (
@@ -1063,28 +1092,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
           
           {isConsultancyOrg(org) && !!(org.specializations?.length || org.notable_engagements?.length || org.affiliations?.length) && (
             <div className="mt-6">
-              <Eyebrow>Consultant expertise</Eyebrow>
-              {org.specializations && org.specializations.length > 0 && (
-                <div className="mt-3">
-                  <p className="text-xs text-black dark:text-white mb-1.5">Specializations</p>
-                  <div className="flex flex-wrap gap-2">
-                    {org.specializations.map(s => (
-                      <span key={s} className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-muted text-foreground border border-border">{s}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {org.notable_engagements && org.notable_engagements.length > 0 && (
-                <div className="mt-3">
-                  <p className="text-xs text-black dark:text-white mb-1.5">Notable engagements</p>
-                  <ul className="text-sm text-foreground space-y-1 list-disc list-inside">
-                    {org.notable_engagements.map(e => <li key={e}>{e}</li>)}
-                  </ul>
-                </div>
-              )}
-              {org.affiliations && org.affiliations.length > 0 && (
-                <p className="text-sm text-foreground mt-3"><span className="font-semibold">Affiliations: </span>{org.affiliations.join(", ")}</p>
-              )}
+              <ConsultantExpertiseContent org={org} />
             </div>
           )}
           <VerifiedOutcomesSection orgId={org.id} variant="panel" isOwnOrg={viewerOrg?.id === org.id} />
@@ -1099,57 +1107,20 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         {(org.partnership_theory_of_change || org.partnership_prior_attempts || org.partnership_constraints) && (
           <div className="px-8 py-6">
             <Eyebrow>Context</Eyebrow>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {org.partnership_theory_of_change && (
-                <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Approach to change</p>
-                  <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_theory_of_change}</p>
-                </div>
-              )}
-              {org.partnership_prior_attempts && (
-                <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Previous attempts</p>
-                  <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_prior_attempts}</p>
-                </div>
-              )}
-              {org.partnership_constraints && (
-                <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Constraints</p>
-                  <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_constraints}</p>
-                </div>
-              )}
-            </div>
+            <ContextGrid org={org} />
           </div>
         )}
 
         {org.partnership_prior_experience !== null && org.partnership_prior_experience !== undefined && (
           <div className="px-8 py-6">
             <Eyebrow>Track record</Eyebrow>
-            <div className="flex items-start gap-3">
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${org.partnership_prior_experience ? "bg-[#2D6A4F]" : "bg-muted"}`}>
-                {org.partnership_prior_experience
-                  ? <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-                  : <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-black dark:text-white"><path d="M18 6L6 18M6 6l12 12"/></svg>}
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">
-                  {org.partnership_prior_experience ? "Has completed a partnership before" : "No prior completed partnerships"}
-                </p>
-                {org.partnership_prior_experience && org.partnership_prior_experience_detail && (
-                  <p className="text-sm text-foreground leading-relaxed mt-1">{org.partnership_prior_experience_detail}</p>
-                )}
-              </div>
-            </div>
+            <TrackRecordContent org={org} />
           </div>
         )}
 
         {org.website && org.website !== "https://" && (
           <div className="px-8 py-4">
-            <a href={org.website} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2D6A4F] hover:underline">
-              <ArrowUpRight className="w-3.5 h-3.5" />
-              {org.website.replace(/^https?:\/\//, "")}
-            </a>
+            <WebsiteLink org={org} />
           </div>
         )}
 
