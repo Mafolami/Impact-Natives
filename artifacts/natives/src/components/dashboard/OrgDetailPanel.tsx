@@ -220,6 +220,91 @@ function BentoCell({ label, value, accent }: { label: string; value: string; acc
 // Shared by both variants -- the <button> itself is byte-identical; only
 // whether it's wrapped in an extra mobile-only div (panel) differs, and
 // that wrapping stays in each variant's own code.
+// Shared by both variants -- confirmed byte-identical content across all
+// 4 footer states. Each variant keeps its own outer wrapper (page: none
+// or a plain rounded card; panel: a sticky-bottom-bar div) and its own
+// viewerOrgLoading/user_id/partnership_formed/isOrg branching.
+function LoadingIndicator() {
+  return <span className="text-xs font-semibold text-black dark:text-white">Loading...</span>;
+}
+
+function OwnListingBanner() {
+  return (
+    <div className="flex items-center gap-2.5 px-4 py-3.5 rounded-xl bg-muted border border-border">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-foreground shrink-0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <p className="text-xs font-black text-foreground">This is your listing</p>
+    </div>
+  );
+}
+
+function PartnershipFormedBanner() {
+  return (
+    <div className="flex items-center gap-2.5 px-5 py-4 rounded-xl"
+      style={{ background: "rgba(29,78,216,0.1)", border: "1px solid rgba(29,78,216,0.3)" }}>
+      <CheckCircle2 className="w-4 h-4 shrink-0 text-[#1D4ED8]" />
+      <p className="text-xs font-semibold text-[#1D4ED8]">
+        This organisation has formed a partnership and closed this listing.
+      </p>
+    </div>
+  );
+}
+
+function ExpressInterestPanel({ alreadySent, openingMsg, setOpeningMsg, msgEditing, setMsgEditing, sending, onExpressInterest }: {
+  alreadySent: boolean; openingMsg: string | null; setOpeningMsg: (v: string) => void;
+  msgEditing: boolean; setMsgEditing: (v: boolean) => void;
+  sending: boolean; onExpressInterest: (e: React.MouseEvent) => void;
+}) {
+  if (alreadySent) {
+    return (
+      <div className="flex items-center gap-2 text-sm font-semibold text-[#065F46]">
+        <CheckCircle2 className="w-4 h-4" />Interest expressed — they've been notified
+      </div>
+    );
+  }
+  return (
+    <>
+      {openingMsg && !msgEditing && (
+        <div className="rounded-xl p-4 space-y-2 bg-muted border border-border">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">AI-drafted opening message</p>
+            <button type="button" onClick={() => setMsgEditing(true)}
+              className="text-[10px] font-semibold text-black dark:text-white hover:text-foreground underline underline-offset-2">
+              Edit
+            </button>
+          </div>
+          <p className="text-xs text-foreground leading-relaxed">{openingMsg}</p>
+        </div>
+      )}
+      {msgEditing && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Edit opening message</p>
+            <button type="button" onClick={() => setMsgEditing(false)}
+              className="text-[10px] font-semibold text-black dark:text-white hover:text-foreground underline underline-offset-2">
+              Done
+            </button>
+          </div>
+          <textarea rows={4} value={openingMsg ?? ""}
+            onChange={e => setOpeningMsg(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-xl text-xs text-foreground resize-none focus:outline-none bg-muted border border-border" />
+        </div>
+      )}
+      <button type="button"
+        onClick={e => {
+          if (openingMsg) {
+            (e as any).customMessage = openingMsg;
+          }
+          onExpressInterest(e);
+        }}
+        disabled={sending}
+        className="w-full h-11 rounded-full text-white text-sm font-bold disabled:opacity-40 transition-all hover:brightness-110 active:scale-[0.98]"
+        style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
+        {sending ? "Sending..." : "Express interest"}
+      </button>
+    </>
+  );
+}
+
 function BackButton({ onBack, backLabel }: { onBack: () => void; backLabel: string }) {
   return (
     <button type="button" onClick={onBack}
@@ -839,69 +924,16 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
 
         {viewerOrgLoading ? (
           <div className="rounded-xl border border-border bg-card px-5 py-4">
-            <span className="text-xs font-semibold text-black dark:text-white">Loading...</span>
+            <LoadingIndicator />
           </div>
         ) : org.user_id === viewerOrg?.user_id ? (
-          <div className="flex items-center gap-2.5 px-4 py-3.5 rounded-xl bg-muted border border-border">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-foreground shrink-0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            <p className="text-xs font-black text-foreground">This is your listing</p>
-          </div>
+          <OwnListingBanner />
         ) : org.partnership_formed ? (
-          <div className="flex items-center gap-2.5 px-5 py-4 rounded-xl"
-            style={{ background: "rgba(29,78,216,0.1)", border: "1px solid rgba(29,78,216,0.3)" }}>
-            <CheckCircle2 className="w-4 h-4 shrink-0 text-[#1D4ED8]" />
-            <p className="text-xs font-semibold text-[#1D4ED8]">
-              This organisation has formed a partnership and closed this listing.
-            </p>
-          </div>
+          <PartnershipFormedBanner />
         ) : isOrg && (
           <div className="rounded-xl border border-border bg-card px-5 py-4 space-y-3">
-            {alreadySent ? (
-              <div className="flex items-center gap-2 text-sm font-semibold text-[#065F46]">
-                <CheckCircle2 className="w-4 h-4" />Interest expressed — they've been notified
-              </div>
-            ) : (
-              <>
-                {openingMsg && !msgEditing && (
-                  <div className="rounded-xl p-4 space-y-2 bg-muted border border-border">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">AI-drafted opening message</p>
-                      <button type="button" onClick={() => setMsgEditing(true)}
-                        className="text-[10px] font-semibold text-black dark:text-white hover:text-foreground underline underline-offset-2">
-                        Edit
-                      </button>
-                    </div>
-                    <p className="text-xs text-foreground leading-relaxed">{openingMsg}</p>
-                  </div>
-                )}
-                {msgEditing && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Edit opening message</p>
-                      <button type="button" onClick={() => setMsgEditing(false)}
-                        className="text-[10px] font-semibold text-black dark:text-white hover:text-foreground underline underline-offset-2">
-                        Done
-                      </button>
-                    </div>
-                    <textarea rows={4} value={openingMsg ?? ""}
-                      onChange={e => setOpeningMsg(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl text-xs text-foreground resize-none focus:outline-none bg-muted border border-border" />
-                  </div>
-                )}
-                <button type="button"
-                  onClick={e => {
-                    if (openingMsg) {
-                      (e as any).customMessage = openingMsg;
-                    }
-                    onExpressInterest(e);
-                  }}
-                  disabled={sending}
-                  className="w-full h-11 rounded-full text-white text-sm font-bold disabled:opacity-40 transition-all hover:brightness-110 active:scale-[0.98]"
-                  style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
-                  {sending ? "Sending..." : "Express interest"}
-                </button>
-              </>
-            )}
+            <ExpressInterestPanel alreadySent={alreadySent} openingMsg={openingMsg} setOpeningMsg={setOpeningMsg}
+              msgEditing={msgEditing} setMsgEditing={setMsgEditing} sending={sending} onExpressInterest={onExpressInterest} />
           </div>
         )}
       </div>
@@ -1114,71 +1146,20 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
 
         {viewerOrgLoading ? (
           <div className="px-8 py-4 border-t border-border">
-            <span className="text-xs font-semibold text-black dark:text-white">Loading...</span>
+            <LoadingIndicator />
           </div>
         ) : org.user_id === viewerOrg?.user_id ? (
           <div className="px-8 py-6 sticky bottom-0 bg-background border-t border-border">
-            <div className="flex items-center gap-2.5 px-4 py-3.5 rounded-xl bg-muted border border-border">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-foreground shrink-0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-              <p className="text-xs font-black text-foreground">This is your listing</p>
-            </div>
+            <OwnListingBanner />
           </div>
-        ) : org.partnership_formed ? (          <div className="px-8 py-6 sticky bottom-0 bg-background border-t border-border">
-            <div className="flex items-center gap-2.5 px-4 py-3.5 rounded-xl"
-              style={{ background: "rgba(29,78,216,0.1)", border: "1px solid rgba(29,78,216,0.3)" }}>
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-[#1D4ED8]" />
-              <p className="text-xs font-semibold text-[#1D4ED8]">
-                This organisation has formed a partnership and closed this listing.
-              </p>
-            </div>
+        ) : org.partnership_formed ? (
+          <div className="px-8 py-6 sticky bottom-0 bg-background border-t border-border">
+            <PartnershipFormedBanner />
           </div>
-        ) : isOrg && (          
+        ) : isOrg && (
           <div className="px-8 py-6 sticky bottom-0 bg-background space-y-3 border-t border-border">
-            {alreadySent ? (
-              <div className="flex items-center gap-2 text-sm font-semibold text-[#065F46]">
-                <CheckCircle2 className="w-4 h-4" />Interest expressed — they've been notified
-              </div>
-            ) : (
-              <>
-                {openingMsg && !msgEditing && (
-                  <div className="rounded-xl p-4 space-y-2 bg-muted border border-border">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">AI-drafted opening message</p>
-                      <button type="button" onClick={() => setMsgEditing(true)}
-                        className="text-[10px] font-semibold text-black dark:text-white hover:text-foreground underline underline-offset-2">
-                        Edit
-                      </button>
-                    </div>
-                    <p className="text-xs text-foreground leading-relaxed">{openingMsg}</p>                  </div>
-                )}
-                {msgEditing && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Edit opening message</p>
-                      <button type="button" onClick={() => setMsgEditing(false)}
-                        className="text-[10px] font-semibold text-black dark:text-white hover:text-foreground underline underline-offset-2">
-                        Done
-                      </button>
-                    </div>
-                    <textarea rows={4} value={openingMsg ?? ""}
-                      onChange={e => setOpeningMsg(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl text-xs text-foreground resize-none focus:outline-none bg-muted border border-border" />
-                  </div>
-                )}
-                <button type="button"
-                  onClick={e => {
-                    if (openingMsg) {
-                      (e as any).customMessage = openingMsg;
-                    }
-                    onExpressInterest(e);
-                  }}
-                  disabled={sending}
-                  className="w-full h-11 rounded-full text-white text-sm font-bold disabled:opacity-40 transition-all hover:brightness-110 active:scale-[0.98]"
-                  style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
-                  {sending ? "Sending..." : "Express interest"}
-                </button>
-              </>
-            )}
+            <ExpressInterestPanel alreadySent={alreadySent} openingMsg={openingMsg} setOpeningMsg={setOpeningMsg}
+              msgEditing={msgEditing} setMsgEditing={setMsgEditing} sending={sending} onExpressInterest={onExpressInterest} />
           </div>
         )}
       </div>
