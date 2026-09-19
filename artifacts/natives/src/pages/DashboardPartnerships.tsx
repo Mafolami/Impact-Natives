@@ -40,7 +40,7 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave, mouExecuted }
       className={`relative cursor-pointer px-5 py-4 border-b transition-all group ${
         selected
           ? "bg-[#2D6A4F]/[0.08] border-l-[3px] border-l-[#2D6A4F] border-b-border"
-          : "hover:bg-muted/50 border-l-[3px] border-l-transparent border-b-border/60"
+          : "hover:bg-[#2D6A4F]/10/50 border-l-[3px] border-l-transparent border-b-border/60"
       }`}>
 
       {/* Org name + save */}
@@ -270,12 +270,12 @@ export default function DashboardPartnerships() {
     <>
       <div className="flex flex-col -mx-4 sm:-mx-6" style={{ height: "100vh", maxHeight: "100vh", overflow: "hidden" }}>
         {/* Top bar */}
-        <div className="shrink-0 px-5 py-3 flex flex-wrap items-center gap-2 bg-background border-b border-border">
+        <div className="shrink-0 px-5 py-3 flex flex-wrap items-center gap-2 bg-background border-b border-[#2D6A4F]/20">
           <div className="relative flex-1 max-w-sm min-w-[180px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-black dark:text-white" />
             <input type="text" placeholder="Search listings..." value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full h-9 pl-9 pr-3 rounded-lg text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#452A1D]/25 transition-colors bg-muted border border-border" />          </div>
+              className="w-full h-9 pl-9 pr-3 rounded-lg text-[13px] text-foreground placeholder:text-[#2D6A4F]/70 focus:outline-none focus:ring-2 focus:ring-[#452A1D]/25 transition-colors bg-card border border-[#2D6A4F]/20" />          </div>
           <div ref={filterBarRef} className="flex flex-wrap items-center gap-1.5 relative">
             {([
               {
@@ -337,7 +337,7 @@ export default function DashboardPartnerships() {
                   className={`h-8 px-3 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-colors ${
                     f.count > 0 || openDropdown === f.key
                       ? "text-white border border-transparent"
-                      : "bg-background text-foreground border border-border"
+                      : "bg-background text-foreground border border-[#2D6A4F]/20"
                   }`}
                   style={f.count > 0 || openDropdown === f.key
                     ? { background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }
@@ -353,14 +353,14 @@ export default function DashboardPartnerships() {
                   </svg>
                 </button>
                 {openDropdown === f.key && (
-                  <div className="absolute top-full left-0 mt-1 z-50 rounded-xl shadow-lg border border-border bg-card min-w-[180px] p-2"
+                  <div className="absolute top-full left-0 mt-1 z-50 rounded-xl shadow-lg border border-[#2D6A4F]/20 bg-card min-w-[180px] p-2"
                     style={{ maxHeight: "280px", overflowY: "auto" }}>
                     {f.key === "toggles" ? (
                       <div className="space-y-1">
                         {[
                           { label: "DD docs available", checked: ddReadyOnly,   set: setDdReadyOnly   },
                         ].map(t => (
-                          <label key={t.label} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-muted transition-colors">
+                          <label key={t.label} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-[#2D6A4F]/10 transition-colors">
                             <input type="checkbox" checked={t.checked} onChange={e => t.set(e.target.checked)}
                               className="w-3.5 h-3.5 rounded accent-[#2D6A4F]" />
                             <span className="text-[13px] text-foreground font-medium">{t.label}</span>
@@ -368,7 +368,7 @@ export default function DashboardPartnerships() {
                         ))}
                         {ddReadyOnly && (
                           <button type="button" onClick={f.clear}
-                            className="w-full text-left px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors">
+                            className="w-full text-left px-2 py-1 text-[10px] text-black dark:text-white hover:text-foreground transition-colors">
                             Clear
                           </button>
                         )}
@@ -381,10 +381,10 @@ export default function DashboardPartnerships() {
                             <button key={o.value} type="button"
                               onClick={() => f.toggle(o.value)}
                               className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[13px] text-left transition-colors ${
-                                on ? "bg-[#2D6A4F]/10 text-[#2D6A4F] font-semibold" : "text-foreground hover:bg-muted"
+                                on ? "bg-[#2D6A4F]/10 text-[#2D6A4F] font-semibold" : "text-foreground hover:bg-[#2D6A4F]/10"
                               }`}>
                               <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
-                                on ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-border"
+                                on ? "bg-[#2D6A4F] border-[#2D6A4F]" : "border-[#2D6A4F]/20"
                               }`}>
                                 {on && <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>}
                               </div>
@@ -394,7 +394,7 @@ export default function DashboardPartnerships() {
                         })}
                         {f.count > 0 && (
                           <button type="button" onClick={f.clear}
-                            className="w-full text-left px-2 py-1 mt-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors border-t border-border">
+                            className="w-full text-left px-2 py-1 mt-1 text-[10px] text-black dark:text-white hover:text-foreground transition-colors border-t border-[#2D6A4F]/20">
                             Clear ({f.count})
                           </button>
                         )}
@@ -407,7 +407,7 @@ export default function DashboardPartnerships() {
             {activeFilterCount > 0 && (
               <button type="button"
                 onClick={() => { setSectorFilters(new Set()); setOrgTypeFilters(new Set()); setStageFilters(new Set()); setListView("all"); setDdReadyOnly(false); }}
-                className="text-[11px] text-muted-foreground hover:text-foreground transition-colors px-1">
+                className="text-[11px] text-black dark:text-white hover:text-foreground transition-colors px-1">
                 Clear all
               </button>
             )}
@@ -432,12 +432,12 @@ export default function DashboardPartnerships() {
         )}
 
         {!loading && orgs.length > 0 && (
-          <div className={`shrink-0 border-b border-border bg-background ${mobileDetailOpen ? "hidden lg:flex" : "flex"}`}>
-            <div className="w-full lg:w-72 xl:w-80 shrink-0 lg:border-r-2 border-border px-3 py-2 flex items-center gap-1.5">
+          <div className={`shrink-0 border-b border-[#2D6A4F]/20 bg-background ${mobileDetailOpen ? "hidden lg:flex" : "flex"}`}>
+            <div className="w-full lg:w-72 xl:w-80 shrink-0 lg:border-r-2 border-[#2D6A4F]/20 px-3 py-2 flex items-center gap-1.5">
               {views.map(v => {
                 const on = listView === v.key;
                 const cls = `h-8 px-3 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-colors ${
-                  on ? "text-white border border-transparent" : "bg-background text-foreground border border-border"}`;
+                  on ? "text-white border border-transparent" : "bg-background text-foreground border border-[#2D6A4F]/20"}`;
                 if (v.locked) {
                   return (
                     <a key={v.key} href="/dashboard/settings?tab=billing" title="AI matching is a Plus feature" className={cls}>
@@ -467,7 +467,7 @@ export default function DashboardPartnerships() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center px-6">
-            <Handshake className="w-7 h-7 text-muted-foreground/50" />
+            <Handshake className="w-7 h-7 text-[#2D6A4F]/50" />
             <div>
               <p className="text-[15px] font-bold text-foreground mb-1">{emptyCopy.title}</p>
               <p className="text-[13px] text-black dark:text-white">{emptyCopy.body}</p>
@@ -475,7 +475,7 @@ export default function DashboardPartnerships() {
           </div>
         ) : (
           <div className="flex min-h-0 overflow-hidden" style={{ flex: 1 }}>            {/* Left list */}
-            <div className={`w-full lg:w-72 xl:w-80 shrink-0 overflow-y-auto border-r-2 border-border bg-muted/40 ${mobileDetailOpen ? "hidden lg:block" : "block"}`}>
+            <div className={`w-full lg:w-72 xl:w-80 shrink-0 overflow-y-auto border-r-2 border-[#2D6A4F]/20 bg-[#2D6A4F]/[0.04] ${mobileDetailOpen ? "hidden lg:block" : "block"}`}>
               {filtered.map((org: any) => (
                 <ListCard key={org.listing_id} org={org}
                   selected={selectedOrg?.listing_id === org.listing_id}

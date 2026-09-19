@@ -112,7 +112,7 @@ export default function OrgDocumentsList({ orgId, isOwnOrg, labels }: {
             <p className="text-xs font-semibold text-black dark:text-white mb-1.5 capitalize">{g.label}</p>
             <div className="space-y-1.5">
               {g.items.map(d => (
-                <div key={d.id} className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border border-border bg-card">
+                <div key={d.id} className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border border-[#2D6A4F]/20 bg-card">
                   <p className="text-sm text-foreground truncate">{d.file_name}</p>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#2D6A4F]/40 text-foreground">
@@ -135,9 +135,9 @@ export default function OrgDocumentsList({ orgId, isOwnOrg, labels }: {
       {preview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setPreview(null)}>
           <div role="dialog" aria-modal="true"
-            className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
+            className="bg-white dark:bg-card rounded-2xl border border-[#2D6A4F]/20 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
             onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border shrink-0">
+            <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[#2D6A4F]/20 shrink-0">
               <button type="button" onClick={() => setPreview(null)}
                 className="text-sm font-medium text-black dark:text-white hover:underline underline-offset-2 shrink-0">
                 Close

@@ -211,7 +211,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 
 function BentoCell({ label, value, accent, capitalize, icon: Icon }: { label: string; value: string; accent?: boolean; capitalize?: boolean; icon?: LucideIcon }) {
   return (
-    <div className="rounded-xl p-3.5 bg-card border border-border">
+    <div className="rounded-xl p-3.5 bg-card border border-[#2D6A4F]/20">
       <div className="flex items-center gap-1.5 mb-1">
         {Icon && <Icon className="w-3 h-3 shrink-0 text-[#2D6A4F]" />}
         <p className="text-[9px] font-black uppercase tracking-widest text-black dark:text-white">{label}</p>
@@ -242,7 +242,7 @@ function LoadingIndicator() {
 
 function OwnListingBanner() {
   return (
-    <div className="flex items-center gap-2.5 px-4 py-3.5 rounded-xl bg-muted border border-border">
+    <div className="flex items-center gap-2.5 px-4 py-3.5 rounded-xl bg-card border border-[#2D6A4F]/20">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-foreground shrink-0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       <p className="text-xs font-black text-foreground">This is your listing</p>
     </div>
@@ -276,7 +276,7 @@ function ExpressInterestPanel({ alreadySent, openingMsg, setOpeningMsg, msgEditi
   return (
     <>
       {openingMsg && !msgEditing && (
-        <div className="rounded-xl p-4 space-y-2 bg-muted border border-border">
+        <div className="rounded-xl p-4 space-y-2 bg-card border border-[#2D6A4F]/20">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">AI-drafted opening message</p>
             <button type="button" onClick={() => setMsgEditing(true)}
@@ -298,7 +298,7 @@ function ExpressInterestPanel({ alreadySent, openingMsg, setOpeningMsg, msgEditi
           </div>
           <textarea rows={4} value={openingMsg ?? ""}
             onChange={e => setOpeningMsg(e.target.value)}
-            className="w-full px-3 py-2.5 rounded-xl text-xs text-foreground resize-none focus:outline-none bg-muted border border-border" />
+            className="w-full px-3 py-2.5 rounded-xl text-xs text-foreground resize-none focus:outline-none bg-card border border-[#2D6A4F]/20" />
         </div>
       )}
       <button type="button"
@@ -356,13 +356,13 @@ function IdentityNameRow({ org, variant, isVerified, mouExecuted, fitLoading, fi
         </span>
       )}
       {fitLoading && (
-        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-muted text-black dark:text-white border border-border">
+        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-card text-black dark:text-white border border-[#2D6A4F]/20">
           <Loader2 className="w-3 h-3 animate-spin" />Scoring fit...
         </span>
       )}
       {fitLocked && (
         <Link href="/dashboard/settings?tab=billing"
-          className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-muted text-black dark:text-white border border-border hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] transition-colors">
+          className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-card text-black dark:text-white border border-[#2D6A4F]/20 hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] transition-colors">
           <Sparkles className="w-3 h-3" />AI fit score — upgrade
         </Link>
       )}
@@ -391,7 +391,7 @@ function orgTypeAndCountriesLabel(org: OrgRow, countries: string[]): string {
 function SaveButton({ isSaved, onToggleSave }: { isSaved: boolean; onToggleSave: (e: React.MouseEvent) => void }) {
   return (
     <button type="button" onClick={onToggleSave}
-      className="shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-full transition-all border border-border"
+      className="shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-full transition-all border border-[#2D6A4F]/20"
       style={{ color: isSaved ? "#065F46" : undefined, background: isSaved ? "rgba(6,95,70,0.1)" : "transparent" }}>
       <svg viewBox="0 0 24 24" className="w-3.5 h-3.5"
         fill={isSaved ? "#065F46" : "none"} stroke="currentColor" strokeWidth={2}>
@@ -409,7 +409,7 @@ function SectorTags({ sectors }: { sectors: string[] }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {sectors.map(s => (
-        <span key={s} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-muted text-foreground border border-border">
+        <span key={s} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-card text-foreground border border-[#2D6A4F]/20">
           {s}
         </span>
       ))}
@@ -450,7 +450,7 @@ function OrgLogo({ org }: { org: OrgRow }) {
   if (org.logo_url && !failed) {
     return (
       <img src={org.logo_url} alt="" onError={() => setFailed(true)}
-        className="w-14 h-14 rounded-xl object-contain shrink-0 bg-card border border-border" />
+        className="w-14 h-14 rounded-xl object-contain shrink-0 bg-card border border-[#2D6A4F]/20" />
     );
   }
   return (
@@ -507,7 +507,7 @@ function ConsultantExpertiseContent({ org }: { org: OrgRow }) {
           <p className="text-xs text-black dark:text-white mb-1.5">Specializations</p>
           <div className="flex flex-wrap gap-2">
             {org.specializations.map(s => (
-              <span key={s} className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-muted text-foreground border border-border">{s}</span>
+              <span key={s} className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-card text-foreground border border-[#2D6A4F]/20">{s}</span>
             ))}
           </div>
         </div>
@@ -538,19 +538,19 @@ function ContextGrid({ org, fields = ["theory", "attempts", "constraints"] }: { 
   return (
     <div className={`grid grid-cols-1 gap-3 ${cols}`}>
       {fields.includes("theory") && org.partnership_theory_of_change && (
-        <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
+        <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-card border border-[#2D6A4F]/20">
           <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Approach to change</p>
           <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_theory_of_change}</p>
         </div>
       )}
       {fields.includes("attempts") && org.partnership_prior_attempts && (
-        <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
+        <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-card border border-[#2D6A4F]/20">
           <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Previous attempts</p>
           <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_prior_attempts}</p>
         </div>
       )}
       {fields.includes("constraints") && org.partnership_constraints && (
-        <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
+        <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-card border border-[#2D6A4F]/20">
           <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Constraints</p>
           <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_constraints}</p>
         </div>
@@ -563,7 +563,7 @@ function ContextGrid({ org, fields = ["theory", "attempts", "constraints"] }: { 
 function TrackRecordContent({ org }: { org: OrgRow }) {
   return (
     <div className="flex items-start gap-3">
-      <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${org.partnership_prior_experience ? "bg-[#2D6A4F]" : "bg-muted"}`}>
+      <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${org.partnership_prior_experience ? "bg-[#2D6A4F]" : "bg-card border border-[#2D6A4F]/30"}`}>
         {org.partnership_prior_experience
           ? <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
           : <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-black dark:text-white"><path d="M18 6L6 18M6 6l12 12"/></svg>}
@@ -640,7 +640,7 @@ function DueDiligenceReadiness({ org, score, ddTotal, ddDocs }: { org: OrgRow; s
         <Eyebrow>Due diligence readiness</Eyebrow>
         <span className="text-xs font-bold mb-3" style={{ color: score > ddTotal / 2 ? "#065F46" : "#92400E" }}>{score} of {ddTotal} docs ready</span>
       </div>
-      <div className="h-1.5 rounded-full mb-4 overflow-hidden bg-muted">
+      <div className="h-1.5 rounded-full mb-4 overflow-hidden bg-[#2D6A4F]/15">
         <div className="h-full rounded-full transition-all" style={{ width: `${(score / ddTotal) * 100}%`, background: score > ddTotal / 2 ? "#2D6A4F" : "#C45C26" }} />
       </div>
       {score === 0 ? (
@@ -718,7 +718,7 @@ function PartnershipSignalsGrid({ org }: { org: OrgRow }) {
 // matching InitiativeDetail's Sectors/Locations/Budget card treatment exactly
 // (rounded-xl border bg-card, px-5 py-4).
 function Section({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-xl border border-border bg-card px-5 py-4 ${className}`}>{children}</div>;
+  return <div className={`rounded-xl border border-[#2D6A4F]/20 bg-card px-5 py-4 ${className}`}>{children}</div>;
 }
 
 // "Also fits" footnote -- shown inside the existing fit-analysis box, not as
@@ -728,7 +728,7 @@ function Section({ children, className = "" }: { children: React.ReactNode; clas
 function AlsoFitsFootnote({ items, onSelect }: { items: AlsoFit[]; onSelect: (item: AlsoFit) => void }) {
   if (items.length === 0) return null;
   return (
-    <div className="pt-3 mt-1 border-t border-border/60 space-y-1.5">
+    <div className="pt-3 mt-1 border-t border-[#2D6A4F]/15 space-y-1.5">
       {items.map(af => (
         <button key={af.listing_id} type="button" onClick={() => onSelect(af)}
           className="block text-xs text-black dark:text-white hover:text-[#2D6A4F] transition-colors underline underline-offset-2 text-left">
@@ -755,7 +755,7 @@ function FitAnalysisContent({ fit, fitLoading, fitLocked, alsoFits, onSelectAlso
         {fitLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#2D6A4F] ml-auto" />}
         {fit && !fitLoading && (
           <div className="ml-auto flex items-center gap-2">
-            <div className="h-1.5 w-24 rounded-full overflow-hidden bg-muted">
+            <div className="h-1.5 w-24 rounded-full overflow-hidden bg-[#2D6A4F]/15">
               <div className="h-full rounded-full transition-all" style={{
                 width: `${fit.fit_score}%`,
                 background: fit.fit_score >= 70 ? "#2D6A4F" : fit.fit_score >= 50 ? "#F59E0B" : "#EF4444"
@@ -855,7 +855,7 @@ function ProfileTabs({ tabs, active, onChange, variant }: {
 }) {
   const wrap = variant === "panel"
     ? "sticky top-0 z-10 bg-background px-8 flex gap-6 overflow-x-auto"
-    : "flex gap-6 overflow-x-auto border-b border-border";
+    : "flex gap-6 overflow-x-auto border-b border-[#2D6A4F]/20";
   return (
     <div role="tablist" className={wrap}>
       {tabs.map(t => (
@@ -863,7 +863,7 @@ function ProfileTabs({ tabs, active, onChange, variant }: {
           className={`shrink-0 py-3 text-sm border-b-2 -mb-px transition-colors ${
             active === t
               ? "font-bold text-[#2D6A4F] border-[#2D6A4F]"
-              : "font-medium text-black dark:text-white border-transparent hover:border-border"
+              : "font-medium text-black dark:text-white border-transparent hover:border-[#2D6A4F]/50"
           }`}>
           {PROFILE_TAB_LABELS[t]}
         </button>
@@ -915,7 +915,7 @@ function PanelNeedsOffers({ org }: { org: OrgRow }) {
           <Eyebrow>Looking for in a partner</Eyebrow>
           <div className="flex flex-wrap gap-2">
             {org.needs.map(n => (
-              <span key={n} className="text-sm font-semibold px-4 py-2 rounded-lg text-foreground bg-muted border border-border">{n}</span>
+              <span key={n} className="text-sm font-semibold px-4 py-2 rounded-lg text-foreground bg-card border border-[#2D6A4F]/20">{n}</span>
             ))}
           </div>
         </div>
@@ -986,7 +986,7 @@ function FundingTabContent({ org, variant }: { org: OrgRow; variant: "page" | "p
   const inkind = !funder ? listOf(org.inkind_support) : [];
   const hasFacts = !!(grant || instruments.length || stages.length || where.length || csrBudget);
   return (
-    <div className={variant === "page" ? "space-y-6" : "divide-y divide-border"}>
+    <div className={variant === "page" ? "space-y-6" : "divide-y divide-[#2D6A4F]/20"}>
       {statement && (
         <TabBlock variant={variant}>
           <Eyebrow>{funder ? "Investment thesis" : "CSR focus"}</Eyebrow>
@@ -1020,7 +1020,7 @@ function ProfileTabPanels({ org, variant, tab, viewerOrgId, dd, overviewAfterSuc
   dd: { score: number; total: number; docs: { key: keyof OrgRow; label: string }[] };
   overviewAfterSuccess?: React.ReactNode; overviewAfterSignals?: React.ReactNode;
 }) {
-  const body = variant === "page" ? "space-y-6" : "divide-y divide-border";
+  const body = variant === "page" ? "space-y-6" : "divide-y divide-[#2D6A4F]/20";
 
   if (tab === "impact") {
     return (
@@ -1205,8 +1205,8 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
   }
   if (!org) {
     return (
-      <div className="hidden lg:flex flex-col items-center justify-center h-full gap-4 text-center px-10 bg-muted/30">
-        <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-muted border border-border">
+      <div className="hidden lg:flex flex-col items-center justify-center h-full gap-4 text-center px-10 bg-[#2D6A4F]/[0.04]">
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-card border border-[#2D6A4F]/20">
           <Sparkles className="w-6 h-6 text-foreground" />
         </div>
         <div>
@@ -1233,7 +1233,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         {backLabel && <BackButton onBack={onBack} backLabel={backLabel} />}
 
         {/* Identity -- brand-green band card, shared IdentityHeader */}
-        <div className="rounded-xl border border-border px-6 py-5" style={{ background: IDENTITY_BAND }}>
+        <div className="rounded-xl border border-[#2D6A4F]/20 px-6 py-5" style={{ background: IDENTITY_BAND }}>
           <IdentityHeader org={org} variant="page" countries={countries} sectors={sectors} hideSectorsOnXl isVerified={isVerified} mouExecuted={mouExecuted}
             fitLoading={fitLoading} fitLocked={fitLocked} fit={fit} isSaved={isSaved} onToggleSave={onToggleSave} />
         </div>
@@ -1246,7 +1246,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
           </div>
           <aside className="space-y-4 min-w-0">
             {viewerOrgLoading ? (
-              <div className="rounded-xl border border-border bg-card px-5 py-4">
+              <div className="rounded-xl border border-[#2D6A4F]/20 bg-card px-5 py-4">
                 <LoadingIndicator />
               </div>
             ) : org.user_id === viewerOrg?.user_id ? (
@@ -1254,21 +1254,21 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
             ) : org.partnership_formed ? (
               <PartnershipFormedBanner />
             ) : isOrg && (
-              <div className="rounded-xl border border-border bg-card px-5 py-4 space-y-3">
+              <div className="rounded-xl border border-[#2D6A4F]/20 bg-card px-5 py-4 space-y-3">
                 <ExpressInterestPanel alreadySent={alreadySent} openingMsg={openingMsg} setOpeningMsg={setOpeningMsg}
                   msgEditing={msgEditing} setMsgEditing={setMsgEditing} sending={sending} onExpressInterest={onExpressInterest} />
               </div>
             )}
 
             {(fit || fitLoading || fitLocked) && org.user_id !== viewerOrg?.user_id && (
-              <div className="rounded-xl border border-border bg-card px-5 py-4"
+              <div className="rounded-xl border border-[#2D6A4F]/20 bg-card px-5 py-4"
                 style={{ background: "linear-gradient(135deg, rgba(13,43,26,0.04) 0%, rgba(26,74,46,0.02) 100%)" }}>
                 <FitAnalysisContent fit={fit} fitLoading={fitLoading} fitLocked={fitLocked} alsoFits={alsoFits} onSelectAlsoFit={swapToAlsoFit} />
               </div>
             )}
 
             {fitNoListing && !fit && !fitLoading && org.user_id !== viewerOrg?.user_id && (
-              <div className="rounded-xl border border-border bg-card px-5 py-4">
+              <div className="rounded-xl border border-[#2D6A4F]/20 bg-card px-5 py-4">
                 <Eyebrow>Your fit</Eyebrow>
                 <p className="text-sm text-foreground leading-relaxed">Publish a partnership listing to see how well you fit with this organisation.</p>
               </div>
@@ -1298,7 +1298,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                 <Eyebrow>Looking for</Eyebrow>
                 <div className="flex flex-wrap gap-1.5">
                   {org.needs.map(n => (
-                    <span key={n} className="text-xs font-semibold px-3 py-1.5 rounded-lg text-foreground bg-card border border-border">{n}</span>
+                    <span key={n} className="text-xs font-semibold px-3 py-1.5 rounded-lg text-foreground bg-card border border-[#2D6A4F]/20">{n}</span>
                   ))}
                 </div>
               </Section>
@@ -1314,7 +1314,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
     <div ref={ref} className="flex flex-col h-full overflow-y-auto bg-background">
 
       {/* ── Identity block ── */}
-      <div className="shrink-0 px-8 pt-7 pb-6 border-b-2 border-border"
+      <div className="shrink-0 px-8 pt-7 pb-6 border-b-2 border-[#2D6A4F]/20"
         style={{ background: IDENTITY_BAND }}>
         {backLabel && (
           <div className="flex justify-between mb-4 lg:hidden">
@@ -1327,12 +1327,12 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
       </div>
 
       {/* ── Scrollable content ── */}
-      <div className="flex-1 divide-y divide-border">
+      <div className="flex-1 divide-y divide-[#2D6A4F]/20">
         <ProfileTabs tabs={tabs} active={activeTab} onChange={setTab} variant="panel" />
         <ProfileTabPanels org={org} variant="panel" tab={activeTab} viewerOrgId={viewerOrg?.id}
           dd={{ score, total: ddTotal, docs: ddDocs }}
           overviewAfterSuccess={(fit || fitLoading) && org.user_id !== viewerOrg?.user_id ? (
-            <div className="px-8 py-6 border-t border-b border-border"
+            <div className="px-8 py-6 border-t border-b border-[#2D6A4F]/20"
               style={{ background: "linear-gradient(135deg, rgba(13,43,26,0.04) 0%, rgba(26,74,46,0.02) 100%)" }}>
               <FitAnalysisContent fit={fit} fitLoading={fitLoading} fitLocked={fitLocked} alsoFits={alsoFits} onSelectAlsoFit={swapToAlsoFit} />
             </div>
@@ -1340,19 +1340,19 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
           overviewAfterSignals={<PanelNeedsOffers org={org} />} />
 
         {viewerOrgLoading ? (
-          <div className="px-8 py-4 border-t border-border">
+          <div className="px-8 py-4 border-t border-[#2D6A4F]/20">
             <LoadingIndicator />
           </div>
         ) : org.user_id === viewerOrg?.user_id ? (
-          <div className="px-8 py-6 sticky bottom-0 bg-background border-t border-border">
+          <div className="px-8 py-6 sticky bottom-0 bg-background border-t border-[#2D6A4F]/20">
             <OwnListingBanner />
           </div>
         ) : org.partnership_formed ? (
-          <div className="px-8 py-6 sticky bottom-0 bg-background border-t border-border">
+          <div className="px-8 py-6 sticky bottom-0 bg-background border-t border-[#2D6A4F]/20">
             <PartnershipFormedBanner />
           </div>
         ) : isOrg && (
-          <div className="px-8 py-6 sticky bottom-0 bg-background space-y-3 border-t border-border">
+          <div className="px-8 py-6 sticky bottom-0 bg-background space-y-3 border-t border-[#2D6A4F]/20">
             <ExpressInterestPanel alreadySent={alreadySent} openingMsg={openingMsg} setOpeningMsg={setOpeningMsg}
               msgEditing={msgEditing} setMsgEditing={setMsgEditing} sending={sending} onExpressInterest={onExpressInterest} />
           </div>
