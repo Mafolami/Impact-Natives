@@ -217,6 +217,20 @@ function BentoCell({ label, value, accent }: { label: string; value: string; acc
 // Shared by both variants -- confirmed byte-identical content. score,
 // ddDocs, and ddTotal are computed once above the page/panel branch
 // point, so they're passed in rather than recomputed here.
+// Shared by both variants -- confirmed byte-identical content.
+function SdgAlignmentGrid({ org }: { org: OrgRow }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {org.sdgs!.map(sdg => (
+        <span key={sdg} className="text-xs font-bold px-3 py-1.5 rounded-lg"
+          style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
+          {sdgLabel(sdg)}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function DueDiligenceReadiness({ org, score, ddTotal, ddDocs }: { org: OrgRow; score: number; ddTotal: number; ddDocs: { key: keyof OrgRow; label: string }[] }) {
   if (isConsultancyOrg(org)) {
     return (
@@ -689,16 +703,9 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
               {org.sdgs && org.sdgs.length > 0 && (
                 <Section>
                   <Eyebrow>SDG alignment</Eyebrow>
-            <div className="flex flex-wrap gap-1.5">
-              {org.sdgs.map(sdg => (
-                <span key={sdg} className="text-xs font-bold px-3 py-1.5 rounded-lg"
-                  style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
-                  {sdgLabel(sdg)}
-                </span>
-              ))}
-            </div>
-          </Section>
-        )}
+                  <SdgAlignmentGrid org={org} />
+                </Section>
+              )}
 
         {(org.partnership_theory_of_change || org.partnership_prior_attempts || org.partnership_constraints) && (
           <Section>
@@ -1085,14 +1092,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         {org.sdgs && org.sdgs.length > 0 && (
           <div className="px-8 py-6">
             <Eyebrow>SDG alignment</Eyebrow>
-            <div className="flex flex-wrap gap-1.5">
-              {org.sdgs.map(sdg => (
-                <span key={sdg} className="text-xs font-bold px-3 py-1.5 rounded-lg"
-                  style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
-                  {sdgLabel(sdg)}
-                </span>
-              ))}
-            </div>
+            <SdgAlignmentGrid org={org} />
           </div>
         )}
 
