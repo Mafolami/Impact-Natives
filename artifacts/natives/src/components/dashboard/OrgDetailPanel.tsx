@@ -450,11 +450,11 @@ function OrgLogo({ org }: { org: OrgRow }) {
   if (org.logo_url && !failed) {
     return (
       <img src={org.logo_url} alt="" onError={() => setFailed(true)}
-        className="w-14 h-14 rounded-xl object-contain shrink-0 bg-card border border-[#2D6A4F]/20" />
+        className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-contain p-1.5 shrink-0 bg-card border border-[#2D6A4F]/20" />
     );
   }
   return (
-    <div className="w-14 h-14 rounded-xl shrink-0 flex items-center justify-center bg-[#2D6A4F] text-white text-xl font-black">
+    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl shrink-0 flex items-center justify-center bg-[#2D6A4F] text-white text-2xl sm:text-3xl font-black">
       {org.organisation_name.trim().charAt(0).toUpperCase()}
     </div>
   );
@@ -471,29 +471,31 @@ function IdentityHeader({ org, variant, countries, sectors, isVerified, mouExecu
   const line = openingLine(org);
   return (
     <>
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-4 flex-1 min-w-0">
-          <OrgLogo key={org.id} org={org} />
-          <div className="flex-1 min-w-0">
-            <IdentityNameRow org={org} variant={variant} isVerified={isVerified} mouExecuted={mouExecuted} fitLoading={fitLoading} fitLocked={fitLocked} fit={fit} />
-            <p className={`${variant === "page" ? "text-xs" : "text-sm"} text-black dark:text-white capitalize`}>
-              {orgTypeAndCountriesLabel(org, countries)}
-            </p>
+      <div className="flex items-start gap-4 sm:gap-5">
+        <OrgLogo key={org.id} org={org} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <IdentityNameRow org={org} variant={variant} isVerified={isVerified} mouExecuted={mouExecuted} fitLoading={fitLoading} fitLocked={fitLocked} fit={fit} />
+              <p className={`${variant === "page" ? "text-xs" : "text-sm"} text-black dark:text-white capitalize`}>
+                {orgTypeAndCountriesLabel(org, countries)}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {org.listing_id && !org.partnership_formed && (
+                <ShareButton label="Share" url={listingShareUrl(org)} message={listingShareMessage(org)} />
+              )}
+              <SaveButton isSaved={isSaved} onToggleSave={onToggleSave} />
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {org.listing_id && !org.partnership_formed && (
-            <ShareButton label="Share" url={listingShareUrl(org)} message={listingShareMessage(org)} />
+          {sectors.length > 0 && (
+            <div className={`mt-4${hideSectorsOnXl ? " xl:hidden" : ""}`}>
+              <SectorTags sectors={sectors} />
+            </div>
           )}
-          <SaveButton isSaved={isSaved} onToggleSave={onToggleSave} />
+          {line && <p className="mt-4 text-lg font-semibold text-foreground leading-snug">{line}</p>}
         </div>
       </div>
-      {sectors.length > 0 && (
-        <div className={`mt-4${hideSectorsOnXl ? " xl:hidden" : ""}`}>
-          <SectorTags sectors={sectors} />
-        </div>
-      )}
-      {line && <p className="mt-4 text-lg font-semibold text-foreground leading-snug">{line}</p>}
     </>
   );
 }

@@ -268,10 +268,10 @@ export default function DashboardPartnerships() {
 
   return (
     <>
-      <div className="flex flex-col -mx-4 sm:-mx-6" style={{ height: "100vh", maxHeight: "100vh", overflow: "hidden" }}>
+      <div className="flex flex-col lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] xl:grid-cols-[20rem_minmax(0,1fr)] lg:grid-rows-[auto_auto_auto_minmax(0,1fr)] -mx-4 sm:-mx-6" style={{ height: "100vh", maxHeight: "100vh", overflow: "hidden" }}>
         {/* Top bar */}
-        <div className="shrink-0 px-5 py-3 flex flex-wrap items-center gap-2 bg-background border-b border-[#2D6A4F]/20">
-          <div className="relative flex-1 max-w-sm min-w-[180px]">
+        <div className="shrink-0 px-5 py-3 flex flex-wrap items-center gap-2 bg-background border-b border-[#2D6A4F]/20 lg:flex-col lg:items-stretch lg:flex-nowrap lg:px-3 lg:border-r-2 lg:col-start-1 lg:row-start-2">
+          <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-black dark:text-white" />
             <input type="text" placeholder="Search listings..." value={search}
               onChange={e => setSearch(e.target.value)}
@@ -412,10 +412,10 @@ export default function DashboardPartnerships() {
               </button>
             )}
           </div>
-          <div className="flex-1" />
+          <div className="flex-1 lg:hidden" />
           {user && (
             <button type="button" onClick={() => setShowModal(true)}
-              className="h-9 px-4 rounded-full text-white text-[13px] font-bold transition-all hover:brightness-110 active:scale-[0.98] shrink-0 whitespace-nowrap"
+              className="h-9 px-4 rounded-full text-white text-[13px] font-bold transition-all hover:brightness-110 active:scale-[0.98] shrink-0 whitespace-nowrap lg:w-full"
               style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
               + Get Matched
             </button>
@@ -423,7 +423,7 @@ export default function DashboardPartnerships() {
         </div>
 
         {deepLinkMissing && (
-          <div className="shrink-0 px-5 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-900 text-[13px] text-amber-800 dark:text-amber-300 flex items-center justify-between gap-2">
+          <div className="shrink-0 px-5 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-900 text-[13px] text-amber-800 dark:text-amber-300 flex items-center justify-between gap-2 lg:col-span-2 lg:row-start-1">
             <span>The listing you followed a link to isn't currently available — it may be unpublished or no longer partnership-listed.</span>
             <button type="button" onClick={() => setDeepLinkMissing(false)} className="shrink-0 hover:opacity-70 font-medium">
               Dismiss
@@ -432,7 +432,7 @@ export default function DashboardPartnerships() {
         )}
 
         {!loading && orgs.length > 0 && (
-          <div className={`shrink-0 border-b border-[#2D6A4F]/20 bg-background ${mobileDetailOpen ? "hidden lg:flex" : "flex"}`}>
+          <div className={`shrink-0 border-b border-[#2D6A4F]/20 bg-background lg:col-start-1 lg:row-start-3 ${mobileDetailOpen ? "hidden lg:flex" : "flex"}`}>
             <div className="w-full lg:w-72 xl:w-80 shrink-0 lg:border-r-2 border-[#2D6A4F]/20 px-3 py-2 flex items-center gap-1.5">
               {views.map(v => {
                 const on = listView === v.key;
@@ -462,11 +462,11 @@ export default function DashboardPartnerships() {
 
         {/* Split layout */}
         {loading ? (
-          <div className="flex items-center justify-center flex-1">
+          <div className="flex items-center justify-center flex-1 lg:col-span-2 lg:row-start-4">
             <Loader2 className="w-5 h-5 animate-spin text-[#2D6A4F]" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center px-6">
+          <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center px-6 lg:col-span-2 lg:row-start-4">
             <Handshake className="w-7 h-7 text-[#2D6A4F]/50" />
             <div>
               <p className="text-[15px] font-bold text-foreground mb-1">{emptyCopy.title}</p>
@@ -474,8 +474,8 @@ export default function DashboardPartnerships() {
             </div>
           </div>
         ) : (
-          <div className="flex min-h-0 overflow-hidden" style={{ flex: 1 }}>            {/* Left list */}
-            <div className={`w-full lg:w-72 xl:w-80 shrink-0 overflow-y-auto border-r-2 border-[#2D6A4F]/20 bg-[#2D6A4F]/[0.04] ${mobileDetailOpen ? "hidden lg:block" : "block"}`}>
+          <div className="flex min-h-0 overflow-hidden lg:contents" style={{ flex: 1 }}>            {/* Left list */}
+            <div className={`w-full lg:w-auto shrink-0 overflow-y-auto min-h-0 lg:col-start-1 lg:row-start-4 border-r-2 border-[#2D6A4F]/20 bg-[#2D6A4F]/[0.04] ${mobileDetailOpen ? "hidden lg:block" : "block"}`}>
               {filtered.map((org: any) => (
                 <ListCard key={org.listing_id} org={org}
                   selected={selectedOrg?.listing_id === org.listing_id}
@@ -488,7 +488,7 @@ export default function DashboardPartnerships() {
             </div>
 
             {/* Right detail */}
-            <div className={`flex-1 min-w-0 overflow-y-auto ${mobileDetailOpen ? "block" : "hidden lg:block"}`}>
+            <div className={`flex-1 min-w-0 min-h-0 overflow-y-auto lg:col-start-2 lg:row-start-2 lg:row-span-3 ${mobileDetailOpen ? "block" : "hidden lg:block"}`}>
               <OrgDetailPanel
                 org={selectedOrg}
                 isSaved={selectedOrg ? savedOrgs.has(selectedOrg.id) : false}
