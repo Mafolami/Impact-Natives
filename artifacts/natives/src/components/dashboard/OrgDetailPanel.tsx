@@ -37,6 +37,7 @@ import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 import VerifiedOutcomesSection from "@/components/dashboard/VerifiedOutcomesSection";
 import OrgDocumentsList from "@/components/dashboard/OrgDocumentsList";
 import { ShareButton } from "@/components/dashboard/ShareButton";
+import OrgLogo from "@/components/dashboard/OrgLogo";
 import FitGauge, { fitBandLabel } from "@/components/dashboard/FitGauge";
 import SimilarListings from "@/components/dashboard/SimilarListings";
 import DiscoverNativesCard from "@/components/dashboard/DiscoverNativesCard";
@@ -446,21 +447,6 @@ function firstSentence(text: string | null | undefined): string | null {
 // Editorial opening line: taken from the org's own words, never invented.
 function openingLine(org: OrgRow): string | null {
   return firstSentence(org.partnership_sought) ?? firstSentence(org.description);
-}
-
-function OrgLogo({ org }: { org: OrgRow }) {
-  const [failed, setFailed] = useState(false);
-  if (org.logo_url && !failed) {
-    return (
-      <img src={org.logo_url} alt="" onError={() => setFailed(true)}
-        className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-contain p-1.5 shrink-0 bg-card border border-[#2D6A4F]/20" />
-    );
-  }
-  return (
-    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl shrink-0 flex items-center justify-center bg-[#2D6A4F] text-white text-2xl sm:text-3xl font-black">
-      {org.organisation_name.trim().charAt(0).toUpperCase()}
-    </div>
-  );
 }
 
 // Shared by both variants. Each variant supplies its own outer wrapper (page: a
