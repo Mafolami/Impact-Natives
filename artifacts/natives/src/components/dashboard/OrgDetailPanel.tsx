@@ -217,7 +217,109 @@ function BentoCell({ label, value, accent }: { label: string; value: string; acc
 // Shared by both variants -- confirmed byte-identical content. score,
 // ddDocs, and ddTotal are computed once above the page/panel branch
 // point, so they're passed in rather than recomputed here.
+// Shared by both variants -- the <button> itself is byte-identical; only
+// whether it's wrapped in an extra mobile-only div (panel) differs, and
+// that wrapping stays in each variant's own code.
+function BackButton({ onBack, backLabel }: { onBack: () => void; backLabel: string }) {
+  return (
+    <button type="button" onClick={onBack}
+      className="flex items-center gap-1.5 text-sm text-black dark:text-white hover:text-[#C45C26] transition-colors">
+      <ArrowLeft className="w-3.5 h-3.5" /> {backLabel}
+    </button>
+  );
+}
+
+// Shared by both variants -- the outer row div is byte-identical
+// ("flex items-center gap-2 flex-wrap mb-1"), so the whole row (name
+// link + all 5 badges) is one component. The name link's className is
+// the one real difference between variants (font weight/leading),
+// handled via the variant prop -- same pattern as WorkingExpectationsList.
+function IdentityNameRow({ org, variant, isVerified, mouExecuted, fitLoading, fitLocked, fit }: {
+  org: OrgRow; variant: "page" | "panel";
+  isVerified: boolean; mouExecuted: boolean; fitLoading: boolean; fitLocked: boolean; fit: FitResult | null;
+}) {
+  const nameClass = variant === "page"
+    ? "text-2xl font-bold text-foreground hover:text-[#C45C26] transition-colors tracking-tight"
+    : "text-2xl font-black text-foreground hover:text-[#C45C26] transition-colors leading-tight tracking-tight";
+  return (
+    <div className="flex items-center gap-2 flex-wrap mb-1">
+      <Link href={`/dashboard/natives?tab=organisation&user=${org.user_id}`} className={nameClass}>
+        {org.organisation_name}
+      </Link>
+      {isVerified && (
+        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+          style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
+          <ShieldCheck className="w-3 h-3" />Verified
+        </span>
+      )}
+      {mouExecuted && (
+        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+          style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F", border: "1px solid rgba(45,106,79,0.3)" }}>
+          <Award className="w-3 h-3" />MoU Executed
+        </span>
+      )}
+      {fitLoading && (
+        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-muted text-black dark:text-white border border-border">
+          <Loader2 className="w-3 h-3 animate-spin" />Scoring fit...
+        </span>
+      )}
+      {fitLocked && (
+        <Link href="/dashboard/settings?tab=billing"
+          className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-muted text-black dark:text-white border border-border hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] transition-colors">
+          <Sparkles className="w-3 h-3" />AI fit score — upgrade
+        </Link>
+      )}
+      {fit && !fitLoading && (
+        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0"
+          style={{
+            background: fit.fit_score >= 70 ? "rgba(6,95,70,0.12)" : fit.fit_score >= 50 ? "rgba(146,64,14,0.12)" : "rgba(153,27,27,0.12)",
+            color: fit.fit_score >= 70 ? "#065F46" : fit.fit_score >= 50 ? "#92400E" : "#991B1B",
+            border: `1px solid ${fit.fit_score >= 70 ? "rgba(6,95,70,0.3)" : fit.fit_score >= 50 ? "rgba(146,64,14,0.3)" : "rgba(153,27,27,0.3)"}`,
+          }}>
+          {fit.fit_score}% fit
+        </span>
+      )}
+    </div>
+  );
+}
+
+// Shared by both variants -- plain text content, not a component, since
+// the wrapping element itself (span vs p, different classes) genuinely
+// differs and stays with each variant.
+function orgTypeAndCountriesLabel(org: OrgRow, countries: string[]): string {
+  return `${orgTypeLabel(org.organisation_type)}${countries.length > 0 ? ` · ${countries.join(", ")}` : ""}`;
+}
+
 // Shared by both variants -- confirmed byte-identical content.
+function SaveButton({ isSaved, onToggleSave }: { isSaved: boolean; onToggleSave: (e: React.MouseEvent) => void }) {
+  return (
+    <button type="button" onClick={onToggleSave}
+      className="shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-full transition-all border border-border"
+      style={{ color: isSaved ? "#065F46" : undefined, background: isSaved ? "rgba(6,95,70,0.1)" : "transparent" }}>
+      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5"
+        fill={isSaved ? "#065F46" : "none"} stroke="currentColor" strokeWidth={2}>
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+      </svg>
+      {isSaved ? "Saved" : "Save"}
+    </button>
+  );
+}
+
+// Shared by both variants -- confirmed byte-identical rendering. Each
+// variant keeps its own choice of where to place it and what margin to
+// give it, since the position in the tree genuinely differs.
+function SectorTags({ sectors }: { sectors: string[] }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {sectors.map(s => (
+        <span key={s} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-muted text-foreground border border-border">
+          {s}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function ConsultantExpertiseContent({ org }: { org: OrgRow }) {
   return (
     <>
@@ -543,80 +645,24 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
   if (variant === "page") {
     return (
       <div className="space-y-6">
-        {backLabel && (
-          <button type="button" onClick={onBack}
-            className="flex items-center gap-1.5 text-sm text-black dark:text-white hover:text-[#C45C26] transition-colors">
-            <ArrowLeft className="w-3.5 h-3.5" /> {backLabel}
-          </button>
-        )}
+        {backLabel && <BackButton onBack={onBack} backLabel={backLabel} />}
 
         {/* Identity -- no card, no gradient, sits directly on the page like InitiativeDetail's title block */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <Link href={`/dashboard/natives?tab=organisation&user=${org.user_id}`}
-                className="text-2xl font-bold text-foreground hover:text-[#C45C26] transition-colors tracking-tight">
-                {org.organisation_name}
-              </Link>
-              {isVerified && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
-                  style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
-                  <ShieldCheck className="w-3 h-3" />Verified
-                </span>
-              )}
-              {mouExecuted && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
-                  style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F", border: "1px solid rgba(45,106,79,0.3)" }}>
-                  <Award className="w-3 h-3" />MoU Executed
-                </span>
-              )}
-              {fitLoading && (
-                <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-muted text-black dark:text-white border border-border">
-                  <Loader2 className="w-3 h-3 animate-spin" />Scoring fit...
-                </span>
-              )}
-              {fitLocked && (
-                <Link href="/dashboard/settings?tab=billing"
-                  className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-muted text-black dark:text-white border border-border hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] transition-colors">
-                  <Sparkles className="w-3 h-3" />AI fit score — upgrade
-                </Link>
-              )}
-              {fit && !fitLoading && (
-                <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0"
-                  style={{
-                    background: fit.fit_score >= 70 ? "rgba(6,95,70,0.12)" : fit.fit_score >= 50 ? "rgba(146,64,14,0.12)" : "rgba(153,27,27,0.12)",
-                    color: fit.fit_score >= 70 ? "#065F46" : fit.fit_score >= 50 ? "#92400E" : "#991B1B",
-                    border: `1px solid ${fit.fit_score >= 70 ? "rgba(6,95,70,0.3)" : fit.fit_score >= 50 ? "rgba(146,64,14,0.3)" : "rgba(153,27,27,0.3)"}`,
-                  }}>
-                  {fit.fit_score}% fit
-                </span>
-              )}
-            </div>
+            <IdentityNameRow org={org} variant="page" isVerified={isVerified} mouExecuted={mouExecuted} fitLoading={fitLoading} fitLocked={fitLocked} fit={fit} />
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               <span className="text-xs text-black dark:text-white capitalize">
-                {orgTypeLabel(org.organisation_type)}
-                {countries.length > 0 && ` · ${countries.join(", ")}`}
+                {orgTypeAndCountriesLabel(org, countries)}
               </span>
             </div>
             {sectors.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                {sectors.map(s => (
-                  <span key={s} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-muted text-foreground border border-border">
-                    {s}
-                  </span>
-                ))}
+              <div className="mt-3">
+                <SectorTags sectors={sectors} />
               </div>
             )}
           </div>
-          <button type="button" onClick={onToggleSave}
-            className="shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-full transition-all border border-border"
-            style={{ color: isSaved ? "#065F46" : undefined, background: isSaved ? "rgba(6,95,70,0.1)" : "transparent" }}>
-            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5"
-              fill={isSaved ? "#065F46" : "none"} stroke="currentColor" strokeWidth={2}>
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-            </svg>
-            {isSaved ? "Saved" : "Save"}
-          </button>
+          <SaveButton isSaved={isSaved} onToggleSave={onToggleSave} />
         </div>
 
         {org.description && (
@@ -871,79 +917,21 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         style={{ background: "linear-gradient(to bottom, rgba(45,106,79,0.06), transparent)" }}>
         {backLabel && (
           <div className="flex justify-between mb-4 lg:hidden">
-            <button type="button" onClick={onBack}
-              className="flex items-center gap-1.5 text-sm text-black dark:text-white hover:text-[#C45C26] transition-colors">
-              <ArrowLeft className="w-3.5 h-3.5" /> {backLabel}
-            </button>
+            <BackButton onBack={onBack} backLabel={backLabel} />
           </div>
         )}
 
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <Link href={`/dashboard/natives?tab=organisation&user=${org.user_id}`}
-                className="text-2xl font-black text-foreground hover:text-[#C45C26] transition-colors leading-tight tracking-tight">
-                {org.organisation_name}
-              </Link>
-              {isVerified && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
-                style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
-                <ShieldCheck className="w-3 h-3" />Verified
-              </span>
-            )}
-            {mouExecuted && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
-                style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F", border: "1px solid rgba(45,106,79,0.3)" }}>
-                <Award className="w-3 h-3" />MoU Executed
-              </span>
-            )}
-            {fitLoading && (
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-muted text-black dark:text-white border border-border">
-                <Loader2 className="w-3 h-3 animate-spin" />Scoring fit...
-              </span>
-            )}
-            {fitLocked && (
-              <Link href="/dashboard/settings?tab=billing"
-                className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-muted text-black dark:text-white border border-border hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] transition-colors">
-                <Sparkles className="w-3 h-3" />AI fit score — upgrade
-              </Link>
-            )}
-            {fit && !fitLoading && (
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0"
-                style={{
-                  background: fit.fit_score >= 70 ? "rgba(6,95,70,0.12)" : fit.fit_score >= 50 ? "rgba(146,64,14,0.12)" : "rgba(153,27,27,0.12)",
-                  color: fit.fit_score >= 70 ? "#065F46" : fit.fit_score >= 50 ? "#92400E" : "#991B1B",
-                  border: `1px solid ${fit.fit_score >= 70 ? "rgba(6,95,70,0.3)" : fit.fit_score >= 50 ? "rgba(146,64,14,0.3)" : "rgba(153,27,27,0.3)"}`,
-                }}>
-                {fit.fit_score}% fit
-              </span>
-            )}
-          </div>
-          <p className="text-sm text-black dark:text-white capitalize">
-              {orgTypeLabel(org.organisation_type)}
-              {countries.length > 0 && ` · ${countries.join(", ")}`}
+            <IdentityNameRow org={org} variant="panel" isVerified={isVerified} mouExecuted={mouExecuted} fitLoading={fitLoading} fitLocked={fitLocked} fit={fit} />
+            <p className="text-sm text-black dark:text-white capitalize">
+              {orgTypeAndCountriesLabel(org, countries)}
             </p>
           </div>
-          <button type="button" onClick={onToggleSave}
-            className="shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-full transition-all border border-border"
-            style={{ color: isSaved ? "#065F46" : undefined, background: isSaved ? "rgba(6,95,70,0.1)" : "transparent" }}>
-            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5"
-              fill={isSaved ? "#065F46" : "none"} stroke="currentColor" strokeWidth={2}>
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-            </svg>
-            {isSaved ? "Saved" : "Save"}
-          </button>
+          <SaveButton isSaved={isSaved} onToggleSave={onToggleSave} />
         </div>
 
-        {sectors.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {sectors.map(s => (
-              <span key={s} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-muted text-foreground border border-border">
-                {s}
-              </span>
-            ))}
-          </div>
-        )}
+        {sectors.length > 0 && <SectorTags sectors={sectors} />}
       </div>
 
       {/* ── Scrollable content ── */}
