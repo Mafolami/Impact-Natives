@@ -71,6 +71,7 @@ export interface OrgRow {
   fdd_legal_registration?: boolean;
   specializations?: string[]; notable_engagements?: string[]; affiliations?: string[];
   subscription_tier?: string;
+  logo_url?: string | null;
 }
 
 export type FitResult = {
@@ -406,6 +407,72 @@ function SectorTags({ sectors }: { sectors: string[] }) {
         </span>
       ))}
     </div>
+  );
+}
+
+// Brand-green band behind the identity block. One definition so both variants match.
+const IDENTITY_BAND = "linear-gradient(to bottom, rgba(45,106,79,0.06), transparent)";
+
+// First sentence of a text, or null when it is too short or too long to read as a
+// one-line opener (a cut-off sentence looks worse than no line).
+function firstSentence(text: string | null | undefined): string | null {
+  const t = (text ?? "").trim().replace(/\s+/g, " ");
+  if (!t) return null;
+  const m = t.match(/^.+?(?<!\b(?:Inc|Ltd|Co|Corp|Dr|Mr|Mrs|Ms|St|vs|etc|e\.g|i\.e))[.!?](?=\s|$)/);
+  const s = (m ? m[0] : t).trim();
+  return s.length >= 20 && s.length <= 180 ? s : null;
+}
+
+// Editorial opening line: taken from the org's own words, never invented.
+function openingLine(org: OrgRow): string | null {
+  return firstSentence(org.partnership_sought) ?? firstSentence(org.description);
+}
+
+function OrgLogo({ org }: { org: OrgRow }) {
+  const [failed, setFailed] = useState(false);
+  if (org.logo_url && !failed) {
+    return (
+      <img src={org.logo_url} alt="" onError={() => setFailed(true)}
+        className="w-14 h-14 rounded-xl object-contain shrink-0 bg-card border border-border" />
+    );
+  }
+  return (
+    <div className="w-14 h-14 rounded-xl shrink-0 flex items-center justify-center bg-[#2D6A4F] text-white text-xl font-black">
+      {org.organisation_name.trim().charAt(0).toUpperCase()}
+    </div>
+  );
+}
+
+// Shared by both variants. Each variant supplies its own outer wrapper (page: a
+// bordered band card; panel: the full-width band strip with the mobile back button).
+// The variant prop only sets the type/countries text size, as before.
+function IdentityHeader({ org, variant, countries, sectors, isVerified, mouExecuted, fitLoading, fitLocked, fit, isSaved, onToggleSave }: {
+  org: OrgRow; variant: "page" | "panel"; countries: string[]; sectors: string[];
+  isVerified: boolean; mouExecuted: boolean; fitLoading: boolean; fitLocked: boolean; fit: FitResult | null;
+  isSaved: boolean; onToggleSave: (e: React.MouseEvent) => void;
+}) {
+  const line = openingLine(org);
+  return (
+    <>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-4 flex-1 min-w-0">
+          <OrgLogo key={org.id} org={org} />
+          <div className="flex-1 min-w-0">
+            <IdentityNameRow org={org} variant={variant} isVerified={isVerified} mouExecuted={mouExecuted} fitLoading={fitLoading} fitLocked={fitLocked} fit={fit} />
+            <p className={`${variant === "page" ? "text-xs" : "text-sm"} text-black dark:text-white capitalize`}>
+              {orgTypeAndCountriesLabel(org, countries)}
+            </p>
+          </div>
+        </div>
+        <SaveButton isSaved={isSaved} onToggleSave={onToggleSave} />
+      </div>
+      {sectors.length > 0 && (
+        <div className="mt-4">
+          <SectorTags sectors={sectors} />
+        </div>
+      )}
+      {line && <p className="mt-4 text-lg font-semibold text-foreground leading-snug">{line}</p>}
+    </>
   );
 }
 
@@ -771,22 +838,10 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
       <div className="space-y-6">
         {backLabel && <BackButton onBack={onBack} backLabel={backLabel} />}
 
-        {/* Identity -- no card, no gradient, sits directly on the page like InitiativeDetail's title block */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <IdentityNameRow org={org} variant="page" isVerified={isVerified} mouExecuted={mouExecuted} fitLoading={fitLoading} fitLocked={fitLocked} fit={fit} />
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <span className="text-xs text-black dark:text-white capitalize">
-                {orgTypeAndCountriesLabel(org, countries)}
-              </span>
-            </div>
-            {sectors.length > 0 && (
-              <div className="mt-3">
-                <SectorTags sectors={sectors} />
-              </div>
-            )}
-          </div>
-          <SaveButton isSaved={isSaved} onToggleSave={onToggleSave} />
+        {/* Identity -- brand-green band card, shared IdentityHeader */}
+        <div className="rounded-xl border border-border px-6 py-5" style={{ background: IDENTITY_BAND }}>
+          <IdentityHeader org={org} variant="page" countries={countries} sectors={sectors} isVerified={isVerified} mouExecuted={mouExecuted}
+            fitLoading={fitLoading} fitLocked={fitLocked} fit={fit} isSaved={isSaved} onToggleSave={onToggleSave} />
         </div>
 
         {org.description && (
@@ -975,24 +1030,15 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
 
       {/* ── Identity block ── */}
       <div className="shrink-0 px-8 pt-7 pb-6 border-b-2 border-border"
-        style={{ background: "linear-gradient(to bottom, rgba(45,106,79,0.06), transparent)" }}>
+        style={{ background: IDENTITY_BAND }}>
         {backLabel && (
           <div className="flex justify-between mb-4 lg:hidden">
             <BackButton onBack={onBack} backLabel={backLabel} />
           </div>
         )}
 
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div className="flex-1 min-w-0">
-            <IdentityNameRow org={org} variant="panel" isVerified={isVerified} mouExecuted={mouExecuted} fitLoading={fitLoading} fitLocked={fitLocked} fit={fit} />
-            <p className="text-sm text-black dark:text-white capitalize">
-              {orgTypeAndCountriesLabel(org, countries)}
-            </p>
-          </div>
-          <SaveButton isSaved={isSaved} onToggleSave={onToggleSave} />
-        </div>
-
-        {sectors.length > 0 && <SectorTags sectors={sectors} />}
+        <IdentityHeader org={org} variant="panel" countries={countries} sectors={sectors} isVerified={isVerified} mouExecuted={mouExecuted}
+          fitLoading={fitLoading} fitLocked={fitLocked} fit={fit} isSaved={isSaved} onToggleSave={onToggleSave} />
       </div>
 
       {/* ── Scrollable content ── */}
