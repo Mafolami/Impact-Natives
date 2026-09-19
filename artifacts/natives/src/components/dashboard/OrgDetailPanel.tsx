@@ -807,6 +807,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
   const [fit, setFit] = useState<FitResult | null>(null);
   const [fitLoading, setFitLoading] = useState(false);
   const [fitLocked, setFitLocked] = useState(false);
+  const [fitNoListing, setFitNoListing] = useState(false);
   const [alsoFits, setAlsoFits] = useState<AlsoFit[]>([]);
   const [openingMsg, setOpeningMsg] = useState<string | null>(null);
   const [msgEditing, setMsgEditing] = useState(false);
@@ -815,6 +816,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
     if (org && ref.current) ref.current.scrollTop = 0;
     setFit(null);
     setFitLocked(false);
+    setFitNoListing(false);
     setAlsoFits([]);
     setOpeningMsg(null);
     setMsgEditing(false);
@@ -847,7 +849,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
       });
       if (error) { console.error("Fit score error:", error); return; }
       if (data?.reason === "requires_upgrade") { setFitLocked(true); return; }
-      if (data?.reason === "no_published_listing") return; // fail quiet -- viewer has no listing to compare with
+      if (data?.reason === "no_published_listing") { setFitNoListing(true); return; } // viewer has no published listing to compare with
       if (data?.eligible && data?.primary) {
         setFit(data.primary);
         setAlsoFits(data.also_fits ?? []);
@@ -925,114 +927,126 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
             fitLoading={fitLoading} fitLocked={fitLocked} fit={fit} isSaved={isSaved} onToggleSave={onToggleSave} />
         </div>
 
-        {org.description && (
-          <Section>
-            <p className="text-[15px] text-foreground leading-relaxed">{org.description}</p>
-          </Section>
-        )}
-
-        {(org.partnership_sought || org.partnership_success_definition) && (
-          <div className="space-y-3">
-            {org.partnership_sought && (
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
+          <div className="space-y-6 min-w-0">
+            {org.description && (
               <Section>
-                <Eyebrow>Seeking</Eyebrow>
-                <p className="text-[15px] text-foreground leading-relaxed">{org.partnership_sought}</p>
+                <p className="text-[15px] text-foreground leading-relaxed">{org.description}</p>
               </Section>
             )}
-            {org.partnership_success_definition && <SuccessOutcomeCard org={org} />}
-          </div>
-        )}
 
-        {(fit || fitLoading) && org.user_id !== viewerOrg?.user_id && (
-          <div className="rounded-xl border border-border bg-card px-5 py-4"
-            style={{ background: "linear-gradient(135deg, rgba(13,43,26,0.04) 0%, rgba(26,74,46,0.02) 100%)" }}>
-            <FitAnalysisContent fit={fit} fitLoading={fitLoading} fitLocked={fitLocked} alsoFits={alsoFits} onSelectAlsoFit={swapToAlsoFit} />
-          </div>
-        )}
-
-        {hasPartnershipSignals(org) && (
-          <Section>
-            <Eyebrow>Partnership signals</Eyebrow>
-            <PartnershipSignalsGrid org={org} />
-          </Section>
-        )}
-
-        {hasWorkingExpectations(org) && (
-          <Section>
-            <Eyebrow>Working expectations</Eyebrow>
-            <WorkingExpectationsList org={org} />
-          </Section>
-        )}
-
-        {((org.needs && org.needs.length > 0) || (org.offers && org.offers.length > 0)) && (
-          <Section className="space-y-5">
-            {org.needs && org.needs.length > 0 && (
-              <div>
-                <Eyebrow>Looking for in a partner</Eyebrow>
-                <div className="flex flex-wrap gap-2">
-                  {org.needs.map(n => (
-                    <span key={n} className="text-sm font-semibold px-4 py-2 rounded-lg text-foreground bg-muted border border-border">{n}</span>
-                  ))}
-                </div>
+            {(org.partnership_sought || org.partnership_success_definition) && (
+              <div className="space-y-3">
+                {org.partnership_sought && (
+                  <Section>
+                    <Eyebrow>Seeking</Eyebrow>
+                    <p className="text-[15px] text-foreground leading-relaxed">{org.partnership_sought}</p>
+                  </Section>
+                )}
+                {org.partnership_success_definition && <SuccessOutcomeCard org={org} />}
               </div>
             )}
-            {org.offers && org.offers.length > 0 && (
-              <div>
-                <Eyebrow>What they bring</Eyebrow>
-                <div className="flex flex-wrap gap-2">
-                  {org.offers.map(o => (
-                    <span key={o} className="text-sm font-bold px-4 py-2 rounded-lg"
-                      style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>{o}</span>
-                  ))}
-                </div>
+
+            {hasPartnershipSignals(org) && (
+              <Section>
+                <Eyebrow>Partnership signals</Eyebrow>
+                <PartnershipSignalsGrid org={org} />
+              </Section>
+            )}
+
+            {hasWorkingExpectations(org) && (
+              <Section>
+                <Eyebrow>Working expectations</Eyebrow>
+                <WorkingExpectationsList org={org} />
+              </Section>
+            )}
+
+            {((org.needs && org.needs.length > 0) || (org.offers && org.offers.length > 0)) && (
+              <Section className="space-y-5">
+                {org.needs && org.needs.length > 0 && (
+                  <div>
+                    <Eyebrow>Looking for in a partner</Eyebrow>
+                    <div className="flex flex-wrap gap-2">
+                      {org.needs.map(n => (
+                        <span key={n} className="text-sm font-semibold px-4 py-2 rounded-lg text-foreground bg-muted border border-border">{n}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {org.offers && org.offers.length > 0 && (
+                  <div>
+                    <Eyebrow>What they bring</Eyebrow>
+                    <div className="flex flex-wrap gap-2">
+                      {org.offers.map(o => (
+                        <span key={o} className="text-sm font-bold px-4 py-2 rounded-lg"
+                          style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>{o}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </Section>
+            )}
+
+            <Section>
+              <DueDiligenceReadiness org={org} score={score} ddTotal={ddTotal} ddDocs={ddDocs} />
+            </Section>
+                  {isConsultancyOrg(org) && !!(org.specializations?.length || org.notable_engagements?.length || org.affiliations?.length) && (
+                    <Section>
+                      <ConsultantExpertiseContent org={org} />
+                    </Section>
+                  )}
+                  <VerifiedOutcomesSection orgId={org.id} variant="page" isOwnOrg={viewerOrg?.id === org.id} />
+                  {org.sdgs && org.sdgs.length > 0 && <SdgTagRow org={org} />}
+
+            {(org.partnership_theory_of_change || org.partnership_prior_attempts || org.partnership_constraints) && (
+              <Section>
+                <Eyebrow>Context</Eyebrow>
+                <ContextGrid org={org} />
+              </Section>
+            )}
+
+            {org.partnership_prior_experience !== null && org.partnership_prior_experience !== undefined && (
+              <Section>
+                <Eyebrow>Track record</Eyebrow>
+                <TrackRecordContent org={org} />
+              </Section>
+            )}
+
+            {org.website && org.website !== "https://" && (
+              <WebsiteLink org={org} />
+            )}
+          </div>
+          <aside className="space-y-4 min-w-0 xl:sticky xl:top-4">
+            {viewerOrgLoading ? (
+              <div className="rounded-xl border border-border bg-card px-5 py-4">
+                <LoadingIndicator />
+              </div>
+            ) : org.user_id === viewerOrg?.user_id ? (
+              <OwnListingBanner />
+            ) : org.partnership_formed ? (
+              <PartnershipFormedBanner />
+            ) : isOrg && (
+              <div className="rounded-xl border border-border bg-card px-5 py-4 space-y-3">
+                <ExpressInterestPanel alreadySent={alreadySent} openingMsg={openingMsg} setOpeningMsg={setOpeningMsg}
+                  msgEditing={msgEditing} setMsgEditing={setMsgEditing} sending={sending} onExpressInterest={onExpressInterest} />
               </div>
             )}
-          </Section>
-        )}
 
-        <Section>
-          <DueDiligenceReadiness org={org} score={score} ddTotal={ddTotal} ddDocs={ddDocs} />
-        </Section>
-              {isConsultancyOrg(org) && !!(org.specializations?.length || org.notable_engagements?.length || org.affiliations?.length) && (
-                <Section>
-                  <ConsultantExpertiseContent org={org} />
-                </Section>
-              )}
-              <VerifiedOutcomesSection orgId={org.id} variant="page" isOwnOrg={viewerOrg?.id === org.id} />
-              {org.sdgs && org.sdgs.length > 0 && <SdgTagRow org={org} />}
+            {(fit || fitLoading || fitLocked) && org.user_id !== viewerOrg?.user_id && (
+              <div className="rounded-xl border border-border bg-card px-5 py-4"
+                style={{ background: "linear-gradient(135deg, rgba(13,43,26,0.04) 0%, rgba(26,74,46,0.02) 100%)" }}>
+                <FitAnalysisContent fit={fit} fitLoading={fitLoading} fitLocked={fitLocked} alsoFits={alsoFits} onSelectAlsoFit={swapToAlsoFit} />
+              </div>
+            )}
 
-        {(org.partnership_theory_of_change || org.partnership_prior_attempts || org.partnership_constraints) && (
-          <Section>
-            <Eyebrow>Context</Eyebrow>
-            <ContextGrid org={org} />
-          </Section>
-        )}
-
-        {org.partnership_prior_experience !== null && org.partnership_prior_experience !== undefined && (
-          <Section>
-            <Eyebrow>Track record</Eyebrow>
-            <TrackRecordContent org={org} />
-          </Section>
-        )}
-
-        {org.website && org.website !== "https://" && (
-          <WebsiteLink org={org} />
-        )}
-
-        {viewerOrgLoading ? (
-          <div className="rounded-xl border border-border bg-card px-5 py-4">
-            <LoadingIndicator />
-          </div>
-        ) : org.user_id === viewerOrg?.user_id ? (
-          <OwnListingBanner />
-        ) : org.partnership_formed ? (
-          <PartnershipFormedBanner />
-        ) : isOrg && (
-          <div className="rounded-xl border border-border bg-card px-5 py-4 space-y-3">
-            <ExpressInterestPanel alreadySent={alreadySent} openingMsg={openingMsg} setOpeningMsg={setOpeningMsg}
-              msgEditing={msgEditing} setMsgEditing={setMsgEditing} sending={sending} onExpressInterest={onExpressInterest} />
-          </div>
-        )}
+            {fitNoListing && !fit && !fitLoading && org.user_id !== viewerOrg?.user_id && (
+              <div className="rounded-xl border border-border bg-card px-5 py-4">
+                <Eyebrow>Your fit</Eyebrow>
+                <p className="text-sm text-foreground leading-relaxed">Publish a partnership listing to see how well you fit with this organisation.</p>
+              </div>
+            )}
+          </aside>
+        </div>
       </div>
     );
   }
