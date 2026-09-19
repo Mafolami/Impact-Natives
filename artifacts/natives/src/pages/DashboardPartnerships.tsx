@@ -94,6 +94,7 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave, mouExecuted }
 export default function DashboardPartnerships() {
   const { user, orgOwnerId } = useAuth();
   const autoOpenOrgId = new URLSearchParams(window.location.search).get("org");
+  const autoOpenListingId = new URLSearchParams(window.location.search).get("listing");
   const [orgs, setOrgs]                       = useState<(OrgRow & { listing_id: string })[]>([]);
   const [loading, setLoading]                 = useState(true);
   const [showModal, setShowModal]             = useState(false);
@@ -172,7 +173,8 @@ export default function DashboardPartnerships() {
       .filter((r): r is OrgRow & { listing_id: string } => r !== null);
 
     setOrgs(merged);
-    const deepLinked = autoOpenOrgId ? merged.find(o => o.id === autoOpenOrgId) : null;
+    const deepLinked = (autoOpenListingId ? merged.find(o => o.listing_id === autoOpenListingId) : null)
+      ?? (autoOpenOrgId ? merged.find(o => o.id === autoOpenOrgId) : null);
     if (deepLinked) {
       setSelectedOrg(deepLinked);
     } else if (autoOpenOrgId) {

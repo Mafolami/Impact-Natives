@@ -35,6 +35,7 @@ import { Loader2, ShieldCheck, Sparkles, CheckCircle2, ArrowUpRight, ArrowLeft, 
 import type { LucideIcon } from "lucide-react";
 import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 import VerifiedOutcomesSection from "@/components/dashboard/VerifiedOutcomesSection";
+import { ShareButton } from "@/components/dashboard/ShareButton";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -410,6 +411,16 @@ function SectorTags({ sectors }: { sectors: string[] }) {
   );
 }
 
+// Share link for one specific listing. The Partnerships page opens the listing with this id.
+function listingShareUrl(org: OrgRow): string {
+  return `${window.location.origin}/dashboard/partnerships?listing=${org.listing_id}`;
+}
+
+function listingShareMessage(org: OrgRow): string {
+  const what = org.partnership_title?.trim() || `a partnership from ${org.organisation_name}`;
+  return `Check out this partnership opportunity on Impact Natives: ${what}. Sign up to explore more opportunities like this one.`;
+}
+
 // Brand-green band behind the identity block. One definition so both variants match.
 const IDENTITY_BAND = "linear-gradient(to bottom, rgba(45,106,79,0.06), transparent)";
 
@@ -464,7 +475,12 @@ function IdentityHeader({ org, variant, countries, sectors, isVerified, mouExecu
             </p>
           </div>
         </div>
-        <SaveButton isSaved={isSaved} onToggleSave={onToggleSave} />
+        <div className="flex items-center gap-2 shrink-0">
+          {org.listing_id && !org.partnership_formed && (
+            <ShareButton label="Share" url={listingShareUrl(org)} message={listingShareMessage(org)} />
+          )}
+          <SaveButton isSaved={isSaved} onToggleSave={onToggleSave} />
+        </div>
       </div>
       {sectors.length > 0 && (
         <div className={`mt-4${hideSectorsOnXl ? " xl:hidden" : ""}`}>

@@ -40,7 +40,7 @@ export function ShareButton({ url, message, size = "sm", label }: { url: string;
       ? "border-[#2D6A4F]/30 bg-[rgba(45,106,79,0.12)] text-[#2D6A4F]"
       : "border-border text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] hover:bg-[#2D6A4F]/5 dark:hover:border-[#C45C26] dark:hover:text-[#C45C26] dark:hover:bg-[#C45C26]/10"
   }`;
-  const labelTriggerClass = `h-9 px-3.5 rounded-full flex items-center gap-1.5 border text-xs font-semibold transition-colors ${
+  const labelTriggerClass = `px-3.5 py-2 rounded-full flex items-center gap-1.5 border text-xs font-semibold transition-colors ${
     copied
       ? "border-[#2D6A4F]/30 bg-[rgba(45,106,79,0.12)] text-[#2D6A4F]"
       : "border-border text-black dark:text-white hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F]"
