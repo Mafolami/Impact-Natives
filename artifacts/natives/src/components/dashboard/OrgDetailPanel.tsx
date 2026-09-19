@@ -31,7 +31,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import { supabase } from "@/lib/supabase";
-import { Loader2, ShieldCheck, Sparkles, CheckCircle2, ArrowUpRight, ArrowLeft, Award } from "lucide-react";
+import { Loader2, ShieldCheck, Sparkles, CheckCircle2, ArrowUpRight, ArrowLeft, Award, Layers, Clock, Wallet, CalendarDays, Coins, Lock, MapPin, Users, User } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 import VerifiedOutcomesSection from "@/components/dashboard/VerifiedOutcomesSection";
 
@@ -200,10 +201,13 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   );
 }
 
-function BentoCell({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+function BentoCell({ label, value, accent, icon: Icon }: { label: string; value: string; accent?: boolean; icon?: LucideIcon }) {
   return (
     <div className="rounded-xl p-3.5 bg-muted border border-border">
-      <p className="text-[9px] font-black uppercase tracking-widest text-black dark:text-white mb-1">{label}</p>
+      <div className="flex items-center gap-1.5 mb-1">
+        {Icon && <Icon className="w-3 h-3 shrink-0 text-[#2D6A4F]" />}
+        <p className="text-[9px] font-black uppercase tracking-widest text-black dark:text-white">{label}</p>
+      </div>
       <p className={`text-sm font-bold leading-snug ${accent ? "text-[#2D6A4F]" : "text-foreground"}`}>{value}</p>
     </div>
   );
@@ -566,15 +570,15 @@ function WorkingExpectationsList({ org, variant }: { org: OrgRow; variant: "page
 function PartnershipSignalsGrid({ org }: { org: OrgRow }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-      {org.partnership_stage && <BentoCell label="Stage" value={STAGE_LABELS[org.partnership_stage] ?? org.partnership_stage} accent />}
-      {org.partnership_duration && <BentoCell label="Duration" value={DURATION_LABELS[org.partnership_duration] ?? org.partnership_duration} />}
-      {org.partnership_budget && <BentoCell label="Budget" value={BUDGET_LABELS[org.partnership_budget] ?? org.partnership_budget} />}
-      {org.partnership_decision_timeline && <BentoCell label="Timeline" value={TIMELINE_LABELS[org.partnership_decision_timeline] ?? org.partnership_decision_timeline} />}
-      {org.partnership_funding_status && <BentoCell label="Funding status" value={FUNDING_STATUS_LABELS[org.partnership_funding_status] ?? org.partnership_funding_status} />}
-      {org.partnership_exclusivity && <BentoCell label="Exclusivity" value={org.partnership_exclusivity === "one_dedicated_partner" ? "One partner only" : "Open to multiple"} />}
-      {org.partnership_geo_specificity && <BentoCell label="Location focus" value={org.partnership_geo_specificity} />}
-      {org.partnership_team_capacity && <BentoCell label="Team capacity" value={org.partnership_team_capacity.replace(/_/g, " ").replace(/(\d) (\d)/g, "$1–$2")} />}
-      {org.partnership_contact_seniority && <BentoCell label="Lead contact" value={org.partnership_contact_seniority.replace(/_/g, " ")} />}
+      {org.partnership_stage && <BentoCell label="Stage" icon={Layers} value={STAGE_LABELS[org.partnership_stage] ?? org.partnership_stage} accent />}
+      {org.partnership_duration && <BentoCell label="Duration" icon={Clock} value={DURATION_LABELS[org.partnership_duration] ?? org.partnership_duration} />}
+      {org.partnership_budget && <BentoCell label="Budget" icon={Wallet} value={BUDGET_LABELS[org.partnership_budget] ?? org.partnership_budget} />}
+      {org.partnership_decision_timeline && <BentoCell label="Timeline" icon={CalendarDays} value={TIMELINE_LABELS[org.partnership_decision_timeline] ?? org.partnership_decision_timeline} />}
+      {org.partnership_funding_status && <BentoCell label="Funding status" icon={Coins} value={FUNDING_STATUS_LABELS[org.partnership_funding_status] ?? org.partnership_funding_status} />}
+      {org.partnership_exclusivity && <BentoCell label="Exclusivity" icon={Lock} value={org.partnership_exclusivity === "one_dedicated_partner" ? "One partner only" : "Open to multiple"} />}
+      {org.partnership_geo_specificity && <BentoCell label="Location focus" icon={MapPin} value={org.partnership_geo_specificity} />}
+      {org.partnership_team_capacity && <BentoCell label="Team capacity" icon={Users} value={org.partnership_team_capacity.replace(/_/g, " ").replace(/(\d) (\d)/g, "$1–$2")} />}
+      {org.partnership_contact_seniority && <BentoCell label="Lead contact" icon={User} value={org.partnership_contact_seniority.replace(/_/g, " ")} />}
     </div>
   );
 }
