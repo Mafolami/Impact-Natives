@@ -31,7 +31,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import { supabase } from "@/lib/supabase";
-import { Loader2, ShieldCheck, Sparkles, CheckCircle2, ArrowUpRight, ArrowLeft, Award, Layers, Clock, Wallet, CalendarDays, Coins, Lock, MapPin, Users, User, Compass, Banknote, FileText, ClipboardList, Scale, Building2 } from "lucide-react";
+import { Loader2, ShieldCheck, Sparkles, CheckCircle2, ArrowUpRight, ArrowLeft, Award, Layers, Clock, Wallet, CalendarDays, Coins, Lock, MapPin, Users, User, Compass, Banknote, FileText, ClipboardList, Scale, Building2, Target } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 import VerifiedOutcomesSection from "@/components/dashboard/VerifiedOutcomesSection";
@@ -496,6 +496,23 @@ function WebsiteLink({ org }: { org: OrgRow }) {
   );
 }
 
+// Shared by both variants. The org's own 12-month success statement, given
+// visual weight as an outcome card instead of sitting as one more grey box.
+function SuccessOutcomeCard({ org }: { org: OrgRow }) {
+  return (
+    <div className="rounded-xl px-5 py-5 border border-[#2D6A4F]/30"
+      style={{ background: "linear-gradient(135deg, rgba(45,106,79,0.08) 0%, rgba(45,106,79,0.02) 100%)" }}>
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 bg-[#2D6A4F]">
+          <Target className="w-3.5 h-3.5 text-white" />
+        </div>
+        <p className="text-[10px] font-black uppercase tracking-widest text-[#2D6A4F]">Success in 12 months</p>
+      </div>
+      <p className="text-base font-semibold text-foreground leading-relaxed">"{org.partnership_success_definition}"</p>
+    </div>
+  );
+}
+
 function SdgAlignmentGrid({ org }: { org: OrgRow }) {
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -784,12 +801,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                 <p className="text-[15px] text-foreground leading-relaxed">{org.partnership_sought}</p>
               </Section>
             )}
-            {org.partnership_success_definition && (
-              <div className="rounded-xl px-5 py-4 bg-muted border border-border border-l-[3px] border-l-[#2D6A4F]">
-                <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white mb-2">Success in 12 months</p>
-                <p className="text-sm text-foreground leading-relaxed italic">"{org.partnership_success_definition}"</p>
-              </div>
-            )}
+            {org.partnership_success_definition && <SuccessOutcomeCard org={org} />}
           </div>
         )}
 
@@ -1003,12 +1015,8 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                 <p className="text-[15px] text-foreground leading-relaxed">{org.partnership_sought}</p>
               </div>
             )}
-            {org.partnership_success_definition && (
-              <div className="rounded-xl px-5 py-4 bg-muted border border-border border-l-[3px] border-l-[#2D6A4F]">
-                <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white mb-2">Success in 12 months</p>
-                <p className="text-sm text-foreground leading-relaxed italic">"{org.partnership_success_definition}"</p>
-              </div>
-            )}          </div>
+            {org.partnership_success_definition && <SuccessOutcomeCard org={org} />}
+          </div>
         )}
 
         {(fit || fitLoading) && org.user_id !== viewerOrg?.user_id && (
