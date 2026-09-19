@@ -446,10 +446,10 @@ function OrgLogo({ org }: { org: OrgRow }) {
 // Shared by both variants. Each variant supplies its own outer wrapper (page: a
 // bordered band card; panel: the full-width band strip with the mobile back button).
 // The variant prop only sets the type/countries text size, as before.
-function IdentityHeader({ org, variant, countries, sectors, isVerified, mouExecuted, fitLoading, fitLocked, fit, isSaved, onToggleSave }: {
+function IdentityHeader({ org, variant, countries, sectors, isVerified, mouExecuted, fitLoading, fitLocked, fit, isSaved, onToggleSave, hideSectorsOnXl = false }: {
   org: OrgRow; variant: "page" | "panel"; countries: string[]; sectors: string[];
   isVerified: boolean; mouExecuted: boolean; fitLoading: boolean; fitLocked: boolean; fit: FitResult | null;
-  isSaved: boolean; onToggleSave: (e: React.MouseEvent) => void;
+  isSaved: boolean; onToggleSave: (e: React.MouseEvent) => void; hideSectorsOnXl?: boolean;
 }) {
   const line = openingLine(org);
   return (
@@ -467,7 +467,7 @@ function IdentityHeader({ org, variant, countries, sectors, isVerified, mouExecu
         <SaveButton isSaved={isSaved} onToggleSave={onToggleSave} />
       </div>
       {sectors.length > 0 && (
-        <div className="mt-4">
+        <div className={`mt-4${hideSectorsOnXl ? " xl:hidden" : ""}`}>
           <SectorTags sectors={sectors} />
         </div>
       )}
@@ -923,7 +923,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
 
         {/* Identity -- brand-green band card, shared IdentityHeader */}
         <div className="rounded-xl border border-border px-6 py-5" style={{ background: IDENTITY_BAND }}>
-          <IdentityHeader org={org} variant="page" countries={countries} sectors={sectors} isVerified={isVerified} mouExecuted={mouExecuted}
+          <IdentityHeader org={org} variant="page" countries={countries} sectors={sectors} hideSectorsOnXl isVerified={isVerified} mouExecuted={mouExecuted}
             fitLoading={fitLoading} fitLocked={fitLocked} fit={fit} isSaved={isSaved} onToggleSave={onToggleSave} />
         </div>
 
@@ -961,32 +961,6 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
               </Section>
             )}
 
-            {((org.needs && org.needs.length > 0) || (org.offers && org.offers.length > 0)) && (
-              <Section className="space-y-5">
-                {org.needs && org.needs.length > 0 && (
-                  <div>
-                    <Eyebrow>Looking for in a partner</Eyebrow>
-                    <div className="flex flex-wrap gap-2">
-                      {org.needs.map(n => (
-                        <span key={n} className="text-sm font-semibold px-4 py-2 rounded-lg text-foreground bg-muted border border-border">{n}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {org.offers && org.offers.length > 0 && (
-                  <div>
-                    <Eyebrow>What they bring</Eyebrow>
-                    <div className="flex flex-wrap gap-2">
-                      {org.offers.map(o => (
-                        <span key={o} className="text-sm font-bold px-4 py-2 rounded-lg"
-                          style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>{o}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </Section>
-            )}
-
             <Section>
               <DueDiligenceReadiness org={org} score={score} ddTotal={ddTotal} ddDocs={ddDocs} />
             </Section>
@@ -1016,7 +990,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
               <WebsiteLink org={org} />
             )}
           </div>
-          <aside className="space-y-4 min-w-0 xl:sticky xl:top-4">
+          <aside className="space-y-4 min-w-0">
             {viewerOrgLoading ? (
               <div className="rounded-xl border border-border bg-card px-5 py-4">
                 <LoadingIndicator />
@@ -1044,6 +1018,36 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                 <Eyebrow>Your fit</Eyebrow>
                 <p className="text-sm text-foreground leading-relaxed">Publish a partnership listing to see how well you fit with this organisation.</p>
               </div>
+            )}
+
+            {sectors.length > 0 && (
+              <Section>
+                <Eyebrow>Key focus areas</Eyebrow>
+                <SectorTags sectors={sectors} />
+              </Section>
+            )}
+
+            {org.offers && org.offers.length > 0 && (
+              <Section>
+                <Eyebrow>What they bring</Eyebrow>
+                <div className="flex flex-wrap gap-1.5">
+                  {org.offers.map(o => (
+                    <span key={o} className="text-xs font-bold px-3 py-1.5 rounded-lg"
+                      style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>{o}</span>
+                  ))}
+                </div>
+              </Section>
+            )}
+
+            {org.needs && org.needs.length > 0 && (
+              <Section>
+                <Eyebrow>Looking for</Eyebrow>
+                <div className="flex flex-wrap gap-1.5">
+                  {org.needs.map(n => (
+                    <span key={n} className="text-xs font-semibold px-3 py-1.5 rounded-lg text-foreground bg-card border border-border">{n}</span>
+                  ))}
+                </div>
+              </Section>
             )}
           </aside>
         </div>
