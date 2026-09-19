@@ -214,6 +214,46 @@ function BentoCell({ label, value, accent }: { label: string; value: string; acc
 // differs (page sections are individual cards so the last row drops its
 // border, panel rows sit in one continuous divided flow) -- preserved via
 // the variant prop rather than papered over.
+// Shared by both variants -- confirmed byte-identical content. score,
+// ddDocs, and ddTotal are computed once above the page/panel branch
+// point, so they're passed in rather than recomputed here.
+function DueDiligenceReadiness({ org, score, ddTotal, ddDocs }: { org: OrgRow; score: number; ddTotal: number; ddDocs: { key: keyof OrgRow; label: string }[] }) {
+  if (isConsultancyOrg(org)) {
+    return (
+      <>
+        <Eyebrow>Due diligence readiness</Eyebrow>
+        <p className="text-xs text-black dark:text-white mt-2">
+          Institutional due diligence (audited accounts, board governance) doesn't apply to solo consultancies.
+        </p>
+      </>
+    );
+  }
+  return (
+    <>
+      <div className="flex items-center justify-between mb-4">
+        <Eyebrow>Due diligence readiness</Eyebrow>
+        <span className="text-xs font-bold mb-3" style={{ color: score > ddTotal / 2 ? "#065F46" : "#92400E" }}>{score} of {ddTotal} docs ready</span>
+      </div>
+      <div className="h-1.5 rounded-full mb-4 overflow-hidden bg-muted">
+        <div className="h-full rounded-full transition-all" style={{ width: `${(score / ddTotal) * 100}%`, background: score > ddTotal / 2 ? "#2D6A4F" : "#C45C26" }} />
+      </div>
+      {score === 0 ? (
+        <p className="text-xs text-black dark:text-white">No documents confirmed ready yet.</p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {ddDocs.filter(({ key }) => !!org[key]).map(({ label }) => (
+            <span key={label} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg"
+              style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+              {label}
+            </span>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 function WorkingExpectationsList({ org, variant }: { org: OrgRow; variant: "page" | "panel" }) {
   const rowBorderClass = variant === "page" ? "border-b border-border last:border-b-0" : "border-b border-border";
   return (
@@ -617,38 +657,8 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         )}
 
         <Section>
-          {isConsultancyOrg(org) ? (
-            <>
-              <Eyebrow>Due diligence readiness</Eyebrow>
-              <p className="text-xs text-black dark:text-white mt-2">
-                Institutional due diligence (audited accounts, board governance) doesn't apply to solo consultancies.
-              </p>
-            </>
-          ) : (
-            <>
-              <div className="flex items-center justify-between mb-4">
-                <Eyebrow>Due diligence readiness</Eyebrow>
-                <span className="text-xs font-bold mb-3" style={{ color: score > ddTotal / 2 ? "#065F46" : "#92400E" }}>{score} of {ddTotal} docs ready</span>
-              </div>
-              <div className="h-1.5 rounded-full mb-4 overflow-hidden bg-muted">
-                <div className="h-full rounded-full transition-all" style={{ width: `${(score / ddTotal) * 100}%`, background: score > ddTotal / 2 ? "#2D6A4F" : "#C45C26" }} />
-              </div>
-              {score === 0 ? (
-                <p className="text-xs text-black dark:text-white">No documents confirmed ready yet.</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {ddDocs.filter(({ key }) => !!org[key]).map(({ label }) => (
-                    <span key={label} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg"
-                      style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-                      {label}
-                    </span>
-                    ))}
-                    </div>
-                  )}
-                </>
-              )}
-              </Section>
+          <DueDiligenceReadiness org={org} score={score} ddTotal={ddTotal} ddDocs={ddDocs} />
+        </Section>
               {isConsultancyOrg(org) && !!(org.specializations?.length || org.notable_engagements?.length || org.affiliations?.length) && (
                 <Section>
                   <Eyebrow>Consultant expertise</Eyebrow>
@@ -1041,38 +1051,8 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         )}
 
         <div className="px-8 py-6">
-          {isConsultancyOrg(org) ? (
-            <>
-              <Eyebrow>Due diligence readiness</Eyebrow>
-              <p className="text-xs text-black dark:text-white mt-2">
-                Institutional due diligence (audited accounts, board governance) doesn't apply to solo consultancies.
-              </p>
-            </>
-          ) : (
-            <>
-              <div className="flex items-center justify-between mb-4">
-                <Eyebrow>Due diligence readiness</Eyebrow>
-                <span className="text-xs font-bold mb-3" style={{ color: score > ddTotal / 2 ? "#065F46" : "#92400E" }}>{score} of {ddTotal} docs ready</span>
-              </div>
-              <div className="h-1.5 rounded-full mb-4 overflow-hidden bg-muted">
-                <div className="h-full rounded-full transition-all" style={{ width: `${(score / ddTotal) * 100}%`, background: score > ddTotal / 2 ? "#2D6A4F" : "#C45C26" }} />
-              </div>
-              {score === 0 ? (
-                <p className="text-xs text-black dark:text-white">No documents confirmed ready yet.</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {ddDocs.filter(({ key }) => !!org[key]).map(({ label }) => (
-                    <span key={label} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg"
-                      style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-                      {label}
-                    </span>
-                  ))}
-                </div>
-                )}
-            </>
-          )}
-          </div>
+          <DueDiligenceReadiness org={org} score={score} ddTotal={ddTotal} ddDocs={ddDocs} />
+        </div>
           
           {isConsultancyOrg(org) && !!(org.specializations?.length || org.notable_engagements?.length || org.affiliations?.length) && (
             <div className="mt-6">
