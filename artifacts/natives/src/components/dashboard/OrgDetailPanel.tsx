@@ -209,10 +209,32 @@ function BentoCell({ label, value, accent }: { label: string; value: string; acc
   );
 }
 
-// Shared by both the "page" and "panel" variants -- confirmed byte-identical
-// content in each, differing only in the outer wrapper element each variant
-// uses. Extracted here so there's exactly one copy of this grid to edit
-// going forward, instead of two that could silently drift apart.
+// Shared by both the "page" and "panel" variants -- the field list itself
+// (and its data-shaping logic) is identical; only the last row's border
+// differs (page sections are individual cards so the last row drops its
+// border, panel rows sit in one continuous divided flow) -- preserved via
+// the variant prop rather than papered over.
+function WorkingExpectationsList({ org, variant }: { org: OrgRow; variant: "page" | "panel" }) {
+  const rowBorderClass = variant === "page" ? "border-b border-border last:border-b-0" : "border-b border-border";
+  return (
+    <div className="space-y-3">
+      {[
+        org.partnership_working_style     && { label: "Working style",       value: WORKING_STYLE_LABELS[org.partnership_working_style] ?? org.partnership_working_style },
+        org.partnership_financial_transfer && { label: "Financial arrangement", value: FINANCIAL_TRANSFER_LABELS[org.partnership_financial_transfer] ?? org.partnership_financial_transfer },
+        org.partnership_legal_type?.length && { label: "Partnership type",   value: org.partnership_legal_type!.map(t => LEGAL_TYPE_LABELS[t] ?? t).join(", ") },
+        org.partnership_reporting?.length  && { label: "Reporting",          value: org.partnership_reporting!.map(r => r.replace(/_/g, " ")).join(", ") },
+        org.partnership_ip_ownership      && { label: "IP ownership",        value: org.partnership_ip_ownership.replace(/_/g, " ") },
+        org.partnership_physically_present !== null && org.partnership_physically_present !== undefined && { label: "Physical presence", value: org.partnership_physically_present ? "On the ground" : "Remote" },
+      ].filter(Boolean).map((row: any) => (
+        <div key={row.label} className={`flex items-start justify-between gap-6 py-2.5 ${rowBorderClass}`}>
+          <span className="text-xs text-black dark:text-white shrink-0">{row.label}</span>
+          <span className="text-xs font-semibold text-foreground text-right capitalize">{row.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function PartnershipSignalsGrid({ org }: { org: OrgRow }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
@@ -564,21 +586,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         {(org.partnership_working_style || org.partnership_financial_transfer || (org.partnership_legal_type && org.partnership_legal_type.length > 0) || (org.partnership_reporting && org.partnership_reporting.length > 0) || org.partnership_ip_ownership) && (
           <Section>
             <Eyebrow>Working expectations</Eyebrow>
-            <div className="space-y-3">
-              {[
-                org.partnership_working_style     && { label: "Working style",       value: WORKING_STYLE_LABELS[org.partnership_working_style] ?? org.partnership_working_style },
-                org.partnership_financial_transfer && { label: "Financial arrangement", value: FINANCIAL_TRANSFER_LABELS[org.partnership_financial_transfer] ?? org.partnership_financial_transfer },
-                org.partnership_legal_type?.length && { label: "Partnership type",   value: org.partnership_legal_type!.map(t => LEGAL_TYPE_LABELS[t] ?? t).join(", ") },
-                org.partnership_reporting?.length  && { label: "Reporting",          value: org.partnership_reporting!.map(r => r.replace(/_/g, " ")).join(", ") },
-                org.partnership_ip_ownership      && { label: "IP ownership",        value: org.partnership_ip_ownership.replace(/_/g, " ") },
-                org.partnership_physically_present !== null && org.partnership_physically_present !== undefined && { label: "Physical presence", value: org.partnership_physically_present ? "On the ground" : "Remote" },
-              ].filter(Boolean).map((row: any) => (
-                <div key={row.label} className="flex items-start justify-between gap-6 py-2.5 border-b border-border last:border-b-0">
-                  <span className="text-xs text-black dark:text-white shrink-0">{row.label}</span>
-                  <span className="text-xs font-semibold text-foreground text-right capitalize">{row.value}</span>
-                </div>
-              ))}
-            </div>
+            <WorkingExpectationsList org={org} variant="page" />
           </Section>
         )}
 
@@ -1002,21 +1010,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         {(org.partnership_working_style || org.partnership_financial_transfer || (org.partnership_legal_type && org.partnership_legal_type.length > 0) || (org.partnership_reporting && org.partnership_reporting.length > 0) || org.partnership_ip_ownership) && (
           <div className="px-8 py-6">
             <Eyebrow>Working expectations</Eyebrow>
-            <div className="space-y-3">
-              {[
-                org.partnership_working_style     && { label: "Working style",       value: WORKING_STYLE_LABELS[org.partnership_working_style] ?? org.partnership_working_style },
-                org.partnership_financial_transfer && { label: "Financial arrangement", value: FINANCIAL_TRANSFER_LABELS[org.partnership_financial_transfer] ?? org.partnership_financial_transfer },
-                org.partnership_legal_type?.length && { label: "Partnership type",   value: org.partnership_legal_type!.map(t => LEGAL_TYPE_LABELS[t] ?? t).join(", ") },
-                org.partnership_reporting?.length  && { label: "Reporting",          value: org.partnership_reporting!.map(r => r.replace(/_/g, " ")).join(", ") },
-                org.partnership_ip_ownership      && { label: "IP ownership",        value: org.partnership_ip_ownership.replace(/_/g, " ") },
-                org.partnership_physically_present !== null && org.partnership_physically_present !== undefined && { label: "Physical presence", value: org.partnership_physically_present ? "On the ground" : "Remote" },
-              ].filter(Boolean).map((row: any) => (
-                <div key={row.label} className="flex items-start justify-between gap-6 py-2.5 border-b border-border">
-                  <span className="text-xs text-black dark:text-white shrink-0">{row.label}</span>
-                  <span className="text-xs font-semibold text-foreground text-right capitalize">{row.value}</span>
-                </div>
-              ))}
-            </div>
+            <WorkingExpectationsList org={org} variant="panel" />
           </div>
         )}
 
