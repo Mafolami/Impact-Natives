@@ -73,6 +73,10 @@ export interface OrgRow {
   specializations?: string[]; notable_engagements?: string[]; affiliations?: string[];
   subscription_tier?: string;
   logo_url?: string | null;
+  grant_range_min?: number | string | null; grant_range_max?: number | string | null; grant_currency?: string | null;
+  investment_thesis?: string | null; stage_preference?: string[] | null; funding_instruments?: string[] | null;
+  geographic_focus?: string[] | null; csr_focus_statement?: string | null; csr_budget_range?: string | null;
+  inkind_support?: string[] | null;
   partnership_language?: string[] | null;
 }
 
@@ -822,10 +826,10 @@ function FitAnalysisContent({ fit, fitLoading, fitLocked, alsoFits, onSelectAlso
 // Each field lives on exactly one tab. The page variant's rail (Express interest, fit,
 // key focus areas, what they bring, looking for) sits outside the tabs and stays visible.
 
-type ProfileTab = "overview" | "impact" | "partnerships" | "documents";
+type ProfileTab = "overview" | "impact" | "partnerships" | "funding" | "documents";
 
 const PROFILE_TAB_LABELS: Record<ProfileTab, string> = {
-  overview: "Overview", impact: "Impact", partnerships: "Partnerships", documents: "Documents",
+  overview: "Overview", impact: "Impact", partnerships: "Partnerships", funding: "Funding", documents: "Documents",
 };
 
 function hasPartnershipsTab(org: OrgRow): boolean {
@@ -840,6 +844,7 @@ function hasPartnershipsTab(org: OrgRow): boolean {
 function visibleTabs(org: OrgRow): ProfileTab[] {
   const tabs: ProfileTab[] = ["overview", "impact"];
   if (hasPartnershipsTab(org)) tabs.push("partnerships");
+  if (hasFundingTab(org)) tabs.push("funding");
   if (!isConsultancyOrg(org)) tabs.push("documents");
   return tabs;
 }
@@ -929,6 +934,86 @@ function PanelNeedsOffers({ org }: { org: OrgRow }) {
   );
 }
 
+// ─── Funding tab ──────────────────────────────────────────────────────────────
+// Mandate fields that already exist on the organization record and feed the matching
+// engine. Shown for funders and corporates only. Values are stored as readable labels.
+
+const CORPORATE_TYPES = ["corporation"];
+
+function isFunderOrg(org: OrgRow): boolean { return FUNDER_TYPES.includes(org.organisation_type); }
+function isCorporateOrg(org: OrgRow): boolean { return CORPORATE_TYPES.includes(org.organisation_type); }
+
+function listOf(v: string[] | null | undefined): string[] {
+  return Array.isArray(v) ? v.filter(x => typeof x === "string" && x.trim() !== "") : [];
+}
+
+// One figure when min and max match (both stored rows so far do), a range otherwise.
+// Shown in the stored currency. There is no currency conversion anywhere in the codebase.
+function formatGrantRange(org: OrgRow): string | null {
+  const toNum = (v: number | string | null | undefined) => (v === null || v === undefined || v === "" ? null : Number(v));
+  const min = toNum(org.grant_range_min);
+  const max = toNum(org.grant_range_max);
+  const ok = (n: number | null): n is number => n !== null && Number.isFinite(n) && n > 0;
+  const cur = org.grant_currency?.trim() ?? "";
+  const f = (n: number) => `${cur ? cur + " " : ""}${n.toLocaleString("en-US")}`;
+  if (ok(min) && ok(max)) return min === max ? f(min) : `${f(min)} to ${f(max)}`;
+  if (ok(max)) return `Up to ${f(max)}`;
+  if (ok(min)) return `From ${f(min)}`;
+  return null;
+}
+
+function hasFundingTab(org: OrgRow): boolean {
+  if (isFunderOrg(org)) {
+    return !!(formatGrantRange(org) || org.investment_thesis?.trim() || listOf(org.stage_preference).length
+      || listOf(org.funding_instruments).length || listOf(org.geographic_focus).length);
+  }
+  if (isCorporateOrg(org)) {
+    return !!(org.csr_focus_statement?.trim() || org.csr_budget_range?.trim() || listOf(org.inkind_support).length
+      || listOf(org.geographic_focus).length);
+  }
+  return false;
+}
+
+function FundingTabContent({ org, variant }: { org: OrgRow; variant: "page" | "panel" }) {
+  const funder = isFunderOrg(org);
+  const statement = (funder ? org.investment_thesis : org.csr_focus_statement)?.trim();
+  const grant = funder ? formatGrantRange(org) : null;
+  const instruments = funder ? listOf(org.funding_instruments) : [];
+  const stages = funder ? listOf(org.stage_preference) : [];
+  const where = listOf(org.geographic_focus);
+  const csrBudget = !funder ? org.csr_budget_range?.trim() : "";
+  const inkind = !funder ? listOf(org.inkind_support) : [];
+  const hasFacts = !!(grant || instruments.length || stages.length || where.length || csrBudget);
+  return (
+    <div className={variant === "page" ? "space-y-6" : "divide-y divide-border"}>
+      {statement && (
+        <TabBlock variant={variant}>
+          <Eyebrow>{funder ? "Investment thesis" : "CSR focus"}</Eyebrow>
+          <p className="text-[15px] text-foreground leading-relaxed">{statement}</p>
+        </TabBlock>
+      )}
+      {hasFacts && (
+        <TabBlock variant={variant}>
+          <Eyebrow>Funding mandate</Eyebrow>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            {grant && <BentoCell label="Grant size" icon={Banknote} value={grant} accent />}
+            {csrBudget && <BentoCell label="CSR budget" icon={Wallet} value={csrBudget} accent />}
+            {instruments.length > 0 && <BentoCell label="Instruments" icon={Coins} value={instruments.join(" \u00b7 ")} />}
+            {stages.length > 0 && <BentoCell label="Stage preference" icon={Layers} value={stages.join(" \u00b7 ")} />}
+            {where.length > 0 && <BentoCell label="Where they fund" icon={MapPin} value={where.join(", ")} />}
+          </div>
+        </TabBlock>
+      )}
+      {inkind.length > 0 && (
+        <TabBlock variant={variant}>
+          <Eyebrow>In-kind support</Eyebrow>
+          <SectorTags sectors={inkind} />
+        </TabBlock>
+      )}
+    </div>
+  );
+}
+
 function ProfileTabPanels({ org, variant, tab, viewerOrgId, dd, overviewAfterSuccess, overviewAfterSignals }: {
   org: OrgRow; variant: "page" | "panel"; tab: ProfileTab; viewerOrgId?: string;
   dd: { score: number; total: number; docs: { key: keyof OrgRow; label: string }[] };
@@ -968,6 +1053,8 @@ function ProfileTabPanels({ org, variant, tab, viewerOrgId, dd, overviewAfterSuc
       </div>
     );
   }
+
+  if (tab === "funding") return <FundingTabContent org={org} variant={variant} />;
 
   if (tab === "documents") {
     return (

@@ -140,7 +140,7 @@ export default function DashboardPartnerships() {
 
     const userIds = [...new Set(listingsData.map(l => l.user_id))];
     const { data: orgsData } = await supabase.from("organizations")
-      .select("id,user_id,organisation_name,description,organisation_type,website,email,verification_status,status,partnership_formed,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,specializations,notable_engagements,affiliations,logo_url")
+      .select("id,user_id,organisation_name,description,organisation_type,website,email,verification_status,status,partnership_formed,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,specializations,notable_engagements,affiliations,logo_url,grant_range_min,grant_range_max,grant_currency,investment_thesis,stage_preference,funding_instruments,geographic_focus,csr_focus_statement,csr_budget_range,inkind_support")
       .in("user_id", userIds);
 
     const orgByUserId = new Map((orgsData ?? []).map((o: any) => [o.user_id, o]));
