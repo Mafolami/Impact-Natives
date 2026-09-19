@@ -11,6 +11,9 @@
 //      32 pixel sample of it is measured. Reading the pixels straight from the public link would
 //      need CORS headers on the file, so that is not relied on. The answer is remembered per link.
 // If the image cannot load, the organisation's initial is shown in a green tile.
+// Sizes: "md" for the profile header, "sm" (40px) for the cards in the listings pane. A list has
+// no need to look up logos one by one (its rows already carry logo_url), so it passes lookup={false},
+// and at most MAX_LOGO_DETECTIONS logos per page load are downloaded to be measured.
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -18,6 +21,13 @@ const CACHE_MS = 10 * 60 * 1000;
 const lookedUp = new Map<string, { url: string | null; at: number }>();
 const darkByUrl = new Map<string, boolean>();
 const inFlight = new Map<string, Promise<boolean | null>>();
+let detectionsStarted = 0;
+
+// A list can hold many logos. Measuring downloads each file, so only this many are measured per page load.
+export const MAX_LOGO_DETECTIONS = 12;
+
+// Tests only.
+export function resetLogoState() { lookedUp.clear(); darkByUrl.clear(); inFlight.clear(); detectionsStarted = 0; }
 
 // Mean brightness above this counts as light artwork (0 is black, 1 is white).
 export const LIGHT_LOGO_THRESHOLD = 0.8;
@@ -89,6 +99,8 @@ export function detectLightLogo(url: string): Promise<boolean | null> {
   if (running) return running;
   const path = storagePathFrom(url);
   if (!path) return Promise.resolve(null);
+  if (detectionsStarted >= MAX_LOGO_DETECTIONS) return Promise.resolve(null);
+  detectionsStarted++;
   const job = (async () => {
     try {
       const { data, error } = await supabase.storage.from("org-logos").download(path);
@@ -108,9 +120,15 @@ export function detectLightLogo(url: string): Promise<boolean | null> {
   return job;
 }
 
-const SIZE = "w-16 h-16 sm:w-20 sm:h-20";
+const SIZES = {
+  md: { box: "w-16 h-16 sm:w-20 sm:h-20 rounded-xl p-1.5", tile: "w-16 h-16 sm:w-20 sm:h-20 rounded-xl text-2xl sm:text-3xl" },
+  sm: { box: "w-10 h-10 rounded-lg p-1", tile: "w-10 h-10 rounded-lg text-base" },
+};
 
-export default function OrgLogo({ org }: { org: { id: string; organisation_name: string; logo_url?: string | null } }) {
+export default function OrgLogo({ org, size = "md", lookup = true, detect = true }: {
+  org: { id: string; organisation_name: string; logo_url?: string | null };
+  size?: "md" | "sm"; lookup?: boolean; detect?: boolean;
+}) {
   const [src, setSrc] = useState<string | null>(() => normalizeLogoUrl(org.logo_url));
   const [failed, setFailed] = useState(false);
   const [dark, setDark] = useState<boolean>(() => { const u = normalizeLogoUrl(org.logo_url); return u ? darkByUrl.get(u) === true : false; });
@@ -119,7 +137,7 @@ export default function OrgLogo({ org }: { org: { id: string; organisation_name:
     setFailed(false);
     const direct = normalizeLogoUrl(org.logo_url);
     setSrc(direct);
-    if (direct) return;
+    if (direct || !lookup) return;
     const hit = lookedUp.get(org.id);
     if (hit && Date.now() - hit.at < CACHE_MS) { setSrc(hit.url); return; }
     let cancelled = false;
@@ -130,26 +148,26 @@ export default function OrgLogo({ org }: { org: { id: string; organisation_name:
         if (!cancelled) setSrc(url);
       });
     return () => { cancelled = true; };
-  }, [org.id, org.logo_url]);
+  }, [org.id, org.logo_url, lookup]);
 
   useEffect(() => {
     if (!src) { setDark(false); return; }
     const known = darkByUrl.get(src);
     setDark(known === true);
-    if (known !== undefined) return;
+    if (known !== undefined || !detect) return;
     let cancelled = false;
     detectLightLogo(src).then(light => { if (!cancelled && light !== null) setDark(light); });
     return () => { cancelled = true; };
-  }, [src]);
+  }, [src, detect]);
 
   if (src && !failed) {
     return (
       <img src={src} alt="" onError={() => setFailed(true)}
-        className={`${SIZE} rounded-xl object-contain p-1.5 shrink-0 border border-[#2D6A4F]/20 ${dark ? "bg-[#1B3328]" : "bg-card"}`} />
+        className={`${SIZES[size].box} object-contain shrink-0 border border-[#2D6A4F]/20 ${dark ? "bg-[#1B3328]" : "bg-card"}`} />
     );
   }
   return (
-    <div className={`${SIZE} rounded-xl shrink-0 flex items-center justify-center bg-[#2D6A4F] text-white text-2xl sm:text-3xl font-black`}>
+    <div className={`${SIZES[size].tile} shrink-0 flex items-center justify-center bg-[#2D6A4F] text-white font-black`}>
       {org.organisation_name.trim().charAt(0).toUpperCase()}
     </div>
   );

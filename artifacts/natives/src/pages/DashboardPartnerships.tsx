@@ -7,6 +7,7 @@ import { SECTOR_OPTIONS } from "@/lib/sectors";
 import { FindPartnerModalDashboard } from "./FindPartnerModalDashboard";
 import { useAuth } from "@/context/AuthContext";
 import { OrgDetailPanel, type OrgRow } from "@/components/dashboard/OrgDetailPanel";
+import OrgLogo from "@/components/dashboard/OrgLogo";
 import { useOrgActions } from "@/hooks/useOrgActions";
 
 function orgTypeLabel(value: string | null | undefined): string {
@@ -37,11 +38,16 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave, mouExecuted }
 
   return (
     <div onClick={onClick}
-      className={`relative cursor-pointer px-5 py-4 border-b transition-all group ${
+      className={`relative cursor-pointer pl-[68px] pr-5 py-4 border-b transition-all group ${
         selected
-          ? "bg-[#2D6A4F]/[0.08] border-l-[3px] border-l-[#2D6A4F] border-b-border"
-          : "hover:bg-[#2D6A4F]/10/50 border-l-[3px] border-l-transparent border-b-border/60"
+          ? "bg-[#2D6A4F]/[0.08] border-l-[3px] border-l-[#2D6A4F] border-b-[#2D6A4F]/20"
+          : "hover:bg-[#2D6A4F]/10 border-l-[3px] border-l-transparent border-b-[#2D6A4F]/15"
       }`}>
+
+      {/* Logo */}
+      <div className="absolute left-4 top-4">
+        <OrgLogo org={org} size="sm" lookup={false} />
+      </div>
 
       {/* Org name + save */}
       <div className="flex items-center justify-between gap-2 mb-0.5">
