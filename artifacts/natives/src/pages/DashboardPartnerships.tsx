@@ -91,6 +91,9 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave, mouExecuted }
   );}
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
+// "Matched" = a stored fit score at or above this. Same bar as the amber band on the fit badge.
+const MATCHED_MIN_SCORE = 50;
+
 export default function DashboardPartnerships() {
   const { user, orgOwnerId } = useAuth();
   const autoOpenOrgId = new URLSearchParams(window.location.search).get("org");
@@ -100,7 +103,9 @@ export default function DashboardPartnerships() {
   const [showModal, setShowModal]             = useState(false);
   const [search, setSearch]                   = useState("");
   const [sectorFilters, setSectorFilters]     = useState<Set<string>>(new Set());
-  const [favoritesOnly, setFavoritesOnly]     = useState(false);
+  const [listView, setListView]           = useState<"all" | "matched" | "saved">("all");
+  const [matchedListingIds, setMatchedListingIds]     = useState<Set<string>>(new Set());
+  const [matchedLegacyOrgIds, setMatchedLegacyOrgIds] = useState<Set<string>>(new Set());
   const [orgTypeFilters, setOrgTypeFilters]   = useState<Set<string>>(new Set());
   const [stageFilters, setStageFilters]       = useState<Set<string>>(new Set());
   const [ddReadyOnly, setDdReadyOnly]         = useState(false);
@@ -131,6 +136,32 @@ export default function DashboardPartnerships() {
   const { viewerOrg, viewerOrgLoading, savedOrgs, sentInterests, sendingInterest, toggleSave, expressInterest } = useOrgActions(orgOwnerId, user?.id);
 
   useEffect(() => { if (user) loadAll(); }, [user]);
+
+  // Stored matches for the viewer's org. partnership_match_cache is only readable on paid tiers
+  // (row-level security), so free-tier viewers skip the query and get a locked Matched tab.
+  // Listing-level rows carry matched_listing_id. Older org-level rows carry only matched_org_id.
+  useEffect(() => {
+    setMatchedListingIds(new Set());
+    setMatchedLegacyOrgIds(new Set());
+    if (!viewerOrg?.id || viewerOrg.subscription_tier === "free") return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.from("partnership_match_cache")
+        .select("matched_listing_id, matched_org_id, fit_score")
+        .eq("org_id", viewerOrg.id)
+        .gte("fit_score", MATCHED_MIN_SCORE);
+      if (cancelled || error || !data) return;
+      const listingIds = new Set<string>();
+      const legacyOrgIds = new Set<string>();
+      for (const r of data as any[]) {
+        if (r.matched_listing_id) listingIds.add(r.matched_listing_id);
+        else if (r.matched_org_id) legacyOrgIds.add(r.matched_org_id);
+      }
+      setMatchedListingIds(listingIds);
+      setMatchedLegacyOrgIds(legacyOrgIds);
+    })();
+    return () => { cancelled = true; };
+  }, [viewerOrg?.id, viewerOrg?.subscription_tier]);
 
   async function loadAll() {
     const { data: listingsData } = await supabase.from("partnership_listings")
@@ -195,12 +226,11 @@ export default function DashboardPartnerships() {
     setLoading(false);
   }
 
-  const filtered = orgs.filter(org => {
+  const baseFiltered = orgs.filter(org => {
     const sectors = normalizeArr(org.sector);
     const countries = normalizeArr(org.country);
     const matchesSector    = sectorFilters.size === 0 || sectors.some(s => [...sectorFilters].some(f => s.toLowerCase().includes(f.toLowerCase())));
     const matchesSearch    = !search.trim() || org.organisation_name?.toLowerCase().includes(search.toLowerCase()) || org.description?.toLowerCase().includes(search.toLowerCase()) || (org.partnership_sought ?? "").toLowerCase().includes(search.toLowerCase()) || countries.some(c => c.toLowerCase().includes(search.toLowerCase()));
-    const matchesFavorites = !favoritesOnly || savedOrgs.has(org.id);
     const matchesOrgType   = orgTypeFilters.size === 0 || orgTypeFilters.has(org.organisation_type ?? "");
     const matchesStage     = stageFilters.size === 0 || stageFilters.has(org.partnership_stage ?? "");
     const matchesDDReady   = !ddReadyOnly || [
@@ -210,10 +240,31 @@ export default function DashboardPartnerships() {
       org.partnership_dd_data_policy,
       org.partnership_dd_governance_doc,
     ].some(Boolean);
-    return matchesSector && matchesSearch && matchesFavorites && matchesOrgType && matchesStage && matchesDDReady;
+    return matchesSector && matchesSearch && matchesOrgType && matchesStage && matchesDDReady;
   });
 
-  const activeFilterCount = sectorFilters.size + orgTypeFilters.size + stageFilters.size + (favoritesOnly ? 1 : 0) + (ddReadyOnly ? 1 : 0);
+  // All / Matched / Saved sit on top of the other filters, so each count is what that tab would show.
+  const isMatched = (o: OrgRow & { listing_id: string }) => matchedListingIds.has(o.listing_id) || matchedLegacyOrgIds.has(o.id);
+  const isSavedOrg = (o: OrgRow & { listing_id: string }) => savedOrgs.has(o.id);
+  const matchedCount = baseFiltered.filter(isMatched).length;
+  const savedCount = baseFiltered.filter(isSavedOrg).length;
+  const filtered = listView === "matched" ? baseFiltered.filter(isMatched)
+    : listView === "saved" ? baseFiltered.filter(isSavedOrg)
+    : baseFiltered;
+  const views: { key: "all" | "matched" | "saved"; label: string; count: number; locked?: boolean }[] = [
+    { key: "all", label: "All", count: baseFiltered.length },
+    ...(viewerOrg ? [{ key: "matched" as const, label: "Matched", count: matchedCount, locked: viewerOrg.subscription_tier === "free" }] : []),
+    { key: "saved", label: "Saved", count: savedCount },
+  ];
+  const emptyCopy = orgs.length === 0
+    ? { title: "No listings yet", body: "Be the first to list your organisation." }
+    : baseFiltered.length > 0 && listView === "matched"
+      ? { title: "No matches yet", body: "Matches appear here once your organisation has been scored against listings." }
+    : baseFiltered.length > 0 && listView === "saved"
+      ? { title: "Nothing saved yet", body: "Save a listing to see it here." }
+    : { title: "No results", body: "Try a different search or filter." };
+
+  const activeFilterCount = sectorFilters.size + orgTypeFilters.size + stageFilters.size + (listView !== "all" ? 1 : 0) + (ddReadyOnly ? 1 : 0);
 
   return (
     <>
@@ -272,12 +323,12 @@ export default function DashboardPartnerships() {
               },
               {
                 key: "toggles",
-                label: `More${(favoritesOnly ? 1 : 0) + (ddReadyOnly ? 1 : 0) > 0 ? ` (${(favoritesOnly ? 1 : 0) + (ddReadyOnly ? 1 : 0)})` : ""}`,
-                count: (favoritesOnly ? 1 : 0) + (ddReadyOnly ? 1 : 0),
+                label: `More${ddReadyOnly ? " (1)" : ""}`,
+                count: ddReadyOnly ? 1 : 0,
                 options: [],
                 selected: new Set(),
                 toggle: () => {},
-                clear: () => { setFavoritesOnly(false); setDdReadyOnly(false); },
+                clear: () => { setDdReadyOnly(false); },
               },
             ] as const).map(f => (
               <div key={f.key} className="relative">
@@ -307,7 +358,6 @@ export default function DashboardPartnerships() {
                     {f.key === "toggles" ? (
                       <div className="space-y-1">
                         {[
-                          { label: "Saved only",        checked: favoritesOnly, set: setFavoritesOnly },
                           { label: "DD docs available", checked: ddReadyOnly,   set: setDdReadyOnly   },
                         ].map(t => (
                           <label key={t.label} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-muted transition-colors">
@@ -316,7 +366,7 @@ export default function DashboardPartnerships() {
                             <span className="text-[13px] text-foreground font-medium">{t.label}</span>
                           </label>
                         ))}
-                        {(favoritesOnly || ddReadyOnly) && (
+                        {ddReadyOnly && (
                           <button type="button" onClick={f.clear}
                             className="w-full text-left px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors">
                             Clear
@@ -356,7 +406,7 @@ export default function DashboardPartnerships() {
             ))}
             {activeFilterCount > 0 && (
               <button type="button"
-                onClick={() => { setSectorFilters(new Set()); setOrgTypeFilters(new Set()); setStageFilters(new Set()); setFavoritesOnly(false); setDdReadyOnly(false); }}
+                onClick={() => { setSectorFilters(new Set()); setOrgTypeFilters(new Set()); setStageFilters(new Set()); setListView("all"); setDdReadyOnly(false); }}
                 className="text-[11px] text-muted-foreground hover:text-foreground transition-colors px-1">
                 Clear all
               </button>
@@ -381,6 +431,35 @@ export default function DashboardPartnerships() {
           </div>
         )}
 
+        {!loading && orgs.length > 0 && (
+          <div className={`shrink-0 border-b border-border bg-background ${mobileDetailOpen ? "hidden lg:flex" : "flex"}`}>
+            <div className="w-full lg:w-72 xl:w-80 shrink-0 lg:border-r-2 border-border px-3 py-2 flex items-center gap-1.5">
+              {views.map(v => {
+                const on = listView === v.key;
+                const cls = `h-8 px-3 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-colors ${
+                  on ? "text-white border border-transparent" : "bg-background text-foreground border border-border"}`;
+                if (v.locked) {
+                  return (
+                    <a key={v.key} href="/dashboard/settings?tab=billing" title="AI matching is a Plus feature" className={cls}>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                      </svg>
+                      {v.label}
+                    </a>
+                  );
+                }
+                return (
+                  <button key={v.key} type="button" aria-pressed={on} onClick={() => setListView(v.key)} className={cls}
+                    style={on ? { background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" } : undefined}>
+                    {v.label}
+                    <span className="font-black">{v.count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Split layout */}
         {loading ? (
           <div className="flex items-center justify-center flex-1">
@@ -390,8 +469,8 @@ export default function DashboardPartnerships() {
           <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center px-6">
             <Handshake className="w-7 h-7 text-muted-foreground/50" />
             <div>
-              <p className="text-[15px] font-bold text-foreground mb-1">{orgs.length === 0 ? "No listings yet" : "No results"}</p>
-              <p className="text-[13px] text-black dark:text-white">{orgs.length === 0 ? "Be the first to list your organisation." : "Try a different search or filter."}</p>
+              <p className="text-[15px] font-bold text-foreground mb-1">{emptyCopy.title}</p>
+              <p className="text-[13px] text-black dark:text-white">{emptyCopy.body}</p>
             </div>
           </div>
         ) : (
