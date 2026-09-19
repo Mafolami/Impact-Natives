@@ -502,6 +502,11 @@ export default function DashboardPartnerships() {
                 viewerOrg={viewerOrg}
                 viewerOrgLoading={viewerOrgLoading}                
                 mouExecuted={selectedOrg ? mouExecutedListingIds.has(selectedOrg.listing_id) : false}
+                onOpenListing={id => {
+                  const next = orgs.find(o => o.listing_id === id);
+                  if (next) { setSelectedOrg(next); setMobileDetailOpen(true); }
+                  else window.location.assign(`/dashboard/partnerships?listing=${id}`);
+                }}
               />
             </div>
           </div>

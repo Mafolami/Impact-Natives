@@ -9,7 +9,7 @@ import { Share2, Check } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { FaWhatsapp, FaXTwitter, FaLinkedin } from "react-icons/fa6";
 
-export function ShareButton({ url, message, size = "sm", label }: { url: string; message: string; size?: "sm" | "md"; label?: string }) {
+export function ShareButton({ url, message, size = "sm", label, fullWidth = false }: { url: string; message: string; size?: "sm" | "md"; label?: string; fullWidth?: boolean }) {
   const [copied, setCopied] = useState(false);
   const [open, setOpen] = useState(false);
   const dim = size === "md" ? "h-9 w-9" : "h-8 w-8";
@@ -40,7 +40,7 @@ export function ShareButton({ url, message, size = "sm", label }: { url: string;
       ? "border-[#2D6A4F]/30 bg-[rgba(45,106,79,0.12)] text-[#2D6A4F]"
       : "border-border text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] hover:bg-[#2D6A4F]/5 dark:hover:border-[#C45C26] dark:hover:text-[#C45C26] dark:hover:bg-[#C45C26]/10"
   }`;
-  const labelTriggerClass = `px-3.5 py-2 rounded-full flex items-center gap-1.5 border text-xs font-semibold transition-colors ${
+  const labelTriggerClass = `${fullWidth ? "w-full justify-center " : ""}px-3.5 py-2 rounded-full flex items-center gap-1.5 border text-xs font-semibold transition-colors ${
     copied
       ? "border-[#2D6A4F]/30 bg-[rgba(45,106,79,0.12)] text-[#2D6A4F]"
       : "border-border text-black dark:text-white hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F]"
@@ -55,7 +55,7 @@ export function ShareButton({ url, message, size = "sm", label }: { url: string;
           {label && <span>{copied ? "Link copied" : label}</span>}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-auto p-1.5" onClick={e => e.stopPropagation()}>
+      <PopoverContent align={fullWidth ? "center" : "end"} className="w-auto p-1.5" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-center gap-2 p-1">
           <button type="button" onClick={e => openShareIntent(e, whatsappHref)} title="Share to WhatsApp"
             className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-muted transition-colors">

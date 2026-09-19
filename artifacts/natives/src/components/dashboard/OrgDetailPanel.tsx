@@ -37,6 +37,9 @@ import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 import VerifiedOutcomesSection from "@/components/dashboard/VerifiedOutcomesSection";
 import OrgDocumentsList from "@/components/dashboard/OrgDocumentsList";
 import { ShareButton } from "@/components/dashboard/ShareButton";
+import FitGauge, { fitBandLabel } from "@/components/dashboard/FitGauge";
+import SimilarListings from "@/components/dashboard/SimilarListings";
+import DiscoverNativesCard from "@/components/dashboard/DiscoverNativesCard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -743,12 +746,13 @@ function AlsoFitsFootnote({ items, onSelect }: { items: AlsoFit[]; onSelect: (it
 
 // Shared by both variants (and the page rail in the next step). The wrapper
 // differs per variant; the content inside is identical, so it lives here once.
-function FitAnalysisContent({ fit, fitLoading, fitLocked, alsoFits, onSelectAlsoFit }: {
+function FitAnalysisContent({ fit, fitLoading, fitLocked, alsoFits, onSelectAlsoFit, compact = false }: {
   fit: FitResult | null; fitLoading: boolean; fitLocked: boolean;
-  alsoFits: AlsoFit[]; onSelectAlsoFit: (item: AlsoFit) => void;
+  alsoFits: AlsoFit[]; onSelectAlsoFit: (item: AlsoFit) => void; compact?: boolean;
 }) {
   return (
     <>
+      {!compact && (<>
       <div className="flex items-center gap-2 mb-1">
         <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 bg-[#2D6A4F]">
           <Sparkles className="w-3.5 h-3.5 text-white" />
@@ -772,6 +776,8 @@ function FitAnalysisContent({ fit, fitLoading, fitLocked, alsoFits, onSelectAlso
       {fit && !fitLoading && fit.listing_title && (
         <p className="text-[11px] text-black dark:text-white mb-3">Based on your "{fit.listing_title}" listing</p>
       )}
+
+      </>)}
 
       {fitLoading && (
         <p className="text-xs text-black dark:text-white mt-3">Analysing compatibility with your organisation profile...</p>
@@ -1102,7 +1108,149 @@ function ProfileTabPanels({ org, variant, tab, viewerOrgId, dd, overviewAfterSuc
   );
 }
 
-export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, onExpressInterest, onBack, backLabel, viewerOrg, viewerOrgLoading, variant = "panel", mouExecuted = false }: {
+// ─── Decision rail ────────────────────────────────────────────────────────────
+// The right-hand sidebar. One light green card holds the fit chart, Express interest and
+// Share listing. Below it, separate cards: Key focus areas, What they bring, Looking for,
+// Similar listings, and the Natives discovery card. The full-page variant always uses it
+// (stacked below the content on narrow screens). The Partnerships panel uses it from
+// RAIL_MIN_WIDTH up and keeps its in-flow layout below that.
+
+const RAIL_MIN_WIDTH = 1440;
+
+function useMinWidth(px: number): boolean {
+  const query = `(min-width: ${px}px)`;
+  const supported = typeof window !== "undefined" && typeof window.matchMedia === "function";
+  const [matches, setMatches] = useState<boolean>(() => supported && window.matchMedia(query).matches);
+  useEffect(() => {
+    if (!supported) return;
+    const mq = window.matchMedia(query);
+    const onChange = () => setMatches(mq.matches);
+    onChange();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, [query, supported]);
+  return matches;
+}
+
+function OrgDecisionRail({ org, sectors, countries, viewerOrg, viewerOrgLoading, isOrg, alreadySent, sending, onExpressInterest,
+  openingMsg, setOpeningMsg, msgEditing, setMsgEditing, fit, fitLoading, fitLocked, fitNoListing, alsoFits, onSelectAlsoFit, onOpenListing }: {
+  org: OrgRow; sectors: string[]; countries: string[]; viewerOrg: OrgRow | null; viewerOrgLoading: boolean; isOrg: boolean;
+  alreadySent: boolean; sending: boolean; onExpressInterest: (e: React.MouseEvent) => void;
+  openingMsg: string | null; setOpeningMsg: (v: string) => void; msgEditing: boolean; setMsgEditing: (v: boolean) => void;
+  fit: FitResult | null; fitLoading: boolean; fitLocked: boolean; fitNoListing: boolean;
+  alsoFits: AlsoFit[]; onSelectAlsoFit: (item: AlsoFit) => void; onOpenListing?: (listingId: string) => void;
+}) {
+  const [analysisOpen, setAnalysisOpen] = useState(false);
+  useEffect(() => { setAnalysisOpen(false); }, [org.id]);
+
+  const own = org.user_id === viewerOrg?.user_id;
+  const closed = !!org.partnership_formed;
+  const canShare = !!org.listing_id && !closed;
+  const showFit = !own && (!!fit || fitLoading || fitLocked || fitNoListing);
+  const offers = org.offers ?? [];
+  const needs = org.needs ?? [];
+
+  return (
+    <>
+      <div className="rounded-xl border border-[#2D6A4F]/30 bg-[#2D6A4F]/[0.07] px-5 py-5 space-y-5">
+        {viewerOrgLoading ? (
+          <LoadingIndicator />
+        ) : own ? (
+          <OwnListingBanner />
+        ) : (
+          <>
+            {showFit && (
+              <div>
+                <Eyebrow>Partnership fit</Eyebrow>
+                {fitLoading && (
+                  <div className="flex items-center gap-2 text-xs text-black dark:text-white">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#2D6A4F]" />Scoring fit...
+                  </div>
+                )}
+                {fit && !fitLoading && (
+                  <div className="flex items-center gap-4">
+                    <FitGauge score={fit.fit_score} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-foreground">{fitBandLabel(fit.fit_score)}</p>
+                      {fit.listing_title && (
+                        <p className="text-[11px] text-black dark:text-white mt-0.5">Based on your "{fit.listing_title}" listing</p>
+                      )}
+                      <button type="button" onClick={() => setAnalysisOpen(v => !v)} aria-expanded={analysisOpen}
+                        className="mt-2 text-xs font-semibold text-[#2D6A4F] hover:underline underline-offset-2">
+                        {analysisOpen ? "Hide analysis" : "View analysis"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {fit && !fitLoading && analysisOpen && (
+                  <div className="mt-4">
+                    <FitAnalysisContent compact fit={fit} fitLoading={fitLoading} fitLocked={fitLocked} alsoFits={alsoFits} onSelectAlsoFit={onSelectAlsoFit} />
+                  </div>
+                )}
+                {fitLocked && !fit && !fitLoading && (
+                  <p className="text-xs text-black dark:text-white leading-relaxed">
+                    AI fit scoring is a Plus feature.{" "}
+                    <Link href="/dashboard/settings?tab=billing" className="text-[#2D6A4F] font-medium hover:underline">Upgrade to unlock</Link>.
+                  </p>
+                )}
+                {fitNoListing && !fit && !fitLoading && (
+                  <p className="text-sm text-foreground leading-relaxed">Publish a partnership listing to see how well you fit with this organisation.</p>
+                )}
+              </div>
+            )}
+            {closed ? (
+              <PartnershipFormedBanner />
+            ) : isOrg ? (
+              <div className="space-y-3">
+                <ExpressInterestPanel alreadySent={alreadySent} openingMsg={openingMsg} setOpeningMsg={setOpeningMsg}
+                  msgEditing={msgEditing} setMsgEditing={setMsgEditing} sending={sending} onExpressInterest={onExpressInterest} />
+              </div>
+            ) : null}
+          </>
+        )}
+        {canShare && (
+          <ShareButton label="Share listing" fullWidth url={listingShareUrl(org)} message={listingShareMessage(org)} />
+        )}
+      </div>
+
+      {sectors.length > 0 && (
+        <Section>
+          <Eyebrow>Key focus areas</Eyebrow>
+          <SectorTags sectors={sectors} />
+        </Section>
+      )}
+
+      {offers.length > 0 && (
+        <Section>
+          <Eyebrow>What they bring</Eyebrow>
+          <div className="flex flex-wrap gap-1.5">
+            {offers.map(o => (
+              <span key={o} className="text-xs font-bold px-3 py-1.5 rounded-lg"
+                style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>{o}</span>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {needs.length > 0 && (
+        <Section>
+          <Eyebrow>Looking for</Eyebrow>
+          <div className="flex flex-wrap gap-1.5">
+            {needs.map(n => (
+              <span key={n} className="text-xs font-semibold px-3 py-1.5 rounded-lg text-foreground bg-card border border-[#2D6A4F]/20">{n}</span>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      <SimilarListings listingId={org.listing_id} orgUserId={org.user_id} sectors={sectors} countries={countries} onOpen={onOpenListing} />
+
+      <DiscoverNativesCard />
+    </>
+  );
+}
+
+export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, onExpressInterest, onBack, backLabel, viewerOrg, viewerOrgLoading, variant = "panel", mouExecuted = false, onOpenListing }: {
   org: OrgRow | null; isSaved: boolean; onToggleSave: (e: React.MouseEvent) => void;
   isOrg: boolean; alreadySent: boolean; sending: boolean;
   onExpressInterest: (e: React.MouseEvent) => void; onBack: () => void;
@@ -1111,6 +1259,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
   viewerOrgLoading: boolean;
   variant?: "panel" | "page";
   mouExecuted?: boolean;
+  onOpenListing?: (listingId: string) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [fit, setFit] = useState<FitResult | null>(null);
@@ -1121,6 +1270,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
   const [openingMsg, setOpeningMsg] = useState<string | null>(null);
   const [msgEditing, setMsgEditing] = useState(false);
   const [tab, setTab] = useState<ProfileTab>("overview");
+  const wide = useMinWidth(RAIL_MIN_WIDTH);
 
   useEffect(() => {
     if (org && ref.current) ref.current.scrollTop = 0;
@@ -1227,6 +1377,11 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
   const ddTotal = ddDocs.length;
   const tabs = visibleTabs(org);
   const activeTab: ProfileTab = tabs.includes(tab) ? tab : "overview";
+  const railProps = {
+    org, sectors, countries, viewerOrg, viewerOrgLoading, isOrg, alreadySent, sending, onExpressInterest,
+    openingMsg, setOpeningMsg, msgEditing, setMsgEditing, fit, fitLoading, fitLocked, fitNoListing, alsoFits,
+    onSelectAlsoFit: swapToAlsoFit, onOpenListing,
+  };
 
   // ── Page variant: flat content matching InitiativeDetail exactly ──
   if (variant === "page") {
@@ -1247,64 +1402,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
               dd={{ score, total: ddTotal, docs: ddDocs }} />
           </div>
           <aside className="space-y-4 min-w-0">
-            {viewerOrgLoading ? (
-              <div className="rounded-xl border border-[#2D6A4F]/20 bg-card px-5 py-4">
-                <LoadingIndicator />
-              </div>
-            ) : org.user_id === viewerOrg?.user_id ? (
-              <OwnListingBanner />
-            ) : org.partnership_formed ? (
-              <PartnershipFormedBanner />
-            ) : isOrg && (
-              <div className="rounded-xl border border-[#2D6A4F]/20 bg-card px-5 py-4 space-y-3">
-                <ExpressInterestPanel alreadySent={alreadySent} openingMsg={openingMsg} setOpeningMsg={setOpeningMsg}
-                  msgEditing={msgEditing} setMsgEditing={setMsgEditing} sending={sending} onExpressInterest={onExpressInterest} />
-              </div>
-            )}
-
-            {(fit || fitLoading || fitLocked) && org.user_id !== viewerOrg?.user_id && (
-              <div className="rounded-xl border border-[#2D6A4F]/20 bg-card px-5 py-4"
-                style={{ background: "linear-gradient(135deg, rgba(13,43,26,0.04) 0%, rgba(26,74,46,0.02) 100%)" }}>
-                <FitAnalysisContent fit={fit} fitLoading={fitLoading} fitLocked={fitLocked} alsoFits={alsoFits} onSelectAlsoFit={swapToAlsoFit} />
-              </div>
-            )}
-
-            {fitNoListing && !fit && !fitLoading && org.user_id !== viewerOrg?.user_id && (
-              <div className="rounded-xl border border-[#2D6A4F]/20 bg-card px-5 py-4">
-                <Eyebrow>Your fit</Eyebrow>
-                <p className="text-sm text-foreground leading-relaxed">Publish a partnership listing to see how well you fit with this organisation.</p>
-              </div>
-            )}
-
-            {sectors.length > 0 && (
-              <Section>
-                <Eyebrow>Key focus areas</Eyebrow>
-                <SectorTags sectors={sectors} />
-              </Section>
-            )}
-
-            {org.offers && org.offers.length > 0 && (
-              <Section>
-                <Eyebrow>What they bring</Eyebrow>
-                <div className="flex flex-wrap gap-1.5">
-                  {org.offers.map(o => (
-                    <span key={o} className="text-xs font-bold px-3 py-1.5 rounded-lg"
-                      style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>{o}</span>
-                  ))}
-                </div>
-              </Section>
-            )}
-
-            {org.needs && org.needs.length > 0 && (
-              <Section>
-                <Eyebrow>Looking for</Eyebrow>
-                <div className="flex flex-wrap gap-1.5">
-                  {org.needs.map(n => (
-                    <span key={n} className="text-xs font-semibold px-3 py-1.5 rounded-lg text-foreground bg-card border border-[#2D6A4F]/20">{n}</span>
-                  ))}
-                </div>
-              </Section>
-            )}
+            <OrgDecisionRail {...railProps} />
           </aside>
         </div>
       </div>
@@ -1324,11 +1422,23 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
           </div>
         )}
 
-        <IdentityHeader org={org} variant="panel" countries={countries} sectors={sectors} isVerified={isVerified} mouExecuted={mouExecuted}
+        <IdentityHeader org={org} variant="panel" countries={countries} sectors={wide ? [] : sectors} isVerified={isVerified} mouExecuted={mouExecuted}
           fitLoading={fitLoading} fitLocked={fitLocked} fit={fit} isSaved={isSaved} onToggleSave={onToggleSave} />
       </div>
 
       {/* ── Scrollable content ── */}
+      {wide ? (
+        <div className="flex-1 grid grid-cols-[minmax(0,1fr)_340px] gap-6 pr-6 items-start">
+          <div className="min-w-0 divide-y divide-[#2D6A4F]/20">
+            <ProfileTabs tabs={tabs} active={activeTab} onChange={setTab} variant="panel" />
+            <ProfileTabPanels org={org} variant="panel" tab={activeTab} viewerOrgId={viewerOrg?.id}
+              dd={{ score, total: ddTotal, docs: ddDocs }} />
+          </div>
+          <aside className="space-y-4 min-w-0 py-6">
+            <OrgDecisionRail {...railProps} />
+          </aside>
+        </div>
+      ) : (
       <div className="flex-1 divide-y divide-[#2D6A4F]/20">
         <ProfileTabs tabs={tabs} active={activeTab} onChange={setTab} variant="panel" />
         <ProfileTabPanels org={org} variant="panel" tab={activeTab} viewerOrgId={viewerOrg?.id}
@@ -1360,6 +1470,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }
