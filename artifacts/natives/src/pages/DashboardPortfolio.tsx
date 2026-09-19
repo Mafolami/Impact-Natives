@@ -886,6 +886,7 @@ export default function DashboardInitiatives() {
         partnership_theory_of_change: listing?.theory_of_change, partnership_prior_attempts: listing?.prior_attempts,
         partnership_constraints: listing?.constraints_note, partnership_prior_experience: listing?.prior_experience,
         partnership_prior_experience_detail: listing?.prior_experience_detail, partnership_physically_present: listing?.physically_present,
+        partnership_language: listing?.language,
       } as OrgRow & { listing_id?: string });
     })();
 

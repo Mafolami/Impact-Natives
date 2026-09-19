@@ -168,6 +168,7 @@ export default function DashboardPartnerships() {
           partnership_theory_of_change: l.theory_of_change, partnership_prior_attempts: l.prior_attempts,
           partnership_constraints: l.constraints_note, partnership_prior_experience: l.prior_experience,
           partnership_prior_experience_detail: l.prior_experience_detail, partnership_physically_present: l.physically_present,
+          partnership_language: l.language,
         } as OrgRow & { listing_id: string };
       })
       .filter((r): r is OrgRow & { listing_id: string } => r !== null);

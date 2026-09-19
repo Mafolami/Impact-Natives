@@ -31,7 +31,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import { supabase } from "@/lib/supabase";
-import { Loader2, ShieldCheck, Sparkles, CheckCircle2, ArrowUpRight, ArrowLeft, Award, Layers, Clock, Wallet, CalendarDays, Coins, Lock, MapPin, Users, User, Compass, Banknote, FileText, ClipboardList, Scale, Building2, Target } from "lucide-react";
+import { Loader2, ShieldCheck, Sparkles, CheckCircle2, ArrowUpRight, ArrowLeft, Award, Layers, Clock, Wallet, CalendarDays, Coins, Lock, MapPin, Users, User, Compass, Banknote, FileText, ClipboardList, Scale, Building2, Target, Languages } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 import VerifiedOutcomesSection from "@/components/dashboard/VerifiedOutcomesSection";
@@ -73,6 +73,7 @@ export interface OrgRow {
   specializations?: string[]; notable_engagements?: string[]; affiliations?: string[];
   subscription_tier?: string;
   logo_url?: string | null;
+  partnership_language?: string[] | null;
 }
 
 export type FitResult = {
@@ -522,22 +523,28 @@ function ConsultantExpertiseContent({ org }: { org: OrgRow }) {
 }
 
 // Shared by both variants -- confirmed byte-identical content.
-function ContextGrid({ org }: { org: OrgRow }) {
+function ContextGrid({ org, fields = ["theory", "attempts", "constraints"] }: { org: OrgRow; fields?: ("theory" | "attempts" | "constraints")[] }) {
+  const present = [
+    fields.includes("theory") && !!org.partnership_theory_of_change,
+    fields.includes("attempts") && !!org.partnership_prior_attempts,
+    fields.includes("constraints") && !!org.partnership_constraints,
+  ].filter(Boolean).length;
+  const cols = present >= 3 ? "sm:grid-cols-3" : present === 2 ? "sm:grid-cols-2" : "";
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-      {org.partnership_theory_of_change && (
+    <div className={`grid grid-cols-1 gap-3 ${cols}`}>
+      {fields.includes("theory") && org.partnership_theory_of_change && (
         <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
           <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Approach to change</p>
           <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_theory_of_change}</p>
         </div>
       )}
-      {org.partnership_prior_attempts && (
+      {fields.includes("attempts") && org.partnership_prior_attempts && (
         <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
           <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Previous attempts</p>
           <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_prior_attempts}</p>
         </div>
       )}
-      {org.partnership_constraints && (
+      {fields.includes("constraints") && org.partnership_constraints && (
         <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-muted border border-border">
           <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Constraints</p>
           <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_constraints}</p>
@@ -652,7 +659,7 @@ function DueDiligenceReadiness({ org, score, ddTotal, ddDocs }: { org: OrgRow; s
 // Cover every field the grids can render (the old inline guards skipped geo,
 // team capacity, lead contact and physical presence).
 function hasPartnershipSignals(org: OrgRow): boolean {
-  return !!(org.partnership_stage || org.partnership_duration || org.partnership_budget || org.partnership_decision_timeline || org.partnership_funding_status || org.partnership_exclusivity || org.partnership_geo_specificity || org.partnership_team_capacity || org.partnership_contact_seniority);
+  return !!(org.partnership_stage || org.partnership_duration || org.partnership_budget || org.partnership_decision_timeline || org.partnership_funding_status || org.partnership_exclusivity || org.partnership_geo_specificity || org.partnership_team_capacity || org.partnership_contact_seniority || org.partnership_language?.length);
 }
 
 function hasWorkingExpectations(org: OrgRow): boolean {
@@ -697,6 +704,7 @@ function PartnershipSignalsGrid({ org }: { org: OrgRow }) {
       {org.partnership_geo_specificity && <BentoCell label="Location focus" icon={MapPin} value={org.partnership_geo_specificity} />}
       {org.partnership_team_capacity && <BentoCell label="Team capacity" icon={Users} value={org.partnership_team_capacity.replace(/_/g, " ").replace(/(\d) (\d)/g, "$1–$2")} />}
       {org.partnership_contact_seniority && <BentoCell label="Lead contact" icon={User} value={org.partnership_contact_seniority.replace(/_/g, " ")} />}
+      {org.partnership_language && org.partnership_language.length > 0 && <BentoCell label="Languages" icon={Languages} value={org.partnership_language.join(" · ")} />}
     </div>
   );
 }
@@ -809,6 +817,197 @@ function FitAnalysisContent({ fit, fitLoading, fitLocked, alsoFits, onSelectAlso
 
 // ─── Main panel ─────────────────────────────────────────────────────────────────
 
+// ─── Profile tabs ─────────────────────────────────────────────────────────────
+// Both variants render the same tabs and the same tab content, defined once here.
+// Each field lives on exactly one tab. The page variant's rail (Express interest, fit,
+// key focus areas, what they bring, looking for) sits outside the tabs and stays visible.
+
+type ProfileTab = "overview" | "impact" | "partnerships" | "documents";
+
+const PROFILE_TAB_LABELS: Record<ProfileTab, string> = {
+  overview: "Overview", impact: "Impact", partnerships: "Partnerships", documents: "Documents",
+};
+
+function hasPartnershipsTab(org: OrgRow): boolean {
+  return hasWorkingExpectations(org)
+    || !!(org.partnership_prior_attempts || org.partnership_constraints)
+    || (org.partnership_prior_experience !== null && org.partnership_prior_experience !== undefined);
+}
+
+// Overview and Impact always show. Impact holds Verified outcomes, which load their own
+// data, so this file cannot tell in advance whether that tab will be empty.
+// Documents holds due diligence readiness, which does not apply to solo consultancies.
+function visibleTabs(org: OrgRow): ProfileTab[] {
+  const tabs: ProfileTab[] = ["overview", "impact"];
+  if (hasPartnershipsTab(org)) tabs.push("partnerships");
+  if (!isConsultancyOrg(org)) tabs.push("documents");
+  return tabs;
+}
+
+function ProfileTabs({ tabs, active, onChange, variant }: {
+  tabs: ProfileTab[]; active: ProfileTab; onChange: (t: ProfileTab) => void; variant: "page" | "panel";
+}) {
+  const wrap = variant === "panel"
+    ? "sticky top-0 z-10 bg-background px-8 flex gap-6 overflow-x-auto"
+    : "flex gap-6 overflow-x-auto border-b border-border";
+  return (
+    <div role="tablist" className={wrap}>
+      {tabs.map(t => (
+        <button key={t} type="button" role="tab" aria-selected={active === t} onClick={() => onChange(t)}
+          className={`shrink-0 py-3 text-sm border-b-2 -mb-px transition-colors ${
+            active === t
+              ? "font-bold text-[#2D6A4F] border-[#2D6A4F]"
+              : "font-medium text-black dark:text-white border-transparent hover:border-border"
+          }`}>
+          {PROFILE_TAB_LABELS[t]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// One block of a tab. page: a card, or bare when inline. panel: a padded strip row.
+function TabBlock({ variant, inline = false, className = "", children }: {
+  variant: "page" | "panel"; inline?: boolean; className?: string; children: React.ReactNode;
+}) {
+  if (variant === "page") return inline ? <>{children}</> : <Section className={className}>{children}</Section>;
+  return <div className={`px-8 ${inline ? "py-4" : "py-6"} ${className}`}>{children}</div>;
+}
+
+function SeekingAndSuccess({ org, variant }: { org: OrgRow; variant: "page" | "panel" }) {
+  if (!org.partnership_sought && !org.partnership_success_definition) return null;
+  const seeking = org.partnership_sought && (
+    <>
+      <Eyebrow>Seeking</Eyebrow>
+      <p className="text-[15px] text-foreground leading-relaxed">{org.partnership_sought}</p>
+    </>
+  );
+  const success = org.partnership_success_definition ? <SuccessOutcomeCard org={org} /> : null;
+  if (variant === "page") {
+    return (
+      <div className="space-y-3">
+        {seeking && <Section>{seeking}</Section>}
+        {success}
+      </div>
+    );
+  }
+  return (
+    <div className="px-8 py-6 space-y-4">
+      {seeking && <div>{seeking}</div>}
+      {success}
+    </div>
+  );
+}
+
+// Panel only. On the page variant these two live in the rail.
+function PanelNeedsOffers({ org }: { org: OrgRow }) {
+  if (!((org.needs && org.needs.length > 0) || (org.offers && org.offers.length > 0))) return null;
+  return (
+    <div className="px-8 py-6 space-y-5">
+      {org.needs && org.needs.length > 0 && (
+        <div>
+          <Eyebrow>Looking for in a partner</Eyebrow>
+          <div className="flex flex-wrap gap-2">
+            {org.needs.map(n => (
+              <span key={n} className="text-sm font-semibold px-4 py-2 rounded-lg text-foreground bg-muted border border-border">{n}</span>
+            ))}
+          </div>
+        </div>
+      )}
+      {org.offers && org.offers.length > 0 && (
+        <div>
+          <Eyebrow>What they bring</Eyebrow>
+          <div className="flex flex-wrap gap-2">
+            {org.offers.map(o => (
+              <span key={o} className="text-sm font-bold px-4 py-2 rounded-lg"
+                style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>{o}</span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProfileTabPanels({ org, variant, tab, viewerOrgId, dd, overviewAfterSuccess, overviewAfterSignals }: {
+  org: OrgRow; variant: "page" | "panel"; tab: ProfileTab; viewerOrgId?: string;
+  dd: { score: number; total: number; docs: { key: keyof OrgRow; label: string }[] };
+  overviewAfterSuccess?: React.ReactNode; overviewAfterSignals?: React.ReactNode;
+}) {
+  const body = variant === "page" ? "space-y-6" : "divide-y divide-border";
+
+  if (tab === "impact") {
+    return (
+      <div className={body}>
+        {org.partnership_theory_of_change && (
+          <TabBlock variant={variant}><ContextGrid org={org} fields={["theory"]} /></TabBlock>
+        )}
+        <VerifiedOutcomesSection orgId={org.id} variant={variant} isOwnOrg={viewerOrgId === org.id} />
+      </div>
+    );
+  }
+
+  if (tab === "partnerships") {
+    return (
+      <div className={body}>
+        {hasWorkingExpectations(org) && (
+          <TabBlock variant={variant}>
+            <Eyebrow>Working expectations</Eyebrow>
+            <WorkingExpectationsList org={org} />
+          </TabBlock>
+        )}
+        {(org.partnership_prior_attempts || org.partnership_constraints) && (
+          <TabBlock variant={variant}><ContextGrid org={org} fields={["attempts", "constraints"]} /></TabBlock>
+        )}
+        {org.partnership_prior_experience !== null && org.partnership_prior_experience !== undefined && (
+          <TabBlock variant={variant}>
+            <Eyebrow>Track record</Eyebrow>
+            <TrackRecordContent org={org} />
+          </TabBlock>
+        )}
+      </div>
+    );
+  }
+
+  if (tab === "documents") {
+    return (
+      <div className={body}>
+        <TabBlock variant={variant}>
+          <DueDiligenceReadiness org={org} score={dd.score} ddTotal={dd.total} ddDocs={dd.docs} />
+        </TabBlock>
+      </div>
+    );
+  }
+
+  return (
+    <div className={body}>
+      {org.description && (
+        <TabBlock variant={variant}>
+          <p className="text-[15px] text-foreground leading-relaxed">{org.description}</p>
+        </TabBlock>
+      )}
+      <SeekingAndSuccess org={org} variant={variant} />
+      {overviewAfterSuccess}
+      {hasPartnershipSignals(org) && (
+        <TabBlock variant={variant}>
+          <Eyebrow>Partnership signals</Eyebrow>
+          <PartnershipSignalsGrid org={org} />
+        </TabBlock>
+      )}
+      {overviewAfterSignals}
+      {isConsultancyOrg(org) && !!(org.specializations?.length || org.notable_engagements?.length || org.affiliations?.length) && (
+        <TabBlock variant={variant}><ConsultantExpertiseContent org={org} /></TabBlock>
+      )}
+      {org.sdgs && org.sdgs.length > 0 && (
+        <TabBlock variant={variant} inline><SdgTagRow org={org} /></TabBlock>
+      )}
+      {org.website && org.website !== "https://" && (
+        <TabBlock variant={variant} inline><WebsiteLink org={org} /></TabBlock>
+      )}
+    </div>
+  );
+}
+
 export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent, sending, onExpressInterest, onBack, backLabel, viewerOrg, viewerOrgLoading, variant = "panel", mouExecuted = false }: {
   org: OrgRow | null; isSaved: boolean; onToggleSave: (e: React.MouseEvent) => void;
   isOrg: boolean; alreadySent: boolean; sending: boolean;
@@ -827,6 +1026,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
   const [alsoFits, setAlsoFits] = useState<AlsoFit[]>([]);
   const [openingMsg, setOpeningMsg] = useState<string | null>(null);
   const [msgEditing, setMsgEditing] = useState(false);
+  const [tab, setTab] = useState<ProfileTab>("overview");
 
   useEffect(() => {
     if (org && ref.current) ref.current.scrollTop = 0;
@@ -836,6 +1036,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
     setAlsoFits([]);
     setOpeningMsg(null);
     setMsgEditing(false);
+    setTab("overview");
     if (org && viewerOrg && org.user_id !== viewerOrg.user_id && org.id !== viewerOrg.id) {
       loadFit(org, viewerOrg);
     }
@@ -930,6 +1131,8 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
   const score = ddScore(org);
   const ddDocs = ddDocsFor(org);
   const ddTotal = ddDocs.length;
+  const tabs = visibleTabs(org);
+  const activeTab: ProfileTab = tabs.includes(tab) ? tab : "overview";
 
   // ── Page variant: flat content matching InitiativeDetail exactly ──
   if (variant === "page") {
@@ -945,66 +1148,9 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
 
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
           <div className="space-y-6 min-w-0">
-            {org.description && (
-              <Section>
-                <p className="text-[15px] text-foreground leading-relaxed">{org.description}</p>
-              </Section>
-            )}
-
-            {(org.partnership_sought || org.partnership_success_definition) && (
-              <div className="space-y-3">
-                {org.partnership_sought && (
-                  <Section>
-                    <Eyebrow>Seeking</Eyebrow>
-                    <p className="text-[15px] text-foreground leading-relaxed">{org.partnership_sought}</p>
-                  </Section>
-                )}
-                {org.partnership_success_definition && <SuccessOutcomeCard org={org} />}
-              </div>
-            )}
-
-            {hasPartnershipSignals(org) && (
-              <Section>
-                <Eyebrow>Partnership signals</Eyebrow>
-                <PartnershipSignalsGrid org={org} />
-              </Section>
-            )}
-
-            {hasWorkingExpectations(org) && (
-              <Section>
-                <Eyebrow>Working expectations</Eyebrow>
-                <WorkingExpectationsList org={org} />
-              </Section>
-            )}
-
-            <Section>
-              <DueDiligenceReadiness org={org} score={score} ddTotal={ddTotal} ddDocs={ddDocs} />
-            </Section>
-                  {isConsultancyOrg(org) && !!(org.specializations?.length || org.notable_engagements?.length || org.affiliations?.length) && (
-                    <Section>
-                      <ConsultantExpertiseContent org={org} />
-                    </Section>
-                  )}
-                  <VerifiedOutcomesSection orgId={org.id} variant="page" isOwnOrg={viewerOrg?.id === org.id} />
-                  {org.sdgs && org.sdgs.length > 0 && <SdgTagRow org={org} />}
-
-            {(org.partnership_theory_of_change || org.partnership_prior_attempts || org.partnership_constraints) && (
-              <Section>
-                <Eyebrow>Context</Eyebrow>
-                <ContextGrid org={org} />
-              </Section>
-            )}
-
-            {org.partnership_prior_experience !== null && org.partnership_prior_experience !== undefined && (
-              <Section>
-                <Eyebrow>Track record</Eyebrow>
-                <TrackRecordContent org={org} />
-              </Section>
-            )}
-
-            {org.website && org.website !== "https://" && (
-              <WebsiteLink org={org} />
-            )}
+            <ProfileTabs tabs={tabs} active={activeTab} onChange={setTab} variant="page" />
+            <ProfileTabPanels org={org} variant="page" tab={activeTab} viewerOrgId={viewerOrg?.id}
+              dd={{ score, total: ddTotal, docs: ddDocs }} />
           </div>
           <aside className="space-y-4 min-w-0">
             {viewerOrgLoading ? (
@@ -1090,108 +1236,16 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
 
       {/* ── Scrollable content ── */}
       <div className="flex-1 divide-y divide-border">
-
-        {org.description && (
-          <div className="px-8 py-5 border-b border-border">
-            <p className="text-[15px] text-foreground leading-relaxed">{org.description}</p>
-          </div>
-        )}
-
-        {(org.partnership_sought || org.partnership_success_definition) && (
-          <div className="px-8 py-6 space-y-4">
-            {org.partnership_sought && (
-              <div>
-                <Eyebrow>Seeking</Eyebrow>
-                <p className="text-[15px] text-foreground leading-relaxed">{org.partnership_sought}</p>
-              </div>
-            )}
-            {org.partnership_success_definition && <SuccessOutcomeCard org={org} />}
-          </div>
-        )}
-
-        {(fit || fitLoading) && org.user_id !== viewerOrg?.user_id && (
-          <div className="px-8 py-6 border-t border-b border-border"
-            style={{ background: "linear-gradient(135deg, rgba(13,43,26,0.04) 0%, rgba(26,74,46,0.02) 100%)" }}>
-            <FitAnalysisContent fit={fit} fitLoading={fitLoading} fitLocked={fitLocked} alsoFits={alsoFits} onSelectAlsoFit={swapToAlsoFit} />
-          </div>
-        )}
-
-        {hasPartnershipSignals(org) && (
-          <div className="px-8 py-6">
-            <Eyebrow>Partnership signals</Eyebrow>
-            <PartnershipSignalsGrid org={org} />
-          </div>
-        )}
-
-        {hasWorkingExpectations(org) && (
-          <div className="px-8 py-6">
-            <Eyebrow>Working expectations</Eyebrow>
-            <WorkingExpectationsList org={org} />
-          </div>
-        )}
-
-        {((org.needs && org.needs.length > 0) || (org.offers && org.offers.length > 0)) && (
-          <div className="px-8 py-6 space-y-5">
-            {org.needs && org.needs.length > 0 && (
-              <div>
-                <Eyebrow>Looking for in a partner</Eyebrow>
-                <div className="flex flex-wrap gap-2">
-                  {org.needs.map(n => (
-                    <span key={n} className="text-sm font-semibold px-4 py-2 rounded-lg text-foreground bg-muted border border-border">{n}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {org.offers && org.offers.length > 0 && (
-              <div>
-                <Eyebrow>What they bring</Eyebrow>
-                <div className="flex flex-wrap gap-2">
-                  {org.offers.map(o => (
-                    <span key={o} className="text-sm font-bold px-4 py-2 rounded-lg"
-                      style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>{o}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="px-8 py-6">
-          <DueDiligenceReadiness org={org} score={score} ddTotal={ddTotal} ddDocs={ddDocs} />
-        </div>
-          
-          {isConsultancyOrg(org) && !!(org.specializations?.length || org.notable_engagements?.length || org.affiliations?.length) && (
-            <div className="mt-6">
-              <ConsultantExpertiseContent org={org} />
+        <ProfileTabs tabs={tabs} active={activeTab} onChange={setTab} variant="panel" />
+        <ProfileTabPanels org={org} variant="panel" tab={activeTab} viewerOrgId={viewerOrg?.id}
+          dd={{ score, total: ddTotal, docs: ddDocs }}
+          overviewAfterSuccess={(fit || fitLoading) && org.user_id !== viewerOrg?.user_id ? (
+            <div className="px-8 py-6 border-t border-b border-border"
+              style={{ background: "linear-gradient(135deg, rgba(13,43,26,0.04) 0%, rgba(26,74,46,0.02) 100%)" }}>
+              <FitAnalysisContent fit={fit} fitLoading={fitLoading} fitLocked={fitLocked} alsoFits={alsoFits} onSelectAlsoFit={swapToAlsoFit} />
             </div>
-          )}
-          <VerifiedOutcomesSection orgId={org.id} variant="panel" isOwnOrg={viewerOrg?.id === org.id} />
-            
-        {org.sdgs && org.sdgs.length > 0 && (
-          <div className="px-8 py-4">
-            <SdgTagRow org={org} />
-          </div>
-        )}
-
-        {(org.partnership_theory_of_change || org.partnership_prior_attempts || org.partnership_constraints) && (
-          <div className="px-8 py-6">
-            <Eyebrow>Context</Eyebrow>
-            <ContextGrid org={org} />
-          </div>
-        )}
-
-        {org.partnership_prior_experience !== null && org.partnership_prior_experience !== undefined && (
-          <div className="px-8 py-6">
-            <Eyebrow>Track record</Eyebrow>
-            <TrackRecordContent org={org} />
-          </div>
-        )}
-
-        {org.website && org.website !== "https://" && (
-          <div className="px-8 py-4">
-            <WebsiteLink org={org} />
-          </div>
-        )}
+          ) : null}
+          overviewAfterSignals={<PanelNeedsOffers org={org} />} />
 
         {viewerOrgLoading ? (
           <div className="px-8 py-4 border-t border-border">
