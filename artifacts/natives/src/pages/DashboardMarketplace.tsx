@@ -2,15 +2,15 @@
 import { useEffect, useRef, useState } from "react";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { supabase } from "@/lib/supabase";
-import { Loader2, CheckCircle2, X, SlidersHorizontal, Search, Leaf, Zap, MessageSquare, ShieldCheck, Bookmark, ThumbsDown, RotateCcw, AlertTriangle, Share2, Check, Building2, Wallet, Handshake, FileCheck, Award } from "lucide-react";
+import { Loader2, CheckCircle2, X, SlidersHorizontal, Search, Leaf, Zap, MessageSquare, ShieldCheck, Bookmark, ThumbsDown, RotateCcw, AlertTriangle, Check, Building2, Wallet, Handshake, FileCheck, Award } from "lucide-react";
 import { computeTrustTier } from "@/lib/ddItems";
 import { TrustBadge } from "@/components/ui/TrustBadge";
 import { useAuth } from "@/context/AuthContext";
 import { FileText, Sparkles } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import CreateInitiativeModalDashboard from "./CreateInitiativeModalDashboard";
+import { ShareButton as SharedShareButton } from "@/components/dashboard/ShareButton";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { FaWhatsapp, FaXTwitter, FaLinkedin } from "react-icons/fa6";
 interface InitiativeRow {
   id: string;
   title: string;
@@ -140,75 +140,15 @@ function budgetMatches(budget: string | null | undefined, filter: string): boole
   if (filter === "over_1m")   return avg >= 1000000;
   return false;
 }
+// Thin wrapper: the share menu itself now lives in components/dashboard/ShareButton.tsx
+// and takes a url + message. Same props as before, so every call site here is unchanged.
 function ShareButton({ initiativeId, title, size = "sm" }: { initiativeId: string; title: string; size?: "sm" | "md" }) {
-  const [copied, setCopied] = useState(false);
-  const [open, setOpen] = useState(false);
-  const dim = size === "md" ? "h-9 w-9" : "h-8 w-8";
-  const iconDim = size === "md" ? "w-4 h-4" : "w-3.5 h-3.5";
-  const url = `${window.location.origin}/dashboard/marketplace/${initiativeId}`;
-  const message = `Check out this initiative on Impact Natives: ${title}. Sign up to explore partnership opportunities like this one.`;
-  const combined = `${message}\n${url}`;
-  async function handleNativeShare(e: React.MouseEvent) {
-    e.stopPropagation();
-    setOpen(false);
-    try { await navigator.share({ text: combined }); } catch { /* user cancelled */ }
-  }
-  async function handleCopy(e: React.MouseEvent) {
-    e.stopPropagation();
-    await navigator.clipboard.writeText(combined);
-    setCopied(true);
-    setOpen(false);
-    setTimeout(() => setCopied(false), 1800);
-  }
-  function openShareIntent(e: React.MouseEvent, href: string) {
-    e.stopPropagation();
-    window.open(href, "_blank", "noopener,noreferrer");
-    setOpen(false);
-  }
-  const whatsappHref = `https://wa.me/?text=${encodeURIComponent(combined)}`;
-  const xHref = `https://x.com/intent/tweet?text=${encodeURIComponent(message)}&url=${encodeURIComponent(url)}`;
-  const linkedinHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
-  const triggerButtonClass = `${dim} rounded-full flex items-center justify-center border transition-colors ${
-    copied
-      ? "border-[#2D6A4F]/30 bg-[rgba(45,106,79,0.12)] text-[#2D6A4F]"
-      : "border-border text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] hover:bg-[#2D6A4F]/5 dark:hover:border-[#C45C26] dark:hover:text-[#C45C26] dark:hover:bg-[#C45C26]/10"
-  }`;
-  const triggerIcon = copied ? <Check className={iconDim} /> : <Share2 className={iconDim} />;
-  const hasNativeShare = "share" in navigator;
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button type="button" onClick={e => e.stopPropagation()} title={copied ? "Link copied" : "Share"} className={triggerButtonClass}>
-          {triggerIcon}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-auto p-1.5" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-center gap-2 p-1">
-          <button type="button" onClick={e => openShareIntent(e, whatsappHref)} title="Share to WhatsApp"
-            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
-            <FaWhatsapp className="w-4 h-4 shrink-0 text-[#25D366]" />
-          </button>
-          <button type="button" onClick={e => openShareIntent(e, xHref)} title="Share to X"
-            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
-            <FaXTwitter className="w-4 h-4 shrink-0" />
-          </button>
-          <button type="button" onClick={e => openShareIntent(e, linkedinHref)} title="Share to LinkedIn"
-            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
-            <FaLinkedin className="w-4 h-4 shrink-0 text-[#0A66C2]" />
-          </button>
-          {hasNativeShare && (
-            <button type="button" onClick={handleNativeShare} title="More options"
-              className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
-              <Share2 className="w-4 h-4 shrink-0" />
-            </button>
-          )}
-          <button type="button" onClick={handleCopy} title={copied ? "Copied" : "Copy link"}
-            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
-            {copied ? <Check className="w-4 h-4 shrink-0 text-[#2D6A4F]" /> : <Share2 className="w-4 h-4 shrink-0" />}
-          </button>
-        </div>
-      </PopoverContent>
-    </Popover>
+    <SharedShareButton
+      size={size}
+      url={`${window.location.origin}/dashboard/marketplace/${initiativeId}`}
+      message={`Check out this initiative on Impact Natives: ${title}. Sign up to explore partnership opportunities like this one.`}
+    />
   );
 }
 function DecisionIcons({
