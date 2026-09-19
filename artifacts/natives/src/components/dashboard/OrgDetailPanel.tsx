@@ -513,12 +513,14 @@ function SuccessOutcomeCard({ org }: { org: OrgRow }) {
   );
 }
 
-function SdgAlignmentGrid({ org }: { org: OrgRow }) {
+// Shared by both variants. SDGs are metadata, not a selling point, so they
+// render as one small tag row with an inline label, no card and no section header.
+function SdgTagRow({ org }: { org: OrgRow }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white mr-1">SDGs</span>
       {org.sdgs!.map(sdg => (
-        <span key={sdg} className="text-xs font-bold px-3 py-1.5 rounded-lg"
-          style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
+        <span key={sdg} className="text-[11px] font-semibold px-2 py-0.5 rounded-md text-foreground border border-[#2D6A4F]/40">
           {sdgLabel(sdg)}
         </span>
       ))}
@@ -929,12 +931,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
                 </Section>
               )}
               <VerifiedOutcomesSection orgId={org.id} variant="page" isOwnOrg={viewerOrg?.id === org.id} />
-              {org.sdgs && org.sdgs.length > 0 && (
-                <Section>
-                  <Eyebrow>SDG alignment</Eyebrow>
-                  <SdgAlignmentGrid org={org} />
-                </Section>
-              )}
+              {org.sdgs && org.sdgs.length > 0 && <SdgTagRow org={org} />}
 
         {(org.partnership_theory_of_change || org.partnership_prior_attempts || org.partnership_constraints) && (
           <Section>
@@ -1146,9 +1143,8 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
           <VerifiedOutcomesSection orgId={org.id} variant="panel" isOwnOrg={viewerOrg?.id === org.id} />
             
         {org.sdgs && org.sdgs.length > 0 && (
-          <div className="px-8 py-6">
-            <Eyebrow>SDG alignment</Eyebrow>
-            <SdgAlignmentGrid org={org} />
+          <div className="px-8 py-4">
+            <SdgTagRow org={org} />
           </div>
         )}
 
