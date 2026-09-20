@@ -9,7 +9,7 @@ import { Share2, Check } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { FaWhatsapp, FaXTwitter, FaLinkedin } from "react-icons/fa6";
 
-export function ShareButton({ url, message, size = "sm", label, fullWidth = false }: { url: string; message: string; size?: "sm" | "md"; label?: string; fullWidth?: boolean }) {
+export function ShareButton({ url, message, size = "sm", label, fullWidth = false, tone = "light" }: { url: string; message: string; size?: "sm" | "md"; label?: string; fullWidth?: boolean; tone?: "light" | "dark" }) {
   const [copied, setCopied] = useState(false);
   const [open, setOpen] = useState(false);
   const dim = size === "md" ? "h-9 w-9" : "h-8 w-8";
@@ -45,12 +45,16 @@ export function ShareButton({ url, message, size = "sm", label, fullWidth = fals
       ? "border-[#2D6A4F]/30 bg-[rgba(45,106,79,0.12)] text-[#2D6A4F]"
       : "border-border text-black dark:text-white hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F]"
   }`;
+  // On the dark header image: white outline and text.
+  const darkTriggerClass = `${fullWidth ? "w-full justify-center " : ""}px-3.5 py-2 rounded-full flex items-center gap-1.5 border text-xs font-semibold transition-colors ${
+    copied ? "border-white/70 bg-white/25 text-white" : "border-white/45 text-white hover:bg-white/15"
+  }`;
   const triggerIcon = copied ? <Check className={label ? "w-3.5 h-3.5" : iconDim} /> : <Share2 className={label ? "w-3.5 h-3.5" : iconDim} />;
   const hasNativeShare = "share" in navigator;
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button type="button" onClick={e => e.stopPropagation()} title={copied ? "Link copied" : "Share"} className={label ? labelTriggerClass : iconTriggerClass}>
+        <button type="button" onClick={e => e.stopPropagation()} title={copied ? "Link copied" : "Share"} className={label ? (tone === "dark" ? darkTriggerClass : labelTriggerClass) : iconTriggerClass}>
           {triggerIcon}
           {label && <span>{copied ? "Link copied" : label}</span>}
         </button>

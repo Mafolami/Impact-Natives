@@ -208,10 +208,12 @@ const isCorporate = ["corporation", "technology_company", "public_sector"].inclu
 
       {/* Nav */}
       <style>{`
-        .sidebar-nav-scroll { scrollbar-width: none; -ms-overflow-style: none; }
-        .sidebar-nav-scroll::-webkit-scrollbar { display: none; width: 0; height: 0; }
+        .sidebar-nav-scroll { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+        .sidebar-nav-scroll::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; background: transparent !important; }
+        .sidebar-nav-scroll::-webkit-scrollbar-thumb, .sidebar-nav-scroll::-webkit-scrollbar-track { display: none !important; }
       `}</style>
-      <nav className="sidebar-nav-scroll flex-1 overflow-y-auto py-4 pl-3 pr-3">
+      <nav className="sidebar-nav-scroll [&::-webkit-scrollbar]:hidden flex-1 overflow-y-auto py-4 pl-3 pr-3"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
         {visibleSections.map((section, sectionIndex) => (
           <div key={section.label ?? "home"} className={sectionIndex > 0 ? "mt-5" : ""}>
             {section.label && !collapsed && (

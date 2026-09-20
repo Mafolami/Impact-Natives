@@ -321,10 +321,10 @@ function ExpressInterestPanel({ alreadySent, openingMsg, setOpeningMsg, msgEditi
   );
 }
 
-function BackButton({ onBack, backLabel }: { onBack: () => void; backLabel: string }) {
+function BackButton({ onBack, backLabel, onDark = false }: { onBack: () => void; backLabel: string; onDark?: boolean }) {
   return (
     <button type="button" onClick={onBack}
-      className="flex items-center gap-1.5 text-sm text-black dark:text-white hover:text-[#C45C26] transition-colors">
+      className={`flex items-center gap-1.5 text-sm transition-colors ${onDark ? "text-white hover:text-[#F5B183]" : "text-black dark:text-white hover:text-[#C45C26]"}`}>
       <ArrowLeft className="w-3.5 h-3.5" /> {backLabel}
     </button>
   );
@@ -339,44 +339,41 @@ function IdentityNameRow({ org, variant, isVerified, mouExecuted, fitLoading, fi
   org: OrgRow; variant: "page" | "panel";
   isVerified: boolean; mouExecuted: boolean; fitLoading: boolean; fitLocked: boolean; fit: FitResult | null;
 }) {
+  // Sits on the dark header image, so everything here is white.
   const nameClass = variant === "page"
-    ? "text-2xl font-bold text-foreground hover:text-[#C45C26] transition-colors tracking-tight"
-    : "text-2xl font-black text-foreground hover:text-[#C45C26] transition-colors leading-tight tracking-tight";
+    ? "text-2xl font-bold text-white hover:text-[#F5B183] transition-colors tracking-tight"
+    : "text-2xl font-black text-white hover:text-[#F5B183] transition-colors leading-tight tracking-tight";
+  const chip = { background: "rgba(255,255,255,0.16)", color: "#FFFFFF", border: "1px solid rgba(255,255,255,0.45)" };
+  const fitEdge = fit ? (fit.fit_score >= 70 ? "#4ADE80" : fit.fit_score >= 50 ? "#FBBF24" : "#F87171") : "#FFFFFF";
   return (
     <div className="flex items-center gap-2 flex-wrap mb-1">
       <Link href={`/dashboard/natives?tab=organisation&user=${org.user_id}`} className={nameClass}>
         {org.organisation_name}
       </Link>
       {isVerified && (
-        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
-          style={{ background: "rgba(6,95,70,0.12)", color: "#065F46", border: "1px solid rgba(6,95,70,0.3)" }}>
+        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0" style={chip}>
           <ShieldCheck className="w-3 h-3" />Verified
         </span>
       )}
       {mouExecuted && (
-        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
-          style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F", border: "1px solid rgba(45,106,79,0.3)" }}>
+        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0" style={chip}>
           <Award className="w-3 h-3" />MoU Executed
         </span>
       )}
       {fitLoading && (
-        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-card text-black dark:text-white border border-[#2D6A4F]/20">
+        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-white/15 text-white border border-white/45">
           <Loader2 className="w-3 h-3 animate-spin" />Scoring fit...
         </span>
       )}
       {fitLocked && (
         <Link href="/dashboard/settings?tab=billing"
-          className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-card text-black dark:text-white border border-[#2D6A4F]/20 hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] transition-colors">
-          <Sparkles className="w-3 h-3" />AI fit score — upgrade
+          className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-white/15 text-white border border-white/45 hover:bg-white/25 transition-colors">
+          <Sparkles className="w-3 h-3" />AI fit score {"\u2014"} upgrade
         </Link>
       )}
       {fit && !fitLoading && (
         <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0"
-          style={{
-            background: fit.fit_score >= 70 ? "rgba(6,95,70,0.12)" : fit.fit_score >= 50 ? "rgba(146,64,14,0.12)" : "rgba(153,27,27,0.12)",
-            color: fit.fit_score >= 70 ? "#065F46" : fit.fit_score >= 50 ? "#92400E" : "#991B1B",
-            border: `1px solid ${fit.fit_score >= 70 ? "rgba(6,95,70,0.3)" : fit.fit_score >= 50 ? "rgba(146,64,14,0.3)" : "rgba(153,27,27,0.3)"}`,
-          }}>
+          style={{ background: "rgba(255,255,255,0.16)", color: "#FFFFFF", border: `1px solid ${fitEdge}` }}>
           {fit.fit_score}% fit
         </span>
       )}
@@ -393,12 +390,13 @@ function orgTypeAndCountriesLabel(org: OrgRow, countries: string[]): string {
 
 // Shared by both variants -- confirmed byte-identical content.
 function SaveButton({ isSaved, onToggleSave }: { isSaved: boolean; onToggleSave: (e: React.MouseEvent) => void }) {
+  // Sits on the dark header image, so it is white.
   return (
     <button type="button" onClick={onToggleSave}
-      className="shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-full transition-all border border-[#2D6A4F]/20"
-      style={{ color: isSaved ? "#065F46" : undefined, background: isSaved ? "rgba(6,95,70,0.1)" : "transparent" }}>
+      className="shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-full transition-all border border-white/45 text-white hover:bg-white/15"
+      style={isSaved ? { background: "rgba(255,255,255,0.22)", borderColor: "rgba(255,255,255,0.7)" } : undefined}>
       <svg viewBox="0 0 24 24" className="w-3.5 h-3.5"
-        fill={isSaved ? "#065F46" : "none"} stroke="currentColor" strokeWidth={2}>
+        fill={isSaved ? "#FFFFFF" : "none"} stroke="currentColor" strokeWidth={2}>
         <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
       </svg>
       {isSaved ? "Saved" : "Save"}
@@ -409,11 +407,14 @@ function SaveButton({ isSaved, onToggleSave }: { isSaved: boolean; onToggleSave:
 // Shared by both variants -- confirmed byte-identical rendering. Each
 // variant keeps its own choice of where to place it and what margin to
 // give it, since the position in the tree genuinely differs.
-function SectorTags({ sectors }: { sectors: string[] }) {
+function SectorTags({ sectors, onDark = false }: { sectors: string[]; onDark?: boolean }) {
+  const chip = onDark
+    ? "text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-white/15 text-white border border-white/40"
+    : "text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-card text-foreground border border-[#2D6A4F]/20";
   return (
     <div className="flex flex-wrap gap-1.5">
       {sectors.map(s => (
-        <span key={s} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-card text-foreground border border-[#2D6A4F]/20">
+        <span key={s} className={chip}>
           {s}
         </span>
       ))}
@@ -434,10 +435,11 @@ function listingShareMessage(org: OrgRow): string {
 // Brand-green band behind the identity block. One definition so both variants match.
 const IDENTITY_BAND = "linear-gradient(to bottom, rgba(45,106,79,0.06), transparent)";
 
-// Header card background: the partnership image from /public, with a wash of the page colour over its left side
-// so the text stays readable (the wash follows light and dark mode). The sidebar card keeps IDENTITY_BAND.
+// Header card background: the partnership image from /public, shown as it is. The dark colour behind it is a fallback
+// for a missing file, so the white text stays readable either way. The sidebar card keeps IDENTITY_BAND.
 const HEADER_STYLE = {
-  backgroundImage: "linear-gradient(90deg, hsl(var(--background) / 0.94) 0%, hsl(var(--background) / 0.82) 45%, hsl(var(--background) / 0.15) 100%), url(/partnership.webp)",
+  backgroundColor: "#0F1F17",
+  backgroundImage: "url(/partnership.webp)",
   backgroundSize: "cover",
   backgroundPosition: "center",
 } as const;
@@ -458,20 +460,20 @@ function IdentityHeader({ org, variant, countries, sectors, isVerified, mouExecu
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <IdentityNameRow org={org} variant={variant} isVerified={isVerified} mouExecuted={mouExecuted} fitLoading={fitLoading} fitLocked={fitLocked} fit={fit} />
-              <p className={`${variant === "page" ? "text-xs" : "text-sm"} text-black dark:text-white capitalize`}>
+              <p className={`${variant === "page" ? "text-xs" : "text-sm"} text-white capitalize`}>
                 {orgTypeAndCountriesLabel(org, countries)}
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {showShare && org.listing_id && !org.partnership_formed && (
-                <ShareButton label="Share" url={listingShareUrl(org)} message={listingShareMessage(org)} />
+                <ShareButton label="Share" tone="dark" url={listingShareUrl(org)} message={listingShareMessage(org)} />
               )}
               <SaveButton isSaved={isSaved} onToggleSave={onToggleSave} />
             </div>
           </div>
           {sectors.length > 0 && (
             <div className={`mt-4${hideSectorsOnXl ? " xl:hidden" : ""}`}>
-              <SectorTags sectors={sectors} />
+              <SectorTags sectors={sectors} onDark />
             </div>
           )}
         </div>
@@ -1368,7 +1370,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
           <div className="space-y-6 min-w-0">
             {/* Identity -- brand-green band card, shared IdentityHeader */}
-            <div className="rounded-xl border border-[#2D6A4F]/20 px-8 py-10 min-h-[240px] flex flex-col justify-center" style={HEADER_STYLE}>
+            <div className="rounded-xl border border-[#2D6A4F]/20 px-8 py-6 min-h-[150px] flex flex-col justify-center" style={HEADER_STYLE}>
               <IdentityHeader org={org} variant="page" countries={countries} sectors={sectors} showShare={false} isVerified={isVerified} mouExecuted={mouExecuted}
                 fitLoading={fitLoading} fitLocked={fitLocked} fit={fit} isSaved={isSaved} onToggleSave={onToggleSave} />
             </div>
@@ -1397,7 +1399,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
       <div ref={ref} className="h-full overflow-y-auto bg-background">
         <div className="grid grid-cols-[minmax(0,1fr)_340px] gap-6 pr-6 py-6 items-start">
           <div className="min-w-0">
-            <div className="mx-8 mb-6 rounded-xl border border-[#2D6A4F]/20 px-8 py-10 min-h-[240px] flex flex-col justify-center" style={HEADER_STYLE}>
+            <div className="ml-8 mb-6 rounded-xl border border-[#2D6A4F]/20 px-8 py-6 min-h-[150px] flex flex-col justify-center" style={HEADER_STYLE}>
               {panelHeader}
             </div>
             <ProfileTabs tabs={tabs} active={activeTab} onChange={setTab} variant="panel" />
@@ -1414,10 +1416,10 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
 
   return (
     <div ref={ref} className="flex flex-col h-full overflow-y-auto bg-background">
-      <div className="shrink-0 px-8 pt-10 pb-10 min-h-[200px] flex flex-col justify-center" style={HEADER_STYLE}>
+      <div className="shrink-0 px-8 pt-6 pb-6 min-h-[130px] flex flex-col justify-center" style={HEADER_STYLE}>
         {backLabel && (
           <div className="flex justify-between mb-4 lg:hidden">
-            <BackButton onBack={onBack} backLabel={backLabel} />
+            <BackButton onBack={onBack} backLabel={backLabel} onDark />
           </div>
         )}
         {panelHeader}
