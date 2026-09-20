@@ -207,7 +207,7 @@ const LEGAL_TYPE_LABELS: Record<string, string> = {
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-black dark:text-white mb-3">
+    <p className="text-[13px] font-black uppercase tracking-[0.1em] text-black dark:text-white mb-3.5">
       {children}
     </p>
   );
@@ -218,9 +218,9 @@ function BentoCell({ label, value, accent, capitalize, icon: Icon }: { label: st
     <div className="rounded-xl p-3.5 bg-card border border-[#2D6A4F]/20">
       <div className="flex items-center gap-1.5 mb-1">
         {Icon && <Icon className="w-3 h-3 shrink-0 text-[#2D6A4F]" />}
-        <p className="text-[9px] font-black uppercase tracking-widest text-black dark:text-white">{label}</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">{label}</p>
       </div>
-      <p className={`text-sm font-bold leading-snug ${accent ? "text-[#2D6A4F]" : "text-foreground"}${capitalize ? " capitalize" : ""}`}>{value}</p>
+      <p data-accent={accent ? "true" : undefined} className={`text-sm font-bold leading-snug text-foreground${capitalize ? " capitalize" : ""}`}>{value}</p>
     </div>
   );
 }
@@ -434,6 +434,14 @@ function listingShareMessage(org: OrgRow): string {
 // Brand-green band behind the identity block. One definition so both variants match.
 const IDENTITY_BAND = "linear-gradient(to bottom, rgba(45,106,79,0.06), transparent)";
 
+// Header card background: the partnership image from /public, with a wash of the page colour over its left side
+// so the text stays readable (the wash follows light and dark mode). The sidebar card keeps IDENTITY_BAND.
+const HEADER_STYLE = {
+  backgroundImage: "linear-gradient(90deg, hsl(var(--background) / 0.94) 0%, hsl(var(--background) / 0.82) 45%, hsl(var(--background) / 0.15) 100%), url(/partnership.webp)",
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+} as const;
+
 // Shared by both variants. Each variant supplies its own outer wrapper (page: a
 // bordered band card; panel: the full-width band strip with the mobile back button).
 // The variant prop only sets the type/countries text size, as before.
@@ -513,19 +521,19 @@ function ContextGrid({ org, fields = ["theory", "attempts", "constraints"] }: { 
     <div className={`grid grid-cols-1 gap-3 ${cols}`}>
       {fields.includes("theory") && org.partnership_theory_of_change && (
         <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-card border border-[#2D6A4F]/20">
-          <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Approach to change</p>
+          <p className="text-[12px] font-black uppercase tracking-widest text-black dark:text-white">Approach to change</p>
           <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_theory_of_change}</p>
         </div>
       )}
       {fields.includes("attempts") && org.partnership_prior_attempts && (
         <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-card border border-[#2D6A4F]/20">
-          <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Previous attempts</p>
+          <p className="text-[12px] font-black uppercase tracking-widest text-black dark:text-white">Previous attempts</p>
           <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_prior_attempts}</p>
         </div>
       )}
       {fields.includes("constraints") && org.partnership_constraints && (
         <div className="rounded-xl px-5 py-5 space-y-2 flex flex-col bg-card border border-[#2D6A4F]/20">
-          <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Constraints</p>
+          <p className="text-[12px] font-black uppercase tracking-widest text-black dark:text-white">Constraints</p>
           <p className="text-sm text-foreground leading-relaxed flex-1">{org.partnership_constraints}</p>
         </div>
       )}
@@ -575,7 +583,7 @@ function SuccessOutcomeCard({ org }: { org: OrgRow }) {
         <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 bg-[#2D6A4F]">
           <Target className="w-3.5 h-3.5 text-white" />
         </div>
-        <p className="text-[10px] font-black uppercase tracking-widest text-[#2D6A4F]">Success in 12 months</p>
+        <p className="text-[13px] font-black uppercase tracking-widest text-[#2D6A4F]">Success in 12 months</p>
       </div>
       <p className="text-base font-semibold text-foreground leading-relaxed">"{org.partnership_success_definition}"</p>
     </div>
@@ -1360,8 +1368,8 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
           <div className="space-y-6 min-w-0">
             {/* Identity -- brand-green band card, shared IdentityHeader */}
-            <div className="rounded-xl border border-[#2D6A4F]/20 px-6 py-5" style={{ background: IDENTITY_BAND }}>
-              <IdentityHeader org={org} variant="page" countries={countries} sectors={sectors} hideSectorsOnXl showShare={false} isVerified={isVerified} mouExecuted={mouExecuted}
+            <div className="rounded-xl border border-[#2D6A4F]/20 px-8 py-10 min-h-[240px] flex flex-col justify-center" style={HEADER_STYLE}>
+              <IdentityHeader org={org} variant="page" countries={countries} sectors={sectors} showShare={false} isVerified={isVerified} mouExecuted={mouExecuted}
                 fitLoading={fitLoading} fitLocked={fitLocked} fit={fit} isSaved={isSaved} onToggleSave={onToggleSave} />
             </div>
 
@@ -1379,7 +1387,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
 
   // ── Panel variant: the Partnerships split pane ──
   const panelHeader = (
-    <IdentityHeader org={org} variant="panel" countries={countries} sectors={wide ? [] : sectors} isVerified={isVerified} mouExecuted={mouExecuted}
+    <IdentityHeader org={org} variant="panel" countries={countries} sectors={sectors} isVerified={isVerified} mouExecuted={mouExecuted}
       fitLoading={fitLoading} fitLocked={fitLocked} fit={fit} isSaved={isSaved} onToggleSave={onToggleSave} showShare={!wide} />
   );
 
@@ -1389,7 +1397,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
       <div ref={ref} className="h-full overflow-y-auto bg-background">
         <div className="grid grid-cols-[minmax(0,1fr)_340px] gap-6 pr-6 py-6 items-start">
           <div className="min-w-0">
-            <div className="mx-8 mb-6 rounded-xl border border-[#2D6A4F]/20 px-6 py-5" style={{ background: IDENTITY_BAND }}>
+            <div className="mx-8 mb-6 rounded-xl border border-[#2D6A4F]/20 px-8 py-10 min-h-[240px] flex flex-col justify-center" style={HEADER_STYLE}>
               {panelHeader}
             </div>
             <ProfileTabs tabs={tabs} active={activeTab} onChange={setTab} variant="panel" />
@@ -1406,7 +1414,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
 
   return (
     <div ref={ref} className="flex flex-col h-full overflow-y-auto bg-background">
-      <div className="shrink-0 px-8 pt-7 pb-6" style={{ background: IDENTITY_BAND }}>
+      <div className="shrink-0 px-8 pt-10 pb-10 min-h-[200px] flex flex-col justify-center" style={HEADER_STYLE}>
         {backLabel && (
           <div className="flex justify-between mb-4 lg:hidden">
             <BackButton onBack={onBack} backLabel={backLabel} />

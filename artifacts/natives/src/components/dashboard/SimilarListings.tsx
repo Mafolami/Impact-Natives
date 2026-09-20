@@ -75,7 +75,7 @@ export default function SimilarListings({ listingId, orgUserId, sectors, countri
   const rowClass = "w-full text-left flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-[#2D6A4F]/10 transition-colors";
   return (
     <div className="border-t border-[#2D6A4F]/20 pt-6">
-      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-black dark:text-white mb-3">Similar listings</p>
+      <p className="text-[13px] font-black uppercase tracking-[0.1em] text-black dark:text-white mb-3.5">Similar listings</p>
       <ul className="space-y-1">
         {items.map(({ listing, org, shared, countryHit }) => {
           const inner = (

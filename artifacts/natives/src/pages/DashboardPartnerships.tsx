@@ -38,10 +38,10 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave, mouExecuted }
 
   return (
     <div onClick={onClick}
-      className={`relative cursor-pointer pl-[68px] pr-5 py-4 border-b transition-all group ${
+      className={`relative cursor-pointer pl-[68px] pr-5 py-4 rounded-xl border border-l-[3px] transition-all group ${
         selected
-          ? "bg-[#2D6A4F]/[0.08] border-l-[3px] border-l-[#2D6A4F] border-b-[#2D6A4F]/20"
-          : "hover:bg-[#2D6A4F]/10 border-l-[3px] border-l-transparent border-b-[#2D6A4F]/15"
+          ? "bg-[#2D6A4F]/[0.08] border-[#2D6A4F]/25 border-l-[#2D6A4F]"
+          : "border-transparent border-l-transparent hover:bg-[#2D6A4F]/[0.05] hover:border-[#2D6A4F]/25 hover:border-l-[#2D6A4F]"
       }`}>
 
       {/* Logo */}
@@ -274,7 +274,7 @@ export default function DashboardPartnerships() {
 
   return (
     <>
-      <div className="flex flex-col lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] xl:grid-cols-[20rem_minmax(0,1fr)] lg:grid-rows-[auto_auto_auto_minmax(0,1fr)] -mx-4 sm:-mx-6" style={{ height: "100vh", maxHeight: "100vh", overflow: "hidden" }}>
+      <div className="flex flex-col lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)] lg:grid-rows-[auto_auto_auto_minmax(0,1fr)] -mx-4 sm:-mx-6" style={{ height: "100vh", maxHeight: "100vh", overflow: "hidden" }}>
         {/* Top bar */}
         <div className="shrink-0 px-5 py-3 flex flex-wrap items-center gap-2 bg-background border-b border-[#2D6A4F]/20 lg:flex-col lg:items-stretch lg:flex-nowrap lg:px-3 lg:border-r-2 lg:col-start-1 lg:row-start-2">
           <div className="relative w-full">
@@ -282,7 +282,7 @@ export default function DashboardPartnerships() {
             <input type="text" placeholder="Search listings..." value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full h-9 pl-9 pr-3 rounded-lg text-[13px] text-foreground placeholder:text-[#2D6A4F]/70 focus:outline-none focus:ring-2 focus:ring-[#452A1D]/25 transition-colors bg-card border border-[#2D6A4F]/20" />          </div>
-          <div ref={filterBarRef} className="flex flex-wrap items-center gap-1.5 relative">
+          <div ref={filterBarRef} className="flex flex-wrap items-center gap-1 relative">
             {([
               {
                 key: "sector",
@@ -340,7 +340,7 @@ export default function DashboardPartnerships() {
               <div key={f.key} className="relative">
                 <button type="button"
                   onClick={() => setOpenDropdown(prev => prev === f.key ? null : f.key)}
-                  className={`h-8 px-3 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-colors ${
+                  className={`h-8 px-2.5 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-colors ${
                     f.count > 0 || openDropdown === f.key
                       ? "text-white border border-transparent"
                       : "bg-background text-foreground border border-[#2D6A4F]/20"
@@ -439,7 +439,7 @@ export default function DashboardPartnerships() {
 
         {!loading && orgs.length > 0 && (
           <div className={`shrink-0 border-b border-[#2D6A4F]/20 bg-background lg:col-start-1 lg:row-start-3 ${mobileDetailOpen ? "hidden lg:flex" : "flex"}`}>
-            <div className="w-full lg:w-72 xl:w-80 shrink-0 lg:border-r-2 border-[#2D6A4F]/20 px-3 py-2 flex items-center gap-1.5">
+            <div className="w-full lg:w-[20rem] xl:w-[22rem] shrink-0 lg:border-r-2 border-[#2D6A4F]/20 px-3 py-2 flex items-center gap-1.5">
               {views.map(v => {
                 const on = listView === v.key;
                 const cls = `h-8 px-3 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-colors ${
@@ -481,7 +481,7 @@ export default function DashboardPartnerships() {
           </div>
         ) : (
           <div className="flex min-h-0 overflow-hidden lg:contents" style={{ flex: 1 }}>            {/* Left list */}
-            <div className={`w-full lg:w-auto shrink-0 overflow-y-auto min-h-0 lg:col-start-1 lg:row-start-4 border-r-2 border-[#2D6A4F]/20 bg-[#2D6A4F]/[0.04] ${mobileDetailOpen ? "hidden lg:block" : "block"}`}>
+            <div className={`w-full lg:w-auto shrink-0 overflow-y-auto min-h-0 space-y-3 px-3 py-3 lg:col-start-1 lg:row-start-4 border-r-2 border-[#2D6A4F]/20 bg-[#2D6A4F]/[0.04] ${mobileDetailOpen ? "hidden lg:block" : "block"}`}>
               {filtered.map((org: any) => (
                 <ListCard key={org.listing_id} org={org}
                   selected={selectedOrg?.listing_id === org.listing_id}

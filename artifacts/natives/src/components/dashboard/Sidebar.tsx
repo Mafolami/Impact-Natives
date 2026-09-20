@@ -187,7 +187,7 @@ const isCorporate = ["corporation", "technology_company", "public_sector"].inclu
     <aside
     className={cn(
       "fixed left-0 top-0 h-screen flex flex-col z-40 transition-all duration-200 border-r border-sidebar-border bg-sidebar",
-      collapsed ? "w-16" : "w-60"
+      collapsed ? "w-16" : "w-52"
     )}
     >
       
@@ -208,15 +208,10 @@ const isCorporate = ["corporation", "technology_company", "public_sector"].inclu
 
       {/* Nav */}
       <style>{`
-        .sidebar-nav-scroll::-webkit-scrollbar { width: 3px; }
-        .sidebar-nav-scroll::-webkit-scrollbar-track { background: transparent; }
-        .sidebar-nav-scroll::-webkit-scrollbar-thumb {
-          background: hsl(var(--sidebar-foreground) / 0.25);
-          border-radius: 999px;
-        }
-        .sidebar-nav-scroll { scrollbar-width: thin; scrollbar-color: hsl(var(--sidebar-foreground) / 0.25) transparent; }
+        .sidebar-nav-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+        .sidebar-nav-scroll::-webkit-scrollbar { display: none; width: 0; height: 0; }
       `}</style>
-      <nav className="sidebar-nav-scroll flex-1 overflow-y-auto py-4 pl-4 pr-1">
+      <nav className="sidebar-nav-scroll flex-1 overflow-y-auto py-4 pl-3 pr-3">
         {visibleSections.map((section, sectionIndex) => (
           <div key={section.label ?? "home"} className={sectionIndex > 0 ? "mt-5" : ""}>
             {section.label && !collapsed && (
