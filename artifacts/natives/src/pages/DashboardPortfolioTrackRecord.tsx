@@ -9,6 +9,7 @@ import { resolveMouDocTitle, buildConnectionListingMap, type MouTitleListingRef 
 import { fetchLatestListingMirror } from "@/lib/listingMirror";
 import { PartnershipIndicator, isIndicatorAgreed, fetchIndicatorsForDocuments } from "@/lib/indicators";
 import { ImpactClaim, fetchClaimsForIndicators } from "@/lib/impactClaims";
+import ImpactScoreToggle from "@/components/dashboard/ImpactScoreToggle";
 
 interface ExecutedDoc {
   id: string;
@@ -216,6 +217,7 @@ export default function DashboardPortfolioTrackRecord() {
           options={indicatorOptions.map((o) => ({ value: o.id, label: o.label }))} allLabel="All indicators" />
         <FilterSelect label="Signed" value={filterMonth} onChange={setFilterMonth}
           options={monthOptions} allLabel="Any month" />
+        {myOrgId && <div className="ml-auto"><ImpactScoreToggle orgId={myOrgId} /></div>}
       </div>
 
       {/* Small cards -- plain counts, no chart mixed in. */}
