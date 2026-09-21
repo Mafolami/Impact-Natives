@@ -1015,7 +1015,7 @@ function ProfileTabPanels({ org, variant, tab, viewerOrgId, dd, overviewAfterSuc
         {org.partnership_theory_of_change && (
           <TabBlock variant={variant}><ContextGrid org={org} fields={["theory"]} /></TabBlock>
         )}
-        <VerifiedOutcomesSection orgId={org.id} variant={variant} isOwnOrg={viewerOrgId === org.id} />
+        <VerifiedOutcomesSection orgId={org.id} variant={variant} isOwnOrg={viewerOrgId === org.id} hideToggle />
       </div>
     );
   }

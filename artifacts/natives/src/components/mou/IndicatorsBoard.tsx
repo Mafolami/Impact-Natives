@@ -7,6 +7,21 @@ import type { OrgRef } from "@/lib/milestones";
 import ImpactClaimForm from "@/components/mou/ImpactClaimForm";
 import ImpactClaimReview from "@/components/mou/ImpactClaimReview";
 
+// Collapsed by default so a past dispute does not shout at the claimant.
+function DisputeReason({ reason }: { reason?: string | null }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="text-xs text-black dark:text-white">
+      <span>Previous claim disputed. </span>
+      <button type="button" onClick={() => setOpen((v) => !v)}
+        className="font-semibold text-[#C45C26] hover:underline">
+        {open ? "Hide reason" : "View reason"}
+      </button>
+      {open && <p className="mt-1">{reason || "No reason was given."}</p>}
+    </div>
+  );
+}
+
 interface IndicatorsBoardProps {
   mouDocumentId: string;
   orgA: OrgRef | null;
@@ -163,9 +178,7 @@ export default function IndicatorsBoard({ mouDocumentId, orgA, orgB, myUserId }:
                           </p>
                         </div>
                         {wasDisputed && (
-                          <p className="text-xs text-red-600 dark:text-red-500">
-                            Previous claim disputed: {slot.claim?.dispute_reason}
-                          </p>
+                          <DisputeReason reason={slot.claim?.dispute_reason} />
                         )}
                         {col.key === "awaiting_evidence" && slot.isMySlot && (
                           <button type="button" onClick={() => setClaimFormIndicatorId(slot.indicator.id)}

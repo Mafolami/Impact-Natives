@@ -29,8 +29,8 @@ interface OrgScoreRow {
 // if it's both tier-eligible AND the org has chosen to show it --
 // respects the org's own choice, not just the platform's tier gate.
 export default function VerifiedOutcomesSection({
-  orgId, variant = "panel", isOwnOrg = false, canManage = isOwnOrg,
-}: { orgId: string; variant?: "panel" | "page"; isOwnOrg?: boolean; canManage?: boolean }) {
+  orgId, variant = "panel", isOwnOrg = false, canManage = isOwnOrg, hideToggle = false,
+}: { orgId: string; variant?: "panel" | "page"; isOwnOrg?: boolean; canManage?: boolean; hideToggle?: boolean }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [outcomes, setOutcomes] = useState<VerifiedOutcome[]>([]);
@@ -154,7 +154,7 @@ export default function VerifiedOutcomesSection({
     </div>
   );
 
-  const toggleButton = isOwnOrg && shouldRenderScoreBlock && scoreRow && (
+  const toggleButton = !hideToggle && isOwnOrg && shouldRenderScoreBlock && scoreRow && (
     <button type="button" onClick={handleToggleClick} disabled={savingToggle}
       className={`shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-full border text-xs font-medium transition-colors disabled:opacity-50 ${
         isEligibleTier && scoreRow.show_impact_score
