@@ -1,7 +1,7 @@
 // ─── DashboardMarketplace.tsx ─────────────────────────────────────────────────
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Loader2, CheckCircle2, X, SlidersHorizontal, Search, Leaf, Zap, MessageSquare, ShieldCheck, Bookmark, ThumbsDown, RotateCcw, AlertTriangle, Check, Building2, Wallet, Handshake, FileCheck, Award } from "lucide-react";
+import { Loader2, CheckCircle2, X, SlidersHorizontal, Search, Leaf, Zap, MessageSquare, ShieldCheck, Bookmark, ThumbsDown, RotateCcw, AlertTriangle, Check, Building2, Wallet, Handshake, FileCheck, Award, Info, Lightbulb, Users, BarChart3, Clock, Globe, LayoutGrid, MoreVertical, Download } from "lucide-react";
 import { computeTrustTier } from "@/lib/ddItems";
 import { TrustBadge } from "@/components/ui/TrustBadge";
 import { useAuth } from "@/context/AuthContext";
@@ -427,7 +427,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
           onClick={e => e.stopPropagation()}
           className="flex items-center gap-1.5 text-[13px] font-semibold text-black dark:text-white mt-1.5 hover:underline underline-offset-2 transition-colors min-w-0">
           {ini.submitter_logo_url ? (
-            <img src={ini.submitter_logo_url} alt="" className="w-4 h-4 rounded-full object-cover shrink-0 border border-border" />
+            <img src={ini.submitter_logo_url} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 border border-border" />
           ) : (
             <Building2 className="w-3 h-3 shrink-0" />
           )}
@@ -509,7 +509,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
       </div>
 
       <button type="button" onClick={e => { e.stopPropagation(); onClick(); }}
-        className="mt-3 self-end text-[13px] font-semibold text-white bg-[#2D6A4F] hover:bg-[#245c43] dark:bg-[#C45C26] dark:hover:bg-[#b34f1f] rounded-full px-4 py-2 shadow-sm hover:shadow-md transition-all">
+        className="mt-3 self-center text-[13px] font-semibold text-white bg-[#2D6A4F] hover:bg-[#245c43] dark:bg-[#C45C26] dark:hover:bg-[#b34f1f] rounded-full px-4 py-2 shadow-sm hover:shadow-md transition-all">
         View Initiative
       </button>
     </div>
@@ -866,26 +866,84 @@ export default function DashboardMarketplace() {
 // ── Deal-room detail page: color tokens & small building blocks ────────────────
 const FOREST = "#1B4D3E";
 const SDG_CARD_PALETTE = ["#DC2626", "#16A34A", "#2563EB", "#D97706", "#7C3AED", "#DB2777"];
+
+// Shared "no border, soft glow instead" card treatment used across the
+// redesigned detail page in place of border-slate-200 boxes.
+const CARD = "bg-white rounded-2xl shadow-[0_1px_2px_rgba(27,77,62,0.06),0_10px_28px_-10px_rgba(27,77,62,0.16)]";
+const CARD_SM = "bg-white rounded-xl shadow-[0_1px_2px_rgba(27,77,62,0.05),0_6px_16px_-8px_rgba(27,77,62,0.14)]";
+
+// Official UN SDG colors, keyed by goal number.
+const SDG_OFFICIAL_COLORS: Record<number, string> = {
+  1: "#E5243B", 2: "#DDA63A", 3: "#4C9F38", 4: "#C5192D", 5: "#FF3A21",
+  6: "#26BDE2", 7: "#FCC30B", 8: "#A21942", 9: "#FD6925", 10: "#DD1367",
+  11: "#FD9D24", 12: "#BF8B2E", 13: "#3F7E44", 14: "#0A97D9", 15: "#56C02B",
+  16: "#00689D", 17: "#19486A",
+};
+
+// Splits an initiative's `detail_content` HTML into a map of section heading
+// text -> inner HTML, keyed by each <h2>'s exact text (e.g. "Executive
+// Summary"). This is a browser-only helper: assigning to a detached div's
+// innerHTML lets the browser's own HTML parser normalize malformed source
+// nesting (some initiatives store an <h2> wrapped inside a stray <p>, which
+// the browser auto-closes per standard HTML parsing rules) before we walk
+// the now-flat top-level child nodes. A regex-based split can't rely on
+// that normalization and would break on the inconsistent nesting.
+function splitDetailSections(html: string | null | undefined): Record<string, string> {
+  if (!html || typeof document === "undefined") return {};
+  const container = document.createElement("div");
+  container.innerHTML = html;
+  const sections: Record<string, string> = {};
+  let current: string | null = null;
+  let buffer: string[] = [];
+  Array.from(container.childNodes).forEach(node => {
+    if (node.nodeType === 1 && (node as HTMLElement).tagName === "H2") {
+      if (current) sections[current] = buffer.join("");
+      current = (node as HTMLElement).textContent?.trim() ?? "";
+      buffer = [];
+    } else if (current) {
+      const el = node as HTMLElement;
+      buffer.push(el.outerHTML ?? el.textContent ?? "");
+    }
+  });
+  if (current) sections[current] = buffer.join("");
+  return sections;
+}
+
+// Renders a verbatim HTML section (from splitDetailSections) with consistent
+// typography. listStyle "check" gives <li> items a forest checkmark instead
+// of a bullet -- used for real checklist-style sections (Expected Outcomes,
+// Monitoring and Evaluation) where the source data already contains actual
+// percentages and timeframes, not placeholder text.
+function VerbatimSection({ html, listStyle = "plain" }: { html: string; listStyle?: "check" | "plain" }) {
+  const listClasses = listStyle === "check"
+    ? "[&_ul]:list-none [&_ul]:space-y-2.5 [&_li]:pl-6 [&_li]:relative [&_li]:before:content-['✓'] [&_li]:before:absolute [&_li]:before:left-0 [&_li]:before:font-bold [&_li]:before:text-[#1B4D3E]"
+    : "[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-2";
+  return (
+    <div
+      className={`text-[16px] text-[#0F172A] leading-relaxed [&_p]:mb-3 [&_p:last-child]:mb-0 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-[#0F172A] [&_h2]:mt-6 [&_h2]:mb-2 [&_h2:first-child]:mt-0 ${listClasses}`}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+}
+
+// Extracts each <li> from a parsed "SDG Alignment" section and colors it
+// with the real, official UN SDG color for the goal number it starts with
+// (falls back to forest green if a line doesn't start with a recognizable
+// "SDG <n>" pattern).
+function parseSdgListItems(html: string): { text: string; color: string }[] {
+  if (typeof document === "undefined") return [];
+  const container = document.createElement("div");
+  container.innerHTML = html;
+  return Array.from(container.querySelectorAll("li")).map(li => {
+    const text = li.textContent?.trim() ?? "";
+    const match = text.match(/SDG\s*(\d+)/i);
+    const num = match ? parseInt(match[1], 10) : null;
+    return { text, color: (num && SDG_OFFICIAL_COLORS[num]) || FOREST };
+  });
+}
+
 const BURNT_ORANGE = "#D96B27";
 const BURNT_ORANGE_HOVER = "#C25A1E";
-
-function SidebarRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 py-2.5 border-b border-slate-100 last:border-b-0">
-      <span className="text-[13px] font-semibold text-[#1E293B]">{label}</span>
-      <span className="text-[13px] text-slate-500 text-right">{value}</span>
-    </div>
-  );
-}
-
-function BentoStat({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5">
-      <p className="text-3xl font-bold" style={{ color: FOREST }}>{value}</p>
-      <p className="text-xs text-slate-500 uppercase tracking-wider mt-1">{label}</p>
-    </div>
-  );
-}
 
 const MILESTONE_STAGES: { key: string; title: string; desc: string }[] = [
   { key: "concept",  title: "Concept",  desc: "Idea defined, no funding yet" },
@@ -896,7 +954,7 @@ const MILESTONE_STAGES: { key: string; title: string; desc: string }[] = [
 function MilestoneTracker({ currentStage }: { currentStage?: string | null }) {
   const currentIndex = MILESTONE_STAGES.findIndex(s => s.key === currentStage);
   return (
-    <div className="border-l-2 border-slate-200 ml-3 pl-6 space-y-6">
+    <div className="border-l-2 pl-6 ml-3 space-y-6" style={{ borderColor: "rgba(27,77,62,0.15)" }}>
       {MILESTONE_STAGES.map((s, i) => {
         const reached = currentIndex >= 0 && i <= currentIndex;
         const isCurrent = i === currentIndex;
@@ -906,12 +964,12 @@ function MilestoneTracker({ currentStage }: { currentStage?: string | null }) {
               className="absolute -left-[31px] top-0.5 w-4 h-4 rounded-full border-2"
               style={{
                 background: reached ? FOREST : "#fff",
-                borderColor: reached ? FOREST : "#CBD5E1",
+                borderColor: reached ? FOREST : "rgba(27,77,62,0.25)",
                 boxShadow: isCurrent ? `0 0 0 3px ${FOREST}33` : "none",
               }}
             />
-            <p className={`text-[15px] font-bold ${reached ? "text-[#1E293B]" : "text-slate-400"}`}>{s.title}</p>
-            <p className={`text-[13px] mt-0.5 ${reached ? "text-slate-600" : "text-slate-400"}`}>{s.desc}</p>
+            <p className="text-[15px] font-bold text-[#0F172A]">{s.title}</p>
+            <p className="text-[13px] mt-0.5" style={{ color: reached ? "#0F172A" : `${FOREST}80` }}>{s.desc}</p>
           </div>
         );
       })}
@@ -943,12 +1001,12 @@ function AiSlidePanel({ open, onClose, title, icon, children }: {
   if (!mounted) return null;
   return (
     <div className="fixed inset-0 z-[100]" role="dialog" aria-modal="true">
-      <div className={`absolute inset-0 bg-slate-900/20 transition-opacity duration-300 ${visible ? "opacity-100" : "opacity-0"}`} onClick={onClose} />
-      <div className={`absolute right-0 top-0 h-full w-full sm:w-[85%] md:w-[65%] lg:w-[520px] bg-white border-l border-slate-200 shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${visible ? "translate-x-0" : "translate-x-full"}`}>
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between shrink-0">
-          <p className="text-[17px] font-semibold text-foreground flex items-center gap-2">{icon}{title}</p>
-          <button type="button" onClick={onClose} className="p-1.5 rounded-full hover:bg-slate-100 transition-colors">
-            <X className="w-4 h-4 text-slate-500" />
+      <div className={`absolute inset-0 transition-opacity duration-300 ${visible ? "opacity-100" : "opacity-0"}`} onClick={onClose} style={{ background: "rgba(27,77,62,0.15)" }} />
+      <div className={`absolute right-0 top-0 h-full w-full sm:w-[85%] md:w-[65%] lg:w-[520px] bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${visible ? "translate-x-0" : "translate-x-full"}`}>
+        <div className="px-6 py-4 flex items-center justify-between shrink-0" style={{ boxShadow: "0 1px 0 rgba(27,77,62,0.08)" }}>
+          <p className="text-[17px] font-bold text-[#0F172A] flex items-center gap-2">{icon}{title}</p>
+          <button type="button" onClick={onClose} className="p-1.5 rounded-full hover:bg-[#1B4D3E]/5 transition-colors">
+            <X className="w-4 h-4" style={{ color: FOREST }} />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-5">
@@ -991,7 +1049,9 @@ function MarketplaceDetail({
   const [question, setQuestion]                 = useState("");
   const [questionSubmitting, setQuestionSubmitting] = useState(false);
   const [questionSubmitted, setQuestionSubmitted]   = useState(false);
-  const [detailTab, setDetailTab] = useState<"overview" | "problem" | "budget" | "team">("overview");
+  const [detailTab, setDetailTab] = useState<"overview" | "problem" | "impact" | "budget" | "team" | "full">("overview");
+  const [kebabOpen, setKebabOpen] = useState(false);
+  const [dealSnapshotOpen, setDealSnapshotOpen] = useState(false);
   const [dealMemo, setDealMemo]                 = useState<any | null>(null);
   const [loadingMemo, setLoadingMemo]           = useState(false);
   const [memoOpen, setMemoOpen]                 = useState(false);
@@ -1024,6 +1084,9 @@ function MarketplaceDetail({
     budget_min?: number | null;
     budget_max?: number | null;
     budget_currency?: string | null;
+    evaluation_report_url?: string | null;
+    baseline_study_url?: string | null;
+    midline_report_url?: string | null;
   } | null>(null);
   // Compares against orgOwnerId, not the literal logged-in person -- once
   // Members exist and CreateInitiativeModal/CreateInitiativeModalDashboard
@@ -1047,7 +1110,7 @@ function MarketplaceDetail({
   }, [eoiOpen, partnershipTypes]);
   useEffect(() => {
     supabase.from("initiative_requests")
-      .select("target_population,specific_ask,stage,confirmed_assets,had_prior_experience,prior_experience_detail,start_date,duration,sdg_tags,detail_content,resource_link,co_funding_status,ai_quality_score,target_beneficiaries,target_jobs,target_female_pct,target_timeline_months,impact_evidence,budget_min,budget_max,budget_currency")
+      .select("target_population,specific_ask,stage,confirmed_assets,had_prior_experience,prior_experience_detail,start_date,duration,sdg_tags,detail_content,resource_link,co_funding_status,ai_quality_score,target_beneficiaries,target_jobs,target_female_pct,target_timeline_months,impact_evidence,budget_min,budget_max,budget_currency,evaluation_report_url,baseline_study_url,midline_report_url")
       .eq("id", initiative.id).single()
       .then(({ data }) => { if (data) setFullDetail(data); });
   }, [initiative.id]);
@@ -1072,7 +1135,7 @@ function MarketplaceDetail({
   useEffect(() => {
     if (!initiative.user_id) return;
     supabase.from("organizations")
-      .select("organisation_type,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration")
+      .select("organisation_type,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders")
       .eq("user_id", initiative.user_id).single()
       .then(({ data }) => { if (data) setInitiativeOrgDd(data); });
   }, [initiative.user_id]);
@@ -1359,50 +1422,60 @@ function MarketplaceDetail({
 </html>`);
     win.document.close();
   }
+  const sections = useMemo(() => splitDetailSections(fullDetail?.detail_content), [fullDetail?.detail_content]);
   return (
-    <div className="max-w-[1400px] mx-auto space-y-6">
-      {/* Header row: ghost back button + grouped icon cluster */}
-      <div className="flex items-center justify-between gap-3">
-        <button type="button" onClick={onBack}
-          className="flex items-center gap-1.5 text-[15px] text-slate-500 hover:text-[#1E293B] hover:bg-slate-100 rounded-lg px-2 py-1.5 -ml-2 transition-colors">
-          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
-          </svg>
-          Back to marketplace
-        </button>
-        <div className="flex items-center gap-1">
-          <div className="rounded-lg hover:bg-slate-100 transition-colors" title="Share">
-            <ShareButton initiativeId={initiative.id} title={initiative.title} size="md" />
-          </div>
-          {!isOwnInitiative && (
-            <DecisionIcons
-              saved={saved} passed={passed} passReason={passReason}
-              onToggleSave={onToggleSave}
-              onConfirmPass={onConfirmPass}
-              onUndoPass={onUndoPass}
-              size="md"
-            />
-          )}
-          {fullDetail?.detail_content && fullDetail.detail_content !== "<p></p>" && (
-            <button type="button" onClick={downloadPdf} title="Download PDF"
-              className="h-9 w-9 rounded-full flex items-center justify-center border border-border text-slate-500 hover:bg-slate-100 hover:text-[#1E293B] transition-colors">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-            </button>
+    <div className="max-w-[1100px] mx-auto space-y-6 relative">
+
+      <a href="#" onClick={e => { e.preventDefault(); onBack(); }}
+        className="flex items-center gap-1.5 text-[15px] font-medium w-fit transition-colors" style={{ color: FOREST }}>
+        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Back to marketplace
+      </a>
+
+      {/* Hero card: kebab lives inside it */}
+      <div className={`${CARD} p-8 relative`}>
+        <div className="absolute top-6 right-6">
+          <button type="button" onClick={() => setKebabOpen(v => !v)}
+            className="h-10 w-10 rounded-full flex items-center justify-center hover:bg-[#1B4D3E]/5 transition-colors">
+            <MoreVertical className="w-5 h-5" style={{ color: FOREST }} />
+          </button>
+          {kebabOpen && (
+            <div className={`absolute right-0 mt-2 w-64 ${CARD} py-2 z-30`} onClick={e => e.stopPropagation()}>
+              <div className="flex items-center gap-3 px-4 py-2 mx-2 rounded-lg hover:bg-[#1B4D3E]/5 transition-colors">
+                <ShareButton initiativeId={initiative.id} title={initiative.title} size="sm" />
+                <span className="text-[14px] font-semibold text-[#0F172A]">Share</span>
+              </div>
+              {!isOwnInitiative && (
+                <div className="flex items-center gap-3 px-4 py-2 mx-2 rounded-lg hover:bg-[#1B4D3E]/5 transition-colors">
+                  <DecisionIcons saved={saved} passed={passed} passReason={passReason}
+                    onToggleSave={onToggleSave} onConfirmPass={onConfirmPass} onUndoPass={onUndoPass} size="sm" />
+                  <span className="text-[14px] font-semibold text-[#0F172A]">Save / Pass</span>
+                </div>
+              )}
+              <div className="my-1.5 mx-2 border-t border-[#1B4D3E]/10" />
+              <div className="px-2 pt-1">
+                {isOwnInitiative ? (
+                  <p className="text-center text-[13px] font-semibold py-2" style={{ color: `${FOREST}99` }}>Your initiative</p>
+                ) : (
+                  <button type="button"
+                    onClick={() => { if (!alreadyExpressed) setEoiOpen(true); setKebabOpen(false); }}
+                    disabled={alreadyExpressed}
+                    className={`w-full flex items-center justify-center gap-2 text-[14px] font-bold rounded-lg py-2.5 transition-colors ${alreadyExpressed ? "cursor-not-allowed" : "text-white"}`}
+                    style={alreadyExpressed ? { background: "rgba(27,77,62,0.08)", color: "rgba(27,77,62,0.5)" } : { background: BURNT_ORANGE }}>
+                    <Zap className="w-4 h-4" />
+                    {alreadyExpressed ? "Interest Expressed" : "Express Interest"}
+                  </button>
+                )}
+              </div>
+            </div>
           )}
         </div>
-      </div>
 
-      {/* Hero: dark gradient accent card, title, submitter + meta */}
-      <div className="rounded-2xl p-7" style={{ background: `linear-gradient(135deg, ${FOREST} 0%, #0F2E24 100%)` }}>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight leading-snug text-white" style={{ letterSpacing: "-0.025em" }}>
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight leading-snug pr-14" style={{ color: "#0F172A", letterSpacing: "-0.025em" }}>
           {initiative.title}
         </h1>
 
-        <div className="flex items-center gap-3 text-[13px] text-white/60 flex-wrap mt-4">
+        <div className="flex items-center gap-4 text-[14px] flex-wrap mt-4">
           {(initiative.submitter_org || initiative.submitter_name) && (
             <Link
               href={
@@ -1411,20 +1484,20 @@ function MarketplaceDetail({
                   : `/dashboard/natives?tab=individual&user=${initiative.user_id}`
               }
               onClick={e => e.stopPropagation()}
-              className="flex items-center gap-1.5 font-semibold text-white hover:underline underline-offset-2 transition-colors">
+              className="flex items-center gap-2 font-bold text-[#0F172A] hover:underline underline-offset-2 transition-colors">
               {initiative.submitter_logo_url ? (
-                <img src={initiative.submitter_logo_url} alt="" className="w-5 h-5 rounded-full object-cover border border-white/20" />
+                <img src={initiative.submitter_logo_url} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
               ) : (
-                <span className="w-5 h-5 rounded-full text-white text-[9px] font-bold flex items-center justify-center" style={{ background: BURNT_ORANGE }}>
+                <span className="w-9 h-9 rounded-full text-white text-[13px] font-bold flex items-center justify-center shrink-0" style={{ background: FOREST }}>
                   {(initiative.submitter_user_type === "organisation" ? initiative.submitter_org : initiative.submitter_name)?.slice(0, 2).toUpperCase()}
                 </span>
               )}
               {initiative.submitter_user_type === "organisation" ? initiative.submitter_org : initiative.submitter_name}
-              {initiative.submitter_is_verified && <ShieldCheck className="w-3.5 h-3.5 shrink-0" style={{ color: "#8FD9B0" }} />}
+              {initiative.submitter_is_verified && <ShieldCheck className="w-4 h-4 shrink-0" style={{ color: FOREST }} />}
             </Link>
           )}
-          <span>Published {new Date(initiative.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
-          <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: "rgba(217,107,39,0.2)", color: "#F5C77E" }}>
+          <span className="font-semibold" style={{ color: FOREST }}>Published {new Date(initiative.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
+          <span className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ background: "#FEF3C7", color: "#92400E" }}>
             {initiative.eois} expression{initiative.eois !== 1 ? "s" : ""} of interest
           </span>
         </div>
@@ -1433,352 +1506,539 @@ function MarketplaceDetail({
           const legalEvidence = initiativeOrgDd?.dd_evidence?.legal_compliance_declaration ?? {};
           if (!legalEvidence.blacklistingDetail && !legalEvidence.pendingDisputesDetail) return null;
           return (
-            <div className="mt-3 border border-red-400/30 rounded-lg p-3 bg-red-500/10">
+            <div className={`${CARD_SM} mt-4 p-4`} style={{ boxShadow: "0 1px 2px rgba(220,38,38,0.08), 0 8px 20px -10px rgba(220,38,38,0.25)" }}>
               {legalEvidence.blacklistingDetail && (
-                <p className="text-[13px] text-red-200"><span className="font-semibold">Blacklisting disclosed:</span> {legalEvidence.blacklistingDetail}</p>
+                <p className="text-[13px] text-red-700"><span className="font-bold">Blacklisting disclosed:</span> {legalEvidence.blacklistingDetail}</p>
               )}
               {legalEvidence.pendingDisputesDetail && (
-                <p className="text-[13px] text-red-200 mt-1"><span className="font-semibold">Pending disputes disclosed:</span> {legalEvidence.pendingDisputesDetail}</p>
+                <p className="text-[13px] text-red-700 mt-1"><span className="font-bold">Pending disputes disclosed:</span> {legalEvidence.pendingDisputesDetail}</p>
               )}
             </div>
           );
         })()}
       </div>
 
-      {/* Split-screen: main content (left, 7/12) + sticky deal room sidebar (right, 5/12) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* Tabs + content */}
+      {(() => {
+        const hasOverview = !!(
+          fullDetail?.target_beneficiaries || fullDetail?.target_jobs || fullDetail?.target_female_pct ||
+          fullDetail?.target_timeline_months || sections["Executive Summary"] || initiative.problem ||
+          sections["SDG Alignment"] || (fullDetail?.sdg_tags && fullDetail.sdg_tags.length > 0)
+        );
+        const hasProblem = !!(
+          sections["Problem Statement"] || initiative.problem || sections["Proposed Solution"] || initiative.outcome ||
+          sections["Target Beneficiaries"] || fullDetail?.target_population
+        );
+        const hasImpact = !!(
+          sections["Expected Outcomes and Impact"] || fullDetail?.impact_evidence || sections["Monitoring and Evaluation"]
+        );
+        const hasBudget = !!(
+          sections["Budget Overview"] || initiative.budget || fullDetail?.budget_min ||
+          sections["Implementation Timeline"] || fullDetail?.stage ||
+          sections["Sustainability Plan"] || sections["Partnership Requirements"] ||
+          (fullDetail?.confirmed_assets && fullDetail.confirmed_assets.length > 0) || fullDetail?.co_funding_status ||
+          fullDetail?.evaluation_report_url || fullDetail?.baseline_study_url || fullDetail?.midline_report_url
+        );
+        const hasTeam = !!(
+          sections["Team and Track Record"] ||
+          (fullDetail?.had_prior_experience !== null && fullDetail?.had_prior_experience !== undefined) ||
+          (initiativeOrgDd && (initiativeOrgDd.total_beneficiaries_reached || initiativeOrgDd.years_of_operation || initiativeOrgDd.grants_received_count))
+        );
+        const hasFull = !!(fullDetail?.detail_content && fullDetail.detail_content !== "<p></p>");
 
-        {/* Sidebar: appears right below the hero on mobile, sticky right column on desktop */}
-        <div className="order-1 lg:order-2 lg:col-span-5 self-start">
-          <div className="lg:sticky lg:top-4 bg-white border border-slate-200 shadow-sm rounded-xl p-6 space-y-5">
-            <div>
-              <SidebarRow label="Location" value={initiative.locations?.join(", ") || "—"} />
-              <SidebarRow label="Budget" value={initiative.budget || "—"} />
-              <SidebarRow label="Stage" value={fullDetail?.stage ? (STAGE_LABELS[fullDetail.stage]?.split(" — ")[0] ?? fullDetail.stage) : "—"} />
-              <SidebarRow label="Duration" value={fullDetail?.duration || "—"} />
-              <SidebarRow label="Estimated start" value={fullDetail?.start_date || "—"} />
-            </div>
+        const tabs: { key: "overview" | "problem" | "impact" | "budget" | "team" | "full"; label: string }[] = [
+          ...(hasOverview ? [{ key: "overview" as const, label: "Overview" }] : []),
+          ...(hasProblem ? [{ key: "problem" as const, label: "Problem & Solution" }] : []),
+          ...(hasImpact ? [{ key: "impact" as const, label: "Impact" }] : []),
+          ...(hasBudget ? [{ key: "budget" as const, label: "Budget & Timeline" }] : []),
+          ...(hasTeam ? [{ key: "team" as const, label: "Team" }] : []),
+          ...(hasFull ? [{ key: "full" as const, label: "Full Description" }] : []),
+        ];
+        if (tabs.length === 0) return null;
+        const activeTab = tabs.some(t => t.key === detailTab) ? detailTab : tabs[0].key;
 
-            {(isFunder || isCorporate) && (
-              <div className="space-y-2">
-                {isFunder && (
-                  <button type="button" onClick={generateDealMemo} disabled={loadingMemo}
-                    className="w-full flex items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-[13px] font-medium text-[#1E293B] hover:bg-slate-50 transition-colors disabled:opacity-50">
-                    <span className="flex items-center gap-2"><FileText className="w-3.5 h-3.5" style={{ color: FOREST }} />Generate Deal Memo</span>
-                    {loadingMemo
-                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: FOREST }} />
-                      : <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 6l6 6-6 6"/></svg>}
-                  </button>
-                )}
-                {isCorporate && (
-                  <button type="button" onClick={generateCsrBrief} disabled={loadingCsr}
-                    className="w-full flex items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-[13px] font-medium text-[#1E293B] hover:bg-slate-50 transition-colors disabled:opacity-50">
-                    <span className="flex items-center gap-2"><FileText className="w-3.5 h-3.5" style={{ color: FOREST }} />Generate CSR Brief</span>
-                    {loadingCsr
-                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: FOREST }} />
-                      : <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 6l6 6-6 6"/></svg>}
-                  </button>
-                )}
-              </div>
-            )}
+        const sdgFromSection = sections["SDG Alignment"] ? parseSdgListItems(sections["SDG Alignment"]) : null;
 
-            {initiative.partnerships && initiative.partnerships.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Partnerships sought</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {initiative.partnerships.map(p => (
-                    <span key={p} className="inline-flex items-center gap-1 text-[12px] font-medium px-2.5 py-1 rounded-full border border-slate-200 text-[#1E293B] capitalize">
-                      <Check className="w-3 h-3" style={{ color: FOREST }} />
-                      {PARTNERSHIP_OPTIONS.find(o => o.value === p)?.label ?? p}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {fullDetail?.sdg_tags && fullDetail.sdg_tags.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">SDG alignment</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {fullDetail.sdg_tags.map(s => (
-                    <span key={s} className="text-[12px] px-2.5 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-800">{s}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {!isOwnInitiative && isFunder && !alreadyExpressed && !questionSubmitted && (
-              <div className="space-y-2">
-                {!questionOpen ? (
-                  <button type="button"
-                    onClick={() => setQuestionOpen(true)}
-                    className="w-full rounded-lg h-10 border text-[14px] transition-colors flex items-center justify-center gap-2"
-                    style={{ borderColor: `${FOREST}4D`, color: FOREST }}>
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    Ask a question before committing
-                  </button>
-                ) : (
-                  <div className="rounded-xl border border-slate-200 p-4 space-y-2">
-                    <p className="text-[13px] font-semibold uppercase tracking-wider text-slate-500">Your question</p>
-                    <textarea
-                      value={question}
-                      onChange={e => setQuestion(e.target.value)}
-                      placeholder="Ask the initiative owner a specific question before expressing interest..."
-                      rows={3}
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[14px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
-                    />
-                    <div className="flex gap-2">
-                      <button type="button" onClick={() => { setQuestionOpen(false); setQuestion(""); }}
-                        className="flex-1 rounded-lg h-9 border border-border text-[14px] text-muted-foreground hover:text-foreground transition-colors">
-                        Cancel
-                      </button>
-                      <button type="button" onClick={submitQuestion}
-                        disabled={!question.trim() || questionSubmitting}
-                        className="flex-1 rounded-lg h-9 text-white text-[14px] font-semibold disabled:opacity-40 transition-colors"
-                        style={{ background: FOREST }}>
-                        {questionSubmitting ? "Sending..." : "Send question"}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            {questionSubmitted && (
-              <div className="flex items-center gap-2 justify-center text-[13px] py-1" style={{ color: FOREST }}>
-                <CheckCircle2 className="w-4 h-4" />
-                Question sent. The initiative lead will respond in Messages.
-              </div>
-            )}
-
-            {isOwnInitiative ? (
-              <div className="w-full rounded-xl h-12 flex items-center justify-center text-[14px] text-slate-500 border border-slate-200 bg-slate-50">
-                Your initiative
-              </div>
-            ) : (
-              <button type="button"
-                onClick={() => { if (!alreadyExpressed) { setEoiOpen(true); } }}
-                disabled={alreadyExpressed}
-                className={`w-full font-semibold py-3 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 ${
-                  alreadyExpressed ? "bg-slate-100 text-slate-400 cursor-not-allowed" : "text-white"
-                }`}
-                style={alreadyExpressed ? {} : { background: BURNT_ORANGE }}
-                onMouseEnter={e => { if (!alreadyExpressed) (e.currentTarget as HTMLButtonElement).style.background = BURNT_ORANGE_HOVER; }}
-                onMouseLeave={e => { if (!alreadyExpressed) (e.currentTarget as HTMLButtonElement).style.background = BURNT_ORANGE; }}>
-                {alreadyExpressed ? "Interest expressed" : `Express Interest (${initiative.eois} EOI${initiative.eois !== 1 ? "s" : ""})`}
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Main content: pill tab strip + tab panels */}
-        <div className="order-2 lg:order-1 lg:col-span-7 space-y-5">
-          {(() => {
-            const hasOverview = !!(
-              initiative.problem || fullDetail?.target_beneficiaries || fullDetail?.target_jobs ||
-              fullDetail?.target_female_pct || fullDetail?.target_timeline_months || fullDetail?.impact_evidence
-            );
-            const hasProblem = !!(initiative.problem || initiative.outcome || (fullDetail?.detail_content && fullDetail.detail_content !== "<p></p>") || fullDetail?.resource_link);
-            const hasBudget = !!(
-              initiative.budget || fullDetail?.budget_min || fullDetail?.budget_max || fullDetail?.stage ||
-              (fullDetail?.confirmed_assets && fullDetail.confirmed_assets.length > 0) ||
-              fullDetail?.start_date || fullDetail?.duration || fullDetail?.co_funding_status
-            );
-            const hasTeamSdg = !!(
-              (fullDetail?.had_prior_experience !== null && fullDetail?.had_prior_experience !== undefined) ||
-              (fullDetail?.sdg_tags && fullDetail.sdg_tags.length > 0)
-            );
-            const tabs: { key: "overview" | "problem" | "budget" | "team"; label: string }[] = [
-              ...(hasOverview ? [{ key: "overview" as const, label: "Overview & Impact" }] : []),
-              ...(hasProblem ? [{ key: "problem" as const, label: "Problem & Solution" }] : []),
-              ...(hasBudget ? [{ key: "budget" as const, label: "Budget & Timeline" }] : []),
-              ...(hasTeamSdg ? [{ key: "team" as const, label: "Team & SDGs" }] : []),
-            ];
-            if (tabs.length === 0) return null;
-            const activeTab = tabs.some(t => t.key === (detailTab as any)) ? (detailTab as any) : tabs[0].key;
-
-            return (
+        return (
+          <div>
+            {tabs.length > 1 && (
               <>
-                {tabs.length > 1 && (
-                  <div className="flex flex-wrap gap-2">
-                    {tabs.map(t => (
-                      <button key={t.key} type="button" onClick={() => setDetailTab(t.key as any)}
-                        className={`px-4 py-2 rounded-lg text-[14px] font-medium transition-colors ${
-                          activeTab === t.key ? "text-white" : "border border-slate-200 text-slate-600 hover:bg-slate-50"
-                        }`}
-                        style={activeTab === t.key ? { background: FOREST } : {}}>
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-2">
+                  {tabs.map(t => (
+                    <button key={t.key} type="button" onClick={() => setDetailTab(t.key)}
+                      className={`px-5 py-2.5 rounded-lg text-[14px] font-bold transition-colors ${
+                        activeTab === t.key ? "text-white" : `${CARD_SM} text-[#0F172A]`
+                      }`}
+                      style={activeTab === t.key ? { background: FOREST } : {}}>
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="border-b-2 border-[#1B4D3E]/10 mt-5" />
+              </>
+            )}
 
-                {activeTab === "overview" && (
-                  <div className="space-y-4">
-                    {(fullDetail?.target_beneficiaries || fullDetail?.target_jobs || fullDetail?.target_female_pct || fullDetail?.target_timeline_months) && (
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        {fullDetail.target_beneficiaries && <BentoStat value={fullDetail.target_beneficiaries.toLocaleString()} label="Beneficiaries" />}
-                        {fullDetail.target_jobs && <BentoStat value={fullDetail.target_jobs.toLocaleString()} label="Jobs Created" />}
-                        {fullDetail.target_female_pct && <BentoStat value={`${fullDetail.target_female_pct}%`} label="Female Target" />}
-                        {fullDetail.target_timeline_months && <BentoStat value={`${fullDetail.target_timeline_months} Mos`} label="Timeline" />}
+            {activeTab === "overview" && (
+              <div className="space-y-8 pt-6">
+                {(fullDetail?.target_beneficiaries || fullDetail?.target_jobs || fullDetail?.target_female_pct || fullDetail?.target_timeline_months) && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {fullDetail.target_beneficiaries != null && (
+                      <div className={`${CARD} p-6`}>
+                        <p className="text-3xl font-bold text-[#0F172A]">{fullDetail.target_beneficiaries.toLocaleString()}</p>
+                        <p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mt-2">Beneficiaries</p>
                       </div>
                     )}
-                    {initiative.problem && (
-                      <div className="rounded-xl border border-slate-200 bg-card p-6">
-                        <div className="flex items-center gap-2 mb-2">
-                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke={FOREST} strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                          <p className="text-lg font-semibold" style={{ color: FOREST }}>Executive Summary</p>
-                        </div>
-                        <p className="text-[15px] text-foreground leading-relaxed">{initiative.problem}</p>
+                    {fullDetail.target_jobs != null && (
+                      <div className={`${CARD} p-6`}>
+                        <p className="text-3xl font-bold text-[#0F172A]">{fullDetail.target_jobs.toLocaleString()}</p>
+                        <p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mt-2">Jobs Created</p>
                       </div>
                     )}
-                    {fullDetail?.impact_evidence && (
-                      <div className="rounded-xl border border-slate-200 bg-card p-6">
-                        <div className="flex items-center gap-2 mb-2">
-                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke={FOREST} strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
-                          <p className="text-lg font-semibold" style={{ color: FOREST }}>Expected Outcomes &amp; Impact</p>
-                        </div>
-                        <p className="text-[15px] text-foreground leading-relaxed">{fullDetail.impact_evidence}</p>
+                    {fullDetail.target_female_pct != null && (
+                      <div className={`${CARD} p-6`}>
+                        <p className="text-3xl font-bold" style={{ color: FOREST }}>{fullDetail.target_female_pct}%</p>
+                        <p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mt-2">Female Target</p>
                       </div>
                     )}
-                  </div>
-                )}
-
-                {activeTab === "problem" && (
-                  <div className="space-y-4">
-                    {(initiative.problem || initiative.outcome) && (
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        {initiative.problem && (
-                          <div className="rounded-xl border border-slate-200 bg-card p-6">
-                            <p className="text-lg font-semibold mb-2" style={{ color: FOREST }}>Problem</p>
-                            <p className="text-[15px] text-foreground leading-relaxed">{initiative.problem}</p>
-                          </div>
-                        )}
-                        {initiative.outcome && (
-                          <div className="rounded-xl border border-slate-200 bg-card p-6">
-                            <p className="text-lg font-semibold mb-2" style={{ color: FOREST }}>Expected Outcome</p>
-                            <p className="text-[15px] text-foreground leading-relaxed">{initiative.outcome}</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {fullDetail?.detail_content && fullDetail.detail_content !== "<p></p>" && (
-                      <div className="rounded-xl border border-slate-200 bg-card p-6">
-                        <div className="flex items-center justify-between mb-3">
-                          <p className="text-lg font-semibold" style={{ color: FOREST }}>Full initiative description</p>
-                          <button type="button" onClick={downloadPdf}
-                            className="inline-flex items-center gap-1.5 text-[13px] font-medium hover:underline underline-offset-2 transition-colors"
-                            style={{ color: FOREST }}>
-                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                              <polyline points="7 10 12 15 17 10"/>
-                              <line x1="12" y1="15" x2="12" y2="3"/>
-                            </svg>
-                            Download as PDF
-                          </button>
-                        </div>
-                        <div className="concept-note-prose max-w-none"
-                          dangerouslySetInnerHTML={{ __html: fullDetail.detail_content }} />
-                      </div>
-                    )}
-                    {fullDetail?.detail_content && fullDetail.detail_content !== "<p></p>" && (
-                      <div id="concept-note-print" style={{ display: "none" }}>
-                        <h1>{initiative.title}</h1>
-                        <div className="cn-meta">
-                          {initiative.submitter_org && <span>{initiative.submitter_org} · </span>}
-                          {initiative.locations?.join(", ")}
-                          {initiative.budget ? ` · Budget: ${initiative.budget}` : ""}
-                          {" · "}Generated by Impact Natives
-                        </div>
-                        <div dangerouslySetInnerHTML={{ __html: fullDetail.detail_content }} />
-                        <div className="cn-footer">
-                          Impact Natives · app.impactnatives.com · Downloaded {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
-                        </div>
-                      </div>
-                    )}
-                    {fullDetail?.resource_link && (
-                      <div className="rounded-xl border border-slate-200 bg-card p-6">
-                        <p className="text-lg font-semibold mb-2" style={{ color: FOREST }}>Resource</p>
-                        <a href={fullDetail.resource_link} target="_blank" rel="noopener noreferrer"
-                          className="text-[15px] text-primary hover:underline break-all">
-                          {fullDetail.resource_link.replace(/^https?:\/\//, "")}
-                        </a>
+                    {fullDetail.target_timeline_months != null && (
+                      <div className={`${CARD} p-6`}>
+                        <p className="text-3xl font-bold" style={{ color: BURNT_ORANGE }}>{fullDetail.target_timeline_months} Mos</p>
+                        <p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mt-2">Timeline</p>
                       </div>
                     )}
                   </div>
                 )}
 
-                {activeTab === "budget" && (
-                  <div className="space-y-4">
-                    {(initiative.budget || fullDetail?.budget_min || fullDetail?.budget_max) && (
-                      <div className="rounded-xl border border-slate-200 bg-card p-6">
-                        <div className="flex items-center justify-between mb-1">
-                          <p className="text-lg font-semibold" style={{ color: FOREST }}>Budget</p>
-                          <span className="text-xs px-3 py-1 rounded-full font-medium bg-emerald-50 text-emerald-800">
-                            {fullDetail?.budget_min && fullDetail?.budget_max
-                              ? `${fullDetail.budget_currency ?? ""} ${fullDetail.budget_min.toLocaleString()}–${fullDetail.budget_max.toLocaleString()}`.trim()
-                              : initiative.budget}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    <div className="rounded-xl border border-slate-200 bg-card p-6">
-                      <p className="text-lg font-semibold mb-4" style={{ color: FOREST }}>Implementation Timeline</p>
-                      <MilestoneTracker currentStage={fullDetail?.stage} />
-                      <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap gap-x-8 gap-y-2 text-[13px] text-slate-600">
-                        {fullDetail?.start_date && <span><span className="font-semibold text-[#1E293B]">Estimated start:</span> {fullDetail.start_date}</span>}
-                        {fullDetail?.duration && <span><span className="font-semibold text-[#1E293B]">Duration:</span> {fullDetail.duration}</span>}
-                        {fullDetail?.co_funding_status && (
-                          <span><span className="font-semibold text-[#1E293B]">Funding status:</span> {CO_FUNDING_LABELS[fullDetail.co_funding_status] ?? fullDetail.co_funding_status}</span>
-                        )}
-                      </div>
+                {(sections["Executive Summary"] || initiative.problem) && (
+                  <div className={`${CARD} p-8`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <Info className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
+                      <p className="text-xl font-bold text-[#0F172A]">Executive Summary</p>
                     </div>
-                    {fullDetail?.confirmed_assets && fullDetail.confirmed_assets.length > 0 && !fullDetail.confirmed_assets.includes("none") && (
-                      <div className="rounded-xl border border-slate-200 bg-card p-6">
-                        <p className="text-lg font-semibold mb-2" style={{ color: FOREST }}>Already confirmed</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {fullDetail.confirmed_assets.filter(a => a !== "none").map(a => (
-                            <span key={a} className="text-[13px] px-2.5 py-0.5 rounded-full border border-slate-200 text-[#1E293B] capitalize">
-                              {a.replace(/_/g, " ")}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    {sections["Executive Summary"]
+                      ? <VerbatimSection html={sections["Executive Summary"]} />
+                      : <p className="text-[16px] text-[#0F172A] leading-relaxed">{initiative.problem}</p>}
                   </div>
                 )}
 
-                {activeTab === "team" && (
-                  <div className="space-y-4">
-                    {fullDetail?.had_prior_experience !== null && fullDetail?.had_prior_experience !== undefined && (
-                      <div className="rounded-xl border border-slate-200 bg-card p-6">
-                        <div className="flex items-center gap-2 mb-2">
-                          <ShieldCheck className="w-4 h-4" style={{ color: FOREST }} />
-                          <p className="text-lg font-semibold" style={{ color: FOREST }}>Team and Track Record</p>
-                        </div>
-                        <p className="text-[15px] text-foreground leading-relaxed">
-                          {fullDetail.had_prior_experience ? "The team has led similar initiatives before." : "This is a first initiative of this type for the team."}
-                          {fullDetail.prior_experience_detail ? ` ${fullDetail.prior_experience_detail}` : ""}
-                        </p>
-                      </div>
-                    )}
-                    {fullDetail?.sdg_tags && fullDetail.sdg_tags.length > 0 && (
-                      <div className="rounded-xl border border-slate-200 bg-card p-6">
-                        <p className="text-lg font-semibold mb-4" style={{ color: FOREST }}>SDG Alignment Details</p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {fullDetail.sdg_tags.map((s, i) => (
-                            <div key={s} className="rounded-lg border border-slate-200 bg-white p-3 flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: SDG_CARD_PALETTE[i % SDG_CARD_PALETTE.length] }} />
-                              <p className="text-[14px] font-bold text-[#1E293B]">{s}</p>
+                {(sdgFromSection || (fullDetail?.sdg_tags && fullDetail.sdg_tags.length > 0)) && (
+                  <div className={`${CARD} p-8`}>
+                    <div className="flex items-center gap-3 mb-5">
+                      <Globe className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
+                      <p className="text-xl font-bold text-[#0F172A]">SDG Alignment</p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                      {sdgFromSection
+                        ? sdgFromSection.map((item, i) => (
+                            <div key={i} className="flex items-center gap-2.5">
+                              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: item.color }} />
+                              <p className="text-[15px] font-semibold text-[#0F172A]">{item.text}</p>
+                            </div>
+                          ))
+                        : fullDetail!.sdg_tags!.map((s, i) => (
+                            <div key={s} className="flex items-center gap-2.5">
+                              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: SDG_CARD_PALETTE[i % SDG_CARD_PALETTE.length] }} />
+                              <p className="text-[15px] font-semibold text-[#0F172A]">{s}</p>
                             </div>
                           ))}
-                        </div>
-                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className={`${CARD} p-8`}>
+                  <div className="flex items-center gap-3 mb-5">
+                    <LayoutGrid className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
+                    <p className="text-xl font-bold text-[#0F172A]">Deal Snapshot</p>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-5 mb-6">
+                    <div>
+                      <p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">DD Readiness</p>
+                      <p className="text-[15px] font-bold" style={{ color: initiativeDdScore != null ? FOREST : "#0F172A" }}>
+                        {initiativeDdScore != null ? `${initiativeDdScore}%${initiativeTrustTier ? ` (${initiativeTrustTier})` : ""}` : "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">Location</p>
+                      <p className="text-[15px] font-bold text-[#0F172A]">{initiative.locations?.join(", ") || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">Budget</p>
+                      <p className="text-[15px] font-bold text-[#0F172A]">{initiative.budget || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">Stage</p>
+                      <p className="text-[15px] font-bold text-[#0F172A]">{fullDetail?.stage ? (STAGE_LABELS[fullDetail.stage]?.split(" — ")[0] ?? fullDetail.stage) : "—"}</p>
+                    </div>
+                  </div>
+                  {(isFunder || isCorporate) && (
+                    <div className="flex flex-wrap gap-2">
+                      {isFunder && (
+                        <button type="button" onClick={generateDealMemo} disabled={loadingMemo}
+                          className={`${CARD_SM} flex items-center gap-2 px-4 py-2.5 text-[14px] font-bold text-[#0F172A] hover:bg-[#1B4D3E]/5 transition-colors disabled:opacity-50`}>
+                          <FileText className="w-4 h-4" style={{ color: FOREST }} />
+                          Generate Deal Memo
+                          {loadingMemo && <Loader2 className="w-4 h-4 animate-spin" style={{ color: FOREST }} />}
+                        </button>
+                      )}
+                      {isCorporate && (
+                        <button type="button" onClick={generateCsrBrief} disabled={loadingCsr}
+                          className={`${CARD_SM} flex items-center gap-2 px-4 py-2.5 text-[14px] font-bold text-[#0F172A] hover:bg-[#1B4D3E]/5 transition-colors disabled:opacity-50`}>
+                          <FileText className="w-4 h-4" style={{ color: FOREST }} />
+                          Generate CSR Brief
+                          {loadingCsr && <Loader2 className="w-4 h-4 animate-spin" style={{ color: FOREST }} />}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "problem" && (
+              <div className="space-y-8 pt-6">
+                {(sections["Problem Statement"] || initiative.problem) && (
+                  <div className={`${CARD} p-8`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <AlertTriangle className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
+                      <p className="text-xl font-bold text-[#0F172A]">Problem Statement</p>
+                    </div>
+                    {sections["Problem Statement"]
+                      ? <VerbatimSection html={sections["Problem Statement"]} />
+                      : <p className="text-[16px] text-[#0F172A] leading-relaxed">{initiative.problem}</p>}
+                  </div>
+                )}
+                {(sections["Proposed Solution"] || initiative.outcome) && (
+                  <div className={`${CARD} p-8`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <Lightbulb className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
+                      <p className="text-xl font-bold text-[#0F172A]">Proposed Solution</p>
+                    </div>
+                    {sections["Proposed Solution"]
+                      ? <VerbatimSection html={sections["Proposed Solution"]} />
+                      : <p className="text-[16px] text-[#0F172A] leading-relaxed">{initiative.outcome}</p>}
+                  </div>
+                )}
+                {(sections["Target Beneficiaries"] || fullDetail?.target_population) && (
+                  <div className={`${CARD} p-8`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <Users className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
+                      <p className="text-xl font-bold text-[#0F172A]">Target Beneficiaries</p>
+                    </div>
+                    {sections["Target Beneficiaries"]
+                      ? <VerbatimSection html={sections["Target Beneficiaries"]} />
+                      : <p className="text-[16px] text-[#0F172A] leading-relaxed">{fullDetail!.target_population}</p>}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "impact" && (
+              <div className="space-y-8 pt-6">
+                {(sections["Expected Outcomes and Impact"] || fullDetail?.impact_evidence) && (
+                  <div className={`${CARD} p-8`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <CheckCircle2 className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
+                      <p className="text-xl font-bold text-[#0F172A]">Expected Outcomes and Impact</p>
+                    </div>
+                    {sections["Expected Outcomes and Impact"]
+                      ? <VerbatimSection html={sections["Expected Outcomes and Impact"]} listStyle="check" />
+                      : <p className="text-[16px] text-[#0F172A] leading-relaxed">{fullDetail!.impact_evidence}</p>}
+                  </div>
+                )}
+                {sections["Monitoring and Evaluation"] && (
+                  <div className={`${CARD} p-8`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <BarChart3 className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
+                      <p className="text-xl font-bold text-[#0F172A]">Monitoring and Evaluation</p>
+                    </div>
+                    <VerbatimSection html={sections["Monitoring and Evaluation"]} listStyle="check" />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "budget" && (
+              <div className="space-y-8 pt-6">
+                {(sections["Budget Overview"] || initiative.budget || fullDetail?.budget_min) && (
+                  <div className={`${CARD} p-8`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <Wallet className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
+                      <p className="text-xl font-bold text-[#0F172A]">Budget Overview</p>
+                    </div>
+                    {sections["Budget Overview"] ? (
+                      <VerbatimSection html={sections["Budget Overview"]} />
+                    ) : (
+                      <p className="text-[16px] text-[#0F172A] leading-relaxed">
+                        {fullDetail?.budget_min && fullDetail?.budget_max
+                          ? `Total budget: ${fullDetail.budget_currency ?? ""} ${fullDetail.budget_min.toLocaleString()}–${fullDetail.budget_max.toLocaleString()}`.trim()
+                          : initiative.budget}
+                      </p>
                     )}
                   </div>
                 )}
-              </>
-            );
-          })()}
+
+                <div className={`${CARD} p-8`}>
+                  <div className="flex items-center gap-3 mb-5">
+                    <Clock className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
+                    <p className="text-xl font-bold text-[#0F172A]">Implementation Timeline</p>
+                  </div>
+                  {sections["Implementation Timeline"]
+                    ? <VerbatimSection html={sections["Implementation Timeline"]} />
+                    : <MilestoneTracker currentStage={fullDetail?.stage} />}
+                </div>
+
+                {sections["Sustainability Plan"] && (
+                  <div className={`${CARD} p-8`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <Leaf className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
+                      <p className="text-xl font-bold text-[#0F172A]">Sustainability Plan</p>
+                    </div>
+                    <VerbatimSection html={sections["Sustainability Plan"]} />
+                  </div>
+                )}
+
+                {sections["Partnership Requirements"] && (
+                  <div className={`${CARD} p-8`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <Handshake className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
+                      <p className="text-xl font-bold text-[#0F172A]">Partnership Requirements</p>
+                    </div>
+                    <VerbatimSection html={sections["Partnership Requirements"]} />
+                  </div>
+                )}
+
+                {fullDetail?.confirmed_assets && fullDetail.confirmed_assets.length > 0 && !fullDetail.confirmed_assets.includes("none") && (
+                  <div className={`${CARD} p-8`}>
+                    <p className="text-xl font-bold text-[#0F172A] mb-4">Already Confirmed</p>
+                    <div className="flex flex-wrap gap-2">
+                      {fullDetail.confirmed_assets.filter(a => a !== "none").map(a => (
+                        <span key={a} className={`${CARD_SM} text-[13px] font-bold px-3 py-1.5 text-[#0F172A] capitalize`}>{a.replace(/_/g, " ")}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {fullDetail?.co_funding_status && (
+                  <div className={`${CARD} p-8`}>
+                    <p className="text-xl font-bold text-[#0F172A] mb-2">Funding Status</p>
+                    <p className="text-[16px] text-[#0F172A]">{CO_FUNDING_LABELS[fullDetail.co_funding_status] ?? fullDetail.co_funding_status}</p>
+                  </div>
+                )}
+
+                {(fullDetail?.evaluation_report_url || fullDetail?.baseline_study_url || fullDetail?.midline_report_url) && (
+                  <div className={`${CARD} p-8`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <FileText className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
+                      <p className="text-xl font-bold text-[#0F172A]">Documents &amp; Evidence</p>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      {fullDetail.evaluation_report_url && (
+                        <a href={fullDetail.evaluation_report_url} target="_blank" rel="noopener noreferrer"
+                          className={`${CARD_SM} inline-flex items-center gap-2 px-4 py-2.5 text-[14px] font-bold text-[#0F172A] hover:bg-[#1B4D3E]/5 transition-colors`}>
+                          View Evaluation Report
+                        </a>
+                      )}
+                      {fullDetail.baseline_study_url && (
+                        <a href={fullDetail.baseline_study_url} target="_blank" rel="noopener noreferrer"
+                          className={`${CARD_SM} inline-flex items-center gap-2 px-4 py-2.5 text-[14px] font-bold text-[#0F172A] hover:bg-[#1B4D3E]/5 transition-colors`}>
+                          View Baseline Study
+                        </a>
+                      )}
+                      {fullDetail.midline_report_url && (
+                        <a href={fullDetail.midline_report_url} target="_blank" rel="noopener noreferrer"
+                          className={`${CARD_SM} inline-flex items-center gap-2 px-4 py-2.5 text-[14px] font-bold text-[#0F172A] hover:bg-[#1B4D3E]/5 transition-colors`}>
+                          View Midline Report
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "team" && (
+              <div className="space-y-8 pt-6">
+                {(sections["Team and Track Record"] || (fullDetail?.had_prior_experience !== null && fullDetail?.had_prior_experience !== undefined)) && (
+                  <div className={`${CARD} p-8`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <ShieldCheck className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
+                      <p className="text-xl font-bold text-[#0F172A]">Team and Track Record</p>
+                    </div>
+                    {sections["Team and Track Record"] ? (
+                      <VerbatimSection html={sections["Team and Track Record"]} />
+                    ) : (
+                      <p className="text-[16px] text-[#0F172A] leading-relaxed">
+                        {fullDetail!.had_prior_experience ? "The team has led similar initiatives before." : "This is a first initiative of this type for the team."}
+                        {fullDetail!.prior_experience_detail ? ` ${fullDetail!.prior_experience_detail}` : ""}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {initiativeOrgDd && (initiativeOrgDd.total_beneficiaries_reached || initiativeOrgDd.years_of_operation || initiativeOrgDd.grants_received_count) && (
+                  <div className={`${CARD} p-8`}>
+                    <p className="text-xl font-bold text-[#0F172A] mb-5">Organization Track Record</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
+                      {initiativeOrgDd.total_beneficiaries_reached != null && (
+                        <div><p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">Beneficiaries Reached</p><p className="text-[15px] font-bold text-[#0F172A]">{initiativeOrgDd.total_beneficiaries_reached.toLocaleString()}</p></div>
+                      )}
+                      {initiativeOrgDd.years_of_operation != null && (
+                        <div><p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">Years Operating</p><p className="text-[15px] font-bold text-[#0F172A]">{initiativeOrgDd.years_of_operation}</p></div>
+                      )}
+                      {initiativeOrgDd.grants_received_count != null && (
+                        <div><p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">Grants Received</p><p className="text-[15px] font-bold text-[#0F172A]">{initiativeOrgDd.grants_received_count}</p></div>
+                      )}
+                      {initiativeOrgDd.grants_total_value_usd != null && (
+                        <div><p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">Total Grant Value</p><p className="text-[15px] font-bold text-[#0F172A]">${initiativeOrgDd.grants_total_value_usd.toLocaleString()}</p></div>
+                      )}
+                      {initiativeOrgDd.grants_delivered_on_time_pct != null && (
+                        <div><p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">Delivered On Time</p><p className="text-[15px] font-bold text-[#0F172A]">{initiativeOrgDd.grants_delivered_on_time_pct}%</p></div>
+                      )}
+                    </div>
+                    {initiativeOrgDd.previous_funders && initiativeOrgDd.previous_funders.length > 0 && (
+                      <p className="text-[15px] text-[#0F172A] mt-5"><span className="font-bold">Previous funders:</span> {initiativeOrgDd.previous_funders.join(", ")}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "full" && (
+              <div className="pt-6">
+                <div className={`${CARD} p-8`}>
+                  <div className="flex items-center justify-between mb-5">
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
+                      <p className="text-xl font-bold text-[#0F172A]">Full Description</p>
+                    </div>
+                    <button type="button" onClick={downloadPdf}
+                      className="inline-flex items-center gap-2 text-[13px] font-bold px-4 py-2.5 rounded-lg text-white transition-opacity hover:opacity-90"
+                      style={{ background: FOREST }}>
+                      <Download className="w-3.5 h-3.5" />
+                      Download as PDF
+                    </button>
+                  </div>
+                  {fullDetail?.detail_content && fullDetail.detail_content !== "<p></p>" ? (
+                    <VerbatimSection html={fullDetail.detail_content} />
+                  ) : (
+                    <p className="text-[16px] text-[#0F172A]">No detailed description was provided for this initiative.</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Floating Deal Snapshot trigger -- takes no layout space until opened */}
+      <button type="button" onClick={() => setDealSnapshotOpen(true)}
+        className="fixed right-0 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 bg-white rounded-l-xl px-2.5 py-4 hover:pr-4 transition-all z-20"
+        style={{ writingMode: "vertical-rl" as any, boxShadow: "0 1px 2px rgba(27,77,62,0.06), -8px 4px 20px -8px rgba(27,77,62,0.18)" }}>
+        <LayoutGrid className="w-4 h-4 shrink-0" style={{ color: BURNT_ORANGE, writingMode: "horizontal-tb" as any }} />
+        <span className="text-[11px] font-bold uppercase tracking-wider text-[#0F172A]">Deal Snapshot</span>
+      </button>
+
+      {dealSnapshotOpen && (
+        <div className="fixed inset-0 z-40" onClick={() => setDealSnapshotOpen(false)} style={{ background: "rgba(27,77,62,0.15)" }} />
+      )}
+      <div className={`fixed right-0 top-0 h-full w-full sm:w-[85%] md:w-[60%] lg:w-[460px] bg-white shadow-2xl flex flex-col z-50 transition-transform duration-300 ease-in-out ${dealSnapshotOpen ? "translate-x-0" : "translate-x-full"}`}>
+        <div className="px-6 py-5 flex items-center justify-between shrink-0" style={{ boxShadow: "0 1px 0 rgba(27,77,62,0.08)" }}>
+          <p className="text-[17px] font-bold text-[#0F172A] flex items-center gap-2">
+            <LayoutGrid className="w-4 h-4" style={{ color: BURNT_ORANGE }} />
+            Deal Snapshot
+          </p>
+          <button type="button" onClick={() => setDealSnapshotOpen(false)} className="p-1.5 rounded-full hover:bg-[#1B4D3E]/5 transition-colors">
+            <X className="w-4 h-4" style={{ color: FOREST }} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+          <div className="grid grid-cols-2 gap-5">
+            <div>
+              <p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">DD Readiness</p>
+              <p className="text-[15px] font-bold" style={{ color: initiativeDdScore != null ? FOREST : "#0F172A" }}>
+                {initiativeDdScore != null ? `${initiativeDdScore}%${initiativeTrustTier ? ` (${initiativeTrustTier})` : ""}` : "—"}
+              </p>
+            </div>
+            <div><p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">Location</p><p className="text-[15px] font-bold text-[#0F172A]">{initiative.locations?.join(", ") || "—"}</p></div>
+            <div><p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">Budget</p><p className="text-[15px] font-bold text-[#0F172A]">{initiative.budget || "—"}</p></div>
+            <div><p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">Stage</p><p className="text-[15px] font-bold text-[#0F172A]">{fullDetail?.stage ? (STAGE_LABELS[fullDetail.stage]?.split(" — ")[0] ?? fullDetail.stage) : "—"}</p></div>
+          </div>
+
+          {(isFunder || isCorporate) && (
+            <div className="space-y-2">
+              {isFunder && (
+                <button type="button" onClick={generateDealMemo} disabled={loadingMemo}
+                  className={`w-full flex items-center justify-between gap-2 ${CARD_SM} px-4 py-3 text-[14px] font-bold text-[#0F172A] hover:bg-[#1B4D3E]/5 transition-colors disabled:opacity-50`}>
+                  <span className="flex items-center gap-2"><FileText className="w-4 h-4" style={{ color: FOREST }} />Generate Deal Memo</span>
+                  {loadingMemo && <Loader2 className="w-4 h-4 animate-spin" style={{ color: FOREST }} />}
+                </button>
+              )}
+              {isCorporate && (
+                <button type="button" onClick={generateCsrBrief} disabled={loadingCsr}
+                  className={`w-full flex items-center justify-between gap-2 ${CARD_SM} px-4 py-3 text-[14px] font-bold text-[#0F172A] hover:bg-[#1B4D3E]/5 transition-colors disabled:opacity-50`}>
+                  <span className="flex items-center gap-2"><FileText className="w-4 h-4" style={{ color: FOREST }} />Generate CSR Brief</span>
+                  {loadingCsr && <Loader2 className="w-4 h-4 animate-spin" style={{ color: FOREST }} />}
+                </button>
+              )}
+            </div>
+          )}
+
+          {!isOwnInitiative && isFunder && !alreadyExpressed && !questionSubmitted && (
+            <div className="space-y-2">
+              {!questionOpen ? (
+                <button type="button" onClick={() => setQuestionOpen(true)}
+                  className="w-full rounded-lg py-3 text-[14px] font-bold flex items-center justify-center gap-2 transition-colors"
+                  style={{ color: FOREST, background: "rgba(27,77,62,0.06)" }}>
+                  <MessageSquare className="w-4 h-4" />
+                  Ask a question before committing
+                </button>
+              ) : (
+                <div className={`${CARD_SM} p-4 space-y-2`}>
+                  <p className="text-[13px] font-bold text-[#0F172A]">Your question</p>
+                  <textarea
+                    value={question}
+                    onChange={e => setQuestion(e.target.value)}
+                    placeholder="Ask the initiative owner a specific question before expressing interest..."
+                    rows={3}
+                    className="w-full rounded-lg px-3 py-2.5 text-[14px] resize-none focus:outline-none"
+                    style={{ background: "rgba(27,77,62,0.04)" }}
+                  />
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => { setQuestionOpen(false); setQuestion(""); }}
+                      className="flex-1 rounded-lg py-2 text-[14px] font-semibold transition-colors" style={{ color: FOREST }}>
+                      Cancel
+                    </button>
+                    <button type="button" onClick={submitQuestion}
+                      disabled={!question.trim() || questionSubmitting}
+                      className="flex-1 rounded-lg py-2 text-white text-[14px] font-bold disabled:opacity-40 transition-colors"
+                      style={{ background: FOREST }}>
+                      {questionSubmitting ? "Sending..." : "Send question"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {questionSubmitted && (
+            <div className="flex items-center gap-2 justify-center text-[13px] font-semibold py-1" style={{ color: FOREST }}>
+              <CheckCircle2 className="w-4 h-4" />
+              Question sent. The initiative lead will respond in Messages.
+            </div>
+          )}
+
+          {isOwnInitiative ? (
+            <div className="w-full rounded-xl py-4 flex items-center justify-center text-[14px] font-bold" style={{ background: "rgba(27,77,62,0.06)", color: FOREST }}>
+              Your initiative
+            </div>
+          ) : (
+            <button type="button"
+              onClick={() => { if (!alreadyExpressed) setEoiOpen(true); }}
+              disabled={alreadyExpressed}
+              className={`w-full py-4 rounded-xl font-bold shadow-lg transition-all ${alreadyExpressed ? "cursor-not-allowed" : "text-white"}`}
+              style={alreadyExpressed ? { background: "rgba(27,77,62,0.08)", color: "rgba(27,77,62,0.5)" } : { background: BURNT_ORANGE }}>
+              {alreadyExpressed ? "Interest Expressed" : "Express Interest"}
+            </button>
+          )}
         </div>
       </div>
 
@@ -1794,11 +2054,11 @@ function MarketplaceDetail({
         )}
         {loadingMemo ? (
           <div className="space-y-3">
-            {[1, 2, 3, 4].map(i => <div key={i} className="h-12 rounded-lg bg-muted animate-pulse" />)}
+            {[1, 2, 3, 4].map(i => <div key={i} className={`h-12 ${CARD_SM} animate-pulse`} />)}
           </div>
         ) : dealMemo ? (
           <div className="space-y-4">
-            <p className="text-[15px] font-medium text-foreground leading-relaxed">{dealMemo.headline}</p>
+            <p className="text-[15px] font-medium text-[#0F172A] leading-relaxed">{dealMemo.headline}</p>
             {[
               { label: "Problem validity", value: dealMemo.problem_validity },
               { label: "Solution fit", value: dealMemo.solution_fit },
@@ -1807,16 +2067,16 @@ function MarketplaceDetail({
               { label: "Mandate alignment", value: dealMemo.mandate_alignment },
             ].map(section => (
               <div key={section.label} className="space-y-1">
-                <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">{section.label}</p>
-                <p className="text-[15px] text-foreground leading-relaxed">{section.value}</p>
+                <p className="text-[13px] font-bold uppercase tracking-wider text-[#0F172A]">{section.label}</p>
+                <p className="text-[15px] text-[#0F172A] leading-relaxed">{section.value}</p>
               </div>
             ))}
             {dealMemo.risk_flags?.length > 0 && (
               <div className="space-y-1">
-                <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">Risk flags</p>
+                <p className="text-[13px] font-bold uppercase tracking-wider text-[#0F172A]">Risk flags</p>
                 <ul className="space-y-1">
                   {dealMemo.risk_flags.map((flag: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2 text-[15px] text-foreground">
+                    <li key={i} className="flex items-start gap-2 text-[15px] text-[#0F172A]">
                       <span className="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5" style={{ background: BURNT_ORANGE }} />
                       {flag}
                     </li>
@@ -1825,11 +2085,10 @@ function MarketplaceDetail({
               </div>
             )}
             {dealMemo.recommended_action && (
-              <div className="rounded-xl border-2 border-l-[6px] px-5 py-4 space-y-1.5 shadow-sm"
+              <div className="rounded-xl px-5 py-4 space-y-1.5"
                 style={{
-                  borderColor: ragFor(dealMemo.recommended_action).border,
-                  borderLeftColor: ragFor(dealMemo.recommended_action).text,
                   background: ragFor(dealMemo.recommended_action).bg,
+                  boxShadow: `0 1px 2px rgba(0,0,0,0.04), 0 8px 20px -10px ${ragFor(dealMemo.recommended_action).text}55`,
                 }}>
                 <div className="flex items-center gap-2">
                   <RagIcon action={dealMemo.recommended_action} className="w-4 h-4 shrink-0" />
@@ -1837,25 +2096,24 @@ function MarketplaceDetail({
                     Recommended: {dealMemo.recommended_action}
                   </p>
                 </div>
-                <p className="text-[13px] text-black dark:text-white pl-6">{dealMemo.recommended_action_reason}</p>
+                <p className="text-[13px] text-[#0F172A] pl-6">{dealMemo.recommended_action_reason}</p>
               </div>
             )}
-            <button type="button" onClick={generateDealMemo}
-              className="text-[13px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+            <button type="button" onClick={generateDealMemo} className="text-[13px] font-semibold flex items-center gap-1 transition-colors" style={{ color: FOREST }}>
               <Sparkles className="w-3 h-3" />Regenerate
             </button>
           </div>
         ) : memoRequiresUpgrade ? (
           <div className="text-center py-4">
-            <p className="text-[15px] font-medium text-foreground mb-1">AI deal memos need an upgrade.</p>
-            <p className="text-[13px] text-black dark:text-white mb-3">Upgrade to see a full AI-generated deal memo for this initiative.</p>
+            <p className="text-[15px] font-medium text-[#0F172A] mb-1">AI deal memos need an upgrade.</p>
+            <p className="text-[13px] mb-3" style={{ color: FOREST }}>Upgrade to see a full AI-generated deal memo for this initiative.</p>
             <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
-              className="text-[13px] font-semibold text-white rounded-full px-4 py-1.5 transition-colors" style={{ background: FOREST }}>
+              className="text-[13px] font-bold text-white rounded-full px-4 py-1.5 transition-opacity hover:opacity-90" style={{ background: FOREST }}>
               Upgrade
             </button>
           </div>
         ) : (
-          <p className="text-[15px] text-black dark:text-white">Failed to generate memo. Try again.</p>
+          <p className="text-[15px]" style={{ color: FOREST }}>Failed to generate memo. Try again.</p>
         )}
       </AiSlidePanel>
 
@@ -1871,11 +2129,11 @@ function MarketplaceDetail({
         )}
         {loadingCsr ? (
           <div className="space-y-3">
-            {[1, 2, 3, 4].map(i => <div key={i} className="h-12 rounded-lg bg-muted animate-pulse" />)}
+            {[1, 2, 3, 4].map(i => <div key={i} className={`h-12 ${CARD_SM} animate-pulse`} />)}
           </div>
         ) : csrBrief ? (
           <div className="space-y-4">
-            <p className="text-[15px] font-medium text-foreground leading-relaxed">{csrBrief.headline}</p>
+            <p className="text-[15px] font-medium text-[#0F172A] leading-relaxed">{csrBrief.headline}</p>
             {[
               { label: "SDG alignment", value: csrBrief.sdg_alignment },
               { label: "Local content", value: csrBrief.local_content },
@@ -1886,16 +2144,16 @@ function MarketplaceDetail({
               { label: "Implementer readiness", value: csrBrief.implementer_readiness },
             ].map(section => (
               <div key={section.label} className="space-y-1">
-                <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">{section.label}</p>
-                <p className="text-[15px] text-foreground leading-relaxed">{section.value}</p>
+                <p className="text-[13px] font-bold uppercase tracking-wider text-[#0F172A]">{section.label}</p>
+                <p className="text-[15px] text-[#0F172A] leading-relaxed">{section.value}</p>
               </div>
             ))}
             {csrBrief.risk_flags?.length > 0 && (
               <div className="space-y-1">
-                <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">Risk flags</p>
+                <p className="text-[13px] font-bold uppercase tracking-wider text-[#0F172A]">Risk flags</p>
                 <ul className="space-y-1">
                   {csrBrief.risk_flags.map((flag: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2 text-[15px] text-foreground">
+                    <li key={i} className="flex items-start gap-2 text-[15px] text-[#0F172A]">
                       <span className="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5" style={{ background: BURNT_ORANGE }} />
                       {flag}
                     </li>
@@ -1904,11 +2162,10 @@ function MarketplaceDetail({
               </div>
             )}
             {csrBrief.recommended_action && (
-              <div className="rounded-xl border-2 border-l-[6px] px-5 py-4 space-y-1.5 shadow-sm"
+              <div className="rounded-xl px-5 py-4 space-y-1.5"
                 style={{
-                  borderColor: ragFor(csrBrief.recommended_action).border,
-                  borderLeftColor: ragFor(csrBrief.recommended_action).text,
                   background: ragFor(csrBrief.recommended_action).bg,
+                  boxShadow: `0 1px 2px rgba(0,0,0,0.04), 0 8px 20px -10px ${ragFor(csrBrief.recommended_action).text}55`,
                 }}>
                 <div className="flex items-center gap-2">
                   <RagIcon action={csrBrief.recommended_action} className="w-4 h-4 shrink-0" />
@@ -1916,25 +2173,24 @@ function MarketplaceDetail({
                     Recommended: {csrBrief.recommended_action}
                   </p>
                 </div>
-                <p className="text-[13px] text-black dark:text-white pl-6">{csrBrief.recommended_action_reason}</p>
+                <p className="text-[13px] text-[#0F172A] pl-6">{csrBrief.recommended_action_reason}</p>
               </div>
             )}
-            <button type="button" onClick={generateCsrBrief}
-              className="text-[13px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+            <button type="button" onClick={generateCsrBrief} className="text-[13px] font-semibold flex items-center gap-1 transition-colors" style={{ color: FOREST }}>
               <Sparkles className="w-3 h-3" />Regenerate
             </button>
           </div>
         ) : csrRequiresUpgrade ? (
           <div className="text-center py-4">
-            <p className="text-[15px] font-medium text-foreground mb-1">AI CSR briefs need an upgrade.</p>
-            <p className="text-[13px] text-black dark:text-white mb-3">Upgrade to see a full AI-generated CSR adoption brief for this initiative.</p>
+            <p className="text-[15px] font-medium text-[#0F172A] mb-1">AI CSR briefs need an upgrade.</p>
+            <p className="text-[13px] mb-3" style={{ color: FOREST }}>Upgrade to see a full AI-generated CSR adoption brief for this initiative.</p>
             <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
-              className="text-[13px] font-semibold text-white rounded-full px-4 py-1.5 transition-colors" style={{ background: FOREST }}>
+              className="text-[13px] font-bold text-white rounded-full px-4 py-1.5 transition-opacity hover:opacity-90" style={{ background: FOREST }}>
               Upgrade
             </button>
           </div>
         ) : (
-          <p className="text-[15px] text-black dark:text-white">Failed to generate brief. Try again.</p>
+          <p className="text-[15px]" style={{ color: FOREST }}>Failed to generate brief. Try again.</p>
         )}
       </AiSlidePanel>
 
@@ -1974,10 +2230,10 @@ function MarketplaceDetail({
                     {EOI_PARTNERSHIP_TYPES.map(t => (
                       <button key={t.value} type="button"
                         onClick={() => setPartnershipTypes(prev => prev.includes(t.value) ? prev.filter(x => x !== t.value) : [...prev, t.value])}
-                        className="text-[13px] px-3 py-1.5 rounded-full border transition-colors"
+                        className="text-[13px] px-3 py-1.5 rounded-full transition-colors"
                         style={partnershipTypes.includes(t.value)
-                          ? { background: FOREST, color: "white", borderColor: FOREST }
-                          : { borderColor: "#E2E8F0", color: "#64748B" }}>
+                          ? { background: FOREST, color: "white" }
+                          : { background: "rgba(27,77,62,0.06)", color: FOREST }}>
                         {t.label}
                       </button>
                     ))}
