@@ -8,7 +8,7 @@ import {
   Loader2, Search, Users, Sparkles, RefreshCw, Trophy, X, ExternalLink,
   Link as LinkIcon, Mail, Globe, MapPin, Layers, ChevronRight,
 } from "lucide-react";
-import { UserAvatar, avatarColor, initials } from "@/components/ui/UserAvatar";
+import { initials } from "@/components/ui/UserAvatar";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { TrustBadge } from "@/components/ui/TrustBadge";
 import { COUNTRIES } from "@/lib/countries";
@@ -17,6 +17,10 @@ import { DD_ITEMS, FUNDER_DD_ITEMS, DDItemDef, DD_SENSITIVE_EVIDENCE_KEYS, DDDoc
 import { hasLiveRelationshipWith } from "@/lib/relationshipAccess";
 import mammoth from "mammoth";
 import { EsgSnapshotSection } from "@/components/dashboard/EsgSnapshotSection";
+
+// ── Charcoal text helper ─────────────────────────────────────────────────────
+// All secondary/"grey" text uses this instead of a muted-gray token.
+const CHARCOAL = "text-[#1F2937]";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -170,22 +174,17 @@ function partnerRolePhrase(value: string): string {
   return label === "Project Lead" ? label : `${label} partner`;
 }
 
-// Deterministic soft-color badge for arbitrary sector/country strings, in the
-// spirit of the mockup's hardcoded per-value badge colors.
-const BADGE_PALETTE = [
-  { bg: "bg-emerald-50", text: "text-emerald-800", border: "border-emerald-200" },
-  { bg: "bg-indigo-50", text: "text-indigo-800", border: "border-indigo-200" },
-  { bg: "bg-blue-50", text: "text-blue-800", border: "border-blue-200" },
-  { bg: "bg-amber-50", text: "text-amber-800", border: "border-amber-200" },
-  { bg: "bg-purple-50", text: "text-purple-800", border: "border-purple-200" },
-  { bg: "bg-teal-50", text: "text-teal-800", border: "border-teal-200" },
-  { bg: "bg-rose-50", text: "text-rose-800", border: "border-rose-200" },
-  { bg: "bg-sky-50", text: "text-sky-800", border: "border-sky-200" },
+// Deterministic soft-color TEXT (no background/border box) for sector/country
+// tags, in the spirit of the mockup's color-coded labels — but as plain
+// colored text rather than a bordered "card".
+const TEXT_PALETTE = [
+  "text-emerald-700", "text-indigo-700", "text-blue-700", "text-amber-700",
+  "text-purple-700", "text-teal-700", "text-rose-700", "text-sky-700",
 ];
-function badgeStyleFor(value: string): { bg: string; text: string; border: string } {
+function tagColorFor(value: string): string {
   let hash = 0;
   for (let i = 0; i < value.length; i++) hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
-  return BADGE_PALETTE[hash % BADGE_PALETTE.length];
+  return TEXT_PALETTE[hash % TEXT_PALETTE.length];
 }
 
 function toOrgEntity(org: OrgRow): EcosystemEntity {
@@ -244,8 +243,23 @@ export default function DashboardNatives() {
   const [loadingOrgs, setLoadingOrgs] = useState(true);
   const [loadingProfiles, setLoadingProfiles] = useState(true);
 
-  const [selected, setSelected] = useState<EcosystemEntity | null>(null);
-  const drawerOpen = !!selected;
+  // Drawer entity is kept mounted through the close animation; drawerVisible
+  // purely controls the transform/opacity so open + close both animate.
+  const [drawerEntity, setDrawerEntity] = useState<EcosystemEntity | null>(null);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+
+  function openEntity(entity: EcosystemEntity) {
+    setDrawerEntity(entity);
+  }
+  function closeDrawer() {
+    setDrawerVisible(false);
+    window.setTimeout(() => setDrawerEntity(null), 300);
+  }
+  useEffect(() => {
+    if (!drawerEntity || drawerVisible) return;
+    const raf = requestAnimationFrame(() => requestAnimationFrame(() => setDrawerVisible(true)));
+    return () => cancelAnimationFrame(raf);
+  }, [drawerEntity]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [autoOpenUserId, setAutoOpenUserId] = useState<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
@@ -270,7 +284,7 @@ export default function DashboardNatives() {
         if (orgRow) {
           const mirrorMap = await fetchLatestListingMirror([autoOpenUserId!]);
           const full: OrgRow = { ...orgRow, ...(mirrorMap.get(autoOpenUserId!) ?? EMPTY_LISTING_MIRROR), contact_name: contactProfile?.full_name };
-          setSelected(toOrgEntity(full));
+          openEntity(toOrgEntity(full));
         }
       } else {
         const { data: fullProfile } = await supabase
@@ -283,7 +297,7 @@ export default function DashboardNatives() {
         if (fullProfile) {
           const { data: membership } = await supabase
             .from("org_members").select("user_id").eq("user_id", autoOpenUserId).eq("status", "active").maybeSingle();
-          if (!membership) setSelected(toIndividualEntity(fullProfile as ProfileRow));
+          if (!membership) openEntity(toIndividualEntity(fullProfile as ProfileRow));
         }
       }
       setDirectLoading(false);
@@ -403,7 +417,7 @@ export default function DashboardNatives() {
             className={`px-4 py-2 rounded-lg transition-all flex items-center gap-2 ${
               filterTab === t.key
                 ? "bg-white dark:bg-card text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                : `${CHARCOAL} hover:text-foreground`
             }`}>
             <span>{t.label}</span>
             <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${filterTab === t.key ? "bg-slate-200 text-charcoal" : "bg-white/60 dark:bg-black/20"}`}>
@@ -416,7 +430,7 @@ export default function DashboardNatives() {
       {/* Filter Toolbar */}
       <div className="bg-white dark:bg-card p-3 rounded-2xl border border-border flex flex-wrap items-center gap-3 shadow-xs">
         <div className="relative flex-1 min-w-[220px]">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <Search className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 ${CHARCOAL}`} />
           <input type="text" placeholder="Search organisations or individuals..."
             value={search} onChange={e => setSearch(e.target.value)}
             className="w-full pl-9 pr-4 py-2 bg-white dark:bg-card border border-border rounded-xl text-[13px] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors" />
@@ -474,7 +488,7 @@ export default function DashboardNatives() {
         {(sectorFilter || countryFilter || orgTypeFilter || verifiedOnly || sortMode || search) && (
           <button type="button"
             onClick={() => { setSectorFilter(""); setCountryFilter(""); setOrgTypeFilter(""); setVerifiedOnly(false); setSortMode(""); setSearch(""); }}
-            className="h-9 px-3 rounded-xl border border-border text-[13px] text-muted-foreground hover:text-foreground transition-colors">
+            className={`h-9 px-3 rounded-xl border border-border text-[13px] ${CHARCOAL} hover:text-foreground transition-colors`}>
             ✕ Clear
           </button>
         )}
@@ -485,23 +499,30 @@ export default function DashboardNatives() {
         <LoadingSpinner />
       ) : sorted.length === 0 ? (
         <EmptyState
-          icon={<Users className="w-8 h-8 text-muted-foreground/40" />}
+          icon={<Users className={`w-8 h-8 ${CHARCOAL} opacity-30`} />}
           title={allEntities.length === 0 ? "No ecosystem records yet." : "No results."}
           subtitle={allEntities.length === 0 ? "Published organisations and profiles will appear here." : "Try resetting your active filters or search terms."} />
       ) : (
         <div className="flex flex-col gap-3">
-          {sorted.map(e => <EcosystemCard key={`${e.entityType}-${e.id}`} entity={e} onClick={() => setSelected(e)} />)}
+          {sorted.map(e => <EcosystemCard key={`${e.entityType}-${e.id}`} entity={e} onClick={() => openEntity(e)} />)}
         </div>
       )}
 
       {/* Slide-over drawer */}
-      {drawerOpen && (
+      {drawerEntity && (
         <div className="fixed inset-0 z-40" role="dialog" aria-modal="true">
-          <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-[1px] transition-opacity" onClick={() => setSelected(null)} />
-          <div className="absolute right-0 top-0 h-full w-full sm:w-[85%] md:w-[65%] lg:w-[55%] bg-white dark:bg-card border-l border-border shadow-2xl flex flex-col transform transition-transform duration-300 translate-x-0">
-            {selected!.entityType === "organisation"
-              ? <OrgDrawerContent org={selected!.org!} onClose={() => setSelected(null)} />
-              : <IndividualDrawerContent profile={selected!.profile!} onClose={() => setSelected(null)} />}
+          <div
+            className={`absolute inset-0 bg-slate-900/20 transition-opacity duration-300 ${drawerVisible ? "opacity-100" : "opacity-0"}`}
+            onClick={closeDrawer}
+          />
+          <div
+            className={`absolute right-0 top-0 h-full w-full sm:w-[85%] md:w-[65%] lg:w-1/2 lg:min-w-[640px] lg:max-w-[800px] bg-white dark:bg-card border-l border-border shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${
+              drawerVisible ? "translate-x-0" : "translate-x-full"
+            }`}
+          >
+            {drawerEntity.entityType === "organisation"
+              ? <OrgDrawerContent org={drawerEntity.org!} onClose={closeDrawer} />
+              : <IndividualDrawerContent profile={drawerEntity.profile!} onClose={closeDrawer} />}
           </div>
         </div>
       )}
@@ -517,8 +538,8 @@ function EcosystemCard({ entity, onClick }: { entity: EcosystemEntity; onClick: 
   const isOrg = entity.entityType === "organisation";
   const primarySector = entity.sectors[0];
   const primaryCountry = entity.countries[0];
-  const sectorStyle = primarySector ? badgeStyleFor(primarySector) : null;
-  const countryStyle = primaryCountry ? badgeStyleFor(primaryCountry) : null;
+  const sectorColor = primarySector ? tagColorFor(primarySector) : null;
+  const countryColor = primaryCountry ? tagColorFor(primaryCountry) : null;
 
   return (
     <div onClick={onClick}
@@ -527,14 +548,13 @@ function EcosystemCard({ entity, onClick }: { entity: EcosystemEntity; onClick: 
 
         {/* Column 1: Identity & summary */}
         <div className="lg:col-span-6 flex items-start gap-4 min-w-0">
+          {/* Avatar: no fill background, just a border. Shows the real logo/photo when present. */}
           <div className={`w-12 h-12 shrink-0 flex items-center justify-center text-sm font-bold border shadow-xs overflow-hidden ${
-            isOrg ? "rounded-xl bg-emerald-50 text-[#2D6A4F] border-emerald-200" : "rounded-full bg-sky-50 text-sky-800 border-sky-200"
-          }`}>
+            isOrg ? "rounded-xl border-slate-200" : "rounded-full border-slate-200"
+          } ${CHARCOAL}`}>
             {entity.logoUrl ? (
-              <img src={entity.logoUrl} alt={entity.name} className="w-full h-full object-cover" />
-            ) : isOrg ? initials(entity.name) : (
-              <UserAvatar id={entity.id} name={entity.name} avatarUrl={entity.logoUrl ?? undefined} size="sm" />
-            )}
+              <img src={entity.logoUrl} alt={entity.name} className="w-full h-full object-contain" />
+            ) : initials(entity.name)}
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -546,34 +566,34 @@ function EcosystemCard({ entity, onClick }: { entity: EcosystemEntity; onClick: 
                 </span>
               )}
             </div>
-            {entity.subtitle && <p className="text-[13px] font-semibold text-muted-foreground mt-0.5 capitalize truncate">{entity.subtitle}</p>}
+            {entity.subtitle && <p className={`text-[13px] font-semibold ${CHARCOAL} mt-0.5 capitalize truncate`}>{entity.subtitle}</p>}
             {entity.description && <p className="text-[13px] text-foreground mt-1.5 line-clamp-2 leading-relaxed">{firstSentence(entity.description)}</p>}
           </div>
         </div>
 
-        {/* Column 2: Sector */}
+        {/* Column 2: Sector — plain colored text, no card/box styling */}
         <div className="lg:col-span-3 min-w-0 border-t lg:border-t-0 lg:border-l border-border pt-3 lg:pt-0 lg:pl-6">
-          <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Sector</span>
+          <span className={`block text-[10px] font-bold ${CHARCOAL} uppercase tracking-wider mb-1.5`}>Sector</span>
           {primarySector ? (
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[12px] font-bold border ${sectorStyle!.bg} ${sectorStyle!.text} ${sectorStyle!.border}`}>
+            <span className={`inline-flex items-center text-[13px] font-bold ${sectorColor}`}>
               <Layers className="w-3 h-3 mr-1.5" />
               <span className="truncate">{primarySector}{entity.sectors.length > 1 ? ` +${entity.sectors.length - 1}` : ""}</span>
             </span>
-          ) : <span className="text-[12px] text-muted-foreground">—</span>}
+          ) : <span className={`text-[12px] ${CHARCOAL}`}>—</span>}
         </div>
 
-        {/* Column 3: Country + arrow */}
+        {/* Column 3: Country — plain colored text, no card/box styling + arrow */}
         <div className="lg:col-span-3 min-w-0 flex items-center justify-between border-t lg:border-t-0 lg:border-l border-border pt-3 lg:pt-0 lg:pl-6">
           <div>
-            <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Country</span>
+            <span className={`block text-[10px] font-bold ${CHARCOAL} uppercase tracking-wider mb-1.5`}>Country</span>
             {primaryCountry ? (
-              <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[12px] font-bold border ${countryStyle!.bg} ${countryStyle!.text} ${countryStyle!.border}`}>
+              <span className={`inline-flex items-center text-[13px] font-bold ${countryColor}`}>
                 <MapPin className="w-3 h-3 mr-1.5" />
                 <span className="truncate">{primaryCountry}{entity.countries.length > 1 ? ` +${entity.countries.length - 1}` : ""}</span>
               </span>
-            ) : <span className="text-[12px] text-muted-foreground">—</span>}
+            ) : <span className={`text-[12px] ${CHARCOAL}`}>—</span>}
           </div>
-          <div className="w-8 h-8 rounded-full bg-white dark:bg-card group-hover:bg-[#2D6A4F] group-hover:text-white text-muted-foreground flex items-center justify-center transition-all border border-border shrink-0 ml-3 shadow-xs">
+          <div className={`w-8 h-8 rounded-full bg-white dark:bg-card group-hover:bg-[#2D6A4F] group-hover:text-white ${CHARCOAL} flex items-center justify-center transition-all border border-border shrink-0 ml-3 shadow-xs`}>
             <ChevronRight className="w-3.5 h-3.5" />
           </div>
         </div>
@@ -597,22 +617,22 @@ function DrawerHeader({ typeLabel, userId, onClose }: { typeLabel: string; userI
   }
 
   return (
-    <div className="h-16 px-6 sm:px-8 border-b border-border flex items-center justify-between bg-white dark:bg-card shrink-0">
+    <div className="px-8 py-4 border-b border-border flex items-center justify-between bg-white dark:bg-card shrink-0">
+      <button type="button" onClick={onClose}
+        className={`flex items-center gap-1.5 text-sm font-medium ${CHARCOAL} hover:bg-slate-100 dark:hover:bg-white/5 p-2 -ml-2 rounded-lg transition`}>
+        <X className="w-4 h-4" /> Close
+      </button>
       <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200">
         {typeLabel}
       </span>
       <div className="flex items-center gap-2">
         <a href={fullPageUrl} target="_blank" rel="noopener noreferrer" title="Open in full page"
-          className="p-2 rounded-lg bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-white/5 text-foreground transition-colors text-xs border border-border">
+          className={`p-2 rounded-lg bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-white/5 ${CHARCOAL} transition-colors text-sm border border-border`}>
           <ExternalLink className="w-3.5 h-3.5" />
         </a>
         <button type="button" onClick={copyLink} title="Copy Link"
-          className="p-2 rounded-lg bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-white/5 text-foreground transition-colors text-xs border border-border flex items-center gap-1.5">
+          className={`px-3 py-1.5 rounded-lg bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-white/5 ${CHARCOAL} transition-colors text-sm border border-border flex items-center gap-1.5`}>
           <LinkIcon className="w-3.5 h-3.5" /> {copied ? "Copied!" : "Copy Link"}
-        </button>
-        <button type="button" onClick={onClose}
-          className="p-2 rounded-lg bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-white/5 text-foreground transition-colors text-xs border border-border">
-          <X className="w-4 h-4" />
         </button>
       </div>
     </div>
@@ -621,10 +641,12 @@ function DrawerHeader({ typeLabel, userId, onClose }: { typeLabel: string; userI
 
 function DrawerTabs({ tabs, active, onChange }: { tabs: { key: DrawerTab; label: string }[]; active: DrawerTab; onChange: (t: DrawerTab) => void }) {
   return (
-    <div className="border-b border-border flex gap-6 sm:gap-8 text-[13px] font-bold px-6 sm:px-8 shrink-0">
+    <div className="sticky top-0 z-10 bg-white dark:bg-card border-b border-border flex gap-8 text-sm px-8">
       {tabs.map(t => (
         <button key={t.key} type="button" onClick={() => onChange(t.key)}
-          className={`pb-3 pt-4 border-b-2 transition-all ${active === t.key ? "border-[#2D6A4F] text-[#2D6A4F]" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+          className={`py-3 border-b-2 transition-all ${
+            active === t.key ? "border-emerald-600 text-slate-900 font-semibold" : `border-transparent font-medium ${CHARCOAL} hover:text-foreground`
+          }`}>
           {t.label}
         </button>
       ))}
@@ -634,6 +656,21 @@ function DrawerTabs({ tabs, active, onChange }: { tabs: { key: DrawerTab; label:
 
 // ── Individual drawer content ────────────────────────────────────────────────
 
+function EntityHeroAvatar({ name, imageUrl, size }: { name: string; imageUrl?: string | null; size: number }) {
+  return (
+    <div
+      className="rounded-full flex items-center justify-center shrink-0 overflow-hidden border border-slate-200 shadow-sm font-bold"
+      style={{ width: size, height: size, fontSize: size * 0.32 }}
+    >
+      {imageUrl ? (
+        <img src={imageUrl} alt={name} className="w-full h-full object-cover" />
+      ) : (
+        <span className={CHARCOAL}>{initials(name)}</span>
+      )}
+    </div>
+  );
+}
+
 function IndividualDrawerContent({ profile, onClose }: { profile: ProfileRow; onClose: () => void }) {
   const sectors = profile.sectors ?? [];
   const hasContact = !!(profile.linkedin_url || (profile.website && profile.website !== "https://") || (profile.social_links && profile.social_links.length > 0));
@@ -642,29 +679,32 @@ function IndividualDrawerContent({ profile, onClose }: { profile: ProfileRow; on
     <>
       <DrawerHeader typeLabel="Individual Expert Profile" userId={profile.id} onClose={onClose} />
       <div className="flex-1 overflow-y-auto">
-        <div className="px-6 sm:px-8 py-8 flex items-start gap-5 border-b border-border">
-          <UserAvatar id={profile.id} name={profile.full_name} avatarUrl={profile.avatar_url} size="lg" />
+        <div className="px-8 pt-6 pb-6 flex items-start gap-5 border-b border-slate-100">
+          <EntityHeroAvatar name={profile.full_name} imageUrl={profile.avatar_url} size={64} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h3 className="text-[22px] sm:text-[26px] font-bold text-foreground tracking-tight">{profile.full_name}</h3>
+              <h3 className="text-xl font-bold text-slate-900 tracking-tight">{profile.full_name}</h3>
               {profile.org_name && (
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
                   {profile.org_name}
                 </span>
               )}
             </div>
-            {profile.role_title && <p className="text-[14px] text-foreground mt-1.5">{profile.role_title}</p>}
-            {profile.country && <p className="text-[13px] text-muted-foreground mt-1 flex items-center gap-1"><MapPin className="w-3 h-3" /> {profile.country}</p>}
+            {(profile.role_title || profile.country) && (
+              <p className={`text-sm font-medium ${CHARCOAL} mt-1`}>
+                {profile.role_title}{profile.role_title && profile.country ? " · " : ""}{profile.country}
+              </p>
+            )}
           </div>
         </div>
 
         {(profile.bio || sectors.length > 0) && (
-          <div className="px-6 sm:px-8 py-8 space-y-6 border-b border-border">
+          <div className="px-8 py-6 space-y-6 border-b border-border">
             <p className="text-[17px] font-bold text-foreground">About</p>
             {profile.bio && <p className="text-[15px] text-foreground leading-relaxed">{profile.bio}</p>}
             {sectors.length > 0 && (
               <div>
-                <p className="text-[13px] font-bold text-foreground mb-1.5">Sector</p>
+                <p className={`text-[13px] font-bold ${CHARCOAL} mb-1.5`}>Sector</p>
                 <p className="text-[14px] text-foreground">{sectors.join(", ")}</p>
               </div>
             )}
@@ -672,7 +712,7 @@ function IndividualDrawerContent({ profile, onClose }: { profile: ProfileRow; on
         )}
 
         {hasContact && (
-          <div className="px-6 sm:px-8 py-8 space-y-3">
+          <div className="px-8 py-6 space-y-3">
             <p className="text-[17px] font-bold text-foreground mb-2">Contact</p>
             {profile.linkedin_url && (
               <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[14px] text-foreground hover:text-[#2D6A4F] transition-colors">
@@ -694,13 +734,13 @@ function IndividualDrawerContent({ profile, onClose }: { profile: ProfileRow; on
       </div>
 
       {/* TODO: wire "Send Message" to your actual messaging/conversation-start flow. */}
-      <div className="p-5 border-t border-border bg-white dark:bg-card flex items-center gap-4 shrink-0 shadow-sm">
-        <button type="button" className="flex-1 bg-[#2D6A4F] hover:bg-[#1F4C38] text-white font-semibold py-3 px-6 rounded-xl text-[13px] transition-all shadow-sm flex items-center justify-center gap-2">
+      <div className="px-8 py-4 border-t border-border bg-white dark:bg-card flex items-center gap-4 shrink-0">
+        <button type="button" className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-sm py-2.5 px-6 rounded-xl shadow-sm transition flex items-center justify-center gap-2">
           <Mail className="w-4 h-4" /> Send Message
         </button>
         {profile.linkedin_url && (
           <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer"
-            className="bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-white/5 text-foreground font-semibold py-3 px-6 rounded-xl text-[13px] transition-all flex items-center justify-center gap-2 border border-border">
+            className="bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-white/5 text-slate-800 font-medium text-sm py-2.5 px-5 rounded-xl transition flex items-center justify-center gap-2 border border-slate-300">
             <LinkIcon className="w-4 h-4" /> LinkedIn
           </a>
         )}
@@ -724,7 +764,7 @@ function ImpactScoreBadge({ score }: { score: number }) {
 function InfoTooltip({ text }: { text: string }) {
   return (
     <span className="relative inline-flex group shrink-0">
-      <span className="w-3.5 h-3.5 rounded-full border border-muted-foreground/50 text-foreground text-[9px] leading-[13px] font-bold inline-flex items-center justify-center cursor-default" aria-label="What does this mean?">i</span>
+      <span className={`w-3.5 h-3.5 rounded-full border border-slate-400 ${CHARCOAL} text-[9px] leading-[13px] font-bold inline-flex items-center justify-center cursor-default`} aria-label="What does this mean?">i</span>
       <span className="pointer-events-none absolute left-0 bottom-full mb-1.5 w-56 rounded-lg border border-border bg-card px-2.5 py-1.5 text-[13px] text-foreground opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-md">{text}</span>
     </span>
   );
@@ -780,7 +820,7 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, canSe
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setPreview(null)}>
         <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border shrink-0">
-            <button type="button" onClick={() => setPreview(null)} className="text-[15px] text-muted-foreground hover:text-foreground flex items-center gap-1.5 shrink-0">
+            <button type="button" onClick={() => setPreview(null)} className={`text-[15px] ${CHARCOAL} hover:text-foreground flex items-center gap-1.5 shrink-0`}>
               ← Back
             </button>
             <p className="text-[15px] font-medium text-foreground truncate flex-1 text-center">{preview.fileName}</p>
@@ -793,10 +833,10 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, canSe
               <iframe src={preview.url} title={preview.fileName} className="w-full h-[75vh] border-0" />
             ) : isDocx ? (
               docxLoading ? (
-                <div className="p-8 flex items-center gap-2 text-[15px] text-black dark:text-white"><Loader2 className="w-4 h-4 animate-spin" /> Loading preview...</div>
+                <div className={`p-8 flex items-center gap-2 text-[15px] ${CHARCOAL}`}><Loader2 className="w-4 h-4 animate-spin" /> Loading preview...</div>
               ) : docxError || !docxHtml ? (
                 <div className="p-8 text-center space-y-2">
-                  <p className="text-[15px] text-black dark:text-white">Couldn't render a preview for this file.</p>
+                  <p className={`text-[15px] ${CHARCOAL}`}>Couldn't render a preview for this file.</p>
                   <a href={preview.url} download={preview.fileName} className="text-[15px] text-[#2D6A4F] hover:underline underline-offset-2 font-medium">Download {preview.fileName}</a>
                 </div>
               ) : (
@@ -806,7 +846,7 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, canSe
               )
             ) : (
               <div className="p-8 text-center space-y-2">
-                <p className="text-[15px] text-black dark:text-white">Preview isn't available for this file type.</p>
+                <p className={`text-[15px] ${CHARCOAL}`}>Preview isn't available for this file type.</p>
                 <a href={preview.url} download={preview.fileName} className="text-[15px] text-[#2D6A4F] hover:underline underline-offset-2 font-medium">Download {preview.fileName}</a>
               </div>
             )}
@@ -821,7 +861,7 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, canSe
       <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-sm p-6 space-y-3" onClick={e => e.stopPropagation()}>
         <div>
           <h3 className="text-[19px] font-bold text-foreground">{item.label}</h3>
-          <p className="text-[15px] text-black dark:text-white mt-0.5">{item.sub}</p>
+          <p className={`text-[15px] ${CHARCOAL} mt-0.5`}>{item.sub}</p>
         </div>
         <div className="space-y-3">
           {item.questions.map(q => {
@@ -829,8 +869,8 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, canSe
             if (isSensitive && !canSeeSensitive) {
               return (
                 <div key={q.key}>
-                  <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">{q.label}</p>
-                  <p className="text-[15px] text-black dark:text-white italic mt-0.5">Visible once you're in an active conversation</p>
+                  <p className={`text-[13px] font-semibold uppercase tracking-wider ${CHARCOAL}`}>{q.label}</p>
+                  <p className={`text-[15px] ${CHARCOAL} italic mt-0.5`}>Visible once you're in an active conversation</p>
                 </div>
               );
             }
@@ -845,16 +885,16 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, canSe
             const withholdDisclosureDetail = isDisclosureDetailKey && !canSeeDisclosureDetail;
             return (
               <div key={q.key}>
-                <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">{q.label}</p>
+                <p className={`text-[13px] font-semibold uppercase tracking-wider ${CHARCOAL}`}>{q.label}</p>
                 <p className="text-[15px] text-foreground mt-0.5">{display}</p>
-                {followUp && !withholdDisclosureDetail && <p className="text-[15px] text-black dark:text-white mt-1 italic">{followUp}</p>}
+                {followUp && !withholdDisclosureDetail && <p className={`text-[15px] ${CHARCOAL} mt-1 italic`}>{followUp}</p>}
               </div>
             );
           })}
         </div>
         {documents.length > 0 && (
           <div className="pt-3 border-t border-border space-y-1.5">
-            <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">Supporting documents</p>
+            <p className={`text-[13px] font-semibold uppercase tracking-wider ${CHARCOAL}`}>Supporting documents</p>
             {documents.map(doc => (
               <button key={doc.id} type="button" onClick={() => handleView(doc)} disabled={openingDocId === doc.id}
                 className="w-full flex items-center justify-between gap-2 text-left text-[15px] text-foreground hover:underline underline-offset-2 disabled:opacity-50">
@@ -864,7 +904,7 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, canSe
             ))}
           </div>
         )}
-        <button type="button" onClick={onClose} className="w-full h-9 rounded-full border border-border text-[15px] text-muted-foreground hover:text-foreground transition-colors">Close</button>
+        <button type="button" onClick={onClose} className={`w-full h-9 rounded-full border border-border text-[15px] ${CHARCOAL} hover:text-foreground transition-colors`}>Close</button>
       </div>
     </div>
   );
@@ -905,7 +945,6 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
 
   const sectors = normalizeArr(org.sector);
   const countries = normalizeArr(org.country);
-  const color = avatarColor(org.id);
 
   const [activeTab, setActiveTab] = useState<DrawerTab>("overview");
   const [aiSummary, setAiSummary] = useState<string | null>(org.ai_partnership_summary ?? null);
@@ -1029,24 +1068,22 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
       <DrawerHeader typeLabel="Organization Profile" userId={org.user_id} onClose={onClose} />
       <div className="overflow-y-auto flex-1">
         {/* Hero */}
-        <div className="px-6 sm:px-8 py-8 flex items-start gap-5 border-b border-border">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center shrink-0 overflow-hidden border border-border" style={{ background: org.logo_url ? "transparent" : color }}>
-            {org.logo_url ? <img src={org.logo_url} alt={org.organisation_name} className="w-full h-full object-cover" /> : <span className="text-white text-[19px] font-bold">{initials(org.organisation_name || "?")}</span>}
-          </div>
+        <div className="px-8 pt-6 pb-6 flex items-start gap-5 border-b border-slate-100">
+          <EntityHeroAvatar name={org.organisation_name || "?"} imageUrl={org.logo_url} size={64} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h3 className="text-[22px] sm:text-[26px] font-bold text-foreground tracking-tight">{org.organisation_name}</h3>
+              <h3 className="text-xl font-bold text-slate-900 tracking-tight">{org.organisation_name}</h3>
               {isVerified && <VerifiedBadge withTooltip />}
               {canDisplayImpactScoreForOrg(org.subscription_tier, org.show_impact_score) && <ImpactScoreBadge score={org.impact_score ?? 0} />}
             </div>
-            <p className="text-[14px] text-muted-foreground mt-1.5">
+            <p className={`text-sm font-medium ${CHARCOAL} mt-1`}>
               {org.organisation_type && <span className="capitalize">{org.organisation_type.replace(/_/g, " ")}</span>}
               {org.organisation_type && countries.length > 0 && " · "}
               {countries.join(", ")}
               {org.year_founded && ` · Est. ${org.year_founded}`}
             </p>
             {org.website && org.website !== "https://" && (
-              <a href={org.website} target="_blank" rel="noopener noreferrer" className="text-[14px] text-[#2D6A4F] hover:underline mt-1 inline-flex items-center gap-1">
+              <a href={org.website} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-600 hover:text-emerald-700 underline underline-offset-2 mt-1 inline-flex items-center gap-1">
                 <Globe className="w-3.5 h-3.5" /> {org.website.replace(/^https?:\/\//, "")}
               </a>
             )}
@@ -1055,9 +1092,9 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
 
         {/* Partnership Fit banner */}
         {(aiSummary || loadingAi) && (
-          <div className="mx-6 sm:mx-8 mt-6 p-5 rounded-2xl bg-emerald-50/60 border border-emerald-100 space-y-2">
-            <div className="flex items-center gap-2 text-[13px] font-bold text-[#2D6A4F]">
-              <Sparkles className="w-4 h-4" /> <span>Partnership Fit Analysis</span>
+          <div className="mx-8 mt-6 p-5 rounded-2xl bg-emerald-50/60 border border-emerald-100 space-y-2">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+              <Sparkles className="w-4 h-4 text-[#2D6A4F]" /> <span>Partnership Fit</span>
               {!loadingAi && (
                 <button type="button" onClick={() => { setAiSummary(null); generateSummary(); }} className="ml-auto p-1 rounded hover:opacity-70 transition-opacity" title="Refresh">
                   <RefreshCw className="w-3.5 h-3.5" />
@@ -1065,37 +1102,39 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
               )}
             </div>
             {loadingAi ? (
-              <div className="flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" /><p className="text-[13px] text-foreground">Generating partnership summary...</p></div>
+              <div className="flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" /><p className="text-sm text-slate-800">Generating partnership summary...</p></div>
             ) : (
-              <p className="text-[13px] text-foreground leading-relaxed">{aiSummary}</p>
+              <p className="text-sm text-slate-800 leading-relaxed">{aiSummary}</p>
             )}
           </div>
         )}
 
-        <DrawerTabs
-          active={activeTab}
-          onChange={setActiveTab}
-          tabs={[
-            { key: "overview", label: "Overview & DD" },
-            { key: "initiatives", label: `Active Initiatives (${orgInitiatives.length})` },
-            { key: "strategy", label: `Impact Strategy (${impactPillars.length})` },
-          ]}
-        />
+        <div className="pt-6">
+          <DrawerTabs
+            active={activeTab}
+            onChange={setActiveTab}
+            tabs={[
+              { key: "overview", label: "Overview & DD" },
+              { key: "initiatives", label: `Active Initiatives (${orgInitiatives.length})` },
+              { key: "strategy", label: `Impact Strategy (${impactPillars.length})` },
+            ]}
+          />
+        </div>
 
         {/* Overview & DD */}
         {activeTab === "overview" && (
-          <div className="px-6 sm:px-8 py-8 space-y-9">
-            {org.description && <p className="text-[15px] text-foreground leading-relaxed">{org.description}</p>}
+          <div className="px-8 py-6 space-y-8">
+            {org.description && <p className="text-sm text-slate-800 leading-relaxed">{org.description}</p>}
 
             {ddScore > 0 && (
-              <div>
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
                 <div className="flex items-center gap-1.5">
-                  <p className="text-[14px] font-bold text-foreground">DD readiness</p>
+                  <p className="text-sm font-semibold text-slate-900">DD readiness</p>
                   <InfoTooltip text={PILLAR_INFO.ddReadiness} />
                   <TrustBadge tier={computeTrustTier(ddScore, org.dd_evidence).tier} withTooltip />
-                  <span className="text-[14px] font-bold text-foreground ml-auto">{ddScore}%</span>
+                  <span className="text-sm font-semibold text-slate-900 ml-auto">{ddScore}%</span>
                 </div>
-                <div className="h-[3px] bg-muted rounded-full mt-2.5">
+                <div className="h-[3px] bg-slate-200 rounded-full mt-2.5">
                   <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${ddScore}%` }} />
                 </div>
                 <div className="flex flex-wrap gap-2 mt-3">
@@ -1112,11 +1151,11 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
                   })}
                 </div>
                 {!isOwnProfile && (viewerIsFunder || viewerIsCorporate) && (
-                  <div className="mt-4 pt-4 border-t border-border">
+                  <div className="mt-4 pt-4 border-t border-slate-200">
                     {viewerTier !== "compliance" ? (
-                      <p className="text-[13px] text-black dark:text-white opacity-60">Audit-ready DD export is a Compliance plan feature.</p>
+                      <p className="text-[13px] text-slate-500">Audit-ready DD export is a Compliance plan feature.</p>
                     ) : ddScore < 70 ? (
-                      <p className="text-[13px] text-black dark:text-white opacity-60">DD export requires at least 70% readiness (currently {ddScore}%).</p>
+                      <p className="text-[13px] text-slate-500">DD export requires at least 70% readiness (currently {ddScore}%).</p>
                     ) : exportState === "done" && exportDownloadUrl ? (
                       <a href={exportDownloadUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[15px] font-medium text-[#2D6A4F] hover:underline">Download DD export (PDF)</a>
                     ) : (
@@ -1134,14 +1173,14 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
             )}
 
             {fddScore > 0 && (
-              <div>
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
                 <div className="flex items-center gap-1.5">
-                  <p className="text-[14px] font-bold text-foreground">DD readiness</p>
+                  <p className="text-sm font-semibold text-slate-900">DD readiness</p>
                   <InfoTooltip text={PILLAR_INFO.ddReadiness} />
                   <TrustBadge tier={computeTrustTier(fddScore, org.dd_evidence).tier} withTooltip />
-                  <span className="text-[14px] font-bold text-foreground ml-auto">{fddScore}%</span>
+                  <span className="text-sm font-semibold text-slate-900 ml-auto">{fddScore}%</span>
                 </div>
-                <div className="h-[3px] bg-muted rounded-full mt-2.5">
+                <div className="h-[3px] bg-slate-200 rounded-full mt-2.5">
                   <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${fddScore}%` }} />
                 </div>
                 <div className="flex flex-wrap gap-2 mt-3">
@@ -1162,21 +1201,21 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
 
             {hasTrackRecord && (
               <div>
-                <div className="flex items-center gap-1.5"><p className="text-[14px] font-bold text-foreground">Track record</p><InfoTooltip text={PILLAR_INFO.trackRecord} /></div>
-                <p className="text-[13px] text-muted-foreground mt-1 mb-3">Self-reported reach and history</p>
+                <div className="flex items-center gap-1.5"><p className="text-sm font-semibold text-slate-900">Track record</p><InfoTooltip text={PILLAR_INFO.trackRecord} /></div>
+                <p className={`text-[13px] ${CHARCOAL} mt-1 mb-3`}>Self-reported reach and history</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
-                  {org.total_beneficiaries_reached && <div><p className="text-[13px] text-muted-foreground mb-0.5">Beneficiaries reached</p><p className="text-[14px] font-semibold text-foreground">{org.total_beneficiaries_reached.toLocaleString()}</p></div>}
-                  {org.jobs_created && <div><p className="text-[13px] text-muted-foreground mb-0.5">Jobs created</p><p className="text-[14px] font-semibold text-foreground">{org.jobs_created.toLocaleString()}</p></div>}
-                  {org.years_of_operation && <div><p className="text-[13px] text-muted-foreground mb-0.5">Years operating</p><p className="text-[14px] font-semibold text-foreground">{org.years_of_operation}</p></div>}
-                  {org.female_beneficiaries_pct && <div><p className="text-[13px] text-muted-foreground mb-0.5">Female beneficiaries</p><p className="text-[14px] font-semibold text-foreground">{org.female_beneficiaries_pct}%</p></div>}
-                  {org.youth_beneficiaries_pct && <div><p className="text-[13px] text-muted-foreground mb-0.5">Youth beneficiaries</p><p className="text-[14px] font-semibold text-foreground">{org.youth_beneficiaries_pct}%</p></div>}
-                  {org.grants_received_count && <div><p className="text-[13px] text-muted-foreground mb-0.5">Grants received</p><p className="text-[14px] font-semibold text-foreground">{org.grants_received_count}</p></div>}
-                  {org.grants_total_value_usd && <div><p className="text-[13px] text-muted-foreground mb-0.5">Total grant value</p><p className="text-[14px] font-semibold text-foreground">${org.grants_total_value_usd.toLocaleString()}</p></div>}
-                  {org.grants_delivered_on_time_pct && <div><p className="text-[13px] text-muted-foreground mb-0.5">Delivered on time</p><p className="text-[14px] font-semibold text-foreground">{org.grants_delivered_on_time_pct}%</p></div>}
+                  {org.total_beneficiaries_reached && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Beneficiaries reached</p><p className="text-sm font-semibold text-slate-900">{org.total_beneficiaries_reached.toLocaleString()}</p></div>}
+                  {org.jobs_created && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Jobs created</p><p className="text-sm font-semibold text-slate-900">{org.jobs_created.toLocaleString()}</p></div>}
+                  {org.years_of_operation && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Years operating</p><p className="text-sm font-semibold text-slate-900">{org.years_of_operation}</p></div>}
+                  {org.female_beneficiaries_pct && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Female beneficiaries</p><p className="text-sm font-semibold text-slate-900">{org.female_beneficiaries_pct}%</p></div>}
+                  {org.youth_beneficiaries_pct && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Youth beneficiaries</p><p className="text-sm font-semibold text-slate-900">{org.youth_beneficiaries_pct}%</p></div>}
+                  {org.grants_received_count && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Grants received</p><p className="text-sm font-semibold text-slate-900">{org.grants_received_count}</p></div>}
+                  {org.grants_total_value_usd && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Total grant value</p><p className="text-sm font-semibold text-slate-900">${org.grants_total_value_usd.toLocaleString()}</p></div>}
+                  {org.grants_delivered_on_time_pct && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Delivered on time</p><p className="text-sm font-semibold text-slate-900">{org.grants_delivered_on_time_pct}%</p></div>}
                 </div>
-                {org.previous_funders && org.previous_funders.length > 0 && <p className="text-[14px] text-foreground mt-4"><span className="font-semibold">Previous funders: </span>{org.previous_funders.join(", ")}</p>}
+                {org.previous_funders && org.previous_funders.length > 0 && <p className="text-sm text-slate-800 mt-4"><span className="font-semibold">Previous funders: </span>{org.previous_funders.join(", ")}</p>}
                 {org.third_party_evaluations && (
-                  <div className="flex items-center gap-1.5 text-[14px] text-[#2D6A4F] mt-3">
+                  <div className="flex items-center gap-1.5 text-sm text-[#2D6A4F] mt-3">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
                     Third-party evaluations available
                   </div>
@@ -1186,74 +1225,76 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
 
             {hasConsultancyExpertise && (
               <div>
-                <p className="text-[14px] font-bold text-foreground mb-1.5">Consultant expertise</p>
+                <p className="text-sm font-semibold text-slate-900 mb-1.5">Consultant expertise</p>
                 {org.specializations && org.specializations.length > 0 && (
-                  <div className="mb-3"><p className="text-[13px] text-muted-foreground mb-1.5">Specializations</p>
-                    <div className="flex flex-wrap gap-2">{org.specializations.map(s => <span key={s} className="text-[14px] font-medium px-3 py-1 rounded-md" style={{ color: "#0F6E56", background: "#E1F5EE" }}>{s}</span>)}</div>
+                  <div className="mb-3"><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-1.5`}>Specializations</p>
+                    <div className="flex flex-wrap gap-2">{org.specializations.map(s => <span key={s} className="text-sm font-medium px-3 py-1 rounded-md" style={{ color: "#0F6E56", background: "#E1F5EE" }}>{s}</span>)}</div>
                   </div>
                 )}
                 {org.notable_engagements && org.notable_engagements.length > 0 && (
-                  <div className="mb-3"><p className="text-[13px] text-muted-foreground mb-1.5">Notable engagements</p>
-                    <ul className="text-[14px] text-foreground space-y-1 list-disc list-inside">{org.notable_engagements.map(e => <li key={e}>{e}</li>)}</ul>
+                  <div className="mb-3"><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-1.5`}>Notable engagements</p>
+                    <ul className="text-sm text-slate-800 space-y-1 list-disc list-inside">{org.notable_engagements.map(e => <li key={e}>{e}</li>)}</ul>
                   </div>
                 )}
-                {org.affiliations && org.affiliations.length > 0 && <p className="text-[14px] text-foreground"><span className="font-semibold">Affiliations: </span>{org.affiliations.join(", ")}</p>}
+                {org.affiliations && org.affiliations.length > 0 && <p className="text-sm text-slate-800"><span className="font-semibold">Affiliations: </span>{org.affiliations.join(", ")}</p>}
               </div>
             )}
 
-            {sectors.length > 0 && <div><p className="text-[14px] font-bold text-foreground mb-1.5">Sector</p><p className="text-[14px] text-foreground">{sectors.join(", ")}</p></div>}
-            {countries.length > 0 && <div><p className="text-[14px] font-bold text-foreground mb-1.5">Location</p><p className="text-[14px] text-foreground">{countries.join(", ")}</p></div>}
+            <div className="grid grid-cols-2 gap-4">
+              {sectors.length > 0 && <div><p className={`text-xs font-medium ${CHARCOAL} uppercase`}>Sector</p><p className="text-sm font-semibold text-slate-900 mt-1">{sectors.join(", ")}</p></div>}
+              {countries.length > 0 && <div><p className={`text-xs font-medium ${CHARCOAL} uppercase`}>Location</p><p className="text-sm font-semibold text-slate-900 mt-1">{countries.join(", ")}</p></div>}
+            </div>
 
             {((org.needs && org.needs.length > 0) || (org.offers && org.offers.length > 0)) && (
               <div>
-                <p className="text-[14px] font-bold text-foreground mb-2">Seeking and offers</p>
+                <p className="text-sm font-semibold text-slate-900 mb-2">Seeking and offers</p>
                 <div className="flex flex-wrap gap-2">
-                  {org.needs?.map(n => <span key={n} className="text-[14px] font-medium px-3 py-1 rounded-md" style={{ color: "#993C1D", background: "#FAECE7" }}>{n}</span>)}
-                  {org.offers?.map(o => <span key={o} className="text-[14px] font-medium px-3 py-1 rounded-md" style={{ color: "#0F6E56", background: "#E1F5EE" }}>{o}</span>)}
+                  {org.needs?.map(n => <span key={n} className="text-sm font-medium px-3 py-1 rounded-md" style={{ color: "#993C1D", background: "#FAECE7" }}>{n}</span>)}
+                  {org.offers?.map(o => <span key={o} className="text-sm font-medium px-3 py-1 rounded-md" style={{ color: "#0F6E56", background: "#E1F5EE" }}>{o}</span>)}
                 </div>
               </div>
             )}
 
-            {org.stage_preference && org.stage_preference.length > 0 && <div><p className="text-[14px] font-bold text-foreground mb-1.5">Stage preference</p><p className="text-[14px] text-foreground">{org.stage_preference.join(", ")}</p></div>}
-            {org.geographic_focus && org.geographic_focus.length > 0 && <div><p className="text-[14px] font-bold text-foreground mb-1.5">Geographic focus</p><p className="text-[14px] text-foreground">{org.geographic_focus.join(", ")}</p></div>}
+            {org.stage_preference && org.stage_preference.length > 0 && <div><p className={`text-xs font-medium ${CHARCOAL} uppercase`}>Stage preference</p><p className="text-sm font-semibold text-slate-900 mt-1">{org.stage_preference.join(", ")}</p></div>}
+            {org.geographic_focus && org.geographic_focus.length > 0 && <div><p className={`text-xs font-medium ${CHARCOAL} uppercase`}>Geographic focus</p><p className="text-sm font-semibold text-slate-900 mt-1">{org.geographic_focus.join(", ")}</p></div>}
 
             {org.investment_thesis && (
-              <div><div className="flex items-center gap-1.5 mb-1.5"><Sparkles className="w-3 h-3 text-[#2D6A4F]" /><p className="text-[14px] font-bold text-foreground">Investment thesis</p></div>
-                <p className="text-[15px] text-foreground leading-relaxed">{org.investment_thesis}</p>
+              <div><div className="flex items-center gap-1.5 mb-1.5"><Sparkles className="w-3 h-3 text-[#2D6A4F]" /><p className="text-sm font-semibold text-slate-900">Investment thesis</p></div>
+                <p className="text-sm text-slate-800 leading-relaxed">{org.investment_thesis}</p>
               </div>
             )}
 
             {showCsrEsg && (
               <>
                 {org.csr_focus_statement && (
-                  <div><div className="flex items-center gap-1.5 mb-1.5"><Sparkles className="w-3 h-3 text-[#C45C26]" /><p className="text-[14px] font-bold text-foreground">CSR and ESG focus</p></div>
-                    <p className="text-[15px] text-foreground leading-relaxed">{org.csr_focus_statement}</p>
+                  <div><div className="flex items-center gap-1.5 mb-1.5"><Sparkles className="w-3 h-3 text-[#C45C26]" /><p className="text-sm font-semibold text-slate-900">CSR and ESG focus</p></div>
+                    <p className="text-sm text-slate-800 leading-relaxed">{org.csr_focus_statement}</p>
                   </div>
                 )}
-                {org.csr_budget_range && <div><p className="text-[14px] font-bold text-foreground mb-1.5">CSR budget</p><p className="text-[14px] text-foreground">{org.csr_budget_range}</p></div>}
+                {org.csr_budget_range && <div><p className={`text-xs font-medium ${CHARCOAL} uppercase`}>CSR budget</p><p className="text-sm font-semibold text-slate-900 mt-1">{org.csr_budget_range}</p></div>}
                 {org.inkind_support && org.inkind_support.length > 0 && (
-                  <div><p className="text-[14px] font-bold text-foreground mb-2">What we bring</p>
-                    <div className="flex flex-wrap gap-2">{org.inkind_support.map(s => <span key={s} className="text-[14px] text-foreground border border-border px-3 py-1 rounded-md">{s}</span>)}</div>
+                  <div><p className="text-sm font-semibold text-slate-900 mb-2">What we bring</p>
+                    <div className="flex flex-wrap gap-2">{org.inkind_support.map(s => <span key={s} className="text-sm text-slate-800 border border-slate-300 px-3 py-1 rounded-md">{s}</span>)}</div>
                   </div>
                 )}
                 {org.esg_frameworks && org.esg_frameworks.length > 0 && (
-                  <div><p className="text-[14px] font-bold text-foreground mb-2">ESG frameworks</p>
-                    <div className="flex flex-wrap gap-2">{org.esg_frameworks.map(f => <span key={f} className="text-[14px] text-foreground border border-border px-3 py-1 rounded-md">{f}</span>)}</div>
+                  <div><p className="text-sm font-semibold text-slate-900 mb-2">ESG frameworks</p>
+                    <div className="flex flex-wrap gap-2">{org.esg_frameworks.map(f => <span key={f} className="text-sm text-slate-800 border border-slate-300 px-3 py-1 rounded-md">{f}</span>)}</div>
                   </div>
                 )}
                 {(org.employee_engagement_available || org.cobranding_open) && (
-                  <div><p className="text-[14px] font-bold text-foreground mb-1.5">Partnership preferences</p>
-                    <p className="text-[14px] text-foreground">{[org.employee_engagement_available ? "Open to employee engagement" : null, org.cobranding_open ? "Open to co-branding" : null].filter(Boolean).join(", ")}</p>
+                  <div><p className="text-sm font-semibold text-slate-900 mb-1.5">Partnership preferences</p>
+                    <p className="text-sm text-slate-800">{[org.employee_engagement_available ? "Open to employee engagement" : null, org.cobranding_open ? "Open to co-branding" : null].filter(Boolean).join(", ")}</p>
                   </div>
                 )}
                 {org.tech_support_available && org.tech_support_available.length > 0 && (
-                  <div><p className="text-[14px] font-bold text-foreground mb-2">Technology support available</p>
-                    <div className="flex flex-wrap gap-2">{org.tech_support_available.map(t => <span key={t} className="text-[14px] text-foreground border border-border px-3 py-1 rounded-md">{t}</span>)}</div>
+                  <div><p className="text-sm font-semibold text-slate-900 mb-2">Technology support available</p>
+                    <div className="flex flex-wrap gap-2">{org.tech_support_available.map(t => <span key={t} className="text-sm text-slate-800 border border-slate-300 px-3 py-1 rounded-md">{t}</span>)}</div>
                   </div>
                 )}
                 {org.sandbox_ready && (
-                  <div><div className="flex items-center gap-1.5 mb-1.5"><Sparkles className="w-3 h-3 text-[#2D6A4F]" /><p className="text-[14px] font-bold text-foreground">Open to sandbox or beta testing</p></div>
-                    {org.sandbox_description && <p className="text-[15px] text-foreground leading-relaxed">{org.sandbox_description}</p>}
+                  <div><div className="flex items-center gap-1.5 mb-1.5"><Sparkles className="w-3 h-3 text-[#2D6A4F]" /><p className="text-sm font-semibold text-slate-900">Open to sandbox or beta testing</p></div>
+                    {org.sandbox_description && <p className="text-sm text-slate-800 leading-relaxed">{org.sandbox_description}</p>}
                   </div>
                 )}
               </>
@@ -1261,41 +1302,43 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
 
             {isImplementerOrg && <EsgSnapshotSection org={org} />}
 
-            {org.contact_name && <div><p className="text-[14px] font-bold text-foreground mb-1.5">Contact</p><p className="text-[14px] text-foreground">{org.contact_name}</p></div>}
+            {org.contact_name && <div><p className="text-sm font-semibold text-slate-900 mb-1.5">Contact</p><p className="text-sm text-slate-800">{org.contact_name}</p></div>}
           </div>
         )}
 
         {/* Active Initiatives */}
         {activeTab === "initiatives" && (
-          <div className="px-6 sm:px-8 py-8 space-y-9">
+          <div className="px-8 py-6 space-y-8">
             {orgPartnership?.title && (
               <div>
                 <p className="text-[17px] font-bold text-foreground mb-4">Partnership listing</p>
-                <p className="text-[15px] font-semibold text-foreground leading-snug">{orgPartnership.title}</p>
-                {orgPartnership.sought && <p className="text-[14px] text-foreground leading-relaxed mt-2">{orgPartnership.sought}</p>}
-                <p className="text-[14px] text-foreground mt-3">
-                  {[orgPartnership.stage?.replace(/_/g, " "), orgPartnership.funding_status?.replace(/_/g, " "), orgPartnership.budget?.replace(/_/g, "–")].filter(Boolean).join(" · ")}
-                </p>
+                <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm hover:border-slate-300 transition">
+                  <p className="text-sm font-bold text-slate-900">{orgPartnership.title}</p>
+                  {orgPartnership.sought && <p className="text-xs text-slate-700 leading-relaxed mt-1">{orgPartnership.sought}</p>}
+                  <p className="text-xs text-slate-700 mt-2">
+                    {[orgPartnership.stage?.replace(/_/g, " "), orgPartnership.funding_status?.replace(/_/g, " "), orgPartnership.budget?.replace(/_/g, "–")].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
               </div>
             )}
 
             {orgInitiatives.length > 0 ? (
               <div>
                 <p className="text-[17px] font-bold text-foreground mb-4">Active initiatives</p>
-                <div className="space-y-5">
+                <div className="space-y-4">
                   {orgInitiatives.map(ini => (
-                    <div key={ini.id} className="p-4 rounded-xl bg-white dark:bg-card border border-border space-y-1.5">
-                      <p className="text-[15px] font-semibold text-foreground leading-snug">{ini.title}</p>
-                      <p className="text-[14px] text-muted-foreground">
+                    <div key={ini.id} className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm hover:border-slate-300 transition">
+                      <p className="text-sm font-bold text-slate-900">{ini.title}</p>
+                      <p className="text-xs font-medium text-slate-700 mt-1">
                         {[ini.locations?.slice(0, 2).join(", "), ini.budget].filter(Boolean).join(" · ")}
                         {ini.eois ? ` · ${ini.eois} EOI${ini.eois !== 1 ? "s" : ""}` : ""}
                       </p>
-                      {ini.sectors?.length > 0 && <p className="text-[14px] text-foreground">{ini.sectors.slice(0, 2).join(", ")}</p>}
+                      {ini.sectors?.length > 0 && <span className="inline-block mt-2 text-xs font-medium px-2.5 py-1 rounded-md bg-slate-100 text-slate-800">{ini.sectors.slice(0, 2).join(", ")}</span>}
                     </div>
                   ))}
                 </div>
               </div>
-            ) : !orgPartnership?.title && <p className="text-[14px] text-muted-foreground">No active initiatives or partnership listing yet.</p>}
+            ) : !orgPartnership?.title && <p className={`text-sm ${CHARCOAL}`}>No active initiatives or partnership listing yet.</p>}
 
             {deliveryStats && (
               <div>
@@ -1303,11 +1346,11 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
                   <div className="flex items-center gap-1.5"><p className="text-[17px] font-bold text-foreground">Delivery</p><InfoTooltip text={PILLAR_INFO.delivery} /></div>
                   {hasDelivery && <p className="text-[17px] font-bold text-foreground">{deliveryRate}%</p>}
                 </div>
-                <p className="text-[13px] text-muted-foreground mb-3">From outcomes tracked on this platform</p>
+                <p className={`text-[13px] ${CHARCOAL} mb-3`}>From outcomes tracked on this platform</p>
                 {hasDelivery ? (
                   <>
-                    <div className="flex gap-1">{Array.from({ length: 10 }).map((_, i) => <div key={i} className={`h-2 flex-1 rounded-sm ${i < Math.round((deliveryRate ?? 0) / 10) ? "bg-[#2D6A4F]" : "bg-muted"}`} />)}</div>
-                    <p className="text-[14px] text-foreground mt-3">
+                    <div className="flex gap-1">{Array.from({ length: 10 }).map((_, i) => <div key={i} className={`h-2 flex-1 rounded-sm ${i < Math.round((deliveryRate ?? 0) / 10) ? "bg-[#2D6A4F]" : "bg-slate-200"}`} />)}</div>
+                    <p className="text-sm text-slate-800 mt-3">
                       {deliveryStats.completed} of {deliveryStats.resolved} relationship{deliveryStats.resolved !== 1 ? "s" : ""} completed
                       {[deliveryStats.stalled > 0 ? `${deliveryStats.stalled} stalled` : null, deliveryStats.fell_through > 0 ? `${deliveryStats.fell_through} fell through` : null, deliveryInProgress > 0 ? `${deliveryInProgress} still in progress` : null].filter(Boolean).length > 0
                         ? ` (${[deliveryStats.stalled > 0 ? `${deliveryStats.stalled} stalled` : null, deliveryStats.fell_through > 0 ? `${deliveryStats.fell_through} fell through` : null, deliveryInProgress > 0 ? `${deliveryInProgress} still in progress` : null].filter(Boolean).join(", ")})`
@@ -1315,7 +1358,7 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
                     </p>
                   </>
                 ) : (
-                  <p className="text-[14px] text-foreground">{deliveryStats.total === 0 ? "No tracked delivery history yet." : `${deliveryStats.total} active relationship${deliveryStats.total !== 1 ? "s" : ""}, no completed outcomes yet.`}</p>
+                  <p className="text-sm text-slate-800">{deliveryStats.total === 0 ? "No tracked delivery history yet." : `${deliveryStats.total} active relationship${deliveryStats.total !== 1 ? "s" : ""}, no completed outcomes yet.`}</p>
                 )}
               </div>
             )}
@@ -1324,19 +1367,21 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
 
         {/* Impact Strategy */}
         {activeTab === "strategy" && (
-          <div className="px-6 sm:px-8 py-8 space-y-9">
+          <div className="px-8 py-6 space-y-8">
             {impactPillars.length > 0 && (
               <div>
                 <div className="flex items-center gap-1.5 mb-4"><Sparkles className="w-4 h-4 text-[#2D6A4F]" /><p className="text-[17px] font-bold text-foreground">Proposed deployments</p></div>
-                <div className="space-y-5">
+                <div className="space-y-4">
                   {impactPillars.map((pillar: any, i: number) => {
                     const publishedRow = orgInitiatives.find(ini => ini.title === pillar.pillar_name);
                     const specificAsk = publishedRow?.specific_ask ?? pillar.specific_ask_draft;
                     return (
-                      <div key={i} className="p-4 rounded-xl bg-white dark:bg-card border border-border space-y-1.5">
-                        <p className="text-[15px] font-semibold text-foreground leading-snug">{pillar.pillar_name}</p>
-                        {specificAsk && <p className="text-[14px] text-foreground leading-relaxed">{specificAsk}</p>}
-                        {pillar.un_sdg_code && <p className="text-[13px] text-muted-foreground">{pillar.un_sdg_code}</p>}
+                      <div key={i} className="bg-white border border-slate-200 rounded-lg p-4">
+                        <p className="text-sm font-bold text-slate-900">{pillar.pillar_name}</p>
+                        {specificAsk && <p className="text-xs leading-relaxed text-slate-700 mt-1">{specificAsk}</p>}
+                        {pillar.un_sdg_code && (
+                          <span className="inline-block mt-2 text-xs font-medium px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">{pillar.un_sdg_code}</span>
+                        )}
                       </div>
                     );
                   })}
@@ -1347,7 +1392,7 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
             {org.sdgs && org.sdgs.length > 0 && (
               <div>
                 <p className="text-[17px] font-bold text-foreground mb-4">SDG alignment</p>
-                <div className="flex flex-wrap gap-2">{org.sdgs.map(s => <span key={s} className="text-[14px] font-medium px-3 py-1 rounded-md" style={{ background: "#2D6A4F", color: "white" }}>{sdgLabel(s)}</span>)}</div>
+                <div className="flex flex-wrap gap-2">{org.sdgs.map(s => <span key={s} className="text-sm font-medium px-3 py-1 rounded-md" style={{ background: "#2D6A4F", color: "white" }}>{sdgLabel(s)}</span>)}</div>
               </div>
             )}
 
@@ -1356,7 +1401,7 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
                 <p className="text-[17px] font-bold text-foreground mb-4">Confirmed partnerships</p>
                 <div className="space-y-2">
                   {reputationPartners.slice(0, 5).map((p, i) => (
-                    <p key={i} className="text-[14px] text-foreground">
+                    <p key={i} className="text-sm text-slate-800">
                       {p.as === "owner" ? `Partnered with ${p.partner_name} as ${partnerRolePhrase(p.role)} on "${p.initiative_title}"` : `Confirmed as ${partnerRolePhrase(p.role)} on "${p.initiative_title}"`}
                     </p>
                   ))}
@@ -1365,7 +1410,7 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
             )}
 
             {impactPillars.length === 0 && !(org.sdgs && org.sdgs.length > 0) && reputationPartners.length === 0 && (
-              <p className="text-[14px] text-muted-foreground">No impact strategy published yet.</p>
+              <p className={`text-sm ${CHARCOAL}`}>No impact strategy published yet.</p>
             )}
           </div>
         )}
@@ -1381,13 +1426,13 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
       })()}
 
       {/* TODO: wire "Send Message" to your actual messaging/conversation-start flow. */}
-      <div className="p-5 border-t border-border bg-white dark:bg-card flex items-center gap-4 shrink-0 shadow-sm">
-        <button type="button" className="flex-1 bg-[#2D6A4F] hover:bg-[#1F4C38] text-white font-semibold py-3 px-6 rounded-xl text-[13px] transition-all shadow-sm flex items-center justify-center gap-2">
+      <div className="px-8 py-4 border-t border-border bg-white dark:bg-card flex items-center gap-4 shrink-0">
+        <button type="button" className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-sm py-2.5 px-6 rounded-xl shadow-sm transition flex items-center justify-center gap-2">
           <Mail className="w-4 h-4" /> Send Message
         </button>
         {org.website && org.website !== "https://" && (
           <a href={org.website} target="_blank" rel="noopener noreferrer"
-            className="bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-white/5 text-foreground font-semibold py-3 px-6 rounded-xl text-[13px] transition-all flex items-center justify-center gap-2 border border-border">
+            className="bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-white/5 text-slate-800 font-medium text-sm py-2.5 px-5 rounded-xl transition flex items-center justify-center gap-2 border border-slate-300">
             <Globe className="w-4 h-4" /> Visit Website
           </a>
         )}
@@ -1411,7 +1456,7 @@ function EmptyState({ icon, title, subtitle }: { icon: React.ReactNode; title: s
     <div className="rounded-2xl border border-border bg-white dark:bg-card p-12 text-center">
       <div className="flex justify-center mb-4">{icon}</div>
       <p className="text-foreground font-medium mb-2">{title}</p>
-      <p className="text-[15px] text-black dark:text-white max-w-sm mx-auto">{subtitle}</p>
+      <p className={`text-[15px] ${CHARCOAL} max-w-sm mx-auto`}>{subtitle}</p>
     </div>
   );
 }
