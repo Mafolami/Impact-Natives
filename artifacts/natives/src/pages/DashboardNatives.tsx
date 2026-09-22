@@ -6,7 +6,7 @@ import { fetchLatestListingMirror, EMPTY_LISTING_MIRROR } from "@/lib/listingMir
 import { useAuth } from "@/context/AuthContext";
 import {
   Loader2, Search, Users, Sparkles, RefreshCw, Trophy, X, ExternalLink,
-  Link as LinkIcon, Mail, Globe, MapPin, Layers, ChevronRight,
+  Link as LinkIcon, Mail, Globe, MapPin, Layers, ChevronRight, FileText,
 } from "lucide-react";
 import { initials } from "@/components/ui/UserAvatar";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
@@ -510,7 +510,7 @@ export default function DashboardNatives() {
 
       {/* Slide-over drawer */}
       {drawerEntity && (
-        <div className="fixed inset-0 z-40" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-[200]" role="dialog" aria-modal="true">
           <div
             className={`absolute inset-0 bg-slate-900/20 transition-opacity duration-300 ${drawerVisible ? "opacity-100" : "opacity-0"}`}
             onClick={closeDrawer}
@@ -605,7 +605,7 @@ function EcosystemCard({ entity, onClick }: { entity: EcosystemEntity; onClick: 
 
 // ── Drawer chrome (header + footer shared shape) ─────────────────────────────
 
-function DrawerHeader({ typeLabel, userId, onClose }: { typeLabel: string; userId: string; onClose: () => void }) {
+function DrawerHeader({ userId, onClose }: { userId: string; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
   const fullPageUrl = `${window.location.pathname}?user=${userId}`;
 
@@ -622,9 +622,6 @@ function DrawerHeader({ typeLabel, userId, onClose }: { typeLabel: string; userI
         className={`flex items-center gap-1.5 text-sm font-medium ${CHARCOAL} hover:bg-slate-100 dark:hover:bg-white/5 p-2 -ml-2 rounded-lg transition`}>
         <X className="w-4 h-4" /> Close
       </button>
-      <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200">
-        {typeLabel}
-      </span>
       <div className="flex items-center gap-2">
         <a href={fullPageUrl} target="_blank" rel="noopener noreferrer" title="Open in full page"
           className={`p-2 rounded-lg bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-white/5 ${CHARCOAL} transition-colors text-sm border border-border`}>
@@ -634,6 +631,7 @@ function DrawerHeader({ typeLabel, userId, onClose }: { typeLabel: string; userI
           className={`px-3 py-1.5 rounded-lg bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-white/5 ${CHARCOAL} transition-colors text-sm border border-border flex items-center gap-1.5`}>
           <LinkIcon className="w-3.5 h-3.5" /> {copied ? "Copied!" : "Copy Link"}
         </button>
+
       </div>
     </div>
   );
@@ -677,9 +675,9 @@ function IndividualDrawerContent({ profile, onClose }: { profile: ProfileRow; on
 
   return (
     <>
-      <DrawerHeader typeLabel="Individual Expert Profile" userId={profile.id} onClose={onClose} />
+      <DrawerHeader userId={profile.id} onClose={onClose} />
       <div className="flex-1 overflow-y-auto">
-        <div className="px-8 pt-6 pb-6 flex items-start gap-5 border-b border-slate-100">
+        <div className="px-8 pt-10 pb-6 flex items-start gap-5 border-b border-slate-100 relative z-20">
           <EntityHeroAvatar name={profile.full_name} imageUrl={profile.avatar_url} size={64} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5 flex-wrap">
@@ -761,8 +759,55 @@ function ImpactScoreBadge({ score }: { score: number }) {
   );
 }
 
-function InfoTooltip({ text }: { text: string }) {
+// Dependency-free donut chart for the Delivery breakdown — no charting
+// library assumed, since the project's available packages aren't known here.
+function DeliveryDonutChart({ rate, completed, resolved, stalled, fellThrough, inProgress }: {
+  rate: number; completed: number; resolved: number; stalled: number; fellThrough: number; inProgress: number;
+}) {
+  const size = 128;
+  const stroke = 14;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+
+  const segments = [
+    { value: completed, color: "#2D6A4F" },
+    { value: stalled, color: "#D97706" },
+    { value: fellThrough, color: "#DC2626" },
+  ].filter(s => s.value > 0);
+
+  let offset = 0;
+
   return (
+    <div className="flex items-center gap-6">
+      <div className="relative shrink-0" style={{ width: size, height: size }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+          <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#E2E8F0" strokeWidth={stroke} />
+          {segments.map((s, i) => {
+            const len = resolved > 0 ? circumference * (s.value / resolved) : 0;
+            const dashOffset = -offset;
+            offset += len;
+            return (
+              <circle key={i} cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={s.color} strokeWidth={stroke}
+                strokeDasharray={`${len} ${circumference - len}`} strokeDashoffset={dashOffset} />
+            );
+          })}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-2xl font-bold text-slate-900">{rate}%</span>
+          <span className="text-[10px] font-medium text-slate-500">completed</span>
+        </div>
+      </div>
+      <div className="space-y-1.5 text-xs">
+        <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#2D6A4F] shrink-0" /><span className="text-slate-700">{completed} completed</span></div>
+        {stalled > 0 && <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-amber-600 shrink-0" /><span className="text-slate-700">{stalled} stalled</span></div>}
+        {fellThrough > 0 && <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-red-600 shrink-0" /><span className="text-slate-700">{fellThrough} fell through</span></div>}
+        {inProgress > 0 && <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-slate-300 shrink-0" /><span className="text-slate-700">{inProgress} in progress</span></div>}
+      </div>
+    </div>
+  );
+}
+
+function InfoTooltip({ text }: { text: string }) {  return (
     <span className="relative inline-flex group shrink-0">
       <span className={`w-3.5 h-3.5 rounded-full border border-slate-400 ${CHARCOAL} text-[9px] leading-[13px] font-bold inline-flex items-center justify-center cursor-default`} aria-label="What does this mean?">i</span>
       <span className="pointer-events-none absolute left-0 bottom-full mb-1.5 w-56 rounded-lg border border-border bg-card px-2.5 py-1.5 text-[13px] text-foreground opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-md">{text}</span>
@@ -788,17 +833,29 @@ function TagPill({ children }: { children: React.ReactNode }) {
   return <span className="inline-block bg-white border border-slate-200 px-2.5 py-1 rounded-md text-xs font-medium text-slate-800 shadow-sm">{children}</span>;
 }
 
-function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, canSeeDisclosureDetail, onClose }: {
-  item: DDItemDef; evidence: Record<string, any>; documents: DDDocument[]; canSeeSensitive: boolean; canSeeDisclosureDetail: boolean; onClose: () => void;
-}) {
-  const [openingDocId, setOpeningDocId] = useState<string | null>(null);
-  const [preview, setPreview] = useState<{ url: string; fileName: string } | null>(null);
+// Fetches a signed URL for a DD evidence document. Shared by the Q&A modal's
+// document list and the inline document rows on the DD Readiness checklist.
+async function fetchDdDocumentUrl(doc: DDDocument): Promise<{ url: string; fileName: string } | null> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-dd-document-url`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token ?? ""}` },
+      body: JSON.stringify({ documentId: doc.id }),
+    });
+    const result = await res.json();
+    return result.url ? { url: result.url, fileName: doc.file_name } : null;
+  } catch {
+    return null;
+  }
+}
+
+function DocumentPreviewModal({ preview, onClose }: { preview: { url: string; fileName: string }; onClose: () => void }) {
   const [docxHtml, setDocxHtml] = useState<string | null>(null);
   const [docxLoading, setDocxLoading] = useState(false);
   const [docxError, setDocxError] = useState(false);
 
   useEffect(() => {
-    if (!preview) { setDocxHtml(null); return; }
     const ext = preview.fileName.split(".").pop()?.toLowerCase() ?? "";
     if (ext !== "docx") return;
     setDocxLoading(true);
@@ -809,71 +866,107 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, canSe
       .then(result => setDocxHtml(result.value))
       .catch(() => setDocxError(true))
       .finally(() => setDocxLoading(false));
-  }, [preview]);
+  }, [preview.url, preview.fileName]);
 
-  async function handleView(doc: DDDocument) {
-    setOpeningDocId(doc.id);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-dd-document-url`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token ?? ""}` },
-        body: JSON.stringify({ documentId: doc.id }),
-      });
-      const result = await res.json();
-      if (result.url) setPreview({ url: result.url, fileName: doc.file_name });
-      else alert("Couldn't open document.");
-    } catch {
-      alert("Couldn't open document.");
-    }
-    setOpeningDocId(null);
-  }
+  const ext = preview.fileName.split(".").pop()?.toLowerCase() ?? "";
+  const isImage = ["png", "jpg", "jpeg", "webp", "gif"].includes(ext);
+  const isPdf = ext === "pdf";
+  const isDocx = ext === "docx";
 
-  if (preview) {
-    const ext = preview.fileName.split(".").pop()?.toLowerCase() ?? "";
-    const isImage = ["png", "jpg", "jpeg", "webp", "gif"].includes(ext);
-    const isPdf = ext === "pdf";
-    const isDocx = ext === "docx";
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setPreview(null)}>
-        <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
-          <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border shrink-0">
-            <button type="button" onClick={() => setPreview(null)} className={`text-[15px] ${CHARCOAL} hover:text-foreground flex items-center gap-1.5 shrink-0`}>
-              ← Back
-            </button>
-            <p className="text-[15px] font-medium text-foreground truncate flex-1 text-center">{preview.fileName}</p>
-            <a href={preview.url} download={preview.fileName} className="text-[15px] text-[#2D6A4F] hover:underline underline-offset-2 shrink-0">Download</a>
-          </div>
-          <div className="flex-1 overflow-auto bg-muted/20 flex items-start justify-center min-h-[50vh]">
-            {isImage ? (
-              <img src={preview.url} alt={preview.fileName} className="max-w-full max-h-[85vh] object-contain" />
-            ) : isPdf ? (
-              <iframe src={preview.url} title={preview.fileName} className="w-full h-[75vh] border-0" />
-            ) : isDocx ? (
-              docxLoading ? (
-                <div className={`p-8 flex items-center gap-2 text-[15px] ${CHARCOAL}`}><Loader2 className="w-4 h-4 animate-spin" /> Loading preview...</div>
-              ) : docxError || !docxHtml ? (
-                <div className="p-8 text-center space-y-2">
-                  <p className={`text-[15px] ${CHARCOAL}`}>Couldn't render a preview for this file.</p>
-                  <a href={preview.url} download={preview.fileName} className="text-[15px] text-[#2D6A4F] hover:underline underline-offset-2 font-medium">Download {preview.fileName}</a>
-                </div>
-              ) : (
-                <div className="w-full h-full overflow-auto bg-white p-6 sm:p-10">
-                  <div className="max-w-2xl mx-auto text-[15px] text-neutral-900 leading-relaxed [&_p]:mb-3 [&_h1]:text-[21px] [&_h1]:font-bold [&_h2]:text-[19px] [&_h2]:font-bold [&_table]:border-collapse [&_td]:border [&_td]:border-neutral-300 [&_td]:px-2 [&_td]:py-1" dangerouslySetInnerHTML={{ __html: docxHtml }} />
-                </div>
-              )
-            ) : (
+  return (
+    <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border shrink-0">
+          <button type="button" onClick={onClose} className={`text-[15px] ${CHARCOAL} hover:text-foreground flex items-center gap-1.5 shrink-0`}>
+            ← Back
+          </button>
+          <p className="text-[15px] font-medium text-foreground truncate flex-1 text-center">{preview.fileName}</p>
+          <a href={preview.url} download={preview.fileName} className="text-[15px] text-[#2D6A4F] hover:underline underline-offset-2 shrink-0">Download</a>
+        </div>
+        <div className="flex-1 overflow-auto bg-muted/20 flex items-start justify-center min-h-[50vh]">
+          {isImage ? (
+            <img src={preview.url} alt={preview.fileName} className="max-w-full max-h-[85vh] object-contain" />
+          ) : isPdf ? (
+            <iframe src={preview.url} title={preview.fileName} className="w-full h-[75vh] border-0" />
+          ) : isDocx ? (
+            docxLoading ? (
+              <div className={`p-8 flex items-center gap-2 text-[15px] ${CHARCOAL}`}><Loader2 className="w-4 h-4 animate-spin" /> Loading preview...</div>
+            ) : docxError || !docxHtml ? (
               <div className="p-8 text-center space-y-2">
-                <p className={`text-[15px] ${CHARCOAL}`}>Preview isn't available for this file type.</p>
+                <p className={`text-[15px] ${CHARCOAL}`}>Couldn't render a preview for this file.</p>
                 <a href={preview.url} download={preview.fileName} className="text-[15px] text-[#2D6A4F] hover:underline underline-offset-2 font-medium">Download {preview.fileName}</a>
               </div>
-            )}
-          </div>
+            ) : (
+              <div className="w-full h-full overflow-auto bg-white p-6 sm:p-10">
+                <div className="max-w-2xl mx-auto text-[15px] text-neutral-900 leading-relaxed [&_p]:mb-3 [&_h1]:text-[21px] [&_h1]:font-bold [&_h2]:text-[19px] [&_h2]:font-bold [&_table]:border-collapse [&_td]:border [&_td]:border-neutral-300 [&_td]:px-2 [&_td]:py-1" dangerouslySetInnerHTML={{ __html: docxHtml }} />
+              </div>
+            )
+          ) : (
+            <div className="p-8 text-center space-y-2">
+              <p className={`text-[15px] ${CHARCOAL}`}>Preview isn't available for this file type.</p>
+              <a href={preview.url} download={preview.fileName} className="text-[15px] text-[#2D6A4F] hover:underline underline-offset-2 font-medium">Download {preview.fileName}</a>
+            </div>
+          )}
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
+// DD Readiness checklist card: status + inline attached-document rows, per
+// the compliance-review layout. "Documented" / "Self-reported" / "Not
+// provided" is derived from real data (a done flag plus whether files were
+// actually uploaded) rather than a fabricated verification claim, since
+// none of this is verified by Impact Natives.
+function DDChecklistCard({ item, done, documents, hasDetails, onViewDetails, onViewDocument, viewingDocId }: {
+  item: DDItemDef; done: boolean | undefined; documents: DDDocument[]; hasDetails: boolean;
+  onViewDetails: () => void; onViewDocument: (doc: DDDocument) => void; viewingDocId: string | null;
+}) {
+  const hasDocs = documents.length > 0;
+  const status = done ? (hasDocs ? "Documented" : "Self-reported") : "Not provided";
+  const statusColor = done ? (hasDocs ? "text-emerald-700" : "text-amber-700") : "text-slate-400";
+  return (
+    <div className="bg-white border border-slate-200 rounded-lg p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-2.5 min-w-0">
+          <span className={`mt-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${done ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"}`}>
+            {done ? "✓" : "·"}
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-slate-900">{item.label}</p>
+            <p className={`text-xs font-medium mt-0.5 ${statusColor}`}>{status}</p>
+          </div>
+        </div>
+        {hasDetails && (
+          <button type="button" onClick={onViewDetails} className="text-xs font-medium text-[#2D6A4F] hover:underline shrink-0">
+            View details
+          </button>
+        )}
+      </div>
+      {hasDocs && (
+        <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
+          {documents.map(doc => (
+            <div key={doc.id} className="flex items-center justify-between gap-2 bg-slate-50/70 border border-slate-100 rounded-lg p-2.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span className="text-xs text-slate-700 truncate">{doc.file_name}</span>
+              </div>
+              <button type="button" onClick={() => onViewDocument(doc)} disabled={viewingDocId === doc.id}
+                className="text-xs font-medium text-[#2D6A4F] hover:underline shrink-0 flex items-center gap-1 disabled:opacity-50">
+                {viewingDocId === doc.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <ExternalLink className="w-3 h-3" />} View
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, canSeeDisclosureDetail, onViewDocument, viewingDocId, onClose }: {
+  item: DDItemDef; evidence: Record<string, any>; documents: DDDocument[]; canSeeSensitive: boolean; canSeeDisclosureDetail: boolean;
+  onViewDocument: (doc: DDDocument) => void; viewingDocId: string | null; onClose: () => void;
+}) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-sm p-6 space-y-3" onClick={e => e.stopPropagation()}>
@@ -914,10 +1007,10 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, canSe
           <div className="pt-3 border-t border-border space-y-1.5">
             <p className={`text-[13px] font-semibold uppercase tracking-wider ${CHARCOAL}`}>Supporting documents</p>
             {documents.map(doc => (
-              <button key={doc.id} type="button" onClick={() => handleView(doc)} disabled={openingDocId === doc.id}
+              <button key={doc.id} type="button" onClick={() => onViewDocument(doc)} disabled={viewingDocId === doc.id}
                 className="w-full flex items-center justify-between gap-2 text-left text-[15px] text-foreground hover:underline underline-offset-2 disabled:opacity-50">
                 <span className="truncate">{doc.file_name}</span>
-                {openingDocId === doc.id && <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />}
+                {viewingDocId === doc.id && <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />}
               </button>
             ))}
           </div>
@@ -970,6 +1063,16 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
   const [ddViewingKey, setDdViewingKey] = useState<string | null>(null);
   const [canSeeSensitive, setCanSeeSensitive] = useState(false);
   const [docsByItem, setDocsByItem] = useState<Record<string, DDDocument[]>>({});
+  const [previewDoc, setPreviewDoc] = useState<{ url: string; fileName: string } | null>(null);
+  const [viewingDocId, setViewingDocId] = useState<string | null>(null);
+
+  async function handleViewDocument(doc: DDDocument) {
+    setViewingDocId(doc.id);
+    const result = await fetchDdDocumentUrl(doc);
+    if (result) setPreviewDoc(result);
+    else alert("Couldn't open document.");
+    setViewingDocId(null);
+  }
   const [deliveryStats, setDeliveryStats] = useState<{ completed: number; stalled: number; fell_through: number; resolved: number; total: number } | null>(null);
 
   useEffect(() => {
@@ -1083,10 +1186,10 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
 
   return (
     <>
-      <DrawerHeader typeLabel="Organization Profile" userId={org.user_id} onClose={onClose} />
+      <DrawerHeader userId={org.user_id} onClose={onClose} />
       <div className="overflow-y-auto flex-1">
         {/* Hero */}
-        <div className="px-8 pt-6 pb-6 flex items-start gap-5 border-b border-slate-100">
+        <div className="px-8 pt-10 pb-6 flex items-start gap-5 border-b border-slate-100 relative z-20">
           <EntityHeroAvatar name={org.organisation_name || "?"} imageUrl={org.logo_url} size={64} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5 flex-wrap">
@@ -1134,8 +1237,8 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
             tabs={[
               { key: "overview", label: "Overview" },
               { key: "dueDiligence", label: "Due Diligence Readiness" },
-              { key: "initiatives", label: `Active Initiatives (${orgInitiatives.length})` },
-              { key: "strategy", label: `Impact Strategy (${impactPillars.length})` },
+              { key: "initiatives", label: "Active Initiatives" },
+              { key: "strategy", label: "Impact Strategy" },
             ]}
           />
         </div>
@@ -1269,29 +1372,34 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
         {activeTab === "dueDiligence" && (
           <div className="px-8 py-6 space-y-8">
             {ddScore > 0 && (
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
-                <div className="flex items-center gap-1.5">
-                  <p className="text-sm font-semibold text-slate-900">DD readiness</p>
-                  <InfoTooltip text={PILLAR_INFO.ddReadiness} />
-                  <TrustBadge tier={computeTrustTier(ddScore, org.dd_evidence).tier} withTooltip />
-                  <span className="text-sm font-semibold text-slate-900 ml-auto">{ddScore}%</span>
+              <div>
+                <div className="bg-white border border-slate-200 rounded-xl p-5 mb-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Due Diligence Readiness Scorecard</p>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <TrustBadge tier={computeTrustTier(ddScore, org.dd_evidence).tier} withTooltip />
+                    <span className="text-sm font-semibold text-slate-900">Score: {ddScore}%</span>
+                  </div>
+                  <div className="h-[3px] bg-slate-200 rounded-full mt-3">
+                    <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${ddScore}%` }} />
+                  </div>
+                  <div className="flex items-start gap-1.5 mt-3">
+                    <InfoTooltip text={PILLAR_INFO.ddReadiness} />
+                    <p className="text-xs text-slate-500 leading-relaxed">What the organisation has confirmed about itself directly. Not verified by Impact Natives.</p>
+                  </div>
                 </div>
-                <div className="h-[3px] bg-slate-200 rounded-full mt-2.5">
-                  <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${ddScore}%` }} />
-                </div>
-                <div className="flex flex-wrap gap-2 mt-3">
+
+                <div className="space-y-3">
                   {DD_ITEMS.map(item => {
                     const done = ddStateMap[item.key];
-                    const hasEvidence = done && org.dd_evidence?.[item.key];
+                    const hasDetails = !!(done && org.dd_evidence?.[item.key]);
                     return (
-                      <button key={item.key} type="button" disabled={!hasEvidence} onClick={() => hasEvidence && setDdViewingKey(item.key)}
-                        className="text-[11px] px-2.5 py-1 rounded-md border transition-colors"
-                        style={{ borderColor: done ? "#2D6A4F40" : "#E5E7EB", color: done ? "#2D6A4F" : "#9ca3af", background: done ? "#eaf5ee" : "transparent", cursor: hasEvidence ? "pointer" : "default" }}>
-                        {done ? "✓" : "·"} {item.label}
-                      </button>
+                      <DDChecklistCard key={item.key} item={item} done={done} documents={docsByItem[item.key] ?? []}
+                        hasDetails={hasDetails} onViewDetails={() => setDdViewingKey(item.key)}
+                        onViewDocument={handleViewDocument} viewingDocId={viewingDocId} />
                     );
                   })}
                 </div>
+
                 {!isOwnProfile && (viewerIsFunder || viewerIsCorporate) && (
                   <div className="mt-4 pt-4 border-t border-slate-200">
                     {viewerTier !== "compliance" ? (
@@ -1315,26 +1423,30 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
             )}
 
             {fddScore > 0 && (
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
-                <div className="flex items-center gap-1.5">
-                  <p className="text-sm font-semibold text-slate-900">DD readiness</p>
-                  <InfoTooltip text={PILLAR_INFO.ddReadiness} />
-                  <TrustBadge tier={computeTrustTier(fddScore, org.dd_evidence).tier} withTooltip />
-                  <span className="text-sm font-semibold text-slate-900 ml-auto">{fddScore}%</span>
+              <div>
+                <div className="bg-white border border-slate-200 rounded-xl p-5 mb-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Due Diligence Readiness Scorecard</p>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <TrustBadge tier={computeTrustTier(fddScore, org.dd_evidence).tier} withTooltip />
+                    <span className="text-sm font-semibold text-slate-900">Score: {fddScore}%</span>
+                  </div>
+                  <div className="h-[3px] bg-slate-200 rounded-full mt-3">
+                    <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${fddScore}%` }} />
+                  </div>
+                  <div className="flex items-start gap-1.5 mt-3">
+                    <InfoTooltip text={PILLAR_INFO.ddReadiness} />
+                    <p className="text-xs text-slate-500 leading-relaxed">What the organisation has confirmed about itself directly. Not verified by Impact Natives.</p>
+                  </div>
                 </div>
-                <div className="h-[3px] bg-slate-200 rounded-full mt-2.5">
-                  <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${fddScore}%` }} />
-                </div>
-                <div className="flex flex-wrap gap-2 mt-3">
+
+                <div className="space-y-3">
                   {FUNDER_DD_ITEMS.map(item => {
                     const done = fddStateMap[item.key];
-                    const hasEvidence = done && org.dd_evidence?.[item.key];
+                    const hasDetails = !!(done && org.dd_evidence?.[item.key]);
                     return (
-                      <button key={item.key} type="button" disabled={!hasEvidence} onClick={() => hasEvidence && setDdViewingKey(item.key)}
-                        className="text-[11px] px-2.5 py-1 rounded-md border transition-colors"
-                        style={{ borderColor: done ? "#2D6A4F40" : "#E5E7EB", color: done ? "#2D6A4F" : "#9ca3af", background: done ? "#eaf5ee" : "transparent", cursor: hasEvidence ? "pointer" : "default" }}>
-                        {done ? "✓" : "·"} {item.label}
-                      </button>
+                      <DDChecklistCard key={item.key} item={item} done={done} documents={docsByItem[item.key] ?? []}
+                        hasDetails={hasDetails} onViewDetails={() => setDdViewingKey(item.key)}
+                        onViewDocument={handleViewDocument} viewingDocId={viewingDocId} />
                     );
                   })}
                 </div>
@@ -1383,15 +1495,19 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
 
             {deliveryStats && (
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-1.5"><p className="text-[17px] font-bold text-foreground">Delivery</p><InfoTooltip text={PILLAR_INFO.delivery} /></div>
-                  {hasDelivery && <p className="text-[17px] font-bold text-foreground">{deliveryRate}%</p>}
-                </div>
+                <div className="flex items-center gap-1.5 mb-1"><p className="text-[17px] font-bold text-foreground">Delivery</p><InfoTooltip text={PILLAR_INFO.delivery} /></div>
                 <p className={`text-[13px] ${CHARCOAL} mb-3`}>From outcomes tracked on this platform</p>
                 {hasDelivery ? (
                   <>
-                    <div className="flex gap-1">{Array.from({ length: 10 }).map((_, i) => <div key={i} className={`h-2 flex-1 rounded-sm ${i < Math.round((deliveryRate ?? 0) / 10) ? "bg-[#2D6A4F]" : "bg-slate-200"}`} />)}</div>
-                    <p className="text-sm text-slate-800 mt-3">
+                    <DeliveryDonutChart
+                      rate={deliveryRate ?? 0}
+                      completed={deliveryStats.completed}
+                      resolved={deliveryStats.resolved}
+                      stalled={deliveryStats.stalled}
+                      fellThrough={deliveryStats.fell_through}
+                      inProgress={deliveryInProgress}
+                    />
+                    <p className="text-sm text-slate-800 mt-4">
                       {deliveryStats.completed} of {deliveryStats.resolved} relationship{deliveryStats.resolved !== 1 ? "s" : ""} completed
                       {[deliveryStats.stalled > 0 ? `${deliveryStats.stalled} stalled` : null, deliveryStats.fell_through > 0 ? `${deliveryStats.fell_through} fell through` : null, deliveryInProgress > 0 ? `${deliveryInProgress} still in progress` : null].filter(Boolean).length > 0
                         ? ` (${[deliveryStats.stalled > 0 ? `${deliveryStats.stalled} stalled` : null, deliveryStats.fell_through > 0 ? `${deliveryStats.fell_through} fell through` : null, deliveryInProgress > 0 ? `${deliveryInProgress} still in progress` : null].filter(Boolean).join(", ")})`
@@ -1462,9 +1578,12 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
         if (!item) return null;
         return (
           <DDEvidenceViewModal item={item} evidence={org.dd_evidence?.[ddViewingKey] ?? {}} documents={docsByItem[ddViewingKey] ?? []}
-            canSeeSensitive={canSeeSensitive} canSeeDisclosureDetail={canSeeDisclosureDetail} onClose={() => setDdViewingKey(null)} />
+            canSeeSensitive={canSeeSensitive} canSeeDisclosureDetail={canSeeDisclosureDetail}
+            onViewDocument={handleViewDocument} viewingDocId={viewingDocId} onClose={() => setDdViewingKey(null)} />
         );
       })()}
+
+      {previewDoc && <DocumentPreviewModal preview={previewDoc} onClose={() => setPreviewDoc(null)} />}
 
       {/* TODO: wire "Send Message" to your actual messaging/conversation-start flow. */}
       <div className="px-8 py-4 border-t border-border bg-white dark:bg-card flex items-center gap-4 shrink-0">
