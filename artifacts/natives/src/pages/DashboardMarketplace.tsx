@@ -1,7 +1,7 @@
 // ─── DashboardMarketplace.tsx ─────────────────────────────────────────────────
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Loader2, CheckCircle2, X, SlidersHorizontal, Search, Leaf, Zap, MessageSquare, ShieldCheck, Bookmark, ThumbsDown, RotateCcw, AlertTriangle, Check, Building2, Wallet, Handshake, FileCheck, Award, Info, Lightbulb, Users, BarChart3, Clock, Globe, LayoutGrid, MoreVertical, Download } from "lucide-react";
+import { Loader2, CheckCircle2, X, SlidersHorizontal, Search, Leaf, Zap, MessageSquare, ShieldCheck, Bookmark, ThumbsDown, RotateCcw, AlertTriangle, Check, Building2, Wallet, Handshake, FileCheck, Award, Info, Lightbulb, Users, BarChart3, Clock, Globe, LayoutGrid, MoreVertical, Download, MapPin, Calendar, Flag } from "lucide-react";
 import { computeTrustTier } from "@/lib/ddItems";
 import { TrustBadge } from "@/components/ui/TrustBadge";
 import { useAuth } from "@/context/AuthContext";
@@ -152,7 +152,7 @@ function ShareButton({ initiativeId, title, size = "sm" }: { initiativeId: strin
   );
 }
 function DecisionIcons({
-  saved, passed, passReason, onToggleSave, onConfirmPass, onUndoPass, size = "sm",
+  saved, passed, passReason, onToggleSave, onConfirmPass, onUndoPass, size = "sm", layout = "icons",
 }: {
   saved: boolean;
   passed: boolean;
@@ -161,33 +161,106 @@ function DecisionIcons({
   onConfirmPass: (reason: string) => void;
   onUndoPass: () => void;
   size?: "sm" | "md";
+  layout?: "icons" | "rows";
 }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [reason, setReason] = useState("");
   const dim = size === "md" ? "h-9 w-9" : "h-8 w-8";
   const iconDim = size === "md" ? "w-4 h-4" : "w-3.5 h-3.5";
+
+  const saveButton = (
+    <button
+      type="button"
+      onClick={onToggleSave}
+      title={saved ? "Remove from saved" : "Save"}
+      className={`${dim} rounded-full flex items-center justify-center border shrink-0 transition-colors ${
+        saved
+          ? "border-[#2D6A4F]/30 bg-[rgba(45,106,79,0.12)] text-[#2D6A4F]"
+          : "border-border text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] hover:bg-[#2D6A4F]/5 dark:hover:border-[#C45C26] dark:hover:text-[#C45C26] dark:hover:bg-[#C45C26]/10"
+      }`}>
+      <Bookmark className={iconDim} fill={saved ? "currentColor" : "none"} />
+    </button>
+  );
+
+  const passUndoButton = (
+    <button
+      type="button"
+      onClick={onUndoPass}
+      title={passReason ? `Passed · ${passReason} — click to undo` : "Passed — click to undo"}
+      className={`${dim} rounded-full flex items-center justify-center border border-border bg-muted text-muted-foreground hover:text-[#2D6A4F] hover:border-[#2D6A4F]/30 hover:bg-[rgba(45,106,79,0.12)] transition-colors shrink-0`}>
+      <RotateCcw className={iconDim} />
+    </button>
+  );
+
+  const pickerContent = (
+    <PopoverContent align="end" className="w-72 p-4 space-y-3">
+      <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">Reason for passing</p>
+      <div className="flex flex-wrap gap-1.5">
+        {PASS_REASONS.map(r => (
+          <button key={r} type="button"
+            onClick={() => setReason(r)}
+            className={`px-2.5 py-1 rounded-full border text-[13px] font-medium transition-colors ${
+              reason === r
+                ? "bg-[#C45C26] border-[#C45C26] text-white"
+                : "border-border text-muted-foreground hover:border-foreground/30"
+            }`}>
+            {r}
+          </button>
+        ))}
+      </div>
+      <div className="flex justify-end gap-3 pt-1">
+        <button type="button" onClick={() => setPickerOpen(false)}
+          className="text-[13px] text-muted-foreground hover:text-foreground transition-colors">
+          Cancel
+        </button>
+        <button type="button" disabled={!reason}
+          onClick={() => { onConfirmPass(reason); setPickerOpen(false); setReason(""); }}
+          className="rounded-full h-7 px-3.5 bg-red-500 hover:bg-red-600 text-white text-[13px] font-semibold disabled:opacity-40 transition-colors">
+          Confirm pass
+        </button>
+      </div>
+    </PopoverContent>
+  );
+
+  if (layout === "rows") {
+    // Save and Pass as two fully independent full-width rows, each with its
+    // own icon and label -- used in the header kebab menu, where they need
+    // to read (and behave) as separate actions rather than an icon pair.
+    return (
+      <>
+        <button type="button" onClick={onToggleSave}
+          className="w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-[#1B4D3E]/5 transition-colors text-left">
+          {saveButton}
+          <span className="text-[14px] font-normal text-[#0F172A] dark:text-[#F5F5F5]">{saved ? "Saved" : "Save"}</span>
+        </button>
+        {passed ? (
+          <button type="button" onClick={onUndoPass}
+            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-[#1B4D3E]/5 transition-colors text-left">
+            {passUndoButton}
+            <span className="text-[14px] font-normal text-[#0F172A] dark:text-[#F5F5F5]">Passed{passReason ? ` · ${passReason}` : ""} — undo</span>
+          </button>
+        ) : (
+          <Popover open={pickerOpen} onOpenChange={(o) => { setPickerOpen(o); if (!o) setReason(""); }}>
+            <PopoverTrigger asChild>
+              <button type="button"
+                className="w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-[#1B4D3E]/5 transition-colors text-left">
+                <span className={`${dim} rounded-full flex items-center justify-center border border-border text-muted-foreground shrink-0`}>
+                  <ThumbsDown className={iconDim} />
+                </span>
+                <span className="text-[14px] font-normal text-[#0F172A] dark:text-[#F5F5F5]">Pass</span>
+              </button>
+            </PopoverTrigger>
+            {pickerContent}
+          </Popover>
+        )}
+      </>
+    );
+  }
+
   return (
     <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
-      <button
-        type="button"
-        onClick={onToggleSave}
-        title={saved ? "Remove from saved" : "Save"}
-        className={`${dim} rounded-full flex items-center justify-center border transition-colors ${
-          saved
-            ? "border-[#2D6A4F]/30 bg-[rgba(45,106,79,0.12)] text-[#2D6A4F]"
-            : "border-border text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F] hover:bg-[#2D6A4F]/5 dark:hover:border-[#C45C26] dark:hover:text-[#C45C26] dark:hover:bg-[#C45C26]/10"
-        }`}>
-        <Bookmark className={iconDim} fill={saved ? "currentColor" : "none"} />
-      </button>
-      {passed ? (
-        <button
-          type="button"
-          onClick={onUndoPass}
-          title={passReason ? `Passed · ${passReason} — click to undo` : "Passed — click to undo"}
-          className={`${dim} rounded-full flex items-center justify-center border border-border bg-muted text-muted-foreground hover:text-[#2D6A4F] hover:border-[#2D6A4F]/30 hover:bg-[rgba(45,106,79,0.12)] transition-colors`}>
-          <RotateCcw className={iconDim} />
-        </button>
-      ) : (
+      {saveButton}
+      {passed ? passUndoButton : (
         <Popover open={pickerOpen} onOpenChange={(o) => { setPickerOpen(o); if (!o) setReason(""); }}>
           <PopoverTrigger asChild>
             <button
@@ -197,33 +270,7 @@ function DecisionIcons({
               <ThumbsDown className={iconDim} />
             </button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-72 p-4 space-y-3">
-            <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">Reason for passing</p>
-            <div className="flex flex-wrap gap-1.5">
-              {PASS_REASONS.map(r => (
-                <button key={r} type="button"
-                  onClick={() => setReason(r)}
-                  className={`px-2.5 py-1 rounded-full border text-[13px] font-medium transition-colors ${
-                    reason === r
-                      ? "bg-[#C45C26] border-[#C45C26] text-white"
-                      : "border-border text-muted-foreground hover:border-foreground/30"
-                  }`}>
-                  {r}
-                </button>
-              ))}
-            </div>
-            <div className="flex justify-end gap-3 pt-1">
-              <button type="button" onClick={() => setPickerOpen(false)}
-                className="text-[13px] text-muted-foreground hover:text-foreground transition-colors">
-                Cancel
-              </button>
-              <button type="button" disabled={!reason}
-                onClick={() => { onConfirmPass(reason); setPickerOpen(false); setReason(""); }}
-                className="rounded-full h-7 px-3.5 bg-red-500 hover:bg-red-600 text-white text-[13px] font-semibold disabled:opacity-40 transition-colors">
-                Confirm pass
-              </button>
-            </div>
-          </PopoverContent>
+          {pickerContent}
         </Popover>
       )}
     </div>
@@ -869,8 +916,8 @@ const SDG_CARD_PALETTE = ["#DC2626", "#16A34A", "#2563EB", "#D97706", "#7C3AED",
 
 // Shared "no border, soft glow instead" card treatment used across the
 // redesigned detail page in place of border-slate-200 boxes.
-const CARD = "bg-white rounded-2xl shadow-[0_1px_2px_rgba(27,77,62,0.06),0_10px_28px_-10px_rgba(27,77,62,0.16)]";
-const CARD_SM = "bg-white rounded-xl shadow-[0_1px_2px_rgba(27,77,62,0.05),0_6px_16px_-8px_rgba(27,77,62,0.14)]";
+const CARD = "bg-white dark:bg-[#1A1A1A] border border-[#E5E7EB] dark:border-[#262626] rounded-2xl shadow-[0_1px_2px_rgba(27,77,62,0.06),0_10px_28px_-10px_rgba(27,77,62,0.16)]";
+const CARD_SM = "bg-white dark:bg-[#1A1A1A] border border-[#E5E7EB] dark:border-[#262626] rounded-xl shadow-[0_1px_2px_rgba(27,77,62,0.05),0_6px_16px_-8px_rgba(27,77,62,0.14)]";
 
 // Official UN SDG colors, keyed by goal number.
 const SDG_OFFICIAL_COLORS: Record<number, string> = {
@@ -920,7 +967,7 @@ function VerbatimSection({ html, listStyle = "plain" }: { html: string; listStyl
     : "[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-2";
   return (
     <div
-      className={`text-[16px] text-[#0F172A] leading-relaxed [&_p]:mb-3 [&_p:last-child]:mb-0 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-[#0F172A] [&_h2]:mt-6 [&_h2]:mb-2 [&_h2:first-child]:mt-0 ${listClasses}`}
+      className={`text-[16px] text-[#0F172A] dark:text-[#F5F5F5] leading-relaxed [&_p]:mb-3 [&_p:last-child]:mb-0 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-[#0F172A] dark:text-[#F5F5F5] [&_h2]:mt-6 [&_h2]:mb-2 [&_h2:first-child]:mt-0 ${listClasses}`}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
@@ -968,7 +1015,7 @@ function MilestoneTracker({ currentStage }: { currentStage?: string | null }) {
                 boxShadow: isCurrent ? `0 0 0 3px ${FOREST}33` : "none",
               }}
             />
-            <p className="text-[15px] font-bold text-[#0F172A]">{s.title}</p>
+            <p className="text-[15px] font-bold text-[#0F172A] dark:text-[#F5F5F5]">{s.title}</p>
             <p className="text-[13px] mt-0.5" style={{ color: reached ? "#0F172A" : `${FOREST}80` }}>{s.desc}</p>
           </div>
         );
@@ -1002,9 +1049,9 @@ function AiSlidePanel({ open, onClose, title, icon, children }: {
   return (
     <div className="fixed inset-0 z-[100]" role="dialog" aria-modal="true">
       <div className={`absolute inset-0 transition-opacity duration-300 ${visible ? "opacity-100" : "opacity-0"}`} onClick={onClose} style={{ background: "rgba(27,77,62,0.15)" }} />
-      <div className={`absolute right-0 top-0 h-full w-full sm:w-[85%] md:w-[65%] lg:w-[520px] bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${visible ? "translate-x-0" : "translate-x-full"}`}>
+      <div className={`absolute right-0 top-0 h-full w-full sm:w-[85%] md:w-[65%] lg:w-[520px] bg-white dark:bg-[#1A1A1A] border-l border-[#E5E7EB] dark:border-[#262626] shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${visible ? "translate-x-0" : "translate-x-full"}`}>
         <div className="px-6 py-4 flex items-center justify-between shrink-0" style={{ boxShadow: "0 1px 0 rgba(27,77,62,0.08)" }}>
-          <p className="text-[17px] font-bold text-[#0F172A] flex items-center gap-2">{icon}{title}</p>
+          <p className="text-[17px] font-bold text-[#0F172A] dark:text-[#F5F5F5] flex items-center gap-2">{icon}{title}</p>
           <button type="button" onClick={onClose} className="p-1.5 rounded-full hover:bg-[#1B4D3E]/5 transition-colors">
             <X className="w-4 h-4" style={{ color: FOREST }} />
           </button>
@@ -1013,6 +1060,75 @@ function AiSlidePanel({ open, onClose, title, icon, children }: {
           {children}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Parses percentage allocations out of a "Budget Overview" paragraph
+// (e.g. "...trainer stipends (30%), platform fees (25%)...") into
+// label/percentage pairs for a real bar chart. Falls back to plain prose
+// rendering (in the caller) when fewer than 2 matches are found, since a
+// single stray percentage isn't a reliable breakdown.
+function parseBudgetItems(html: string): { label: string; pct: number }[] {
+  if (typeof document === "undefined") return [];
+  const container = document.createElement("div");
+  container.innerHTML = html;
+  const text = container.textContent ?? "";
+  const items: { label: string; pct: number }[] = [];
+  const re = /([A-Za-z][^,.;()]*?)\s*\((\d{1,3})%\)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    const label = m[1].trim().replace(/^and\s+/i, "").replace(/^,\s*/, "");
+    const pct = parseInt(m[2], 10);
+    if (label && pct > 0 && pct <= 100) items.push({ label, pct });
+  }
+  return items;
+}
+
+// Parses "Implementation Timeline" <li> items ("Phase 1 – Months 1-3:
+// description") into title/description pairs for the phase stepper.
+function parsePhaseItems(html: string): { title: string; desc: string }[] {
+  if (typeof document === "undefined") return [];
+  const container = document.createElement("div");
+  container.innerHTML = html;
+  return Array.from(container.querySelectorAll("li")).map(li => {
+    const text = li.textContent?.trim() ?? "";
+    const idx = text.indexOf(":");
+    if (idx === -1) return { title: text, desc: "" };
+    return { title: text.slice(0, idx).trim(), desc: text.slice(idx + 1).trim() };
+  });
+}
+
+const BUDGET_BAR_COLORS = [FOREST, BURNT_ORANGE, "#3F7E44", "#0F172A", `${FOREST}99`, `${BURNT_ORANGE}99`];
+
+function BudgetBarChart({ items }: { items: { label: string; pct: number }[] }) {
+  return (
+    <div className="space-y-4">
+      {items.map((item, i) => (
+        <div key={i}>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[14px] font-normal text-[#0F172A] dark:text-[#F5F5F5] capitalize">{item.label}</span>
+            <span className="text-[14px] font-bold text-[#0F172A] dark:text-[#F5F5F5]">{item.pct}%</span>
+          </div>
+          <div className="h-2.5 rounded-full" style={{ background: "rgba(27,77,62,0.08)" }}>
+            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${item.pct}%`, background: BUDGET_BAR_COLORS[i % BUDGET_BAR_COLORS.length] }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PhaseTimeline({ items }: { items: { title: string; desc: string }[] }) {
+  return (
+    <div className="border-l-2 pl-6 ml-3 space-y-6" style={{ borderColor: "rgba(27,77,62,0.15)" }}>
+      {items.map((p, i) => (
+        <div key={i} className="relative">
+          <span className="absolute -left-[31px] top-0.5 w-4 h-4 rounded-full" style={{ background: FOREST }} />
+          <p className="text-[15px] font-bold text-[#0F172A] dark:text-[#F5F5F5]">{p.title}</p>
+          {p.desc && <p className="text-[13px] font-normal mt-0.5 text-[#0F172A] dark:text-[#F5F5F5]">{p.desc}</p>}
+        </div>
+      ))}
     </div>
   );
 }
@@ -1051,6 +1167,15 @@ function MarketplaceDetail({
   const [questionSubmitted, setQuestionSubmitted]   = useState(false);
   const [detailTab, setDetailTab] = useState<"overview" | "problem" | "impact" | "budget" | "team" | "full">("overview");
   const [kebabOpen, setKebabOpen] = useState(false);
+  const kebabRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!kebabOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (kebabRef.current && !kebabRef.current.contains(e.target as Node)) setKebabOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [kebabOpen]);
   const [dealSnapshotOpen, setDealSnapshotOpen] = useState(false);
   const [dealMemo, setDealMemo]                 = useState<any | null>(null);
   const [loadingMemo, setLoadingMemo]           = useState(false);
@@ -1423,59 +1548,113 @@ function MarketplaceDetail({
     win.document.close();
   }
   const sections = useMemo(() => splitDetailSections(fullDetail?.detail_content), [fullDetail?.detail_content]);
+  const sdgItems = useMemo(() => (sections["SDG Alignment"] ? parseSdgListItems(sections["SDG Alignment"]) : null), [sections]);
   return (
     <div className="max-w-[1100px] mx-auto space-y-6 relative">
 
-      <a href="#" onClick={e => { e.preventDefault(); onBack(); }}
-        className="flex items-center gap-1.5 text-[15px] font-medium w-fit transition-colors" style={{ color: FOREST }}>
-        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        Back to marketplace
-      </a>
-
-      {/* Hero card: kebab lives inside it */}
-      <div className={`${CARD} p-8 relative`}>
-        <div className="absolute top-6 right-6">
-          <button type="button" onClick={() => setKebabOpen(v => !v)}
-            className="h-10 w-10 rounded-full flex items-center justify-center hover:bg-[#1B4D3E]/5 transition-colors">
-            <MoreVertical className="w-5 h-5" style={{ color: FOREST }} />
-          </button>
-          {kebabOpen && (
-            <div className={`absolute right-0 mt-2 w-64 ${CARD} py-2 z-30`} onClick={e => e.stopPropagation()}>
-              <div className="flex items-center gap-3 px-4 py-2 mx-2 rounded-lg hover:bg-[#1B4D3E]/5 transition-colors">
-                <ShareButton initiativeId={initiative.id} title={initiative.title} size="sm" />
-                <span className="text-[14px] font-semibold text-[#0F172A]">Share</span>
-              </div>
-              {!isOwnInitiative && (
-                <div className="flex items-center gap-3 px-4 py-2 mx-2 rounded-lg hover:bg-[#1B4D3E]/5 transition-colors">
-                  <DecisionIcons saved={saved} passed={passed} passReason={passReason}
-                    onToggleSave={onToggleSave} onConfirmPass={onConfirmPass} onUndoPass={onUndoPass} size="sm" />
-                  <span className="text-[14px] font-semibold text-[#0F172A]">Save / Pass</span>
-                </div>
-              )}
-              <div className="my-1.5 mx-2 border-t border-[#1B4D3E]/10" />
-              <div className="px-2 pt-1">
-                {isOwnInitiative ? (
-                  <p className="text-center text-[13px] font-semibold py-2" style={{ color: `${FOREST}99` }}>Your initiative</p>
-                ) : (
-                  <button type="button"
-                    onClick={() => { if (!alreadyExpressed) setEoiOpen(true); setKebabOpen(false); }}
-                    disabled={alreadyExpressed}
-                    className={`w-full flex items-center justify-center gap-2 text-[14px] font-bold rounded-lg py-2.5 transition-colors ${alreadyExpressed ? "cursor-not-allowed" : "text-white"}`}
-                    style={alreadyExpressed ? { background: "rgba(27,77,62,0.08)", color: "rgba(27,77,62,0.5)" } : { background: BURNT_ORANGE }}>
-                    <Zap className="w-4 h-4" />
-                    {alreadyExpressed ? "Interest Expressed" : "Express Interest"}
-                  </button>
-                )}
-              </div>
-            </div>
+      {/* Top row: back link + primary action pills */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <a href="#" onClick={e => { e.preventDefault(); onBack(); }}
+          className="flex items-center gap-1.5 text-[15px] font-medium w-fit transition-colors" style={{ color: FOREST }}>
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Back to marketplace
+        </a>
+        <div className="flex items-center gap-2 flex-wrap">
+          {isFunder && (
+            <button type="button" onClick={generateDealMemo} disabled={loadingMemo}
+              className={`${CARD_SM} flex items-center gap-2 px-4 py-2 text-[13px] font-bold text-[#0F172A] dark:text-[#F5F5F5] hover:bg-[#1B4D3E]/5 transition-colors disabled:opacity-50`}>
+              <FileText className="w-3.5 h-3.5" style={{ color: FOREST }} />
+              Generate Deal Memo
+              {loadingMemo && <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: FOREST }} />}
+            </button>
+          )}
+          {isCorporate && (
+            <button type="button" onClick={generateCsrBrief} disabled={loadingCsr}
+              className={`${CARD_SM} flex items-center gap-2 px-4 py-2 text-[13px] font-bold text-[#0F172A] dark:text-[#F5F5F5] hover:bg-[#1B4D3E]/5 transition-colors disabled:opacity-50`}>
+              <FileText className="w-3.5 h-3.5" style={{ color: FOREST }} />
+              Generate CSR Brief
+              {loadingCsr && <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: FOREST }} />}
+            </button>
+          )}
+          {!isOwnInitiative && (
+            <button type="button" onClick={() => { if (!alreadyExpressed) setEoiOpen(true); }} disabled={alreadyExpressed}
+              className={`flex items-center gap-2 px-5 py-2 rounded-full text-[13px] font-bold transition-colors ${alreadyExpressed ? "cursor-not-allowed" : "text-white"}`}
+              style={alreadyExpressed ? { background: "rgba(27,77,62,0.1)", color: FOREST } : { background: BURNT_ORANGE }}>
+              <Zap className="w-3.5 h-3.5" />
+              {alreadyExpressed ? "Interest Expressed" : "Express Interest"}
+            </button>
           )}
         </div>
+      </div>
 
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight leading-snug pr-14" style={{ color: "#0F172A", letterSpacing: "-0.025em" }}>
-          {initiative.title}
-        </h1>
+      {/* Hero card -- "Structural Horizon": flat plane, 1px divider containment,
+          tonal shifts instead of heavy shadow, forest-green focal accents. */}
+      <div className={`${CARD} p-7 relative`}>
+        <div className="flex items-start justify-between gap-4 mb-5">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 overflow-hidden" style={{ background: "rgba(27,77,62,0.08)" }}>
+              {initiative.submitter_logo_url
+                ? <img src={initiative.submitter_logo_url} alt="" className="w-full h-full object-cover" />
+                : <Globe className="w-6 h-6" style={{ color: FOREST }} />}
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight leading-snug text-[#0F172A] dark:text-[#F5F5F5] truncate" style={{ letterSpacing: "-0.025em" }}>
+                {initiative.title}
+              </h1>
+              <p className="text-[13px] font-medium mt-0.5" style={{ color: FOREST }}>Ref #{initiative.id.slice(0, 8).toUpperCase()}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {fullDetail?.co_funding_status && (
+              <span className="hidden sm:inline-flex text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wide" style={{ background: "rgba(27,77,62,0.1)", color: FOREST }}>
+                {CO_FUNDING_LABELS[fullDetail.co_funding_status] ?? fullDetail.co_funding_status}
+              </span>
+            )}
+            <div className="relative" ref={kebabRef}>
+              <button type="button" onClick={() => setKebabOpen(v => !v)}
+                className="h-10 w-10 rounded-full flex items-center justify-center hover:bg-[#1B4D3E]/5 transition-colors">
+                <MoreVertical className="w-5 h-5" style={{ color: FOREST }} />
+              </button>
+              {kebabOpen && (
+                <div className={`absolute right-0 mt-2 w-64 ${CARD} py-2 z-30`}>
+                  <div className="flex items-center gap-3 px-4 py-2 mx-2 rounded-lg hover:bg-[#1B4D3E]/5 transition-colors">
+                    <ShareButton initiativeId={initiative.id} title={initiative.title} size="sm" />
+                    <span className="text-[14px] font-normal text-[#0F172A] dark:text-[#F5F5F5]">Share</span>
+                  </div>
+                  {!isOwnInitiative && (
+                    <DecisionIcons saved={saved} passed={passed} passReason={passReason}
+                      onToggleSave={onToggleSave} onConfirmPass={onConfirmPass} onUndoPass={onUndoPass} size="sm" layout="rows" />
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
 
-        <div className="flex items-center gap-4 text-[14px] flex-wrap mt-4">
+        {initiativeDdScore != null && (
+          <div className="mb-5">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[13px] font-bold text-[#0F172A] dark:text-[#F5F5F5]">DD Readiness</span>
+              <span className="text-[13px] font-bold" style={{ color: FOREST }}>{initiativeDdScore}%{initiativeTrustTier ? ` (${initiativeTrustTier})` : ""}</span>
+            </div>
+            <div className="h-2 rounded-full" style={{ background: "rgba(27,77,62,0.1)" }}>
+              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${initiativeDdScore}%`, background: FOREST }} />
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <div className="rounded-xl p-4" style={{ background: "rgba(27,77,62,0.04)" }}>
+            <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: FOREST }}>Location</p>
+            <p className="text-[15px] font-bold text-[#0F172A] dark:text-[#F5F5F5] mt-1">{initiative.locations?.join(", ") || "—"}</p>
+          </div>
+          <div className="rounded-xl p-4" style={{ background: "rgba(27,77,62,0.04)" }}>
+            <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: FOREST }}>Budget</p>
+            <p className="text-[15px] font-bold text-[#0F172A] dark:text-[#F5F5F5] mt-1">{initiative.budget || "—"}</p>
+          </div>
+        </div>
+
+        <div className="pt-4 flex items-center justify-between flex-wrap gap-2 border-t border-[#E5E7EB] dark:border-[#262626]">
           {(initiative.submitter_org || initiative.submitter_name) && (
             <Link
               href={
@@ -1484,11 +1663,11 @@ function MarketplaceDetail({
                   : `/dashboard/natives?tab=individual&user=${initiative.user_id}`
               }
               onClick={e => e.stopPropagation()}
-              className="flex items-center gap-2 font-bold text-[#0F172A] hover:underline underline-offset-2 transition-colors">
+              className="flex items-center gap-2 font-bold text-[#0F172A] dark:text-[#F5F5F5] hover:underline underline-offset-2 transition-colors">
               {initiative.submitter_logo_url ? (
-                <img src={initiative.submitter_logo_url} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
+                <img src={initiative.submitter_logo_url} alt="" className="w-6 h-6 rounded-full object-cover shrink-0" />
               ) : (
-                <span className="w-9 h-9 rounded-full text-white text-[13px] font-bold flex items-center justify-center shrink-0" style={{ background: FOREST }}>
+                <span className="w-6 h-6 rounded-full text-white text-[10px] font-bold flex items-center justify-center shrink-0" style={{ background: FOREST }}>
                   {(initiative.submitter_user_type === "organisation" ? initiative.submitter_org : initiative.submitter_name)?.slice(0, 2).toUpperCase()}
                 </span>
               )}
@@ -1496,10 +1675,12 @@ function MarketplaceDetail({
               {initiative.submitter_is_verified && <ShieldCheck className="w-4 h-4 shrink-0" style={{ color: FOREST }} />}
             </Link>
           )}
-          <span className="font-semibold" style={{ color: FOREST }}>Published {new Date(initiative.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
-          <span className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ background: "#FEF3C7", color: "#92400E" }}>
-            {initiative.eois} expression{initiative.eois !== 1 ? "s" : ""} of interest
-          </span>
+          <div className="flex items-center gap-3 text-[13px]">
+            <span className="font-semibold" style={{ color: FOREST }}>Published {new Date(initiative.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
+            <span className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ background: "#FEF3C7", color: "#92400E" }}>
+              {initiative.eois} expression{initiative.eois !== 1 ? "s" : ""} of interest
+            </span>
+          </div>
         </div>
 
         {(isFunder || isCorporate) && (() => {
@@ -1557,7 +1738,7 @@ function MarketplaceDetail({
         if (tabs.length === 0) return null;
         const activeTab = tabs.some(t => t.key === detailTab) ? detailTab : tabs[0].key;
 
-        const sdgFromSection = sections["SDG Alignment"] ? parseSdgListItems(sections["SDG Alignment"]) : null;
+        const sdgFromSection = sdgItems;
 
         return (
           <div>
@@ -1567,7 +1748,7 @@ function MarketplaceDetail({
                   {tabs.map(t => (
                     <button key={t.key} type="button" onClick={() => setDetailTab(t.key)}
                       className={`px-5 py-2.5 rounded-lg text-[14px] font-bold transition-colors ${
-                        activeTab === t.key ? "text-white" : `${CARD_SM} text-[#0F172A]`
+                        activeTab === t.key ? "text-white" : `${CARD_SM} text-[#0F172A] dark:text-[#F5F5F5]`
                       }`}
                       style={activeTab === t.key ? { background: FOREST } : {}}>
                       {t.label}
@@ -1584,26 +1765,26 @@ function MarketplaceDetail({
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     {fullDetail.target_beneficiaries != null && (
                       <div className={`${CARD} p-6`}>
-                        <p className="text-3xl font-bold text-[#0F172A]">{fullDetail.target_beneficiaries.toLocaleString()}</p>
-                        <p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mt-2">Beneficiaries</p>
+                        <p className="text-3xl font-bold text-[#0F172A] dark:text-[#F5F5F5]">{fullDetail.target_beneficiaries.toLocaleString()}</p>
+                        <p className="text-xs font-bold text-[#0F172A] dark:text-[#F5F5F5] uppercase tracking-wider mt-2">Beneficiaries</p>
                       </div>
                     )}
                     {fullDetail.target_jobs != null && (
                       <div className={`${CARD} p-6`}>
-                        <p className="text-3xl font-bold text-[#0F172A]">{fullDetail.target_jobs.toLocaleString()}</p>
-                        <p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mt-2">Jobs Created</p>
+                        <p className="text-3xl font-bold text-[#0F172A] dark:text-[#F5F5F5]">{fullDetail.target_jobs.toLocaleString()}</p>
+                        <p className="text-xs font-bold text-[#0F172A] dark:text-[#F5F5F5] uppercase tracking-wider mt-2">Jobs Created</p>
                       </div>
                     )}
                     {fullDetail.target_female_pct != null && (
                       <div className={`${CARD} p-6`}>
                         <p className="text-3xl font-bold" style={{ color: FOREST }}>{fullDetail.target_female_pct}%</p>
-                        <p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mt-2">Female Target</p>
+                        <p className="text-xs font-bold text-[#0F172A] dark:text-[#F5F5F5] uppercase tracking-wider mt-2">Female Target</p>
                       </div>
                     )}
                     {fullDetail.target_timeline_months != null && (
                       <div className={`${CARD} p-6`}>
                         <p className="text-3xl font-bold" style={{ color: BURNT_ORANGE }}>{fullDetail.target_timeline_months} Mos</p>
-                        <p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mt-2">Timeline</p>
+                        <p className="text-xs font-bold text-[#0F172A] dark:text-[#F5F5F5] uppercase tracking-wider mt-2">Timeline</p>
                       </div>
                     )}
                   </div>
@@ -1612,85 +1793,48 @@ function MarketplaceDetail({
                 {(sections["Executive Summary"] || initiative.problem) && (
                   <div className={`${CARD} p-8`}>
                     <div className="flex items-center gap-3 mb-4">
-                      <Info className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
-                      <p className="text-xl font-bold text-[#0F172A]">Executive Summary</p>
+                      <Info className="w-5 h-5 shrink-0" style={{ color: FOREST }} />
+                      <p className="text-xl font-bold text-[#0F172A] dark:text-[#F5F5F5]">Executive Summary</p>
                     </div>
                     {sections["Executive Summary"]
                       ? <VerbatimSection html={sections["Executive Summary"]} />
-                      : <p className="text-[16px] text-[#0F172A] leading-relaxed">{initiative.problem}</p>}
+                      : <p className="text-[16px] text-[#0F172A] dark:text-[#F5F5F5] leading-relaxed">{initiative.problem}</p>}
                   </div>
                 )}
 
                 {(sdgFromSection || (fullDetail?.sdg_tags && fullDetail.sdg_tags.length > 0)) && (
                   <div className={`${CARD} p-8`}>
                     <div className="flex items-center gap-3 mb-5">
-                      <Globe className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
-                      <p className="text-xl font-bold text-[#0F172A]">SDG Alignment</p>
+                      <Globe className="w-5 h-5 shrink-0" style={{ color: FOREST }} />
+                      <p className="text-xl font-bold text-[#0F172A] dark:text-[#F5F5F5]">SDG Alignment</p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
                       {sdgFromSection
                         ? sdgFromSection.map((item, i) => (
                             <div key={i} className="flex items-center gap-2.5">
                               <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: item.color }} />
-                              <p className="text-[15px] font-semibold text-[#0F172A]">{item.text}</p>
+                              <p className="text-[15px] font-semibold text-[#0F172A] dark:text-[#F5F5F5]">{item.text}</p>
                             </div>
                           ))
                         : fullDetail!.sdg_tags!.map((s, i) => (
                             <div key={s} className="flex items-center gap-2.5">
                               <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: SDG_CARD_PALETTE[i % SDG_CARD_PALETTE.length] }} />
-                              <p className="text-[15px] font-semibold text-[#0F172A]">{s}</p>
+                              <p className="text-[15px] font-semibold text-[#0F172A] dark:text-[#F5F5F5]">{s}</p>
                             </div>
                           ))}
                     </div>
                   </div>
                 )}
 
-                <div className={`${CARD} p-8`}>
-                  <div className="flex items-center gap-3 mb-5">
-                    <LayoutGrid className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
-                    <p className="text-xl font-bold text-[#0F172A]">Deal Snapshot</p>
+                {sections["Partnership Requirements"] && (
+                  <div className={`${CARD} p-8`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <Handshake className="w-5 h-5 shrink-0" style={{ color: FOREST }} />
+                      <p className="text-xl font-bold text-[#0F172A] dark:text-[#F5F5F5]">Partnership Requirements</p>
+                    </div>
+                    <VerbatimSection html={sections["Partnership Requirements"]} />
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-5 mb-6">
-                    <div>
-                      <p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">DD Readiness</p>
-                      <p className="text-[15px] font-bold" style={{ color: initiativeDdScore != null ? FOREST : "#0F172A" }}>
-                        {initiativeDdScore != null ? `${initiativeDdScore}%${initiativeTrustTier ? ` (${initiativeTrustTier})` : ""}` : "—"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">Location</p>
-                      <p className="text-[15px] font-bold text-[#0F172A]">{initiative.locations?.join(", ") || "—"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">Budget</p>
-                      <p className="text-[15px] font-bold text-[#0F172A]">{initiative.budget || "—"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">Stage</p>
-                      <p className="text-[15px] font-bold text-[#0F172A]">{fullDetail?.stage ? (STAGE_LABELS[fullDetail.stage]?.split(" — ")[0] ?? fullDetail.stage) : "—"}</p>
-                    </div>
-                  </div>
-                  {(isFunder || isCorporate) && (
-                    <div className="flex flex-wrap gap-2">
-                      {isFunder && (
-                        <button type="button" onClick={generateDealMemo} disabled={loadingMemo}
-                          className={`${CARD_SM} flex items-center gap-2 px-4 py-2.5 text-[14px] font-bold text-[#0F172A] hover:bg-[#1B4D3E]/5 transition-colors disabled:opacity-50`}>
-                          <FileText className="w-4 h-4" style={{ color: FOREST }} />
-                          Generate Deal Memo
-                          {loadingMemo && <Loader2 className="w-4 h-4 animate-spin" style={{ color: FOREST }} />}
-                        </button>
-                      )}
-                      {isCorporate && (
-                        <button type="button" onClick={generateCsrBrief} disabled={loadingCsr}
-                          className={`${CARD_SM} flex items-center gap-2 px-4 py-2.5 text-[14px] font-bold text-[#0F172A] hover:bg-[#1B4D3E]/5 transition-colors disabled:opacity-50`}>
-                          <FileText className="w-4 h-4" style={{ color: FOREST }} />
-                          Generate CSR Brief
-                          {loadingCsr && <Loader2 className="w-4 h-4 animate-spin" style={{ color: FOREST }} />}
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
             )}
 
@@ -1700,33 +1844,33 @@ function MarketplaceDetail({
                   <div className={`${CARD} p-8`}>
                     <div className="flex items-center gap-3 mb-4">
                       <AlertTriangle className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
-                      <p className="text-xl font-bold text-[#0F172A]">Problem Statement</p>
+                      <p className="text-xl font-bold text-[#0F172A] dark:text-[#F5F5F5]">Problem Statement</p>
                     </div>
                     {sections["Problem Statement"]
                       ? <VerbatimSection html={sections["Problem Statement"]} />
-                      : <p className="text-[16px] text-[#0F172A] leading-relaxed">{initiative.problem}</p>}
+                      : <p className="text-[16px] text-[#0F172A] dark:text-[#F5F5F5] leading-relaxed">{initiative.problem}</p>}
                   </div>
                 )}
                 {(sections["Proposed Solution"] || initiative.outcome) && (
                   <div className={`${CARD} p-8`}>
                     <div className="flex items-center gap-3 mb-4">
                       <Lightbulb className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
-                      <p className="text-xl font-bold text-[#0F172A]">Proposed Solution</p>
+                      <p className="text-xl font-bold text-[#0F172A] dark:text-[#F5F5F5]">Proposed Solution</p>
                     </div>
                     {sections["Proposed Solution"]
                       ? <VerbatimSection html={sections["Proposed Solution"]} />
-                      : <p className="text-[16px] text-[#0F172A] leading-relaxed">{initiative.outcome}</p>}
+                      : <p className="text-[16px] text-[#0F172A] dark:text-[#F5F5F5] leading-relaxed">{initiative.outcome}</p>}
                   </div>
                 )}
                 {(sections["Target Beneficiaries"] || fullDetail?.target_population) && (
                   <div className={`${CARD} p-8`}>
                     <div className="flex items-center gap-3 mb-4">
                       <Users className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
-                      <p className="text-xl font-bold text-[#0F172A]">Target Beneficiaries</p>
+                      <p className="text-xl font-bold text-[#0F172A] dark:text-[#F5F5F5]">Target Beneficiaries</p>
                     </div>
                     {sections["Target Beneficiaries"]
                       ? <VerbatimSection html={sections["Target Beneficiaries"]} />
-                      : <p className="text-[16px] text-[#0F172A] leading-relaxed">{fullDetail!.target_population}</p>}
+                      : <p className="text-[16px] text-[#0F172A] dark:text-[#F5F5F5] leading-relaxed">{fullDetail!.target_population}</p>}
                   </div>
                 )}
               </div>
@@ -1738,18 +1882,18 @@ function MarketplaceDetail({
                   <div className={`${CARD} p-8`}>
                     <div className="flex items-center gap-3 mb-4">
                       <CheckCircle2 className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
-                      <p className="text-xl font-bold text-[#0F172A]">Expected Outcomes and Impact</p>
+                      <p className="text-xl font-bold text-[#0F172A] dark:text-[#F5F5F5]">Expected Outcomes and Impact</p>
                     </div>
                     {sections["Expected Outcomes and Impact"]
                       ? <VerbatimSection html={sections["Expected Outcomes and Impact"]} listStyle="check" />
-                      : <p className="text-[16px] text-[#0F172A] leading-relaxed">{fullDetail!.impact_evidence}</p>}
+                      : <p className="text-[16px] text-[#0F172A] dark:text-[#F5F5F5] leading-relaxed">{fullDetail!.impact_evidence}</p>}
                   </div>
                 )}
                 {sections["Monitoring and Evaluation"] && (
                   <div className={`${CARD} p-8`}>
                     <div className="flex items-center gap-3 mb-4">
                       <BarChart3 className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
-                      <p className="text-xl font-bold text-[#0F172A]">Monitoring and Evaluation</p>
+                      <p className="text-xl font-bold text-[#0F172A] dark:text-[#F5F5F5]">Monitoring and Evaluation</p>
                     </div>
                     <VerbatimSection html={sections["Monitoring and Evaluation"]} listStyle="check" />
                   </div>
@@ -1759,60 +1903,61 @@ function MarketplaceDetail({
 
             {activeTab === "budget" && (
               <div className="space-y-8 pt-6">
-                {(sections["Budget Overview"] || initiative.budget || fullDetail?.budget_min) && (
-                  <div className={`${CARD} p-8`}>
-                    <div className="flex items-center gap-3 mb-4">
-                      <Wallet className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
-                      <p className="text-xl font-bold text-[#0F172A]">Budget Overview</p>
+                {(() => {
+                  const budgetItems = sections["Budget Overview"] ? parseBudgetItems(sections["Budget Overview"]) : [];
+                  const totalLabel = fullDetail?.budget_min && fullDetail?.budget_max
+                    ? `${fullDetail.budget_currency ?? ""} ${fullDetail.budget_min.toLocaleString()}–${fullDetail.budget_max.toLocaleString()}`.trim()
+                    : initiative.budget;
+                  if (!sections["Budget Overview"] && !totalLabel) return null;
+                  return (
+                    <div className={`${CARD} p-8`}>
+                      <div className="flex items-center justify-between flex-wrap gap-2 mb-5">
+                        <div className="flex items-center gap-3">
+                          <Wallet className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
+                          <p className="text-xl font-bold text-[#0F172A] dark:text-[#F5F5F5]">Budget Overview</p>
+                        </div>
+                        {totalLabel && <span className="text-[14px] font-bold text-[#0F172A] dark:text-[#F5F5F5]">Total: {totalLabel}</span>}
+                      </div>
+                      {budgetItems.length >= 2 ? (
+                        <BudgetBarChart items={budgetItems} />
+                      ) : sections["Budget Overview"] ? (
+                        <VerbatimSection html={sections["Budget Overview"]} />
+                      ) : (
+                        <p className="text-[16px] text-[#0F172A] dark:text-[#F5F5F5] leading-relaxed">{totalLabel}</p>
+                      )}
                     </div>
-                    {sections["Budget Overview"] ? (
-                      <VerbatimSection html={sections["Budget Overview"]} />
-                    ) : (
-                      <p className="text-[16px] text-[#0F172A] leading-relaxed">
-                        {fullDetail?.budget_min && fullDetail?.budget_max
-                          ? `Total budget: ${fullDetail.budget_currency ?? ""} ${fullDetail.budget_min.toLocaleString()}–${fullDetail.budget_max.toLocaleString()}`.trim()
-                          : initiative.budget}
-                      </p>
-                    )}
-                  </div>
-                )}
+                  );
+                })()}
 
-                <div className={`${CARD} p-8`}>
-                  <div className="flex items-center gap-3 mb-5">
-                    <Clock className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
-                    <p className="text-xl font-bold text-[#0F172A]">Implementation Timeline</p>
-                  </div>
-                  {sections["Implementation Timeline"]
-                    ? <VerbatimSection html={sections["Implementation Timeline"]} />
-                    : <MilestoneTracker currentStage={fullDetail?.stage} />}
-                </div>
+                {(() => {
+                  const phaseItems = sections["Implementation Timeline"] ? parsePhaseItems(sections["Implementation Timeline"]) : [];
+                  return (
+                    <div className={`${CARD} p-8`}>
+                      <div className="flex items-center gap-3 mb-5">
+                        <Clock className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
+                        <p className="text-xl font-bold text-[#0F172A] dark:text-[#F5F5F5]">Implementation Timeline</p>
+                      </div>
+                      {phaseItems.length > 0 ? <PhaseTimeline items={phaseItems} /> : <MilestoneTracker currentStage={fullDetail?.stage} />}
+                    </div>
+                  );
+                })()}
 
                 {sections["Sustainability Plan"] && (
                   <div className={`${CARD} p-8`}>
                     <div className="flex items-center gap-3 mb-4">
                       <Leaf className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
-                      <p className="text-xl font-bold text-[#0F172A]">Sustainability Plan</p>
+                      <p className="text-xl font-bold text-[#0F172A] dark:text-[#F5F5F5]">Sustainability Plan</p>
                     </div>
                     <VerbatimSection html={sections["Sustainability Plan"]} />
                   </div>
                 )}
 
-                {sections["Partnership Requirements"] && (
-                  <div className={`${CARD} p-8`}>
-                    <div className="flex items-center gap-3 mb-4">
-                      <Handshake className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
-                      <p className="text-xl font-bold text-[#0F172A]">Partnership Requirements</p>
-                    </div>
-                    <VerbatimSection html={sections["Partnership Requirements"]} />
-                  </div>
-                )}
-
                 {fullDetail?.confirmed_assets && fullDetail.confirmed_assets.length > 0 && !fullDetail.confirmed_assets.includes("none") && (
                   <div className={`${CARD} p-8`}>
-                    <p className="text-xl font-bold text-[#0F172A] mb-4">Already Confirmed</p>
+                    <p className="text-xl font-bold text-[#0F172A] dark:text-[#F5F5F5] mb-4">Already Confirmed</p>
                     <div className="flex flex-wrap gap-2">
                       {fullDetail.confirmed_assets.filter(a => a !== "none").map(a => (
-                        <span key={a} className={`${CARD_SM} text-[13px] font-bold px-3 py-1.5 text-[#0F172A] capitalize`}>{a.replace(/_/g, " ")}</span>
+                        <span key={a} className={`${CARD_SM} text-[13px] font-bold px-3 py-1.5 text-[#0F172A] dark:text-[#F5F5F5] capitalize`}>{a.replace(/_/g, " ")}</span>
                       ))}
                     </div>
                   </div>
@@ -1820,8 +1965,11 @@ function MarketplaceDetail({
 
                 {fullDetail?.co_funding_status && (
                   <div className={`${CARD} p-8`}>
-                    <p className="text-xl font-bold text-[#0F172A] mb-2">Funding Status</p>
-                    <p className="text-[16px] text-[#0F172A]">{CO_FUNDING_LABELS[fullDetail.co_funding_status] ?? fullDetail.co_funding_status}</p>
+                    <div className="flex items-center gap-3 mb-2">
+                      <Wallet className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
+                      <p className="text-xl font-bold text-[#0F172A] dark:text-[#F5F5F5]">Funding Status</p>
+                    </div>
+                    <p className="text-[16px] text-[#0F172A] dark:text-[#F5F5F5]">{CO_FUNDING_LABELS[fullDetail.co_funding_status] ?? fullDetail.co_funding_status}</p>
                   </div>
                 )}
 
@@ -1829,24 +1977,24 @@ function MarketplaceDetail({
                   <div className={`${CARD} p-8`}>
                     <div className="flex items-center gap-3 mb-4">
                       <FileText className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
-                      <p className="text-xl font-bold text-[#0F172A]">Documents &amp; Evidence</p>
+                      <p className="text-xl font-bold text-[#0F172A] dark:text-[#F5F5F5]">Documents &amp; Evidence</p>
                     </div>
                     <div className="flex flex-wrap gap-3">
                       {fullDetail.evaluation_report_url && (
                         <a href={fullDetail.evaluation_report_url} target="_blank" rel="noopener noreferrer"
-                          className={`${CARD_SM} inline-flex items-center gap-2 px-4 py-2.5 text-[14px] font-bold text-[#0F172A] hover:bg-[#1B4D3E]/5 transition-colors`}>
+                          className={`${CARD_SM} inline-flex items-center gap-2 px-4 py-2.5 text-[14px] font-bold text-[#0F172A] dark:text-[#F5F5F5] hover:bg-[#1B4D3E]/5 transition-colors`}>
                           View Evaluation Report
                         </a>
                       )}
                       {fullDetail.baseline_study_url && (
                         <a href={fullDetail.baseline_study_url} target="_blank" rel="noopener noreferrer"
-                          className={`${CARD_SM} inline-flex items-center gap-2 px-4 py-2.5 text-[14px] font-bold text-[#0F172A] hover:bg-[#1B4D3E]/5 transition-colors`}>
+                          className={`${CARD_SM} inline-flex items-center gap-2 px-4 py-2.5 text-[14px] font-bold text-[#0F172A] dark:text-[#F5F5F5] hover:bg-[#1B4D3E]/5 transition-colors`}>
                           View Baseline Study
                         </a>
                       )}
                       {fullDetail.midline_report_url && (
                         <a href={fullDetail.midline_report_url} target="_blank" rel="noopener noreferrer"
-                          className={`${CARD_SM} inline-flex items-center gap-2 px-4 py-2.5 text-[14px] font-bold text-[#0F172A] hover:bg-[#1B4D3E]/5 transition-colors`}>
+                          className={`${CARD_SM} inline-flex items-center gap-2 px-4 py-2.5 text-[14px] font-bold text-[#0F172A] dark:text-[#F5F5F5] hover:bg-[#1B4D3E]/5 transition-colors`}>
                           View Midline Report
                         </a>
                       )}
@@ -1862,12 +2010,12 @@ function MarketplaceDetail({
                   <div className={`${CARD} p-8`}>
                     <div className="flex items-center gap-3 mb-4">
                       <ShieldCheck className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
-                      <p className="text-xl font-bold text-[#0F172A]">Team and Track Record</p>
+                      <p className="text-xl font-bold text-[#0F172A] dark:text-[#F5F5F5]">Team and Track Record</p>
                     </div>
                     {sections["Team and Track Record"] ? (
                       <VerbatimSection html={sections["Team and Track Record"]} />
                     ) : (
-                      <p className="text-[16px] text-[#0F172A] leading-relaxed">
+                      <p className="text-[16px] text-[#0F172A] dark:text-[#F5F5F5] leading-relaxed">
                         {fullDetail!.had_prior_experience ? "The team has led similar initiatives before." : "This is a first initiative of this type for the team."}
                         {fullDetail!.prior_experience_detail ? ` ${fullDetail!.prior_experience_detail}` : ""}
                       </p>
@@ -1877,26 +2025,26 @@ function MarketplaceDetail({
 
                 {initiativeOrgDd && (initiativeOrgDd.total_beneficiaries_reached || initiativeOrgDd.years_of_operation || initiativeOrgDd.grants_received_count) && (
                   <div className={`${CARD} p-8`}>
-                    <p className="text-xl font-bold text-[#0F172A] mb-5">Organization Track Record</p>
+                    <p className="text-xl font-bold text-[#0F172A] dark:text-[#F5F5F5] mb-5">Organization Track Record</p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
                       {initiativeOrgDd.total_beneficiaries_reached != null && (
-                        <div><p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">Beneficiaries Reached</p><p className="text-[15px] font-bold text-[#0F172A]">{initiativeOrgDd.total_beneficiaries_reached.toLocaleString()}</p></div>
+                        <div><p className="text-xs font-bold text-[#0F172A] dark:text-[#F5F5F5] uppercase tracking-wider mb-1">Beneficiaries Reached</p><p className="text-[15px] font-normal text-[#0F172A] dark:text-[#F5F5F5]">{initiativeOrgDd.total_beneficiaries_reached.toLocaleString()}</p></div>
                       )}
                       {initiativeOrgDd.years_of_operation != null && (
-                        <div><p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">Years Operating</p><p className="text-[15px] font-bold text-[#0F172A]">{initiativeOrgDd.years_of_operation}</p></div>
+                        <div><p className="text-xs font-bold text-[#0F172A] dark:text-[#F5F5F5] uppercase tracking-wider mb-1">Years Operating</p><p className="text-[15px] font-normal text-[#0F172A] dark:text-[#F5F5F5]">{initiativeOrgDd.years_of_operation}</p></div>
                       )}
                       {initiativeOrgDd.grants_received_count != null && (
-                        <div><p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">Grants Received</p><p className="text-[15px] font-bold text-[#0F172A]">{initiativeOrgDd.grants_received_count}</p></div>
+                        <div><p className="text-xs font-bold text-[#0F172A] dark:text-[#F5F5F5] uppercase tracking-wider mb-1">Grants Received</p><p className="text-[15px] font-normal text-[#0F172A] dark:text-[#F5F5F5]">{initiativeOrgDd.grants_received_count}</p></div>
                       )}
                       {initiativeOrgDd.grants_total_value_usd != null && (
-                        <div><p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">Total Grant Value</p><p className="text-[15px] font-bold text-[#0F172A]">${initiativeOrgDd.grants_total_value_usd.toLocaleString()}</p></div>
+                        <div><p className="text-xs font-bold text-[#0F172A] dark:text-[#F5F5F5] uppercase tracking-wider mb-1">Total Grant Value</p><p className="text-[15px] font-normal text-[#0F172A] dark:text-[#F5F5F5]">${initiativeOrgDd.grants_total_value_usd.toLocaleString()}</p></div>
                       )}
                       {initiativeOrgDd.grants_delivered_on_time_pct != null && (
-                        <div><p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">Delivered On Time</p><p className="text-[15px] font-bold text-[#0F172A]">{initiativeOrgDd.grants_delivered_on_time_pct}%</p></div>
+                        <div><p className="text-xs font-bold text-[#0F172A] dark:text-[#F5F5F5] uppercase tracking-wider mb-1">Delivered On Time</p><p className="text-[15px] font-normal text-[#0F172A] dark:text-[#F5F5F5]">{initiativeOrgDd.grants_delivered_on_time_pct}%</p></div>
                       )}
                     </div>
                     {initiativeOrgDd.previous_funders && initiativeOrgDd.previous_funders.length > 0 && (
-                      <p className="text-[15px] text-[#0F172A] mt-5"><span className="font-bold">Previous funders:</span> {initiativeOrgDd.previous_funders.join(", ")}</p>
+                      <p className="text-[15px] text-[#0F172A] dark:text-[#F5F5F5] mt-5"><span className="font-bold">Previous funders:</span> {initiativeOrgDd.previous_funders.join(", ")}</p>
                     )}
                   </div>
                 )}
@@ -1909,7 +2057,7 @@ function MarketplaceDetail({
                   <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-3">
                       <FileText className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
-                      <p className="text-xl font-bold text-[#0F172A]">Full Description</p>
+                      <p className="text-xl font-bold text-[#0F172A] dark:text-[#F5F5F5]">Full Description</p>
                     </div>
                     <button type="button" onClick={downloadPdf}
                       className="inline-flex items-center gap-2 text-[13px] font-bold px-4 py-2.5 rounded-lg text-white transition-opacity hover:opacity-90"
@@ -1921,7 +2069,7 @@ function MarketplaceDetail({
                   {fullDetail?.detail_content && fullDetail.detail_content !== "<p></p>" ? (
                     <VerbatimSection html={fullDetail.detail_content} />
                   ) : (
-                    <p className="text-[16px] text-[#0F172A]">No detailed description was provided for this initiative.</p>
+                    <p className="text-[16px] text-[#0F172A] dark:text-[#F5F5F5]">No detailed description was provided for this initiative.</p>
                   )}
                 </div>
               </div>
@@ -1930,22 +2078,22 @@ function MarketplaceDetail({
         );
       })()}
 
-      {/* Floating Deal Snapshot trigger -- takes no layout space until opened */}
+      {/* Floating Initiative Snapshot trigger -- takes no layout space until opened */}
       <button type="button" onClick={() => setDealSnapshotOpen(true)}
-        className="fixed right-0 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 bg-white rounded-l-xl px-2.5 py-4 hover:pr-4 transition-all z-20"
+        className="fixed right-0 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 bg-white dark:bg-[#1A1A1A] border border-r-0 border-[#E5E7EB] dark:border-[#262626] rounded-l-xl px-2.5 py-4 hover:pr-4 transition-all z-20"
         style={{ writingMode: "vertical-rl" as any, boxShadow: "0 1px 2px rgba(27,77,62,0.06), -8px 4px 20px -8px rgba(27,77,62,0.18)" }}>
         <LayoutGrid className="w-4 h-4 shrink-0" style={{ color: BURNT_ORANGE, writingMode: "horizontal-tb" as any }} />
-        <span className="text-[11px] font-bold uppercase tracking-wider text-[#0F172A]">Deal Snapshot</span>
+        <span className="text-[11px] font-bold uppercase tracking-wider text-[#0F172A] dark:text-[#F5F5F5]">Initiative Snapshot</span>
       </button>
 
       {dealSnapshotOpen && (
         <div className="fixed inset-0 z-40" onClick={() => setDealSnapshotOpen(false)} style={{ background: "rgba(27,77,62,0.15)" }} />
       )}
-      <div className={`fixed right-0 top-0 h-full w-full sm:w-[85%] md:w-[60%] lg:w-[460px] bg-white shadow-2xl flex flex-col z-50 transition-transform duration-300 ease-in-out ${dealSnapshotOpen ? "translate-x-0" : "translate-x-full"}`}>
+      <div className={`fixed right-0 top-0 h-full w-full sm:w-[85%] md:w-[60%] lg:w-[460px] bg-white dark:bg-[#1A1A1A] border-l border-[#E5E7EB] dark:border-[#262626] shadow-2xl flex flex-col z-50 transition-transform duration-300 ease-in-out ${dealSnapshotOpen ? "translate-x-0" : "translate-x-full"}`}>
         <div className="px-6 py-5 flex items-center justify-between shrink-0" style={{ boxShadow: "0 1px 0 rgba(27,77,62,0.08)" }}>
-          <p className="text-[17px] font-bold text-[#0F172A] flex items-center gap-2">
+          <p className="text-[17px] font-bold text-[#0F172A] dark:text-[#F5F5F5] flex items-center gap-2">
             <LayoutGrid className="w-4 h-4" style={{ color: BURNT_ORANGE }} />
-            Deal Snapshot
+            Initiative Snapshot
           </p>
           <button type="button" onClick={() => setDealSnapshotOpen(false)} className="p-1.5 rounded-full hover:bg-[#1B4D3E]/5 transition-colors">
             <X className="w-4 h-4" style={{ color: FOREST }} />
@@ -1954,32 +2102,73 @@ function MarketplaceDetail({
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
           <div className="grid grid-cols-2 gap-5">
             <div>
-              <p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">DD Readiness</p>
-              <p className="text-[15px] font-bold" style={{ color: initiativeDdScore != null ? FOREST : "#0F172A" }}>
+              <p className="text-xs font-bold text-[#0F172A] dark:text-[#F5F5F5] uppercase tracking-wider mb-1 flex items-center gap-1.5"><Award className="w-3.5 h-3.5" style={{ color: FOREST }} />DD Readiness</p>
+              <p className="text-[15px] font-normal" style={{ color: initiativeDdScore != null ? FOREST : "#0F172A" }}>
                 {initiativeDdScore != null ? `${initiativeDdScore}%${initiativeTrustTier ? ` (${initiativeTrustTier})` : ""}` : "—"}
               </p>
             </div>
-            <div><p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">Location</p><p className="text-[15px] font-bold text-[#0F172A]">{initiative.locations?.join(", ") || "—"}</p></div>
-            <div><p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">Budget</p><p className="text-[15px] font-bold text-[#0F172A]">{initiative.budget || "—"}</p></div>
-            <div><p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">Stage</p><p className="text-[15px] font-bold text-[#0F172A]">{fullDetail?.stage ? (STAGE_LABELS[fullDetail.stage]?.split(" — ")[0] ?? fullDetail.stage) : "—"}</p></div>
+            <div>
+              <p className="text-xs font-bold text-[#0F172A] dark:text-[#F5F5F5] uppercase tracking-wider mb-1 flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" style={{ color: FOREST }} />Location</p>
+              <p className="text-[15px] font-normal text-[#0F172A] dark:text-[#F5F5F5]">{initiative.locations?.join(", ") || "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs font-bold text-[#0F172A] dark:text-[#F5F5F5] uppercase tracking-wider mb-1 flex items-center gap-1.5"><Wallet className="w-3.5 h-3.5" style={{ color: FOREST }} />Budget</p>
+              <p className="text-[15px] font-normal text-[#0F172A] dark:text-[#F5F5F5]">{initiative.budget || "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs font-bold text-[#0F172A] dark:text-[#F5F5F5] uppercase tracking-wider mb-1 flex items-center gap-1.5"><Flag className="w-3.5 h-3.5" style={{ color: FOREST }} />Stage</p>
+              <p className="text-[15px] font-normal text-[#0F172A] dark:text-[#F5F5F5]">{fullDetail?.stage ? (STAGE_LABELS[fullDetail.stage]?.split(" — ")[0] ?? fullDetail.stage) : "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs font-bold text-[#0F172A] dark:text-[#F5F5F5] uppercase tracking-wider mb-1 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" style={{ color: FOREST }} />Duration</p>
+              <p className="text-[15px] font-normal text-[#0F172A] dark:text-[#F5F5F5]">{fullDetail?.duration || "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs font-bold text-[#0F172A] dark:text-[#F5F5F5] uppercase tracking-wider mb-1 flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" style={{ color: FOREST }} />Est. Start</p>
+              <p className="text-[15px] font-normal text-[#0F172A] dark:text-[#F5F5F5]">{fullDetail?.start_date || "—"}</p>
+            </div>
           </div>
 
-          {(isFunder || isCorporate) && (
-            <div className="space-y-2">
-              {isFunder && (
-                <button type="button" onClick={generateDealMemo} disabled={loadingMemo}
-                  className={`w-full flex items-center justify-between gap-2 ${CARD_SM} px-4 py-3 text-[14px] font-bold text-[#0F172A] hover:bg-[#1B4D3E]/5 transition-colors disabled:opacity-50`}>
-                  <span className="flex items-center gap-2"><FileText className="w-4 h-4" style={{ color: FOREST }} />Generate Deal Memo</span>
-                  {loadingMemo && <Loader2 className="w-4 h-4 animate-spin" style={{ color: FOREST }} />}
-                </button>
-              )}
-              {isCorporate && (
-                <button type="button" onClick={generateCsrBrief} disabled={loadingCsr}
-                  className={`w-full flex items-center justify-between gap-2 ${CARD_SM} px-4 py-3 text-[14px] font-bold text-[#0F172A] hover:bg-[#1B4D3E]/5 transition-colors disabled:opacity-50`}>
-                  <span className="flex items-center gap-2"><FileText className="w-4 h-4" style={{ color: FOREST }} />Generate CSR Brief</span>
-                  {loadingCsr && <Loader2 className="w-4 h-4 animate-spin" style={{ color: FOREST }} />}
-                </button>
-              )}
+          {initiative.partnerships && initiative.partnerships.length > 0 && (
+            <div>
+              <p className="text-xs font-bold text-[#0F172A] dark:text-[#F5F5F5] uppercase tracking-wider mb-2">Partnerships Sought</p>
+              <div className="flex flex-wrap gap-1.5">
+                {initiative.partnerships.map(p => (
+                  <span key={p} className={`${CARD_SM} inline-flex items-center gap-1 text-[12px] font-normal px-2.5 py-1 text-[#0F172A] dark:text-[#F5F5F5] capitalize`}>
+                    <Check className="w-3 h-3" style={{ color: FOREST }} />
+                    {PARTNERSHIP_OPTIONS.find(o => o.value === p)?.label ?? p}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {(sdgItems || (fullDetail?.sdg_tags && fullDetail.sdg_tags.length > 0)) && (
+            <div>
+              <p className="text-xs font-bold text-[#0F172A] dark:text-[#F5F5F5] uppercase tracking-wider mb-2">SDG Alignment</p>
+              <div className="flex flex-wrap gap-1.5">
+                {sdgItems
+                  ? sdgItems.map((item, i) => (
+                      <span key={i} className="text-[12px] font-normal px-2.5 py-1 rounded-full" style={{ background: `${item.color}1A`, color: item.color }}>
+                        {(item.text.match(/SDG\s*\d+/i)?.[0]) ?? item.text}
+                      </span>
+                    ))
+                  : fullDetail!.sdg_tags!.map((s, i) => (
+                      <span key={s} className="text-[12px] font-normal px-2.5 py-1 rounded-full" style={{ background: `${SDG_CARD_PALETTE[i % SDG_CARD_PALETTE.length]}1A`, color: SDG_CARD_PALETTE[i % SDG_CARD_PALETTE.length] }}>
+                        {s}
+                      </span>
+                    ))}
+              </div>
+            </div>
+          )}
+
+          {initiative.esg_alignment && (
+            <div className={`${CARD_SM} p-4`}>
+              <div className="flex items-center gap-2 mb-1">
+                <Leaf className="w-4 h-4 shrink-0" style={{ color: "#2e7d32" }} />
+                <p className="text-[14px] font-bold text-[#0F172A] dark:text-[#F5F5F5]">Corporate ESG/CSR Anchor</p>
+              </div>
+              <p className="text-[13px] font-normal text-[#0F172A] dark:text-[#F5F5F5]">Open to corporate adoption as an anchor program for ESG &amp; CSR portfolios.</p>
             </div>
           )}
 
@@ -1994,7 +2183,7 @@ function MarketplaceDetail({
                 </button>
               ) : (
                 <div className={`${CARD_SM} p-4 space-y-2`}>
-                  <p className="text-[13px] font-bold text-[#0F172A]">Your question</p>
+                  <p className="text-[13px] font-bold text-[#0F172A] dark:text-[#F5F5F5]">Your question</p>
                   <textarea
                     value={question}
                     onChange={e => setQuestion(e.target.value)}
@@ -2025,20 +2214,6 @@ function MarketplaceDetail({
               Question sent. The initiative lead will respond in Messages.
             </div>
           )}
-
-          {isOwnInitiative ? (
-            <div className="w-full rounded-xl py-4 flex items-center justify-center text-[14px] font-bold" style={{ background: "rgba(27,77,62,0.06)", color: FOREST }}>
-              Your initiative
-            </div>
-          ) : (
-            <button type="button"
-              onClick={() => { if (!alreadyExpressed) setEoiOpen(true); }}
-              disabled={alreadyExpressed}
-              className={`w-full py-4 rounded-xl font-bold shadow-lg transition-all ${alreadyExpressed ? "cursor-not-allowed" : "text-white"}`}
-              style={alreadyExpressed ? { background: "rgba(27,77,62,0.08)", color: "rgba(27,77,62,0.5)" } : { background: BURNT_ORANGE }}>
-              {alreadyExpressed ? "Interest Expressed" : "Express Interest"}
-            </button>
-          )}
         </div>
       </div>
 
@@ -2058,7 +2233,7 @@ function MarketplaceDetail({
           </div>
         ) : dealMemo ? (
           <div className="space-y-4">
-            <p className="text-[15px] font-medium text-[#0F172A] leading-relaxed">{dealMemo.headline}</p>
+            <p className="text-[15px] font-medium text-[#0F172A] dark:text-[#F5F5F5] leading-relaxed">{dealMemo.headline}</p>
             {[
               { label: "Problem validity", value: dealMemo.problem_validity },
               { label: "Solution fit", value: dealMemo.solution_fit },
@@ -2067,16 +2242,16 @@ function MarketplaceDetail({
               { label: "Mandate alignment", value: dealMemo.mandate_alignment },
             ].map(section => (
               <div key={section.label} className="space-y-1">
-                <p className="text-[13px] font-bold uppercase tracking-wider text-[#0F172A]">{section.label}</p>
-                <p className="text-[15px] text-[#0F172A] leading-relaxed">{section.value}</p>
+                <p className="text-[13px] font-bold uppercase tracking-wider text-[#0F172A] dark:text-[#F5F5F5]">{section.label}</p>
+                <p className="text-[15px] text-[#0F172A] dark:text-[#F5F5F5] leading-relaxed">{section.value}</p>
               </div>
             ))}
             {dealMemo.risk_flags?.length > 0 && (
               <div className="space-y-1">
-                <p className="text-[13px] font-bold uppercase tracking-wider text-[#0F172A]">Risk flags</p>
+                <p className="text-[13px] font-bold uppercase tracking-wider text-[#0F172A] dark:text-[#F5F5F5]">Risk flags</p>
                 <ul className="space-y-1">
                   {dealMemo.risk_flags.map((flag: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2 text-[15px] text-[#0F172A]">
+                    <li key={i} className="flex items-start gap-2 text-[15px] text-[#0F172A] dark:text-[#F5F5F5]">
                       <span className="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5" style={{ background: BURNT_ORANGE }} />
                       {flag}
                     </li>
@@ -2096,7 +2271,7 @@ function MarketplaceDetail({
                     Recommended: {dealMemo.recommended_action}
                   </p>
                 </div>
-                <p className="text-[13px] text-[#0F172A] pl-6">{dealMemo.recommended_action_reason}</p>
+                <p className="text-[13px] text-[#0F172A] dark:text-[#F5F5F5] pl-6">{dealMemo.recommended_action_reason}</p>
               </div>
             )}
             <button type="button" onClick={generateDealMemo} className="text-[13px] font-semibold flex items-center gap-1 transition-colors" style={{ color: FOREST }}>
@@ -2105,7 +2280,7 @@ function MarketplaceDetail({
           </div>
         ) : memoRequiresUpgrade ? (
           <div className="text-center py-4">
-            <p className="text-[15px] font-medium text-[#0F172A] mb-1">AI deal memos need an upgrade.</p>
+            <p className="text-[15px] font-medium text-[#0F172A] dark:text-[#F5F5F5] mb-1">AI deal memos need an upgrade.</p>
             <p className="text-[13px] mb-3" style={{ color: FOREST }}>Upgrade to see a full AI-generated deal memo for this initiative.</p>
             <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
               className="text-[13px] font-bold text-white rounded-full px-4 py-1.5 transition-opacity hover:opacity-90" style={{ background: FOREST }}>
@@ -2133,7 +2308,7 @@ function MarketplaceDetail({
           </div>
         ) : csrBrief ? (
           <div className="space-y-4">
-            <p className="text-[15px] font-medium text-[#0F172A] leading-relaxed">{csrBrief.headline}</p>
+            <p className="text-[15px] font-medium text-[#0F172A] dark:text-[#F5F5F5] leading-relaxed">{csrBrief.headline}</p>
             {[
               { label: "SDG alignment", value: csrBrief.sdg_alignment },
               { label: "Local content", value: csrBrief.local_content },
@@ -2144,16 +2319,16 @@ function MarketplaceDetail({
               { label: "Implementer readiness", value: csrBrief.implementer_readiness },
             ].map(section => (
               <div key={section.label} className="space-y-1">
-                <p className="text-[13px] font-bold uppercase tracking-wider text-[#0F172A]">{section.label}</p>
-                <p className="text-[15px] text-[#0F172A] leading-relaxed">{section.value}</p>
+                <p className="text-[13px] font-bold uppercase tracking-wider text-[#0F172A] dark:text-[#F5F5F5]">{section.label}</p>
+                <p className="text-[15px] text-[#0F172A] dark:text-[#F5F5F5] leading-relaxed">{section.value}</p>
               </div>
             ))}
             {csrBrief.risk_flags?.length > 0 && (
               <div className="space-y-1">
-                <p className="text-[13px] font-bold uppercase tracking-wider text-[#0F172A]">Risk flags</p>
+                <p className="text-[13px] font-bold uppercase tracking-wider text-[#0F172A] dark:text-[#F5F5F5]">Risk flags</p>
                 <ul className="space-y-1">
                   {csrBrief.risk_flags.map((flag: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2 text-[15px] text-[#0F172A]">
+                    <li key={i} className="flex items-start gap-2 text-[15px] text-[#0F172A] dark:text-[#F5F5F5]">
                       <span className="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5" style={{ background: BURNT_ORANGE }} />
                       {flag}
                     </li>
@@ -2173,7 +2348,7 @@ function MarketplaceDetail({
                     Recommended: {csrBrief.recommended_action}
                   </p>
                 </div>
-                <p className="text-[13px] text-[#0F172A] pl-6">{csrBrief.recommended_action_reason}</p>
+                <p className="text-[13px] text-[#0F172A] dark:text-[#F5F5F5] pl-6">{csrBrief.recommended_action_reason}</p>
               </div>
             )}
             <button type="button" onClick={generateCsrBrief} className="text-[13px] font-semibold flex items-center gap-1 transition-colors" style={{ color: FOREST }}>
@@ -2182,7 +2357,7 @@ function MarketplaceDetail({
           </div>
         ) : csrRequiresUpgrade ? (
           <div className="text-center py-4">
-            <p className="text-[15px] font-medium text-[#0F172A] mb-1">AI CSR briefs need an upgrade.</p>
+            <p className="text-[15px] font-medium text-[#0F172A] dark:text-[#F5F5F5] mb-1">AI CSR briefs need an upgrade.</p>
             <p className="text-[13px] mb-3" style={{ color: FOREST }}>Upgrade to see a full AI-generated CSR adoption brief for this initiative.</p>
             <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
               className="text-[13px] font-bold text-white rounded-full px-4 py-1.5 transition-opacity hover:opacity-90" style={{ background: FOREST }}>
