@@ -1,10 +1,13 @@
 // ─── DashboardNatives.tsx ─────────────────────────────────────────────────────
-import { useEffect, useState } from "react";
-import { impactScoreForSort, canDisplayImpactScore, canDisplayImpactScoreForOrg, tierForScore, displayImpactScore, IMPACT_SCORE_TIER_STYLES } from "@/lib/impactScore";
+import { useEffect, useMemo, useState } from "react";
+import { impactScoreForSort, canDisplayImpactScoreForOrg, tierForScore, displayImpactScore, IMPACT_SCORE_TIER_STYLES } from "@/lib/impactScore";
 import { supabase } from "@/lib/supabase";
 import { fetchLatestListingMirror, EMPTY_LISTING_MIRROR } from "@/lib/listingMirror";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2, Search, Users, Sparkles, RefreshCw, Trophy } from "lucide-react";
+import {
+  Loader2, Search, Users, Sparkles, RefreshCw, Trophy, X, ExternalLink,
+  Link as LinkIcon, Mail, Globe, MapPin, Layers, ChevronRight,
+} from "lucide-react";
 import { UserAvatar, avatarColor, initials } from "@/components/ui/UserAvatar";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { TrustBadge } from "@/components/ui/TrustBadge";
@@ -105,7 +108,27 @@ interface OrgRow {
   impact_strategy?: string | null;
 }
 
-type Tab = "individual" | "organisation";
+type EntityType = "organisation" | "individual";
+type FilterTab = "all" | EntityType;
+type DrawerTab = "overview" | "initiatives" | "strategy";
+
+/** Unified shape used to render the 3-column list, regardless of underlying table. */
+interface EcosystemEntity {
+  entityType: EntityType;
+  id: string;
+  userId: string;
+  name: string;
+  subtitle?: string;
+  description?: string;
+  sectors: string[];
+  countries: string[];
+  verified: boolean;
+  impactScore?: number;
+  canShowImpactScore: boolean;
+  logoUrl?: string | null;
+  org?: OrgRow;
+  profile?: ProfileRow;
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -146,12 +169,68 @@ function partnerRolePhrase(value: string): string {
   const label = PARTNER_ROLE_LABELS[value] ?? value;
   return label === "Project Lead" ? label : `${label} partner`;
 }
+
+// Deterministic soft-color badge for arbitrary sector/country strings, in the
+// spirit of the mockup's hardcoded per-value badge colors.
+const BADGE_PALETTE = [
+  { bg: "bg-emerald-50", text: "text-emerald-800", border: "border-emerald-200" },
+  { bg: "bg-indigo-50", text: "text-indigo-800", border: "border-indigo-200" },
+  { bg: "bg-blue-50", text: "text-blue-800", border: "border-blue-200" },
+  { bg: "bg-amber-50", text: "text-amber-800", border: "border-amber-200" },
+  { bg: "bg-purple-50", text: "text-purple-800", border: "border-purple-200" },
+  { bg: "bg-teal-50", text: "text-teal-800", border: "border-teal-200" },
+  { bg: "bg-rose-50", text: "text-rose-800", border: "border-rose-200" },
+  { bg: "bg-sky-50", text: "text-sky-800", border: "border-sky-200" },
+];
+function badgeStyleFor(value: string): { bg: string; text: string; border: string } {
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  return BADGE_PALETTE[hash % BADGE_PALETTE.length];
+}
+
+function toOrgEntity(org: OrgRow): EcosystemEntity {
+  return {
+    entityType: "organisation",
+    id: org.id,
+    userId: org.user_id,
+    name: org.organisation_name,
+    subtitle: org.organisation_type ? org.organisation_type.replace(/_/g, " ") : undefined,
+    description: org.description,
+    sectors: normalizeArr(org.sector),
+    countries: normalizeArr(org.country),
+    verified: org.verification_status === "verified",
+    impactScore: org.impact_score,
+    canShowImpactScore: canDisplayImpactScoreForOrg(org.subscription_tier, org.show_impact_score),
+    logoUrl: org.logo_url,
+    org,
+  };
+}
+function toIndividualEntity(p: ProfileRow): EcosystemEntity {
+  return {
+    entityType: "individual",
+    id: p.id,
+    userId: p.id,
+    name: p.full_name,
+    subtitle: p.role_title,
+    description: p.bio,
+    sectors: p.sectors ?? [],
+    countries: p.country ? [p.country] : [],
+    // NOTE: profiles has no verification concept in the current schema.
+    // Wire this up to a real column if/when individuals can be verified.
+    verified: false,
+    canShowImpactScore: false,
+    logoUrl: p.avatar_url,
+    profile: p,
+  };
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function DashboardNatives() {
-  const [tab, setTab] = useState<Tab>(() => {
+  const [filterTab, setFilterTab] = useState<FilterTab>(() => {
     const params = new URLSearchParams(window.location.search);
-    return (params.get("tab") as Tab) ?? "organisation";
+    const t = params.get("tab");
+    return t === "organisation" || t === "individual" ? t : "all";
   });
   const [search, setSearch] = useState("");
   const [sectorFilter, setSectorFilter] = useState("");
@@ -159,183 +238,88 @@ export default function DashboardNatives() {
   const [orgTypeFilter, setOrgTypeFilter] = useState("");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [sortMode, setSortMode] = useState("");
+
+  const [orgs, setOrgs] = useState<OrgRow[]>([]);
+  const [profiles, setProfiles] = useState<ProfileRow[]>([]);
+  const [loadingOrgs, setLoadingOrgs] = useState(true);
+  const [loadingProfiles, setLoadingProfiles] = useState(true);
+
+  const [selected, setSelected] = useState<EcosystemEntity | null>(null);
+  const drawerOpen = !!selected;
+
   const [autoOpenUserId, setAutoOpenUserId] = useState<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("user");
   });
-  const [detailOpen, setDetailOpen] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return !!params.get("user");
-  });
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const userId = params.get("user");
-    if (!userId) return;
-    supabase
-      .from("profiles")
-      .select("user_type")
-      .eq("id", userId)
-      .single()
-      .then(({ data }) => {
-        if (data?.user_type === "organisation") setTab("organisation");
-      });
-  }, []);
-
-  return (
-    <div className="space-y-6">
-      {!detailOpen && (
-        <>
-          <div className="flex gap-1 p-1 rounded-xl bg-muted w-fit">
-            {(["organisation", "individual"] as const).map(t => (
-              <button key={t} type="button"
-                onClick={() => { setTab(t); setSearch(""); }}
-                className={`px-5 py-2 rounded-lg text-[15px] font-semibold transition-all ${
-                  tab === t
-                    ? "text-white shadow-sm bg-gradient-to-br from-[#3D2618] via-[#33301F] to-[#1B3328]"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}>
-                {t === "individual" ? "Individuals" : "Organisations"}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input type="text"
-                placeholder={tab === "individual" ? "Search people..." : "Search organisations..."}
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="h-9 w-52 pl-9 pr-3 rounded-lg border border-border bg-background text-[15px] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
-            </div>
-
-            <select value={sectorFilter} onChange={e => setSectorFilter(e.target.value)}
-              className="h-9 px-2 rounded-lg border border-border bg-background text-[15px] text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
-              <option value="">Sector</option>
-              {SECTOR_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-
-            <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)}
-              className="h-9 px-2 rounded-lg border border-border bg-background text-[15px] text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
-              <option value="">Country</option>
-              {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-
-            {tab === "organisation" && (
-              <select value={orgTypeFilter} onChange={e => setOrgTypeFilter(e.target.value)}
-                className="h-9 px-2 rounded-lg border border-border bg-background text-[15px] text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
-                <option value="">Type</option>
-                <option value="ngo_non_profit">NGO / Non-Profit</option>
-                <option value="social_enterprise">Social Enterprise</option>
-                <option value="startup">Startup</option>
-                <option value="technology_company">Technology Company</option>
-                <option value="corporation">Corporation</option>
-                <option value="philanthropic_foundation">Philanthropic Foundation</option>
-                <option value="venture_capital">Venture Capital</option>
-                <option value="creative_agency_studio">Creative Agency / Studio</option>
-                <option value="public_sector">Public Sector</option>
-                <option value="research_academic">Research & Academic</option>
-                <option value="consultancy">Consultancy</option>
-              </select>
-            )}
-
-            {tab === "organisation" && (
-              <button type="button"
-                onClick={() => setVerifiedOnly(v => !v)}
-                className={`h-9 px-3 rounded-lg border text-[15px] font-medium transition-colors flex items-center gap-1.5 ${
-                  verifiedOnly
-                    ? "border-[#2D6A4F] bg-[#2D6A4F] text-white"
-                    : "border-border text-muted-foreground hover:text-foreground"
-                }`}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                </svg>
-                Verified
-              </button>
-            )}
-
-            {tab === "organisation" && (
-              <select value={sortMode} onChange={e => setSortMode(e.target.value)}
-                className="h-9 px-2 rounded-lg border border-border bg-background text-[15px] text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-[#452A1D]/30 focus:border-[#452A1D]/50 transition-colors">
-                <option value="">Sort: Verified first</option>
-                <option value="impact_score">Sort: Impact Score</option>
-              </select>
-            )}
-
-            {(sectorFilter || countryFilter || orgTypeFilter || verifiedOnly || sortMode) && (
-              <button type="button"
-                onClick={() => { setSectorFilter(""); setCountryFilter(""); setOrgTypeFilter(""); setVerifiedOnly(false); setSortMode(""); }}
-                className="h-9 px-3 rounded-lg border border-border text-[15px] text-muted-foreground hover:text-foreground transition-colors">
-                ✕ Clear
-              </button>
-            )}
-          </div>
-        </>
-      )}
-
-      {tab === "individual"
-        ? <IndividualsPanel search={search} sectorFilter={sectorFilter} countryFilter={countryFilter} autoOpenUserId={autoOpenUserId} onAutoOpened={() => setAutoOpenUserId(null)} onSelectionChange={setDetailOpen} />
-        : <OrgsPanel search={search} sectorFilter={sectorFilter} countryFilter={countryFilter} orgTypeFilter={orgTypeFilter} verifiedOnly={verifiedOnly} sortMode={sortMode} autoOpenUserId={autoOpenUserId} onAutoOpened={() => setAutoOpenUserId(null)} onSelectionChange={setDetailOpen} />}
-    </div>
-  );
-}
-
-// ── Individuals Panel ─────────────────────────────────────────────────────────
-
-function IndividualsPanel({ search, sectorFilter, countryFilter, autoOpenUserId, onAutoOpened, onSelectionChange }: {
-  search: string;
-  sectorFilter: string;
-  countryFilter: string;
-  autoOpenUserId?: string | null;
-  onAutoOpened?: () => void;
-  onSelectionChange?: (open: boolean) => void;
-}) {
-  const [profiles, setProfiles] = useState<ProfileRow[]>([]);
-  const [loading, setLoading]   = useState(true);
   const [directLoading, setDirectLoading] = useState(!!autoOpenUserId);
-  const [selected, setSelected] = useState<ProfileRow | null>(null);
-  useEffect(() => {
-    // Same guard as OrgsPanel: while the direct single-profile fetch is
-    // still in flight, don't let this effect's initial "selected is null"
-    // state stomp the parent's URL-seeded detailOpen=true back to false.
-    if (directLoading) return;
-    onSelectionChange?.(!!selected);
-  }, [selected, directLoading]);
-  // Deep link into a single profile: fetch just that one row instead of
-  // waiting on the full profiles directory load below. Mirrors the fix
-  // applied to OrgsPanel.
+
+  // Deep link: open one entity's drawer directly without waiting on the
+  // full directory load. Figures out which table it lives in first.
   useEffect(() => {
     if (!autoOpenUserId) return;
     async function loadOne() {
       const { data: profileRow } = await supabase
-        .from("profiles")
-        .select("id,full_name,role_title,country,sectors,bio,avatar_url,linkedin_url,website,user_type,social_links,org_name,show_individual_profile")
-        .eq("id", autoOpenUserId)
-        .not("full_name", "is", null)
-        .or("user_type.eq.individual_creative,user_type.is.null,show_individual_profile.eq.true")
-        .single();
-      if (profileRow) {
-        // Team Members never get an individual detail view -- same
-        // exclusion rule as the full-list load below.
-        const { data: membership } = await supabase
-          .from("org_members")
-          .select("user_id")
-          .eq("user_id", autoOpenUserId)
-          .eq("status", "active")
-          .maybeSingle();
-        if (!membership) {
-          setSelected(profileRow as ProfileRow);
-          onAutoOpened?.();
+        .from("profiles").select("user_type").eq("id", autoOpenUserId).maybeSingle();
+
+      if (profileRow?.user_type === "organisation") {
+        setFilterTab("organisation");
+        const [{ data: orgRow }, { data: contactProfile }] = await Promise.all([
+          supabase.from("organizations").select(ORG_SELECT).eq("user_id", autoOpenUserId).eq("status", "published").single(),
+          supabase.from("profiles").select("full_name").eq("id", autoOpenUserId).single(),
+        ]);
+        if (orgRow) {
+          const mirrorMap = await fetchLatestListingMirror([autoOpenUserId!]);
+          const full: OrgRow = { ...orgRow, ...(mirrorMap.get(autoOpenUserId!) ?? EMPTY_LISTING_MIRROR), contact_name: contactProfile?.full_name };
+          setSelected(toOrgEntity(full));
+        }
+      } else {
+        const { data: fullProfile } = await supabase
+          .from("profiles")
+          .select("id,full_name,role_title,country,sectors,bio,avatar_url,linkedin_url,website,user_type,social_links,org_name,show_individual_profile")
+          .eq("id", autoOpenUserId)
+          .not("full_name", "is", null)
+          .or("user_type.eq.individual_creative,user_type.is.null,show_individual_profile.eq.true")
+          .single();
+        if (fullProfile) {
+          const { data: membership } = await supabase
+            .from("org_members").select("user_id").eq("user_id", autoOpenUserId).eq("status", "active").maybeSingle();
+          if (!membership) setSelected(toIndividualEntity(fullProfile as ProfileRow));
         }
       }
       setDirectLoading(false);
     }
     loadOne();
   }, [autoOpenUserId]);
+
+  // Full directory load.
   useEffect(() => {
-    async function load() {
-      setLoading(true);
+    async function loadOrgs() {
+      setLoadingOrgs(true);
+      const { data: orgData, error } = await supabase
+        .from("organizations")
+        .select(ORG_SELECT)
+        .eq("status", "published")
+        .order("organisation_name", { ascending: true });
+      if (error) { console.error(error); setLoadingOrgs(false); return; }
+      if (!orgData || orgData.length === 0) { setOrgs([]); setLoadingOrgs(false); return; }
+
+      const userIds = [...new Set(orgData.map((o: any) => o.user_id).filter(Boolean))];
+      const [{ data: profileData }, mirrorMap] = await Promise.all([
+        supabase.from("profiles").select("id,full_name").in("id", userIds),
+        fetchLatestListingMirror(userIds),
+      ]);
+      const profileMap = new Map((profileData ?? []).map((p: any) => [p.id, p]));
+
+      const enriched: OrgRow[] = orgData.map((o: any) => ({
+        ...o,
+        ...(mirrorMap.get(o.user_id) ?? EMPTY_LISTING_MIRROR),
+        contact_name: profileMap.get(o.user_id)?.full_name,
+      }));
+      setOrgs(enriched);
+      setLoadingOrgs(false);
+    }
+    async function loadProfiles() {
+      setLoadingProfiles(true);
       const { data, error } = await supabase
         .from("profiles")
         .select("id,full_name,role_title,country,sectors,bio,avatar_url,linkedin_url,website,user_type,social_links,org_name,show_individual_profile")
@@ -345,424 +329,406 @@ function IndividualsPanel({ search, sectorFilter, countryFilter, autoOpenUserId,
       if (error) console.error(error);
       const allRows: ProfileRow[] = data ?? [];
 
-      // Team Members never appear as "Individuals" here -- once someone
-      // represents an org (an active org_members row), their public
-      // presence is through that org's own listing, not a personal one.
-      // Prevents a Member unilaterally showing up "tagged with your
-      // organisation" without the Owner's sign-off. org_members.user_id
-      // has no FK to profiles (see TeamTab.tsx), so this is a separate
-      // query, not something the .or() above can express.
-      const individualIds = allRows
-        .filter(p => p.user_type === "individual_creative" || !p.user_type)
-        .map(p => p.id);
+      // Team Members never appear as "Individuals" -- their public presence
+      // is through their org's listing, not a personal one.
+      const individualIds = allRows.filter(p => p.user_type === "individual_creative" || !p.user_type).map(p => p.id);
       let memberUserIds = new Set<string>();
       if (individualIds.length > 0) {
         const { data: memberships } = await supabase
-          .from("org_members")
-          .select("user_id")
-          .in("user_id", individualIds)
-          .eq("status", "active");
+          .from("org_members").select("user_id").in("user_id", individualIds).eq("status", "active");
         memberUserIds = new Set((memberships ?? []).map((m: any) => m.user_id));
       }
-
-      const rows = allRows.filter(p => !memberUserIds.has(p.id));
-      setProfiles(rows);
-      setLoading(false);
+      setProfiles(allRows.filter(p => !memberUserIds.has(p.id)));
+      setLoadingProfiles(false);
     }
-    load();
+    loadOrgs();
+    loadProfiles();
   }, []);
 
-  const filtered = profiles.filter(p => {
-    if (sectorFilter && !p.sectors?.includes(sectorFilter)) return false;
-    if (countryFilter && p.country !== countryFilter) return false;
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      p.full_name?.toLowerCase().includes(q) ||
-      p.role_title?.toLowerCase().includes(q) ||
-      p.country?.toLowerCase().includes(q) ||
-      p.bio?.toLowerCase().includes(q)
-    );
-  });
+  // Serious-severity flagged orgs are withheld from the public directory
+  // until resolved, same rule as before.
+  const visibleOrgs = useMemo(() => orgs.filter(o => !o.flagged_visibility_hold), [orgs]);
 
-  if (directLoading) return <LoadingSpinner />;
-  if (selected) return <ProfileDetail profile={selected} onBack={() => setSelected(null)} />;
-  if (loading) return <LoadingSpinner />;
-  if (filtered.length === 0) return (
-    <EmptyState
-      icon={<Users className="w-8 h-8 text-muted-foreground/40" />}
-      title={profiles.length === 0 ? "No profiles yet." : "No results."}
-      subtitle={profiles.length === 0 ? "Profiles will appear here as people join." : "Try a different search term."} />
+  const allEntities = useMemo<EcosystemEntity[]>(
+    () => [...visibleOrgs.map(toOrgEntity), ...profiles.map(toIndividualEntity)],
+    [visibleOrgs, profiles]
   );
 
+  const countAll = allEntities.length;
+  const countOrg = visibleOrgs.length;
+  const countIndividual = profiles.length;
+
+  const filtered = allEntities.filter(e => {
+    if (filterTab === "organisation" && e.entityType !== "organisation") return false;
+    if (filterTab === "individual" && e.entityType !== "individual") return false;
+    if (sectorFilter && !e.sectors.includes(sectorFilter)) return false;
+    if (countryFilter && !e.countries.includes(countryFilter)) return false;
+    if (orgTypeFilter && e.entityType === "organisation" && e.org?.organisation_type !== orgTypeFilter) return false;
+    if (verifiedOnly && !e.verified) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const hay = [e.name, e.subtitle, e.description, ...e.sectors, ...e.countries].filter(Boolean).join(" ").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortMode === "impact_score") {
+      const aScore = a.entityType === "organisation" ? impactScoreForSort(a.org!.impact_score ?? 0, a.org!.subscription_tier, a.org!.show_impact_score) : -1;
+      const bScore = b.entityType === "organisation" ? impactScoreForSort(b.org!.impact_score ?? 0, b.org!.subscription_tier, b.org!.show_impact_score) : -1;
+      if (aScore !== bScore) return bScore - aScore;
+      return a.name.localeCompare(b.name);
+    }
+    const aV = a.verified ? 0 : 1;
+    const bV = b.verified ? 0 : 1;
+    if (aV !== bV) return aV - bV;
+    return a.name.localeCompare(b.name);
+  });
+
+  const loading = loadingOrgs || loadingProfiles;
+
+  if (directLoading) return <LoadingSpinner />;
+
   return (
-    <div className="grid grid-cols-1 gap-4">
-      {filtered.map(p => <ProfileCard key={p.id} profile={p} onClick={() => setSelected(p)} />)}
+    <div className="space-y-6 relative">
+      {/* Entity Type Tabs */}
+      <div className="flex items-center gap-1 p-1 rounded-xl bg-muted w-fit text-[13px] font-semibold">
+        {([
+          { key: "all", label: "All Ecosystem", count: countAll },
+          { key: "organisation", label: "Organisations", count: countOrg },
+          { key: "individual", label: "Individuals", count: countIndividual },
+        ] as const).map(t => (
+          <button key={t.key} type="button" onClick={() => setFilterTab(t.key)}
+            className={`px-4 py-2 rounded-lg transition-all flex items-center gap-2 ${
+              filterTab === t.key
+                ? "bg-white dark:bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}>
+            <span>{t.label}</span>
+            <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${filterTab === t.key ? "bg-slate-200 text-charcoal" : "bg-white/60 dark:bg-black/20"}`}>
+              {t.count}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Filter Toolbar */}
+      <div className="bg-white dark:bg-card p-3 rounded-2xl border border-border flex flex-wrap items-center gap-3 shadow-xs">
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <input type="text" placeholder="Search organisations or individuals..."
+            value={search} onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-card border border-border rounded-xl text-[13px] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors" />
+        </div>
+
+        <select value={sectorFilter} onChange={e => setSectorFilter(e.target.value)}
+          className="h-9 px-2 rounded-xl border border-border bg-background text-[13px] font-semibold focus:outline-none">
+          <option value="">Sector</option>
+          {SECTOR_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+
+        <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)}
+          className="h-9 px-2 rounded-xl border border-border bg-background text-[13px] font-semibold focus:outline-none">
+          <option value="">Country</option>
+          {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+
+        {filterTab !== "individual" && (
+          <select value={orgTypeFilter} onChange={e => setOrgTypeFilter(e.target.value)}
+            className="h-9 px-2 rounded-xl border border-border bg-background text-[13px] font-semibold focus:outline-none">
+            <option value="">Type</option>
+            <option value="ngo_non_profit">NGO / Non-Profit</option>
+            <option value="social_enterprise">Social Enterprise</option>
+            <option value="startup">Startup</option>
+            <option value="technology_company">Technology Company</option>
+            <option value="corporation">Corporation</option>
+            <option value="philanthropic_foundation">Philanthropic Foundation</option>
+            <option value="venture_capital">Venture Capital</option>
+            <option value="creative_agency_studio">Creative Agency / Studio</option>
+            <option value="public_sector">Public Sector</option>
+            <option value="research_academic">Research & Academic</option>
+            <option value="consultancy">Consultancy</option>
+          </select>
+        )}
+
+        <label className="flex items-center gap-2 h-9 px-3 rounded-xl border border-border cursor-pointer hover:bg-muted/50 transition-colors">
+          <input type="checkbox" checked={verifiedOnly} onChange={e => setVerifiedOnly(e.target.checked)}
+            className="rounded border-border text-[#2D6A4F] focus:ring-0 w-3.5 h-3.5" />
+          <span className="text-[13px] font-semibold flex items-center gap-1">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-emerald-600">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            Verified
+          </span>
+        </label>
+
+        {filterTab !== "individual" && (
+          <select value={sortMode} onChange={e => setSortMode(e.target.value)}
+            className="h-9 px-2 rounded-xl border border-border bg-background text-[13px] font-semibold focus:outline-none">
+            <option value="">Sort: Verified first</option>
+            <option value="impact_score">Sort: Impact Score</option>
+          </select>
+        )}
+
+        {(sectorFilter || countryFilter || orgTypeFilter || verifiedOnly || sortMode || search) && (
+          <button type="button"
+            onClick={() => { setSectorFilter(""); setCountryFilter(""); setOrgTypeFilter(""); setVerifiedOnly(false); setSortMode(""); setSearch(""); }}
+            className="h-9 px-3 rounded-xl border border-border text-[13px] text-muted-foreground hover:text-foreground transition-colors">
+            ✕ Clear
+          </button>
+        )}
+      </div>
+
+      {/* Cards feed */}
+      {loading ? (
+        <LoadingSpinner />
+      ) : sorted.length === 0 ? (
+        <EmptyState
+          icon={<Users className="w-8 h-8 text-muted-foreground/40" />}
+          title={allEntities.length === 0 ? "No ecosystem records yet." : "No results."}
+          subtitle={allEntities.length === 0 ? "Published organisations and profiles will appear here." : "Try resetting your active filters or search terms."} />
+      ) : (
+        <div className="flex flex-col gap-3">
+          {sorted.map(e => <EcosystemCard key={`${e.entityType}-${e.id}`} entity={e} onClick={() => setSelected(e)} />)}
+        </div>
+      )}
+
+      {/* Slide-over drawer */}
+      {drawerOpen && (
+        <div className="fixed inset-0 z-40" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-[1px] transition-opacity" onClick={() => setSelected(null)} />
+          <div className="absolute right-0 top-0 h-full w-full sm:w-[85%] md:w-[65%] lg:w-[55%] bg-white dark:bg-card border-l border-border shadow-2xl flex flex-col transform transition-transform duration-300 translate-x-0">
+            {selected!.entityType === "organisation"
+              ? <OrgDrawerContent org={selected!.org!} onClose={() => setSelected(null)} />
+              : <IndividualDrawerContent profile={selected!.profile!} onClose={() => setSelected(null)} />}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function ProfileCard({ profile, onClick }: { profile: ProfileRow; onClick: () => void }) {
-  const sectors = profile.sectors ?? [];
+const ORG_SELECT = "id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,specializations,notable_engagements,affiliations,investment_thesis,stage_preference,geographic_focus,impact_strategy,flagged_visibility_hold,impact_score,subscription_tier,show_impact_score";
+
+// ── 3-column list card ───────────────────────────────────────────────────────
+
+function EcosystemCard({ entity, onClick }: { entity: EcosystemEntity; onClick: () => void }) {
+  const isOrg = entity.entityType === "organisation";
+  const primarySector = entity.sectors[0];
+  const primaryCountry = entity.countries[0];
+  const sectorStyle = primarySector ? badgeStyleFor(primarySector) : null;
+  const countryStyle = primaryCountry ? badgeStyleFor(primaryCountry) : null;
+
   return (
-    <div
-      onClick={onClick}
-      className="flex items-center gap-4 bg-white dark:bg-card border border-border rounded-2xl p-5 cursor-pointer transition-all duration-200 hover:shadow-md">
-      <UserAvatar id={profile.id} name={profile.full_name} avatarUrl={profile.avatar_url} size="md" />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-[17px] font-bold text-[#111111] dark:text-[#F5F5F5] truncate">{profile.full_name}</p>
-          {profile.org_name && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
-              style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
-              {profile.org_name}
-            </span>
-          )}
-        </div>
-        {profile.role_title && <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5] truncate">{profile.role_title}</p>}
-        {profile.country && <p className="text-[13px] text-[#111111] dark:text-[#F5F5F5] mt-0.5">{profile.country}</p>}
-        {profile.bio && <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5] leading-relaxed line-clamp-2 mt-1">{firstSentence(profile.bio)}</p>}
-        {sectors.length > 0 && (
-          <div className="flex gap-1.5 flex-wrap mt-2">
-            {sectors.slice(0, 3).map(s => (
-              <span key={s} className="text-[13px] px-2.5 py-0.5 rounded-md border border-border text-[#111111] dark:text-[#F5F5F5]">{s}</span>
-            ))}
+    <div onClick={onClick}
+      className="bg-white dark:bg-card p-5 sm:p-6 rounded-2xl border border-border hover:border-[#2D6A4F] hover:bg-slate-50/60 dark:hover:bg-white/5 hover:shadow-md cursor-pointer transition-all group">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-center">
+
+        {/* Column 1: Identity & summary */}
+        <div className="lg:col-span-6 flex items-start gap-4 min-w-0">
+          <div className={`w-12 h-12 shrink-0 flex items-center justify-center text-sm font-bold border shadow-xs overflow-hidden ${
+            isOrg ? "rounded-xl bg-emerald-50 text-[#2D6A4F] border-emerald-200" : "rounded-full bg-sky-50 text-sky-800 border-sky-200"
+          }`}>
+            {entity.logoUrl ? (
+              <img src={entity.logoUrl} alt={entity.name} className="w-full h-full object-cover" />
+            ) : isOrg ? initials(entity.name) : (
+              <UserAvatar id={entity.id} name={entity.name} avatarUrl={entity.logoUrl ?? undefined} size="sm" />
+            )}
           </div>
-        )}
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-[15px] font-bold text-foreground group-hover:text-[#2D6A4F] transition-colors truncate">{entity.name}</h3>
+              {entity.verified && <VerifiedBadge />}
+              {isOrg && entity.canShowImpactScore && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-full border border-amber-200 bg-amber-50 text-amber-800">
+                  <Trophy className="w-3 h-3" /> {displayImpactScore(entity.impactScore ?? 0)}
+                </span>
+              )}
+            </div>
+            {entity.subtitle && <p className="text-[13px] font-semibold text-muted-foreground mt-0.5 capitalize truncate">{entity.subtitle}</p>}
+            {entity.description && <p className="text-[13px] text-foreground mt-1.5 line-clamp-2 leading-relaxed">{firstSentence(entity.description)}</p>}
+          </div>
+        </div>
+
+        {/* Column 2: Sector */}
+        <div className="lg:col-span-3 min-w-0 border-t lg:border-t-0 lg:border-l border-border pt-3 lg:pt-0 lg:pl-6">
+          <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Sector</span>
+          {primarySector ? (
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[12px] font-bold border ${sectorStyle!.bg} ${sectorStyle!.text} ${sectorStyle!.border}`}>
+              <Layers className="w-3 h-3 mr-1.5" />
+              <span className="truncate">{primarySector}{entity.sectors.length > 1 ? ` +${entity.sectors.length - 1}` : ""}</span>
+            </span>
+          ) : <span className="text-[12px] text-muted-foreground">—</span>}
+        </div>
+
+        {/* Column 3: Country + arrow */}
+        <div className="lg:col-span-3 min-w-0 flex items-center justify-between border-t lg:border-t-0 lg:border-l border-border pt-3 lg:pt-0 lg:pl-6">
+          <div>
+            <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Country</span>
+            {primaryCountry ? (
+              <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[12px] font-bold border ${countryStyle!.bg} ${countryStyle!.text} ${countryStyle!.border}`}>
+                <MapPin className="w-3 h-3 mr-1.5" />
+                <span className="truncate">{primaryCountry}{entity.countries.length > 1 ? ` +${entity.countries.length - 1}` : ""}</span>
+              </span>
+            ) : <span className="text-[12px] text-muted-foreground">—</span>}
+          </div>
+          <div className="w-8 h-8 rounded-full bg-white dark:bg-card group-hover:bg-[#2D6A4F] group-hover:text-white text-muted-foreground flex items-center justify-center transition-all border border-border shrink-0 ml-3 shadow-xs">
+            <ChevronRight className="w-3.5 h-3.5" />
+          </div>
+        </div>
+
       </div>
     </div>
   );
 }
 
-function ProfileDetail({ profile, onBack }: { profile: ProfileRow; onBack: () => void }) {
+// ── Drawer chrome (header + footer shared shape) ─────────────────────────────
+
+function DrawerHeader({ typeLabel, userId, onClose }: { typeLabel: string; userId: string; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const fullPageUrl = `${window.location.pathname}?user=${userId}`;
+
+  function copyLink() {
+    navigator.clipboard.writeText(`${window.location.origin}${fullPageUrl}`).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div className="h-16 px-6 sm:px-8 border-b border-border flex items-center justify-between bg-white dark:bg-card shrink-0">
+      <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200">
+        {typeLabel}
+      </span>
+      <div className="flex items-center gap-2">
+        <a href={fullPageUrl} target="_blank" rel="noopener noreferrer" title="Open in full page"
+          className="p-2 rounded-lg bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-white/5 text-foreground transition-colors text-xs border border-border">
+          <ExternalLink className="w-3.5 h-3.5" />
+        </a>
+        <button type="button" onClick={copyLink} title="Copy Link"
+          className="p-2 rounded-lg bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-white/5 text-foreground transition-colors text-xs border border-border flex items-center gap-1.5">
+          <LinkIcon className="w-3.5 h-3.5" /> {copied ? "Copied!" : "Copy Link"}
+        </button>
+        <button type="button" onClick={onClose}
+          className="p-2 rounded-lg bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-white/5 text-foreground transition-colors text-xs border border-border">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function DrawerTabs({ tabs, active, onChange }: { tabs: { key: DrawerTab; label: string }[]; active: DrawerTab; onChange: (t: DrawerTab) => void }) {
+  return (
+    <div className="border-b border-border flex gap-6 sm:gap-8 text-[13px] font-bold px-6 sm:px-8 shrink-0">
+      {tabs.map(t => (
+        <button key={t.key} type="button" onClick={() => onChange(t.key)}
+          className={`pb-3 pt-4 border-b-2 transition-all ${active === t.key ? "border-[#2D6A4F] text-[#2D6A4F]" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── Individual drawer content ────────────────────────────────────────────────
+
+function IndividualDrawerContent({ profile, onClose }: { profile: ProfileRow; onClose: () => void }) {
   const sectors = profile.sectors ?? [];
   const hasContact = !!(profile.linkedin_url || (profile.website && profile.website !== "https://") || (profile.social_links && profile.social_links.length > 0));
 
   return (
-    <div className="space-y-6 w-full">
-      <button type="button" onClick={onBack}
-        className="flex items-center gap-1.5 text-[15px] text-[#111111] dark:text-[#F5F5F5] hover:opacity-70 transition-opacity">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
-          <path d="M19 12H5M12 5l-7 7 7 7" />
-        </svg>
-        Back
-      </button>
-
-      <div className="bg-white dark:bg-card w-[calc(100%+3rem)] -mx-6 divide-y-[6px] divide-[#FAF6F0] dark:divide-black">
-
-        <div className="px-8 sm:px-12 py-10">
-          <div className="flex items-start gap-5">
-            <UserAvatar id={profile.id} name={profile.full_name} avatarUrl={profile.avatar_url} size="lg" />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h3 className="text-[25px] sm:text-[32px] font-bold text-[#111111] dark:text-[#F5F5F5] tracking-tight">{profile.full_name}</h3>
-                {profile.org_name && (
-                  <span className="inline-flex items-center gap-1 text-[13px] font-semibold px-2.5 py-1 rounded-full"
-                    style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
-                    {profile.org_name}
-                  </span>
-                )}
-              </div>
-              {profile.role_title && <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5] mt-2">{profile.role_title}</p>}
-              {profile.country && <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5] mt-1">{profile.country}</p>}
+    <>
+      <DrawerHeader typeLabel="Individual Expert Profile" userId={profile.id} onClose={onClose} />
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-6 sm:px-8 py-8 flex items-start gap-5 border-b border-border">
+          <UserAvatar id={profile.id} name={profile.full_name} avatarUrl={profile.avatar_url} size="lg" />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h3 className="text-[22px] sm:text-[26px] font-bold text-foreground tracking-tight">{profile.full_name}</h3>
+              {profile.org_name && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
+                  {profile.org_name}
+                </span>
+              )}
             </div>
+            {profile.role_title && <p className="text-[14px] text-foreground mt-1.5">{profile.role_title}</p>}
+            {profile.country && <p className="text-[13px] text-muted-foreground mt-1 flex items-center gap-1"><MapPin className="w-3 h-3" /> {profile.country}</p>}
           </div>
         </div>
 
         {(profile.bio || sectors.length > 0) && (
-          <div className="px-8 sm:px-12 py-10">
-            <p className="text-[21px] font-bold text-[#111111] dark:text-[#F5F5F5] mb-6">About</p>
-            <div className="space-y-9">
-              {profile.bio && (
-                <p className="text-[17px] text-[#111111] dark:text-[#F5F5F5] leading-relaxed">{profile.bio}</p>
-              )}
-              {sectors.length > 0 && (
-                <div>
-                  <p className="text-[15px] font-bold text-[#111111] dark:text-[#F5F5F5] mb-1.5">Sector</p>
-                  <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5]">{sectors.join(", ")}</p>
-                </div>
-              )}
-            </div>
+          <div className="px-6 sm:px-8 py-8 space-y-6 border-b border-border">
+            <p className="text-[17px] font-bold text-foreground">About</p>
+            {profile.bio && <p className="text-[15px] text-foreground leading-relaxed">{profile.bio}</p>}
+            {sectors.length > 0 && (
+              <div>
+                <p className="text-[13px] font-bold text-foreground mb-1.5">Sector</p>
+                <p className="text-[14px] text-foreground">{sectors.join(", ")}</p>
+              </div>
+            )}
           </div>
         )}
 
         {hasContact && (
-          <div className="px-8 sm:px-12 py-10">
-            <p className="text-[21px] font-bold text-[#111111] dark:text-[#F5F5F5] mb-6">Contact</p>
-            <div className="space-y-3">
-              {profile.linkedin_url && (
-                <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-[15px] text-[#111111] dark:text-[#F5F5F5] hover:text-[#2D6A4F] transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
-                    <rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
-                  </svg>
-                  LinkedIn
-                </a>
-              )}
-              {profile.website && profile.website !== "https://" && (
-                <a href={profile.website} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-[15px] text-[#2D6A4F] hover:underline">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"/>
-                  </svg>
-                  {profile.website.replace(/^https?:\/\//, "")}
-                </a>
-              )}
-              {profile.social_links?.map((s, i) => (
-                <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-[15px] text-[#111111] dark:text-[#F5F5F5] hover:text-[#2D6A4F] transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4 shrink-0">
-                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                  </svg>
-                  {s.label}
-                </a>
-              ))}
-            </div>
+          <div className="px-6 sm:px-8 py-8 space-y-3">
+            <p className="text-[17px] font-bold text-foreground mb-2">Contact</p>
+            {profile.linkedin_url && (
+              <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[14px] text-foreground hover:text-[#2D6A4F] transition-colors">
+                <LinkIcon className="w-3.5 h-3.5" /> LinkedIn
+              </a>
+            )}
+            {profile.website && profile.website !== "https://" && (
+              <a href={profile.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[14px] text-[#2D6A4F] hover:underline">
+                <Globe className="w-3.5 h-3.5" /> {profile.website.replace(/^https?:\/\//, "")}
+              </a>
+            )}
+            {profile.social_links?.map((s, i) => (
+              <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[14px] text-foreground hover:text-[#2D6A4F] transition-colors">
+                <LinkIcon className="w-3.5 h-3.5 shrink-0" /> {s.label}
+              </a>
+            ))}
           </div>
         )}
-
       </div>
-    </div>
+
+      {/* TODO: wire "Send Message" to your actual messaging/conversation-start flow. */}
+      <div className="p-5 border-t border-border bg-white dark:bg-card flex items-center gap-4 shrink-0 shadow-sm">
+        <button type="button" className="flex-1 bg-[#2D6A4F] hover:bg-[#1F4C38] text-white font-semibold py-3 px-6 rounded-xl text-[13px] transition-all shadow-sm flex items-center justify-center gap-2">
+          <Mail className="w-4 h-4" /> Send Message
+        </button>
+        {profile.linkedin_url && (
+          <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer"
+            className="bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-white/5 text-foreground font-semibold py-3 px-6 rounded-xl text-[13px] transition-all flex items-center justify-center gap-2 border border-border">
+            <LinkIcon className="w-4 h-4" /> LinkedIn
+          </a>
+        )}
+      </div>
+    </>
   );
 }
 
-// ── Orgs Panel ────────────────────────────────────────────────────────────────
-
-function OrgsPanel({ search, sectorFilter, countryFilter, orgTypeFilter, verifiedOnly, sortMode, autoOpenUserId, onAutoOpened, onSelectionChange }: {
-  search: string;
-  sectorFilter: string;
-  countryFilter: string;
-  orgTypeFilter: string;
-  verifiedOnly: boolean;
-  sortMode: string;
-  autoOpenUserId?: string | null;
-  onAutoOpened?: () => void;
-  onSelectionChange?: (open: boolean) => void;
-}) {
-  const [orgs, setOrgs]       = useState<OrgRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [directLoading, setDirectLoading] = useState(!!autoOpenUserId);
-  const [selected, setSelected] = useState<OrgRow | null>(null);
-
-  useEffect(() => {
-    // While the direct single-org fetch (below) is still in flight, the
-    // parent's detailOpen is already correctly seeded true from the URL —
-    // don't let this effect's initial "selected is still null" state
-    // stomp it back to false and flash the tab pill before the fetch
-    // resolves.
-    if (directLoading) return;
-    onSelectionChange?.(!!selected);
-  }, [selected, directLoading]);
-
-  // Deep link into a single org (e.g. clicking an org name elsewhere in
-  // the app): fetch just that one row instead of waiting on the full
-  // published-orgs directory load below, which pulls every org and every
-  // DD field for the whole marketplace just to find one match.
-  useEffect(() => {
-    if (!autoOpenUserId) return;
-    async function loadOne() {
-      const [{ data: orgRow }, { data: profileRow }] = await Promise.all([
-        supabase
-          .from("organizations")
-          .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,specializations,notable_engagements,affiliations,investment_thesis,stage_preference,geographic_focus,impact_strategy,flagged_visibility_hold,impact_score,subscription_tier,show_impact_score")
-          .eq("user_id", autoOpenUserId)
-          .eq("status", "published")
-          .single(),
-        supabase.from("profiles").select("full_name").eq("id", autoOpenUserId).single(),
-      ]);
-      if (orgRow) {
-        const mirrorMap = await fetchLatestListingMirror([autoOpenUserId!]);
-        setSelected({
-          ...orgRow,
-          ...(mirrorMap.get(autoOpenUserId!) ?? EMPTY_LISTING_MIRROR),
-          contact_name: profileRow?.full_name,
-        } as OrgRow);
-        onAutoOpened?.();
-      }
-      setDirectLoading(false);
-    }
-    loadOne();
-  }, [autoOpenUserId]);
-
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      const { data: orgData, error } = await supabase
-        .from("organizations")
-        .select("id,organisation_name,sector,country,organisation_type,website,verification_status,user_id,description,needs,offers,sdgs,year_founded,ai_partnership_summary,logo_url,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,esg_frameworks,csr_budget_range,specializations,notable_engagements,affiliations,investment_thesis,stage_preference,geographic_focus,impact_strategy,flagged_visibility_hold,impact_score,subscription_tier,show_impact_score")        
-        .eq("status", "published")
-        .order("organisation_name", { ascending: true });
-
-      if (error) { console.error(error); setLoading(false); return; }
-      if (!orgData || orgData.length === 0) { setLoading(false); return; }
-
-      const userIds = [...new Set(orgData.map(o => o.user_id).filter(Boolean))];
-      const [{ data: profileData }, mirrorMap] = await Promise.all([
-        supabase.from("profiles").select("id,full_name").in("id", userIds),
-        fetchLatestListingMirror(userIds),
-      ]);
-      const profileMap = new Map((profileData ?? []).map(p => [p.id, p]));
-
-      const enriched: OrgRow[] = orgData.map(o => ({
-        ...o,
-        ...(mirrorMap.get(o.user_id) ?? EMPTY_LISTING_MIRROR),
-        contact_name: profileMap.get(o.user_id)?.full_name,
-      }));
-
-      setOrgs(enriched);
-      setLoading(false);
-    }
-    load();
-  }, []);
-
-  const filtered = orgs.filter(o => {
-    const sectors   = normalizeArr(o.sector);
-    const countries = normalizeArr(o.country);
-    if (sectorFilter && !sectors.includes(sectorFilter)) return false;
-    if (countryFilter && !countries.includes(countryFilter)) return false;
-    if (orgTypeFilter && o.organisation_type !== orgTypeFilter) return false;
-    if (verifiedOnly && o.verification_status !== "verified") return false;
-    // Serious-severity flagged orgs are withheld from the public directory
-    // until resolved — set via admin's Flagged Orgs review, not automatic.
-    if (o.flagged_visibility_hold) return false;
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      o.organisation_name?.toLowerCase().includes(q) ||
-      sectors.some(s => s.toLowerCase().includes(q)) ||
-      countries.some(c => c.toLowerCase().includes(q)) ||
-      o.description?.toLowerCase().includes(q)
-    );
-  });
-
-  if (directLoading) return <LoadingSpinner />;
-  if (selected) return <NativesOrgDetail org={selected} onBack={() => setSelected(null)} />;
-  if (loading) return <LoadingSpinner />;
-  if (filtered.length === 0) return (
-    <EmptyState
-      icon={<Users className="w-8 h-8 text-muted-foreground/40" />}
-      title={orgs.length === 0 ? "No organisations yet." : "No results."}
-      subtitle={orgs.length === 0 ? "Published organisations will appear here." : "Try a different search term."} />
-  );
-
-  // Verified orgs first, unless Impact Score sort is active -- in which
-  // case score takes priority, with orgs whose score isn't currently
-  // displayable (below Plus, or downgraded) pushed to the back rather
-  // than ranked by an invisible number. Falls back to alphabetical
-  // (already the fetch order) within each tier.
-  const sorted = [...filtered].sort((a, b) => {
-    if (sortMode === "impact_score") {
-      const aScore = impactScoreForSort(a.impact_score ?? 0, a.subscription_tier, a.show_impact_score);
-      const bScore = impactScoreForSort(b.impact_score ?? 0, b.subscription_tier, b.show_impact_score);
-      return bScore - aScore;
-    }
-    const aV = a.verification_status === "verified" ? 0 : 1;
-    const bV = b.verification_status === "verified" ? 0 : 1;
-    return aV - bV;
-  });
-
-  return (
-    <div className="grid grid-cols-1 gap-4">
-      {sorted.map(o => <NativesOrgCard key={o.id} org={o} onClick={() => setSelected(o)} />)}
-    </div>
-  );
-}
-
-// ── Org Card ──────────────────────────────────────────────────────────────────
+// ── Org drawer content ────────────────────────────────────────────────────────
 
 function ImpactScoreBadge({ score }: { score: number }) {
   const tier = tierForScore(score);
   const styles = IMPACT_SCORE_TIER_STYLES[tier];
   return (
     <span className={`inline-flex items-center gap-1 text-[13px] font-bold px-2 py-0.5 rounded-full border ${styles.border} ${styles.bg} ${styles.text}`} title={styles.label}>
-      <Trophy className="w-3 h-3" />
-      {displayImpactScore(score)}
+      <Trophy className="w-3 h-3" /> {displayImpactScore(score)}
     </span>
   );
 }
 
-function NativesOrgCard({ org, onClick }: { org: OrgRow; onClick: () => void }) {
-  const isVerified = org.verification_status === "verified";
-  const sectors    = normalizeArr(org.sector);
-  const countries  = normalizeArr(org.country);
-
+function InfoTooltip({ text }: { text: string }) {
   return (
-    <div onClick={onClick} className="cursor-pointer">
-
-      {/* Mobile: compact row, same pattern as the individual card */}
-      <div className="sm:hidden flex items-center gap-4 bg-white dark:bg-card border border-border rounded-2xl p-5 transition-all duration-200 hover:shadow-md">
-        <div className="w-14 h-14 rounded-full shrink-0 flex items-center justify-center overflow-hidden bg-white dark:bg-card">
-          {org.logo_url ? (
-            <img src={org.logo_url} alt={org.organisation_name} className="w-full h-full object-contain p-1.5" />
-          ) : (
-            <span className="text-[#6B7280] dark:text-[#D1D5DB] text-[17px] font-bold">{initials(org.organisation_name || "?")}</span>
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-[17px] font-bold text-[#111111] dark:text-[#F5F5F5] truncate">{org.organisation_name}</p>
-                  {isVerified && <VerifiedBadge />}
-                  {canDisplayImpactScoreForOrg(org.subscription_tier, org.show_impact_score) && <ImpactScoreBadge score={org.impact_score ?? 0} />}
-          </div>
-          {org.organisation_type && (
-            <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5] capitalize truncate">{org.organisation_type.replace(/_/g, " ")}</p>
-          )}
-          {countries.length > 0 && <p className="text-[13px] text-[#111111] dark:text-[#F5F5F5] mt-0.5">{countries.join(", ")}</p>}
-        </div>
-      </div>
-
-      {/* Desktop / tablet: full card with large logo panel */}
-      <div className="hidden sm:flex bg-white dark:bg-card border border-border rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md">
-        <div className="w-56 shrink-0 flex items-center justify-center overflow-hidden bg-white dark:bg-card">
-          {org.logo_url ? (
-            <img src={org.logo_url} alt={org.organisation_name} className="max-w-[55%] max-h-[55%] object-contain" />
-          ) : (
-            <div className="w-24 h-24 rounded-full bg-[#F3F4F6] dark:bg-white/10 flex items-center justify-center">
-              <span className="text-[#6B7280] dark:text-[#D1D5DB] text-[25px] font-bold">{initials(org.organisation_name || "?")}</span>
-            </div>
-          )}
-        </div>
-        <div className="flex-1 min-w-0 p-7 flex flex-col gap-2.5">
-          <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-[21px] font-bold text-[#111111] dark:text-[#F5F5F5] truncate">{org.organisation_name}</p>
-                  {isVerified && <VerifiedBadge />}
-                  {canDisplayImpactScoreForOrg(org.subscription_tier, org.show_impact_score) && <ImpactScoreBadge score={org.impact_score ?? 0} />}
-          </div>
-          {org.organisation_type && (
-            <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5] capitalize">{org.organisation_type.replace(/_/g, " ")}</p>
-          )}
-          {org.description && (
-            <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5] leading-relaxed line-clamp-3">{firstSentence(org.description)}</p>
-          )}
-          <div className="flex flex-wrap gap-x-5 gap-y-1 text-[15px] text-[#111111] dark:text-[#F5F5F5]">
-            {sectors.length > 0 && (
-              <p><span className="font-semibold">Sector: </span>{sectors.slice(0, 2).join(", ")}{sectors.length > 2 ? ` +${sectors.length - 2}` : ""}</p>
-            )}
-            {countries.length > 0 && (
-              <p><span className="font-semibold">Location: </span>{countries.join(", ")}</p>
-            )}
-          </div>
-          {(org.needs?.length || org.offers?.length) ? (
-            <div className="flex flex-wrap gap-2 pt-1">
-              {org.needs?.slice(0, 2).map(n => (
-                <span key={n} className="text-[13px] font-medium px-2.5 py-1 rounded-md" style={{ color: "#993C1D", background: "#FAECE7" }}>{n}</span>
-              ))}
-              {org.offers?.slice(0, 1).map(o => (
-                <span key={o} className="text-[13px] font-medium px-2.5 py-1 rounded-md" style={{ color: "#0F6E56", background: "#E1F5EE" }}>{o}</span>
-              ))}
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-    </div>
+    <span className="relative inline-flex group shrink-0">
+      <span className="w-3.5 h-3.5 rounded-full border border-muted-foreground/50 text-foreground text-[9px] leading-[13px] font-bold inline-flex items-center justify-center cursor-default" aria-label="What does this mean?">i</span>
+      <span className="pointer-events-none absolute left-0 bottom-full mb-1.5 w-56 rounded-lg border border-border bg-card px-2.5 py-1.5 text-[13px] text-foreground opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-md">{text}</span>
+    </span>
   );
 }
-
-// ── DD evidence viewer (read-only, for visitors to another org's profile) ──
 
 function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, canSeeDisclosureDetail, onClose }: {
   item: DDItemDef; evidence: Record<string, any>; documents: DDDocument[]; canSeeSensitive: boolean; canSeeDisclosureDetail: boolean; onClose: () => void;
@@ -814,18 +780,11 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, canSe
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setPreview(null)}>
         <div className="bg-white dark:bg-card rounded-2xl border border-border w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border shrink-0">
-            <button type="button" onClick={() => setPreview(null)}
-              className="text-[15px] text-muted-foreground hover:text-foreground flex items-center gap-1.5 shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
-                <path d="M19 12H5M12 5l-7 7 7 7" />
-              </svg>
-              Back
+            <button type="button" onClick={() => setPreview(null)} className="text-[15px] text-muted-foreground hover:text-foreground flex items-center gap-1.5 shrink-0">
+              ← Back
             </button>
             <p className="text-[15px] font-medium text-foreground truncate flex-1 text-center">{preview.fileName}</p>
-            <a href={preview.url} download={preview.fileName}
-              className="text-[15px] text-[#2D6A4F] hover:underline underline-offset-2 shrink-0">
-              Download
-            </a>
+            <a href={preview.url} download={preview.fileName} className="text-[15px] text-[#2D6A4F] hover:underline underline-offset-2 shrink-0">Download</a>
           </div>
           <div className="flex-1 overflow-auto bg-muted/20 flex items-start justify-center min-h-[50vh]">
             {isImage ? (
@@ -834,32 +793,21 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, canSe
               <iframe src={preview.url} title={preview.fileName} className="w-full h-[75vh] border-0" />
             ) : isDocx ? (
               docxLoading ? (
-                <div className="p-8 flex items-center gap-2 text-[15px] text-black dark:text-white">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Loading preview...
-                </div>
+                <div className="p-8 flex items-center gap-2 text-[15px] text-black dark:text-white"><Loader2 className="w-4 h-4 animate-spin" /> Loading preview...</div>
               ) : docxError || !docxHtml ? (
                 <div className="p-8 text-center space-y-2">
                   <p className="text-[15px] text-black dark:text-white">Couldn't render a preview for this file.</p>
-                  <a href={preview.url} download={preview.fileName}
-                    className="text-[15px] text-[#2D6A4F] hover:underline underline-offset-2 font-medium">
-                    Download {preview.fileName}
-                  </a>
+                  <a href={preview.url} download={preview.fileName} className="text-[15px] text-[#2D6A4F] hover:underline underline-offset-2 font-medium">Download {preview.fileName}</a>
                 </div>
               ) : (
                 <div className="w-full h-full overflow-auto bg-white p-6 sm:p-10">
-                  <div
-                    className="max-w-2xl mx-auto text-[15px] text-neutral-900 leading-relaxed [&_p]:mb-3 [&_h1]:text-[21px] [&_h1]:font-bold [&_h2]:text-[19px] [&_h2]:font-bold [&_table]:border-collapse [&_td]:border [&_td]:border-neutral-300 [&_td]:px-2 [&_td]:py-1"
-                    dangerouslySetInnerHTML={{ __html: docxHtml }}
-                  />
+                  <div className="max-w-2xl mx-auto text-[15px] text-neutral-900 leading-relaxed [&_p]:mb-3 [&_h1]:text-[21px] [&_h1]:font-bold [&_h2]:text-[19px] [&_h2]:font-bold [&_table]:border-collapse [&_td]:border [&_td]:border-neutral-300 [&_td]:px-2 [&_td]:py-1" dangerouslySetInnerHTML={{ __html: docxHtml }} />
                 </div>
               )
             ) : (
               <div className="p-8 text-center space-y-2">
                 <p className="text-[15px] text-black dark:text-white">Preview isn't available for this file type.</p>
-                <a href={preview.url} download={preview.fileName}
-                  className="text-[15px] text-[#2D6A4F] hover:underline underline-offset-2 font-medium">
-                  Download {preview.fileName}
-                </a>
+                <a href={preview.url} download={preview.fileName} className="text-[15px] text-[#2D6A4F] hover:underline underline-offset-2 font-medium">Download {preview.fileName}</a>
               </div>
             )}
           </div>
@@ -893,21 +841,13 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, canSe
               : raw;
             if (!display) return null;
             const followUp = q.type === "yesno" && q.followUpIfYes && raw === true ? evidence[q.followUpIfYes.key] : null;
-            // Disclosure detail (blacklisting/pending-dispute text) is gated to
-            // funder/corporate viewers + self-view, same rule as the inline
-            // summary on the profile overview — deliberately independent of
-            // canSeeSensitive/DD_SENSITIVE_EVIDENCE_KEYS, which governs a
-            // different field (registrationNumber) under a different rule
-            // (active-conversation gating) that this must not disturb.
             const isDisclosureDetailKey = q.key === "hasBlacklisting" || q.key === "hasPendingDisputes";
             const withholdDisclosureDetail = isDisclosureDetailKey && !canSeeDisclosureDetail;
             return (
               <div key={q.key}>
                 <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">{q.label}</p>
                 <p className="text-[15px] text-foreground mt-0.5">{display}</p>
-                {followUp && !withholdDisclosureDetail && (
-                  <p className="text-[15px] text-black dark:text-white mt-1 italic">{followUp}</p>
-                )}
+                {followUp && !withholdDisclosureDetail && <p className="text-[15px] text-black dark:text-white mt-1 italic">{followUp}</p>}
               </div>
             );
           })}
@@ -924,47 +864,20 @@ function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, canSe
             ))}
           </div>
         )}
-        <button type="button" onClick={onClose}
-          className="w-full h-9 rounded-full border border-border text-[15px] text-muted-foreground hover:text-foreground transition-colors">
-          Close
-        </button>
+        <button type="button" onClick={onClose} className="w-full h-9 rounded-full border border-border text-[15px] text-muted-foreground hover:text-foreground transition-colors">Close</button>
       </div>
     </div>
   );
 }
 
-function InfoTooltip({ text }: { text: string }) {
-  return (
-    <span className="relative inline-flex group shrink-0">
-      <span className="w-3.5 h-3.5 rounded-full border border-muted-foreground/50 text-foreground text-[9px] leading-[13px] font-bold inline-flex items-center justify-center cursor-default"
-        aria-label="What does this mean?">
-        i
-      </span>
-      <span className="pointer-events-none absolute left-0 bottom-full mb-1.5 w-56 rounded-lg border border-border bg-card px-2.5 py-1.5 text-[13px] text-foreground opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-md">
-        {text}
-      </span>
-    </span>
-  );
-}
-
-// ── Org Detail ────────────────────────────────────────────────────────────────
-
-function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) {
+function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }) {
   const { user, profile } = useAuth();
   const isVerified = org.verification_status === "verified";
-  // Disclosure detail (blacklisting/dispute text) is gated by the VIEWER's own
-  // track, not the org being viewed — funders/corporates get the explanation,
-  // everyone else sees the badge only. The org always sees its own detail.
   const viewerIsFunder = ["philanthropic_foundation", "venture_capital"].includes(profile?.org_type ?? "");
   const viewerIsCorporate = ["corporation", "technology_company", "public_sector"].includes(profile?.org_type ?? "");
   const isOwnProfile = !!user?.id && user.id === org.user_id;
   const canSeeDisclosureDetail = isOwnProfile || viewerIsFunder || viewerIsCorporate;
 
-  // DD export: only a funder/corporate viewing someone else's profile can
-  // trigger this, and only if their own org is on the Compliance tier.
-  // subscription_tier isn't on AuthContext's Profile, so it's fetched here
-  // directly rather than threading it through the whole auth context for
-  // one feature.
   const [viewerTier, setViewerTier] = useState<string | null>(null);
   const [exportState, setExportState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [exportError, setExportError] = useState<string | null>(null);
@@ -980,9 +893,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
     setExportState("loading");
     setExportError(null);
     setExportDownloadUrl(null);
-    const { data, error } = await supabase.functions.invoke("generate-dd-export", {
-      body: { subject_org_id: org.id },
-    });
+    const { data, error } = await supabase.functions.invoke("generate-dd-export", { body: { subject_org_id: org.id } });
     if (error || data?.error) {
       setExportState("error");
       setExportError(data?.error ?? error?.message ?? "Export failed");
@@ -991,32 +902,24 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
     setExportDownloadUrl(data.data.download_url);
     setExportState("done");
   }
-  const legalEvidence = org.dd_evidence?.legal_compliance_declaration ?? {};
-  const sectors    = normalizeArr(org.sector);
-  const countries  = normalizeArr(org.country);
-  const color      = avatarColor(org.id);
 
-  const [aiSummary, setAiSummary]         = useState<string | null>(org.ai_partnership_summary ?? null);
-  const [loadingAi, setLoadingAi]         = useState(false);
-  const [aiError, setAiError]             = useState(false);
-  const [ddViewingKey, setDdViewingKey]   = useState<string | null>(null);
+  const sectors = normalizeArr(org.sector);
+  const countries = normalizeArr(org.country);
+  const color = avatarColor(org.id);
+
+  const [activeTab, setActiveTab] = useState<DrawerTab>("overview");
+  const [aiSummary, setAiSummary] = useState<string | null>(org.ai_partnership_summary ?? null);
+  const [loadingAi, setLoadingAi] = useState(false);
+  const [ddViewingKey, setDdViewingKey] = useState<string | null>(null);
   const [canSeeSensitive, setCanSeeSensitive] = useState(false);
-  const [docsByItem, setDocsByItem]       = useState<Record<string, DDDocument[]>>({});
+  const [docsByItem, setDocsByItem] = useState<Record<string, DDDocument[]>>({});
   const [deliveryStats, setDeliveryStats] = useState<{ completed: number; stalled: number; fell_through: number; resolved: number; total: number } | null>(null);
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [org.id]);
 
   useEffect(() => {
     if (!user || user.id === org.user_id) { setCanSeeSensitive(true); return; }
     supabase.from("organizations").select("id").eq("user_id", user.id).maybeSingle()
       .then(({ data: myOrg }) => {
-        hasLiveRelationshipWith({
-          viewerUserId: user.id,
-          viewerOrgId: myOrg?.id ?? null,
-          targetUserId: org.user_id,
-          targetOrgId: org.id,
-        }).then(setCanSeeSensitive);
+        hasLiveRelationshipWith({ viewerUserId: user.id, viewerOrgId: myOrg?.id ?? null, targetUserId: org.user_id, targetOrgId: org.id }).then(setCanSeeSensitive);
       });
   }, [user, org.user_id, org.id]);
 
@@ -1026,9 +929,7 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
       .eq("organization_id", org.id)
       .then(({ data }) => {
         const grouped: Record<string, DDDocument[]> = {};
-        (data ?? []).forEach((doc: DDDocument) => {
-          grouped[doc.dd_item_key] = [...(grouped[doc.dd_item_key] ?? []), doc];
-        });
+        (data ?? []).forEach((doc: DDDocument) => { grouped[doc.dd_item_key] = [...(grouped[doc.dd_item_key] ?? []), doc]; });
         setDocsByItem(grouped);
       });
   }, [org.id]);
@@ -1036,42 +937,25 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
   async function generateSummary() {
     if (!org.description && !org.needs?.length && !org.offers?.length) return;
     setLoadingAi(true);
-    setAiError(false);
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-partnership-summary`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            organisation_name: org.organisation_name,
-            description:       org.description,
-            sectors:           normalizeArr(org.sector),
-            needs:             org.needs,
-            offers:            org.offers,
-            sdgs:              org.sdgs,
-            organisation_type: org.organisation_type,
-            country:           normalizeArr(org.country)[0] ?? null,
-          }),
-        }
-      );
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-partnership-summary`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organisation_name: org.organisation_name, description: org.description, sectors: normalizeArr(org.sector),
+          needs: org.needs, offers: org.offers, sdgs: org.sdgs, organisation_type: org.organisation_type,
+          country: normalizeArr(org.country)[0] ?? null,
+        }),
+      });
       const result = await res.json();
       if (result.summary) {
         setAiSummary(result.summary);
         await supabase.from("organizations").update({ ai_partnership_summary: result.summary }).eq("id", org.id);
-      } else {
-        setAiError(true);
       }
-    } catch {
-      setAiError(true);
-    }
+    } catch {}
     setLoadingAi(false);
   }
-
-  useEffect(() => {
-    if (aiSummary) return;
-    generateSummary();
-  }, [org.id]);
+  useEffect(() => { if (!aiSummary) generateSummary(); }, [org.id]);
 
   const [orgInitiatives, setOrgInitiatives] = useState<any[]>([]);
   const [orgPartnership, setOrgPartnership] = useState<any | null>(null);
@@ -1080,40 +964,27 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
   useEffect(() => {
     supabase.from("initiative_requests")
       .select("id,title,sectors,locations,budget,eois,status,co_funding_status,specific_ask")
-      .eq("user_id", org.user_id)
-      .eq("status", "published")
-      .order("created_at", { ascending: false })
-      .limit(3)
+      .eq("user_id", org.user_id).eq("status", "published").order("created_at", { ascending: false }).limit(3)
       .then(({ data }) => setOrgInitiatives(data ?? []));
 
     if (org.partnership_listed) {
       setOrgPartnership({
-        title: org.partnership_title,
-        sought: org.partnership_sought,
-        stage: org.partnership_stage,
-        budget: org.partnership_budget,
-        timeline: org.partnership_decision_timeline,
-        funding_status: org.partnership_funding_status,
+        title: org.partnership_title, sought: org.partnership_sought, stage: org.partnership_stage,
+        budget: org.partnership_budget, timeline: org.partnership_decision_timeline, funding_status: org.partnership_funding_status,
       });
     }
 
-    supabase.from("initiative_requests")
-      .select("id,title,user_id,confirmed_partners")
-      .not("confirmed_partners", "eq", "[]")
+    supabase.from("initiative_requests").select("id,title,user_id,confirmed_partners").not("confirmed_partners", "eq", "[]")
       .then(({ data }) => {
         if (!data) return;
         const results: any[] = [];
         data.forEach((ini: any) => {
           const partners = ((ini.confirmed_partners ?? []) as any[]).filter((p: any) => (p.status ?? "confirmed") === "confirmed");
           if (ini.user_id === org.user_id) {
-            partners.forEach((p: any) => {
-              results.push({ initiative_title: ini.title, partner_name: p.name, role: p.role, as: "owner" });
-            });
+            partners.forEach((p: any) => results.push({ initiative_title: ini.title, partner_name: p.name, role: p.role, as: "owner" }));
           } else {
             const asPartner = partners.find((p: any) => p.user_id === org.user_id);
-            if (asPartner) {
-              results.push({ initiative_title: ini.title, partner_name: null, role: asPartner.role, as: "partner" });
-            }
+            if (asPartner) results.push({ initiative_title: ini.title, partner_name: null, role: asPartner.role, as: "partner" });
           }
         });
         setReputationPartners(results);
@@ -1121,35 +992,22 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
   }, [org.id]);
 
   useEffect(() => {
-    supabase.rpc("get_org_delivery_stats", { target_org_id: org.id })
-      .then(({ data }) => { if (data?.[0]) setDeliveryStats(data[0]); });
+    supabase.rpc("get_org_delivery_stats", { target_org_id: org.id }).then(({ data }) => { if (data?.[0]) setDeliveryStats(data[0]); });
   }, [org.id]);
-
-  
 
   const ddItemsArr = [org.dd_financial_model, org.dd_audited_accounts, org.dd_governance_doc, org.dd_esg_assessment, org.dd_impact_framework, org.dd_environmental_policy, org.dd_safeguarding_policy, org.dd_legal_registration, org.dd_legal_compliance_declaration];
   const ddScore = Math.round((ddItemsArr.filter(Boolean).length / ddItemsArr.length) * 100);
   const ddStateMap: Record<string, boolean | undefined> = {
-    financial_model: org.dd_financial_model,
-    audited_accounts: org.dd_audited_accounts,
-    governance_doc: org.dd_governance_doc,
-    esg_assessment: org.dd_esg_assessment,
-    impact_framework: org.dd_impact_framework,
-    environmental_policy: org.dd_environmental_policy,
-    safeguarding_policy: org.dd_safeguarding_policy,
-    legal_registration: org.dd_legal_registration,
-    legal_compliance_declaration: org.dd_legal_compliance_declaration,
+    financial_model: org.dd_financial_model, audited_accounts: org.dd_audited_accounts, governance_doc: org.dd_governance_doc,
+    esg_assessment: org.dd_esg_assessment, impact_framework: org.dd_impact_framework, environmental_policy: org.dd_environmental_policy,
+    safeguarding_policy: org.dd_safeguarding_policy, legal_registration: org.dd_legal_registration, legal_compliance_declaration: org.dd_legal_compliance_declaration,
   };
 
   const fddItemsArr = [org.fdd_disbursement_track_record, org.fdd_decision_transparency, org.fdd_conflict_disclosure, org.fdd_governance_doc, org.fdd_esg_framework, org.fdd_legal_registration];
   const fddScore = Math.round((fddItemsArr.filter(Boolean).length / fddItemsArr.length) * 100);
   const fddStateMap: Record<string, boolean | undefined> = {
-    disbursement_track_record: org.fdd_disbursement_track_record,
-    decision_transparency: org.fdd_decision_transparency,
-    conflict_disclosure: org.fdd_conflict_disclosure,
-    governance_doc: org.fdd_governance_doc,
-    esg_framework: org.fdd_esg_framework,
-    legal_registration: org.fdd_legal_registration,
+    disbursement_track_record: org.fdd_disbursement_track_record, decision_transparency: org.fdd_decision_transparency,
+    conflict_disclosure: org.fdd_conflict_disclosure, governance_doc: org.fdd_governance_doc, esg_framework: org.fdd_esg_framework, legal_registration: org.fdd_legal_registration,
   };
 
   const hasTrackRecord = !!(org.total_beneficiaries_reached || org.jobs_created || org.grants_received_count || org.years_of_operation);
@@ -1161,98 +1019,81 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
   const showCsrEsg = ["corporation", "technology_company"].includes(org.organisation_type ?? "") &&
     !!(org.csr_focus_statement || org.inkind_support?.length || org.esg_frameworks?.length || org.tech_support_available?.length);
   const isConsultancyOrg = org.organisation_type === "consultancy";
-  const hasConsultancyExpertise = isConsultancyOrg &&
-    !!(org.specializations?.length || org.notable_engagements?.length || org.affiliations?.length);
+  const hasConsultancyExpertise = isConsultancyOrg && !!(org.specializations?.length || org.notable_engagements?.length || org.affiliations?.length);
 
   let impactPillars: any[] = [];
-  if (org.impact_strategy) {
-    try { impactPillars = JSON.parse(org.impact_strategy)?.pillars ?? []; } catch {}
-  }
+  if (org.impact_strategy) { try { impactPillars = JSON.parse(org.impact_strategy)?.pillars ?? []; } catch {} }
 
   return (
-    <div className="space-y-6 w-full">
-      <button type="button" onClick={onBack}
-        className="flex items-center gap-1.5 text-[15px] text-[#111111] dark:text-[#F5F5F5] hover:opacity-70 transition-opacity">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
-          <path d="M19 12H5M12 5l-7 7 7 7" />
-        </svg>
-        Back
-      </button>
-
-      <div className="bg-white dark:bg-card w-[calc(100%+3rem)] -mx-6 divide-y-[6px] divide-[#FAF6F0] dark:divide-black">
-
-        <div className="px-8 sm:px-12 py-10">
-          <div className="flex items-start gap-5">
-            <div className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-full flex items-center justify-center shrink-0 overflow-hidden border border-border"
-              style={{ background: org.logo_url ? "transparent" : color }}>
-              {org.logo_url ? (
-                <img src={org.logo_url} alt={org.organisation_name} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-white text-[21px] font-bold">{initials(org.organisation_name || "?")}</span>
-              )}
+    <>
+      <DrawerHeader typeLabel="Organization Profile" userId={org.user_id} onClose={onClose} />
+      <div className="overflow-y-auto flex-1">
+        {/* Hero */}
+        <div className="px-6 sm:px-8 py-8 flex items-start gap-5 border-b border-border">
+          <div className="w-16 h-16 rounded-full flex items-center justify-center shrink-0 overflow-hidden border border-border" style={{ background: org.logo_url ? "transparent" : color }}>
+            {org.logo_url ? <img src={org.logo_url} alt={org.organisation_name} className="w-full h-full object-cover" /> : <span className="text-white text-[19px] font-bold">{initials(org.organisation_name || "?")}</span>}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h3 className="text-[22px] sm:text-[26px] font-bold text-foreground tracking-tight">{org.organisation_name}</h3>
+              {isVerified && <VerifiedBadge withTooltip />}
+              {canDisplayImpactScoreForOrg(org.subscription_tier, org.show_impact_score) && <ImpactScoreBadge score={org.impact_score ?? 0} />}
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h3 className="text-[25px] sm:text-[32px] font-bold text-[#111111] dark:text-[#F5F5F5] tracking-tight">{org.organisation_name}</h3>
-                {isVerified && <VerifiedBadge withTooltip />}
-                {canDisplayImpactScoreForOrg(org.subscription_tier, org.show_impact_score) && <ImpactScoreBadge score={org.impact_score ?? 0} />}
-              </div>
-              <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5] mt-2">
-                {org.organisation_type && <span className="capitalize">{org.organisation_type.replace(/_/g, " ")}</span>}
-                {org.organisation_type && countries.length > 0 && " · "}
-                {countries.join(", ")}
-                {org.year_founded && ` · Est. ${org.year_founded}`}
-              </p>
-              {org.website && org.website !== "https://" && (
-                <a href={org.website} target="_blank" rel="noopener noreferrer"
-                  className="text-[15px] text-[#2D6A4F] hover:underline mt-1 inline-block">
-                  {org.website.replace(/^https?:\/\//, "")}
-                </a>
-              )}
-            </div>
+            <p className="text-[14px] text-muted-foreground mt-1.5">
+              {org.organisation_type && <span className="capitalize">{org.organisation_type.replace(/_/g, " ")}</span>}
+              {org.organisation_type && countries.length > 0 && " · "}
+              {countries.join(", ")}
+              {org.year_founded && ` · Est. ${org.year_founded}`}
+            </p>
+            {org.website && org.website !== "https://" && (
+              <a href={org.website} target="_blank" rel="noopener noreferrer" className="text-[14px] text-[#2D6A4F] hover:underline mt-1 inline-flex items-center gap-1">
+                <Globe className="w-3.5 h-3.5" /> {org.website.replace(/^https?:\/\//, "")}
+              </a>
+            )}
           </div>
         </div>
 
+        {/* Partnership Fit banner */}
         {(aiSummary || loadingAi) && (
-          <div className="px-8 sm:px-12 py-10">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-[#2D6A4F]" />
-                <p className="text-[21px] font-bold text-[#111111] dark:text-[#F5F5F5]">Partnership fit</p>
-              </div>
+          <div className="mx-6 sm:mx-8 mt-6 p-5 rounded-2xl bg-emerald-50/60 border border-emerald-100 space-y-2">
+            <div className="flex items-center gap-2 text-[13px] font-bold text-[#2D6A4F]">
+              <Sparkles className="w-4 h-4" /> <span>Partnership Fit Analysis</span>
               {!loadingAi && (
-                <button type="button" onClick={() => { setAiSummary(null); generateSummary(); }}
-                  className="p-1 rounded hover:opacity-70 transition-opacity" title="Refresh partnership fit">
-                  <RefreshCw className="w-3.5 h-3.5 text-[#111111] dark:text-[#F5F5F5]" />
+                <button type="button" onClick={() => { setAiSummary(null); generateSummary(); }} className="ml-auto p-1 rounded hover:opacity-70 transition-opacity" title="Refresh">
+                  <RefreshCw className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
             {loadingAi ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="w-3.5 h-3.5 text-[#2D6A4F] animate-spin shrink-0" />
-                <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5]">Generating partnership summary...</p>
-              </div>
+              <div className="flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" /><p className="text-[13px] text-foreground">Generating partnership summary...</p></div>
             ) : (
-              <p className="text-[17px] text-[#111111] dark:text-[#F5F5F5] leading-relaxed">{aiSummary}</p>
+              <p className="text-[13px] text-foreground leading-relaxed">{aiSummary}</p>
             )}
           </div>
         )}
 
-        <div className="px-8 sm:px-12 py-10">
-          <p className="text-[21px] font-bold text-[#111111] dark:text-[#F5F5F5] mb-6">About</p>
+        <DrawerTabs
+          active={activeTab}
+          onChange={setActiveTab}
+          tabs={[
+            { key: "overview", label: "Overview & DD" },
+            { key: "initiatives", label: `Active Initiatives (${orgInitiatives.length})` },
+            { key: "strategy", label: `Impact Strategy (${impactPillars.length})` },
+          ]}
+        />
 
-          <div className="space-y-9">
-            {org.description && (
-              <p className="text-[17px] text-[#111111] dark:text-[#F5F5F5] leading-relaxed">{org.description}</p>
-            )}
+        {/* Overview & DD */}
+        {activeTab === "overview" && (
+          <div className="px-6 sm:px-8 py-8 space-y-9">
+            {org.description && <p className="text-[15px] text-foreground leading-relaxed">{org.description}</p>}
 
             {ddScore > 0 && (
               <div>
                 <div className="flex items-center gap-1.5">
-                  <p className="text-[15px] font-bold text-[#111111] dark:text-[#F5F5F5]">DD readiness</p>
+                  <p className="text-[14px] font-bold text-foreground">DD readiness</p>
                   <InfoTooltip text={PILLAR_INFO.ddReadiness} />
                   <TrustBadge tier={computeTrustTier(ddScore, org.dd_evidence).tier} withTooltip />
-                  <span className="text-[15px] font-bold text-[#111111] dark:text-[#F5F5F5] ml-auto">{ddScore}%</span>
+                  <span className="text-[14px] font-bold text-foreground ml-auto">{ddScore}%</span>
                 </div>
                 <div className="h-[3px] bg-muted rounded-full mt-2.5">
                   <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${ddScore}%` }} />
@@ -1262,47 +1103,29 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                     const done = ddStateMap[item.key];
                     const hasEvidence = done && org.dd_evidence?.[item.key];
                     return (
-                      <button key={item.key} type="button"
-                        disabled={!hasEvidence}
-                        onClick={() => hasEvidence && setDdViewingKey(item.key)}
+                      <button key={item.key} type="button" disabled={!hasEvidence} onClick={() => hasEvidence && setDdViewingKey(item.key)}
                         className="text-[11px] px-2.5 py-1 rounded-md border transition-colors"
-                        style={{
-                          borderColor: done ? "#2D6A4F40" : "#E5E7EB",
-                          color: done ? "#2D6A4F" : "#9ca3af",
-                          background: done ? "#eaf5ee" : "transparent",
-                          cursor: hasEvidence ? "pointer" : "default",
-                        }}>
+                        style={{ borderColor: done ? "#2D6A4F40" : "#E5E7EB", color: done ? "#2D6A4F" : "#9ca3af", background: done ? "#eaf5ee" : "transparent", cursor: hasEvidence ? "pointer" : "default" }}>
                         {done ? "✓" : "·"} {item.label}
                       </button>
                     );
                   })}
                 </div>
-
                 {!isOwnProfile && (viewerIsFunder || viewerIsCorporate) && (
                   <div className="mt-4 pt-4 border-t border-border">
                     {viewerTier !== "compliance" ? (
-                      <p className="text-[13px] text-black dark:text-white opacity-60">
-                        Audit-ready DD export is a Compliance plan feature.
-                      </p>
+                      <p className="text-[13px] text-black dark:text-white opacity-60">Audit-ready DD export is a Compliance plan feature.</p>
                     ) : ddScore < 70 ? (
-                      <p className="text-[13px] text-black dark:text-white opacity-60">
-                        DD export requires at least 70% readiness (currently {ddScore}%).
-                      </p>
+                      <p className="text-[13px] text-black dark:text-white opacity-60">DD export requires at least 70% readiness (currently {ddScore}%).</p>
                     ) : exportState === "done" && exportDownloadUrl ? (
-                      <a href={exportDownloadUrl} target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-[15px] font-medium text-[#2D6A4F] hover:underline">
-                        Download DD export (PDF)
-                      </a>
+                      <a href={exportDownloadUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[15px] font-medium text-[#2D6A4F] hover:underline">Download DD export (PDF)</a>
                     ) : (
                       <div>
                         <button type="button" onClick={handleExportDD} disabled={exportState === "loading"}
-                          className="text-[15px] font-medium px-3.5 py-2 rounded-lg text-white transition-opacity disabled:opacity-60"
-                          style={{ background: "#2D6A4F" }}>
+                          className="text-[15px] font-medium px-3.5 py-2 rounded-lg text-white transition-opacity disabled:opacity-60" style={{ background: "#2D6A4F" }}>
                           {exportState === "loading" ? "Generating export…" : "Export audit-ready DD (PDF)"}
                         </button>
-                        {exportState === "error" && exportError && (
-                          <p className="text-[13px] text-red-600 dark:text-red-400 mt-2">{exportError}</p>
-                        )}
+                        {exportState === "error" && exportError && <p className="text-[13px] text-red-600 dark:text-red-400 mt-2">{exportError}</p>}
                       </div>
                     )}
                   </div>
@@ -1313,10 +1136,10 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
             {fddScore > 0 && (
               <div>
                 <div className="flex items-center gap-1.5">
-                  <p className="text-[15px] font-bold text-[#111111] dark:text-[#F5F5F5]">DD readiness</p>
+                  <p className="text-[14px] font-bold text-foreground">DD readiness</p>
                   <InfoTooltip text={PILLAR_INFO.ddReadiness} />
                   <TrustBadge tier={computeTrustTier(fddScore, org.dd_evidence).tier} withTooltip />
-                  <span className="text-[15px] font-bold text-[#111111] dark:text-[#F5F5F5] ml-auto">{fddScore}%</span>
+                  <span className="text-[14px] font-bold text-foreground ml-auto">{fddScore}%</span>
                 </div>
                 <div className="h-[3px] bg-muted rounded-full mt-2.5">
                   <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${fddScore}%` }} />
@@ -1326,16 +1149,9 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
                     const done = fddStateMap[item.key];
                     const hasEvidence = done && org.dd_evidence?.[item.key];
                     return (
-                      <button key={item.key} type="button"
-                        disabled={!hasEvidence}
-                        onClick={() => hasEvidence && setDdViewingKey(item.key)}
+                      <button key={item.key} type="button" disabled={!hasEvidence} onClick={() => hasEvidence && setDdViewingKey(item.key)}
                         className="text-[11px] px-2.5 py-1 rounded-md border transition-colors"
-                        style={{
-                          borderColor: done ? "#2D6A4F40" : "#E5E7EB",
-                          color: done ? "#2D6A4F" : "#9ca3af",
-                          background: done ? "#eaf5ee" : "transparent",
-                          cursor: hasEvidence ? "pointer" : "default",
-                        }}>
+                        style={{ borderColor: done ? "#2D6A4F40" : "#E5E7EB", color: done ? "#2D6A4F" : "#9ca3af", background: done ? "#eaf5ee" : "transparent", cursor: hasEvidence ? "pointer" : "default" }}>
                         {done ? "✓" : "·"} {item.label}
                       </button>
                     );
@@ -1346,67 +1162,22 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
 
             {hasTrackRecord && (
               <div>
-                <div className="flex items-center gap-1.5">
-                  <p className="text-[15px] font-bold text-[#111111] dark:text-[#F5F5F5]">Track record</p>
-                  <InfoTooltip text={PILLAR_INFO.trackRecord} />
-                </div>
-                <p className="text-[13px] text-[#111111] dark:text-[#F5F5F5] mt-1 mb-3">Self-reported reach and history</p>
+                <div className="flex items-center gap-1.5"><p className="text-[14px] font-bold text-foreground">Track record</p><InfoTooltip text={PILLAR_INFO.trackRecord} /></div>
+                <p className="text-[13px] text-muted-foreground mt-1 mb-3">Self-reported reach and history</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
-                  {org.total_beneficiaries_reached && (
-                    <div>
-                      <p className="text-[13px] text-[#111111] dark:text-[#F5F5F5] mb-0.5">Beneficiaries reached</p>
-                      <p className="text-[15px] font-semibold text-[#111111] dark:text-[#F5F5F5]">{org.total_beneficiaries_reached.toLocaleString()}</p>
-                    </div>
-                  )}
-                  {org.jobs_created && (
-                    <div>
-                      <p className="text-[13px] text-[#111111] dark:text-[#F5F5F5] mb-0.5">Jobs created</p>
-                      <p className="text-[15px] font-semibold text-[#111111] dark:text-[#F5F5F5]">{org.jobs_created.toLocaleString()}</p>
-                    </div>
-                  )}
-                  {org.years_of_operation && (
-                    <div>
-                      <p className="text-[13px] text-[#111111] dark:text-[#F5F5F5] mb-0.5">Years operating</p>
-                      <p className="text-[15px] font-semibold text-[#111111] dark:text-[#F5F5F5]">{org.years_of_operation}</p>
-                    </div>
-                  )}
-                  {org.female_beneficiaries_pct && (
-                    <div>
-                      <p className="text-[13px] text-[#111111] dark:text-[#F5F5F5] mb-0.5">Female beneficiaries</p>
-                      <p className="text-[15px] font-semibold text-[#111111] dark:text-[#F5F5F5]">{org.female_beneficiaries_pct}%</p>
-                    </div>
-                  )}
-                  {org.youth_beneficiaries_pct && (
-                    <div>
-                      <p className="text-[13px] text-[#111111] dark:text-[#F5F5F5] mb-0.5">Youth beneficiaries</p>
-                      <p className="text-[15px] font-semibold text-[#111111] dark:text-[#F5F5F5]">{org.youth_beneficiaries_pct}%</p>
-                    </div>
-                  )}
-                  {org.grants_received_count && (
-                    <div>
-                      <p className="text-[13px] text-[#111111] dark:text-[#F5F5F5] mb-0.5">Grants received</p>
-                      <p className="text-[15px] font-semibold text-[#111111] dark:text-[#F5F5F5]">{org.grants_received_count}</p>
-                    </div>
-                  )}
-                  {org.grants_total_value_usd && (
-                    <div>
-                      <p className="text-[13px] text-[#111111] dark:text-[#F5F5F5] mb-0.5">Total grant value</p>
-                      <p className="text-[15px] font-semibold text-[#111111] dark:text-[#F5F5F5]">${org.grants_total_value_usd.toLocaleString()}</p>
-                    </div>
-                  )}
-                  {org.grants_delivered_on_time_pct && (
-                    <div>
-                      <p className="text-[13px] text-[#111111] dark:text-[#F5F5F5] mb-0.5">Delivered on time</p>
-                      <p className="text-[15px] font-semibold text-[#111111] dark:text-[#F5F5F5]">{org.grants_delivered_on_time_pct}%</p>
-                    </div>
-                  )}
+                  {org.total_beneficiaries_reached && <div><p className="text-[13px] text-muted-foreground mb-0.5">Beneficiaries reached</p><p className="text-[14px] font-semibold text-foreground">{org.total_beneficiaries_reached.toLocaleString()}</p></div>}
+                  {org.jobs_created && <div><p className="text-[13px] text-muted-foreground mb-0.5">Jobs created</p><p className="text-[14px] font-semibold text-foreground">{org.jobs_created.toLocaleString()}</p></div>}
+                  {org.years_of_operation && <div><p className="text-[13px] text-muted-foreground mb-0.5">Years operating</p><p className="text-[14px] font-semibold text-foreground">{org.years_of_operation}</p></div>}
+                  {org.female_beneficiaries_pct && <div><p className="text-[13px] text-muted-foreground mb-0.5">Female beneficiaries</p><p className="text-[14px] font-semibold text-foreground">{org.female_beneficiaries_pct}%</p></div>}
+                  {org.youth_beneficiaries_pct && <div><p className="text-[13px] text-muted-foreground mb-0.5">Youth beneficiaries</p><p className="text-[14px] font-semibold text-foreground">{org.youth_beneficiaries_pct}%</p></div>}
+                  {org.grants_received_count && <div><p className="text-[13px] text-muted-foreground mb-0.5">Grants received</p><p className="text-[14px] font-semibold text-foreground">{org.grants_received_count}</p></div>}
+                  {org.grants_total_value_usd && <div><p className="text-[13px] text-muted-foreground mb-0.5">Total grant value</p><p className="text-[14px] font-semibold text-foreground">${org.grants_total_value_usd.toLocaleString()}</p></div>}
+                  {org.grants_delivered_on_time_pct && <div><p className="text-[13px] text-muted-foreground mb-0.5">Delivered on time</p><p className="text-[14px] font-semibold text-foreground">{org.grants_delivered_on_time_pct}%</p></div>}
                 </div>
-                {org.previous_funders && org.previous_funders.length > 0 && (
-                  <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5] mt-4"><span className="font-semibold">Previous funders: </span>{org.previous_funders.join(", ")}</p>
-                )}
+                {org.previous_funders && org.previous_funders.length > 0 && <p className="text-[14px] text-foreground mt-4"><span className="font-semibold">Previous funders: </span>{org.previous_funders.join(", ")}</p>}
                 {org.third_party_evaluations && (
-                  <div className="flex items-center gap-1.5 text-[15px] text-[#2D6A4F] mt-3">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  <div className="flex items-center gap-1.5 text-[14px] text-[#2D6A4F] mt-3">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
                     Third-party evaluations available
                   </div>
                 )}
@@ -1415,315 +1186,215 @@ function NativesOrgDetail({ org, onBack }: { org: OrgRow; onBack: () => void }) 
 
             {hasConsultancyExpertise && (
               <div>
-                <p className="text-[15px] font-bold text-[#111111] dark:text-[#F5F5F5] mb-1.5">Consultant expertise</p>
+                <p className="text-[14px] font-bold text-foreground mb-1.5">Consultant expertise</p>
                 {org.specializations && org.specializations.length > 0 && (
-                  <div className="mb-3">
-                    <p className="text-[13px] text-[#111111] dark:text-[#F5F5F5] mb-1.5">Specializations</p>
-                    <div className="flex flex-wrap gap-2">
-                      {org.specializations.map(s => (
-                        <span key={s} className="text-[15px] font-medium px-3 py-1 rounded-md" style={{ color: "#0F6E56", background: "#E1F5EE" }}>{s}</span>
-                      ))}
-                    </div>
+                  <div className="mb-3"><p className="text-[13px] text-muted-foreground mb-1.5">Specializations</p>
+                    <div className="flex flex-wrap gap-2">{org.specializations.map(s => <span key={s} className="text-[14px] font-medium px-3 py-1 rounded-md" style={{ color: "#0F6E56", background: "#E1F5EE" }}>{s}</span>)}</div>
                   </div>
                 )}
                 {org.notable_engagements && org.notable_engagements.length > 0 && (
-                  <div className="mb-3">
-                    <p className="text-[13px] text-[#111111] dark:text-[#F5F5F5] mb-1.5">Notable engagements</p>
-                    <ul className="text-[15px] text-[#111111] dark:text-[#F5F5F5] space-y-1 list-disc list-inside">
-                      {org.notable_engagements.map(e => <li key={e}>{e}</li>)}
-                    </ul>
+                  <div className="mb-3"><p className="text-[13px] text-muted-foreground mb-1.5">Notable engagements</p>
+                    <ul className="text-[14px] text-foreground space-y-1 list-disc list-inside">{org.notable_engagements.map(e => <li key={e}>{e}</li>)}</ul>
                   </div>
                 )}
-                {org.affiliations && org.affiliations.length > 0 && (
-                  <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5]"><span className="font-semibold">Affiliations: </span>{org.affiliations.join(", ")}</p>
-                )}
+                {org.affiliations && org.affiliations.length > 0 && <p className="text-[14px] text-foreground"><span className="font-semibold">Affiliations: </span>{org.affiliations.join(", ")}</p>}
               </div>
             )}
 
-            {sectors.length > 0 && (
-              <div>
-                <p className="text-[15px] font-bold text-[#111111] dark:text-[#F5F5F5] mb-1.5">Sector</p>
-                <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5]">{sectors.join(", ")}</p>
-              </div>
-            )}
-
-            {countries.length > 0 && (
-              <div>
-                <p className="text-[15px] font-bold text-[#111111] dark:text-[#F5F5F5] mb-1.5">Location</p>
-                <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5]">{countries.join(", ")}</p>
-              </div>
-            )}
+            {sectors.length > 0 && <div><p className="text-[14px] font-bold text-foreground mb-1.5">Sector</p><p className="text-[14px] text-foreground">{sectors.join(", ")}</p></div>}
+            {countries.length > 0 && <div><p className="text-[14px] font-bold text-foreground mb-1.5">Location</p><p className="text-[14px] text-foreground">{countries.join(", ")}</p></div>}
 
             {((org.needs && org.needs.length > 0) || (org.offers && org.offers.length > 0)) && (
               <div>
-                <p className="text-[15px] font-bold text-[#111111] dark:text-[#F5F5F5] mb-2">Seeking and offers</p>
+                <p className="text-[14px] font-bold text-foreground mb-2">Seeking and offers</p>
                 <div className="flex flex-wrap gap-2">
-                  {org.needs?.map(n => (
-                    <span key={n} className="text-[15px] font-medium px-3 py-1 rounded-md" style={{ color: "#993C1D", background: "#FAECE7" }}>{n}</span>
-                  ))}
-                  {org.offers?.map(o => (
-                    <span key={o} className="text-[15px] font-medium px-3 py-1 rounded-md" style={{ color: "#0F6E56", background: "#E1F5EE" }}>{o}</span>
-                  ))}
+                  {org.needs?.map(n => <span key={n} className="text-[14px] font-medium px-3 py-1 rounded-md" style={{ color: "#993C1D", background: "#FAECE7" }}>{n}</span>)}
+                  {org.offers?.map(o => <span key={o} className="text-[14px] font-medium px-3 py-1 rounded-md" style={{ color: "#0F6E56", background: "#E1F5EE" }}>{o}</span>)}
                 </div>
               </div>
             )}
 
-            {org.stage_preference && org.stage_preference.length > 0 && (
-              <div>
-                <p className="text-[15px] font-bold text-[#111111] dark:text-[#F5F5F5] mb-1.5">Stage preference</p>
-                <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5]">{org.stage_preference.join(", ")}</p>
-              </div>
-            )}
-
-            {org.geographic_focus && org.geographic_focus.length > 0 && (
-              <div>
-                <p className="text-[15px] font-bold text-[#111111] dark:text-[#F5F5F5] mb-1.5">Geographic focus</p>
-                <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5]">{org.geographic_focus.join(", ")}</p>
-              </div>
-            )}
+            {org.stage_preference && org.stage_preference.length > 0 && <div><p className="text-[14px] font-bold text-foreground mb-1.5">Stage preference</p><p className="text-[14px] text-foreground">{org.stage_preference.join(", ")}</p></div>}
+            {org.geographic_focus && org.geographic_focus.length > 0 && <div><p className="text-[14px] font-bold text-foreground mb-1.5">Geographic focus</p><p className="text-[14px] text-foreground">{org.geographic_focus.join(", ")}</p></div>}
 
             {org.investment_thesis && (
-              <div>
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <Sparkles className="w-3 h-3 text-[#2D6A4F]" />
-                  <p className="text-[15px] font-bold text-[#111111] dark:text-[#F5F5F5]">Investment thesis</p>
-                </div>
-                <p className="text-[17px] text-[#111111] dark:text-[#F5F5F5] leading-relaxed">{org.investment_thesis}</p>
+              <div><div className="flex items-center gap-1.5 mb-1.5"><Sparkles className="w-3 h-3 text-[#2D6A4F]" /><p className="text-[14px] font-bold text-foreground">Investment thesis</p></div>
+                <p className="text-[15px] text-foreground leading-relaxed">{org.investment_thesis}</p>
               </div>
             )}
 
             {showCsrEsg && (
               <>
                 {org.csr_focus_statement && (
-                  <div>
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <Sparkles className="w-3 h-3 text-[#C45C26]" />
-                      <p className="text-[15px] font-bold text-[#111111] dark:text-[#F5F5F5]">CSR and ESG focus</p>
-                    </div>
-                    <p className="text-[17px] text-[#111111] dark:text-[#F5F5F5] leading-relaxed">{org.csr_focus_statement}</p>
+                  <div><div className="flex items-center gap-1.5 mb-1.5"><Sparkles className="w-3 h-3 text-[#C45C26]" /><p className="text-[14px] font-bold text-foreground">CSR and ESG focus</p></div>
+                    <p className="text-[15px] text-foreground leading-relaxed">{org.csr_focus_statement}</p>
                   </div>
                 )}
-                {org.csr_budget_range && (
-                  <div>
-                    <p className="text-[15px] font-bold text-[#111111] dark:text-[#F5F5F5] mb-1.5">CSR budget</p>
-                    <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5]">{org.csr_budget_range}</p>
-                  </div>
-                )}
+                {org.csr_budget_range && <div><p className="text-[14px] font-bold text-foreground mb-1.5">CSR budget</p><p className="text-[14px] text-foreground">{org.csr_budget_range}</p></div>}
                 {org.inkind_support && org.inkind_support.length > 0 && (
-                  <div>
-                    <p className="text-[15px] font-bold text-[#111111] dark:text-[#F5F5F5] mb-2">What we bring</p>
-                    <div className="flex flex-wrap gap-2">
-                      {org.inkind_support.map(s => (
-                        <span key={s} className="text-[15px] text-[#111111] dark:text-[#F5F5F5] border border-border px-3 py-1 rounded-md">{s}</span>
-                      ))}
-                    </div>
+                  <div><p className="text-[14px] font-bold text-foreground mb-2">What we bring</p>
+                    <div className="flex flex-wrap gap-2">{org.inkind_support.map(s => <span key={s} className="text-[14px] text-foreground border border-border px-3 py-1 rounded-md">{s}</span>)}</div>
                   </div>
                 )}
                 {org.esg_frameworks && org.esg_frameworks.length > 0 && (
-                  <div>
-                    <p className="text-[15px] font-bold text-[#111111] dark:text-[#F5F5F5] mb-2">ESG frameworks</p>
-                    <div className="flex flex-wrap gap-2">
-                      {org.esg_frameworks.map(f => (
-                        <span key={f} className="text-[15px] text-[#111111] dark:text-[#F5F5F5] border border-border px-3 py-1 rounded-md">{f}</span>
-                      ))}
-                    </div>
+                  <div><p className="text-[14px] font-bold text-foreground mb-2">ESG frameworks</p>
+                    <div className="flex flex-wrap gap-2">{org.esg_frameworks.map(f => <span key={f} className="text-[14px] text-foreground border border-border px-3 py-1 rounded-md">{f}</span>)}</div>
                   </div>
                 )}
                 {(org.employee_engagement_available || org.cobranding_open) && (
-                  <div>
-                    <p className="text-[15px] font-bold text-[#111111] dark:text-[#F5F5F5] mb-1.5">Partnership preferences</p>
-                    <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5]">
-                      {[org.employee_engagement_available ? "Open to employee engagement" : null, org.cobranding_open ? "Open to co-branding" : null].filter(Boolean).join(", ")}
-                    </p>
+                  <div><p className="text-[14px] font-bold text-foreground mb-1.5">Partnership preferences</p>
+                    <p className="text-[14px] text-foreground">{[org.employee_engagement_available ? "Open to employee engagement" : null, org.cobranding_open ? "Open to co-branding" : null].filter(Boolean).join(", ")}</p>
                   </div>
                 )}
                 {org.tech_support_available && org.tech_support_available.length > 0 && (
-                  <div>
-                    <p className="text-[15px] font-bold text-[#111111] dark:text-[#F5F5F5] mb-2">Technology support available</p>
-                    <div className="flex flex-wrap gap-2">
-                      {org.tech_support_available.map(t => (
-                        <span key={t} className="text-[15px] text-[#111111] dark:text-[#F5F5F5] border border-border px-3 py-1 rounded-md">{t}</span>
-                      ))}
-                    </div>
+                  <div><p className="text-[14px] font-bold text-foreground mb-2">Technology support available</p>
+                    <div className="flex flex-wrap gap-2">{org.tech_support_available.map(t => <span key={t} className="text-[14px] text-foreground border border-border px-3 py-1 rounded-md">{t}</span>)}</div>
                   </div>
                 )}
                 {org.sandbox_ready && (
-                  <div>
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <Sparkles className="w-3 h-3 text-[#2D6A4F]" />
-                      <p className="text-[15px] font-bold text-[#111111] dark:text-[#F5F5F5]">Open to sandbox or beta testing</p>
-                    </div>
-                    {org.sandbox_description && <p className="text-[17px] text-[#111111] dark:text-[#F5F5F5] leading-relaxed">{org.sandbox_description}</p>}
+                  <div><div className="flex items-center gap-1.5 mb-1.5"><Sparkles className="w-3 h-3 text-[#2D6A4F]" /><p className="text-[14px] font-bold text-foreground">Open to sandbox or beta testing</p></div>
+                    {org.sandbox_description && <p className="text-[15px] text-foreground leading-relaxed">{org.sandbox_description}</p>}
                   </div>
                 )}
               </>
+            )}
+
+            {isImplementerOrg && <EsgSnapshotSection org={org} />}
+
+            {org.contact_name && <div><p className="text-[14px] font-bold text-foreground mb-1.5">Contact</p><p className="text-[14px] text-foreground">{org.contact_name}</p></div>}
+          </div>
+        )}
+
+        {/* Active Initiatives */}
+        {activeTab === "initiatives" && (
+          <div className="px-6 sm:px-8 py-8 space-y-9">
+            {orgPartnership?.title && (
+              <div>
+                <p className="text-[17px] font-bold text-foreground mb-4">Partnership listing</p>
+                <p className="text-[15px] font-semibold text-foreground leading-snug">{orgPartnership.title}</p>
+                {orgPartnership.sought && <p className="text-[14px] text-foreground leading-relaxed mt-2">{orgPartnership.sought}</p>}
+                <p className="text-[14px] text-foreground mt-3">
+                  {[orgPartnership.stage?.replace(/_/g, " "), orgPartnership.funding_status?.replace(/_/g, " "), orgPartnership.budget?.replace(/_/g, "–")].filter(Boolean).join(" · ")}
+                </p>
+              </div>
+            )}
+
+            {orgInitiatives.length > 0 ? (
+              <div>
+                <p className="text-[17px] font-bold text-foreground mb-4">Active initiatives</p>
+                <div className="space-y-5">
+                  {orgInitiatives.map(ini => (
+                    <div key={ini.id} className="p-4 rounded-xl bg-white dark:bg-card border border-border space-y-1.5">
+                      <p className="text-[15px] font-semibold text-foreground leading-snug">{ini.title}</p>
+                      <p className="text-[14px] text-muted-foreground">
+                        {[ini.locations?.slice(0, 2).join(", "), ini.budget].filter(Boolean).join(" · ")}
+                        {ini.eois ? ` · ${ini.eois} EOI${ini.eois !== 1 ? "s" : ""}` : ""}
+                      </p>
+                      {ini.sectors?.length > 0 && <p className="text-[14px] text-foreground">{ini.sectors.slice(0, 2).join(", ")}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : !orgPartnership?.title && <p className="text-[14px] text-muted-foreground">No active initiatives or partnership listing yet.</p>}
+
+            {deliveryStats && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-1.5"><p className="text-[17px] font-bold text-foreground">Delivery</p><InfoTooltip text={PILLAR_INFO.delivery} /></div>
+                  {hasDelivery && <p className="text-[17px] font-bold text-foreground">{deliveryRate}%</p>}
+                </div>
+                <p className="text-[13px] text-muted-foreground mb-3">From outcomes tracked on this platform</p>
+                {hasDelivery ? (
+                  <>
+                    <div className="flex gap-1">{Array.from({ length: 10 }).map((_, i) => <div key={i} className={`h-2 flex-1 rounded-sm ${i < Math.round((deliveryRate ?? 0) / 10) ? "bg-[#2D6A4F]" : "bg-muted"}`} />)}</div>
+                    <p className="text-[14px] text-foreground mt-3">
+                      {deliveryStats.completed} of {deliveryStats.resolved} relationship{deliveryStats.resolved !== 1 ? "s" : ""} completed
+                      {[deliveryStats.stalled > 0 ? `${deliveryStats.stalled} stalled` : null, deliveryStats.fell_through > 0 ? `${deliveryStats.fell_through} fell through` : null, deliveryInProgress > 0 ? `${deliveryInProgress} still in progress` : null].filter(Boolean).length > 0
+                        ? ` (${[deliveryStats.stalled > 0 ? `${deliveryStats.stalled} stalled` : null, deliveryStats.fell_through > 0 ? `${deliveryStats.fell_through} fell through` : null, deliveryInProgress > 0 ? `${deliveryInProgress} still in progress` : null].filter(Boolean).join(", ")})`
+                        : ""}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-[14px] text-foreground">{deliveryStats.total === 0 ? "No tracked delivery history yet." : `${deliveryStats.total} active relationship${deliveryStats.total !== 1 ? "s" : ""}, no completed outcomes yet.`}</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Impact Strategy */}
+        {activeTab === "strategy" && (
+          <div className="px-6 sm:px-8 py-8 space-y-9">
+            {impactPillars.length > 0 && (
+              <div>
+                <div className="flex items-center gap-1.5 mb-4"><Sparkles className="w-4 h-4 text-[#2D6A4F]" /><p className="text-[17px] font-bold text-foreground">Proposed deployments</p></div>
+                <div className="space-y-5">
+                  {impactPillars.map((pillar: any, i: number) => {
+                    const publishedRow = orgInitiatives.find(ini => ini.title === pillar.pillar_name);
+                    const specificAsk = publishedRow?.specific_ask ?? pillar.specific_ask_draft;
+                    return (
+                      <div key={i} className="p-4 rounded-xl bg-white dark:bg-card border border-border space-y-1.5">
+                        <p className="text-[15px] font-semibold text-foreground leading-snug">{pillar.pillar_name}</p>
+                        {specificAsk && <p className="text-[14px] text-foreground leading-relaxed">{specificAsk}</p>}
+                        {pillar.un_sdg_code && <p className="text-[13px] text-muted-foreground">{pillar.un_sdg_code}</p>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             )}
 
             {org.sdgs && org.sdgs.length > 0 && (
               <div>
-                <p className="text-[15px] font-bold text-[#111111] dark:text-[#F5F5F5] mb-2">SDG alignment</p>
-                <div className="flex flex-wrap gap-2">
-                  {org.sdgs.map(s => (
-                    <span key={s} className="text-[15px] font-medium px-3 py-1 rounded-md" style={{ background: "#2D6A4F", color: "white" }}>
-                      {sdgLabel(s)}
-                    </span>
+                <p className="text-[17px] font-bold text-foreground mb-4">SDG alignment</p>
+                <div className="flex flex-wrap gap-2">{org.sdgs.map(s => <span key={s} className="text-[14px] font-medium px-3 py-1 rounded-md" style={{ background: "#2D6A4F", color: "white" }}>{sdgLabel(s)}</span>)}</div>
+              </div>
+            )}
+
+            {reputationPartners.length > 0 && (
+              <div>
+                <p className="text-[17px] font-bold text-foreground mb-4">Confirmed partnerships</p>
+                <div className="space-y-2">
+                  {reputationPartners.slice(0, 5).map((p, i) => (
+                    <p key={i} className="text-[14px] text-foreground">
+                      {p.as === "owner" ? `Partnered with ${p.partner_name} as ${partnerRolePhrase(p.role)} on "${p.initiative_title}"` : `Confirmed as ${partnerRolePhrase(p.role)} on "${p.initiative_title}"`}
+                    </p>
                   ))}
                 </div>
               </div>
             )}
-          </div>
-        </div>
 
-        {ddViewingKey && (() => {
-          const item = DD_ITEMS.find(i => i.key === ddViewingKey) ?? FUNDER_DD_ITEMS.find(i => i.key === ddViewingKey);
-          if (!item) return null;
-          return (
-            <DDEvidenceViewModal
-              item={item}
-              evidence={org.dd_evidence?.[ddViewingKey] ?? {}}
-              documents={docsByItem[ddViewingKey] ?? []}
-              canSeeSensitive={canSeeSensitive}
-              canSeeDisclosureDetail={canSeeDisclosureDetail}
-              onClose={() => setDdViewingKey(null)}
-            />
-          );
-        })()}
-
-        {deliveryStats && (
-          <div className="px-8 sm:px-12 py-10">
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-1.5">
-                <p className="text-[21px] font-bold text-[#111111] dark:text-[#F5F5F5]">Delivery</p>
-                <InfoTooltip text={PILLAR_INFO.delivery} />
-              </div>
-              {hasDelivery && <p className="text-[21px] font-bold text-[#111111] dark:text-[#F5F5F5]">{deliveryRate}%</p>}
-            </div>
-            <p className="text-[13px] text-[#111111] dark:text-[#F5F5F5] mb-3">From outcomes tracked on this platform</p>
-            {hasDelivery ? (
-              <>
-              <div className="flex gap-1">
-                {Array.from({ length: 10 }).map((_, i) => (
-                  <div key={i} className={`h-2 flex-1 rounded-sm ${i < Math.round((deliveryRate ?? 0) / 10) ? "bg-[#2D6A4F]" : "bg-muted"}`} />
-                ))}
-              </div>
-              <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5] mt-3">
-                  {deliveryStats.completed} of {deliveryStats.resolved} relationship{deliveryStats.resolved !== 1 ? "s" : ""} completed
-                  {[
-                    deliveryStats.stalled > 0 ? `${deliveryStats.stalled} stalled` : null,
-                    deliveryStats.fell_through > 0 ? `${deliveryStats.fell_through} fell through` : null,
-                    deliveryInProgress > 0 ? `${deliveryInProgress} still in progress` : null,
-                  ].filter(Boolean).length > 0
-                    ? ` (${[
-                        deliveryStats.stalled > 0 ? `${deliveryStats.stalled} stalled` : null,
-                        deliveryStats.fell_through > 0 ? `${deliveryStats.fell_through} fell through` : null,
-                        deliveryInProgress > 0 ? `${deliveryInProgress} still in progress` : null,
-                      ].filter(Boolean).join(", ")})`
-                    : ""}
-                </p>
-              </>
-            ) : (
-              <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5]">
-                {deliveryStats.total === 0
-                  ? "No tracked delivery history yet."
-                  : `${deliveryStats.total} active relationship${deliveryStats.total !== 1 ? "s" : ""}, no completed outcomes yet.`}
-              </p>
+            {impactPillars.length === 0 && !(org.sdgs && org.sdgs.length > 0) && reputationPartners.length === 0 && (
+              <p className="text-[14px] text-muted-foreground">No impact strategy published yet.</p>
             )}
           </div>
         )}
-
-        {isImplementerOrg && <EsgSnapshotSection org={org} />}
-
-        {orgPartnership?.title && (
-          <div className="px-8 sm:px-12 py-10">
-            <p className="text-[21px] font-bold text-[#111111] dark:text-[#F5F5F5] mb-6">Partnership listing</p>
-            <p className="text-[17px] font-semibold text-[#111111] dark:text-[#F5F5F5] leading-snug">{orgPartnership.title}</p>
-            {orgPartnership.sought && <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5] leading-relaxed mt-2">{orgPartnership.sought}</p>}
-            <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5] mt-3">
-              {[
-                orgPartnership.stage?.replace(/_/g, " "),
-                orgPartnership.funding_status?.replace(/_/g, " "),
-                orgPartnership.budget?.replace(/_/g, "–"),
-              ].filter(Boolean).join(" · ")}
-            </p>
-          </div>
-        )}
-
-        {orgInitiatives.length > 0 && (
-          <div className="px-8 sm:px-12 py-10">
-            <p className="text-[21px] font-bold text-[#111111] dark:text-[#F5F5F5] mb-6">Active initiatives</p>
-            <div className="space-y-5">
-              {orgInitiatives.map(ini => (
-                <div key={ini.id} className="pb-5 border-b border-border last:border-0 last:pb-0 space-y-1.5">
-                  <p className="text-[17px] font-semibold text-[#111111] dark:text-[#F5F5F5] leading-snug">{ini.title}</p>
-                  <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5]">
-                    {[ini.locations?.slice(0,2).join(", "), ini.budget].filter(Boolean).join(" · ")}
-                    {ini.eois ? ` · ${ini.eois} EOI${ini.eois !== 1 ? "s" : ""}` : ""}
-                  </p>
-                  {ini.sectors?.length > 0 && <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5]">{ini.sectors.slice(0,2).join(", ")}</p>}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {impactPillars.length > 0 && (
-          <div className="px-8 sm:px-12 py-10">
-            <div className="flex items-center gap-1.5 mb-6">
-              <Sparkles className="w-4 h-4 text-[#2D6A4F]" />
-              <p className="text-[21px] font-bold text-[#111111] dark:text-[#F5F5F5]">Impact strategy</p>
-            </div>
-            <div className="space-y-5">
-              {impactPillars.map((pillar: any, i: number) => {
-                const publishedRow = orgInitiatives.find(ini => ini.title === pillar.pillar_name);
-                const specificAsk = publishedRow?.specific_ask ?? pillar.specific_ask_draft;
-                return (
-                  <div key={i} className="pb-5 border-b border-border last:border-0 last:pb-0 space-y-1.5">
-                    <p className="text-[17px] font-semibold text-[#111111] dark:text-[#F5F5F5] leading-snug">{pillar.pillar_name}</p>
-                    {specificAsk && <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5] leading-relaxed">{specificAsk}</p>}
-                    {pillar.un_sdg_code && <p className="text-[13px] text-[#111111] dark:text-[#F5F5F5]">{pillar.un_sdg_code}</p>}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {reputationPartners.length > 0 && (
-          <div className="px-8 sm:px-12 py-10">
-            <p className="text-[21px] font-bold text-[#111111] dark:text-[#F5F5F5] mb-6">Confirmed partnerships</p>
-            <div className="space-y-2">
-              {reputationPartners.slice(0, 5).map((p, i) => (
-                <p key={i} className="text-[15px] text-[#111111] dark:text-[#F5F5F5]">
-                  {p.as === "owner"
-                    ? `Partnered with ${p.partner_name} as ${partnerRolePhrase(p.role)} on "${p.initiative_title}"`
-                    : `Confirmed as ${partnerRolePhrase(p.role)} on "${p.initiative_title}"`}
-                </p>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {orgInitiatives.length === 0 && !orgPartnership?.title && (
-          <div className="px-8 sm:px-12 py-10">
-            <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5]">No active initiatives or partnership listing yet.</p>
-          </div>
-        )}
-
-        {org.contact_name && (
-          <div className="px-8 sm:px-12 py-10">
-            <p className="text-[21px] font-bold text-[#111111] dark:text-[#F5F5F5] mb-6">Contact</p>
-            <p className="text-[15px] text-[#111111] dark:text-[#F5F5F5]">{org.contact_name}</p>
-          </div>
-        )}
-
       </div>
-    </div>
+
+      {ddViewingKey && (() => {
+        const item = DD_ITEMS.find(i => i.key === ddViewingKey) ?? FUNDER_DD_ITEMS.find(i => i.key === ddViewingKey);
+        if (!item) return null;
+        return (
+          <DDEvidenceViewModal item={item} evidence={org.dd_evidence?.[ddViewingKey] ?? {}} documents={docsByItem[ddViewingKey] ?? []}
+            canSeeSensitive={canSeeSensitive} canSeeDisclosureDetail={canSeeDisclosureDetail} onClose={() => setDdViewingKey(null)} />
+        );
+      })()}
+
+      {/* TODO: wire "Send Message" to your actual messaging/conversation-start flow. */}
+      <div className="p-5 border-t border-border bg-white dark:bg-card flex items-center gap-4 shrink-0 shadow-sm">
+        <button type="button" className="flex-1 bg-[#2D6A4F] hover:bg-[#1F4C38] text-white font-semibold py-3 px-6 rounded-xl text-[13px] transition-all shadow-sm flex items-center justify-center gap-2">
+          <Mail className="w-4 h-4" /> Send Message
+        </button>
+        {org.website && org.website !== "https://" && (
+          <a href={org.website} target="_blank" rel="noopener noreferrer"
+            className="bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-white/5 text-foreground font-semibold py-3 px-6 rounded-xl text-[13px] transition-all flex items-center justify-center gap-2 border border-border">
+            <Globe className="w-4 h-4" /> Visit Website
+          </a>
+        )}
+      </div>
+    </>
   );
 }
-
-// ── Verified Badge with optional tooltip ──────────────────────────────────────
-
-
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 
@@ -1735,9 +1406,7 @@ function LoadingSpinner() {
   );
 }
 
-function EmptyState({ icon, title, subtitle }: {
-  icon: React.ReactNode; title: string; subtitle: string;
-}) {
+function EmptyState({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
   return (
     <div className="rounded-2xl border border-border bg-white dark:bg-card p-12 text-center">
       <div className="flex justify-center mb-4">{icon}</div>
