@@ -30,6 +30,7 @@ interface InitiativeRow {
   submitter_is_verified?: boolean;
   submitter_dd_score?: number | null;
   submitter_trust_tier?: "gold" | "silver" | "bronze" | "flagged" | null;
+  submitter_logo_url?: string | null;
   submitter_org_type?: string | null;
   submitter_name?: string | null;
   submitter_user_type?: string | null;
@@ -426,7 +427,11 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
           }
           onClick={e => e.stopPropagation()}
           className="flex items-center gap-1.5 text-[13px] font-semibold text-black dark:text-white mt-1.5 hover:underline underline-offset-2 transition-colors min-w-0">
-          <Building2 className="w-3 h-3 shrink-0" />
+          {ini.submitter_logo_url ? (
+            <img src={ini.submitter_logo_url} alt="" className="w-4 h-4 rounded-full object-cover shrink-0 border border-border" />
+          ) : (
+            <Building2 className="w-3 h-3 shrink-0" />
+          )}
           <span className="truncate">{ini.submitter_user_type === "organisation" ? ini.submitter_org : ini.submitter_name}</span>
           {ini.submitter_is_verified && <ShieldCheck className="w-3 h-3 shrink-0 text-[#2D6A4F]" />}
         </Link>
@@ -505,7 +510,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
       </div>
 
       <button type="button" onClick={e => { e.stopPropagation(); onClick(); }}
-        className="mt-3 w-full text-center text-[13px] font-semibold text-[#2D6A4F] dark:text-[#C45C26] border border-[#2D6A4F]/30 dark:border-[#C45C26]/40 rounded-lg py-2 hover:bg-[#2D6A4F]/5 dark:hover:bg-[#C45C26]/10 transition-colors">
+        className="mt-3 self-end text-[13px] font-semibold text-white bg-[#2D6A4F] hover:bg-[#245c43] dark:bg-[#C45C26] dark:hover:bg-[#b34f1f] rounded-full px-4 py-2 shadow-sm hover:shadow-md transition-all">
         View Initiative
       </button>
     </div>
@@ -648,6 +653,11 @@ export default function DashboardMarketplace() {
             submitter_user_type:   ini.profile_user_type ?? null,
             submitter_dd_score:    score,
             submitter_trust_tier:  tier,
+            // NOTE: assumes get_marketplace_initiatives returns org_logo_url /
+            // profile_avatar_url alongside the other org_*/profile_* columns
+            // already read above. If the RPC uses different column names,
+            // update these two keys to match.
+            submitter_logo_url:    ini.org_logo_url ?? ini.profile_avatar_url ?? null,
           };
         });
         setInitiatives(enriched as InitiativeRow[]);
@@ -856,6 +866,7 @@ export default function DashboardMarketplace() {
 }
 // ── Deal-room detail page: color tokens & small building blocks ────────────────
 const FOREST = "#1B4D3E";
+const SDG_CARD_PALETTE = ["#FEE2E2", "#DCFCE7", "#DBEAFE", "#FEF3C7", "#EDE9FE", "#FCE7F3"];
 const BURNT_ORANGE = "#D96B27";
 const BURNT_ORANGE_HOVER = "#C25A1E";
 
@@ -909,6 +920,46 @@ function MilestoneTracker({ currentStage }: { currentStage?: string | null }) {
   );
 }
 
+// Slide-over panel for AI-generated reports (Deal Memo, CSR Adoption Brief) --
+// opens from the right over a dimmed (not blurred) backdrop, same pattern as
+// the Natives drawer, so both tools feel consistent and don't push the page
+// content around.
+function AiSlidePanel({ open, onClose, title, icon, children }: {
+  open: boolean; onClose: () => void; title: string; icon: React.ReactNode; children: React.ReactNode;
+}) {
+  const [mounted, setMounted] = useState(open);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      const raf = requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
+      return () => cancelAnimationFrame(raf);
+    }
+    if (mounted) {
+      setVisible(false);
+      const t = setTimeout(() => setMounted(false), 300);
+      return () => clearTimeout(t);
+    }
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!mounted) return null;
+  return (
+    <div className="fixed inset-0 z-[100]" role="dialog" aria-modal="true">
+      <div className={`absolute inset-0 bg-slate-900/20 transition-opacity duration-300 ${visible ? "opacity-100" : "opacity-0"}`} onClick={onClose} />
+      <div className={`absolute right-0 top-0 h-full w-full sm:w-[85%] md:w-[65%] lg:w-[520px] bg-white border-l border-slate-200 shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${visible ? "translate-x-0" : "translate-x-full"}`}>
+        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between shrink-0">
+          <p className="text-[17px] font-semibold text-foreground flex items-center gap-2">{icon}{title}</p>
+          <button type="button" onClick={onClose} className="p-1.5 rounded-full hover:bg-slate-100 transition-colors">
+            <X className="w-4 h-4 text-slate-500" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function MarketplaceDetail({
   initiative, onBack, expressed, onExpressed,
   saved, passed, passReason, onToggleSave, onConfirmPass, onUndoPass,
@@ -941,7 +992,7 @@ function MarketplaceDetail({
   const [question, setQuestion]                 = useState("");
   const [questionSubmitting, setQuestionSubmitting] = useState(false);
   const [questionSubmitted, setQuestionSubmitted]   = useState(false);
-  const [detailTab, setDetailTab] = useState<"overview" | "impact" | "partnership">("overview");
+  const [detailTab, setDetailTab] = useState<"overview" | "problem" | "budget" | "team">("overview");
   const [dealMemo, setDealMemo]                 = useState<any | null>(null);
   const [loadingMemo, setLoadingMemo]           = useState(false);
   const [memoOpen, setMemoOpen]                 = useState(false);
@@ -1351,230 +1402,7 @@ function MarketplaceDetail({
         </div>
       </div>
 
-      {/* Funder / corporate AI tools */}
-      {(isFunder || isCorporate) && (
-        <div className="flex items-center gap-2">
-          {isFunder && (
-            <button type="button" onClick={generateDealMemo}
-              disabled={loadingMemo}
-              className="flex items-center gap-2 px-4 py-2 rounded-full border text-[15px] font-medium transition-colors disabled:opacity-50"
-              style={{ borderColor: `${FOREST}4D`, background: `${FOREST}0D`, color: FOREST }}>
-              {loadingMemo
-                ? <><Sparkles className="w-3.5 h-3.5 animate-pulse" />Generating memo...</>
-                : <><FileText className="w-3.5 h-3.5" />Generate deal memo</>
-              }
-            </button>
-          )}
-          {isCorporate && (
-            <button type="button" onClick={generateCsrBrief}
-              disabled={loadingCsr}
-              className="flex items-center gap-2 px-4 py-2 rounded-full border text-[15px] font-medium transition-colors disabled:opacity-50"
-              style={{ borderColor: `${FOREST}4D`, background: `${FOREST}0D`, color: FOREST }}>
-              {loadingCsr
-                ? <><Sparkles className="w-3.5 h-3.5 animate-pulse" />Generating brief...</>
-                : <><FileText className="w-3.5 h-3.5" />CSR adoption brief</>
-              }
-            </button>
-          )}
-        </div>
-      )}
-      {memoOpen && (
-        <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4" style={{ color: FOREST }} />
-              <p className="text-[17px] font-semibold text-foreground">AI Deal Memo</p>
-              {dealMemo?.match_score != null && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                  style={{
-                    background: ragForScore(dealMemo.match_score, 40, 70).bg,
-                    color: ragForScore(dealMemo.match_score, 40, 70).text,
-                  }}>
-                  {dealMemo.match_score}% match
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {dealMemo && (
-                <button type="button" onClick={generateDealMemo}
-                  className="text-[13px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" />
-                  Regenerate
-                </button>
-              )}
-              <button type="button" onClick={() => setMemoOpen(false)}
-                className="p-1 rounded-full hover:bg-muted transition-colors">
-                <X className="w-4 h-4 text-muted-foreground" />
-              </button>
-            </div>
-          </div>
-          {loadingMemo ? (
-            <div className="space-y-3">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="h-12 rounded-lg bg-muted animate-pulse" />
-              ))}
-            </div>
-          ) : dealMemo ? (
-            <div className="space-y-4">
-              <p className="text-[15px] font-medium text-foreground leading-relaxed">{dealMemo.headline}</p>
-              {[
-                { label: "Problem validity", value: dealMemo.problem_validity },
-                { label: "Solution fit", value: dealMemo.solution_fit },
-                { label: "Team credibility", value: dealMemo.team_credibility },
-                { label: "Financial assessment", value: dealMemo.financial_assessment },
-                { label: "Mandate alignment", value: dealMemo.mandate_alignment },
-              ].map(section => (
-                <div key={section.label} className="space-y-1">
-                  <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">{section.label}</p>
-                  <p className="text-[15px] text-foreground leading-relaxed">{section.value}</p>
-                </div>
-              ))}
-              {dealMemo.risk_flags?.length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">Risk flags</p>
-                  <ul className="space-y-1">
-                    {dealMemo.risk_flags.map((flag: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2 text-[15px] text-foreground">
-                        <span className="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5" style={{ background: BURNT_ORANGE }} />
-                        {flag}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {dealMemo.recommended_action && (
-                <div className="rounded-xl border-2 border-l-[6px] px-5 py-4 space-y-1.5 shadow-sm"
-                  style={{
-                    borderColor: ragFor(dealMemo.recommended_action).border,
-                    borderLeftColor: ragFor(dealMemo.recommended_action).text,
-                    background: ragFor(dealMemo.recommended_action).bg,
-                  }}>
-                  <div className="flex items-center gap-2">
-                    <RagIcon action={dealMemo.recommended_action} className="w-4 h-4 shrink-0" />
-                    <p className="text-[15px] font-bold uppercase tracking-wide"
-                      style={{ color: ragFor(dealMemo.recommended_action).text }}>
-                      Recommended: {dealMemo.recommended_action}
-                    </p>
-                  </div>
-                  <p className="text-[13px] text-black dark:text-white pl-6">{dealMemo.recommended_action_reason}</p>
-                </div>
-              )}
-            </div>
-          ) : memoRequiresUpgrade ? (
-            <div className="text-center py-4">
-              <p className="text-[15px] font-medium text-foreground mb-1">AI deal memos need an upgrade.</p>
-              <p className="text-[13px] text-black dark:text-white mb-3">Upgrade to see a full AI-generated deal memo for this initiative.</p>
-              <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
-                className="text-[13px] font-semibold text-white rounded-full px-4 py-1.5 transition-colors"
-                style={{ background: FOREST }}>
-                Upgrade
-              </button>
-            </div>
-          ) : (
-            <p className="text-[15px] text-black dark:text-white">Failed to generate memo. Try again.</p>
-          )}
-        </div>
-      )}
-      {csrOpen && (
-        <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4" style={{ color: FOREST }} />
-              <p className="text-[17px] font-semibold text-foreground">CSR Adoption Brief</p>
-              {csrBrief?.match_score != null && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                  style={{
-                    background: ragForScore(csrBrief.match_score, 50, 75).bg,
-                    color: ragForScore(csrBrief.match_score, 50, 75).text,
-                  }}>
-                  {csrBrief.match_score}% CSR fit
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {csrBrief && (
-                <button type="button" onClick={generateCsrBrief}
-                  className="text-[13px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" />Regenerate
-                </button>
-              )}
-              <button type="button" onClick={() => setCsrOpen(false)}
-                className="p-1 rounded-full hover:bg-muted transition-colors">
-                <X className="w-4 h-4 text-muted-foreground" />
-              </button>
-            </div>
-          </div>
-          {loadingCsr ? (
-            <div className="space-y-3">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="h-12 rounded-lg bg-muted animate-pulse" />
-              ))}
-            </div>
-          ) : csrBrief ? (
-            <div className="space-y-4">
-              <p className="text-[15px] font-medium text-foreground leading-relaxed">{csrBrief.headline}</p>
-             {[
-                { label: "SDG alignment",               value: csrBrief.sdg_alignment },
-                { label: "Local content",               value: csrBrief.local_content },
-                { label: "Brand fit",                   value: csrBrief.brand_fit },
-                { label: "ESG framework match",         value: csrBrief.esg_framework_match },
-                { label: "Partnership options",         value: csrBrief.partnership_options },
-                { label: "Reputational considerations", value: csrBrief.reputational_considerations },
-                { label: "Implementer readiness",       value: csrBrief.implementer_readiness },
-              ].map(section => (
-                <div key={section.label} className="space-y-1">
-                  <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">{section.label}</p>
-                  <p className="text-[15px] text-foreground leading-relaxed">{section.value}</p>
-                </div>
-              ))}
-              {csrBrief.risk_flags?.length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">Risk flags</p>
-                  <ul className="space-y-1">
-                    {csrBrief.risk_flags.map((flag: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2 text-[15px] text-foreground">
-                        <span className="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5" style={{ background: BURNT_ORANGE }} />
-                        {flag}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {csrBrief.recommended_action && (
-                <div className="rounded-xl border-2 border-l-[6px] px-5 py-4 space-y-1.5 shadow-sm"
-                  style={{
-                    borderColor: ragFor(csrBrief.recommended_action).border,
-                    borderLeftColor: ragFor(csrBrief.recommended_action).text,
-                    background: ragFor(csrBrief.recommended_action).bg,
-                  }}>
-                  <div className="flex items-center gap-2">
-                    <RagIcon action={csrBrief.recommended_action} className="w-4 h-4 shrink-0" />
-                    <p className="text-[15px] font-bold uppercase tracking-wide"
-                      style={{ color: ragFor(csrBrief.recommended_action).text }}>
-                      Recommended: {csrBrief.recommended_action}
-                    </p>
-                  </div>
-                  <p className="text-[13px] text-black dark:text-white pl-6">{csrBrief.recommended_action_reason}</p>
-                </div>
-              )}
-            </div>
-          ) : csrRequiresUpgrade ? (
-            <div className="text-center py-4">
-              <p className="text-[15px] font-medium text-foreground mb-1">AI CSR briefs need an upgrade.</p>
-              <p className="text-[13px] text-black dark:text-white mb-3">Upgrade to see a full AI-generated CSR adoption brief for this initiative.</p>
-              <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
-                className="text-[13px] font-semibold text-white rounded-full px-4 py-1.5 transition-colors"
-                style={{ background: FOREST }}>
-                Upgrade
-              </button>
-            </div>
-          ) : (
-            <p className="text-[15px] text-black dark:text-white">Failed to generate brief. Try again.</p>
-          )}
-        </div>
-      )}
-
-      {/* Hero: category pills, verification/trust pill, title, meta */}
+      {/* Hero: category pills, verification/trust pill, title, submitter + meta */}
       <div className="space-y-3">
         <div className="flex flex-wrap gap-2">
           {initiative.sectors?.map(s => (
@@ -1622,12 +1450,21 @@ function MarketplaceDetail({
                   : `/dashboard/natives?tab=individual&user=${initiative.user_id}`
               }
               onClick={e => e.stopPropagation()}
-              className="font-semibold text-[#1E293B] hover:underline underline-offset-2 transition-colors">
+              className="flex items-center gap-1.5 font-semibold text-[#1E293B] hover:underline underline-offset-2 transition-colors">
+              {initiative.submitter_logo_url ? (
+                <img src={initiative.submitter_logo_url} alt="" className="w-5 h-5 rounded-full object-cover border border-slate-200" />
+              ) : (
+                <span className="w-5 h-5 rounded-full bg-[#1E293B] text-white text-[9px] font-bold flex items-center justify-center">
+                  {(initiative.submitter_user_type === "organisation" ? initiative.submitter_org : initiative.submitter_name)?.slice(0, 2).toUpperCase()}
+                </span>
+              )}
               {initiative.submitter_user_type === "organisation" ? initiative.submitter_org : initiative.submitter_name}
             </Link>
           )}
-          <span>{initiative.eois} expression{initiative.eois !== 1 ? "s" : ""} of interest</span>
-          <span>{new Date(initiative.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
+          <span>Published {new Date(initiative.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
+          <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium bg-amber-50 text-amber-900">
+            {initiative.eois} expression{initiative.eois !== 1 ? "s" : ""} of interest
+          </span>
         </div>
 
         {(isFunder || isCorporate) && (() => {
@@ -1650,8 +1487,8 @@ function MarketplaceDetail({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
         {/* Sidebar: appears right below the hero on mobile, sticky right column on desktop */}
-        <div className="order-1 lg:order-2 lg:col-span-5">
-          <div className="lg:sticky lg:top-6 bg-white border border-slate-200 shadow-sm rounded-xl p-6 space-y-5">
+        <div className="order-1 lg:order-2 lg:col-span-5 self-start">
+          <div className="lg:sticky lg:top-4 bg-white border border-slate-200 shadow-sm rounded-xl p-6 space-y-5">
             <div>
               <SidebarRow label="Location" value={initiative.locations?.join(", ") || "—"} />
               <SidebarRow label="Budget" value={initiative.budget || "—"} />
@@ -1659,6 +1496,32 @@ function MarketplaceDetail({
               <SidebarRow label="Duration" value={fullDetail?.duration || "—"} />
               <SidebarRow label="Estimated start" value={fullDetail?.start_date || "—"} />
             </div>
+
+            {(isFunder || isCorporate) && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">AI Tools</p>
+                <div className="space-y-2">
+                  {isFunder && (
+                    <button type="button" onClick={generateDealMemo} disabled={loadingMemo}
+                      className="w-full flex items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-[13px] font-medium text-[#1E293B] hover:bg-slate-50 transition-colors disabled:opacity-50">
+                      <span className="flex items-center gap-2"><FileText className="w-3.5 h-3.5" style={{ color: FOREST }} />AI Deal Memo</span>
+                      {loadingMemo
+                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: FOREST }} />
+                        : <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 6l6 6-6 6"/></svg>}
+                    </button>
+                  )}
+                  {isCorporate && (
+                    <button type="button" onClick={generateCsrBrief} disabled={loadingCsr}
+                      className="w-full flex items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-[13px] font-medium text-[#1E293B] hover:bg-slate-50 transition-colors disabled:opacity-50">
+                      <span className="flex items-center gap-2"><FileText className="w-3.5 h-3.5" style={{ color: FOREST }} />CSR Adoption Brief</span>
+                      {loadingCsr
+                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: FOREST }} />
+                        : <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 6l6 6-6 6"/></svg>}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {initiative.partnerships && initiative.partnerships.length > 0 && (
               <div>
@@ -1669,6 +1532,17 @@ function MarketplaceDetail({
                       <Check className="w-3 h-3" style={{ color: FOREST }} />
                       {PARTNERSHIP_OPTIONS.find(o => o.value === p)?.label ?? p}
                     </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {fullDetail?.sdg_tags && fullDetail.sdg_tags.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">SDG alignment</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {fullDetail.sdg_tags.map(s => (
+                    <span key={s} className="text-[12px] px-2.5 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-800">{s}</span>
                   ))}
                 </div>
               </div>
@@ -1737,26 +1611,28 @@ function MarketplaceDetail({
           </div>
         </div>
 
-        {/* Main content: sticky sub-nav + tab panels */}
+        {/* Main content: pill tab strip + tab panels */}
         <div className="order-2 lg:order-1 lg:col-span-7 space-y-5">
           {(() => {
-            const hasOverview = !!(fullDetail?.target_population || fullDetail?.specific_ask || initiative.esg_alignment || (initiative.tags && initiative.tags.length > 0));
+            const hasOverview = !!(
+              initiative.problem || fullDetail?.target_beneficiaries || fullDetail?.target_jobs ||
+              fullDetail?.target_female_pct || fullDetail?.target_timeline_months || fullDetail?.impact_evidence
+            );
             const hasProblem = !!(initiative.problem || initiative.outcome || (fullDetail?.detail_content && fullDetail.detail_content !== "<p></p>") || fullDetail?.resource_link);
-            const hasImpact = !!(
-              fullDetail?.target_beneficiaries || fullDetail?.target_jobs || fullDetail?.target_female_pct ||
-              fullDetail?.target_timeline_months || fullDetail?.impact_evidence ||
+            const hasBudget = !!(
+              initiative.budget || fullDetail?.budget_min || fullDetail?.budget_max || fullDetail?.stage ||
+              (fullDetail?.confirmed_assets && fullDetail.confirmed_assets.length > 0) ||
+              fullDetail?.start_date || fullDetail?.duration || fullDetail?.co_funding_status
+            );
+            const hasTeamSdg = !!(
+              (fullDetail?.had_prior_experience !== null && fullDetail?.had_prior_experience !== undefined) ||
               (fullDetail?.sdg_tags && fullDetail.sdg_tags.length > 0)
             );
-            const hasBudgetTimeline = !!(
-              fullDetail?.stage || (fullDetail?.confirmed_assets && fullDetail.confirmed_assets.length > 0) ||
-              fullDetail?.start_date || fullDetail?.duration || fullDetail?.co_funding_status ||
-              (fullDetail?.had_prior_experience !== null && fullDetail?.had_prior_experience !== undefined)
-            );
-            const tabs: { key: "overview" | "problem" | "impact" | "budget"; label: string }[] = [
-              ...(hasOverview ? [{ key: "overview" as const, label: "Overview" }] : []),
+            const tabs: { key: "overview" | "problem" | "budget" | "team"; label: string }[] = [
+              ...(hasOverview ? [{ key: "overview" as const, label: "Overview & Impact" }] : []),
               ...(hasProblem ? [{ key: "problem" as const, label: "Problem & Solution" }] : []),
-              ...(hasImpact ? [{ key: "impact" as const, label: "Impact & Metrics" }] : []),
-              ...(hasBudgetTimeline ? [{ key: "budget" as const, label: "Budget & Timeline" }] : []),
+              ...(hasBudget ? [{ key: "budget" as const, label: "Budget & Timeline" }] : []),
+              ...(hasTeamSdg ? [{ key: "team" as const, label: "Team & SDGs" }] : []),
             ];
             if (tabs.length === 0) return null;
             const activeTab = tabs.some(t => t.key === (detailTab as any)) ? (detailTab as any) : tabs[0].key;
@@ -1764,13 +1640,13 @@ function MarketplaceDetail({
             return (
               <>
                 {tabs.length > 1 && (
-                  <div className="sticky top-0 z-10 bg-background flex items-center gap-6 border-b border-slate-200 overflow-x-auto">
+                  <div className="flex flex-wrap gap-2">
                     {tabs.map(t => (
                       <button key={t.key} type="button" onClick={() => setDetailTab(t.key as any)}
-                        className="pb-3 text-[14px] whitespace-nowrap transition-colors border-b-2 -mb-px"
-                        style={activeTab === t.key
-                          ? { borderColor: BURNT_ORANGE, color: BURNT_ORANGE, fontWeight: 600 }
-                          : { borderColor: "transparent", color: "#64748B", fontWeight: 500 }}>
+                        className={`px-4 py-2 rounded-lg text-[14px] font-medium transition-colors ${
+                          activeTab === t.key ? "text-white" : "border border-slate-200 text-slate-600 hover:bg-slate-50"
+                        }`}
+                        style={activeTab === t.key ? { background: FOREST } : {}}>
                         {t.label}
                       </button>
                     ))}
@@ -1779,35 +1655,30 @@ function MarketplaceDetail({
 
                 {activeTab === "overview" && (
                   <div className="space-y-4">
-                    {fullDetail?.target_population && (
+                    {(fullDetail?.target_beneficiaries || fullDetail?.target_jobs || fullDetail?.target_female_pct || fullDetail?.target_timeline_months) && (
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        {fullDetail.target_beneficiaries && <BentoStat value={fullDetail.target_beneficiaries.toLocaleString()} label="Beneficiaries" />}
+                        {fullDetail.target_jobs && <BentoStat value={fullDetail.target_jobs.toLocaleString()} label="Jobs Created" />}
+                        {fullDetail.target_female_pct && <BentoStat value={`${fullDetail.target_female_pct}%`} label="Female Target" />}
+                        {fullDetail.target_timeline_months && <BentoStat value={`${fullDetail.target_timeline_months} Mos`} label="Timeline" />}
+                      </div>
+                    )}
+                    {initiative.problem && (
                       <div className="rounded-xl border border-slate-200 bg-card p-6">
-                        <p className="text-lg font-semibold mb-2" style={{ color: FOREST }}>Who this serves</p>
-                        <p className="text-[15px] text-foreground leading-relaxed">{fullDetail.target_population}</p>
-                      </div>
-                    )}
-                    {fullDetail?.specific_ask && (
-                      <div className="rounded-xl border p-6" style={{ borderColor: `${FOREST}33`, background: `${FOREST}0D` }}>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: FOREST }}>Specific ask</p>
-                        <p className="text-[15px] text-foreground leading-relaxed">{fullDetail.specific_ask}</p>
-                      </div>
-                    )}
-                    {initiative.esg_alignment && (
-                      <div className="rounded-xl border px-6 py-4 flex items-start gap-3"
-                        style={{ borderColor: "#a5d6a7", background: "rgba(46,125,50,0.08)" }}>
-                        <Leaf className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "#2e7d32" }} />
-                        <div>
-                          <p className="text-[15px] font-medium" style={{ color: "#1b5e20" }}>Open to corporate ESG/CSR adoption</p>
-                          <p className="text-[13px] mt-0.5" style={{ color: "#388e3c" }}>
-                            Organisations can adopt this initiative as their CSR or ESG anchor programme.
-                          </p>
+                        <div className="flex items-center gap-2 mb-2">
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke={FOREST} strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                          <p className="text-lg font-semibold" style={{ color: FOREST }}>Executive Summary</p>
                         </div>
+                        <p className="text-[15px] text-foreground leading-relaxed">{initiative.problem}</p>
                       </div>
                     )}
-                    {initiative.tags && initiative.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {initiative.tags.map(t => (
-                          <span key={t} className="px-3 py-1 rounded-full text-[13px] font-medium bg-emerald-50 text-emerald-800">{t}</span>
-                        ))}
+                    {fullDetail?.impact_evidence && (
+                      <div className="rounded-xl border border-slate-200 bg-card p-6">
+                        <div className="flex items-center gap-2 mb-2">
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke={FOREST} strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+                          <p className="text-lg font-semibold" style={{ color: FOREST }}>Expected Outcomes &amp; Impact</p>
+                        </div>
+                        <p className="text-[15px] text-foreground leading-relaxed">{fullDetail.impact_evidence}</p>
                       </div>
                     )}
                   </div>
@@ -1877,42 +1748,22 @@ function MarketplaceDetail({
                   </div>
                 )}
 
-                {activeTab === "impact" && (
-                  <div className="space-y-4">
-                    {(fullDetail?.target_beneficiaries || fullDetail?.target_jobs || fullDetail?.target_female_pct || fullDetail?.target_timeline_months) && (
-                      <div>
-                        <p className="text-lg font-semibold mb-3" style={{ color: FOREST }}>Target impact metrics</p>
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                          {fullDetail.target_beneficiaries && <BentoStat value={fullDetail.target_beneficiaries.toLocaleString()} label="Beneficiaries" />}
-                          {fullDetail.target_jobs && <BentoStat value={fullDetail.target_jobs.toLocaleString()} label="Jobs" />}
-                          {fullDetail.target_female_pct && <BentoStat value={`${fullDetail.target_female_pct}%`} label="Female" />}
-                          {fullDetail.target_timeline_months && <BentoStat value={`${fullDetail.target_timeline_months}mo`} label="Timeline" />}
-                        </div>
-                      </div>
-                    )}
-                    {fullDetail?.impact_evidence && (
-                      <div className="rounded-xl border border-slate-200 bg-card p-6">
-                        <p className="text-lg font-semibold mb-2" style={{ color: FOREST }}>Impact evidence</p>
-                        <p className="text-[15px] text-foreground leading-relaxed">{fullDetail.impact_evidence}</p>
-                      </div>
-                    )}
-                    {fullDetail?.sdg_tags && fullDetail.sdg_tags.length > 0 && (
-                      <div className="rounded-xl border border-slate-200 bg-card p-6">
-                        <p className="text-lg font-semibold mb-3" style={{ color: FOREST }}>SDG Alignment</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {fullDetail.sdg_tags.map(s => (
-                            <span key={s} className="text-[13px] px-2.5 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-800">{s}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
                 {activeTab === "budget" && (
                   <div className="space-y-4">
+                    {(initiative.budget || fullDetail?.budget_min || fullDetail?.budget_max) && (
+                      <div className="rounded-xl border border-slate-200 bg-card p-6">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-lg font-semibold" style={{ color: FOREST }}>Budget</p>
+                          <span className="text-xs px-3 py-1 rounded-full font-medium bg-emerald-50 text-emerald-800">
+                            {fullDetail?.budget_min && fullDetail?.budget_max
+                              ? `${fullDetail.budget_currency ?? ""} ${fullDetail.budget_min.toLocaleString()}–${fullDetail.budget_max.toLocaleString()}`.trim()
+                              : initiative.budget}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                     <div className="rounded-xl border border-slate-200 bg-card p-6">
-                      <p className="text-lg font-semibold mb-4" style={{ color: FOREST }}>Milestones</p>
+                      <p className="text-lg font-semibold mb-4" style={{ color: FOREST }}>Implementation Timeline</p>
                       <MilestoneTracker currentStage={fullDetail?.stage} />
                       <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap gap-x-8 gap-y-2 text-[13px] text-slate-600">
                         {fullDetail?.start_date && <span><span className="font-semibold text-[#1E293B]">Estimated start:</span> {fullDetail.start_date}</span>}
@@ -1934,15 +1785,33 @@ function MarketplaceDetail({
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {activeTab === "team" && (
+                  <div className="space-y-4">
                     {fullDetail?.had_prior_experience !== null && fullDetail?.had_prior_experience !== undefined && (
                       <div className="rounded-xl border border-slate-200 bg-card p-6">
-                        <p className="text-lg font-semibold mb-2" style={{ color: FOREST }}>Track record</p>
-                        <p className="text-[15px] text-foreground mb-2">
+                        <div className="flex items-center gap-2 mb-2">
+                          <ShieldCheck className="w-4 h-4" style={{ color: FOREST }} />
+                          <p className="text-lg font-semibold" style={{ color: FOREST }}>Team and Track Record</p>
+                        </div>
+                        <p className="text-[15px] text-foreground leading-relaxed">
                           {fullDetail.had_prior_experience ? "The team has led similar initiatives before." : "This is a first initiative of this type for the team."}
+                          {fullDetail.prior_experience_detail ? ` ${fullDetail.prior_experience_detail}` : ""}
                         </p>
-                        {fullDetail.prior_experience_detail && (
-                          <p className="text-[15px] text-foreground leading-relaxed italic">"{fullDetail.prior_experience_detail}"</p>
-                        )}
+                      </div>
+                    )}
+                    {fullDetail?.sdg_tags && fullDetail.sdg_tags.length > 0 && (
+                      <div className="rounded-xl border border-slate-200 bg-card p-6">
+                        <p className="text-lg font-semibold mb-4" style={{ color: FOREST }}>SDG Alignment Details</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {fullDetail.sdg_tags.map((s, i) => (
+                            <div key={s} className="rounded-lg p-3" style={{ background: SDG_CARD_PALETTE[i % SDG_CARD_PALETTE.length] }}>
+                              <p className="text-[14px] font-bold text-[#1E293B]">{s}</p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1952,6 +1821,162 @@ function MarketplaceDetail({
           })()}
         </div>
       </div>
+
+      <AiSlidePanel open={memoOpen} onClose={() => setMemoOpen(false)} title="AI Deal Memo" icon={<Sparkles className="w-4 h-4" style={{ color: FOREST }} />}>
+        {dealMemo?.match_score != null && (
+          <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-4"
+            style={{
+              background: ragForScore(dealMemo.match_score, 40, 70).bg,
+              color: ragForScore(dealMemo.match_score, 40, 70).text,
+            }}>
+            {dealMemo.match_score}% match
+          </span>
+        )}
+        {loadingMemo ? (
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map(i => <div key={i} className="h-12 rounded-lg bg-muted animate-pulse" />)}
+          </div>
+        ) : dealMemo ? (
+          <div className="space-y-4">
+            <p className="text-[15px] font-medium text-foreground leading-relaxed">{dealMemo.headline}</p>
+            {[
+              { label: "Problem validity", value: dealMemo.problem_validity },
+              { label: "Solution fit", value: dealMemo.solution_fit },
+              { label: "Team credibility", value: dealMemo.team_credibility },
+              { label: "Financial assessment", value: dealMemo.financial_assessment },
+              { label: "Mandate alignment", value: dealMemo.mandate_alignment },
+            ].map(section => (
+              <div key={section.label} className="space-y-1">
+                <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">{section.label}</p>
+                <p className="text-[15px] text-foreground leading-relaxed">{section.value}</p>
+              </div>
+            ))}
+            {dealMemo.risk_flags?.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">Risk flags</p>
+                <ul className="space-y-1">
+                  {dealMemo.risk_flags.map((flag: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2 text-[15px] text-foreground">
+                      <span className="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5" style={{ background: BURNT_ORANGE }} />
+                      {flag}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {dealMemo.recommended_action && (
+              <div className="rounded-xl border-2 border-l-[6px] px-5 py-4 space-y-1.5 shadow-sm"
+                style={{
+                  borderColor: ragFor(dealMemo.recommended_action).border,
+                  borderLeftColor: ragFor(dealMemo.recommended_action).text,
+                  background: ragFor(dealMemo.recommended_action).bg,
+                }}>
+                <div className="flex items-center gap-2">
+                  <RagIcon action={dealMemo.recommended_action} className="w-4 h-4 shrink-0" />
+                  <p className="text-[15px] font-bold uppercase tracking-wide" style={{ color: ragFor(dealMemo.recommended_action).text }}>
+                    Recommended: {dealMemo.recommended_action}
+                  </p>
+                </div>
+                <p className="text-[13px] text-black dark:text-white pl-6">{dealMemo.recommended_action_reason}</p>
+              </div>
+            )}
+            <button type="button" onClick={generateDealMemo}
+              className="text-[13px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />Regenerate
+            </button>
+          </div>
+        ) : memoRequiresUpgrade ? (
+          <div className="text-center py-4">
+            <p className="text-[15px] font-medium text-foreground mb-1">AI deal memos need an upgrade.</p>
+            <p className="text-[13px] text-black dark:text-white mb-3">Upgrade to see a full AI-generated deal memo for this initiative.</p>
+            <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
+              className="text-[13px] font-semibold text-white rounded-full px-4 py-1.5 transition-colors" style={{ background: FOREST }}>
+              Upgrade
+            </button>
+          </div>
+        ) : (
+          <p className="text-[15px] text-black dark:text-white">Failed to generate memo. Try again.</p>
+        )}
+      </AiSlidePanel>
+
+      <AiSlidePanel open={csrOpen} onClose={() => setCsrOpen(false)} title="CSR Adoption Brief" icon={<Sparkles className="w-4 h-4" style={{ color: FOREST }} />}>
+        {csrBrief?.match_score != null && (
+          <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mb-4"
+            style={{
+              background: ragForScore(csrBrief.match_score, 50, 75).bg,
+              color: ragForScore(csrBrief.match_score, 50, 75).text,
+            }}>
+            {csrBrief.match_score}% CSR fit
+          </span>
+        )}
+        {loadingCsr ? (
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map(i => <div key={i} className="h-12 rounded-lg bg-muted animate-pulse" />)}
+          </div>
+        ) : csrBrief ? (
+          <div className="space-y-4">
+            <p className="text-[15px] font-medium text-foreground leading-relaxed">{csrBrief.headline}</p>
+            {[
+              { label: "SDG alignment", value: csrBrief.sdg_alignment },
+              { label: "Local content", value: csrBrief.local_content },
+              { label: "Brand fit", value: csrBrief.brand_fit },
+              { label: "ESG framework match", value: csrBrief.esg_framework_match },
+              { label: "Partnership options", value: csrBrief.partnership_options },
+              { label: "Reputational considerations", value: csrBrief.reputational_considerations },
+              { label: "Implementer readiness", value: csrBrief.implementer_readiness },
+            ].map(section => (
+              <div key={section.label} className="space-y-1">
+                <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">{section.label}</p>
+                <p className="text-[15px] text-foreground leading-relaxed">{section.value}</p>
+              </div>
+            ))}
+            {csrBrief.risk_flags?.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">Risk flags</p>
+                <ul className="space-y-1">
+                  {csrBrief.risk_flags.map((flag: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2 text-[15px] text-foreground">
+                      <span className="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5" style={{ background: BURNT_ORANGE }} />
+                      {flag}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {csrBrief.recommended_action && (
+              <div className="rounded-xl border-2 border-l-[6px] px-5 py-4 space-y-1.5 shadow-sm"
+                style={{
+                  borderColor: ragFor(csrBrief.recommended_action).border,
+                  borderLeftColor: ragFor(csrBrief.recommended_action).text,
+                  background: ragFor(csrBrief.recommended_action).bg,
+                }}>
+                <div className="flex items-center gap-2">
+                  <RagIcon action={csrBrief.recommended_action} className="w-4 h-4 shrink-0" />
+                  <p className="text-[15px] font-bold uppercase tracking-wide" style={{ color: ragFor(csrBrief.recommended_action).text }}>
+                    Recommended: {csrBrief.recommended_action}
+                  </p>
+                </div>
+                <p className="text-[13px] text-black dark:text-white pl-6">{csrBrief.recommended_action_reason}</p>
+              </div>
+            )}
+            <button type="button" onClick={generateCsrBrief}
+              className="text-[13px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />Regenerate
+            </button>
+          </div>
+        ) : csrRequiresUpgrade ? (
+          <div className="text-center py-4">
+            <p className="text-[15px] font-medium text-foreground mb-1">AI CSR briefs need an upgrade.</p>
+            <p className="text-[13px] text-black dark:text-white mb-3">Upgrade to see a full AI-generated CSR adoption brief for this initiative.</p>
+            <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
+              className="text-[13px] font-semibold text-white rounded-full px-4 py-1.5 transition-colors" style={{ background: FOREST }}>
+              Upgrade
+            </button>
+          </div>
+        ) : (
+          <p className="text-[15px] text-black dark:text-white">Failed to generate brief. Try again.</p>
+        )}
+      </AiSlidePanel>
 
       {eoiOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
