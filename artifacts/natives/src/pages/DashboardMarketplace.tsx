@@ -463,7 +463,7 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
           </div>
         )}
         {ini.locations?.[0] && (
-          <div className="flex items-center gap-1.5 text-[13px] text-black dark:text-white min-w-0">
+          <div className="flex items-center gap-1.5 text-[13px] font-medium text-indigo-700 min-w-0">
             <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 22s-8-4.5-8-11.8A8 8 0 0112 2a8 8 0 018 8.2c0 7.3-8 11.8-8 11.8z"/>
               <circle cx="12" cy="10" r="3"/>
@@ -472,13 +472,13 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
           </div>
         )}
         {ini.budget && (
-          <div className="flex items-center gap-1.5 text-[13px] text-black dark:text-white">
+          <div className="flex items-center gap-1.5 text-[13px] font-medium text-teal-700">
             <Wallet className="w-3 h-3 shrink-0" />
             <span className="truncate">{ini.budget}</span>
           </div>
         )}
         {ini.submitter_dd_score != null && (
-          <div className="flex items-center gap-1.5 text-[13px] text-black dark:text-white">
+          <div className="flex items-center gap-1.5 text-[13px] font-medium" style={{ color: ragForScore(ini.submitter_dd_score, 40, 70).text }}>
             <FileCheck className="w-3 h-3 shrink-0" />
             DD: {ini.submitter_dd_score}%
             {ini.submitter_trust_tier && <TrustBadge tier={ini.submitter_trust_tier} />}
@@ -503,6 +503,11 @@ function InitiativeCard({ ini, expressed, onClick, saved, onToggleSave, passed, 
           {ini.eois} EOI{ini.eois !== 1 ? "s" : ""}
         </span>
       </div>
+
+      <button type="button" onClick={e => { e.stopPropagation(); onClick(); }}
+        className="mt-3 w-full text-center text-[13px] font-semibold text-[#2D6A4F] dark:text-[#C45C26] border border-[#2D6A4F]/30 dark:border-[#C45C26]/40 rounded-lg py-2 hover:bg-[#2D6A4F]/5 dark:hover:bg-[#C45C26]/10 transition-colors">
+        View Initiative
+      </button>
     </div>
   );
 }
@@ -849,6 +854,61 @@ export default function DashboardMarketplace() {
     </div>
   );
 }
+// ── Deal-room detail page: color tokens & small building blocks ────────────────
+const FOREST = "#1B4D3E";
+const BURNT_ORANGE = "#D96B27";
+const BURNT_ORANGE_HOVER = "#C25A1E";
+
+function SidebarRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-2.5 border-b border-slate-100 last:border-b-0">
+      <span className="text-[13px] font-semibold text-[#1E293B]">{label}</span>
+      <span className="text-[13px] text-slate-500 text-right">{value}</span>
+    </div>
+  );
+}
+
+function BentoStat({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="rounded-xl p-5" style={{ background: `${FOREST}0D` }}>
+      <p className="text-3xl font-bold" style={{ color: FOREST }}>{value}</p>
+      <p className="text-xs text-slate-500 uppercase tracking-wider mt-1">{label}</p>
+    </div>
+  );
+}
+
+const MILESTONE_STAGES: { key: string; title: string; desc: string }[] = [
+  { key: "concept",  title: "Concept",  desc: "Idea defined, no funding yet" },
+  { key: "planning", title: "Planning", desc: "Funded, building implementation plan" },
+  { key: "active",   title: "Active",   desc: "Currently executing" },
+  { key: "scaling",  title: "Scaling",  desc: "Running successfully, seeking to expand" },
+];
+function MilestoneTracker({ currentStage }: { currentStage?: string | null }) {
+  const currentIndex = MILESTONE_STAGES.findIndex(s => s.key === currentStage);
+  return (
+    <div className="border-l-2 border-slate-200 ml-3 pl-6 space-y-6">
+      {MILESTONE_STAGES.map((s, i) => {
+        const reached = currentIndex >= 0 && i <= currentIndex;
+        const isCurrent = i === currentIndex;
+        return (
+          <div key={s.key} className="relative">
+            <span
+              className="absolute -left-[31px] top-0.5 w-4 h-4 rounded-full border-2"
+              style={{
+                background: reached ? FOREST : "#fff",
+                borderColor: reached ? FOREST : "#CBD5E1",
+                boxShadow: isCurrent ? `0 0 0 3px ${FOREST}33` : "none",
+              }}
+            />
+            <p className={`text-[15px] font-bold ${reached ? "text-[#1E293B]" : "text-slate-400"}`}>{s.title}</p>
+            <p className={`text-[13px] mt-0.5 ${reached ? "text-slate-600" : "text-slate-400"}`}>{s.desc}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function MarketplaceDetail({
   initiative, onBack, expressed, onExpressed,
   saved, passed, passReason, onToggleSave, onConfirmPass, onUndoPass,
@@ -1217,42 +1277,112 @@ function MarketplaceDetail({
     } finally { setSubmitting(false); }
   }
   const canSubmit = partnershipTypes.length > 0 || esgAdoption;  const qualityCfg = fullDetail?.ai_quality_score ? QUALITY_CONFIG[fullDetail.ai_quality_score] : null;
+
+  function downloadPdf() {
+    const content = fullDetail?.detail_content ?? "";
+    if (!content || content === "<p></p>") return;
+    const orgName = initiative.submitter_org ?? "";
+    const date = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${initiative.title}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Georgia, serif; font-size: 11pt; line-height: 1.7; color: #111; padding: 48px 64px; max-width: 800px; margin: 0 auto; }
+    h1 { font-size: 20pt; font-weight: bold; margin-bottom: 4px; }
+    .meta { font-size: 9pt; color: #555; margin-bottom: 32px; padding-bottom: 12px; border-bottom: 1px solid #ccc; }
+    h2 { font-size: 13pt; font-weight: bold; margin-top: 28px; margin-bottom: 6px; color: #1B4D3E; border-bottom: 1px solid #e0e0e0; padding-bottom: 4px; }
+    h3 { font-size: 11pt; font-weight: bold; margin-top: 16px; margin-bottom: 4px; }
+    p { margin-bottom: 10px; }
+    ul { padding-left: 20px; margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    .footer { margin-top: 48px; padding-top: 12px; border-top: 1px solid #ccc; font-size: 8pt; color: #999; }
+    @media print { @page { margin: 20mm; size: A4; } }
+  </style>
+</head>
+<body>
+  <h1>${initiative.title}</h1>
+  <div class="meta">${orgName ? orgName + " · " : ""}${initiative.locations?.join(", ") ?? ""}${initiative.budget ? " · Budget: " + initiative.budget : ""} · Impact Natives</div>
+  ${content}
+  <div class="footer">Impact Natives · app.impactnatives.com · Downloaded ${date}</div>
+  <script>window.onload = function() { window.print(); }</script>
+</body>
+</html>`);
+    win.document.close();
+  }
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="max-w-[1400px] mx-auto space-y-6">
+      {/* Header row: ghost back button + grouped icon cluster */}
+      <div className="flex items-center justify-between gap-3">
         <button type="button" onClick={onBack}
-          className="flex items-center gap-1.5 text-[15px] text-muted-foreground hover:text-[#C45C26] transition-colors">
+          className="flex items-center gap-1.5 text-[15px] text-slate-500 hover:text-[#1E293B] hover:bg-slate-100 rounded-lg px-2 py-1.5 -ml-2 transition-colors">
           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
           Back to marketplace
         </button>
-        {isFunder && (
-          <button type="button" onClick={generateDealMemo}
-            disabled={loadingMemo}
-            className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#2D6A4F]/30 bg-[#2D6A4F]/5 text-[15px] font-medium text-[#2D6A4F] hover:bg-[#2D6A4F]/10 transition-colors disabled:opacity-50">
-            {loadingMemo
-              ? <><Sparkles className="w-3.5 h-3.5 animate-pulse" />Generating memo...</>
-              : <><FileText className="w-3.5 h-3.5" />Generate deal memo</>
-            }
-          </button>
-        )}
-        {isCorporate && (
-          <button type="button" onClick={generateCsrBrief}
-            disabled={loadingCsr}
-            className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#2D6A4F]/30 bg-[#2D6A4F]/5 text-[15px] font-medium text-[#2D6A4F] hover:bg-[#2D6A4F]/10 transition-colors disabled:opacity-50">
-            {loadingCsr
-              ? <><Sparkles className="w-3.5 h-3.5 animate-pulse" />Generating brief...</>
-              : <><FileText className="w-3.5 h-3.5" />CSR adoption brief</>
-            }
-          </button>
-        )}
+        <div className="flex items-center gap-1">
+          <div className="rounded-lg hover:bg-slate-100 transition-colors" title="Share">
+            <ShareButton initiativeId={initiative.id} title={initiative.title} size="md" />
+          </div>
+          {!isOwnInitiative && (
+            <DecisionIcons
+              saved={saved} passed={passed} passReason={passReason}
+              onToggleSave={onToggleSave}
+              onConfirmPass={onConfirmPass}
+              onUndoPass={onUndoPass}
+              size="md"
+            />
+          )}
+          {fullDetail?.detail_content && fullDetail.detail_content !== "<p></p>" && (
+            <button type="button" onClick={downloadPdf} title="Download PDF"
+              className="h-9 w-9 rounded-full flex items-center justify-center border border-border text-slate-500 hover:bg-slate-100 hover:text-[#1E293B] transition-colors">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Funder / corporate AI tools */}
+      {(isFunder || isCorporate) && (
+        <div className="flex items-center gap-2">
+          {isFunder && (
+            <button type="button" onClick={generateDealMemo}
+              disabled={loadingMemo}
+              className="flex items-center gap-2 px-4 py-2 rounded-full border text-[15px] font-medium transition-colors disabled:opacity-50"
+              style={{ borderColor: `${FOREST}4D`, background: `${FOREST}0D`, color: FOREST }}>
+              {loadingMemo
+                ? <><Sparkles className="w-3.5 h-3.5 animate-pulse" />Generating memo...</>
+                : <><FileText className="w-3.5 h-3.5" />Generate deal memo</>
+              }
+            </button>
+          )}
+          {isCorporate && (
+            <button type="button" onClick={generateCsrBrief}
+              disabled={loadingCsr}
+              className="flex items-center gap-2 px-4 py-2 rounded-full border text-[15px] font-medium transition-colors disabled:opacity-50"
+              style={{ borderColor: `${FOREST}4D`, background: `${FOREST}0D`, color: FOREST }}>
+              {loadingCsr
+                ? <><Sparkles className="w-3.5 h-3.5 animate-pulse" />Generating brief...</>
+                : <><FileText className="w-3.5 h-3.5" />CSR adoption brief</>
+              }
+            </button>
+          )}
+        </div>
+      )}
       {memoOpen && (
         <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#2D6A4F]" />
+              <Sparkles className="w-4 h-4" style={{ color: FOREST }} />
               <p className="text-[17px] font-semibold text-foreground">AI Deal Memo</p>
               {dealMemo?.match_score != null && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
@@ -1305,7 +1435,7 @@ function MarketplaceDetail({
                   <ul className="space-y-1">
                     {dealMemo.risk_flags.map((flag: string, i: number) => (
                       <li key={i} className="flex items-start gap-2 text-[15px] text-foreground">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#C45C26] shrink-0 mt-1.5" />
+                        <span className="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5" style={{ background: BURNT_ORANGE }} />
                         {flag}
                       </li>
                     ))}
@@ -1335,7 +1465,8 @@ function MarketplaceDetail({
               <p className="text-[15px] font-medium text-foreground mb-1">AI deal memos need an upgrade.</p>
               <p className="text-[13px] text-black dark:text-white mb-3">Upgrade to see a full AI-generated deal memo for this initiative.</p>
               <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
-                className="text-[13px] font-semibold text-white bg-[#2D6A4F] rounded-full px-4 py-1.5 hover:bg-[#245c43] transition-colors">
+                className="text-[13px] font-semibold text-white rounded-full px-4 py-1.5 transition-colors"
+                style={{ background: FOREST }}>
                 Upgrade
               </button>
             </div>
@@ -1348,7 +1479,7 @@ function MarketplaceDetail({
         <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#2D6A4F]" />
+              <Sparkles className="w-4 h-4" style={{ color: FOREST }} />
               <p className="text-[17px] font-semibold text-foreground">CSR Adoption Brief</p>
               {csrBrief?.match_score != null && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
@@ -1402,7 +1533,7 @@ function MarketplaceDetail({
                   <ul className="space-y-1">
                     {csrBrief.risk_flags.map((flag: string, i: number) => (
                       <li key={i} className="flex items-start gap-2 text-[15px] text-foreground">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#C45C26] shrink-0 mt-1.5" />
+                        <span className="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5" style={{ background: BURNT_ORANGE }} />
                         {flag}
                       </li>
                     ))}
@@ -1432,7 +1563,8 @@ function MarketplaceDetail({
               <p className="text-[15px] font-medium text-foreground mb-1">AI CSR briefs need an upgrade.</p>
               <p className="text-[13px] text-black dark:text-white mb-3">Upgrade to see a full AI-generated CSR adoption brief for this initiative.</p>
               <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
-                className="text-[13px] font-semibold text-white bg-[#2D6A4F] rounded-full px-4 py-1.5 hover:bg-[#245c43] transition-colors">
+                className="text-[13px] font-semibold text-white rounded-full px-4 py-1.5 transition-colors"
+                style={{ background: FOREST }}>
                 Upgrade
               </button>
             </div>
@@ -1441,481 +1573,405 @@ function MarketplaceDetail({
           )}
         </div>
       )}
-      <div className="rounded-2xl p-6 space-y-4 bg-gradient-to-br from-[#3D2618] via-[#33301F] to-[#1B3328]">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex flex-wrap gap-1.5">
-            {initiative.sectors?.map(s => (
-              <span key={s} className="text-[13px] font-medium px-2.5 py-0.5 rounded-full"
-                style={{ background: "rgba(196,92,38,0.12)", color: "#C45C26" }}>{s}</span>
-            ))}
-            {initiative.esg_alignment && (
-              <span className="inline-flex items-center gap-1 text-[13px] font-medium px-2.5 py-0.5 rounded-full"
-                style={{ background: "rgba(46,125,50,0.12)", color: "#2e7d32" }}>
-                <Leaf className="w-3 h-3" />ESG/CSR Friendly
-              </span>
-            )}
-            {initiative.submitter_is_verified && (
-              <span className="inline-flex items-center gap-1 text-[13px] font-medium px-2.5 py-0.5 rounded-full"
-                style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
-                <VerifiedBadge />              </span>
-            )}
-            {(initiative.confirmed_partners ?? []).some(p => p.status === "mou_executed") && (
-              <span className="inline-flex items-center gap-1 text-[13px] font-medium px-2.5 py-0.5 rounded-full"
-                style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
-                <Award className="w-3 h-3" />MoU Executed
-              </span>
-            )}
-            {qualityCfg && (
-              <span className="inline-flex items-center gap-1 text-[13px] font-medium px-2.5 py-0.5 rounded-full"
-                style={{ background: qualityCfg.bg, color: qualityCfg.color }}>
-                {qualityCfg.label}
-              </span>
-            )}
-          </div>
-          <div className="bg-white/95 rounded-full p-1 shadow-sm shrink-0 flex items-center gap-1">
-            <ShareButton initiativeId={initiative.id} title={initiative.title} size="md" />
-            {!isOwnInitiative && (
-              <DecisionIcons
-                saved={saved} passed={passed} passReason={passReason}
-                onToggleSave={onToggleSave}
-                onConfirmPass={onConfirmPass}
-                onUndoPass={onUndoPass}
-                size="md"
-              />
-            )}
-          </div>
-        </div>
-        <div>
-          <h2 className="text-[25px] font-bold text-white tracking-tight leading-snug">{initiative.title}</h2>
-          <div className="flex items-center gap-3 mt-2 text-[13px] text-white/70 flex-wrap">
-            {(initiative.submitter_org || initiative.submitter_name) && (
-                <Link
-                href={
-                  initiative.submitter_user_type === "organisation"
-                    ? `/dashboard/natives?tab=organisation&user=${initiative.user_id}`
-                    : `/dashboard/natives?tab=individual&user=${initiative.user_id}`
-                }
-                onClick={e => e.stopPropagation()}
-                className="font-medium text-white/90 hover:text-[#8FD9B0] hover:underline underline-offset-2 transition-colors">
-                {initiative.submitter_user_type === "organisation"
-                  ? initiative.submitter_org
-                  : initiative.submitter_name}
-              </Link>
-            )}
-            <span>{initiative.eois} expression{initiative.eois !== 1 ? "s" : ""} of interest</span>
-            <span>{new Date(initiative.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
-            {initiativeDdScore != null && <span>DD Readiness: {initiativeDdScore}%</span>}
-            {initiativeTrustTier && <TrustBadge tier={initiativeTrustTier} />}
-          </div>
-          {(isFunder || isCorporate) && (() => {
-            const legalEvidence = initiativeOrgDd?.dd_evidence?.legal_compliance_declaration ?? {};
-            if (!legalEvidence.blacklistingDetail && !legalEvidence.pendingDisputesDetail) return null;
-            return (
-              <div className="mt-2 border border-red-500/20 rounded-lg p-3 bg-red-500/5">
-                {legalEvidence.blacklistingDetail && (
-                  <p className="text-[13px] text-white/80"><span className="font-semibold">Blacklisting disclosed:</span> {legalEvidence.blacklistingDetail}</p>
-                )}
-                {legalEvidence.pendingDisputesDetail && (
-                  <p className="text-[13px] text-white/80 mt-1"><span className="font-semibold">Pending disputes disclosed:</span> {legalEvidence.pendingDisputesDetail}</p>
-                )}
-              </div>
-            );
-          })()}
-        </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {[
-            { label: "Location", value: initiative.locations?.join(", ") || "—" },
-            { label: "Budget",   value: initiative.budget || "—" },
-            { label: "Stage",    value: fullDetail?.stage ? STAGE_LABELS[fullDetail.stage]?.split(" — ")[0] ?? fullDetail.stage : "—" },
-            { label: "Duration", value: fullDetail?.duration || "—" },
-          ].map(({ label, value }) => (
-            <div key={label} className="rounded-xl border border-border bg-background px-3 py-2.5">
-              <p className="text-[10px] text-black dark:text-white uppercase tracking-wide mb-0.5">{label}</p>
-              <p className="text-[15px] font-medium text-foreground">{value}</p>
-            </div>
+
+      {/* Hero: category pills, verification/trust pill, title, meta */}
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {initiative.sectors?.map(s => (
+            <span key={s} className="text-xs px-3 py-1 rounded-full font-medium bg-emerald-50 text-emerald-800">{s}</span>
           ))}
+          {initiative.esg_alignment && (
+            <span className="inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full font-medium bg-emerald-50 text-emerald-800">
+              <Leaf className="w-3 h-3" />ESG/CSR Friendly
+            </span>
+          )}
+          {initiative.submitter_is_verified && (
+            <span className="inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full font-medium bg-emerald-50 text-emerald-800">
+              <VerifiedBadge />
+            </span>
+          )}
+          {(initiative.confirmed_partners ?? []).some(p => p.status === "mou_executed") && (
+            <span className="inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full font-medium bg-emerald-50 text-emerald-800">
+              <Award className="w-3 h-3" />MoU Executed
+            </span>
+          )}
+          {qualityCfg && (
+            <span className="inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full font-medium bg-emerald-50 text-emerald-800">
+              {qualityCfg.label}
+            </span>
+          )}
+          {initiativeDdScore != null && (
+            <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-medium bg-amber-50 border border-amber-200 text-amber-900">
+              <Award className="w-3 h-3" />
+              {initiativeDdScore}% DD Readiness
+              {initiativeTrustTier && <TrustBadge tier={initiativeTrustTier} />}
+            </span>
+          )}
         </div>
-      </div>
-      {(() => {
-        const hasOverview = !!(
-          initiative.problem || initiative.outcome || fullDetail?.target_population || fullDetail?.specific_ask ||
-          (fullDetail?.detail_content && fullDetail.detail_content !== "<p></p>") || fullDetail?.resource_link ||
-          initiative.esg_alignment || (initiative.tags && initiative.tags.length > 0)
-        );
-        const hasImpact = !!(
-          fullDetail?.target_beneficiaries || fullDetail?.target_jobs || fullDetail?.target_female_pct ||
-          fullDetail?.target_timeline_months || fullDetail?.impact_evidence ||
-          (fullDetail?.sdg_tags && fullDetail.sdg_tags.length > 0) ||
-          (fullDetail?.had_prior_experience !== null && fullDetail?.had_prior_experience !== undefined)
-        );
-        const hasPartnership = !!(
-          (initiative.partnerships && initiative.partnerships.length > 0) || fullDetail?.stage ||
-          (fullDetail?.confirmed_assets && fullDetail.confirmed_assets.length > 0) ||
-          fullDetail?.start_date || fullDetail?.duration || fullDetail?.co_funding_status
-        );
-        const tabs: { key: "overview" | "impact" | "partnership"; label: string }[] = [
-          ...(hasOverview ? [{ key: "overview" as const, label: "Overview" }] : []),
-          ...(hasImpact ? [{ key: "impact" as const, label: "Impact & Metrics" }] : []),
-          ...(hasPartnership ? [{ key: "partnership" as const, label: "Partnership & Status" }] : []),
-        ];
-        if (tabs.length === 0) return null;
-        const activeTab = tabs.some(t => t.key === detailTab) ? detailTab : tabs[0].key;
 
-        return (
-          <div className="space-y-5">
-            {tabs.length > 1 && (
-              <div className="flex items-center gap-6 border-b border-border">
-                {tabs.map(t => (
-                  <button key={t.key} type="button" onClick={() => setDetailTab(t.key)}
-                    className={`pb-3 text-[14px] transition-colors border-b-2 -mb-px ${
-                      activeTab === t.key
-                        ? "border-[#2D6A4F] text-[#2D6A4F] font-semibold"
-                        : "border-transparent text-black dark:text-white font-medium hover:text-foreground"
-                    }`}>
-                    {t.label}
-                  </button>
-                ))}
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight leading-snug" style={{ color: "#0F172A", letterSpacing: "-0.025em" }}>
+          {initiative.title}
+        </h1>
+
+        <div className="flex items-center gap-3 text-[13px] text-slate-500 flex-wrap">
+          {(initiative.submitter_org || initiative.submitter_name) && (
+            <Link
+              href={
+                initiative.submitter_user_type === "organisation"
+                  ? `/dashboard/natives?tab=organisation&user=${initiative.user_id}`
+                  : `/dashboard/natives?tab=individual&user=${initiative.user_id}`
+              }
+              onClick={e => e.stopPropagation()}
+              className="font-semibold text-[#1E293B] hover:underline underline-offset-2 transition-colors">
+              {initiative.submitter_user_type === "organisation" ? initiative.submitter_org : initiative.submitter_name}
+            </Link>
+          )}
+          <span>{initiative.eois} expression{initiative.eois !== 1 ? "s" : ""} of interest</span>
+          <span>{new Date(initiative.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
+        </div>
+
+        {(isFunder || isCorporate) && (() => {
+          const legalEvidence = initiativeOrgDd?.dd_evidence?.legal_compliance_declaration ?? {};
+          if (!legalEvidence.blacklistingDetail && !legalEvidence.pendingDisputesDetail) return null;
+          return (
+            <div className="border border-red-200 rounded-lg p-3 bg-red-50">
+              {legalEvidence.blacklistingDetail && (
+                <p className="text-[13px] text-red-800"><span className="font-semibold">Blacklisting disclosed:</span> {legalEvidence.blacklistingDetail}</p>
+              )}
+              {legalEvidence.pendingDisputesDetail && (
+                <p className="text-[13px] text-red-800 mt-1"><span className="font-semibold">Pending disputes disclosed:</span> {legalEvidence.pendingDisputesDetail}</p>
+              )}
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* Split-screen: main content (left, 7/12) + sticky deal room sidebar (right, 5/12) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+        {/* Sidebar: appears right below the hero on mobile, sticky right column on desktop */}
+        <div className="order-1 lg:order-2 lg:col-span-5">
+          <div className="lg:sticky lg:top-6 bg-white border border-slate-200 shadow-sm rounded-xl p-6 space-y-5">
+            <div>
+              <SidebarRow label="Location" value={initiative.locations?.join(", ") || "—"} />
+              <SidebarRow label="Budget" value={initiative.budget || "—"} />
+              <SidebarRow label="Stage" value={fullDetail?.stage ? (STAGE_LABELS[fullDetail.stage]?.split(" — ")[0] ?? fullDetail.stage) : "—"} />
+              <SidebarRow label="Duration" value={fullDetail?.duration || "—"} />
+              <SidebarRow label="Estimated start" value={fullDetail?.start_date || "—"} />
+            </div>
+
+            {initiative.partnerships && initiative.partnerships.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Partnerships sought</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {initiative.partnerships.map(p => (
+                    <span key={p} className="inline-flex items-center gap-1 text-[12px] font-medium px-2.5 py-1 rounded-full border border-slate-200 text-[#1E293B] capitalize">
+                      <Check className="w-3 h-3" style={{ color: FOREST }} />
+                      {PARTNERSHIP_OPTIONS.find(o => o.value === p)?.label ?? p}
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
 
-            {activeTab === "overview" && (
-              <div className="space-y-4">
-                {(initiative.problem || initiative.outcome) && (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {initiative.problem && (
-                      <div className="rounded-xl border border-border bg-card px-5 py-4">
-                        <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Problem</p>
-                        <p className="text-[15px] text-foreground leading-relaxed">{initiative.problem}</p>
-                      </div>
-                    )}
-                    {initiative.outcome && (
-                      <div className="rounded-xl border border-border bg-card px-5 py-4">
-                        <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Expected Outcome</p>
-                        <p className="text-[15px] text-foreground leading-relaxed">{initiative.outcome}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-                {fullDetail?.target_population && (
-                  <div className="rounded-xl border border-border bg-card px-5 py-4">
-                    <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Who this serves</p>
-                    <p className="text-[15px] text-foreground leading-relaxed">{fullDetail.target_population}</p>
-                  </div>
-                )}
-                {fullDetail?.specific_ask && (
-                  <div className="rounded-xl border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-5 py-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[#2D6A4F] mb-2">Specific ask</p>
-                    <p className="text-[15px] text-foreground leading-relaxed">{fullDetail.specific_ask}</p>
-                  </div>
-                )}
-                {fullDetail?.detail_content && fullDetail.detail_content !== "<p></p>" && (
-                  <div className="rounded-xl border border-border bg-card px-5 py-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">
-                        Full initiative description
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-          const content = fullDetail.detail_content ?? "";
-          const orgName = initiative.submitter_org ?? "";
-          const date = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-          const win = window.open("", "_blank");
-          if (!win) return;
-          win.document.write(`<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>${initiative.title}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Georgia, serif; font-size: 11pt; line-height: 1.7; color: #111; padding: 48px 64px; max-width: 800px; margin: 0 auto; }
-    h1 { font-size: 20pt; font-weight: bold; margin-bottom: 4px; }
-    .meta { font-size: 9pt; color: #555; margin-bottom: 32px; padding-bottom: 12px; border-bottom: 1px solid #ccc; }
-    h2 { font-size: 13pt; font-weight: bold; margin-top: 28px; margin-bottom: 6px; color: #2D6A4F; border-bottom: 1px solid #e0e0e0; padding-bottom: 4px; }
-    h3 { font-size: 11pt; font-weight: bold; margin-top: 16px; margin-bottom: 4px; }
-    p { margin-bottom: 10px; }
-    ul { padding-left: 20px; margin-bottom: 10px; }
-    li { margin-bottom: 4px; }
-    .footer { margin-top: 48px; padding-top: 12px; border-top: 1px solid #ccc; font-size: 8pt; color: #999; }
-    @media print { @page { margin: 20mm; size: A4; } }
-  </style>
-</head>
-<body>
-  <h1>${initiative.title}</h1>
-  <div class="meta">${orgName ? orgName + " · " : ""}${initiative.locations?.join(", ") ?? ""}${initiative.budget ? " · Budget: " + initiative.budget : ""} · Impact Natives</div>
-  ${content}
-  <div class="footer">Impact Natives · app.impactnatives.com · Downloaded ${date}</div>
-  <script>window.onload = function() { window.print(); }</script>
-</body>
-</html>`);
-          win.document.close();
-        }}
-                        className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#2D6A4F] hover:underline underline-offset-2 transition-colors"
-                      >
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                          <polyline points="7 10 12 15 17 10"/>
-                          <line x1="12" y1="15" x2="12" y2="3"/>
-                        </svg>
-                        Download as PDF
+            {!isOwnInitiative && isFunder && !alreadyExpressed && !questionSubmitted && (
+              <div className="space-y-2">
+                {!questionOpen ? (
+                  <button type="button"
+                    onClick={() => setQuestionOpen(true)}
+                    className="w-full rounded-lg h-10 border text-[14px] transition-colors flex items-center justify-center gap-2"
+                    style={{ borderColor: `${FOREST}4D`, color: FOREST }}>
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    Ask a question before committing
+                  </button>
+                ) : (
+                  <div className="rounded-xl border border-slate-200 p-4 space-y-2">
+                    <p className="text-[13px] font-semibold uppercase tracking-wider text-slate-500">Your question</p>
+                    <textarea
+                      value={question}
+                      onChange={e => setQuestion(e.target.value)}
+                      placeholder="Ask the initiative owner a specific question before expressing interest..."
+                      rows={3}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[14px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                    />
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => { setQuestionOpen(false); setQuestion(""); }}
+                        className="flex-1 rounded-lg h-9 border border-border text-[14px] text-muted-foreground hover:text-foreground transition-colors">
+                        Cancel
+                      </button>
+                      <button type="button" onClick={submitQuestion}
+                        disabled={!question.trim() || questionSubmitting}
+                        className="flex-1 rounded-lg h-9 text-white text-[14px] font-semibold disabled:opacity-40 transition-colors"
+                        style={{ background: FOREST }}>
+                        {questionSubmitting ? "Sending..." : "Send question"}
                       </button>
                     </div>
-                    <div className="concept-note-prose max-w-none"
-                      dangerouslySetInnerHTML={{ __html: fullDetail.detail_content }} />
                   </div>
                 )}
-                {fullDetail?.detail_content && fullDetail.detail_content !== "<p></p>" && (
-                  <div id="concept-note-print" style={{ display: "none" }}>
-                    <h1>{initiative.title}</h1>
-                    <div className="cn-meta">
-                      {initiative.submitter_org && <span>{initiative.submitter_org} · </span>}
-                      {initiative.locations?.join(", ")}
-                      {initiative.budget ? ` · Budget: ${initiative.budget}` : ""}
-                      {" · "}Generated by Impact Natives
-                    </div>
-                    <div dangerouslySetInnerHTML={{ __html: fullDetail.detail_content }} />
-                    <div className="cn-footer">
-                      Impact Natives · app.impactnatives.com · Downloaded {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
-                    </div>
-                  </div>
-                )}
-                {fullDetail?.resource_link && (
-                  <div className="rounded-xl border border-border bg-card px-5 py-4">
-                    <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Resource</p>
-                    <a href={fullDetail.resource_link} target="_blank" rel="noopener noreferrer"
-                      className="text-[15px] text-primary hover:underline break-all">
-                      {fullDetail.resource_link.replace(/^https?:\/\//, "")}
-                    </a>
-                  </div>
-                )}
-                {initiative.esg_alignment && (
-                  <div className="rounded-xl border px-5 py-4 flex items-start gap-3"
-                    style={{ borderColor: "#a5d6a7", background: "rgba(46,125,50,0.08)" }}>
-                    <Leaf className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "#2e7d32" }} />
-                    <div>
-                      <p className="text-[15px] font-medium" style={{ color: "#1b5e20" }}>Open to corporate ESG/CSR adoption</p>
-                      <p className="text-[13px] mt-0.5" style={{ color: "#388e3c" }}>
-                        Organisations can adopt this initiative as their CSR or ESG anchor programme.
-                      </p>
-                    </div>
-                  </div>
-                )}
-                {initiative.tags && initiative.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {initiative.tags.map(t => (
-                      <span key={t} className="px-3 py-1 rounded-full text-[13px] font-medium"
-                        style={{ background: "rgba(196,92,38,0.12)", color: "#C45C26" }}>{t}</span>
+              </div>
+            )}
+            {questionSubmitted && (
+              <div className="flex items-center gap-2 justify-center text-[13px] py-1" style={{ color: FOREST }}>
+                <CheckCircle2 className="w-4 h-4" />
+                Question sent. The initiative lead will respond in Messages.
+              </div>
+            )}
+
+            {isOwnInitiative ? (
+              <div className="w-full rounded-xl h-12 flex items-center justify-center text-[14px] text-slate-500 border border-slate-200 bg-slate-50">
+                Your initiative
+              </div>
+            ) : (
+              <button type="button"
+                onClick={() => { if (!alreadyExpressed) { setEoiOpen(true); } }}
+                disabled={alreadyExpressed}
+                className={`w-full font-semibold py-3 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 ${
+                  alreadyExpressed ? "bg-slate-100 text-slate-400 cursor-not-allowed" : "text-white"
+                }`}
+                style={alreadyExpressed ? {} : { background: BURNT_ORANGE }}
+                onMouseEnter={e => { if (!alreadyExpressed) (e.currentTarget as HTMLButtonElement).style.background = BURNT_ORANGE_HOVER; }}
+                onMouseLeave={e => { if (!alreadyExpressed) (e.currentTarget as HTMLButtonElement).style.background = BURNT_ORANGE; }}>
+                {alreadyExpressed ? "Interest expressed" : `Express Interest (${initiative.eois} EOI${initiative.eois !== 1 ? "s" : ""})`}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Main content: sticky sub-nav + tab panels */}
+        <div className="order-2 lg:order-1 lg:col-span-7 space-y-5">
+          {(() => {
+            const hasOverview = !!(fullDetail?.target_population || fullDetail?.specific_ask || initiative.esg_alignment || (initiative.tags && initiative.tags.length > 0));
+            const hasProblem = !!(initiative.problem || initiative.outcome || (fullDetail?.detail_content && fullDetail.detail_content !== "<p></p>") || fullDetail?.resource_link);
+            const hasImpact = !!(
+              fullDetail?.target_beneficiaries || fullDetail?.target_jobs || fullDetail?.target_female_pct ||
+              fullDetail?.target_timeline_months || fullDetail?.impact_evidence ||
+              (fullDetail?.sdg_tags && fullDetail.sdg_tags.length > 0)
+            );
+            const hasBudgetTimeline = !!(
+              fullDetail?.stage || (fullDetail?.confirmed_assets && fullDetail.confirmed_assets.length > 0) ||
+              fullDetail?.start_date || fullDetail?.duration || fullDetail?.co_funding_status ||
+              (fullDetail?.had_prior_experience !== null && fullDetail?.had_prior_experience !== undefined)
+            );
+            const tabs: { key: "overview" | "problem" | "impact" | "budget"; label: string }[] = [
+              ...(hasOverview ? [{ key: "overview" as const, label: "Overview" }] : []),
+              ...(hasProblem ? [{ key: "problem" as const, label: "Problem & Solution" }] : []),
+              ...(hasImpact ? [{ key: "impact" as const, label: "Impact & Metrics" }] : []),
+              ...(hasBudgetTimeline ? [{ key: "budget" as const, label: "Budget & Timeline" }] : []),
+            ];
+            if (tabs.length === 0) return null;
+            const activeTab = tabs.some(t => t.key === (detailTab as any)) ? (detailTab as any) : tabs[0].key;
+
+            return (
+              <>
+                {tabs.length > 1 && (
+                  <div className="sticky top-0 z-10 bg-background flex items-center gap-6 border-b border-slate-200 overflow-x-auto">
+                    {tabs.map(t => (
+                      <button key={t.key} type="button" onClick={() => setDetailTab(t.key as any)}
+                        className="pb-3 text-[14px] whitespace-nowrap transition-colors border-b-2 -mb-px"
+                        style={activeTab === t.key
+                          ? { borderColor: BURNT_ORANGE, color: BURNT_ORANGE, fontWeight: 600 }
+                          : { borderColor: "transparent", color: "#64748B", fontWeight: 500 }}>
+                        {t.label}
+                      </button>
                     ))}
                   </div>
                 )}
-              </div>
-            )}
 
-            {activeTab === "impact" && (
-              <div className="space-y-4">
-                {(fullDetail?.target_beneficiaries || fullDetail?.target_jobs || fullDetail?.target_female_pct || fullDetail?.target_timeline_months) && (
-                  <div className="rounded-xl border border-border bg-card px-5 py-4">
-                    <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Target impact metrics</p>
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                      {fullDetail.target_beneficiaries && (
-                        <div>
-                          <p className="text-[13px] text-black dark:text-white uppercase tracking-wide mb-0.5">Beneficiaries</p>
-                          <p className="text-[15px] font-semibold text-foreground">{fullDetail.target_beneficiaries.toLocaleString()}</p>
-                        </div>
-                      )}
-                      {fullDetail.target_jobs && (
-                        <div>
-                          <p className="text-[13px] text-black dark:text-white uppercase tracking-wide mb-0.5">Jobs</p>
-                          <p className="text-[15px] font-semibold text-foreground">{fullDetail.target_jobs.toLocaleString()}</p>
-                        </div>
-                      )}
-                      {fullDetail.target_female_pct && (
-                        <div>
-                          <p className="text-[13px] text-black dark:text-white uppercase tracking-wide mb-0.5">Female %</p>
-                          <p className="text-[15px] font-semibold text-foreground">{fullDetail.target_female_pct}%</p>
-                        </div>
-                      )}
-                      {fullDetail.target_timeline_months && (
-                        <div>
-                          <p className="text-[13px] text-black dark:text-white uppercase tracking-wide mb-0.5">Timeline</p>
-                          <p className="text-[15px] font-semibold text-foreground">{fullDetail.target_timeline_months} months</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-                {fullDetail?.impact_evidence && (
-                  <div className="rounded-xl border border-border bg-card px-5 py-4">
-                    <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Impact evidence</p>
-                    <p className="text-[15px] text-foreground leading-relaxed">{fullDetail.impact_evidence}</p>
-                  </div>
-                )}
-                {fullDetail?.sdg_tags && fullDetail.sdg_tags.length > 0 && (
-                  <div className="rounded-xl border border-border bg-card px-5 py-4">
-                    <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-3">SDG Alignment</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {fullDetail.sdg_tags.map(s => (
-                        <span key={s} className="text-[13px] px-2.5 py-0.5 rounded-full font-medium"
-                          style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>{s}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {fullDetail?.had_prior_experience !== null && fullDetail?.had_prior_experience !== undefined && (
-                  <div className="rounded-xl border border-border bg-card px-5 py-4">
-                    <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Track record</p>
-                    <p className="text-[15px] text-foreground mb-2">
-                      {fullDetail.had_prior_experience ? "The team has led similar initiatives before." : "This is a first initiative of this type for the team."}
-                    </p>
-                    {fullDetail.prior_experience_detail && (
-                      <p className="text-[15px] text-foreground leading-relaxed italic">"{fullDetail.prior_experience_detail}"</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === "partnership" && (
-              <div className="space-y-4">
-                {initiative.partnerships && initiative.partnerships.length > 0 && (
-                  <div className="rounded-xl border border-border bg-card px-5 py-4">
-                    <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-3">Partnerships sought</p>
-                    <div className="flex flex-wrap gap-2">
-                      {initiative.partnerships.map(p => (
-                        <span key={p} className="px-3 py-1 rounded-full text-[13px] font-medium border border-border text-foreground capitalize">
-                          {PARTNERSHIP_OPTIONS.find(o => o.value === p)?.label ?? p}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {(fullDetail?.stage || fullDetail?.confirmed_assets?.length) && (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {fullDetail?.stage && (
-                      <div className="rounded-xl border border-border bg-card px-5 py-4">
-                        <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Current stage</p>
-                        <p className="text-[15px] text-foreground">{STAGE_LABELS[fullDetail.stage] ?? fullDetail.stage}</p>
+                {activeTab === "overview" && (
+                  <div className="space-y-4">
+                    {fullDetail?.target_population && (
+                      <div className="rounded-xl border border-slate-200 bg-card p-6">
+                        <p className="text-lg font-semibold mb-2" style={{ color: FOREST }}>Who this serves</p>
+                        <p className="text-[15px] text-foreground leading-relaxed">{fullDetail.target_population}</p>
                       </div>
                     )}
-                    {fullDetail?.confirmed_assets && fullDetail.confirmed_assets.length > 0 && !fullDetail.confirmed_assets.includes("none") && (
-                      <div className="rounded-xl border border-border bg-white dark:bg-card px-5 py-4">
-                        <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-2">Already confirmed</p>
+                    {fullDetail?.specific_ask && (
+                      <div className="rounded-xl border p-6" style={{ borderColor: `${FOREST}33`, background: `${FOREST}0D` }}>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: FOREST }}>Specific ask</p>
+                        <p className="text-[15px] text-foreground leading-relaxed">{fullDetail.specific_ask}</p>
+                      </div>
+                    )}
+                    {initiative.esg_alignment && (
+                      <div className="rounded-xl border px-6 py-4 flex items-start gap-3"
+                        style={{ borderColor: "#a5d6a7", background: "rgba(46,125,50,0.08)" }}>
+                        <Leaf className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "#2e7d32" }} />
+                        <div>
+                          <p className="text-[15px] font-medium" style={{ color: "#1b5e20" }}>Open to corporate ESG/CSR adoption</p>
+                          <p className="text-[13px] mt-0.5" style={{ color: "#388e3c" }}>
+                            Organisations can adopt this initiative as their CSR or ESG anchor programme.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {initiative.tags && initiative.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {initiative.tags.map(t => (
+                          <span key={t} className="px-3 py-1 rounded-full text-[13px] font-medium bg-emerald-50 text-emerald-800">{t}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === "problem" && (
+                  <div className="space-y-4">
+                    {(initiative.problem || initiative.outcome) && (
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        {initiative.problem && (
+                          <div className="rounded-xl border border-slate-200 bg-card p-6">
+                            <p className="text-lg font-semibold mb-2" style={{ color: FOREST }}>Problem</p>
+                            <p className="text-[15px] text-foreground leading-relaxed">{initiative.problem}</p>
+                          </div>
+                        )}
+                        {initiative.outcome && (
+                          <div className="rounded-xl border border-slate-200 bg-card p-6">
+                            <p className="text-lg font-semibold mb-2" style={{ color: FOREST }}>Expected Outcome</p>
+                            <p className="text-[15px] text-foreground leading-relaxed">{initiative.outcome}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {fullDetail?.detail_content && fullDetail.detail_content !== "<p></p>" && (
+                      <div className="rounded-xl border border-slate-200 bg-card p-6">
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="text-lg font-semibold" style={{ color: FOREST }}>Full initiative description</p>
+                          <button type="button" onClick={downloadPdf}
+                            className="inline-flex items-center gap-1.5 text-[13px] font-medium hover:underline underline-offset-2 transition-colors"
+                            style={{ color: FOREST }}>
+                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                              <polyline points="7 10 12 15 17 10"/>
+                              <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            Download as PDF
+                          </button>
+                        </div>
+                        <div className="concept-note-prose max-w-none"
+                          dangerouslySetInnerHTML={{ __html: fullDetail.detail_content }} />
+                      </div>
+                    )}
+                    {fullDetail?.detail_content && fullDetail.detail_content !== "<p></p>" && (
+                      <div id="concept-note-print" style={{ display: "none" }}>
+                        <h1>{initiative.title}</h1>
+                        <div className="cn-meta">
+                          {initiative.submitter_org && <span>{initiative.submitter_org} · </span>}
+                          {initiative.locations?.join(", ")}
+                          {initiative.budget ? ` · Budget: ${initiative.budget}` : ""}
+                          {" · "}Generated by Impact Natives
+                        </div>
+                        <div dangerouslySetInnerHTML={{ __html: fullDetail.detail_content }} />
+                        <div className="cn-footer">
+                          Impact Natives · app.impactnatives.com · Downloaded {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+                        </div>
+                      </div>
+                    )}
+                    {fullDetail?.resource_link && (
+                      <div className="rounded-xl border border-slate-200 bg-card p-6">
+                        <p className="text-lg font-semibold mb-2" style={{ color: FOREST }}>Resource</p>
+                        <a href={fullDetail.resource_link} target="_blank" rel="noopener noreferrer"
+                          className="text-[15px] text-primary hover:underline break-all">
+                          {fullDetail.resource_link.replace(/^https?:\/\//, "")}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === "impact" && (
+                  <div className="space-y-4">
+                    {(fullDetail?.target_beneficiaries || fullDetail?.target_jobs || fullDetail?.target_female_pct || fullDetail?.target_timeline_months) && (
+                      <div>
+                        <p className="text-lg font-semibold mb-3" style={{ color: FOREST }}>Target impact metrics</p>
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                          {fullDetail.target_beneficiaries && <BentoStat value={fullDetail.target_beneficiaries.toLocaleString()} label="Beneficiaries" />}
+                          {fullDetail.target_jobs && <BentoStat value={fullDetail.target_jobs.toLocaleString()} label="Jobs" />}
+                          {fullDetail.target_female_pct && <BentoStat value={`${fullDetail.target_female_pct}%`} label="Female" />}
+                          {fullDetail.target_timeline_months && <BentoStat value={`${fullDetail.target_timeline_months}mo`} label="Timeline" />}
+                        </div>
+                      </div>
+                    )}
+                    {fullDetail?.impact_evidence && (
+                      <div className="rounded-xl border border-slate-200 bg-card p-6">
+                        <p className="text-lg font-semibold mb-2" style={{ color: FOREST }}>Impact evidence</p>
+                        <p className="text-[15px] text-foreground leading-relaxed">{fullDetail.impact_evidence}</p>
+                      </div>
+                    )}
+                    {fullDetail?.sdg_tags && fullDetail.sdg_tags.length > 0 && (
+                      <div className="rounded-xl border border-slate-200 bg-card p-6">
+                        <p className="text-lg font-semibold mb-3" style={{ color: FOREST }}>SDG Alignment</p>
                         <div className="flex flex-wrap gap-1.5">
-                          {fullDetail.confirmed_assets.filter(a => a !== "none").map(a => (
-                            <span key={a} className="text-[13px] px-2.5 py-0.5 rounded-full border border-border text-black dark:text-white capitalize">
-                              {a.replace(/_/g, " ")}
-                            </span>
+                          {fullDetail.sdg_tags.map(s => (
+                            <span key={s} className="text-[13px] px-2.5 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-800">{s}</span>
                           ))}
                         </div>
                       </div>
                     )}
                   </div>
                 )}
-                {(fullDetail?.start_date || fullDetail?.duration) && (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {fullDetail.start_date && (
-                      <div className="rounded-xl border border-border bg-card px-5 py-4">
-                        <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-1">Estimated start</p>
-                        <p className="text-[15px] text-foreground">{fullDetail.start_date}</p>
+
+                {activeTab === "budget" && (
+                  <div className="space-y-4">
+                    <div className="rounded-xl border border-slate-200 bg-card p-6">
+                      <p className="text-lg font-semibold mb-4" style={{ color: FOREST }}>Milestones</p>
+                      <MilestoneTracker currentStage={fullDetail?.stage} />
+                      <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap gap-x-8 gap-y-2 text-[13px] text-slate-600">
+                        {fullDetail?.start_date && <span><span className="font-semibold text-[#1E293B]">Estimated start:</span> {fullDetail.start_date}</span>}
+                        {fullDetail?.duration && <span><span className="font-semibold text-[#1E293B]">Duration:</span> {fullDetail.duration}</span>}
+                        {fullDetail?.co_funding_status && (
+                          <span><span className="font-semibold text-[#1E293B]">Funding status:</span> {CO_FUNDING_LABELS[fullDetail.co_funding_status] ?? fullDetail.co_funding_status}</span>
+                        )}
+                      </div>
+                    </div>
+                    {fullDetail?.confirmed_assets && fullDetail.confirmed_assets.length > 0 && !fullDetail.confirmed_assets.includes("none") && (
+                      <div className="rounded-xl border border-slate-200 bg-card p-6">
+                        <p className="text-lg font-semibold mb-2" style={{ color: FOREST }}>Already confirmed</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {fullDetail.confirmed_assets.filter(a => a !== "none").map(a => (
+                            <span key={a} className="text-[13px] px-2.5 py-0.5 rounded-full border border-slate-200 text-[#1E293B] capitalize">
+                              {a.replace(/_/g, " ")}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     )}
-                    {fullDetail.duration && (
-                      <div className="rounded-xl border border-border bg-card px-5 py-4">
-                        <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-1">Duration</p>
-                        <p className="text-[15px] text-foreground">{fullDetail.duration}</p>
+                    {fullDetail?.had_prior_experience !== null && fullDetail?.had_prior_experience !== undefined && (
+                      <div className="rounded-xl border border-slate-200 bg-card p-6">
+                        <p className="text-lg font-semibold mb-2" style={{ color: FOREST }}>Track record</p>
+                        <p className="text-[15px] text-foreground mb-2">
+                          {fullDetail.had_prior_experience ? "The team has led similar initiatives before." : "This is a first initiative of this type for the team."}
+                        </p>
+                        {fullDetail.prior_experience_detail && (
+                          <p className="text-[15px] text-foreground leading-relaxed italic">"{fullDetail.prior_experience_detail}"</p>
+                        )}
                       </div>
                     )}
                   </div>
                 )}
-                {fullDetail?.co_funding_status && (
-                  <div className="rounded-xl border border-border bg-card px-5 py-4">
-                    <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white mb-1">Funding status</p>
-                    <p className="text-[15px] text-foreground">{CO_FUNDING_LABELS[fullDetail.co_funding_status] ?? fullDetail.co_funding_status}</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })()}
-      {!isOwnInitiative && (
-        <div className="space-y-3 pt-2">
-          {isFunder && !alreadyExpressed && !questionSubmitted && (
-            <div className="space-y-2">
-              {!questionOpen ? (
-                <button type="button"
-                  onClick={() => setQuestionOpen(true)}
-                  className="w-full rounded-full h-10 border border-[#2D6A4F]/30 text-[15px] text-[#2D6A4F] hover:bg-[#2D6A4F]/5 transition-colors flex items-center justify-center gap-2">
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  Ask a question before committing
-                </button>
-              ) : (
-                <div className="rounded-xl border border-border bg-card p-4 space-y-2">
-                  <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">Your question</p>
-                  <textarea
-                    value={question}
-                    onChange={e => setQuestion(e.target.value)}
-                    placeholder="Ask the initiative owner a specific question before expressing interest..."
-                    rows={3}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[15px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
-                  />
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => { setQuestionOpen(false); setQuestion(""); }}
-                      className="flex-1 rounded-full h-9 border border-border text-[15px] text-muted-foreground hover:text-foreground transition-colors">
-                      Cancel
-                    </button>
-                    <button type="button" onClick={submitQuestion}
-                      disabled={!question.trim() || questionSubmitting}
-                      className="flex-1 rounded-full h-9 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-semibold disabled:opacity-40 transition-colors">
-                      {questionSubmitting ? "Sending..." : "Send question"}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-          {questionSubmitted && (
-            <div className="flex items-center gap-2 justify-center text-[13px] text-[#2D6A4F] py-1">
-              <CheckCircle2 className="w-4 h-4" />
-              Question sent. The initiative lead will respond in Messages.
-            </div>
-          )}
-          <button type="button"
-            onClick={() => { if (!alreadyExpressed) { setEoiOpen(true); } }}
-            disabled={alreadyExpressed}
-            className={`w-full rounded-full h-11 text-[15px] font-semibold transition-all ${
-              alreadyExpressed
-                ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
-                : "bg-gradient-to-br from-[#3D2618] via-[#33301F] to-[#1B3328] hover:brightness-110 text-white"
-            }`}>
-            {alreadyExpressed ? "Interest expressed" : "Express interest"}
-          </button>
+              </>
+            );
+          })()}
         </div>
-      )}
-      {isOwnInitiative && (
-        <div className="w-full rounded-full h-11 flex items-center justify-center text-[15px] text-muted-foreground border border-border bg-muted">
-          Your initiative
-        </div>
-      )}
+      </div>
+
       {eoiOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-background rounded-2xl border border-border w-full max-w-md shadow-xl p-6 max-h-[90vh] overflow-y-auto">
             {submitted ? (
               <div className="text-center py-4">
-                <CheckCircle2 className="w-10 h-10 text-[#2D6A4F] mx-auto mb-3" />
+                <CheckCircle2 className="w-10 h-10 mx-auto mb-3" style={{ color: FOREST }} />
                 <p className="font-medium text-foreground">Expression submitted</p>
                 <p className="text-[15px] text-black dark:text-white mt-1">The initiative lead will be notified.</p>
                 {profile?.user_type === "organisation" && !profile?.is_verified && (
-                  <div className="mt-4 rounded-xl border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-4 py-3 text-left">
-                    <p className="text-[13px] font-medium text-[#2D6A4F]">Stand out with a verified badge</p>
+                  <div className="mt-4 rounded-xl border px-4 py-3 text-left" style={{ borderColor: `${FOREST}33`, background: `${FOREST}0D` }}>
+                    <p className="text-[13px] font-medium" style={{ color: FOREST }}>Stand out with a verified badge</p>
                     <p className="text-[13px] text-black dark:text-white mt-0.5">Verified organisations get a trust badge on all EOIs.</p>
-                    <a href="/verify" className="inline-block mt-2 text-[13px] font-medium text-[#2D6A4F] hover:underline">Get verified →</a>
+                    <a href="/verify" className="inline-block mt-2 text-[13px] font-medium hover:underline" style={{ color: FOREST }}>Get verified →</a>
                   </div>
                 )}
                 <button type="button"
                   onClick={() => { setEoiOpen(false); setSubmitted(false); setPartnershipTypes([]); setEsgAdoption(false); setMessage(""); hasManuallyEditedRef.current = false; }}
-                  className="mt-5 rounded-full h-10 px-6 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-semibold transition-colors">
+                  className="mt-5 rounded-full h-10 px-6 text-white text-[15px] font-semibold transition-colors"
+                  style={{ background: FOREST }}>
                   Done
                 </button>
               </div>
@@ -1933,9 +1989,10 @@ function MarketplaceDetail({
                     {EOI_PARTNERSHIP_TYPES.map(t => (
                       <button key={t.value} type="button"
                         onClick={() => setPartnershipTypes(prev => prev.includes(t.value) ? prev.filter(x => x !== t.value) : [...prev, t.value])}
-                        className={`text-[13px] px-3 py-1.5 rounded-full border transition-colors ${
-                          partnershipTypes.includes(t.value) ? "bg-[#2D6A4F] text-white border-[#2D6A4F]" : "border-border text-muted-foreground hover:border-[#2D6A4F]"
-                        }`}>
+                        className="text-[13px] px-3 py-1.5 rounded-full border transition-colors"
+                        style={partnershipTypes.includes(t.value)
+                          ? { background: FOREST, color: "white", borderColor: FOREST }
+                          : { borderColor: "#E2E8F0", color: "#64748B" }}>
                         {t.label}
                       </button>
                     ))}
@@ -1961,7 +2018,8 @@ function MarketplaceDetail({
                   <div className="flex items-center justify-between">
                     <label className="text-[15px] font-medium text-foreground">Message</label>
                     <button type="button" onClick={generateAiMessage} disabled={aiMessageLoading}
-                      className="flex items-center gap-1.5 text-[13px] font-semibold text-[#2D6A4F] hover:underline disabled:opacity-40 transition-opacity">
+                      className="flex items-center gap-1.5 text-[13px] font-semibold hover:underline disabled:opacity-40 transition-opacity"
+                      style={{ color: FOREST }}>
                       {aiMessageLoading
                         ? <><Loader2 className="w-3 h-3 animate-spin" />Generating...</>
                         : <><Sparkles className="w-3 h-3" />{message ? "Regenerate" : "Generate"}</>}
@@ -1969,7 +2027,7 @@ function MarketplaceDetail({
                   </div>
                   {aiMessageLoading && !message && (
                     <div className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2.5 h-28 flex items-center justify-center gap-2 text-[13px] text-black dark:text-white">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#2D6A4F]" />
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: FOREST }} />
                       Drafting your message...
                     </div>
                   )}
@@ -1985,7 +2043,7 @@ function MarketplaceDetail({
                       className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[15px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
                   )}
                   {aiMessageRequiresUpgrade && !message && (
-                    <p className="text-[13px] text-[#C45C26]">
+                    <p className="text-[13px]" style={{ color: BURNT_ORANGE }}>
                       AI-drafted outreach needs an upgrade.{" "}
                       <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")} className="underline font-medium">
                         Upgrade
@@ -1994,12 +2052,13 @@ function MarketplaceDetail({
                     </p>
                   )}
                   {aiMessageFailed && !message && (
-                    <p className="text-[13px] text-[#C45C26]">AI draft failed. Write your own message above.</p>
+                    <p className="text-[13px]" style={{ color: BURNT_ORANGE }}>AI draft failed. Write your own message above.</p>
                   )}
                 </div>
                 {eoiError && <p className="text-[15px] text-red-600 bg-red-50 rounded-md px-3 py-2">{eoiError}</p>}
                 <button type="button" onClick={submitEOI} disabled={!canSubmit || submitting}
-                  className="w-full rounded-full h-10 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
+                  className="w-full rounded-full h-10 text-white text-[15px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  style={{ background: BURNT_ORANGE }}>
                   {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                   Submit Expression of Interest
                 </button>
