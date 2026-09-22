@@ -6,7 +6,7 @@ import { fetchLatestListingMirror, EMPTY_LISTING_MIRROR } from "@/lib/listingMir
 import { useAuth } from "@/context/AuthContext";
 import {
   Loader2, Search, Users, Sparkles, RefreshCw, Trophy, X, ExternalLink,
-  Link as LinkIcon, Mail, Globe, MapPin, Layers, ChevronRight, FileText,
+  Link as LinkIcon, Globe, MapPin, Layers, ChevronRight, FileText,
 } from "lucide-react";
 import { initials } from "@/components/ui/UserAvatar";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
@@ -731,18 +731,17 @@ function IndividualDrawerContent({ profile, onClose }: { profile: ProfileRow; on
         )}
       </div>
 
-      {/* TODO: wire "Send Message" to your actual messaging/conversation-start flow. */}
-      <div className="px-8 py-4 border-t border-border bg-white dark:bg-card flex items-center gap-4 shrink-0">
-        <button type="button" className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-sm py-2.5 px-6 rounded-xl shadow-sm transition flex items-center justify-center gap-2">
-          <Mail className="w-4 h-4" /> Send Message
-        </button>
-        {profile.linkedin_url && (
+      {/* No primary CTA here — Natives has no direct messaging today. A future
+          option: link to Partnership Listings, the Marketplace/initiatives,
+          or a "Get matched" flow. Wire in whichever fits once decided. */}
+      {profile.linkedin_url && (
+        <div className="px-8 py-4 border-t border-border bg-white dark:bg-card flex items-center justify-end shrink-0">
           <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer"
             className="bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-white/5 text-slate-800 font-medium text-sm py-2.5 px-5 rounded-xl transition flex items-center justify-center gap-2 border border-slate-300">
             <LinkIcon className="w-4 h-4" /> LinkedIn
           </a>
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 }
@@ -815,11 +814,11 @@ function InfoTooltip({ text }: { text: string }) {  return (
   );
 }
 
-// Organizational Metadata grid: label/value rows with a divider between each,
+// Organisational Metadata grid: label/value rows with a divider between each,
 // used for the compact attribute list in the Overview tab.
 function MetadataRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-1.5 sm:gap-6 py-4 border-b border-slate-100 last:border-b-0 last:pb-0 first:pt-0">
+    <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-1.5 sm:gap-6 py-4 border-b border-slate-100 last:border-b-0">
       <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</p>
       <div className="text-sm font-medium text-slate-900">{children}</div>
     </div>
@@ -1213,9 +1212,9 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
 
         {/* Partnership Fit banner */}
         {(aiSummary || loadingAi) && (
-          <div className="mx-8 mt-6 p-5 rounded-2xl bg-emerald-50/60 border border-emerald-100 space-y-2">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
-              <Sparkles className="w-4 h-4 text-[#2D6A4F]" /> <span>Partnership Fit</span>
+          <div className="mx-8 mt-6 p-5 rounded-2xl bg-white border border-slate-200 shadow-lg shadow-slate-900/10 space-y-2">
+            <div className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider ${CHARCOAL}`}>
+              <Sparkles className={`w-4 h-4 ${CHARCOAL}`} /> <span>Partnership Fit</span>
               {!loadingAi && (
                 <button type="button" onClick={() => { setAiSummary(null); generateSummary(); }} className="ml-auto p-1 rounded hover:opacity-70 transition-opacity" title="Refresh">
                   <RefreshCw className="w-3.5 h-3.5" />
@@ -1223,9 +1222,9 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
               )}
             </div>
             {loadingAi ? (
-              <div className="flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" /><p className="text-sm text-slate-800">Generating partnership summary...</p></div>
+              <div className="flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" /><p className={`text-sm ${CHARCOAL}`}>Generating partnership summary...</p></div>
             ) : (
-              <p className="text-sm text-slate-800 leading-relaxed">{aiSummary}</p>
+              <p className={`text-sm ${CHARCOAL} leading-relaxed`}>{aiSummary}</p>
             )}
           </div>
         )}
@@ -1295,10 +1294,10 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
               </div>
             )}
 
-            {/* Organizational Metadata */}
+            {/* Organisational Metadata */}
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Organizational Metadata</p>
-              <div className="bg-slate-50 border border-slate-200 rounded-xl px-5">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Organisational Metadata</p>
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
                 {sectors.length > 0 && (
                   <MetadataRow label="Sector">
                     <div className="flex flex-wrap gap-1.5">{sectors.map(s => <MetaBadge key={s} tone="indigo">{s}</MetaBadge>)}</div>
@@ -1585,18 +1584,17 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
 
       {previewDoc && <DocumentPreviewModal preview={previewDoc} onClose={() => setPreviewDoc(null)} />}
 
-      {/* TODO: wire "Send Message" to your actual messaging/conversation-start flow. */}
-      <div className="px-8 py-4 border-t border-border bg-white dark:bg-card flex items-center gap-4 shrink-0">
-        <button type="button" className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-sm py-2.5 px-6 rounded-xl shadow-sm transition flex items-center justify-center gap-2">
-          <Mail className="w-4 h-4" /> Send Message
-        </button>
-        {org.website && org.website !== "https://" && (
+      {/* No primary CTA here — Natives has no direct messaging today. Once
+          decided, this is where a link to Partnership Listings, the
+          Marketplace/initiatives, or a "Get matched" flow would go. */}
+      {org.website && org.website !== "https://" && (
+        <div className="px-8 py-4 border-t border-border bg-white dark:bg-card flex items-center justify-end shrink-0">
           <a href={org.website} target="_blank" rel="noopener noreferrer"
             className="bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-white/5 text-slate-800 font-medium text-sm py-2.5 px-5 rounded-xl transition flex items-center justify-center gap-2 border border-slate-300">
             <Globe className="w-4 h-4" /> Visit Website
           </a>
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 }
