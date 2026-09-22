@@ -1,6 +1,5 @@
 // ─── DashboardMarketplace.tsx ─────────────────────────────────────────────────
 import { useEffect, useRef, useState } from "react";
-import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { supabase } from "@/lib/supabase";
 import { Loader2, CheckCircle2, X, SlidersHorizontal, Search, Leaf, Zap, MessageSquare, ShieldCheck, Bookmark, ThumbsDown, RotateCcw, AlertTriangle, Check, Building2, Wallet, Handshake, FileCheck, Award } from "lucide-react";
 import { computeTrustTier } from "@/lib/ddItems";
@@ -866,7 +865,7 @@ export default function DashboardMarketplace() {
 }
 // ── Deal-room detail page: color tokens & small building blocks ────────────────
 const FOREST = "#1B4D3E";
-const SDG_CARD_PALETTE = ["#FEE2E2", "#DCFCE7", "#DBEAFE", "#FEF3C7", "#EDE9FE", "#FCE7F3"];
+const SDG_CARD_PALETTE = ["#DC2626", "#16A34A", "#2563EB", "#D97706", "#7C3AED", "#DB2777"];
 const BURNT_ORANGE = "#D96B27";
 const BURNT_ORANGE_HOVER = "#C25A1E";
 
@@ -881,7 +880,7 @@ function SidebarRow({ label, value }: { label: string; value: string }) {
 
 function BentoStat({ value, label }: { value: string; label: string }) {
   return (
-    <div className="rounded-xl p-5" style={{ background: `${FOREST}0D` }}>
+    <div className="rounded-xl border border-slate-200 bg-white p-5">
       <p className="text-3xl font-bold" style={{ color: FOREST }}>{value}</p>
       <p className="text-xs text-slate-500 uppercase tracking-wider mt-1">{label}</p>
     </div>
@@ -1292,11 +1291,6 @@ function MarketplaceDetail({
     partially_funded:     "Partially funded",
     seeking_funding:      "Seeking funding",
   };
-  const QUALITY_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-    strong: { label: "Strong brief",    color: "#2D6A4F", bg: "rgba(45,106,79,0.12)" },
-    good:   { label: "Good brief",      color: "#f59e0b", bg: "rgba(180,83,9,0.12)" },
-    basic:  { label: "Developing brief", color: "#C45C26", bg: "rgba(196,92,38,0.08)" },
-  };
   async function submitEOI() {
     if (!user || !orgOwnerId || (partnershipTypes.length === 0 && !esgAdoption)) return;
     setSubmitting(true); setEoiError(null);
@@ -1327,7 +1321,7 @@ function MarketplaceDetail({
       setSubmitted(true); setAlreadyExpressed(true); onExpressed(initiative.id);
     } finally { setSubmitting(false); }
   }
-  const canSubmit = partnershipTypes.length > 0 || esgAdoption;  const qualityCfg = fullDetail?.ai_quality_score ? QUALITY_CONFIG[fullDetail.ai_quality_score] : null;
+  const canSubmit = partnershipTypes.length > 0 || esgAdoption;
 
   function downloadPdf() {
     const content = fullDetail?.detail_content ?? "";
@@ -1402,46 +1396,13 @@ function MarketplaceDetail({
         </div>
       </div>
 
-      {/* Hero: category pills, verification/trust pill, title, submitter + meta */}
-      <div className="space-y-3">
-        <div className="flex flex-wrap gap-2">
-          {initiative.sectors?.map(s => (
-            <span key={s} className="text-xs px-3 py-1 rounded-full font-medium bg-emerald-50 text-emerald-800">{s}</span>
-          ))}
-          {initiative.esg_alignment && (
-            <span className="inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full font-medium bg-emerald-50 text-emerald-800">
-              <Leaf className="w-3 h-3" />ESG/CSR Friendly
-            </span>
-          )}
-          {initiative.submitter_is_verified && (
-            <span className="inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full font-medium bg-emerald-50 text-emerald-800">
-              <VerifiedBadge />
-            </span>
-          )}
-          {(initiative.confirmed_partners ?? []).some(p => p.status === "mou_executed") && (
-            <span className="inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full font-medium bg-emerald-50 text-emerald-800">
-              <Award className="w-3 h-3" />MoU Executed
-            </span>
-          )}
-          {qualityCfg && (
-            <span className="inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full font-medium bg-emerald-50 text-emerald-800">
-              {qualityCfg.label}
-            </span>
-          )}
-          {initiativeDdScore != null && (
-            <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-medium bg-amber-50 border border-amber-200 text-amber-900">
-              <Award className="w-3 h-3" />
-              {initiativeDdScore}% DD Readiness
-              {initiativeTrustTier && <TrustBadge tier={initiativeTrustTier} />}
-            </span>
-          )}
-        </div>
-
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight leading-snug" style={{ color: "#0F172A", letterSpacing: "-0.025em" }}>
+      {/* Hero: dark gradient accent card, title, submitter + meta */}
+      <div className="rounded-2xl p-7" style={{ background: `linear-gradient(135deg, ${FOREST} 0%, #0F2E24 100%)` }}>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight leading-snug text-white" style={{ letterSpacing: "-0.025em" }}>
           {initiative.title}
         </h1>
 
-        <div className="flex items-center gap-3 text-[13px] text-slate-500 flex-wrap">
+        <div className="flex items-center gap-3 text-[13px] text-white/60 flex-wrap mt-4">
           {(initiative.submitter_org || initiative.submitter_name) && (
             <Link
               href={
@@ -1450,19 +1411,20 @@ function MarketplaceDetail({
                   : `/dashboard/natives?tab=individual&user=${initiative.user_id}`
               }
               onClick={e => e.stopPropagation()}
-              className="flex items-center gap-1.5 font-semibold text-[#1E293B] hover:underline underline-offset-2 transition-colors">
+              className="flex items-center gap-1.5 font-semibold text-white hover:underline underline-offset-2 transition-colors">
               {initiative.submitter_logo_url ? (
-                <img src={initiative.submitter_logo_url} alt="" className="w-5 h-5 rounded-full object-cover border border-slate-200" />
+                <img src={initiative.submitter_logo_url} alt="" className="w-5 h-5 rounded-full object-cover border border-white/20" />
               ) : (
-                <span className="w-5 h-5 rounded-full bg-[#1E293B] text-white text-[9px] font-bold flex items-center justify-center">
+                <span className="w-5 h-5 rounded-full text-white text-[9px] font-bold flex items-center justify-center" style={{ background: BURNT_ORANGE }}>
                   {(initiative.submitter_user_type === "organisation" ? initiative.submitter_org : initiative.submitter_name)?.slice(0, 2).toUpperCase()}
                 </span>
               )}
               {initiative.submitter_user_type === "organisation" ? initiative.submitter_org : initiative.submitter_name}
+              {initiative.submitter_is_verified && <ShieldCheck className="w-3.5 h-3.5 shrink-0" style={{ color: "#8FD9B0" }} />}
             </Link>
           )}
           <span>Published {new Date(initiative.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
-          <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium bg-amber-50 text-amber-900">
+          <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: "rgba(217,107,39,0.2)", color: "#F5C77E" }}>
             {initiative.eois} expression{initiative.eois !== 1 ? "s" : ""} of interest
           </span>
         </div>
@@ -1471,12 +1433,12 @@ function MarketplaceDetail({
           const legalEvidence = initiativeOrgDd?.dd_evidence?.legal_compliance_declaration ?? {};
           if (!legalEvidence.blacklistingDetail && !legalEvidence.pendingDisputesDetail) return null;
           return (
-            <div className="border border-red-200 rounded-lg p-3 bg-red-50">
+            <div className="mt-3 border border-red-400/30 rounded-lg p-3 bg-red-500/10">
               {legalEvidence.blacklistingDetail && (
-                <p className="text-[13px] text-red-800"><span className="font-semibold">Blacklisting disclosed:</span> {legalEvidence.blacklistingDetail}</p>
+                <p className="text-[13px] text-red-200"><span className="font-semibold">Blacklisting disclosed:</span> {legalEvidence.blacklistingDetail}</p>
               )}
               {legalEvidence.pendingDisputesDetail && (
-                <p className="text-[13px] text-red-800 mt-1"><span className="font-semibold">Pending disputes disclosed:</span> {legalEvidence.pendingDisputesDetail}</p>
+                <p className="text-[13px] text-red-200 mt-1"><span className="font-semibold">Pending disputes disclosed:</span> {legalEvidence.pendingDisputesDetail}</p>
               )}
             </div>
           );
@@ -1498,28 +1460,25 @@ function MarketplaceDetail({
             </div>
 
             {(isFunder || isCorporate) && (
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">AI Tools</p>
-                <div className="space-y-2">
-                  {isFunder && (
-                    <button type="button" onClick={generateDealMemo} disabled={loadingMemo}
-                      className="w-full flex items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-[13px] font-medium text-[#1E293B] hover:bg-slate-50 transition-colors disabled:opacity-50">
-                      <span className="flex items-center gap-2"><FileText className="w-3.5 h-3.5" style={{ color: FOREST }} />AI Deal Memo</span>
-                      {loadingMemo
-                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: FOREST }} />
-                        : <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 6l6 6-6 6"/></svg>}
-                    </button>
-                  )}
-                  {isCorporate && (
-                    <button type="button" onClick={generateCsrBrief} disabled={loadingCsr}
-                      className="w-full flex items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-[13px] font-medium text-[#1E293B] hover:bg-slate-50 transition-colors disabled:opacity-50">
-                      <span className="flex items-center gap-2"><FileText className="w-3.5 h-3.5" style={{ color: FOREST }} />CSR Adoption Brief</span>
-                      {loadingCsr
-                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: FOREST }} />
-                        : <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 6l6 6-6 6"/></svg>}
-                    </button>
-                  )}
-                </div>
+              <div className="space-y-2">
+                {isFunder && (
+                  <button type="button" onClick={generateDealMemo} disabled={loadingMemo}
+                    className="w-full flex items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-[13px] font-medium text-[#1E293B] hover:bg-slate-50 transition-colors disabled:opacity-50">
+                    <span className="flex items-center gap-2"><FileText className="w-3.5 h-3.5" style={{ color: FOREST }} />Generate Deal Memo</span>
+                    {loadingMemo
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: FOREST }} />
+                      : <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 6l6 6-6 6"/></svg>}
+                  </button>
+                )}
+                {isCorporate && (
+                  <button type="button" onClick={generateCsrBrief} disabled={loadingCsr}
+                    className="w-full flex items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-[13px] font-medium text-[#1E293B] hover:bg-slate-50 transition-colors disabled:opacity-50">
+                    <span className="flex items-center gap-2"><FileText className="w-3.5 h-3.5" style={{ color: FOREST }} />Generate CSR Brief</span>
+                    {loadingCsr
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: FOREST }} />
+                      : <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 6l6 6-6 6"/></svg>}
+                  </button>
+                )}
               </div>
             )}
 
@@ -1807,7 +1766,8 @@ function MarketplaceDetail({
                         <p className="text-lg font-semibold mb-4" style={{ color: FOREST }}>SDG Alignment Details</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {fullDetail.sdg_tags.map((s, i) => (
-                            <div key={s} className="rounded-lg p-3" style={{ background: SDG_CARD_PALETTE[i % SDG_CARD_PALETTE.length] }}>
+                            <div key={s} className="rounded-lg border border-slate-200 bg-white p-3 flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: SDG_CARD_PALETTE[i % SDG_CARD_PALETTE.length] }} />
                               <p className="text-[14px] font-bold text-[#1E293B]">{s}</p>
                             </div>
                           ))}
