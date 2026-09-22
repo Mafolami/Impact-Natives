@@ -114,7 +114,7 @@ interface OrgRow {
 
 type EntityType = "organisation" | "individual";
 type FilterTab = "all" | EntityType;
-type DrawerTab = "overview" | "initiatives" | "strategy";
+type DrawerTab = "overview" | "dueDiligence" | "initiatives" | "strategy";
 
 /** Unified shape used to render the 3-column list, regardless of underlying table. */
 interface EcosystemEntity {
@@ -770,6 +770,24 @@ function InfoTooltip({ text }: { text: string }) {
   );
 }
 
+// Organizational Metadata grid: label/value rows with a divider between each,
+// used for the compact attribute list in the Overview tab.
+function MetadataRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-1.5 sm:gap-6 py-4 border-b border-slate-100 last:border-b-0 last:pb-0 first:pt-0">
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</p>
+      <div className="text-sm font-medium text-slate-900">{children}</div>
+    </div>
+  );
+}
+function MetaBadge({ tone, children }: { tone: "indigo" | "emerald"; children: React.ReactNode }) {
+  const toneClasses = tone === "indigo" ? "bg-indigo-50 text-indigo-800 border-indigo-200" : "bg-emerald-50 text-emerald-800 border-emerald-200";
+  return <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${toneClasses}`}>{children}</span>;
+}
+function TagPill({ children }: { children: React.ReactNode }) {
+  return <span className="inline-block bg-white border border-slate-200 px-2.5 py-1 rounded-md text-xs font-medium text-slate-800 shadow-sm">{children}</span>;
+}
+
 function DDEvidenceViewModal({ item, evidence, documents, canSeeSensitive, canSeeDisclosureDetail, onClose }: {
   item: DDItemDef; evidence: Record<string, any>; documents: DDDocument[]; canSeeSensitive: boolean; canSeeDisclosureDetail: boolean; onClose: () => void;
 }) {
@@ -1114,18 +1132,142 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
             active={activeTab}
             onChange={setActiveTab}
             tabs={[
-              { key: "overview", label: "Overview & DD" },
+              { key: "overview", label: "Overview" },
+              { key: "dueDiligence", label: "Due Diligence Readiness" },
               { key: "initiatives", label: `Active Initiatives (${orgInitiatives.length})` },
               { key: "strategy", label: `Impact Strategy (${impactPillars.length})` },
             ]}
           />
         </div>
 
-        {/* Overview & DD */}
+        {/* Overview */}
         {activeTab === "overview" && (
           <div className="px-8 py-6 space-y-8">
             {org.description && <p className="text-sm text-slate-800 leading-relaxed">{org.description}</p>}
 
+            {hasTrackRecord && (
+              <div>
+                <div className="flex items-center gap-1.5"><p className="text-sm font-semibold text-slate-900">Track record</p><InfoTooltip text={PILLAR_INFO.trackRecord} /></div>
+                <p className={`text-[13px] ${CHARCOAL} mt-1 mb-3`}>Self-reported reach and history</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
+                  {org.total_beneficiaries_reached && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Beneficiaries reached</p><p className="text-sm font-semibold text-slate-900">{org.total_beneficiaries_reached.toLocaleString()}</p></div>}
+                  {org.jobs_created && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Jobs created</p><p className="text-sm font-semibold text-slate-900">{org.jobs_created.toLocaleString()}</p></div>}
+                  {org.years_of_operation && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Years operating</p><p className="text-sm font-semibold text-slate-900">{org.years_of_operation}</p></div>}
+                  {org.female_beneficiaries_pct && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Female beneficiaries</p><p className="text-sm font-semibold text-slate-900">{org.female_beneficiaries_pct}%</p></div>}
+                  {org.youth_beneficiaries_pct && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Youth beneficiaries</p><p className="text-sm font-semibold text-slate-900">{org.youth_beneficiaries_pct}%</p></div>}
+                  {org.grants_received_count && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Grants received</p><p className="text-sm font-semibold text-slate-900">{org.grants_received_count}</p></div>}
+                  {org.grants_total_value_usd && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Total grant value</p><p className="text-sm font-semibold text-slate-900">${org.grants_total_value_usd.toLocaleString()}</p></div>}
+                  {org.grants_delivered_on_time_pct && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Delivered on time</p><p className="text-sm font-semibold text-slate-900">{org.grants_delivered_on_time_pct}%</p></div>}
+                </div>
+                {org.previous_funders && org.previous_funders.length > 0 && <p className="text-sm text-slate-800 mt-4"><span className="font-semibold">Previous funders: </span>{org.previous_funders.join(", ")}</p>}
+                {org.third_party_evaluations && (
+                  <div className="flex items-center gap-1.5 text-sm text-[#2D6A4F] mt-3">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                    Third-party evaluations available
+                  </div>
+                )}
+              </div>
+            )}
+
+            {hasConsultancyExpertise && (
+              <div>
+                <p className="text-sm font-semibold text-slate-900 mb-1.5">Consultant expertise</p>
+                {org.specializations && org.specializations.length > 0 && (
+                  <div className="mb-3"><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-1.5`}>Specializations</p>
+                    <div className="flex flex-wrap gap-2">{org.specializations.map(s => <span key={s} className="text-sm font-medium px-3 py-1 rounded-md" style={{ color: "#0F6E56", background: "#E1F5EE" }}>{s}</span>)}</div>
+                  </div>
+                )}
+                {org.notable_engagements && org.notable_engagements.length > 0 && (
+                  <div className="mb-3"><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-1.5`}>Notable engagements</p>
+                    <ul className="text-sm text-slate-800 space-y-1 list-disc list-inside">{org.notable_engagements.map(e => <li key={e}>{e}</li>)}</ul>
+                  </div>
+                )}
+                {org.affiliations && org.affiliations.length > 0 && <p className="text-sm text-slate-800"><span className="font-semibold">Affiliations: </span>{org.affiliations.join(", ")}</p>}
+              </div>
+            )}
+
+            {org.investment_thesis && (
+              <div><div className="flex items-center gap-1.5 mb-1.5"><Sparkles className="w-3 h-3 text-[#2D6A4F]" /><p className="text-sm font-semibold text-slate-900">Investment thesis</p></div>
+                <p className="text-sm text-slate-800 leading-relaxed">{org.investment_thesis}</p>
+              </div>
+            )}
+
+            {/* Organizational Metadata */}
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Organizational Metadata</p>
+              <div className="bg-slate-50 border border-slate-200 rounded-xl px-5">
+                {sectors.length > 0 && (
+                  <MetadataRow label="Sector">
+                    <div className="flex flex-wrap gap-1.5">{sectors.map(s => <MetaBadge key={s} tone="indigo">{s}</MetaBadge>)}</div>
+                  </MetadataRow>
+                )}
+                {countries.length > 0 && (
+                  <MetadataRow label="Location">
+                    <div className="flex flex-wrap gap-1.5">{countries.map(c => <MetaBadge key={c} tone="emerald">{c}</MetaBadge>)}</div>
+                  </MetadataRow>
+                )}
+                {((org.needs && org.needs.length > 0) || (org.offers && org.offers.length > 0)) && (
+                  <MetadataRow label="Seeking & Offers">
+                    {[...(org.needs ?? []), ...(org.offers ?? [])].join(" · ")}
+                  </MetadataRow>
+                )}
+                {org.stage_preference && org.stage_preference.length > 0 && (
+                  <MetadataRow label="Stage Preference">{org.stage_preference.join(", ")}</MetadataRow>
+                )}
+                {org.geographic_focus && org.geographic_focus.length > 0 && (
+                  <MetadataRow label="Geographic Focus">{org.geographic_focus.join(", ")}</MetadataRow>
+                )}
+                {showCsrEsg && org.csr_focus_statement && (
+                  <MetadataRow label="CSR & ESG Focus">{org.csr_focus_statement}</MetadataRow>
+                )}
+                {showCsrEsg && org.csr_budget_range && (
+                  <MetadataRow label="CSR Budget">{org.csr_budget_range}</MetadataRow>
+                )}
+                {showCsrEsg && ((org.inkind_support && org.inkind_support.length > 0) || (org.esg_frameworks && org.esg_frameworks.length > 0)) && (
+                  <MetadataRow label="What We Bring">
+                    <div className="space-y-2">
+                      {org.inkind_support && org.inkind_support.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">{org.inkind_support.map(s => <TagPill key={s}>{s}</TagPill>)}</div>
+                      )}
+                      {org.esg_frameworks && org.esg_frameworks.length > 0 && (
+                        <div className="flex items-center flex-wrap gap-1.5">
+                          <span className="text-xs text-slate-500 mr-0.5">Frameworks:</span>
+                          {org.esg_frameworks.map(f => <TagPill key={f}>{f}</TagPill>)}
+                        </div>
+                      )}
+                    </div>
+                  </MetadataRow>
+                )}
+                {showCsrEsg && (org.employee_engagement_available || org.cobranding_open) && (
+                  <MetadataRow label="Partnership Preferences">
+                    <div className="space-y-1">
+                      {org.employee_engagement_available && <p>Open to employee engagement</p>}
+                      {org.cobranding_open && <p>Open to co-branding</p>}
+                    </div>
+                  </MetadataRow>
+                )}
+                {showCsrEsg && ((org.tech_support_available && org.tech_support_available.length > 0) || org.sandbox_ready) && (
+                  <MetadataRow label="Technology Support Available">
+                    <div className="flex flex-wrap gap-1.5">
+                      {org.tech_support_available?.map(t => <TagPill key={t}>{t}</TagPill>)}
+                      {org.sandbox_ready && <TagPill>Open to sandbox or beta testing</TagPill>}
+                    </div>
+                  </MetadataRow>
+                )}
+                {org.contact_name && <MetadataRow label="Contact">{org.contact_name}</MetadataRow>}
+              </div>
+              {showCsrEsg && org.sandbox_ready && org.sandbox_description && (
+                <p className="text-sm text-slate-800 leading-relaxed mt-3">{org.sandbox_description}</p>
+              )}
+            </div>
+
+            {isImplementerOrg && <EsgSnapshotSection org={org} />}
+          </div>
+        )}
+
+        {/* Due Diligence Readiness */}
+        {activeTab === "dueDiligence" && (
+          <div className="px-8 py-6 space-y-8">
             {ddScore > 0 && (
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
                 <div className="flex items-center gap-1.5">
@@ -1199,110 +1341,9 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
               </div>
             )}
 
-            {hasTrackRecord && (
-              <div>
-                <div className="flex items-center gap-1.5"><p className="text-sm font-semibold text-slate-900">Track record</p><InfoTooltip text={PILLAR_INFO.trackRecord} /></div>
-                <p className={`text-[13px] ${CHARCOAL} mt-1 mb-3`}>Self-reported reach and history</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
-                  {org.total_beneficiaries_reached && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Beneficiaries reached</p><p className="text-sm font-semibold text-slate-900">{org.total_beneficiaries_reached.toLocaleString()}</p></div>}
-                  {org.jobs_created && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Jobs created</p><p className="text-sm font-semibold text-slate-900">{org.jobs_created.toLocaleString()}</p></div>}
-                  {org.years_of_operation && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Years operating</p><p className="text-sm font-semibold text-slate-900">{org.years_of_operation}</p></div>}
-                  {org.female_beneficiaries_pct && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Female beneficiaries</p><p className="text-sm font-semibold text-slate-900">{org.female_beneficiaries_pct}%</p></div>}
-                  {org.youth_beneficiaries_pct && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Youth beneficiaries</p><p className="text-sm font-semibold text-slate-900">{org.youth_beneficiaries_pct}%</p></div>}
-                  {org.grants_received_count && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Grants received</p><p className="text-sm font-semibold text-slate-900">{org.grants_received_count}</p></div>}
-                  {org.grants_total_value_usd && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Total grant value</p><p className="text-sm font-semibold text-slate-900">${org.grants_total_value_usd.toLocaleString()}</p></div>}
-                  {org.grants_delivered_on_time_pct && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Delivered on time</p><p className="text-sm font-semibold text-slate-900">{org.grants_delivered_on_time_pct}%</p></div>}
-                </div>
-                {org.previous_funders && org.previous_funders.length > 0 && <p className="text-sm text-slate-800 mt-4"><span className="font-semibold">Previous funders: </span>{org.previous_funders.join(", ")}</p>}
-                {org.third_party_evaluations && (
-                  <div className="flex items-center gap-1.5 text-sm text-[#2D6A4F] mt-3">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                    Third-party evaluations available
-                  </div>
-                )}
-              </div>
+            {ddScore === 0 && fddScore === 0 && (
+              <p className={`text-sm ${CHARCOAL}`}>No due diligence information published yet.</p>
             )}
-
-            {hasConsultancyExpertise && (
-              <div>
-                <p className="text-sm font-semibold text-slate-900 mb-1.5">Consultant expertise</p>
-                {org.specializations && org.specializations.length > 0 && (
-                  <div className="mb-3"><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-1.5`}>Specializations</p>
-                    <div className="flex flex-wrap gap-2">{org.specializations.map(s => <span key={s} className="text-sm font-medium px-3 py-1 rounded-md" style={{ color: "#0F6E56", background: "#E1F5EE" }}>{s}</span>)}</div>
-                  </div>
-                )}
-                {org.notable_engagements && org.notable_engagements.length > 0 && (
-                  <div className="mb-3"><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-1.5`}>Notable engagements</p>
-                    <ul className="text-sm text-slate-800 space-y-1 list-disc list-inside">{org.notable_engagements.map(e => <li key={e}>{e}</li>)}</ul>
-                  </div>
-                )}
-                {org.affiliations && org.affiliations.length > 0 && <p className="text-sm text-slate-800"><span className="font-semibold">Affiliations: </span>{org.affiliations.join(", ")}</p>}
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-4">
-              {sectors.length > 0 && <div><p className={`text-xs font-medium ${CHARCOAL} uppercase`}>Sector</p><p className="text-sm font-semibold text-slate-900 mt-1">{sectors.join(", ")}</p></div>}
-              {countries.length > 0 && <div><p className={`text-xs font-medium ${CHARCOAL} uppercase`}>Location</p><p className="text-sm font-semibold text-slate-900 mt-1">{countries.join(", ")}</p></div>}
-            </div>
-
-            {((org.needs && org.needs.length > 0) || (org.offers && org.offers.length > 0)) && (
-              <div>
-                <p className="text-sm font-semibold text-slate-900 mb-2">Seeking and offers</p>
-                <div className="flex flex-wrap gap-2">
-                  {org.needs?.map(n => <span key={n} className="text-sm font-medium px-3 py-1 rounded-md" style={{ color: "#993C1D", background: "#FAECE7" }}>{n}</span>)}
-                  {org.offers?.map(o => <span key={o} className="text-sm font-medium px-3 py-1 rounded-md" style={{ color: "#0F6E56", background: "#E1F5EE" }}>{o}</span>)}
-                </div>
-              </div>
-            )}
-
-            {org.stage_preference && org.stage_preference.length > 0 && <div><p className={`text-xs font-medium ${CHARCOAL} uppercase`}>Stage preference</p><p className="text-sm font-semibold text-slate-900 mt-1">{org.stage_preference.join(", ")}</p></div>}
-            {org.geographic_focus && org.geographic_focus.length > 0 && <div><p className={`text-xs font-medium ${CHARCOAL} uppercase`}>Geographic focus</p><p className="text-sm font-semibold text-slate-900 mt-1">{org.geographic_focus.join(", ")}</p></div>}
-
-            {org.investment_thesis && (
-              <div><div className="flex items-center gap-1.5 mb-1.5"><Sparkles className="w-3 h-3 text-[#2D6A4F]" /><p className="text-sm font-semibold text-slate-900">Investment thesis</p></div>
-                <p className="text-sm text-slate-800 leading-relaxed">{org.investment_thesis}</p>
-              </div>
-            )}
-
-            {showCsrEsg && (
-              <>
-                {org.csr_focus_statement && (
-                  <div><div className="flex items-center gap-1.5 mb-1.5"><Sparkles className="w-3 h-3 text-[#C45C26]" /><p className="text-sm font-semibold text-slate-900">CSR and ESG focus</p></div>
-                    <p className="text-sm text-slate-800 leading-relaxed">{org.csr_focus_statement}</p>
-                  </div>
-                )}
-                {org.csr_budget_range && <div><p className={`text-xs font-medium ${CHARCOAL} uppercase`}>CSR budget</p><p className="text-sm font-semibold text-slate-900 mt-1">{org.csr_budget_range}</p></div>}
-                {org.inkind_support && org.inkind_support.length > 0 && (
-                  <div><p className="text-sm font-semibold text-slate-900 mb-2">What we bring</p>
-                    <div className="flex flex-wrap gap-2">{org.inkind_support.map(s => <span key={s} className="text-sm text-slate-800 border border-slate-300 px-3 py-1 rounded-md">{s}</span>)}</div>
-                  </div>
-                )}
-                {org.esg_frameworks && org.esg_frameworks.length > 0 && (
-                  <div><p className="text-sm font-semibold text-slate-900 mb-2">ESG frameworks</p>
-                    <div className="flex flex-wrap gap-2">{org.esg_frameworks.map(f => <span key={f} className="text-sm text-slate-800 border border-slate-300 px-3 py-1 rounded-md">{f}</span>)}</div>
-                  </div>
-                )}
-                {(org.employee_engagement_available || org.cobranding_open) && (
-                  <div><p className="text-sm font-semibold text-slate-900 mb-1.5">Partnership preferences</p>
-                    <p className="text-sm text-slate-800">{[org.employee_engagement_available ? "Open to employee engagement" : null, org.cobranding_open ? "Open to co-branding" : null].filter(Boolean).join(", ")}</p>
-                  </div>
-                )}
-                {org.tech_support_available && org.tech_support_available.length > 0 && (
-                  <div><p className="text-sm font-semibold text-slate-900 mb-2">Technology support available</p>
-                    <div className="flex flex-wrap gap-2">{org.tech_support_available.map(t => <span key={t} className="text-sm text-slate-800 border border-slate-300 px-3 py-1 rounded-md">{t}</span>)}</div>
-                  </div>
-                )}
-                {org.sandbox_ready && (
-                  <div><div className="flex items-center gap-1.5 mb-1.5"><Sparkles className="w-3 h-3 text-[#2D6A4F]" /><p className="text-sm font-semibold text-slate-900">Open to sandbox or beta testing</p></div>
-                    {org.sandbox_description && <p className="text-sm text-slate-800 leading-relaxed">{org.sandbox_description}</p>}
-                  </div>
-                )}
-              </>
-            )}
-
-            {isImplementerOrg && <EsgSnapshotSection org={org} />}
-
-            {org.contact_name && <div><p className="text-sm font-semibold text-slate-900 mb-1.5">Contact</p><p className="text-sm text-slate-800">{org.contact_name}</p></div>}
           </div>
         )}
 
