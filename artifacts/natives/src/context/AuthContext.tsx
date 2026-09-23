@@ -32,7 +32,10 @@ export interface Profile {
   // on these two is restricted; not sensitive fields the app displays).
   verification_rejection_reason?: string | null;
   verification_rejected_at?: string | null;
-  is_admin: boolean | null;
+  // Not selected by fetchProfile (Phase D: authenticated's read grant
+  // on this column is restricted to self-only; DashboardLayout.tsx uses
+  // the is_admin() RPC instead of reading it from context).
+  is_admin?: boolean | null;
   // The six fields below were never actual columns on `profiles`
   // (confirmed against the database -- they belong to `organizations`).
   // Always undefined in practice; marked optional to match reality.
@@ -137,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // from the profile context anywhere in the app.
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, full_name, email, country, bio, org_name, role_title, phone, linkedin_url, website, avatar_url, created_at, updated_at, sectors, org_type, feed_visibility, onboarding_completed, verification_requested, user_type, is_verified, social_links, is_admin, is_active, notification_preferences, show_individual_profile, subscription_tier, subscription_status, subscription_provider, subscription_current_period_end")
+      .select("id, full_name, email, country, bio, org_name, role_title, phone, linkedin_url, website, avatar_url, created_at, updated_at, sectors, org_type, feed_visibility, onboarding_completed, verification_requested, user_type, is_verified, social_links, is_active, notification_preferences, show_individual_profile, subscription_tier, subscription_status, subscription_provider, subscription_current_period_end")
       .eq("id", userId)
       .single();
     if (!data) return;
