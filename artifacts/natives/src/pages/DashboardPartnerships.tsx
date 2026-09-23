@@ -290,19 +290,23 @@ export default function DashboardPartnerships() {
 
   return (
     <>
-      <div className="relative flex flex-col lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)] lg:grid-rows-[auto_auto_auto_minmax(0,1fr)] -mx-4 sm:-mx-6" style={{ height: "100vh", maxHeight: "100vh", overflow: "hidden" }}>
-        {/* Get Matched, desktop: pinned to the page's actual top-right
-            corner instead of sitting inside the left column's filter bar.
-            Gated by !loading like everything else, so it appears together
-            with the rest of the page instead of ahead of it. Mobile keeps
-            the original inline button below (now lg:hidden), unchanged. */}
+      <div className="flex flex-col -mx-4 sm:-mx-6" style={{ height: "100vh", maxHeight: "100vh", overflow: "hidden" }}>
+        {/* Get Matched, desktop: a real strip above the whole layout, not
+            an absolute overlay -- the overlay collided with the right
+            rail's own collapse toggle, since both floated near the top of
+            the page. A strip pushes everything else down by its own
+            height instead, so it can never cover anything below it.
+            Gated by !loading like everything else. Mobile keeps the
+            original inline button below (lg:hidden), unchanged. */}
         {!loading && user && (
-          <button type="button" onClick={() => setShowModal(true)}
-            className="hidden lg:flex absolute top-3 right-5 z-20 h-9 px-4 rounded-full text-white text-[13px] font-bold transition-all hover:brightness-110 active:scale-[0.98] shrink-0 whitespace-nowrap items-center"
-            style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
-            + Get Matched
-          </button>
+          <div className="hidden lg:flex shrink-0 justify-end px-5 py-2.5 border-b border-[#2D6A4F]/20 bg-background">
+            <button type="button" onClick={() => setShowModal(true)}
+              className="h-9 px-4 rounded-full text-white text-[13px] font-bold transition-all hover:brightness-110 active:scale-[0.98] shrink-0 whitespace-nowrap">
+              + Get Matched
+            </button>
+          </div>
         )}
+        <div className="flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)] lg:grid-rows-[auto_auto_auto_minmax(0,1fr)]">
         {/* Top bar */}
         {!loading && (
         <div className="shrink-0 px-5 py-3 flex flex-wrap items-center gap-2 bg-background border-b border-[#2D6A4F]/20 lg:flex-col lg:items-stretch lg:flex-nowrap lg:px-3 lg:border-r-2 lg:col-start-1 lg:row-start-2">
@@ -547,6 +551,7 @@ export default function DashboardPartnerships() {
             </div>
           </div>
         )}
+        </div>
       </div>
 
       <FindPartnerModalDashboard isOpen={showModal} onClose={() => { setShowModal(false); loadAll(); }} />
