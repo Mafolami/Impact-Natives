@@ -256,7 +256,7 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
   const [{ data: myOrg }, { data: myInitiatives }, { data: myEois }, { data: myListings }, myOrgMirrorMap] = await Promise.all([
     supabase
       .from("organizations")
-      .select("id, organisation_name, partnership_formed, needs, email, updated_at")
+      .select("id, organisation_name, partnership_formed, needs, updated_at")
       .eq("user_id", orgOwnerId)
       .maybeSingle(),
     supabase
@@ -322,7 +322,7 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
 
     const ownerUserIds = [...new Set((inits ?? []).map(i => i.user_id).filter(Boolean))];
     const { data: ownerOrgs } = ownerUserIds.length
-      ? await supabase.from("organizations").select("id, user_id, organisation_name, email").in("user_id", ownerUserIds)
+      ? await supabase.from("organizations").select("id, user_id, organisation_name").in("user_id", ownerUserIds)
       : { data: [] };
     const ownerOrgMap = new Map((ownerOrgs ?? []).map(o => [o.user_id, o]));
 
@@ -332,11 +332,31 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
       : { data: [] };
     const convMap = new Map((convs ?? []).map(c => [c.id, c]));
 
-    for (const eoi of myEois) {
+    const outboundEntries = myEois.map(eoi => {
       const ini = initMap.get(eoi.initiative_id);
       const ownerOrg = ini ? ownerOrgMap.get(ini.user_id) : undefined;
       const conv = eoi.conversation_id ? convMap.get(eoi.conversation_id) : undefined;
       const status = mouExecutedFor(ini?.confirmed_partners, actorUserId) ? "MoU Executed" : deriveEoiStatus(conv?.status);
+      return { eoi, ini, ownerOrg, conv, status };
+    });
+
+    // Contact reveal is access-checked server-side (get_profile_contact),
+    // not decided client-side -- the old code fetched ownerOrg.email for
+    // every row unconditionally and only decided whether to *display* it
+    // here, which meant the value was already in the network response
+    // regardless of confirmation status.
+    const outboundContactMap = new Map<string, string | null>();
+    await Promise.all(
+      outboundEntries
+        .filter(e => (e.status === "Partner confirmed" || e.status === "MoU Executed") && e.ini?.user_id)
+        .map(async e => {
+          const { data } = await supabase.rpc("get_profile_contact", { target_user_id: e.ini!.user_id });
+          const row = Array.isArray(data) ? data[0] : data;
+          outboundContactMap.set(e.eoi.id, row?.org_email ?? row?.email ?? null);
+        })
+    );
+
+    for (const { eoi, ini, ownerOrg, conv, status } of outboundEntries) {
       rows.push({
         id: `ini-eoi-out-${eoi.id}`,
         title: ini?.title ?? "Initiative",
@@ -347,7 +367,7 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
         supportType: eoi.partnership_type ? (EOI_SUPPORT_TYPE_LABELS[eoi.partnership_type] ?? eoi.partnership_type) : null,
         direction: "Outbound",
         eoiCount: null,
-        contactEmail: (status === "Partner confirmed" || status === "MoU Executed") ? ownerOrg?.email ?? null : null,
+        contactEmail: outboundContactMap.get(eoi.id) ?? null,
         contactPhone: null,
         status,
         date: conv?.updated_at ?? eoi.created_at,
@@ -376,15 +396,9 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
     const expresserUserIds = [...new Set(inboundEois.map(e => e.user_id))];
     const { data: expresserOrgs } = await supabase
       .from("organizations")
-      .select("id, user_id, organisation_name, email")
+      .select("id, user_id, organisation_name")
       .in("user_id", expresserUserIds);
     const expresserOrgMap = new Map((expresserOrgs ?? []).map(o => [o.user_id, o]));
-
-    const { data: expresserProfiles } = await supabase
-      .from("profiles")
-      .select("id, email, phone")
-      .in("id", expresserUserIds);
-    const expresserProfileMap = new Map((expresserProfiles ?? []).map(p => [p.id, p]));
 
     const initMap = new Map(myInitiatives.map(i => [i.id, i]));
 
@@ -394,12 +408,30 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
       : { data: [] };
     const convMap2 = new Map((convs2 ?? []).map(c => [c.id, c]));
 
-    for (const eoi of inboundEois) {
+    const inboundEntries = inboundEois.map(eoi => {
       const ini = initMap.get(eoi.initiative_id);
       const org = expresserOrgMap.get(eoi.user_id);
-      const profile = expresserProfileMap.get(eoi.user_id);
       const conv = eoi.conversation_id ? convMap2.get(eoi.conversation_id) : undefined;
       const status = mouExecutedFor(ini?.confirmed_partners, eoi.submitted_by_user_id ?? eoi.user_id) ? "MoU Executed" : deriveEoiStatus(conv?.status);
+      return { eoi, ini, org, conv, status };
+    });
+
+    const inboundContactMap = new Map<string, { email: string | null; phone: string | null }>();
+    await Promise.all(
+      inboundEntries
+        .filter(e => e.status === "Partner confirmed" || e.status === "MoU Executed")
+        .map(async e => {
+          const { data } = await supabase.rpc("get_profile_contact", { target_user_id: e.eoi.user_id });
+          const row = Array.isArray(data) ? data[0] : data;
+          inboundContactMap.set(e.eoi.id, {
+            email: row?.email ?? row?.org_email ?? null,
+            phone: row?.phone ?? null,
+          });
+        })
+    );
+
+    for (const { eoi, ini, org, conv, status } of inboundEntries) {
+      const contact = inboundContactMap.get(eoi.id);
       rows.push({
         id: `ini-eoi-in-${eoi.id}`,
         title: ini?.title ?? "Initiative",
@@ -410,8 +442,8 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
         supportType: eoi.partnership_type ? (EOI_SUPPORT_TYPE_LABELS[eoi.partnership_type] ?? eoi.partnership_type) : null,
         direction: "Inbound",
         eoiCount: null,
-        contactEmail: (status === "Partner confirmed" || status === "MoU Executed") ? (profile?.email ?? org?.email ?? null) : null,
-        contactPhone: (status === "Partner confirmed" || status === "MoU Executed") ? (profile?.phone ?? null) : null,
+        contactEmail: contact?.email ?? null,
+        contactPhone: contact?.phone ?? null,
         status,
         date: conv?.updated_at ?? eoi.created_at,
         outcome: null,
@@ -451,7 +483,7 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
     ].filter(Boolean);
     const { data: counterpartOrgs } = counterpartIds.length
       ? await supabase.from("organizations")
-          .select("id, user_id, organisation_name, partnership_sought, needs, email")
+          .select("id, user_id, organisation_name, partnership_sought, needs")
           .in("id", [...new Set(counterpartIds)])
       : { data: [] };
     const counterpartMap = new Map((counterpartOrgs ?? []).map(o => [o.id, o]));
@@ -478,9 +510,31 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
       return resolvePartnershipTitle(fallbackOrg, conn.partnership_title ?? listing?.title);
     }
 
-    for (const conn of sent ?? []) {
+    const sentEntries = (sent ?? []).map((conn: any) => {
       const counterpart = counterpartMap.get(conn.receiver_org_id);
       const status = conn.mou_executed_at ? "MoU Executed" : (PARTNERSHIP_STATUS_MAP[conn.status] ?? conn.status);
+      return { conn, counterpart, status };
+    });
+    const receivedEntries = (received ?? []).map((conn: any) => {
+      const counterpart = counterpartMap.get(conn.sender_org_id);
+      const status = conn.mou_executed_at ? "MoU Executed" : (PARTNERSHIP_STATUS_MAP[conn.status] ?? conn.status);
+      return { conn, counterpart, status };
+    });
+
+    // Contact reveal is access-checked server-side (get_org_contact_email),
+    // not decided client-side -- see the same note on the EOI loops above.
+    const connContactOrgIds = [...new Set(
+      [...sentEntries, ...receivedEntries]
+        .filter(e => (e.status === "Partnership formed" || e.status === "MoU Executed") && e.counterpart?.id)
+        .map(e => e.counterpart!.id)
+    )];
+    const connContactMap = new Map<string, string | null>();
+    await Promise.all(connContactOrgIds.map(async (orgId) => {
+      const { data } = await supabase.rpc("get_org_contact_email", { target_org_id: orgId });
+      connContactMap.set(orgId, data ?? null);
+    }));
+
+    for (const { conn, counterpart, status } of sentEntries) {
       rows.push({
         id: `partner-out-${conn.id}`,
         title: resolveConnectionTitle(conn, counterpart),
@@ -491,7 +545,7 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
         supportType: conn.partnership_type ?? null,
         direction: "Outbound",
         eoiCount: null,
-        contactEmail: (status === "Partnership formed" || status === "MoU Executed") ? counterpart?.email ?? null : null,
+        contactEmail: counterpart?.id ? connContactMap.get(counterpart.id) ?? null : null,
         contactPhone: null,
         status,
         date: conn.mou_executed_at ?? conn.updated_at,
@@ -501,9 +555,7 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
       });
     }
 
-    for (const conn of received ?? []) {
-      const counterpart = counterpartMap.get(conn.sender_org_id);
-      const status = conn.mou_executed_at ? "MoU Executed" : (PARTNERSHIP_STATUS_MAP[conn.status] ?? conn.status);
+    for (const { conn, counterpart, status } of receivedEntries) {
       const title = resolveConnectionTitle(conn, myMirror?.partnership_sought ? { ...myOrg, partnership_sought: myMirror.partnership_sought } : counterpart);
       rows.push({
         id: `partner-in-${conn.id}`,
@@ -515,7 +567,7 @@ export async function fetchPortfolioRows(orgOwnerId: string, actorUserId: string
         supportType: conn.partnership_type ?? null,
         direction: "Inbound",
         eoiCount: null,
-        contactEmail: (status === "Partnership formed" || status === "MoU Executed") ? counterpart?.email ?? null : null,
+        contactEmail: counterpart?.id ? connContactMap.get(counterpart.id) ?? null : null,
         contactPhone: null,
         status,
         date: conn.mou_executed_at ?? conn.updated_at,
