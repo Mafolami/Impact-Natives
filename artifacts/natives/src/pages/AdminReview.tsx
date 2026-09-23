@@ -1642,14 +1642,51 @@ function FlaggedOrgsPanel() {
     // is hasBlacklisting OR hasPendingDisputes in the legal_compliance_declaration
     // DD item. Kept as a direct read of the same jsonb rather than a separate
     // stored flag, so this list can never drift from what the Trust Badge shows.
-    const { data, error } = await supabase
-      .from('organizations')
-      .select('id, organisation_name, email, user_id, created_at, dd_evidence, flagged_review_status, flagged_review_notes, flagged_reviewed_at, flagged_review_due, flagged_visibility_hold')
+    // Sourced from organization_private, not organizations, for the
+    // sensitive fields (email, dd_evidence, flagged_*) -- Phase D routes
+    // admin reads of these through organization_private's existing
+    // admin-reads-any-row policy, since the raw columns on organizations
+    // are being progressively restricted for authenticated. Non-sensitive
+    // display fields (organisation_name, user_id, created_at) come from
+    // organizations via a second query, merged here rather than relying
+    // on a cross-table embed shape.
+    const { data: privateRows, error } = await supabase
+      .from('organization_private')
+      .select('organization_id, email, dd_evidence, flagged_review_status, flagged_review_notes, flagged_reviewed_at, flagged_review_due, flagged_visibility_hold')
       .or('dd_evidence->legal_compliance_declaration->>hasBlacklisting.eq.true,dd_evidence->legal_compliance_declaration->>hasPendingDisputes.eq.true')
-      .order('created_at', { ascending: false })
 
     if (error) { console.error(error); setOrgs([]); setLoading(false); return }
-    setOrgs(data ?? [])
+    if (!privateRows || privateRows.length === 0) { setOrgs([]); setLoading(false); return }
+
+    const orgIds = privateRows.map((r: any) => r.organization_id)
+    const { data: orgsData } = await supabase
+      .from('organizations')
+      .select('id, organisation_name, user_id, created_at')
+      .in('id', orgIds)
+    const orgById = new Map((orgsData ?? []).map((o: any) => [o.id, o]))
+
+    const merged: FlaggedOrg[] = privateRows
+      .map((r: any) => {
+        const org = orgById.get(r.organization_id)
+        if (!org) return null
+        return {
+          id: r.organization_id,
+          organisation_name: org.organisation_name,
+          email: r.email,
+          user_id: org.user_id,
+          created_at: org.created_at,
+          dd_evidence: r.dd_evidence,
+          flagged_review_status: r.flagged_review_status,
+          flagged_review_notes: r.flagged_review_notes,
+          flagged_reviewed_at: r.flagged_reviewed_at,
+          flagged_review_due: r.flagged_review_due,
+          flagged_visibility_hold: r.flagged_visibility_hold,
+        }
+      })
+      .filter((r): r is FlaggedOrg => r !== null)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+    setOrgs(merged)
     setLoading(false)
   }
 
