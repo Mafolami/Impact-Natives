@@ -1044,6 +1044,7 @@ function AiSlidePanel({ open, onClose, title, icon, children }: {
       const t = setTimeout(() => setMounted(false), 300);
       return () => clearTimeout(t);
     }
+    return undefined;
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!mounted) return null;
   return (

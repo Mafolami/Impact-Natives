@@ -142,7 +142,7 @@ function stepComplete(step:number, form:PrefillData, partnershipTitle:string, fr
     case 2: return form.country.length>0 && form.partnership_budget.length>0;
     case 3: return form.sectors.length>0 && form.needs.length>0 && form.offers.length>0 && form.partnership_success_definition.trim().length>0;
     case 4: return true; // all optional
-    case 5: return true;
+    case 5: return form.partnership_decision_maker_confirmed;
     default: return true;
   }
 }
@@ -1269,8 +1269,14 @@ export function FindPartnerModalDashboard({
                   <CheckCircle2 className="w-5 h-5 text-white"/>
                 </div>
                 <div>
-                  <h2 className="text-[17px] font-bold text-foreground">{listPublicly?"You're listed":"Matches found"}</h2>
-                  <p className="text-[15px] text-foreground mt-0.5">{listPublicly?"Your organisation now appears in the Partnerships directory.":"AI has identified potential matches based on your brief."}</p>
+                  <h2 className="text-[17px] font-bold text-foreground">
+                    {listPublicly?"You're listed":matches.length===0?"No matches yet":"Matches found"}
+                  </h2>
+                  <p className="text-[15px] text-foreground mt-0.5">
+                    {listPublicly
+                      ?"Your organisation now appears in the Partnerships directory."
+                      :matches.length===0?"We couldn't find a strong fit right now.":"We've identified potential matches based on your brief."}
+                  </p>
                 </div>
               </div>
               {matches.length===0?(
