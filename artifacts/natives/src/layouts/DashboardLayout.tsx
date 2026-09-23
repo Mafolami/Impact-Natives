@@ -50,7 +50,16 @@ export default function DashboardLayout({ children, adminOnly }: { children: Rea
       return undefined;
     }
     if (adminOnly) {
-      if (profile && !profile.is_admin) navigate("/dashboard");
+      // Uses the is_admin() RPC (self-check, SECURITY DEFINER, already
+      // callable by everyone) instead of profile.is_admin -- the raw
+      // column has a restricted authenticated grant (Phase D) and is no
+      // longer reliably present on the fetched profile.
+      if (profile) {
+        (async () => {
+          const { data: isAdminResult } = await supabase.rpc("is_admin");
+          if (!isAdminResult) navigate("/dashboard");
+        })();
+      }
       return undefined;
     }
     // A pending invitee (hasn't accepted yet) or an active Member of

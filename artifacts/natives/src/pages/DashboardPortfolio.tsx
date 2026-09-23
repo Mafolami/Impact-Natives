@@ -838,9 +838,14 @@ export default function DashboardInitiatives() {
     if (!partnerOrgId) { setSelectedPartnerOrg(null); setPartnerOrgMouExecuted(false); return; }
     (async () => {
       const { data: org } = await supabase.from("organizations")
-        .select("id,organisation_name,description,organisation_type,website,email,verification_status,status,user_id,partnership_formed,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,specializations,notable_engagements,affiliations,logo_url,grant_range_min,grant_range_max,grant_currency,investment_thesis,stage_preference,funding_instruments,geographic_focus,csr_focus_statement,csr_budget_range,inkind_support")
+        .select("id,organisation_name,description,organisation_type,website,verification_status,status,user_id,partnership_formed,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,specializations,notable_engagements,affiliations,logo_url,grant_range_min,grant_range_max,grant_currency,investment_thesis,stage_preference,funding_instruments,geographic_focus,csr_focus_statement,csr_budget_range,inkind_support")
         .eq("id", partnerOrgId).maybeSingle();
       if (!org) { setSelectedPartnerOrg(null); return; }
+      // Contact reveal is access-checked server-side (get_org_contact_email):
+      // self, admin, or a confirmed partnership only. The old code fetched
+      // email unconditionally.
+      const { data: resolvedPartnerEmail } = await supabase.rpc("get_org_contact_email", { target_org_id: org.id });
+      (org as any).email = resolvedPartnerEmail ?? null;
 
       // Which SPECIFIC listing this relationship is actually about, using
       // receiver_listing_id (Batch 1) from whichever connection exists

@@ -178,10 +178,24 @@ export default function DashboardPartnerships() {
 
     const userIds = [...new Set(listingsData.map(l => l.user_id))];
     const { data: orgsData } = await supabase.from("organizations")
-      .select("id,user_id,organisation_name,description,organisation_type,website,email,verification_status,status,partnership_formed,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,specializations,notable_engagements,affiliations,logo_url,grant_range_min,grant_range_max,grant_currency,investment_thesis,stage_preference,funding_instruments,geographic_focus,csr_focus_statement,csr_budget_range,inkind_support")
+      .select("id,user_id,organisation_name,description,organisation_type,website,verification_status,status,partnership_formed,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,specializations,notable_engagements,affiliations,logo_url,grant_range_min,grant_range_max,grant_currency,investment_thesis,stage_preference,funding_instruments,geographic_focus,csr_focus_statement,csr_budget_range,inkind_support")
       .in("user_id", userIds);
 
-    const orgByUserId = new Map((orgsData ?? []).map((o: any) => [o.user_id, o]));
+    // Contact reveal is access-checked server-side (get_org_contact_email):
+    // self, admin, or a confirmed partnership only -- merely browsing the
+    // marketplace never reveals a candidate's email. The old code fetched
+    // email for every listed org unconditionally.
+    // NOTE: named candidateOrgIds, not orgIds -- this function already
+    // declares an `orgIds` const later on (for the MoU-executed-listings
+    // lookup); reusing that name would be a duplicate-declaration error.
+    const candidateOrgIds = [...new Set((orgsData ?? []).map((o: any) => o.id))];
+    const emailByOrgId = new Map<string, string | null>();
+    await Promise.all(candidateOrgIds.map(async (orgId) => {
+      const { data } = await supabase.rpc("get_org_contact_email", { target_org_id: orgId });
+      emailByOrgId.set(orgId, data ?? null);
+    }));
+
+    const orgByUserId = new Map((orgsData ?? []).map((o: any) => [o.user_id, { ...o, email: emailByOrgId.get(o.id) ?? null }]));
 
     // Merge: .id is the ORG's real id (unchanged meaning everywhere it's
     // already used); listing_id is the new, listing-specific identity
