@@ -180,8 +180,13 @@ export default function AdminReview() {
       { count: pendingPartnerReqs },
     ] = await Promise.all([
       supabase.from('initiative_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-      supabase.from('organizations').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('verification_requested', true).eq('is_verified', false),
+      // select('id', ...) not select('*', ...) -- a wildcard requires
+      // privilege on every column of the table even for a count-only
+      // head request, and organizations.dd_*_url/payment columns are
+      // restricted for authenticated (Phase D).
+      supabase.from('organizations').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      // Same reasoning -- profiles has restricted columns too.
+      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('verification_requested', true).eq('is_verified', false),
       supabase.from('lab_requests').select('*', { count: 'exact', head: true }).eq('status', 'proposal_review'),
       supabase.from('partner_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     ])
@@ -349,19 +354,24 @@ function OverviewPanel({ onNavigate }: { onNavigate: (section: TabSection, filte
       { data: recentUsersData },
       { data: initiativesWithPartners },
     ] = await Promise.all([
-      supabase.from("profiles").select("*", { count: "exact", head: true }),
-      supabase.from("profiles").select("*", { count: "exact", head: true }).gte("created_at", startOfToday),
-      supabase.from("profiles").select("*", { count: "exact", head: true }).gte("created_at", startOfWeek),
-      supabase.from("profiles").select("*", { count: "exact", head: true }).gte("created_at", startOfMonth),
+      // select("id", ...) not select("*", ...) throughout this block --
+      // organizations.dd_*_url/payment columns and several profiles
+      // columns are restricted for authenticated (Phase D); a wildcard
+      // requires privilege on every column of the table even for a
+      // count-only head request, so these were all failing.
+      supabase.from("profiles").select("id", { count: "exact", head: true }),
+      supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", startOfToday),
+      supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", startOfWeek),
+      supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", startOfMonth),
       supabase.from("initiative_requests").select("*", { count: "exact", head: true }),
       supabase.from("initiative_requests").select("*", { count: "exact", head: true }).eq("status", "published"),
       supabase.from("initiative_requests").select("*", { count: "exact", head: true }).eq("status", "pending"),
       supabase.from("initiative_requests").select("*", { count: "exact", head: true }).eq("status", "draft"),
       supabase.from("initiative_requests").select("*", { count: "exact", head: true }).gte("created_at", startOfMonth),
-      supabase.from("organizations").select("*", { count: "exact", head: true }),
-      supabase.from("organizations").select("*", { count: "exact", head: true }).eq("verification_status", "verified"),
-      supabase.from("organizations").select("*", { count: "exact", head: true }).eq("status", "pending"),
-      supabase.from("profiles").select("*", { count: "exact", head: true }).eq("verification_requested", true).eq("is_verified", false),
+      supabase.from("organizations").select("id", { count: "exact", head: true }),
+      supabase.from("organizations").select("id", { count: "exact", head: true }).eq("verification_status", "verified"),
+      supabase.from("organizations").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      supabase.from("profiles").select("id", { count: "exact", head: true }).eq("verification_requested", true).eq("is_verified", false),
       supabase.from("expressions_of_interest").select("*", { count: "exact", head: true }).gte("created_at", startOfMonth),
       supabase.from("profiles").select("id,full_name,email,user_type,org_name,created_at").order("created_at", { ascending: false }).limit(8),
       supabase.from("initiative_requests").select("user_id,confirmed_partners").not("confirmed_partners", "is", null),
@@ -1002,9 +1012,14 @@ function OrganizationsPanel({ initialView }: { initialView?: OrgView }) {
 
   async function fetchOrgs() {
     setLoading(true)
+    // Explicit column list, not select('*') -- organizations.dd_*_url
+    // and the two payment-credential columns are restricted for
+    // authenticated (Phase D); a wildcard requires privilege on every
+    // column of the table. Every field this panel actually reads is
+    // listed here (matches the Org type above) -- none are restricted.
     const { data, error } = await supabase
       .from('organizations')
-      .select('*')
+      .select('id,user_id,organisation_name,description,sector,country,organisation_type,website,email,needs,offers,sdgs,verification_status,verification_consent,status,created_at')
       .eq('status', view)
       .order('created_at', { ascending: false })
     if (error) console.error(error)

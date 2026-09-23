@@ -598,9 +598,14 @@ function OrganizationsPanel() {
 
   async function fetchOrgs() {
     setLoading(true)
+    // Explicit column list, not select('*') -- organizations.dd_*_url
+    // and the two payment-credential columns are restricted for
+    // authenticated (Phase D); a wildcard requires privilege on every
+    // column of the table. Every field this panel actually reads is
+    // listed here (matches the Org type above) -- none are restricted.
     const { data, error } = await supabase
       .from('organizations')
-      .select('*')
+      .select('id,user_id,organisation_name,description,sector,country,organisation_type,website,email,needs,offers,sdgs,verification_status,verification_consent,status,created_at')
       .eq('status', filter)
       .order('created_at', { ascending: false })
     if (error) console.error(error)
