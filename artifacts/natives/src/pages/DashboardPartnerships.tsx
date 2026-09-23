@@ -1,5 +1,6 @@
 // ─── DashboardPartnerships.tsx ───────────────────────────────────────────────
 import { useEffect, useState, useRef } from "react";
+import { useLocation } from "wouter";
 import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 import { supabase } from "@/lib/supabase";
 import { Handshake, Loader2, Search, CheckCircle2, ShieldCheck, SlidersHorizontal, Award } from "lucide-react";
@@ -257,6 +258,7 @@ export default function DashboardPartnerships() {
   const filtered = listView === "matched" ? baseFiltered.filter(isMatched)
     : listView === "saved" ? baseFiltered.filter(isSavedOrg)
     : baseFiltered;
+  const [, navigate] = useLocation();
   const views: { key: "all" | "matched" | "saved"; label: string; count: number; locked?: boolean }[] = [
     { key: "all", label: "All", count: baseFiltered.length },
     ...(viewerOrg ? [{ key: "matched" as const, label: "Matched", count: matchedCount, locked: viewerOrg.subscription_tier === "free" }] : []),
@@ -446,12 +448,12 @@ export default function DashboardPartnerships() {
                   on ? "text-white border border-transparent" : "bg-background text-foreground border border-[#2D6A4F]/20"}`;
                 if (v.locked) {
                   return (
-                    <a key={v.key} href="/dashboard/settings?tab=billing" title="AI matching is a Plus feature" className={cls}>
+                    <button key={v.key} type="button" onClick={() => navigate("/dashboard/settings?tab=billing")} title="AI matching is a Plus feature" className={cls}>
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                       </svg>
                       {v.label}
-                    </a>
+                    </button>
                   );
                 }
                 return (

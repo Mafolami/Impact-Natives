@@ -233,13 +233,6 @@ function BentoCell({ label, value, accent, capitalize, icon: Icon }: { label: st
 // Shared by both variants -- confirmed byte-identical content. score,
 // ddDocs, and ddTotal are computed once above the page/panel branch
 // point, so they're passed in rather than recomputed here.
-// Shared by both variants -- the <button> itself is byte-identical; only
-// whether it's wrapped in an extra mobile-only div (panel) differs, and
-// that wrapping stays in each variant's own code.
-// Shared by both variants -- confirmed byte-identical content across all
-// 4 footer states. Each variant keeps its own outer wrapper (page: none
-// or a plain rounded card; panel: a sticky-bottom-bar div) and its own
-// viewerOrgLoading/user_id/partnership_formed/isOrg branching.
 function LoadingIndicator() {
   return <span className="text-xs font-semibold text-black dark:text-white">Loading...</span>;
 }
