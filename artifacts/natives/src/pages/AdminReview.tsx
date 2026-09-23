@@ -1278,11 +1278,24 @@ if (profileList.length > 0) {
   const userIds = profileList.map(p => p.id);
   const { data: orgData } = await supabase
     .from("organizations")
-    .select("user_id,description,needs,offers,sdgs,sector,country,registration_type,registration_number,tin,scuml_number,is_dnfbp_sector")
+    .select("id,user_id,description,needs,offers,sdgs,sector,country,registration_type,is_dnfbp_sector")
     .in("user_id", userIds);
   const orgMap = new Map((orgData ?? []).map((o: any) => [o.user_id, o]));
+
+  // tin/registration_number/scuml_number come from organization_private,
+  // not organizations directly -- Phase D routes admin reads of these
+  // through organization_private's existing admin-reads-any-row policy,
+  // since the raw columns on organizations are being progressively
+  // restricted for authenticated.
+  const orgIds = (orgData ?? []).map((o: any) => o.id);
+  const { data: privateOrgData } = orgIds.length
+    ? await supabase.from("organization_private").select("organization_id, tin, registration_number, scuml_number").in("organization_id", orgIds)
+    : { data: [] };
+  const privateByOrgId = new Map((privateOrgData ?? []).map((r: any) => [r.organization_id, r]));
+
   enriched = profileList.map(p => {
     const org = orgMap.get(p.id);
+    const privateFields = org ? privateByOrgId.get(org.id) : undefined;
     return {
       ...p,
       org_description:          org?.description ?? null,
@@ -1292,9 +1305,9 @@ if (profileList.length > 0) {
       org_sectors:                normalizeArr(org?.sector),
       org_country:                Array.isArray(org?.country) ? org.country[0] : org?.country ?? null,
       org_registration_type:      org?.registration_type ?? null,
-      org_registration_number:    org?.registration_number ?? null,
-      org_tin:                    org?.tin ?? null,
-      org_scuml_number:           org?.scuml_number ?? null,
+      org_registration_number:    privateFields?.registration_number ?? null,
+      org_tin:                    privateFields?.tin ?? null,
+      org_scuml_number:           privateFields?.scuml_number ?? null,
       org_is_dnfbp_sector:        org?.is_dnfbp_sector ?? null,
     };
   });
