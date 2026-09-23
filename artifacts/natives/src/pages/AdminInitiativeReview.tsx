@@ -1402,14 +1402,25 @@ function UsersPanel() {
     setLoading(true)
     let query = supabase
       .from('profiles')
-      .select('id, full_name, email, user_type, org_name, country, is_verified, is_admin, is_active, onboarding_completed, created_at')
+      .select('id, full_name, email, user_type, org_name, country, is_verified, is_active, onboarding_completed, created_at')
       .order('created_at', { ascending: false })
 
     if (filter === 'inactive') query = query.eq('is_active', false)
 
     const { data, error } = await query
-    if (error) console.error(error)
-    else setUsers(data ?? [])
+    if (error) { console.error(error); setLoading(false); return }
+
+    // is_admin comes from profile_private, not the raw profiles column
+    // (Phase D: authenticated's grant on profiles.is_admin is restricted
+    // to self-only; profile_private's admin-read-any-row policy is what
+    // lets this page see every user's status).
+    const userIds = (data ?? []).map((u: any) => u.id)
+    const { data: privateRows } = userIds.length
+      ? await supabase.from('profile_private').select('user_id, is_admin').in('user_id', userIds)
+      : { data: [] }
+    const isAdminByUserId = new Map((privateRows ?? []).map((r: any) => [r.user_id, r.is_admin]))
+
+    setUsers((data ?? []).map((u: any) => ({ ...u, is_admin: isAdminByUserId.get(u.id) ?? false })))
     setLoading(false)
   }
 
