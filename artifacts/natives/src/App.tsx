@@ -222,7 +222,6 @@ if (isAdmin) {
           <Route path="/faq" component={FAQPage} />
           <Route path="/about" component={AboutPage} />
           <Route path="/initiatives/:id" component={InitiativeDetail} />
-          <Route path="/test-supabase" component={SupabaseTest} />
           <Route path="/contact" component={ContactPage} />
           <Route path="/unsubscribe" component={UnsubscribePage} />
           <Route path="/verification-standard" component={VerificationStandardPage} />
@@ -232,24 +231,6 @@ if (isAdmin) {
       </main>
       {!hideFooter && <Footer />}
       <ExitIntentPopup />
-    </div>
-  );
-}
-
-function SupabaseTest() {
-  useEffect(() => {
-    async function test() {
-      const { data, error } = await supabase
-        .from("organizations")
-        .select("*");
-    }
-
-    test();
-  }, []);
-
-  return (
-    <div className="p-10">
-      Testing Supabase connection...
     </div>
   );
 }

@@ -28,16 +28,22 @@ export interface Profile {
   verification_requested: boolean | null;
   user_type: string | null;
   is_verified: boolean | null;
-  verification_rejection_reason: string | null;
-  verification_rejected_at: string | null;
+  // Not selected by fetchProfile (Phase D: authenticated's read grant
+  // on these two is restricted; not sensitive fields the app displays).
+  verification_rejection_reason?: string | null;
+  verification_rejected_at?: string | null;
   is_admin: boolean | null;
-  investment_thesis: string | null;
-  login_count: number | null;
-  registration_type: string | null;
-  registration_number: string | null;
-  tin: string | null;
-  scuml_number: string | null;
-  year_founded: number | null;
+  // The six fields below were never actual columns on `profiles`
+  // (confirmed against the database -- they belong to `organizations`).
+  // Always undefined in practice; marked optional to match reality.
+  investment_thesis?: string | null;
+  // Not selected by fetchProfile (Phase D).
+  login_count?: number | null;
+  registration_type?: string | null;
+  registration_number?: string | null;
+  tin?: string | null;
+  scuml_number?: string | null;
+  year_founded?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -124,9 +130,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   async function fetchProfile(userId: string) {
+    // Explicit column list, not "*" -- Postgres requires SELECT privilege
+    // on every column of a table to satisfy a wildcard select, and the
+    // six sensitive columns intentionally excluded here have their
+    // authenticated grant restricted (Phase D). None of them are read
+    // from the profile context anywhere in the app.
     const { data, error } = await supabase
       .from("profiles")
-      .select("*")
+      .select("id, full_name, email, country, bio, org_name, role_title, phone, linkedin_url, website, avatar_url, created_at, updated_at, sectors, org_type, feed_visibility, onboarding_completed, verification_requested, user_type, is_verified, social_links, is_admin, is_active, notification_preferences, show_individual_profile, subscription_tier, subscription_status, subscription_provider, subscription_current_period_end")
       .eq("id", userId)
       .single();
     if (!data) return;
