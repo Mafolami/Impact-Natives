@@ -1016,7 +1016,7 @@ function MilestoneTracker({ currentStage }: { currentStage?: string | null }) {
               }}
             />
             <p className="text-[15px] font-bold text-[#0F172A] dark:text-[#F5F5F5]">{s.title}</p>
-            <p className="text-[13px] mt-0.5" style={{ color: reached ? "#0F172A" : `${FOREST}80` }}>{s.desc}</p>
+            <p className="text-[13px] font-normal mt-0.5 text-[#0F172A] dark:text-[#F5F5F5]">{s.desc}</p>
           </div>
         );
       })}
@@ -1587,32 +1587,18 @@ function MarketplaceDetail({
         </div>
       </div>
 
-      {/* Hero card -- "Structural Horizon": flat plane, 1px divider containment,
-          tonal shifts instead of heavy shadow, forest-green focal accents. */}
-      <div className={`${CARD} p-7 relative`}>
-        <div className="flex items-start justify-between gap-4 mb-5">
-          <div className="flex items-center gap-4 min-w-0">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 overflow-hidden" style={{ background: "rgba(27,77,62,0.08)" }}>
-              {initiative.submitter_logo_url
-                ? <img src={initiative.submitter_logo_url} alt="" className="w-full h-full object-cover" />
-                : <Globe className="w-6 h-6" style={{ color: FOREST }} />}
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight leading-snug text-[#0F172A] dark:text-[#F5F5F5] truncate" style={{ letterSpacing: "-0.025em" }}>
-                {initiative.title}
-              </h1>
-              <p className="text-[13px] font-medium mt-0.5" style={{ color: FOREST }}>Ref #{initiative.id.slice(0, 8).toUpperCase()}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {fullDetail?.co_funding_status && (
-              <span className="hidden sm:inline-flex text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wide" style={{ background: "rgba(27,77,62,0.1)", color: FOREST }}>
-                {CO_FUNDING_LABELS[fullDetail.co_funding_status] ?? fullDetail.co_funding_status}
-              </span>
-            )}
-            <div className="relative" ref={kebabRef}>
+      {/* Hero card -- static background image with a frosted glass overlay
+          for legibility, per the reference. Path below assumes market.webp
+          sits at the root of the public/ folder (served as /market.webp). */}
+      <div className="relative rounded-2xl overflow-hidden" style={{ backgroundImage: "url('/market.webp')", backgroundSize: "cover", backgroundPosition: "center" }}>
+        <div className="relative p-7 bg-white/90 dark:bg-black/75" style={{ backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}>
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight leading-snug text-[#0F172A] dark:text-white" style={{ letterSpacing: "-0.025em" }}>
+              {initiative.title}
+            </h1>
+            <div className="relative shrink-0" ref={kebabRef}>
               <button type="button" onClick={() => setKebabOpen(v => !v)}
-                className="h-10 w-10 rounded-full flex items-center justify-center hover:bg-[#1B4D3E]/5 transition-colors">
+                className="h-10 w-10 rounded-full flex items-center justify-center hover:bg-[#1B4D3E]/10 transition-colors">
                 <MoreVertical className="w-5 h-5" style={{ color: FOREST }} />
               </button>
               {kebabOpen && (
@@ -1629,82 +1615,68 @@ function MarketplaceDetail({
               )}
             </div>
           </div>
-        </div>
 
-        {initiativeDdScore != null && (
-          <div className="mb-5">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[13px] font-bold text-[#0F172A] dark:text-[#F5F5F5]">DD Readiness</span>
-              <span className="text-[13px] font-bold" style={{ color: FOREST }}>{initiativeDdScore}%{initiativeTrustTier ? ` (${initiativeTrustTier})` : ""}</span>
-            </div>
-            <div className="h-2 rounded-full" style={{ background: "rgba(27,77,62,0.1)" }}>
-              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${initiativeDdScore}%`, background: FOREST }} />
-            </div>
+          <div className="flex items-center gap-2 mb-5">
+            {initiative.submitter_logo_url ? (
+              <img src={initiative.submitter_logo_url} alt="" className="w-7 h-7 rounded-full object-cover shrink-0" />
+            ) : (
+              <span className="w-7 h-7 rounded-full text-white text-[11px] font-bold flex items-center justify-center shrink-0" style={{ background: FOREST }}>
+                {(initiative.submitter_user_type === "organisation" ? initiative.submitter_org : initiative.submitter_name)?.slice(0, 2).toUpperCase()}
+              </span>
+            )}
+            {(initiative.submitter_org || initiative.submitter_name) && (
+              <Link
+                href={
+                  initiative.submitter_user_type === "organisation"
+                    ? `/dashboard/natives?tab=organisation&user=${initiative.user_id}`
+                    : `/dashboard/natives?tab=individual&user=${initiative.user_id}`
+                }
+                onClick={e => e.stopPropagation()}
+                className="flex items-center gap-1.5 font-bold text-[#0F172A] dark:text-white hover:underline underline-offset-2 transition-colors">
+                {initiative.submitter_user_type === "organisation" ? initiative.submitter_org : initiative.submitter_name}
+                {initiative.submitter_is_verified && <ShieldCheck className="w-4 h-4 shrink-0" style={{ color: FOREST }} />}
+              </Link>
+            )}
           </div>
-        )}
 
-        <div className="grid grid-cols-2 gap-3 mb-5">
-          <div className="rounded-xl p-4" style={{ background: "rgba(27,77,62,0.04)" }}>
-            <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: FOREST }}>Location</p>
-            <p className="text-[15px] font-bold text-[#0F172A] dark:text-[#F5F5F5] mt-1">{initiative.locations?.join(", ") || "—"}</p>
-          </div>
-          <div className="rounded-xl p-4" style={{ background: "rgba(27,77,62,0.04)" }}>
-            <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: FOREST }}>Budget</p>
-            <p className="text-[15px] font-bold text-[#0F172A] dark:text-[#F5F5F5] mt-1">{initiative.budget || "—"}</p>
-          </div>
-        </div>
-
-        <div className="pt-4 flex items-center justify-between flex-wrap gap-2 border-t border-[#E5E7EB] dark:border-[#262626]">
-          {(initiative.submitter_org || initiative.submitter_name) && (
-            <Link
-              href={
-                initiative.submitter_user_type === "organisation"
-                  ? `/dashboard/natives?tab=organisation&user=${initiative.user_id}`
-                  : `/dashboard/natives?tab=individual&user=${initiative.user_id}`
-              }
-              onClick={e => e.stopPropagation()}
-              className="flex items-center gap-2 font-bold text-[#0F172A] dark:text-[#F5F5F5] hover:underline underline-offset-2 transition-colors">
-              {initiative.submitter_logo_url ? (
-                <img src={initiative.submitter_logo_url} alt="" className="w-6 h-6 rounded-full object-cover shrink-0" />
-              ) : (
-                <span className="w-6 h-6 rounded-full text-white text-[10px] font-bold flex items-center justify-center shrink-0" style={{ background: FOREST }}>
-                  {(initiative.submitter_user_type === "organisation" ? initiative.submitter_org : initiative.submitter_name)?.slice(0, 2).toUpperCase()}
-                </span>
-              )}
-              {initiative.submitter_user_type === "organisation" ? initiative.submitter_org : initiative.submitter_name}
-              {initiative.submitter_is_verified && <ShieldCheck className="w-4 h-4 shrink-0" style={{ color: FOREST }} />}
-            </Link>
-          )}
-          <div className="flex items-center gap-3 text-[13px]">
-            <span className="font-semibold" style={{ color: FOREST }}>Published {new Date(initiative.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
-            <span className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ background: "#FEF3C7", color: "#92400E" }}>
-              {initiative.eois} expression{initiative.eois !== 1 ? "s" : ""} of interest
+          <div className="flex items-center gap-5 flex-wrap text-[14px] font-semibold text-[#0F172A] dark:text-white">
+            <span className="flex items-center gap-1.5">
+              <MapPin className="w-4 h-4 shrink-0" style={{ color: FOREST }} />
+              {initiative.locations?.join(", ") || "—"}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Wallet className="w-4 h-4 shrink-0" style={{ color: FOREST }} />
+              {initiative.budget || "—"}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Handshake className="w-4 h-4 shrink-0" style={{ color: FOREST }} />
+              {initiative.eois} EOI{initiative.eois !== 1 ? "s" : ""}
             </span>
           </div>
         </div>
-
-        {(isFunder || isCorporate) && (() => {
-          const legalEvidence = initiativeOrgDd?.dd_evidence?.legal_compliance_declaration ?? {};
-          if (!legalEvidence.blacklistingDetail && !legalEvidence.pendingDisputesDetail) return null;
-          return (
-            <div className={`${CARD_SM} mt-4 p-4`} style={{ boxShadow: "0 1px 2px rgba(220,38,38,0.08), 0 8px 20px -10px rgba(220,38,38,0.25)" }}>
-              {legalEvidence.blacklistingDetail && (
-                <p className="text-[13px] text-red-700"><span className="font-bold">Blacklisting disclosed:</span> {legalEvidence.blacklistingDetail}</p>
-              )}
-              {legalEvidence.pendingDisputesDetail && (
-                <p className="text-[13px] text-red-700 mt-1"><span className="font-bold">Pending disputes disclosed:</span> {legalEvidence.pendingDisputesDetail}</p>
-              )}
-            </div>
-          );
-        })()}
       </div>
+
+      {(isFunder || isCorporate) && (() => {
+        const legalEvidence = initiativeOrgDd?.dd_evidence?.legal_compliance_declaration ?? {};
+        if (!legalEvidence.blacklistingDetail && !legalEvidence.pendingDisputesDetail) return null;
+        return (
+          <div className={`${CARD_SM} p-4`} style={{ boxShadow: "0 1px 2px rgba(220,38,38,0.08), 0 8px 20px -10px rgba(220,38,38,0.25)" }}>
+            {legalEvidence.blacklistingDetail && (
+              <p className="text-[13px] text-red-700"><span className="font-bold">Blacklisting disclosed:</span> {legalEvidence.blacklistingDetail}</p>
+            )}
+            {legalEvidence.pendingDisputesDetail && (
+              <p className="text-[13px] text-red-700 mt-1"><span className="font-bold">Pending disputes disclosed:</span> {legalEvidence.pendingDisputesDetail}</p>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Tabs + content */}
       {(() => {
         const hasOverview = !!(
           fullDetail?.target_beneficiaries || fullDetail?.target_jobs || fullDetail?.target_female_pct ||
           fullDetail?.target_timeline_months || sections["Executive Summary"] || initiative.problem ||
-          sections["SDG Alignment"] || (fullDetail?.sdg_tags && fullDetail.sdg_tags.length > 0)
+          fullDetail?.specific_ask || sections["SDG Alignment"] || (fullDetail?.sdg_tags && fullDetail.sdg_tags.length > 0)
         );
         const hasProblem = !!(
           sections["Problem Statement"] || initiative.problem || sections["Proposed Solution"] || initiative.outcome ||
@@ -1802,6 +1774,16 @@ function MarketplaceDetail({
                   </div>
                 )}
 
+                {fullDetail?.specific_ask && (
+                  <div className={`${CARD} p-8`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <Zap className="w-5 h-5 shrink-0" style={{ color: FOREST }} />
+                      <p className="text-xl font-bold text-[#0F172A] dark:text-[#F5F5F5]">Specific Ask</p>
+                    </div>
+                    <p className="text-[16px] text-[#0F172A] dark:text-[#F5F5F5] leading-relaxed">{fullDetail.specific_ask}</p>
+                  </div>
+                )}
+
                 {(sdgFromSection || (fullDetail?.sdg_tags && fullDetail.sdg_tags.length > 0)) && (
                   <div className={`${CARD} p-8`}>
                     <div className="flex items-center gap-3 mb-5">
@@ -1878,15 +1860,22 @@ function MarketplaceDetail({
 
             {activeTab === "impact" && (
               <div className="space-y-8 pt-6">
-                {(sections["Expected Outcomes and Impact"] || fullDetail?.impact_evidence) && (
+                {sections["Expected Outcomes and Impact"] && (
                   <div className={`${CARD} p-8`}>
                     <div className="flex items-center gap-3 mb-4">
                       <CheckCircle2 className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
                       <p className="text-xl font-bold text-[#0F172A] dark:text-[#F5F5F5]">Expected Outcomes and Impact</p>
                     </div>
-                    {sections["Expected Outcomes and Impact"]
-                      ? <VerbatimSection html={sections["Expected Outcomes and Impact"]} listStyle="check" />
-                      : <p className="text-[16px] text-[#0F172A] dark:text-[#F5F5F5] leading-relaxed">{fullDetail!.impact_evidence}</p>}
+                    <VerbatimSection html={sections["Expected Outcomes and Impact"]} listStyle="check" />
+                  </div>
+                )}
+                {fullDetail?.impact_evidence && (
+                  <div className={`${CARD} p-8`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <FileCheck className="w-5 h-5 shrink-0" style={{ color: BURNT_ORANGE }} />
+                      <p className="text-xl font-bold text-[#0F172A] dark:text-[#F5F5F5]">Impact Evidence</p>
+                    </div>
+                    <p className="text-[16px] text-[#0F172A] dark:text-[#F5F5F5] leading-relaxed">{fullDetail.impact_evidence}</p>
                   </div>
                 )}
                 {sections["Monitoring and Evaluation"] && (
