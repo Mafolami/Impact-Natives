@@ -167,11 +167,29 @@ export function TeamTab() {
     const userIds = rows.map((r: any) => r.user_id);
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("id, full_name, email, avatar_url")
+      .select("id, full_name, avatar_url")
       .in("id", userIds);
     const profileById = new Map((profiles ?? []).map((p: any) => [p.id, p]));
 
-    setRoster(rows.map((r: any) => ({ ...r, profile: profileById.get(r.user_id) ?? null })));
+    // Contact reveal is access-checked server-side (get_teammate_contact):
+    // any active member of the same org (owner included) may see a
+    // colleague's email. Safe either way here since this view only ever
+    // loads the roster of an org the viewer owns, but routed through the
+    // same RPC as every other contact reveal for consistency and to keep
+    // the raw email column locked down.
+    const emailByUserId = new Map<string, string | null>();
+    await Promise.all(userIds.map(async (uid: string) => {
+      const { data } = await supabase.rpc("get_teammate_contact", { target_user_id: uid });
+      emailByUserId.set(uid, data ?? null);
+    }));
+
+    setRoster(rows.map((r: any) => {
+      const baseProfile = profileById.get(r.user_id);
+      return {
+        ...r,
+        profile: baseProfile ? { ...baseProfile, email: emailByUserId.get(r.user_id) ?? null } : null,
+      };
+    }));
   }
 
   // ── Owner: invite ──────────────────────────────────────────────────────

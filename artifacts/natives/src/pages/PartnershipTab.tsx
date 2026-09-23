@@ -201,21 +201,47 @@ export function PartnershipTab() {
 
     const [orgsRes, profilesRes] = await Promise.all([
       supabase.from("organizations")
-        .select("id, organisation_name, organisation_type, country, needs, offers, email, website, user_id")
+        .select("id, organisation_name, organisation_type, country, needs, offers, website, user_id")
         .in("id", [...new Set([...senderOrgIds, ...receiverOrgIds])]),
       supabase.from("profiles")
-        .select("id, full_name, email")
+        .select("id, full_name")
         .in("id", [...new Set(senderUserIds)]),
     ]);
 
     const orgMap     = new Map((orgsRes.data ?? []).map((o: any) => [o.id, o]));
     const profileMap = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p]));
 
-    const inboundWithOrgs = (inboundRes.data ?? []).map((r: any) => ({
-      ...r,
-      sender_org:     orgMap.get(r.sender_org_id),
-      sender_profile: profileMap.get(r.sender_user_id),
+    // Contact reveal is access-checked server-side (get_connection_contact),
+    // not decided client-side: the receiving org can always see who
+    // contacted them (any status), the sending org only once the
+    // partnership is formed -- both enforced in the RPC. The old code
+    // fetched email columns unconditionally for every row, which meant
+    // the value was already in the network response regardless of status.
+    const allConnIds = [
+      ...(inboundRes.data ?? []).map((r: any) => r.id),
+      ...(outboundRes.data ?? []).map((r: any) => r.id),
+    ];
+    const contactByConnId = new Map<string, { sender_email: string | null; sender_org_email: string | null; receiver_org_email: string | null }>();
+    await Promise.all(allConnIds.map(async (connId) => {
+      const { data } = await supabase.rpc("get_connection_contact", { target_connection_id: connId });
+      const row = Array.isArray(data) ? data[0] : data;
+      contactByConnId.set(connId, {
+        sender_email: row?.sender_email ?? null,
+        sender_org_email: row?.sender_org_email ?? null,
+        receiver_org_email: row?.receiver_org_email ?? null,
+      });
     }));
+
+    const inboundWithOrgs = (inboundRes.data ?? []).map((r: any) => {
+      const contact = contactByConnId.get(r.id);
+      const baseOrg = orgMap.get(r.sender_org_id);
+      const baseProfile = profileMap.get(r.sender_user_id);
+      return {
+        ...r,
+        sender_org:     baseOrg ? { ...baseOrg, email: contact?.sender_org_email ?? undefined } : baseOrg,
+        sender_profile: baseProfile ? { ...baseProfile, email: contact?.sender_email ?? undefined } : baseProfile,
+      };
+    });
 
     const conversationIds = inboundWithOrgs
       .map((r: any) => r.conversation_id)
@@ -241,10 +267,14 @@ export function PartnershipTab() {
       opening_message: r.conversation_id ? messageMap.get(r.conversation_id) ?? null : null,
     })));
 
-    setOutbound((outboundRes.data ?? []).map((r: any) => ({
-      ...r,
-      receiver_org: orgMap.get(r.receiver_org_id),
-    })));
+    setOutbound((outboundRes.data ?? []).map((r: any) => {
+      const contact = contactByConnId.get(r.id);
+      const baseOrg = orgMap.get(r.receiver_org_id);
+      return {
+        ...r,
+        receiver_org: baseOrg ? { ...baseOrg, email: contact?.receiver_org_email ?? undefined } : baseOrg,
+      };
+    }));
 
     setLoading(false);
   }
