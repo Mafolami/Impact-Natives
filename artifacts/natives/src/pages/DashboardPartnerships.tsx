@@ -290,8 +290,21 @@ export default function DashboardPartnerships() {
 
   return (
     <>
-      <div className="flex flex-col lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)] lg:grid-rows-[auto_auto_auto_minmax(0,1fr)] -mx-4 sm:-mx-6" style={{ height: "100vh", maxHeight: "100vh", overflow: "hidden" }}>
+      <div className="relative flex flex-col lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)] lg:grid-rows-[auto_auto_auto_minmax(0,1fr)] -mx-4 sm:-mx-6" style={{ height: "100vh", maxHeight: "100vh", overflow: "hidden" }}>
+        {/* Get Matched, desktop: pinned to the page's actual top-right
+            corner instead of sitting inside the left column's filter bar.
+            Gated by !loading like everything else, so it appears together
+            with the rest of the page instead of ahead of it. Mobile keeps
+            the original inline button below (now lg:hidden), unchanged. */}
+        {!loading && user && (
+          <button type="button" onClick={() => setShowModal(true)}
+            className="hidden lg:flex absolute top-3 right-5 z-20 h-9 px-4 rounded-full text-white text-[13px] font-bold transition-all hover:brightness-110 active:scale-[0.98] shrink-0 whitespace-nowrap items-center"
+            style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
+            + Get Matched
+          </button>
+        )}
         {/* Top bar */}
+        {!loading && (
         <div className="shrink-0 px-5 py-3 flex flex-wrap items-center gap-2 bg-background border-b border-[#2D6A4F]/20 lg:flex-col lg:items-stretch lg:flex-nowrap lg:px-3 lg:border-r-2 lg:col-start-1 lg:row-start-2">
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-black dark:text-white" />
@@ -437,12 +450,13 @@ export default function DashboardPartnerships() {
           <div className="flex-1 lg:hidden" />
           {user && (
             <button type="button" onClick={() => setShowModal(true)}
-              className="h-9 px-4 rounded-full text-white text-[13px] font-bold transition-all hover:brightness-110 active:scale-[0.98] shrink-0 whitespace-nowrap lg:w-full"
+              className="lg:hidden h-9 px-4 rounded-full text-white text-[13px] font-bold transition-all hover:brightness-110 active:scale-[0.98] shrink-0 whitespace-nowrap"
               style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
               + Get Matched
             </button>
           )}
         </div>
+        )}
 
         {deepLinkMissing && (
           <div className="shrink-0 px-5 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-900 text-[13px] text-amber-800 dark:text-amber-300 flex items-center justify-between gap-2 lg:col-span-2 lg:row-start-1">
@@ -484,7 +498,7 @@ export default function DashboardPartnerships() {
 
         {/* Split layout */}
         {loading ? (
-          <div className="flex items-center justify-center flex-1 lg:col-span-2 lg:row-start-4">
+          <div className="flex items-center justify-center flex-1 lg:col-span-2 lg:row-start-2 lg:row-span-3">
             <Loader2 className="w-5 h-5 animate-spin text-[#2D6A4F]" />
           </div>
         ) : filtered.length === 0 ? (

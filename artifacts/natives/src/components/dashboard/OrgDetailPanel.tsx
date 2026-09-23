@@ -1241,6 +1241,10 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
   const [openingMsg, setOpeningMsg] = useState<string | null>(null);
   const [msgEditing, setMsgEditing] = useState(false);
   const [tab, setTab] = useState<ProfileTab>("overview");
+  // Right-hand decision rail on the wide layout: collapsed by default so
+  // the content column (already minmax(0,1fr)) can use the extra width;
+  // a toggle in the rail's own column expands it back to full width.
+  const [railCollapsed, setRailCollapsed] = useState(true);
   const wide = useMinWidth(RAIL_MIN_WIDTH);
 
   useEffect(() => {
@@ -1390,7 +1394,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
   if (wide) {
     return (
       <div ref={ref} className="h-full overflow-y-auto bg-background">
-        <div className="grid grid-cols-[minmax(0,1fr)_340px] gap-6 pr-6 py-6 items-start">
+        <div className={`grid gap-6 pr-6 py-6 items-start ${railCollapsed ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[minmax(0,1fr)_340px]"}`}>
           <div className="min-w-0">
             <div className="ml-8 mb-6 rounded-xl border border-[#2D6A4F]/20 px-8 py-6 min-h-[150px] flex flex-col justify-center" style={HEADER_STYLE}>
               {panelHeader}
@@ -1399,8 +1403,16 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
             <ProfileTabPanels org={org} variant="panel" tab={activeTab} viewerOrgId={viewerOrg?.id}
               dd={{ score, total: ddTotal, docs: ddDocs }} />
           </div>
-          <aside className="min-w-0">
-            <OrgDecisionRail {...railProps} />
+          <aside className="min-w-0 relative">
+            <button type="button" onClick={() => setRailCollapsed(v => !v)}
+              aria-expanded={!railCollapsed}
+              aria-label={railCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className="absolute -left-3 top-1 z-10 w-6 h-6 rounded-full border border-[#2D6A4F]/30 bg-card flex items-center justify-center text-foreground hover:bg-[#2D6A4F]/10 transition-colors shadow-sm">
+              {railCollapsed
+                ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                : <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>}
+            </button>
+            {!railCollapsed && <OrgDecisionRail {...railProps} />}
           </aside>
         </div>
       </div>
