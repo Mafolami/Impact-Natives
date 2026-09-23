@@ -601,17 +601,30 @@ function OrganizationsPanel() {
     // Explicit column list, not select('*') -- organizations.dd_*_url
     // and the two payment-credential columns are restricted for
     // authenticated (Phase D); a wildcard requires privilege on every
-    // column of the table. Every field this panel actually reads is
-    // listed here (matches the Org type above) -- none are restricted.
+    // column of the table. email is deliberately NOT in this list --
+    // organizations.email is also restricted; see the RPC resolution
+    // below.
     const { data, error } = await supabase
       .from('organizations')
-      .select('id,user_id,organisation_name,description,sector,country,organisation_type,website,email,needs,offers,sdgs,verification_status,verification_consent,status,created_at')
+      .select('id,user_id,organisation_name,description,sector,country,organisation_type,website,needs,offers,sdgs,verification_status,verification_consent,status,created_at')
       .eq('status', filter)
       .order('created_at', { ascending: false })
     if (error) console.error(error)
     else {
-      setOrgs(data ?? [])
-      const emails = (data ?? []).map(o => o.email).filter(Boolean)
+      // Contact reveal is access-checked server-side (get_org_contact_email),
+      // not a raw column read -- organizations.email is restricted for
+      // authenticated (Phase D). Admin access is already handled inside
+      // that function (its own is_admin() check), so this admin panel
+      // still sees every org's email regardless of status.
+      const orgIds = (data ?? []).map((o: any) => o.id)
+      const emailByOrgId = new Map<string, string | null>()
+      await Promise.all(orgIds.map(async (orgId: string) => {
+        const { data: resolvedEmail } = await supabase.rpc('get_org_contact_email', { target_org_id: orgId })
+        emailByOrgId.set(orgId, resolvedEmail ?? null)
+      }))
+      const withEmail = (data ?? []).map((o: any) => ({ ...o, email: emailByOrgId.get(o.id) ?? null }))
+      setOrgs(withEmail)
+      const emails = withEmail.map((o: any) => o.email).filter(Boolean)
       setRegisteredEmails(await getRegisteredEmails(emails))
     }
     setLoading(false)
