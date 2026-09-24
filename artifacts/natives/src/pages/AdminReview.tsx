@@ -50,7 +50,7 @@ type OrgView = 'pending' | 'published' | 'rejected' | 'match_results'
 const NAV_SECTIONS: { value: TabSection; label: string }[] = [
   { value: 'overview',         label: 'Overview' },
   { value: 'initiatives',      label: 'Initiatives' },
-  { value: 'organizations',    label: 'Get Matched' },
+  { value: 'organizations',    label: 'Organizations' },
   { value: 'verification',     label: 'Verification' },
   { value: 'flagged_orgs',     label: 'Flagged Orgs' },
   { value: 'lab_requests',     label: 'Lab Requests' },
@@ -62,7 +62,7 @@ const NAV_SECTIONS: { value: TabSection; label: string }[] = [
 const SECTION_DESCRIPTIONS: Record<TabSection, string> = {
   overview: 'Live stats across Impact Natives. Click any number to jump straight to it.',
   initiatives: 'Initiative submissions from the marketplace. Review and approve before they go live.',
-  organizations: 'Organisations seeking partners through the Find a Partner flow, plus the AI match results computed for them.',
+  organizations: 'All organisation profiles on the platform. Review new signups and manage visibility here; AI-computed Get Matched results are under the Match Results tab.',
   partner_requests: 'Institutional partnership requests submitted via the Partner With Natives page. These are requests to collaborate with Impact Natives directly.',
   verification: 'Organisations and individuals requesting verified status. Review their documents before approving.',
   flagged_orgs: 'Organisations that disclosed a blacklisting or pending legal dispute in their DD checklist. Review for severity, record context, and decide on directory visibility.',
