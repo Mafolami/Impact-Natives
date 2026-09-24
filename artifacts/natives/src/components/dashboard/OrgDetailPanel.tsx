@@ -314,6 +314,31 @@ function ExpressInterestPanel({ alreadySent, openingMsg, setOpeningMsg, msgEditi
   );
 }
 
+// Compact replica of ExpressInterestPanel's button, shown inline in the
+// tab row (next to Overview/Impact/Partnerships/Documents) on the wide
+// panel layout only, and only while the right decision rail -- which
+// normally holds the full Express Interest panel -- is collapsed. Uses
+// the exact same onExpressInterest handler as the sidebar's own button;
+// no AI-drafted message composer here, just the action itself.
+function InlineExpressInterestButton({ alreadySent, sending, onExpressInterest }: {
+  alreadySent: boolean; sending: boolean; onExpressInterest: (e: React.MouseEvent) => void;
+}) {
+  if (alreadySent) {
+    return (
+      <span className="ml-auto shrink-0 flex items-center gap-1.5 text-xs font-semibold text-[#065F46]">
+        <CheckCircle2 className="w-3.5 h-3.5" />Interest expressed
+      </span>
+    );
+  }
+  return (
+    <button type="button" onClick={onExpressInterest} disabled={sending}
+      className="ml-auto shrink-0 h-8 px-4 rounded-full text-white text-xs font-bold disabled:opacity-40 transition-all hover:brightness-110 active:scale-[0.98]"
+      style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
+      {sending ? "Sending..." : "Express interest"}
+    </button>
+  );
+}
+
 function BackButton({ onBack, backLabel, onDark = false }: { onBack: () => void; backLabel: string; onDark?: boolean }) {
   return (
     <button type="button" onClick={onBack}
@@ -830,12 +855,12 @@ function visibleTabs(org: OrgRow): ProfileTab[] {
   return tabs;
 }
 
-function ProfileTabs({ tabs, active, onChange, variant }: {
-  tabs: ProfileTab[]; active: ProfileTab; onChange: (t: ProfileTab) => void; variant: "page" | "panel";
+function ProfileTabs({ tabs, active, onChange, variant, trailing }: {
+  tabs: ProfileTab[]; active: ProfileTab; onChange: (t: ProfileTab) => void; variant: "page" | "panel"; trailing?: React.ReactNode;
 }) {
   const wrap = variant === "panel"
-    ? "sticky top-0 z-10 bg-background px-8 flex flex-wrap gap-x-6 border-b border-[#2D6A4F]/20"
-    : "flex flex-wrap gap-x-6 border-b border-[#2D6A4F]/20";
+    ? "sticky top-0 z-10 bg-background px-8 flex flex-wrap items-center gap-x-6 border-b border-[#2D6A4F]/20"
+    : "flex flex-wrap items-center gap-x-6 border-b border-[#2D6A4F]/20";
   return (
     <div role="tablist" className={wrap}>
       {tabs.map(t => (
@@ -848,6 +873,7 @@ function ProfileTabs({ tabs, active, onChange, variant }: {
           {PROFILE_TAB_LABELS[t]}
         </button>
       ))}
+      {trailing}
     </div>
   );
 }
@@ -1357,6 +1383,11 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
     openingMsg, setOpeningMsg, msgEditing, setMsgEditing, fit, fitLoading, fitLocked, fitNoListing, alsoFits,
     onSelectAlsoFit: swapToAlsoFit, onOpenListing,
   };
+  // Own/closed checks duplicated from OrgDecisionRail's own scope -- needed
+  // here too so the wide panel layout knows whether to show the inline
+  // Express Interest replica in the tab row while the rail is collapsed.
+  const isOwnListing = org.user_id === viewerOrg?.user_id;
+  const isClosedListing = !!org.partnership_formed;
 
   // ── Page variant: flat content matching InitiativeDetail exactly ──
   if (variant === "page") {
@@ -1399,7 +1430,10 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
             <div className="ml-8 mb-6 rounded-xl border border-[#2D6A4F]/20 px-8 py-6 min-h-[150px] flex flex-col justify-center" style={HEADER_STYLE}>
               {panelHeader}
             </div>
-            <ProfileTabs tabs={tabs} active={activeTab} onChange={setTab} variant="panel" />
+            <ProfileTabs tabs={tabs} active={activeTab} onChange={setTab} variant="panel"
+              trailing={railCollapsed && !isOwnListing && !isClosedListing && isOrg ? (
+                <InlineExpressInterestButton alreadySent={alreadySent} sending={sending} onExpressInterest={onExpressInterest} />
+              ) : null} />
             <ProfileTabPanels org={org} variant="panel" tab={activeTab} viewerOrgId={viewerOrg?.id}
               dd={{ score, total: ddTotal, docs: ddDocs }} />
           </div>

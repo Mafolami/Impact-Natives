@@ -39,10 +39,10 @@ function ListCard({ org, selected, onClick, isSaved, onToggleSave, mouExecuted }
 
   return (
     <div onClick={onClick}
-      className={`relative cursor-pointer pl-[68px] pr-5 py-4 rounded-xl border border-l-[3px] transition-all group ${
+      className={`relative cursor-pointer pl-[68px] pr-5 py-4 rounded-xl border border-l-[3px] bg-white dark:bg-[#111827] transition-all group ${
         selected
-          ? "bg-[#2D6A4F]/[0.08] border-[#2D6A4F]/25 border-l-[#2D6A4F]"
-          : "border-transparent border-l-transparent hover:bg-[#2D6A4F]/[0.05] hover:border-[#2D6A4F]/25 hover:border-l-[#2D6A4F]"
+          ? "border-[#2D6A4F]/25 border-l-[#2D6A4F]"
+          : "border-transparent border-l-transparent hover:border-[#2D6A4F]/25 hover:border-l-[#2D6A4F]"
       }`}>
 
       {/* Logo */}
@@ -292,16 +292,42 @@ export default function DashboardPartnerships() {
     <>
       <div className="flex flex-col -mt-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
 
-        <div className="flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)] lg:grid-rows-[auto_auto_minmax(0,1fr)]">
+        <div className="flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)]">
         {/* Top bar: full-width single row spanning both columns */}
         {!loading && (
-        <div className="shrink-0 px-5 py-3 flex items-center gap-2 bg-background border-b border-[#2D6A4F]/20 lg:col-span-2 lg:row-start-1">
+        <div className="shrink-0 px-5 py-3 flex items-center gap-2 bg-background border-b border-[#2D6A4F]/20 lg:col-span-2 lg:row-start-1 sticky top-0 z-20">
           <div className="relative shrink-0 w-48">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-black dark:text-white" />
             <input type="text" placeholder="Search listings..." value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full h-9 pl-9 pr-3 rounded-lg text-[13px] text-foreground placeholder:text-[#2D6A4F]/70 focus:outline-none focus:ring-2 focus:ring-[#452A1D]/25 transition-colors bg-card border border-[#2D6A4F]/20" />
           </div>
+          {orgs.length > 0 && (
+            <div className="flex items-center gap-1.5 shrink-0">
+              {views.map(v => {
+                const on = listView === v.key;
+                const cls = `h-8 px-3 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-colors ${
+                  on ? "text-white border border-transparent" : "bg-background text-foreground border border-[#2D6A4F]/20"}`;
+                if (v.locked) {
+                  return (
+                    <button key={v.key} type="button" onClick={() => navigate("/dashboard/settings?tab=billing")} title="AI matching is a Plus feature" className={cls}>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                      </svg>
+                      {v.label}
+                    </button>
+                  );
+                }
+                return (
+                  <button key={v.key} type="button" aria-pressed={on} onClick={() => setListView(v.key)} className={cls}
+                    style={on ? { background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" } : undefined}>
+                    {v.label}
+                    <span className="font-black">{v.count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <div ref={filterBarRef} className="flex flex-wrap items-center gap-1 relative">
             {([
               {
@@ -458,42 +484,13 @@ export default function DashboardPartnerships() {
           </div>
         )}
 
-        {!loading && orgs.length > 0 && (
-          <div className={`shrink-0 border-b border-[#2D6A4F]/20 bg-background lg:col-start-1 lg:row-start-2 ${mobileDetailOpen ? "hidden lg:flex" : "flex"}`}>
-            <div className="w-full lg:w-[20rem] xl:w-[22rem] shrink-0 lg:border-r-2 border-[#2D6A4F]/20 px-3 py-2 flex items-center gap-1.5">
-              {views.map(v => {
-                const on = listView === v.key;
-                const cls = `h-8 px-3 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-colors ${
-                  on ? "text-white border border-transparent" : "bg-background text-foreground border border-[#2D6A4F]/20"}`;
-                if (v.locked) {
-                  return (
-                    <button key={v.key} type="button" onClick={() => navigate("/dashboard/settings?tab=billing")} title="AI matching is a Plus feature" className={cls}>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                      </svg>
-                      {v.label}
-                    </button>
-                  );
-                }
-                return (
-                  <button key={v.key} type="button" aria-pressed={on} onClick={() => setListView(v.key)} className={cls}
-                    style={on ? { background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" } : undefined}>
-                    {v.label}
-                    <span className="font-black">{v.count}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {/* Split layout */}
         {loading ? (
-          <div className="flex items-center justify-center flex-1 lg:col-span-2 lg:row-start-1 lg:row-span-3">
+          <div className="flex items-center justify-center flex-1 lg:col-span-2 lg:row-start-1 lg:row-span-2">
             <Loader2 className="w-5 h-5 animate-spin text-[#2D6A4F]" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center px-6 lg:col-span-2 lg:row-start-3">
+          <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center px-6 lg:col-span-2 lg:row-start-2">
             <Handshake className="w-7 h-7 text-[#2D6A4F]/50" />
             <div>
               <p className="text-[15px] font-bold text-foreground mb-1">{emptyCopy.title}</p>
@@ -502,7 +499,7 @@ export default function DashboardPartnerships() {
           </div>
         ) : (
           <div className="flex min-h-0 overflow-hidden lg:contents" style={{ flex: 1 }}>            {/* Left list */}
-            <div className={`w-full lg:w-auto shrink-0 overflow-y-auto min-h-0 space-y-3 px-3 py-3 lg:col-start-1 lg:row-start-3 border-r-2 border-[#2D6A4F]/20 bg-[#2D6A4F]/[0.04] ${mobileDetailOpen ? "hidden lg:block" : "block"}`}>
+            <div className={`w-full lg:w-auto shrink-0 overflow-y-auto min-h-0 space-y-3 px-3 py-3 lg:col-start-1 lg:row-start-2 border-r-2 border-[#2D6A4F]/20 bg-[#2D6A4F]/[0.04] ${mobileDetailOpen ? "hidden lg:block" : "block"}`}>
               {filtered.map((org: any) => (
                 <ListCard key={org.listing_id} org={org}
                   selected={selectedOrg?.listing_id === org.listing_id}
@@ -515,7 +512,7 @@ export default function DashboardPartnerships() {
             </div>
 
             {/* Right detail */}
-            <div className={`flex-1 min-w-0 min-h-0 overflow-y-auto lg:col-start-2 lg:row-start-2 lg:row-span-2 ${mobileDetailOpen ? "block" : "hidden lg:block"}`}>
+            <div className={`flex-1 min-w-0 min-h-0 overflow-y-auto lg:col-start-2 lg:row-start-2 ${mobileDetailOpen ? "block" : "hidden lg:block"}`}>
               <OrgDetailPanel
                 org={selectedOrg}
                 isSaved={selectedOrg ? savedOrgs.has(selectedOrg.id) : false}
