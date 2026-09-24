@@ -12,6 +12,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ExitIntentPopup } from "@/components/platform/ExitIntentPopup";
 import { AuthProvider } from "@/context/AuthContext";
+import { Analytics } from "@vercel/analytics/react";
 // Public pages — loaded eagerly (homepage visitors need these immediately)
 import HomePage from "@/pages/HomePage";
 import NotFound from "@/pages/not-found";
@@ -267,6 +268,7 @@ function App() {
           </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>
+      <Analytics />
     </ThemeProvider>
   );
 }
