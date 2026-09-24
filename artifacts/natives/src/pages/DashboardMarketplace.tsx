@@ -777,7 +777,7 @@ export default function DashboardMarketplace() {
           </button>
         </div>
       )}
-      <div className="flex gap-2">
+      <div className="flex gap-2 sticky top-0 z-20 bg-background py-2 -my-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input type="text" placeholder="Search by title, problem, location..."
