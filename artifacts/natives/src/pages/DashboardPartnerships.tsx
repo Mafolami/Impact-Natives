@@ -295,7 +295,7 @@ export default function DashboardPartnerships() {
         <div className="flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)] lg:grid-rows-[auto_auto_minmax(0,1fr)]">
         {/* Top bar: full-width single row spanning both columns */}
         {!loading && (
-        <div className="shrink-0 px-5 py-3 flex items-center gap-2 bg-background border-b border-[#2D6A4F]/20 lg:col-span-2">
+        <div className="shrink-0 px-5 py-3 flex items-center gap-2 bg-background border-b border-[#2D6A4F]/20 lg:col-span-2 lg:row-start-1">
           <div className="relative shrink-0 w-48">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-black dark:text-white" />
             <input type="text" placeholder="Search listings..." value={search}
@@ -515,7 +515,7 @@ export default function DashboardPartnerships() {
             </div>
 
             {/* Right detail */}
-            <div className={`flex-1 min-w-0 min-h-0 overflow-y-auto lg:col-start-2 lg:row-start-1 lg:row-span-3 ${mobileDetailOpen ? "block" : "hidden lg:block"}`}>
+            <div className={`flex-1 min-w-0 min-h-0 overflow-y-auto lg:col-start-2 lg:row-start-2 lg:row-span-2 ${mobileDetailOpen ? "block" : "hidden lg:block"}`}>
               <OrgDetailPanel
                 org={selectedOrg}
                 isSaved={selectedOrg ? savedOrgs.has(selectedOrg.id) : false}
