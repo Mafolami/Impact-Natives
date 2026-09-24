@@ -512,7 +512,7 @@ export default function DashboardPartnerships() {
             </div>
 
             {/* Right detail */}
-            <div className={`flex-1 min-w-0 min-h-0 overflow-y-auto lg:col-start-2 lg:row-start-2 ${mobileDetailOpen ? "block" : "hidden lg:block"}`}>
+            <div className={`flex-1 min-w-0 min-h-0 overflow-y-auto -mr-6 pr-6 lg:col-start-2 lg:row-start-2 ${mobileDetailOpen ? "block" : "hidden lg:block"}`}>
               <OrgDetailPanel
                 org={selectedOrg}
                 isSaved={selectedOrg ? savedOrgs.has(selectedOrg.id) : false}
