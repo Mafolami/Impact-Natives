@@ -905,28 +905,36 @@ export default function DashboardInitiatives() {
 
   if (selectedPartnerOrg) {
     return (
-      <OrgDetailPanel
-        org={selectedPartnerOrg}
-        isSaved={savedOrgs.has(selectedPartnerOrg.id)}
-        onToggleSave={e => toggleSave(selectedPartnerOrg.id, e)}
-        isOrg={!!user}
-        alreadySent={sentInterests.has(selectedPartnerOrg.id)}
-        sending={sendingInterest === selectedPartnerOrg.id}
-        onExpressInterest={e => expressInterest(selectedPartnerOrg, e, selectedPartnerOrg.listing_id)}
-        onBack={() => navigate("/dashboard/portfolio/exchanges")}
-        backLabel="Back"
-        viewerOrg={viewerOrg}
-        viewerOrgLoading={viewerOrgLoading}
-        variant="page"
-        mouExecuted={partnerOrgMouExecuted}
-      />
+      <div className="flex flex-col -mt-10 -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
+        <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6 pt-6 pb-10">
+          <OrgDetailPanel
+            org={selectedPartnerOrg}
+            isSaved={savedOrgs.has(selectedPartnerOrg.id)}
+            onToggleSave={e => toggleSave(selectedPartnerOrg.id, e)}
+            isOrg={!!user}
+            alreadySent={sentInterests.has(selectedPartnerOrg.id)}
+            sending={sendingInterest === selectedPartnerOrg.id}
+            onExpressInterest={e => expressInterest(selectedPartnerOrg, e, selectedPartnerOrg.listing_id)}
+            onBack={() => navigate("/dashboard/portfolio/exchanges")}
+            backLabel="Back"
+            viewerOrg={viewerOrg}
+            viewerOrgLoading={viewerOrgLoading}
+            variant="page"
+            mouExecuted={partnerOrgMouExecuted}
+          />
+        </div>
+      </div>
     );
   }
 
   if (selected) {
     return (
       <>
-        <InitiativeDetail initiative={selected} onBack={() => setSelected(null)} onRequestEdit={id => setEditingId(id)} />
+        <div className="flex flex-col -mt-10 -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
+          <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6 pt-6 pb-10">
+            <InitiativeDetail initiative={selected} onBack={() => setSelected(null)} onRequestEdit={id => setEditingId(id)} />
+          </div>
+        </div>
         <EditInitiativeModalDashboard
           isOpen={!!editingId}
           initiativeId={editingId}
@@ -945,8 +953,9 @@ export default function DashboardInitiatives() {
 
   return (
     <>
-      <div className="space-y-8">
-        {/* Page header */}
+      <div className="flex flex-col -mt-10 -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
+        <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6 pt-6 pb-10 space-y-8">
+          {/* Page header */}
         <div className="flex items-center justify-end gap-4 pb-2">
           <div className="flex items-center gap-2 shrink-0">
             {/* Table / Tabs view toggle */}
@@ -1122,6 +1131,7 @@ export default function DashboardInitiatives() {
         )}
           </>
         )}
+        </div>
       </div>
 
       <CreateInitiativeModalDashboard
