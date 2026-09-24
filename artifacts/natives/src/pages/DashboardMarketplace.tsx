@@ -753,160 +753,158 @@ export default function DashboardMarketplace() {
     );
   }
   return (
-    <div className="flex flex-col -mt-10 -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
-      <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6 pt-6">
-        <div className="sticky top-0 z-20 bg-background space-y-4 pb-4">
-          <div className="flex items-center justify-end">
-            <button type="button" onClick={() => setShowCreateModal(true)}
-              className="rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-medium transition-colors shrink-0">
-              + Create Initiative
-            </button>
-          </div>
-          {isFunder && (
-            <div className="flex gap-2">
-              <button type="button" onClick={toggleStartupPipeline}
-                className={`h-8 px-4 rounded-full border text-[13px] font-medium transition-colors flex items-center gap-1.5 ${
-                  startupPipeline
-                    ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
-                    : "border-border text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F]"
-                }`}>
-                <Sparkles className="w-3 h-3" />
-                Startup pipeline
-              </button>
-              <button type="button" onClick={clearFilters}
-                className="h-8 px-4 rounded-full border border-border text-[13px] text-muted-foreground hover:text-foreground transition-colors">
-                All initiatives
-              </button>
-            </div>
-          )}
+    <div className="flex flex-col -mt-6 -mb-10" style={{ height: "calc(100vh - 97px)", maxHeight: "calc(100vh - 97px)", overflow: "hidden" }}>
+      <div className="shrink-0 space-y-4 pb-4">
+        <div className="flex items-center justify-end">
+          <button type="button" onClick={() => setShowCreateModal(true)}
+            className="rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-medium transition-colors shrink-0">
+            + Create Initiative
+          </button>
+        </div>
+        {isFunder && (
           <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input type="text" placeholder="Search by title, problem, location..."
-                value={search} onChange={e => setSearch(e.target.value)}
-                className="w-full h-10 pl-9 pr-3 rounded-lg border border-border bg-background text-[15px] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
-              {search && (
-                <button type="button" onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-            <Popover open={showFilters} onOpenChange={setShowFilters}>
-              <PopoverTrigger asChild>
-                <button type="button"
-                  className={`h-10 px-4 rounded-lg border text-[15px] flex items-center gap-2 transition-colors shrink-0 ${
-                    showFilters || activeFilterCount > 0
-                      ? "border-[#2D6A4F] text-[#2D6A4F] bg-[rgba(45,106,79,0.12)]"
-                      : "border-border text-muted-foreground hover:border-foreground/30"
-                  }`}>
-                  <SlidersHorizontal className="w-4 h-4" />
-                  Filters
-                  {activeFilterCount > 0 && (
-                    <span className="w-4 h-4 rounded-full bg-[#2D6A4F] text-white text-[10px] flex items-center justify-center font-bold">
-                      {activeFilterCount}
-                    </span>
-                  )}
-                </button>
-              </PopoverTrigger>
-              <PopoverContent align="start" className="w-80 p-0 max-h-[70vh] overflow-y-auto">
-                <FilterPanel
-                  sectors={sectors} setSectors={setSectors}
-                  locations={locations} setLocations={setLocations}
-                  budgets={budgets} setBudgets={setBudgets}
-                  partnerships={partnerships} setPartnerships={setPartnerships}
-                  onClear={clearFilters} activeCount={activeFilterCount}
-                  sectorOptions={dynamicSectors} locationOptions={dynamicLocations}
-                />
-              </PopoverContent>
-            </Popover>
-            <button type="button" onClick={() => setShowSaved(v => !v)}
-              className={`h-10 px-4 rounded-lg border text-[15px] flex items-center gap-2 transition-colors shrink-0 ${
-                showSaved
-                  ? "border-[#2D6A4F] text-[#2D6A4F] bg-[rgba(45,106,79,0.12)]"
-                  : "border-border text-muted-foreground hover:border-foreground/30"
+            <button type="button" onClick={toggleStartupPipeline}
+              className={`h-8 px-4 rounded-full border text-[13px] font-medium transition-colors flex items-center gap-1.5 ${
+                startupPipeline
+                  ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
+                  : "border-border text-muted-foreground hover:border-[#2D6A4F]/40 hover:text-[#2D6A4F]"
               }`}>
-              <Bookmark className="w-4 h-4" fill={showSaved ? "#2D6A4F" : "none"} />
-              Saved
-              {savedIds.size > 0 && (
-                <span className="w-4 h-4 rounded-full bg-[#2D6A4F] text-white text-[10px] flex items-center justify-center font-bold">
-                  {savedIds.size}
-                </span>
-              )}
+              <Sparkles className="w-3 h-3" />
+              Startup pipeline
             </button>
-            <button type="button" onClick={() => setShowPassed(v => !v)}
-              className={`h-10 px-4 rounded-lg border text-[15px] flex items-center gap-2 transition-colors shrink-0 ${
-                showPassed
-                  ? "border-border text-foreground bg-muted"
-                  : "border-border text-muted-foreground hover:border-foreground/30"
-              }`}>
-              Passed
-              {passedIds.size > 0 && (
-                <span className="w-4 h-4 rounded-full bg-muted-foreground text-white text-[10px] flex items-center justify-center font-bold">
-                  {passedIds.size}
-                </span>
-              )}
+            <button type="button" onClick={clearFilters}
+              className="h-8 px-4 rounded-full border border-border text-[13px] text-muted-foreground hover:text-foreground transition-colors">
+              All initiatives
             </button>
           </div>
-        </div>
-        <div className="space-y-4 pb-4">
-          {activeFilterCount > 0 && !showFilters && (
-            <div className="flex flex-wrap gap-2 items-center">
-              {[
-                ...sectors, ...locations,
-                ...budgets.map(b => BUDGET_OPTIONS.find(o => o.value === b)?.label ?? b),
-                ...partnerships.map(p => PARTNERSHIP_OPTIONS.find(o => o.value === p)?.label ?? p),
-              ].map(chip => (
-                <span key={chip} className="inline-flex items-center gap-1 h-7 px-3 rounded-full text-[13px] bg-[rgba(45,106,79,0.12)] text-[#2D6A4F] border border-[#2D6A4F]/20">
-                  {chip}
-                </span>
-              ))}
-              <button type="button" onClick={clearFilters} className="text-[13px] text-muted-foreground hover:text-foreground underline">
-                Clear all
+        )}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input type="text" placeholder="Search by title, problem, location..."
+              value={search} onChange={e => setSearch(e.target.value)}
+              className="w-full h-10 pl-9 pr-3 rounded-lg border border-border bg-background text-[15px] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors" />
+            {search && (
+              <button type="button" onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <X className="w-3.5 h-3.5" />
               </button>
-            </div>
-          )}
-          {!loading && (
-            <p className="text-[13px] text-black dark:text-white">
-              {filtered.length} initiative{filtered.length !== 1 ? "s" : ""}
-              {showSaved ? " saved" : showPassed ? " passed" : activeFilterCount > 0 ? " matching filters" : ""}
-            </p>
-          )}
-          {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-white dark:bg-card p-12 text-center">
-              <p className="text-foreground font-medium mb-2">
-                {initiatives.length === 0 ? "No initiatives published yet." : "No results for those filters."}
-              </p>
-              <p className="text-[15px] text-black dark:text-white max-w-sm mx-auto">
-                {initiatives.length === 0 ? "Check back soon." : "Try adjusting your filters or search term."}
-              </p>
-              {activeFilterCount > 0 && (
-                <button type="button" onClick={() => { clearFilters(); setSearch(""); }}
-                  className="mt-5 text-[15px] text-primary hover:underline">
-                  Clear filters
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filtered.map(ini => (
-                <InitiativeCard key={ini.id} ini={ini}
-                  saved={savedIds.has(ini.id)}
-                  onToggleSave={handleToggleSave}
-                  passed={passedIds.has(ini.id)}
-                  passReason={passReasons[ini.id]}
-                  onConfirmPass={handleConfirmPass}
-                  onUndoPass={handleUndoPass}
-                  expressed={expressedIds.has(ini.id)}
-                  onClick={() => { setSelected(ini); window.scrollTo(0, 0); }} />
-              ))}
-            </div>
-          )}
+            )}
+          </div>
+          <Popover open={showFilters} onOpenChange={setShowFilters}>
+            <PopoverTrigger asChild>
+              <button type="button"
+                className={`h-10 px-4 rounded-lg border text-[15px] flex items-center gap-2 transition-colors shrink-0 ${
+                  showFilters || activeFilterCount > 0
+                    ? "border-[#2D6A4F] text-[#2D6A4F] bg-[rgba(45,106,79,0.12)]"
+                    : "border-border text-muted-foreground hover:border-foreground/30"
+                }`}>
+                <SlidersHorizontal className="w-4 h-4" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className="w-4 h-4 rounded-full bg-[#2D6A4F] text-white text-[10px] flex items-center justify-center font-bold">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-80 p-0 max-h-[70vh] overflow-y-auto">
+              <FilterPanel
+                sectors={sectors} setSectors={setSectors}
+                locations={locations} setLocations={setLocations}
+                budgets={budgets} setBudgets={setBudgets}
+                partnerships={partnerships} setPartnerships={setPartnerships}
+                onClear={clearFilters} activeCount={activeFilterCount}
+                sectorOptions={dynamicSectors} locationOptions={dynamicLocations}
+              />
+            </PopoverContent>
+          </Popover>
+          <button type="button" onClick={() => setShowSaved(v => !v)}
+            className={`h-10 px-4 rounded-lg border text-[15px] flex items-center gap-2 transition-colors shrink-0 ${
+              showSaved
+                ? "border-[#2D6A4F] text-[#2D6A4F] bg-[rgba(45,106,79,0.12)]"
+                : "border-border text-muted-foreground hover:border-foreground/30"
+            }`}>
+            <Bookmark className="w-4 h-4" fill={showSaved ? "#2D6A4F" : "none"} />
+            Saved
+            {savedIds.size > 0 && (
+              <span className="w-4 h-4 rounded-full bg-[#2D6A4F] text-white text-[10px] flex items-center justify-center font-bold">
+                {savedIds.size}
+              </span>
+            )}
+          </button>
+          <button type="button" onClick={() => setShowPassed(v => !v)}
+            className={`h-10 px-4 rounded-lg border text-[15px] flex items-center gap-2 transition-colors shrink-0 ${
+              showPassed
+                ? "border-border text-foreground bg-muted"
+                : "border-border text-muted-foreground hover:border-foreground/30"
+            }`}>
+            Passed
+            {passedIds.size > 0 && (
+              <span className="w-4 h-4 rounded-full bg-muted-foreground text-white text-[10px] flex items-center justify-center font-bold">
+                {passedIds.size}
+              </span>
+            )}
+          </button>
         </div>
+      </div>
+      <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6">
+        {activeFilterCount > 0 && !showFilters && (
+          <div className="flex flex-wrap gap-2 items-center mb-4">
+            {[
+              ...sectors, ...locations,
+              ...budgets.map(b => BUDGET_OPTIONS.find(o => o.value === b)?.label ?? b),
+              ...partnerships.map(p => PARTNERSHIP_OPTIONS.find(o => o.value === p)?.label ?? p),
+            ].map(chip => (
+              <span key={chip} className="inline-flex items-center gap-1 h-7 px-3 rounded-full text-[13px] bg-[rgba(45,106,79,0.12)] text-[#2D6A4F] border border-[#2D6A4F]/20">
+                {chip}
+              </span>
+            ))}
+            <button type="button" onClick={clearFilters} className="text-[13px] text-muted-foreground hover:text-foreground underline">
+              Clear all
+            </button>
+          </div>
+        )}
+        {!loading && (
+          <p className="text-[13px] text-black dark:text-white mb-4">
+            {filtered.length} initiative{filtered.length !== 1 ? "s" : ""}
+            {showSaved ? " saved" : showPassed ? " passed" : activeFilterCount > 0 ? " matching filters" : ""}
+          </p>
+        )}
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="rounded-2xl border border-border bg-white dark:bg-card p-12 text-center">
+            <p className="text-foreground font-medium mb-2">
+              {initiatives.length === 0 ? "No initiatives published yet." : "No results for those filters."}
+            </p>
+            <p className="text-[15px] text-black dark:text-white max-w-sm mx-auto">
+              {initiatives.length === 0 ? "Check back soon." : "Try adjusting your filters or search term."}
+            </p>
+            {activeFilterCount > 0 && (
+              <button type="button" onClick={() => { clearFilters(); setSearch(""); }}
+                className="mt-5 text-[15px] text-primary hover:underline">
+                Clear filters
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
+            {filtered.map(ini => (
+              <InitiativeCard key={ini.id} ini={ini}
+                saved={savedIds.has(ini.id)}
+                onToggleSave={handleToggleSave}
+                passed={passedIds.has(ini.id)}
+                passReason={passReasons[ini.id]}
+                onConfirmPass={handleConfirmPass}
+                onUndoPass={handleUndoPass}
+                expressed={expressedIds.has(ini.id)}
+                onClick={() => { setSelected(ini); window.scrollTo(0, 0); }} />
+            ))}
+          </div>
+        )}
       </div>
     <CreateInitiativeModalDashboard
         isOpen={showCreateModal}
