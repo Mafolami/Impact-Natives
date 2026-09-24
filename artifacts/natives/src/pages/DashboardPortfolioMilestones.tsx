@@ -389,13 +389,6 @@ export default function DashboardPortfolioMilestones() {
             container (this div) sits above it, so sticky has something
             genuine to pin against. */}
         <div className="sticky top-0 z-20 bg-background pt-6 pb-4 space-y-4 border-b border-border">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Traction</h1>
-            <p className="text-[15px] text-black dark:text-white mt-0.5">
-              Track milestones and outcome indicators across your executed agreements.
-            </p>
-          </div>
-
           <div className="flex items-center gap-2 flex-wrap">
             <button type="button"
               onClick={() => { setPickerMode("view"); setPickedDocId(scopedDocId ?? ""); setPickerSearch(""); setShowPicker(true); }}
