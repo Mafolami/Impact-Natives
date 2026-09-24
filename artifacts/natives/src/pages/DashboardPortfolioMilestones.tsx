@@ -181,8 +181,6 @@ export default function DashboardPortfolioMilestones() {
   const statusFiltered = useMemo(() => {
     return milestones.filter((m) => filterStatus === "all" || m.status === filterStatus);
   }, [milestones, filterStatus]);
-  const docsWithAnyMilestone = useMemo(() => new Set(milestones.map((m) => m.mou_document_id)), [milestones]);
-  const docsWithAnyIndicator = useMemo(() => new Set(allIndicators.map((i) => i.mou_document_id)), [allIndicators]);
   // Same four-tile shape as the milestone stats, but answering "did it
   // work" instead of "did the money move" -- Agreed/Awaiting evidence/
   // Verified/In dispute mirror IndicatorsBoard's own columns exactly, so
@@ -310,16 +308,19 @@ export default function DashboardPortfolioMilestones() {
   // per agreement, no partner-group headers. Sorted by partner name then
   // title, same ordering the original grouped view used.
   const sectionDocs = useMemo(() => {
-    const relevantSet = pageView === "milestones" ? docsWithAnyMilestone : docsWithAnyIndicator;
+    // Every executed agreement shows as a row, regardless of whether it
+    // already has milestones or indicators -- a fresh agreement with
+    // nothing added yet just shows an empty board when expanded, rather
+    // than disappearing from the list entirely.
     const base = scopedDocId
       ? docs.filter((d) => d.id === scopedDocId)
-      : docs.filter((d) => relevantSet.has(d.id));
+      : docs;
     return [...base].sort((a, b) => {
       const aName = orgMap[partnerOrgIdFor(a)]?.organisation_name ?? "";
       const bName = orgMap[partnerOrgIdFor(b)]?.organisation_name ?? "";
       return aName.localeCompare(bName) || (docTitle(a) ?? "").localeCompare(docTitle(b) ?? "");
     });
-  }, [docs, scopedDocId, pageView, docsWithAnyMilestone, docsWithAnyIndicator, orgMap, initiativeTitleMap, connectionListingMap, myOrgId]);
+  }, [docs, scopedDocId, orgMap, initiativeTitleMap, connectionListingMap, myOrgId]);
 
   // Default: only the FIRST agreement in the list starts expanded, every
   // other one starts collapsed -- a portfolio of ~15 agreements reads as
@@ -378,8 +379,8 @@ export default function DashboardPortfolioMilestones() {
   // real figures still belong.
   const showFinancialTiles = !scopedDoc || isBindingDoc(scopedDoc);
 
-  const noItemsYet = pageView === "milestones" ? milestones.length === 0 : allIndicators.length === 0;
-  const noItemsForScope = !noItemsYet && sectionDocs.length === 0;
+  const noAgreementsAtAll = docs.length === 0;
+  const noItemsForScope = !noAgreementsAtAll && sectionDocs.length === 0;
 
   return (
     <div className="flex flex-col -mt-10 -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
@@ -490,11 +491,9 @@ export default function DashboardPortfolioMilestones() {
             partner-group wrapper. Only the page itself scrolls; expanded
             rows just push the rows below them further down. */}
         <div className="space-y-3 pt-4">
-          {noItemsYet ? (
+          {noAgreementsAtAll ? (
             <p className="text-[15px] text-black dark:text-white">
-              {pageView === "milestones"
-                ? "No milestones yet. Use the button above to add one against an executed MoU."
-                : "No outcome indicators yet. Add them from the MoU document while it's still in progress."}
+              No executed agreements yet. Milestones and indicators become available once an MoU is fully executed.
             </p>
           ) : noItemsForScope ? (
             <p className="text-[15px] text-black dark:text-white">
