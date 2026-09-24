@@ -753,7 +753,7 @@ export default function DashboardMarketplace() {
     );
   }
   return (
-    <div className="flex flex-col -mt-6 -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
+    <div className="flex flex-col -mt-6 -mb-10" style={{ height: "calc(100vh - 97px)", maxHeight: "calc(100vh - 97px)", overflow: "hidden" }}>
       <div className="shrink-0 space-y-4 pb-4">
         <div className="flex items-center justify-end">
           <button type="button" onClick={() => setShowCreateModal(true)}
