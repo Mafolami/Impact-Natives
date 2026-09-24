@@ -753,7 +753,7 @@ export default function DashboardMarketplace() {
     );
   }
   return (
-    <div className="flex flex-col -mt-10 -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
+    <div className="flex flex-col -mt-[39px] -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
       <div className="shrink-0 space-y-4 pb-4">
         <div className="flex items-center justify-end">
           <button type="button" onClick={() => setShowCreateModal(true)}
@@ -870,7 +870,7 @@ export default function DashboardMarketplace() {
           </p>
         )}
       </div>
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6">
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
