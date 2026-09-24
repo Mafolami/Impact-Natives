@@ -406,11 +406,11 @@ export default function DashboardNatives() {
 
   return (
     <div className="flex flex-col -mt-10 -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
-      <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6 pt-6 pb-10 space-y-6 relative">
+      <div className="shrink-0 -mx-6 px-6 pt-6 pb-4 space-y-4">
         {/* Entity Type Tabs */}
       <div className="flex items-center gap-1 p-1 rounded-xl bg-muted w-fit text-[13px] font-semibold">
         {([
-          { key: "all", label: "All Ecosystem", count: countAll },
+          { key: "all", label: "All", count: countAll },
           { key: "organisation", label: "Organisations", count: countOrg },
           { key: "individual", label: "Individuals", count: countIndividual },
         ] as const).map(t => (
@@ -429,8 +429,8 @@ export default function DashboardNatives() {
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-white dark:bg-card p-3 rounded-2xl border border-border flex flex-wrap items-center gap-3 shadow-xs">
-        <div className="relative flex-1 min-w-[220px]">
+      <div className="bg-white dark:bg-card p-3 rounded-2xl border border-border flex flex-nowrap items-center gap-2 shadow-xs overflow-x-auto">
+        <div className="relative flex-1 min-w-[140px] shrink">
           <Search className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 ${CHARCOAL}`} />
           <input type="text" placeholder="Search organisations or individuals..."
             value={search} onChange={e => setSearch(e.target.value)}
@@ -438,20 +438,20 @@ export default function DashboardNatives() {
         </div>
 
         <select value={sectorFilter} onChange={e => setSectorFilter(e.target.value)}
-          className="h-9 px-2 rounded-xl border border-border bg-background text-[13px] font-semibold focus:outline-none">
+          className="h-9 px-2 rounded-xl border border-border bg-background text-[13px] font-semibold focus:outline-none shrink-0">
           <option value="">Sector</option>
           {SECTOR_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
 
         <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)}
-          className="h-9 px-2 rounded-xl border border-border bg-background text-[13px] font-semibold focus:outline-none">
+          className="h-9 px-2 rounded-xl border border-border bg-background text-[13px] font-semibold focus:outline-none shrink-0">
           <option value="">Country</option>
           {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
 
         {filterTab !== "individual" && (
           <select value={orgTypeFilter} onChange={e => setOrgTypeFilter(e.target.value)}
-            className="h-9 px-2 rounded-xl border border-border bg-background text-[13px] font-semibold focus:outline-none">
+            className="h-9 px-2 rounded-xl border border-border bg-background text-[13px] font-semibold focus:outline-none shrink-0">
             <option value="">Type</option>
             <option value="ngo_non_profit">NGO / Non-Profit</option>
             <option value="social_enterprise">Social Enterprise</option>
@@ -467,7 +467,7 @@ export default function DashboardNatives() {
           </select>
         )}
 
-        <label className="flex items-center gap-2 h-9 px-3 rounded-xl border border-border cursor-pointer hover:bg-muted/50 transition-colors">
+        <label className="flex items-center gap-2 h-9 px-3 rounded-xl border border-border cursor-pointer hover:bg-muted/50 transition-colors shrink-0">
           <input type="checkbox" checked={verifiedOnly} onChange={e => setVerifiedOnly(e.target.checked)}
             className="rounded border-border text-[#2D6A4F] focus:ring-0 w-3.5 h-3.5" />
           <span className="text-[13px] font-semibold flex items-center gap-1">
@@ -480,7 +480,7 @@ export default function DashboardNatives() {
 
         {filterTab !== "individual" && (
           <select value={sortMode} onChange={e => setSortMode(e.target.value)}
-            className="h-9 px-2 rounded-xl border border-border bg-background text-[13px] font-semibold focus:outline-none">
+            className="h-9 px-2 rounded-xl border border-border bg-background text-[13px] font-semibold focus:outline-none shrink-0">
             <option value="">Sort: Verified first</option>
             <option value="impact_score">Sort: Impact Score</option>
           </select>
@@ -489,12 +489,14 @@ export default function DashboardNatives() {
         {(sectorFilter || countryFilter || orgTypeFilter || verifiedOnly || sortMode || search) && (
           <button type="button"
             onClick={() => { setSectorFilter(""); setCountryFilter(""); setOrgTypeFilter(""); setVerifiedOnly(false); setSortMode(""); setSearch(""); }}
-            className={`h-9 px-3 rounded-xl border border-border text-[13px] ${CHARCOAL} hover:text-foreground transition-colors`}>
+            className={`h-9 px-3 rounded-xl border border-border text-[13px] ${CHARCOAL} hover:text-foreground transition-colors shrink-0`}>
             ✕ Clear
           </button>
         )}
       </div>
+      </div>
 
+      <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6 pb-10">
       {/* Cards feed */}
       {loading ? (
         <LoadingSpinner />
@@ -508,6 +510,7 @@ export default function DashboardNatives() {
           {sorted.map(e => <EcosystemCard key={`${e.entityType}-${e.id}`} entity={e} onClick={() => openEntity(e)} />)}
         </div>
       )}
+      </div>
 
       {/* Slide-over drawer */}
       {drawerEntity && (
@@ -527,7 +530,6 @@ export default function DashboardNatives() {
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 }
