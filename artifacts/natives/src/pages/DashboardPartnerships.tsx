@@ -290,18 +290,31 @@ export default function DashboardPartnerships() {
 
   return (
     <>
-      <div className="flex flex-col" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
-
-        <div className="flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)]">
-        {/* Top bar -- full width single row: search | filter pills | Get Matched */}
+      <div className="flex flex-col -mx-4 sm:-mx-6" style={{ height: "100vh", maxHeight: "100vh", overflow: "hidden" }}>
+        {/* Get Matched, desktop: a real strip above the whole layout, not
+            an absolute overlay -- the overlay collided with the right
+            rail's own collapse toggle, since both floated near the top of
+            the page. A strip pushes everything else down by its own
+            height instead, so it can never cover anything below it.
+            Gated by !loading like everything else. Mobile keeps the
+            original inline button below (lg:hidden), unchanged. */}
+        {!loading && user && (
+          <div className="hidden lg:flex shrink-0 justify-end px-5 py-2.5 border-b border-[#2D6A4F]/20 bg-background">
+            <button type="button" onClick={() => setShowModal(true)}
+              className="h-9 px-4 rounded-full text-white text-[13px] font-bold transition-all hover:brightness-110 active:scale-[0.98] shrink-0 whitespace-nowrap">
+              + Get Matched
+            </button>
+          </div>
+        )}
+        <div className="flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)] lg:grid-rows-[auto_auto_auto_minmax(0,1fr)]">
+        {/* Top bar */}
         {!loading && (
-        <div className="shrink-0 px-5 py-3 flex items-center gap-2 bg-background border-b border-[#2D6A4F]/20">
-          <div className="relative w-56 shrink-0">
+        <div className="shrink-0 px-5 py-3 flex flex-wrap items-center gap-2 bg-background border-b border-[#2D6A4F]/20 lg:flex-col lg:items-stretch lg:flex-nowrap lg:px-3 lg:border-r-2 lg:col-start-1 lg:row-start-2">
+          <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-black dark:text-white" />
             <input type="text" placeholder="Search listings..." value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full h-9 pl-9 pr-3 rounded-lg text-[13px] text-foreground placeholder:text-[#2D6A4F]/70 focus:outline-none focus:ring-2 focus:ring-[#452A1D]/25 transition-colors bg-card border border-[#2D6A4F]/20" />
-          </div>
+              className="w-full h-9 pl-9 pr-3 rounded-lg text-[13px] text-foreground placeholder:text-[#2D6A4F]/70 focus:outline-none focus:ring-2 focus:ring-[#452A1D]/25 transition-colors bg-card border border-[#2D6A4F]/20" />          </div>
           <div ref={filterBarRef} className="flex flex-wrap items-center gap-1 relative">
             {([
               {
@@ -438,10 +451,10 @@ export default function DashboardPartnerships() {
               </button>
             )}
           </div>
-          <div className="flex-1" />
+          <div className="flex-1 lg:hidden" />
           {user && (
             <button type="button" onClick={() => setShowModal(true)}
-              className="h-9 px-4 rounded-full text-white text-[13px] font-bold transition-all hover:brightness-110 active:scale-[0.98] shrink-0 whitespace-nowrap"
+              className="lg:hidden h-9 px-4 rounded-full text-white text-[13px] font-bold transition-all hover:brightness-110 active:scale-[0.98] shrink-0 whitespace-nowrap"
               style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
               + Get Matched
             </button>
@@ -459,7 +472,7 @@ export default function DashboardPartnerships() {
         )}
 
         {!loading && orgs.length > 0 && (
-          <div className={`shrink-0 border-b border-[#2D6A4F]/20 bg-background lg:col-start-1 lg:row-start-2 ${mobileDetailOpen ? "hidden lg:flex" : "flex"}`}>
+          <div className={`shrink-0 border-b border-[#2D6A4F]/20 bg-background lg:col-start-1 lg:row-start-3 ${mobileDetailOpen ? "hidden lg:flex" : "flex"}`}>
             <div className="w-full lg:w-[20rem] xl:w-[22rem] shrink-0 lg:border-r-2 border-[#2D6A4F]/20 px-3 py-2 flex items-center gap-1.5">
               {views.map(v => {
                 const on = listView === v.key;
@@ -493,7 +506,7 @@ export default function DashboardPartnerships() {
             <Loader2 className="w-5 h-5 animate-spin text-[#2D6A4F]" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center px-6 lg:col-span-2 lg:row-start-3">
+          <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center px-6 lg:col-span-2 lg:row-start-4">
             <Handshake className="w-7 h-7 text-[#2D6A4F]/50" />
             <div>
               <p className="text-[15px] font-bold text-foreground mb-1">{emptyCopy.title}</p>
@@ -502,7 +515,7 @@ export default function DashboardPartnerships() {
           </div>
         ) : (
           <div className="flex min-h-0 overflow-hidden lg:contents" style={{ flex: 1 }}>            {/* Left list */}
-            <div className={`w-full lg:w-auto shrink-0 overflow-y-auto min-h-0 space-y-3 px-3 py-3 lg:col-start-1 lg:row-start-3 border-r-2 border-[#2D6A4F]/20 bg-[#2D6A4F]/[0.04] ${mobileDetailOpen ? "hidden lg:block" : "block"}`}>
+            <div className={`w-full lg:w-auto shrink-0 overflow-y-auto min-h-0 space-y-3 px-3 py-3 lg:col-start-1 lg:row-start-4 border-r-2 border-[#2D6A4F]/20 bg-[#2D6A4F]/[0.04] ${mobileDetailOpen ? "hidden lg:block" : "block"}`}>
               {filtered.map((org: any) => (
                 <ListCard key={org.listing_id} org={org}
                   selected={selectedOrg?.listing_id === org.listing_id}
@@ -515,7 +528,7 @@ export default function DashboardPartnerships() {
             </div>
 
             {/* Right detail */}
-            <div className={`flex-1 min-w-0 min-h-0 overflow-y-auto lg:col-start-2 lg:row-start-1 lg:row-span-2 ${mobileDetailOpen ? "block" : "hidden lg:block"}`}>
+            <div className={`flex-1 min-w-0 min-h-0 overflow-y-auto lg:col-start-2 lg:row-start-2 lg:row-span-3 ${mobileDetailOpen ? "block" : "hidden lg:block"}`}>
               <OrgDetailPanel
                 org={selectedOrg}
                 isSaved={selectedOrg ? savedOrgs.has(selectedOrg.id) : false}
