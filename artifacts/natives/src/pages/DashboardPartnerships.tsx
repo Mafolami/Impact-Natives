@@ -290,7 +290,7 @@ export default function DashboardPartnerships() {
 
   return (
     <>
-      <div className="flex flex-col -mx-4 sm:-mx-6" style={{ height: "100vh", maxHeight: "100vh", overflow: "hidden" }}>
+      <div className="flex flex-col -mx-4 sm:-mx-6" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
         {/* Get Matched, desktop: a real strip above the whole layout, not
             an absolute overlay -- the overlay collided with the right
             rail's own collapse toggle, since both floated near the top of
