@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2, Plus, X, Clock, Eye, CheckCircle2, PartyPopper, ChevronDown } from "lucide-react";
+import { Loader2, Plus, X, Clock, Eye, CheckCircle2, PartyPopper, ChevronDown, MoreVertical } from "lucide-react";
 import {
   MouMilestone, OrgRef, isMilestoneOverdue,
 } from "@/lib/milestones";
@@ -59,13 +59,16 @@ export default function DashboardPortfolioMilestones() {
   const [pickerSearch, setPickerSearch] = useState("");
   const [pickedDocId, setPickedDocId] = useState<string>("");
   const [selectedMilestone, setSelectedMilestone] = useState<MouMilestone | null>(null);
-  // Sections with nothing outstanding (everything already disbursed)
-  // default to collapsed so the page doesn't turn into a long scroll of
-  // boards with no live activity. seenDocIds tracks which docs already had
-  // their default applied, so a person manually re-expanding one doesn't
-  // get overridden back to collapsed on the next data reload.
+  // Sections start collapsed except the first one -- so a portfolio of
+  // ~15 agreements reads as a scannable list of compact rows, not a wall
+  // of open kanban boards. Each row still toggles independently
+  // afterward; seenDocIds tracks which docs already had their default
+  // applied, so a person manually re-expanding one doesn't get overridden
+  // back to collapsed on the next data reload.
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const seenDocIds = useRef<Set<string>>(new Set());
+  // Which agreement's three-dot actions menu is open, if any.
+  const [openActionsId, setOpenActionsId] = useState<string | null>(null);
   // A single page-level switch, not a per-document one -- so what's on
   // screen is always one coherent thing (all Milestones or all
   // Indicators), never a mix of both kanban types visible at once under
@@ -75,6 +78,17 @@ export default function DashboardPortfolioMilestones() {
   const [allClaims, setAllClaims] = useState<ImpactClaim[]>([]);
 
   useEffect(() => { load(); }, [orgOwnerId]);
+
+  useEffect(() => {
+    if (!openActionsId) return;
+    function handleClick(e: MouseEvent) {
+      if (!(e.target as HTMLElement).closest('[data-actions-menu="true"]')) {
+        setOpenActionsId(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [openActionsId]);
 
   async function load() {
     if (!orgOwnerId) return;
@@ -256,10 +270,11 @@ export default function DashboardPortfolioMilestones() {
     return { orgA: orgMap[doc.org_a_id] ?? null, orgB: orgMap[doc.org_b_id] ?? null };
   }
 
-  // One board, reused whether it's rendering the single scoped agreement,
-  // the merged all-agreements view, or one section among several under a
-  // partner filter -- the columns/logic never change, only which
-  // milestones feed in.
+  // One board, reused whether it's rendering the single scoped agreement
+  // or one row among ~15 in the flat accordion list -- the columns/logic
+  // never change, only which milestones feed in. No column has its own
+  // scroll -- cards just flow, and the page itself is the only thing that
+  // scrolls.
   function KanbanBoard({ items }: { items: MouMilestone[] }) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -291,13 +306,9 @@ export default function DashboardPortfolioMilestones() {
     );
   }
 
-  // Always sectioned now -- one Kanban per agreement, grouped under its
-  // partner. A partner with several agreements gets its name shown once,
-  // then each agreement's title + board stacked underneath with just
-  // spacing between them; the thick divider is reserved for moving to a
-  // genuinely different partner, not between two agreements with the same
-  // one. Scoped to one agreement, this collapses to a single group with a
-  // single agreement in it -- same code path, no special case needed.
+  // Flat, sorted list of agreements to render as accordion rows -- one row
+  // per agreement, no partner-group headers. Sorted by partner name then
+  // title, same ordering the original grouped view used.
   const sectionDocs = useMemo(() => {
     const relevantSet = pageView === "milestones" ? docsWithAnyMilestone : docsWithAnyIndicator;
     const base = scopedDocId
@@ -310,40 +321,27 @@ export default function DashboardPortfolioMilestones() {
     });
   }, [docs, scopedDocId, pageView, docsWithAnyMilestone, docsWithAnyIndicator, orgMap, initiativeTitleMap, connectionListingMap, myOrgId]);
 
-  const partnerGroups = useMemo(() => {
-    const groups: { partnerId: string; partnerName: string; docs: ExecutedDoc[] }[] = [];
-    for (const doc of sectionDocs) {
-      const partnerId = partnerOrgIdFor(doc);
-      const partnerName = orgMap[partnerId]?.organisation_name ?? "Partner";
-      const last = groups[groups.length - 1];
-      if (last && last.partnerId === partnerId) {
-        last.docs.push(doc);
-      } else {
-        groups.push({ partnerId, partnerName, docs: [doc] });
-      }
-    }
-    return groups;
-  }, [sectionDocs, orgMap, myOrgId]);
-
-  // Auto-collapse any agreement with nothing outstanding (every milestone
-  // already disbursed) the first time it's seen, so a long history of
-  // fully-settled agreements doesn't turn the page into dead scroll. Never
-  // applied to a scoped single agreement -- if someone picked it via
+  // Default: only the FIRST agreement in the list starts expanded, every
+  // other one starts collapsed -- a portfolio of ~15 agreements reads as
+  // a scannable list rather than a wall of open boards. Each row still
+  // toggles independently afterward (collapsedIds stays a plain Set), and
+  // a doc already seen once never gets its default reapplied, so manually
+  // re-expanding one doesn't get silently undone on the next data reload.
+  // Never applied to a scoped single agreement -- if someone picked it via
   // Viewing, they want to see it, not have it hide itself.
   useEffect(() => {
     if (scopedDocId) return;
     setCollapsedIds((prev) => {
       let changed = false;
       const next = new Set(prev);
-      for (const doc of sectionDocs) {
-        if (seenDocIds.current.has(doc.id)) continue;
+      sectionDocs.forEach((doc, i) => {
+        if (seenDocIds.current.has(doc.id)) return;
         seenDocIds.current.add(doc.id);
-        const hasOutstanding = milestones.some((m) => m.mou_document_id === doc.id && m.status !== "disbursed");
-        if (!hasOutstanding) { next.add(doc.id); changed = true; }
-      }
+        if (i > 0) { next.add(doc.id); changed = true; }
+      });
       return changed ? next : prev;
     });
-  }, [sectionDocs, milestones, scopedDocId]);
+  }, [sectionDocs, scopedDocId]);
 
   function toggleCollapse(docId: string) {
     setCollapsedIds((prev) => {
@@ -380,113 +378,51 @@ export default function DashboardPortfolioMilestones() {
   // real figures still belong.
   const showFinancialTiles = !scopedDoc || isBindingDoc(scopedDoc);
 
+  const noItemsYet = pageView === "milestones" ? milestones.length === 0 : allIndicators.length === 0;
+  const noItemsForScope = !noItemsYet && sectionDocs.length === 0;
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <button type="button"
-          onClick={() => { setPickerMode("view"); setPickedDocId(scopedDocId ?? ""); setPickerSearch(""); setShowPicker(true); }}
-          className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-[15px] text-black dark:text-white hover:border-[#2D6A4F]/40 transition-colors">
-          <span>Viewing:</span>
-          <span className="font-semibold">{scopedTitle ?? "All agreements"}</span>
-          <ChevronDown className="w-3.5 h-3.5" />
-        </button>
-        {scopedDocId && (
-          <button type="button" onClick={() => { setScopedDocId(null); navigate("/dashboard/portfolio/milestones"); }}
-            className="flex items-center gap-1 text-[15px] text-black dark:text-white hover:underline">
-            <X className="w-3.5 h-3.5" /> View all
-          </button>
-        )}
-      </div>
-      {/* Single global switch governing every section and the stat tiles
-          below -- never a per-document toggle, so the page is always
-          showing one coherent thing. */}
-      <div className="flex items-center gap-1 rounded-full border-2 border-[#2D6A4F] p-1 w-fit">
-        <button type="button" onClick={() => setPageView("milestones")}
-          className={`px-5 py-2 rounded-full text-[15px] font-bold transition-colors ${pageView === "milestones" ? "bg-[#2D6A4F] text-white" : "text-[#2D6A4F]"}`}>
-          Milestones
-        </button>
-        <button type="button" onClick={() => setPageView("indicators")}
-          className={`px-5 py-2 rounded-full text-[15px] font-bold transition-colors ${pageView === "indicators" ? "bg-[#2D6A4F] text-white" : "text-[#2D6A4F]"}`}>
-          Indicators
-        </button>
-      </div>
+    <div className="flex flex-col -mt-10 -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
+      <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6 pb-10">
 
-      {/* Tiles now reflect the current scope -- whole portfolio when
-          unscoped, just this agreement's numbers when scoped -- so they
-          stay visible in both states rather than disappearing on scope.
-          When financial tiles are hidden (non-binding), the remaining two
-          each span half the grid instead of shrinking into a narrow
-          left-aligned block with dead space on the right. */}
-          {pageView === "milestones" ? (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {showFinancialTiles && (
-            <>
-              <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
-                <p className="text-[13px] text-black dark:text-white mb-1">Total committed</p>
-                <p className="text-[21px] font-medium text-black dark:text-white">{formatCurrencyTotals(stats.totalCommitted)}</p>
-              </div>
-              <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
-                <p className="text-[13px] text-black dark:text-white mb-1">Disbursed</p>
-                <p className="text-[21px] font-medium text-black dark:text-white">{formatCurrencyTotals(stats.disbursed)}</p>
-              </div>
-            </>
-          )}
-          <div className={`rounded-xl p-4 bg-white dark:bg-card border border-border ${!showFinancialTiles ? "sm:col-span-2" : ""}`}>
-            <p className="text-[13px] text-black dark:text-white mb-1">On track</p>
-            <p className="text-[21px] font-medium text-black dark:text-white">{stats.onTrack}</p>
+        {/* Sticky header: title, controls, KPI tiles -- one real scroll
+            container (this div) sits above it, so sticky has something
+            genuine to pin against. */}
+        <div className="sticky top-0 z-20 bg-background pt-6 pb-4 space-y-4 border-b border-border">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">Traction</h1>
+            <p className="text-[15px] text-black dark:text-white mt-0.5">
+              Track milestones and outcome indicators across your executed agreements.
+            </p>
           </div>
-          <div className={`rounded-xl p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 ${!showFinancialTiles ? "sm:col-span-2" : ""}`}>
-            <p className="text-[13px] text-amber-600 dark:text-amber-500 mb-1">Overdue</p>
-            <p className="text-[21px] font-medium text-amber-600 dark:text-amber-500">{stats.overdue}</p>
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
-            <p className="text-[13px] text-black dark:text-white mb-1">Agreed</p>
-            <p className="text-[21px] font-medium text-black dark:text-white">{indicatorStats.agreedCount}</p>
-          </div>
-          <div className="rounded-xl p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
-            <p className="text-[13px] text-amber-600 dark:text-amber-500 mb-1">Awaiting evidence</p>
-            <p className="text-[21px] font-medium text-amber-600 dark:text-amber-500">{indicatorStats.awaitingEvidence}</p>
-          </div>
-          <div className="rounded-xl p-4 bg-[#2D6A4F]/[0.06] border border-[#2D6A4F]/20">
-            <p className="text-[13px] text-[#2D6A4F] mb-1">Verified</p>
-            <p className="text-[21px] font-medium text-[#2D6A4F]">{indicatorStats.verified}</p>
-          </div>
-          <div className="rounded-xl p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40">
-            <p className="text-[13px] text-red-600 dark:text-red-500 mb-1">In dispute</p>
-            <p className="text-[21px] font-medium text-red-600 dark:text-red-500">{indicatorStats.inDispute}</p>
-          </div>
-        </div>
-      )}
-      {pageView === "milestones" && !scopedDocId && (
-        <div className="flex justify-end">
-          <button type="button" onClick={() => { setPickerMode("create"); setPickedDocId(""); setPickerSearch(""); setShowPicker(true); }}
-            className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-medium transition-colors">
-            <Plus className="w-4 h-4" /> New milestone
-          </button>
-        </div>
-      )}
 
-{pageView === "milestones" && scopedDocId && (
-        <div className="flex justify-end">
-          <button type="button" onClick={() => setPickedDocId(scopedDocId)}
-            className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-medium transition-colors">
-            <Plus className="w-4 h-4" /> New milestone
-          </button>
-        </div>
-      )}
-      {(pageView === "milestones" ? milestones.length === 0 : allIndicators.length === 0) ? (
-        <p className="text-[15px] text-black dark:text-white">
-          {pageView === "milestones"
-            ? "No milestones yet. Use the button above to add one against an executed MoU."
-            : "No outcome indicators yet. Add them from the MoU document while it's still in progress."}
-        </p>
-      ) : (
-        <>
-          {pageView === "milestones" && (
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button type="button"
+              onClick={() => { setPickerMode("view"); setPickedDocId(scopedDocId ?? ""); setPickerSearch(""); setShowPicker(true); }}
+              className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-[15px] text-black dark:text-white hover:border-[#2D6A4F]/40 transition-colors">
+              <span>Viewing:</span>
+              <span className="font-semibold">{scopedTitle ?? "All agreements"}</span>
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+            {scopedDocId && (
+              <button type="button" onClick={() => { setScopedDocId(null); navigate("/dashboard/portfolio/milestones"); }}
+                className="flex items-center gap-1 text-[15px] text-black dark:text-white hover:underline">
+                <X className="w-3.5 h-3.5" /> View all
+              </button>
+            )}
+
+            <div className="flex items-center gap-1 rounded-full border-2 border-[#2D6A4F] p-1">
+              <button type="button" onClick={() => setPageView("milestones")}
+                className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-colors ${pageView === "milestones" ? "bg-[#2D6A4F] text-white" : "text-[#2D6A4F]"}`}>
+                Milestones
+              </button>
+              <button type="button" onClick={() => setPageView("indicators")}
+                className={`px-4 py-1.5 rounded-full text-[13px] font-bold transition-colors ${pageView === "indicators" ? "bg-[#2D6A4F] text-white" : "text-[#2D6A4F]"}`}>
+                Indicators
+              </button>
+            </div>
+
+            {pageView === "milestones" && (
               <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
                 className="h-9 px-3 rounded-lg border border-border bg-transparent text-[15px] text-black dark:text-white">
                 <option value="all">All statuses</option>
@@ -496,55 +432,152 @@ export default function DashboardPortfolioMilestones() {
                 <option value="verified">Verified</option>
                 <option value="disbursed">Disbursed</option>
               </select>
+            )}
+
+            <div className="flex-1" />
+
+            {pageView === "milestones" && (
+              <button type="button"
+                onClick={() => {
+                  if (scopedDocId) { setPickedDocId(scopedDocId); }
+                  else { setPickerMode("create"); setPickedDocId(""); setPickerSearch(""); setShowPicker(true); }
+                }}
+                className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-medium transition-colors shrink-0">
+                <Plus className="w-4 h-4" /> New milestone
+              </button>
+            )}
+          </div>
+
+          {pageView === "milestones" ? (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {showFinancialTiles && (
+                <>
+                  <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
+                    <p className="text-[13px] text-black dark:text-white mb-1">Total committed</p>
+                    <p className="text-[21px] font-medium text-black dark:text-white">{formatCurrencyTotals(stats.totalCommitted)}</p>
+                  </div>
+                  <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
+                    <p className="text-[13px] text-black dark:text-white mb-1">Disbursed</p>
+                    <p className="text-[21px] font-medium text-black dark:text-white">{formatCurrencyTotals(stats.disbursed)}</p>
+                  </div>
+                </>
+              )}
+              <div className={`rounded-xl p-4 bg-white dark:bg-card border border-border ${!showFinancialTiles ? "sm:col-span-2" : ""}`}>
+                <p className="text-[13px] text-black dark:text-white mb-1">On track</p>
+                <p className="text-[21px] font-medium text-black dark:text-white">{stats.onTrack}</p>
+              </div>
+              <div className={`rounded-xl p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 ${!showFinancialTiles ? "sm:col-span-2" : ""}`}>
+                <p className="text-[13px] text-amber-600 dark:text-amber-500 mb-1">Overdue</p>
+                <p className="text-[21px] font-medium text-amber-600 dark:text-amber-500">{stats.overdue}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="rounded-xl p-4 bg-white dark:bg-card border border-border">
+                <p className="text-[13px] text-black dark:text-white mb-1">Agreed</p>
+                <p className="text-[21px] font-medium text-black dark:text-white">{indicatorStats.agreedCount}</p>
+              </div>
+              <div className="rounded-xl p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
+                <p className="text-[13px] text-amber-600 dark:text-amber-500 mb-1">Awaiting evidence</p>
+                <p className="text-[21px] font-medium text-amber-600 dark:text-amber-500">{indicatorStats.awaitingEvidence}</p>
+              </div>
+              <div className="rounded-xl p-4 bg-[#2D6A4F]/[0.06] border border-[#2D6A4F]/20">
+                <p className="text-[13px] text-[#2D6A4F] mb-1">Verified</p>
+                <p className="text-[21px] font-medium text-[#2D6A4F]">{indicatorStats.verified}</p>
+              </div>
+              <div className="rounded-xl p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40">
+                <p className="text-[13px] text-red-600 dark:text-red-500 mb-1">In dispute</p>
+                <p className="text-[21px] font-medium text-red-600 dark:text-red-500">{indicatorStats.inDispute}</p>
+              </div>
             </div>
           )}
-          {partnerGroups.length === 0 ? (
+        </div>
+
+        {/* Flat accordion list -- one full-width row per agreement, no
+            partner-group wrapper. Only the page itself scrolls; expanded
+            rows just push the rows below them further down. */}
+        <div className="space-y-3 pt-4">
+          {noItemsYet ? (
+            <p className="text-[15px] text-black dark:text-white">
+              {pageView === "milestones"
+                ? "No milestones yet. Use the button above to add one against an executed MoU."
+                : "No outcome indicators yet. Add them from the MoU document while it's still in progress."}
+            </p>
+          ) : noItemsForScope ? (
             <p className="text-[15px] text-black dark:text-white">
               {pageView === "milestones" ? "No milestones for this agreement yet." : "No indicators for this agreement yet."}
             </p>
           ) : (
-            <div className="space-y-8">
-              {partnerGroups.map((group, gi) => (
-                <div key={group.partnerId}>
-                  {gi > 0 && <div className="h-[3px] bg-border rounded-full mb-8" />}
-                  <p className="text-[17px] font-semibold text-black dark:text-white mb-4">{group.partnerName}</p>
-                  <div className="space-y-6">
-                    {group.docs.map((doc) => {
-                      const title = docTitle(doc) ?? "Partnership";
-                      const docItems = statusFiltered.filter((m) => m.mou_document_id === doc.id);
-                      const docIndicatorCount = allIndicators.filter((i) => i.mou_document_id === doc.id).length;
-                      const sectionCount = pageView === "milestones" ? docItems.length : docIndicatorCount;
-                      const isCollapsed = !scopedDocId && collapsedIds.has(doc.id);
-                      return (
-                        <div key={doc.id}>
-                          <button type="button" onClick={() => toggleCollapse(doc.id)}
-                            className="flex items-center gap-2 text-left group mb-2">
-                            <ChevronDown className={`w-3.5 h-3.5 text-black dark:text-white transition-transform shrink-0 ${isCollapsed ? "-rotate-90" : ""}`} />
-                            <p className="text-[15px] text-black dark:text-white group-hover:underline">{title}</p>
-                            {isCollapsed && (
-                              <span className="text-[13px] text-black dark:text-white">({sectionCount})</span>
-                            )}
+            sectionDocs.map((doc) => {
+              const partnerName = orgMap[partnerOrgIdFor(doc)]?.organisation_name ?? "Partner";
+              const title = docTitle(doc) ?? "Partnership";
+              const docItems = statusFiltered.filter((m) => m.mou_document_id === doc.id);
+              const docIndicatorCount = allIndicators.filter((ind) => ind.mou_document_id === doc.id).length;
+              const sectionCount = pageView === "milestones" ? docItems.length : docIndicatorCount;
+              const isCollapsed = !scopedDocId && collapsedIds.has(doc.id);
+              const countLabel = pageView === "milestones"
+                ? `${sectionCount} ${sectionCount === 1 ? "milestone" : "milestones"}`
+                : `${sectionCount} ${sectionCount === 1 ? "indicator" : "indicators"}`;
+              return (
+                <div key={doc.id} className="rounded-xl border border-border bg-white dark:bg-card overflow-hidden">
+                  <div className="flex items-center gap-3 px-5 py-4">
+                    <button type="button" onClick={() => toggleCollapse(doc.id)}
+                      className="flex items-center gap-3 flex-1 min-w-0 text-left group">
+                      <ChevronDown className={`w-4 h-4 text-black dark:text-white transition-transform shrink-0 ${isCollapsed ? "-rotate-90" : ""}`} />
+                      <div className="min-w-0">
+                        <p className="text-[15px] font-semibold text-foreground truncate group-hover:underline">{partnerName}</p>
+                        <p className="text-[13px] text-black dark:text-white truncate">{title}</p>
+                      </div>
+                    </button>
+                    <span className="text-[13px] font-semibold text-black dark:text-white shrink-0 whitespace-nowrap">
+                      {countLabel}
+                    </span>
+                    <div className="relative shrink-0" data-actions-menu="true">
+                      <button type="button" onClick={() => setOpenActionsId(openActionsId === doc.id ? null : doc.id)}
+                        className="p-1.5 rounded-lg hover:bg-muted transition-colors text-black dark:text-white">
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+                      {openActionsId === doc.id && (
+                        <div className="absolute right-0 top-full mt-1 z-30 w-56 rounded-lg border border-border bg-white dark:bg-card shadow-lg py-1">
+                          <button type="button"
+                            onClick={() => {
+                              setOpenActionsId(null);
+                              setScopedDocId(doc.id);
+                              navigate(`/dashboard/portfolio/milestones?mouId=${doc.id}`);
+                            }}
+                            className="w-full text-left px-3 py-2 text-[14px] text-foreground hover:bg-muted transition-colors">
+                            View only this agreement
                           </button>
-                          {!isCollapsed && (pageView === "milestones" ? <KanbanBoard items={docItems} /> : (
-                            userId ? (
-                              <IndicatorsBoard
-                                mouDocumentId={doc.id}
-                                orgA={orgMap[doc.org_a_id] ?? null}
-                                orgB={orgMap[doc.org_b_id] ?? null}
-                                myUserId={userId}
-                              />
-                            ) : null
-                          ))}
                         </div>
-                      );
-                    })}
+                      )}
+                    </div>
                   </div>
+                  {!isCollapsed && (
+                    <div className="px-5 pb-5 pt-1 border-t border-border">
+                      {pageView === "milestones" ? (
+                        <div className="pt-4">
+                          <KanbanBoard items={docItems} />
+                        </div>
+                      ) : (
+                        userId ? (
+                          <div className="pt-4">
+                            <IndicatorsBoard
+                              mouDocumentId={doc.id}
+                              orgA={orgMap[doc.org_a_id] ?? null}
+                              orgB={orgMap[doc.org_b_id] ?? null}
+                              myUserId={userId}
+                            />
+                          </div>
+                        ) : null
+                      )}
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
+              );
+            })
           )}
-        </>
-      )}
+        </div>
+      </div>
 
       {showPicker && (
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowPicker(false)}>
