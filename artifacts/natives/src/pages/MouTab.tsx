@@ -291,70 +291,70 @@ export default function MouTab() {
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col -mt-10 -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
-      <div className="flex-1 min-h-0 overflow-y-auto pt-6 pb-10 -mr-6 pr-6">
+      <div className="shrink-0 -mx-4 sm:-mx-6">
+        <div className="flex flex-wrap items-center gap-2 px-4 sm:px-6 pt-6 pb-4">
+          {docs.length > 0 && (
+            <>
+              <div className="relative flex-1 min-w-[180px] max-w-xs">
+                <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                <input type="text" placeholder="Search partner or title" value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 transition-colors" />
+              </div>
+              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                className="h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none">
+                <option value="all">All statuses</option>
+                <option value="draft">Draft</option>
+                <option value="in_progress">In progress</option>
+                <option value="fully_executed">Fully executed</option>
+              </select>
+              <button type="button" onClick={openSelectPicker}
+                className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-sm text-foreground hover:border-[#2D6A4F]/40 transition-colors shrink-0">
+                <ListFilter className="w-3.5 h-3.5" />
+                {selectedDocIds ? `${selectedDocIds.size} selected` : "Select MoUs"}
+              </button>
+              {selectedDocIds && (
+                <button type="button" onClick={() => setSelectedDocIds(null)}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0">
+                  Clear
+                </button>
+              )}
+            </>
+          )}
+          <div className="flex-1" />
+          <button type="button" onClick={openPicker}
+            className="flex items-center gap-1.5 h-10 px-5 rounded-full text-white text-sm font-bold transition-all hover:brightness-110 active:scale-[0.98] shrink-0"
+            style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
+            <Plus className="w-4 h-4" /> New MoU
+          </button>
+        </div>
+
+        {/* Stat cards — original 3-column grid */}
+        <div className="grid grid-cols-3 gap-3 px-4 sm:px-6 pb-5 sm:max-w-md">
+          <div className="rounded-xl p-3.5 bg-muted border border-border">
+            <p className="text-lg font-black text-foreground leading-none">{docs.length}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-foreground mt-1.5">Total</p>
+          </div>
+          <div className="rounded-xl p-3.5 bg-muted border border-border">
+            <p className="text-lg font-black text-[#C45C26] leading-none">
+              {docs.filter((d) => d.status !== "draft" && d.status !== "fully_executed").length}
+            </p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-foreground mt-1.5">In progress</p>
+          </div>
+          <div className="rounded-xl p-3.5 bg-muted border border-border">
+            <p className="text-lg font-black text-[#2D6A4F] leading-none">
+              {docs.filter((d) => d.status === "fully_executed").length}
+            </p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-foreground mt-1.5">Executed</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto pb-10 -mr-6 pr-6">
         <div className="space-y-0 -mx-4 sm:-mx-6">
 
-          {/* Top bar — New MoU button */}
-      <div className="flex items-center justify-end px-4 sm:px-6 pb-4">
-        <button type="button" onClick={openPicker}
-          className="flex items-center gap-1.5 h-10 px-5 rounded-full text-white text-sm font-bold transition-all hover:brightness-110 active:scale-[0.98] shrink-0"
-          style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
-          <Plus className="w-4 h-4" /> New MoU
-        </button>
-      </div>
-
-      {/* Stat cards — original 3-column grid */}
-      <div className="grid grid-cols-3 gap-3 px-4 sm:px-6 pb-5 sm:max-w-md">
-        <div className="rounded-xl p-3.5 bg-muted border border-border">
-          <p className="text-lg font-black text-foreground leading-none">{docs.length}</p>
-          <p className="text-[10px] font-bold uppercase tracking-wide text-foreground mt-1.5">Total</p>
-        </div>
-        <div className="rounded-xl p-3.5 bg-muted border border-border">
-          <p className="text-lg font-black text-[#C45C26] leading-none">
-            {docs.filter((d) => d.status !== "draft" && d.status !== "fully_executed").length}
-          </p>
-          <p className="text-[10px] font-bold uppercase tracking-wide text-foreground mt-1.5">In progress</p>
-        </div>
-        <div className="rounded-xl p-3.5 bg-muted border border-border">
-          <p className="text-lg font-black text-[#2D6A4F] leading-none">
-            {docs.filter((d) => d.status === "fully_executed").length}
-          </p>
-          <p className="text-[10px] font-bold uppercase tracking-wide text-foreground mt-1.5">Executed</p>
-        </div>
-      </div>
-
-      {/* Filters — sit beneath stat cards */}
-      {docs.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 px-4 sm:px-6 pb-5">
-          <div className="relative flex-1 min-w-[180px] max-w-xs">
-            <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-            <input type="text" placeholder="Search partner or title" value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 transition-colors" />
-          </div>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-            className="h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none">
-            <option value="all">All statuses</option>
-            <option value="draft">Draft</option>
-            <option value="in_progress">In progress</option>
-            <option value="fully_executed">Fully executed</option>
-          </select>
-          <button type="button" onClick={openSelectPicker}
-            className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-sm text-foreground hover:border-[#2D6A4F]/40 transition-colors shrink-0">
-            <ListFilter className="w-3.5 h-3.5" />
-            {selectedDocIds ? `${selectedDocIds.size} selected` : "Select MoUs"}
-          </button>
-          {selectedDocIds && (
-            <button type="button" onClick={() => setSelectedDocIds(null)}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0">
-              Clear
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Full-width top divider — cream light / black dark */}
-      <div className="h-2 w-full bg-[#F5F0E8] dark:bg-black" />
+          {/* Full-width top divider — cream light / black dark */}
+          <div className="h-2 w-full bg-[#F5F0E8] dark:bg-black" />
 
       {docs.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 gap-4 text-center px-4 sm:px-6">
