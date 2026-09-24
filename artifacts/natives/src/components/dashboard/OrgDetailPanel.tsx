@@ -1274,7 +1274,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
   const wide = useMinWidth(RAIL_MIN_WIDTH);
 
   useEffect(() => {
-    if (org && ref.current) ref.current.scrollTop = 0;
+    if (org && ref.current) ref.current.scrollIntoView({ block: "start" });
     setFit(null);
     setFitLocked(false);
     setFitNoListing(false);
@@ -1424,7 +1424,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
   // Wide: the header card sits in the main column and the sidebar runs from the very top beside it.
   if (wide) {
     return (
-      <div ref={ref} className="h-full overflow-y-auto bg-background">
+      <div ref={ref} className="h-full bg-background">
         <div className={`grid gap-6 pr-6 py-6 items-start ${railCollapsed ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[minmax(0,1fr)_340px]"}`}>
           <div className="min-w-0">
             <div className="ml-8 mb-6 rounded-xl border border-[#2D6A4F]/20 px-8 py-6 min-h-[150px] flex flex-col justify-center" style={HEADER_STYLE}>
@@ -1454,7 +1454,7 @@ export function OrgDetailPanel({ org, isSaved, onToggleSave, isOrg, alreadySent,
   }
 
   return (
-    <div ref={ref} className="flex flex-col h-full overflow-y-auto bg-background">
+    <div ref={ref} className="flex flex-col h-full bg-background">
       <div className="shrink-0 px-8 pt-6 pb-6 min-h-[130px] flex flex-col justify-center" style={HEADER_STYLE}>
         {backLabel && (
           <div className="flex justify-between mb-4 lg:hidden">
