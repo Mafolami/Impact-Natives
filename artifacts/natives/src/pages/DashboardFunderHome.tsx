@@ -469,9 +469,10 @@ export default function FunderHome({ profile }: { profile: any }) {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col -mt-10 -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
+      <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6 pt-6 pb-10 space-y-8">
 
-      {/* Header */}
+        {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <p className="text-[13px] text-black dark:text-white mb-1 uppercase tracking-widest">{greeting}</p>
@@ -825,6 +826,7 @@ export default function FunderHome({ profile }: { profile: any }) {
         </section>
       </div>
 
+      </div>
     </div>
   );
 }
