@@ -291,7 +291,7 @@ export default function MouTab() {
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col -mt-10 -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
-      <div className="flex-1 min-h-0 overflow-y-auto pt-6 pb-10">
+      <div className="flex-1 min-h-0 overflow-y-auto pt-6 pb-10 -mr-6 pr-6">
         <div className="space-y-0 -mx-4 sm:-mx-6">
 
           {/* Top bar — New MoU button */}
