@@ -301,7 +301,8 @@ export default function DashboardPartnerships() {
         {!loading && user && (
           <div className="hidden lg:flex shrink-0 justify-end px-5 py-2.5 border-b border-[#2D6A4F]/20 bg-background">
             <button type="button" onClick={() => setShowModal(true)}
-              className="h-9 px-4 rounded-full text-white text-[13px] font-bold transition-all hover:brightness-110 active:scale-[0.98] shrink-0 whitespace-nowrap">
+              className="h-9 px-4 rounded-full text-white text-[13px] font-bold transition-all hover:brightness-110 active:scale-[0.98] shrink-0 whitespace-nowrap"
+              style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
               + Get Matched
             </button>
           </div>
