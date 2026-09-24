@@ -656,7 +656,7 @@ export function FindPartnerModalDashboard({
         // identical to someone with no organisation at all.
         supabase.from("organizations").select(`
           id,organisation_name,description,sector,country,organisation_type,needs,offers,sdgs,
-          website,email,verification_status,partnership_formed,subscription_tier,
+          website,verification_status,partnership_formed,subscription_tier,
           dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,
           dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,
           dd_legal_registration,dd_legal_compliance_declaration,
