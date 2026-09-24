@@ -753,8 +753,8 @@ export default function DashboardMarketplace() {
     );
   }
   return (
-    <div className="flex flex-col -mt-6 -mb-10" style={{ height: "calc(100vh - 97px)", maxHeight: "calc(100vh - 97px)", overflow: "hidden" }}>
-      <div className="shrink-0 space-y-4 pb-4">
+    <div className="flex flex-col -mt-10 -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pb-4">
         <div className="flex items-center justify-end">
           <button type="button" onClick={() => setShowCreateModal(true)}
             className="rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-medium transition-colors shrink-0">
@@ -869,8 +869,6 @@ export default function DashboardMarketplace() {
             {showSaved ? " saved" : showPassed ? " passed" : activeFilterCount > 0 ? " matching filters" : ""}
           </p>
         )}
-      </div>
-      <div className="flex-1 min-h-0 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
