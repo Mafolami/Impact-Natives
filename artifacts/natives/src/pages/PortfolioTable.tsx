@@ -504,7 +504,7 @@ function OutcomeEditor({ row, currentUserId, onClose, onSaved }: {
   );
 }
 
-export function PortfolioTable() {
+export function usePortfolioTableController() {
   const { user, orgOwnerId } = useAuth();
   const [, navigate] = useLocation();
   const [rows, setRows] = useState<PortfolioRow[]>([]);
@@ -672,6 +672,75 @@ export function PortfolioTable() {
     setActioningId(null);
   }
 
+  return {
+    rows, loading, search, setSearch, typeFilter, setTypeFilter, directionFilter, setDirectionFilter,
+    statusFilter, setStatusFilter, statusOptions, filteredSorted, sortKey, sortDir, toggleSort,
+    actioningId, editingListing, setEditingListing, outcomeEditingRow, setOutcomeEditingRow,
+    timelineRow, setTimelineRow, notesRow, setNotesRow,
+    handleAccept, handleDecline, handleUnlist, handleRelist, handleMarkFormed, mouHrefFor, load, user,
+  };
+}
+
+export function PortfolioTableFilters({
+  search, setSearch, typeFilter, setTypeFilter, directionFilter, setDirectionFilter,
+  statusFilter, setStatusFilter, statusOptions, filteredCount, totalCount,
+}: {
+  search: string; setSearch: (v: string) => void;
+  typeFilter: "all" | PortfolioRowType; setTypeFilter: (v: "all" | PortfolioRowType) => void;
+  directionFilter: "all" | PortfolioDirection; setDirectionFilter: (v: "all" | PortfolioDirection) => void;
+  statusFilter: string; setStatusFilter: (v: string) => void;
+  statusOptions: string[]; filteredCount: number; totalCount: number;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="relative flex-1 min-w-[200px] max-w-xs">
+        <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Filter by title or organisation..."
+          className="w-full h-9 pl-8 pr-3 rounded-lg border border-border bg-card text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+        />
+      </div>
+      <select value={typeFilter} onChange={e => setTypeFilter(e.target.value as any)}
+        className="h-9 px-3 rounded-lg border border-border bg-card text-sm text-foreground">
+        <option value="all">All types</option>
+        <option value="Initiative">Initiative</option>
+        <option value="Partnership">Partnership</option>
+      </select>
+      <select value={directionFilter} onChange={e => setDirectionFilter(e.target.value as any)}
+        className="h-9 px-3 rounded-lg border border-border bg-card text-sm text-foreground">
+        <option value="all">All directions</option>
+        <option value="Mine">Mine</option>
+        <option value="Outbound">Outbound</option>
+        <option value="Inbound">Inbound</option>
+      </select>
+      <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+        className="h-9 px-3 rounded-lg border border-border bg-card text-sm text-foreground">
+        {statusOptions.map(s => (
+          <option key={s} value={s}>{s === "all" ? "All statuses" : s}</option>
+        ))}
+      </select>
+      <span className="text-xs text-black dark:text-white whitespace-nowrap">
+        {filteredCount} of {totalCount}
+      </span>
+    </div>
+  );
+}
+
+export function PortfolioTableBody({
+  loading, filteredSorted, sortKey, sortDir, toggleSort, actioningId,
+  handleAccept, handleDecline, handleUnlist, handleRelist, handleMarkFormed, mouHrefFor,
+  setOutcomeEditingRow, setTimelineRow, setNotesRow, setEditingListing,
+}: {
+  loading: boolean; filteredSorted: PortfolioRow[]; sortKey: SortKey; sortDir: SortDir;
+  toggleSort: (key: SortKey) => void; actioningId: string | null;
+  handleAccept: (row: PortfolioRow) => void; handleDecline: (row: PortfolioRow) => void;
+  handleUnlist: (row: PortfolioRow) => void; handleRelist: (row: PortfolioRow) => void;
+  handleMarkFormed: (row: PortfolioRow) => void; mouHrefFor: (row: PortfolioRow) => string | null;
+  setOutcomeEditingRow: (row: PortfolioRow | null) => void; setTimelineRow: (row: PortfolioRow | null) => void;
+  setNotesRow: (row: PortfolioRow | null) => void; setEditingListing: (id: string | null) => void;
+}) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -689,43 +758,7 @@ export function PortfolioTable() {
   );
 
   return (
-    <div className="space-y-4">
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[200px] max-w-xs">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Filter by title or organisation..."
-            className="w-full h-9 pl-8 pr-3 rounded-lg border border-border bg-card text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
-          />
-        </div>
-        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value as any)}
-          className="h-9 px-3 rounded-lg border border-border bg-card text-sm text-foreground">
-          <option value="all">All types</option>
-          <option value="Initiative">Initiative</option>
-          <option value="Partnership">Partnership</option>
-        </select>
-        <select value={directionFilter} onChange={e => setDirectionFilter(e.target.value as any)}
-          className="h-9 px-3 rounded-lg border border-border bg-card text-sm text-foreground">
-          <option value="all">All directions</option>
-          <option value="Mine">Mine</option>
-          <option value="Outbound">Outbound</option>
-          <option value="Inbound">Inbound</option>
-        </select>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-          className="h-9 px-3 rounded-lg border border-border bg-card text-sm text-foreground">
-          {statusOptions.map(s => (
-            <option key={s} value={s}>{s === "all" ? "All statuses" : s}</option>
-          ))}
-        </select>
-        <span className="text-xs text-black dark:text-white ml-auto whitespace-nowrap">
-          {filteredSorted.length} of {rows.length}
-        </span>
-      </div>
-
-      {/* Table */}
+    <>
       {filteredSorted.length === 0 ? (
         <div className="rounded-2xl border border-border bg-white dark:bg-card p-12 text-center">
           <p className="text-black dark:text-white font-medium mb-1">No matching rows.</p>
@@ -850,29 +883,56 @@ export function PortfolioTable() {
           </table>
         </div>
       )}
+    </>
+  );
+}
 
+export function PortfolioTableModals({ c }: { c: ReturnType<typeof usePortfolioTableController> }) {
+  return (
+    <>
       <FindPartnerModalDashboard
-        isOpen={!!editingListing}
-        editListingId={editingListing}
-        onClose={() => { setEditingListing(null); load(false); }}
+        isOpen={!!c.editingListing}
+        editListingId={c.editingListing}
+        onClose={() => { c.setEditingListing(null); c.load(false); }}
       />
-
-      {outcomeEditingRow && user && (
+      {c.outcomeEditingRow && c.user && (
         <OutcomeEditor
-          row={outcomeEditingRow}
-          currentUserId={user.id}
-          onClose={() => setOutcomeEditingRow(null)}
-          onSaved={() => { setOutcomeEditingRow(null); load(false); }}
+          row={c.outcomeEditingRow}
+          currentUserId={c.user.id}
+          onClose={() => c.setOutcomeEditingRow(null)}
+          onSaved={() => { c.setOutcomeEditingRow(null); c.load(false); }}
         />
       )}
-
-      {timelineRow && (
-        <TimelineModal row={timelineRow} onClose={() => setTimelineRow(null)} />
+      {c.timelineRow && (
+        <TimelineModal row={c.timelineRow} onClose={() => c.setTimelineRow(null)} />
       )}
-
-      {notesRow && (
-        <NotesModal row={notesRow} onClose={() => setNotesRow(null)} />
+      {c.notesRow && (
+        <NotesModal row={c.notesRow} onClose={() => c.setNotesRow(null)} />
       )}
+    </>
+  );
+}
+
+export function PortfolioTable() {
+  const c = usePortfolioTableController();
+  return (
+    <div className="space-y-4">
+      <PortfolioTableFilters
+        search={c.search} setSearch={c.setSearch}
+        typeFilter={c.typeFilter} setTypeFilter={c.setTypeFilter}
+        directionFilter={c.directionFilter} setDirectionFilter={c.setDirectionFilter}
+        statusFilter={c.statusFilter} setStatusFilter={c.setStatusFilter}
+        statusOptions={c.statusOptions} filteredCount={c.filteredSorted.length} totalCount={c.rows.length}
+      />
+      <PortfolioTableBody
+        loading={c.loading} filteredSorted={c.filteredSorted} sortKey={c.sortKey} sortDir={c.sortDir}
+        toggleSort={c.toggleSort} actioningId={c.actioningId}
+        handleAccept={c.handleAccept} handleDecline={c.handleDecline} handleUnlist={c.handleUnlist}
+        handleRelist={c.handleRelist} handleMarkFormed={c.handleMarkFormed} mouHrefFor={c.mouHrefFor}
+        setOutcomeEditingRow={c.setOutcomeEditingRow} setTimelineRow={c.setTimelineRow}
+        setNotesRow={c.setNotesRow} setEditingListing={c.setEditingListing}
+      />
+      <PortfolioTableModals c={c} />
     </div>
   );
 }

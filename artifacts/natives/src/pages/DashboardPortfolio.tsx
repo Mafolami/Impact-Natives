@@ -13,7 +13,7 @@ import ActionsDropdown from "@/components/dashboard/ActionsDropdown";
 import MouDocumentDetail from "./MouDocumentDetail";
 import { useRoute } from "wouter";
 import { PartnershipTab } from "./PartnershipTab";
-import { PortfolioTable } from "./PortfolioTable";
+import { usePortfolioTableController, PortfolioTableFilters, PortfolioTableBody, PortfolioTableModals } from "./PortfolioTable";
 import { normalizeArr } from "@/lib/normalizeArr";
 import { OrgDetailPanel, type OrgRow } from "@/components/dashboard/OrgDetailPanel";
 import { useOrgActions } from "@/hooks/useOrgActions";
@@ -759,6 +759,7 @@ function ConfirmedPartnersTab({ orgOwnerId, actorUserId }: { orgOwnerId: string 
 export default function DashboardInitiatives() {
   const { user, orgOwnerId } = useAuth();
   const [, navigate] = useLocation();
+  const portfolioTableController = usePortfolioTableController();
   const [initiatives, setInitiatives] = useState<InitiativeRow[]>([]);
   const [loading, setLoading]         = useState(true);
   const [showModal, setShowModal]     = useState(false);
@@ -954,9 +955,20 @@ export default function DashboardInitiatives() {
   return (
     <>
       <div className="flex flex-col -mt-10 -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
-        <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6 pt-6 pb-10 space-y-8">
-          {/* Page header */}
-        <div className="flex items-center justify-end gap-4 pb-2">
+        <div className="shrink-0 -mx-6 px-6 pt-6 pb-2 flex items-center justify-between gap-4 flex-wrap">
+          {viewMode === "table" ? (
+            <div className="flex-1 min-w-0">
+              <PortfolioTableFilters
+                search={portfolioTableController.search} setSearch={portfolioTableController.setSearch}
+                typeFilter={portfolioTableController.typeFilter} setTypeFilter={portfolioTableController.setTypeFilter}
+                directionFilter={portfolioTableController.directionFilter} setDirectionFilter={portfolioTableController.setDirectionFilter}
+                statusFilter={portfolioTableController.statusFilter} setStatusFilter={portfolioTableController.setStatusFilter}
+                statusOptions={portfolioTableController.statusOptions}
+                filteredCount={portfolioTableController.filteredSorted.length}
+                totalCount={portfolioTableController.rows.length}
+              />
+            </div>
+          ) : <div />}
           <div className="flex items-center gap-2 shrink-0">
             {/* Table / Tabs view toggle */}
             <div className="flex gap-1 p-1 rounded-xl bg-muted">
@@ -979,11 +991,24 @@ export default function DashboardInitiatives() {
                 <span className="hidden sm:inline">Tabs</span>
               </button>
             </div>
-            </div>
+          </div>
         </div>
 
+        <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6 pb-10 space-y-8">
         {viewMode === "table" ? (
-           <PortfolioTable />
+           <>
+             <PortfolioTableBody
+               loading={portfolioTableController.loading} filteredSorted={portfolioTableController.filteredSorted}
+               sortKey={portfolioTableController.sortKey} sortDir={portfolioTableController.sortDir}
+               toggleSort={portfolioTableController.toggleSort} actioningId={portfolioTableController.actioningId}
+               handleAccept={portfolioTableController.handleAccept} handleDecline={portfolioTableController.handleDecline}
+               handleUnlist={portfolioTableController.handleUnlist} handleRelist={portfolioTableController.handleRelist}
+               handleMarkFormed={portfolioTableController.handleMarkFormed} mouHrefFor={portfolioTableController.mouHrefFor}
+               setOutcomeEditingRow={portfolioTableController.setOutcomeEditingRow} setTimelineRow={portfolioTableController.setTimelineRow}
+               setNotesRow={portfolioTableController.setNotesRow} setEditingListing={portfolioTableController.setEditingListing}
+             />
+             <PortfolioTableModals c={portfolioTableController} />
+           </>
         ) : (
           <>
         {/* Top-level tabs — segmented control */}
