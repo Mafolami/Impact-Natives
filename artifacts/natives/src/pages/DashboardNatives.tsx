@@ -478,14 +478,6 @@ export default function DashboardNatives() {
           </span>
         </label>
 
-        {filterTab !== "individual" && (
-          <select value={sortMode} onChange={e => setSortMode(e.target.value)}
-            className="h-9 px-2 rounded-xl border border-border bg-background text-[13px] font-semibold focus:outline-none shrink-0">
-            <option value="">Sort: Verified first</option>
-            <option value="impact_score">Sort: Impact Score</option>
-          </select>
-        )}
-
         {(sectorFilter || countryFilter || orgTypeFilter || verifiedOnly || sortMode || search) && (
           <button type="button"
             onClick={() => { setSectorFilter(""); setCountryFilter(""); setOrgTypeFilter(""); setVerifiedOnly(false); setSortMode(""); setSearch(""); }}
