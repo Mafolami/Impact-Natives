@@ -1157,47 +1157,29 @@ export function FindPartnerModalDashboard({
 
         {/* Utility states */}
         {appState==="picker"&&(
-          <div className="flex-1 overflow-y-auto px-6 py-6">
-            <h2 className="text-[21px] font-bold text-foreground mb-4">Your partnership listings</h2>
-            {hasDraft&&(
-              <button type="button" onClick={resumeDraft}
-                className="w-full flex items-center justify-between gap-3 rounded-xl border border-dashed border-[#C45C26]/50 bg-[#C45C26]/5 px-4 py-3 mb-4 text-left hover:bg-[#C45C26]/10 transition-colors">
-                <div>
-                  <p className="text-[15px] font-semibold text-foreground">Continue your unsaved draft</p>
-                  <p className="text-xs text-muted-foreground">You have a partnership request in progress that hasn't been saved yet.</p>
-                </div>
-                <span className="shrink-0 text-[13px] font-semibold text-[#C45C26]">Continue →</span>
-              </button>
-            )}
+          <div className="flex-1 flex items-center justify-center px-6 py-6">
             {listingsLoading?(
-              <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-[#2D6A4F]"/></div>
-            ):listings.length===0?(
-              <div className="text-center py-10">
-                <p className="text-[15px] text-foreground mb-4">You haven't created a partnership listing yet.</p>
+              <Loader2 className="w-6 h-6 animate-spin text-[#2D6A4F]"/>
+            ):hasDraft?(
+              <div className="w-full max-w-md space-y-3">
+                <button type="button" onClick={resumeDraft}
+                  className="w-full flex items-center justify-between gap-3 rounded-xl border border-dashed border-[#C45C26]/50 bg-[#C45C26]/5 px-4 py-3 text-left hover:bg-[#C45C26]/10 transition-colors">
+                  <div>
+                    <p className="text-[15px] font-semibold text-foreground">Continue your unsaved draft</p>
+                    <p className="text-xs text-muted-foreground">You have a partnership request in progress that hasn't been saved yet.</p>
+                  </div>
+                  <span className="shrink-0 text-[13px] font-semibold text-[#C45C26]">Continue →</span>
+                </button>
                 <button type="button" onClick={openNewListingCheck}
-                  className="h-10 px-6 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-semibold transition-colors">
-                  + New listing
+                  className="w-full h-10 rounded-full border border-dashed border-[#2D6A4F]/40 text-[#2D6A4F] text-[15px] font-semibold hover:bg-[#2D6A4F]/5 transition-colors">
+                  Start a new listing instead
                 </button>
               </div>
             ):(
-              <div className="space-y-3">
-                {listings.map(l=>(
-                  <div key={l.id} className="rounded-xl border border-border p-4 flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-[15px] font-semibold text-foreground truncate">{l.title||"Untitled listing"}</p>
-                      <p className="text-xs text-muted-foreground">{l.status==="published"?"Published":"Draft"}</p>
-                    </div>
-                    <button type="button" onClick={()=>openListingForEdit(l)}
-                      className="shrink-0 text-[13px] font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors">
-                      Edit
-                    </button>
-                  </div>
-                ))}
-                <button type="button" onClick={openNewListingCheck}
-                  className="w-full h-10 rounded-full border border-dashed border-[#2D6A4F]/40 text-[#2D6A4F] text-[15px] font-semibold hover:bg-[#2D6A4F]/5 transition-colors">
-                  + New listing
-                </button>
-              </div>
+              <button type="button" onClick={openNewListingCheck}
+                className="h-10 px-6 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-semibold transition-colors">
+                + New listing
+              </button>
             )}
           </div>
         )}
