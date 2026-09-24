@@ -755,12 +755,6 @@ export default function DashboardMarketplace() {
   return (
     <div className="flex flex-col -mt-6 -mb-10" style={{ height: "calc(100vh - 97px)", maxHeight: "calc(100vh - 97px)", overflow: "hidden" }}>
       <div className="shrink-0 space-y-4 pb-4">
-        <div className="flex items-center justify-end">
-          <button type="button" onClick={() => setShowCreateModal(true)}
-            className="rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-medium transition-colors shrink-0">
-            + Create Initiative
-          </button>
-        </div>
         {isFunder && (
           <div className="flex gap-2">
             <button type="button" onClick={toggleStartupPipeline}
@@ -778,8 +772,8 @@ export default function DashboardMarketplace() {
             </button>
           </div>
         )}
-        <div className="flex gap-2">
-          <div className="relative flex-1">
+        <div className="flex items-center gap-2">
+          <div className="relative w-64 shrink-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input type="text" placeholder="Search by title, problem, location..."
               value={search} onChange={e => setSearch(e.target.value)}
@@ -845,6 +839,12 @@ export default function DashboardMarketplace() {
                 {passedIds.size}
               </span>
             )}
+          </button>
+          <div className="flex-1" />
+          <button type="button" onClick={() => setShowCreateModal(true)}
+            className="rounded-full h-10 px-5 text-white text-[15px] font-medium transition-all hover:brightness-110 active:scale-[0.98] shrink-0"
+            style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
+            + Create Initiative
           </button>
         </div>
       </div>
@@ -1556,11 +1556,14 @@ function MarketplaceDetail({
   const sdgItems = useMemo(() => (sections["SDG Alignment"] ? parseSdgListItems(sections["SDG Alignment"]) : null), [sections]);
   return (
     <div className="flex flex-col -mt-10 -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
-      <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6 pt-6 pb-10">
+      <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6 pb-10">
         <div className="max-w-[1100px] mx-auto space-y-6 relative">
 
-          {/* Top row: back link + primary action pills */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+          {/* Top row: back link + primary action pills -- sticky so it
+              stays visible while scrolling a long listing. pt-6 moved
+              here from the scroll container so it stays with this
+              element as it sticks. */}
+      <div className="sticky top-0 z-20 bg-background pt-6 pb-3 flex items-center justify-between flex-wrap gap-3">
         <a href="#" onClick={e => { e.preventDefault(); onBack(); }}
           className="flex items-center gap-1.5 text-[15px] font-medium w-fit transition-colors" style={{ color: FOREST }}>
           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
@@ -1723,7 +1726,9 @@ function MarketplaceDetail({
           <div>
             {tabs.length > 1 && (
               <>
-                <div className="flex flex-wrap gap-2">
+                {/* Sticky once scrolling reaches it -- top offset estimates
+                    the row above's height (a fixed guess, not measured). */}
+                <div className="sticky top-[76px] z-10 bg-background py-3 flex flex-wrap gap-2">
                   {tabs.map(t => (
                     <button key={t.key} type="button" onClick={() => setDetailTab(t.key)}
                       className={`px-5 py-2.5 rounded-lg text-[14px] font-bold transition-colors ${
