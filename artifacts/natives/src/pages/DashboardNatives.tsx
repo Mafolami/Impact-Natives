@@ -405,8 +405,9 @@ export default function DashboardNatives() {
   if (directLoading) return <LoadingSpinner />;
 
   return (
-    <div className="space-y-6 relative">
-      {/* Entity Type Tabs */}
+    <div className="flex flex-col -mt-10 -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
+      <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6 pt-6 pb-10 space-y-6 relative">
+        {/* Entity Type Tabs */}
       <div className="flex items-center gap-1 p-1 rounded-xl bg-muted w-fit text-[13px] font-semibold">
         {([
           { key: "all", label: "All Ecosystem", count: countAll },
@@ -526,6 +527,7 @@ export default function DashboardNatives() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
