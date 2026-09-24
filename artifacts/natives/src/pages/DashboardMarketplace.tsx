@@ -1555,9 +1555,11 @@ function MarketplaceDetail({
   const sections = useMemo(() => splitDetailSections(fullDetail?.detail_content), [fullDetail?.detail_content]);
   const sdgItems = useMemo(() => (sections["SDG Alignment"] ? parseSdgListItems(sections["SDG Alignment"]) : null), [sections]);
   return (
-    <div className="max-w-[1100px] mx-auto space-y-6 relative">
+    <div className="flex flex-col -mt-10 -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
+      <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6 pt-6 pb-10">
+        <div className="max-w-[1100px] mx-auto space-y-6 relative">
 
-      {/* Top row: back link + primary action pills */}
+          {/* Top row: back link + primary action pills */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <a href="#" onClick={e => { e.preventDefault(); onBack(); }}
           className="flex items-center gap-1.5 text-[15px] font-medium w-fit transition-colors" style={{ color: FOREST }}>
@@ -2477,6 +2479,8 @@ function MarketplaceDetail({
           </div>
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 }
