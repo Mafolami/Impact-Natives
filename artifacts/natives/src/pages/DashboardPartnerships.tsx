@@ -290,7 +290,7 @@ export default function DashboardPartnerships() {
 
   return (
     <>
-      <div className="flex flex-col -mt-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
+      <div className="flex flex-col -mt-10 -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
 
         <div className="flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)]">
         {/* Top bar: full-width single row spanning both columns */}
