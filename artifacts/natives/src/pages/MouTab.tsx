@@ -280,15 +280,21 @@ export default function MouTab() {
 
   if (openDocId) {
     return (
-      <MouDocumentDetail documentId={openDocId} myUserId={userId} orgOwnerId={orgOwnerId} onClose={() => { setOpenDocId(null); load(); }} />
+      <div className="flex flex-col -mt-10 -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
+        <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6 pt-6 pb-10">
+          <MouDocumentDetail documentId={openDocId} myUserId={userId} orgOwnerId={orgOwnerId} onClose={() => { setOpenDocId(null); load(); }} />
+        </div>
+      </div>
     );
   }
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-0 -mx-4 sm:-mx-6">
+    <div className="flex flex-col -mt-10 -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
+      <div className="flex-1 min-h-0 overflow-y-auto pt-6 pb-10">
+        <div className="space-y-0 -mx-4 sm:-mx-6">
 
-      {/* Top bar — New MoU button */}
+          {/* Top bar — New MoU button */}
       <div className="flex items-center justify-end px-4 sm:px-6 pb-4">
         <button type="button" onClick={openPicker}
           className="flex items-center gap-1.5 h-10 px-5 rounded-full text-white text-sm font-bold transition-all hover:brightness-110 active:scale-[0.98] shrink-0"
@@ -691,6 +697,8 @@ export default function MouTab() {
           </div>
         </div>
       )}
+    </div>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, type ReactNode } from "react";
+import { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import { jsPDF } from "jspdf";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
@@ -199,12 +199,19 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
   const isLiteralOwnerA = orgA?.user_id === myUserId || amMouSignerA;
   const isLiteralOwnerB = orgB?.user_id === myUserId || amMouSignerB;
   const [nearTop, setNearTop] = useState(true);
+  const rootRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    // The actual scrolling element is this component's parent (the
+    // overflow-y-auto wrapper the caller provides), not window -- this
+    // component can be nested inside a contained scroll region rather
+    // than the page itself scrolling.
+    const scrollEl = rootRef.current?.parentElement;
+    if (!scrollEl) return;
     function handleScroll() {
-      setNearTop(window.scrollY < 240);
+      setNearTop((scrollEl as HTMLElement).scrollTop < 240);
     }
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    scrollEl.addEventListener("scroll", handleScroll, { passive: true });
+    return () => scrollEl.removeEventListener("scroll", handleScroll);
   }, []);
   useEffect(() => { load(); }, [documentId]);
   async function load(opts: { silent?: boolean } = {}) {
@@ -1912,7 +1919,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
   const currentStage = stages.find((s) => !s.completed);
   const trackerStatusText = !currentStage ? "Complete" : currentStage.blocked ?? `Next: ${currentStage.label}`;
   return (
-    <div className="space-y-6">
+    <div ref={rootRef} className="space-y-6">
       <button type="button" onClick={onClose}
         className="flex items-center gap-1.5 text-sm text-black dark:text-white hover:text-[#C45C26] dark:hover:text-[#C45C26] transition-colors">
         <ArrowLeft className="w-3.5 h-3.5" /> Back
@@ -1930,7 +1937,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
         <button type="button"
           onClick={() => {
             if (nearTop) document.getElementById("indicators-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
-            else window.scrollTo({ top: 0, behavior: "smooth" });
+            else rootRef.current?.parentElement?.scrollTo({ top: 0, behavior: "smooth" });
           }}
           title={nearTop ? "Jump to indicators" : "Scroll to top"}
           className="w-9 h-9 rounded-full border border-border bg-white dark:bg-card text-black dark:text-white shadow-lg flex items-center justify-center hover:border-[#2D6A4F]/50 transition-colors">
