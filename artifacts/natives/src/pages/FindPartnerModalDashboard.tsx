@@ -638,7 +638,17 @@ export function FindPartnerModalDashboard({
     setForm(EMPTY_FORM);setUploadedFile(null);setUploadMode("text");
     setDdConfirmedEmpty(false);setActiveListingId(null);setListingsLoading(true);
     async function loadOrg(){
-      if(!orgOwnerId){setAppState("no_org");return;}
+      // orgOwnerId starts null until AuthContext resolves it, and
+      // resolveOrgOwnerId() ALWAYS returns a non-null string once it
+      // does (the real owner's id, or a fallback to the caller's own
+      // id) -- so null here means "not resolved yet", never "no
+      // organisation". Bail out WITHOUT setting appState so this
+      // effect's own orgOwnerId dependency re-runs loadOrg() once it
+      // resolves; the picker's own loading spinner (listingsLoading,
+      // already set true above) covers the wait. The real no-org
+      // determination happens below, after the actual organizations
+      // row lookup returns nothing.
+      if(!orgOwnerId){return;}
       const [orgRes,profileRes,listingsRes]=await Promise.all([
         // Team-seat fix: was .eq("user_id",user!.id) -- organizations.user_id
         // is always the OWNER's id, so a team member's own id matched
