@@ -20,7 +20,7 @@ import { EsgSnapshotSection } from "@/components/dashboard/EsgSnapshotSection";
 
 // ── Charcoal text helper ─────────────────────────────────────────────────────
 // All secondary/"grey" text uses this instead of a muted-gray token.
-const CHARCOAL = "text-[#1F2937]";
+const CHARCOAL = "text-[#1F2937] dark:text-slate-300";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -423,7 +423,7 @@ export default function DashboardNatives() {
                 : `${CHARCOAL} hover:text-foreground`
             }`}>
             <span>{t.label}</span>
-            <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${filterTab === t.key ? "bg-slate-200 text-charcoal" : "bg-white/60 dark:bg-black/20"}`}>
+            <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${filterTab === t.key ? "bg-slate-200 text-slate-700" : "bg-white/60 dark:bg-black/20"}`}>
               {t.count}
             </span>
           </button>
@@ -641,7 +641,7 @@ function DrawerTabs({ tabs, active, onChange }: { tabs: { key: DrawerTab; label:
       {tabs.map(t => (
         <button key={t.key} type="button" onClick={() => onChange(t.key)}
           className={`py-3 border-b-2 transition-all ${
-            active === t.key ? "border-emerald-600 text-slate-900 font-semibold" : `border-transparent font-medium ${CHARCOAL} hover:text-foreground`
+            active === t.key ? "border-emerald-600 text-slate-900 dark:text-slate-100 font-semibold" : `border-transparent font-medium ${CHARCOAL} hover:text-foreground`
           }`}>
           {t.label}
         </button>
@@ -679,7 +679,7 @@ function IndividualDrawerContent({ profile, onClose }: { profile: ProfileRow; on
           <EntityHeroAvatar name={profile.full_name} imageUrl={profile.avatar_url} size={64} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h3 className="text-xl font-bold text-slate-900 tracking-tight">{profile.full_name}</h3>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">{profile.full_name}</h3>
               {profile.org_name && (
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#eaf5ee", color: "#2D6A4F" }}>
                   {profile.org_name}
@@ -735,7 +735,7 @@ function IndividualDrawerContent({ profile, onClose }: { profile: ProfileRow; on
       {profile.linkedin_url && (
         <div className="px-8 py-4 border-t border-border bg-white dark:bg-card flex items-center justify-end shrink-0">
           <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer"
-            className="bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-white/5 text-slate-800 font-medium text-sm py-2.5 px-5 rounded-xl transition flex items-center justify-center gap-2 border border-slate-300">
+            className="bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-white/5 text-slate-800 dark:text-slate-200 font-medium text-sm py-2.5 px-5 rounded-xl transition flex items-center justify-center gap-2 border border-slate-300 dark:border-border">
             <LinkIcon className="w-4 h-4" /> LinkedIn
           </a>
         </div>
@@ -790,15 +790,15 @@ function DeliveryDonutChart({ rate, completed, resolved, stalled, fellThrough, i
           })}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-bold text-slate-900">{rate}%</span>
-          <span className="text-[10px] font-medium text-slate-500">completed</span>
+          <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">{rate}%</span>
+          <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">completed</span>
         </div>
       </div>
       <div className="space-y-1.5 text-xs">
-        <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#2D6A4F] shrink-0" /><span className="text-slate-700">{completed} completed</span></div>
-        {stalled > 0 && <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-amber-600 shrink-0" /><span className="text-slate-700">{stalled} stalled</span></div>}
-        {fellThrough > 0 && <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-red-600 shrink-0" /><span className="text-slate-700">{fellThrough} fell through</span></div>}
-        {inProgress > 0 && <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-slate-300 shrink-0" /><span className="text-slate-700">{inProgress} in progress</span></div>}
+        <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#2D6A4F] shrink-0" /><span className="text-slate-700 dark:text-slate-300">{completed} completed</span></div>
+        {stalled > 0 && <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-amber-600 shrink-0" /><span className="text-slate-700 dark:text-slate-300">{stalled} stalled</span></div>}
+        {fellThrough > 0 && <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-red-600 shrink-0" /><span className="text-slate-700 dark:text-slate-300">{fellThrough} fell through</span></div>}
+        {inProgress > 0 && <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-slate-300 shrink-0" /><span className="text-slate-700 dark:text-slate-300">{inProgress} in progress</span></div>}
       </div>
     </div>
   );
@@ -1190,7 +1190,7 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
           <EntityHeroAvatar name={org.organisation_name || "?"} imageUrl={org.logo_url} size={64} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h3 className="text-xl font-bold text-slate-900 tracking-tight">{org.organisation_name}</h3>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">{org.organisation_name}</h3>
               {isVerified && <VerifiedBadge withTooltip />}
               {canDisplayImpactScoreForOrg(org.subscription_tier, org.show_impact_score) && <ImpactScoreBadge score={org.impact_score ?? 0} />}
             </div>
@@ -1210,7 +1210,7 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
 
         {/* Partnership Fit banner */}
         {(aiSummary || loadingAi) && (
-          <div className="mx-8 mt-6 p-5 rounded-2xl bg-white border border-slate-200 shadow-lg shadow-slate-900/10 space-y-2">
+          <div className="mx-8 mt-6 p-5 rounded-2xl bg-white dark:bg-card border border-slate-200 dark:border-border shadow-lg shadow-slate-900/10 space-y-2">
             <div className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider ${CHARCOAL}`}>
               <Sparkles className={`w-4 h-4 ${CHARCOAL}`} /> <span>Partnership Fit</span>
               {!loadingAi && (
@@ -1243,23 +1243,23 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
         {/* Overview */}
         {activeTab === "overview" && (
           <div className="px-8 py-6 space-y-8">
-            {org.description && <p className="text-sm text-slate-800 leading-relaxed">{org.description}</p>}
+            {org.description && <p className="text-sm text-slate-800 dark:text-slate-300 leading-relaxed">{org.description}</p>}
 
             {hasTrackRecord && (
               <div>
-                <div className="flex items-center gap-1.5"><p className="text-sm font-semibold text-slate-900">Track record</p><InfoTooltip text={PILLAR_INFO.trackRecord} /></div>
+                <div className="flex items-center gap-1.5"><p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Track record</p><InfoTooltip text={PILLAR_INFO.trackRecord} /></div>
                 <p className={`text-[13px] ${CHARCOAL} mt-1 mb-3`}>Self-reported reach and history</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
-                  {org.total_beneficiaries_reached && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Beneficiaries reached</p><p className="text-sm font-semibold text-slate-900">{org.total_beneficiaries_reached.toLocaleString()}</p></div>}
-                  {org.jobs_created && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Jobs created</p><p className="text-sm font-semibold text-slate-900">{org.jobs_created.toLocaleString()}</p></div>}
-                  {org.years_of_operation && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Years operating</p><p className="text-sm font-semibold text-slate-900">{org.years_of_operation}</p></div>}
-                  {org.female_beneficiaries_pct && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Female beneficiaries</p><p className="text-sm font-semibold text-slate-900">{org.female_beneficiaries_pct}%</p></div>}
-                  {org.youth_beneficiaries_pct && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Youth beneficiaries</p><p className="text-sm font-semibold text-slate-900">{org.youth_beneficiaries_pct}%</p></div>}
-                  {org.grants_received_count && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Grants received</p><p className="text-sm font-semibold text-slate-900">{org.grants_received_count}</p></div>}
-                  {org.grants_total_value_usd && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Total grant value</p><p className="text-sm font-semibold text-slate-900">${org.grants_total_value_usd.toLocaleString()}</p></div>}
-                  {org.grants_delivered_on_time_pct && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Delivered on time</p><p className="text-sm font-semibold text-slate-900">{org.grants_delivered_on_time_pct}%</p></div>}
+                  {org.total_beneficiaries_reached && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Beneficiaries reached</p><p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{org.total_beneficiaries_reached.toLocaleString()}</p></div>}
+                  {org.jobs_created && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Jobs created</p><p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{org.jobs_created.toLocaleString()}</p></div>}
+                  {org.years_of_operation && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Years operating</p><p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{org.years_of_operation}</p></div>}
+                  {org.female_beneficiaries_pct && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Female beneficiaries</p><p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{org.female_beneficiaries_pct}%</p></div>}
+                  {org.youth_beneficiaries_pct && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Youth beneficiaries</p><p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{org.youth_beneficiaries_pct}%</p></div>}
+                  {org.grants_received_count && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Grants received</p><p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{org.grants_received_count}</p></div>}
+                  {org.grants_total_value_usd && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Total grant value</p><p className="text-sm font-semibold text-slate-900 dark:text-slate-100">${org.grants_total_value_usd.toLocaleString()}</p></div>}
+                  {org.grants_delivered_on_time_pct && <div><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-0.5`}>Delivered on time</p><p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{org.grants_delivered_on_time_pct}%</p></div>}
                 </div>
-                {org.previous_funders && org.previous_funders.length > 0 && <p className="text-sm text-slate-800 mt-4"><span className="font-semibold">Previous funders: </span>{org.previous_funders.join(", ")}</p>}
+                {org.previous_funders && org.previous_funders.length > 0 && <p className="text-sm text-slate-800 dark:text-slate-300 mt-4"><span className="font-semibold">Previous funders: </span>{org.previous_funders.join(", ")}</p>}
                 {org.third_party_evaluations && (
                   <div className="flex items-center gap-1.5 text-sm text-[#2D6A4F] mt-3">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
@@ -1271,7 +1271,7 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
 
             {hasConsultancyExpertise && (
               <div>
-                <p className="text-sm font-semibold text-slate-900 mb-1.5">Consultant expertise</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1.5">Consultant expertise</p>
                 {org.specializations && org.specializations.length > 0 && (
                   <div className="mb-3"><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-1.5`}>Specializations</p>
                     <div className="flex flex-wrap gap-2">{org.specializations.map(s => <span key={s} className="text-sm font-medium px-3 py-1 rounded-md" style={{ color: "#0F6E56", background: "#E1F5EE" }}>{s}</span>)}</div>
@@ -1279,22 +1279,22 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
                 )}
                 {org.notable_engagements && org.notable_engagements.length > 0 && (
                   <div className="mb-3"><p className={`text-xs font-medium uppercase ${CHARCOAL} mb-1.5`}>Notable engagements</p>
-                    <ul className="text-sm text-slate-800 space-y-1 list-disc list-inside">{org.notable_engagements.map(e => <li key={e}>{e}</li>)}</ul>
+                    <ul className="text-sm text-slate-800 dark:text-slate-300 space-y-1 list-disc list-inside">{org.notable_engagements.map(e => <li key={e}>{e}</li>)}</ul>
                   </div>
                 )}
-                {org.affiliations && org.affiliations.length > 0 && <p className="text-sm text-slate-800"><span className="font-semibold">Affiliations: </span>{org.affiliations.join(", ")}</p>}
+                {org.affiliations && org.affiliations.length > 0 && <p className="text-sm text-slate-800 dark:text-slate-300"><span className="font-semibold">Affiliations: </span>{org.affiliations.join(", ")}</p>}
               </div>
             )}
 
             {org.investment_thesis && (
-              <div><div className="flex items-center gap-1.5 mb-1.5"><Sparkles className="w-3 h-3 text-[#2D6A4F]" /><p className="text-sm font-semibold text-slate-900">Investment thesis</p></div>
-                <p className="text-sm text-slate-800 leading-relaxed">{org.investment_thesis}</p>
+              <div><div className="flex items-center gap-1.5 mb-1.5"><Sparkles className="w-3 h-3 text-[#2D6A4F]" /><p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Investment thesis</p></div>
+                <p className="text-sm text-slate-800 dark:text-slate-300 leading-relaxed">{org.investment_thesis}</p>
               </div>
             )}
 
             {/* Organisational Metadata */}
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Organisational Metadata</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Organisational Metadata</p>
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
                 {sectors.length > 0 && (
                   <MetadataRow label="Sector">
@@ -1370,11 +1370,11 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
           <div className="px-8 py-6 space-y-8">
             {ddScore > 0 && (
               <div>
-                <div className="bg-white border border-slate-200 rounded-xl p-5 mb-4">
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Due Diligence Readiness Scorecard</p>
+                <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-5 mb-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Due Diligence Readiness Scorecard</p>
                   <div className="flex items-center gap-3 flex-wrap">
                     <TrustBadge tier={computeTrustTier(ddScore, org.dd_evidence).tier} withTooltip />
-                    <span className="text-sm font-semibold text-slate-900">Score: {ddScore}%</span>
+                    <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">Score: {ddScore}%</span>
                   </div>
                   <div className="h-[3px] bg-slate-200 rounded-full mt-3">
                     <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${ddScore}%` }} />
@@ -1400,9 +1400,9 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
                 {!isOwnProfile && (viewerIsFunder || viewerIsCorporate) && (
                   <div className="mt-4 pt-4 border-t border-slate-200">
                     {viewerTier !== "compliance" ? (
-                      <p className="text-[13px] text-slate-500">Audit-ready DD export is a Compliance plan feature.</p>
+                      <p className="text-[13px] text-slate-500 dark:text-slate-400">Audit-ready DD export is a Compliance plan feature.</p>
                     ) : ddScore < 70 ? (
-                      <p className="text-[13px] text-slate-500">DD export requires at least 70% readiness (currently {ddScore}%).</p>
+                      <p className="text-[13px] text-slate-500 dark:text-slate-400">DD export requires at least 70% readiness (currently {ddScore}%).</p>
                     ) : exportState === "done" && exportDownloadUrl ? (
                       <a href={exportDownloadUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[15px] font-medium text-[#2D6A4F] hover:underline">Download DD export (PDF)</a>
                     ) : (
@@ -1421,11 +1421,11 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
 
             {fddScore > 0 && (
               <div>
-                <div className="bg-white border border-slate-200 rounded-xl p-5 mb-4">
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Due Diligence Readiness Scorecard</p>
+                <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-5 mb-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Due Diligence Readiness Scorecard</p>
                   <div className="flex items-center gap-3 flex-wrap">
                     <TrustBadge tier={computeTrustTier(fddScore, org.dd_evidence).tier} withTooltip />
-                    <span className="text-sm font-semibold text-slate-900">Score: {fddScore}%</span>
+                    <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">Score: {fddScore}%</span>
                   </div>
                   <div className="h-[3px] bg-slate-200 rounded-full mt-3">
                     <div className="h-full rounded-full bg-[#2D6A4F] transition-all duration-500" style={{ width: `${fddScore}%` }} />
@@ -1504,7 +1504,7 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
                       fellThrough={deliveryStats.fell_through}
                       inProgress={deliveryInProgress}
                     />
-                    <p className="text-sm text-slate-800 mt-4">
+                    <p className="text-sm text-slate-800 dark:text-slate-300 mt-4">
                       {deliveryStats.completed} of {deliveryStats.resolved} relationship{deliveryStats.resolved !== 1 ? "s" : ""} completed
                       {[deliveryStats.stalled > 0 ? `${deliveryStats.stalled} stalled` : null, deliveryStats.fell_through > 0 ? `${deliveryStats.fell_through} fell through` : null, deliveryInProgress > 0 ? `${deliveryInProgress} still in progress` : null].filter(Boolean).length > 0
                         ? ` (${[deliveryStats.stalled > 0 ? `${deliveryStats.stalled} stalled` : null, deliveryStats.fell_through > 0 ? `${deliveryStats.fell_through} fell through` : null, deliveryInProgress > 0 ? `${deliveryInProgress} still in progress` : null].filter(Boolean).join(", ")})`
@@ -1512,7 +1512,7 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
                     </p>
                   </>
                 ) : (
-                  <p className="text-sm text-slate-800">{deliveryStats.total === 0 ? "No tracked delivery history yet." : `${deliveryStats.total} active relationship${deliveryStats.total !== 1 ? "s" : ""}, no completed outcomes yet.`}</p>
+                  <p className="text-sm text-slate-800 dark:text-slate-300">{deliveryStats.total === 0 ? "No tracked delivery history yet." : `${deliveryStats.total} active relationship${deliveryStats.total !== 1 ? "s" : ""}, no completed outcomes yet.`}</p>
                 )}
               </div>
             )}
@@ -1555,7 +1555,7 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
                 <p className="text-[17px] font-bold text-foreground mb-4">Confirmed partnerships</p>
                 <div className="space-y-2">
                   {reputationPartners.slice(0, 5).map((p, i) => (
-                    <p key={i} className="text-sm text-slate-800">
+                    <p key={i} className="text-sm text-slate-800 dark:text-slate-300">
                       {p.as === "owner" ? `Partnered with ${p.partner_name} as ${partnerRolePhrase(p.role)} on "${p.initiative_title}"` : `Confirmed as ${partnerRolePhrase(p.role)} on "${p.initiative_title}"`}
                     </p>
                   ))}
@@ -1588,7 +1588,7 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
       {org.website && org.website !== "https://" && (
         <div className="px-8 py-4 border-t border-border bg-white dark:bg-card flex items-center justify-end shrink-0">
           <a href={org.website} target="_blank" rel="noopener noreferrer"
-            className="bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-white/5 text-slate-800 font-medium text-sm py-2.5 px-5 rounded-xl transition flex items-center justify-center gap-2 border border-slate-300">
+            className="bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-white/5 text-slate-800 dark:text-slate-200 font-medium text-sm py-2.5 px-5 rounded-xl transition flex items-center justify-center gap-2 border border-slate-300 dark:border-border">
             <Globe className="w-4 h-4" /> Visit Website
           </a>
         </div>
