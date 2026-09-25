@@ -293,6 +293,7 @@ export default function DashboardNatives() {
           .eq("id", autoOpenUserId)
           .not("full_name", "is", null)
           .or("user_type.eq.individual_creative,user_type.is.null,show_individual_profile.eq.true")
+          .eq("is_demo_profile", false)
           .single();
         if (fullProfile) {
           const { data: membership } = await supabase
@@ -339,6 +340,7 @@ export default function DashboardNatives() {
         .select("id,full_name,role_title,country,sectors,bio,avatar_url,linkedin_url,website,user_type,social_links,org_name,show_individual_profile")
         .not("full_name", "is", null)
         .or("user_type.eq.individual_creative,user_type.is.null,show_individual_profile.eq.true")
+        .eq("is_demo_profile", false)
         .order("full_name", { ascending: true });
       if (error) console.error(error);
       const allRows: ProfileRow[] = data ?? [];
