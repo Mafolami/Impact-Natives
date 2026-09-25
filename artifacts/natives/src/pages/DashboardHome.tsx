@@ -8,7 +8,6 @@ import {
 import FunderHome from "./DashboardFunderHome";
 import CorporateHome from "./DashboardCorporateHome";
 import { Button } from "@/components/ui/button";
-import CreateInitiativeModal from "@/components/platform/CreateInitiativeModal";
 import ImplementerMatches from "@/components/platform/ImplementerMatches";
 import InitiativeMatchesForImplementer from "@/components/platform/InitiativeMatchesForImplementer";
 
@@ -324,7 +323,6 @@ export default function DashboardHome() {
   const [profileScore, setProfileScore] = useState(0);
   const [missingProfileFields, setMissingProfileFields] = useState<string[]>([]);
 
-  const [showCreateModal, setShowCreateModal]     = useState(false);
   const [allMyInits, setAllMyInits]               = useState<{id: string; status: string}[]>([]);
 
   const hour      = new Date().getHours();
@@ -571,7 +569,8 @@ export default function DashboardHome() {
             )}
           </div>
           <button type="button" onClick={() => navigate("/dashboard/marketplace")}
-            className="rounded-full h-9 px-5 bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[15px] font-medium transition-colors">
+            className="rounded-full h-9 px-5 text-white text-[15px] font-medium transition-all hover:brightness-110 active:scale-[0.98]"
+            style={{ background: "linear-gradient(135deg, #3D2618 0%, #33301F 50%, #1B3328 100%)" }}>
             Browse Initiatives
           </button>
         </div>
@@ -651,7 +650,7 @@ export default function DashboardHome() {
           <GettingStarted
             userType={profile?.user_type ?? undefined}
             isVerified={profile?.is_verified ?? undefined}
-            onCreateInitiative={() => setShowCreateModal(true)}
+            onCreateInitiative={() => navigate("/dashboard/marketplace?create=1")}
             profile={profile}
           />
         )}
@@ -674,22 +673,6 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      <CreateInitiativeModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onSuccess={() => {
-          setShowCreateModal(false);
-          if (user && orgOwnerId) {
-            supabase
-              .from("initiative_requests")
-              .select("id,title,sectors,locations,status,eois,created_at")
-              .or(`user_id.eq.${orgOwnerId},submitter_email.eq.${user.email}`)
-              .order("created_at", { ascending: false })
-              .limit(3)
-              .then(({ data }) => { if (data) setMyInitiatives(data as InitiativeRow[]); });
-          }
-        }}
-      />
     </>
   );
 }

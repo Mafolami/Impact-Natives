@@ -659,6 +659,15 @@ export default function DashboardMarketplace() {
       if (match) setSelected(match as InitiativeRow);
     }
   }, [initiatives.length]);
+
+  // Deep link: ?create=1 opens the Create Initiative modal directly --
+  // used by DashboardHome's Getting Started task, so that entry point
+  // uses this modal (with AI-drafted parsing) instead of the older,
+  // non-AI CreateInitiativeModal.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("create") === "1") setShowCreateModal(true);
+  }, []);
   useEffect(() => {
     async function load() {
       const { data } = await supabase.rpc('get_marketplace_initiatives');
