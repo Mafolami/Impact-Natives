@@ -774,13 +774,13 @@ export default function Onboarding() {
                   type: "individual_creative" as UserType,
                   icon: <User className="w-5 h-5 text-[#2D6A4F]" />,
                   label: "Individual / Creative",
-                  sub: "Joining as a practitioner, consultant, or freelancer.",
+                  sub: "Joining as an independent practitioner or freelancer.",
                 },
                 {
                   type: "organisation" as UserType,
                   icon: <Users className="w-5 h-5 text-[#2D6A4F]" />,
                   label: "Organisation",
-                  sub: "Representing an NGO, funder, company, or institution.",
+                  sub: "Joining as a consultant, an NGO, funder, company, or institution.",
                 },
               ].map(opt => (
                 <button key={opt.type} type="button" onClick={() => selectUserType(opt.type)}
