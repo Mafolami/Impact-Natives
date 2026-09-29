@@ -481,7 +481,7 @@ export default function DashboardSettings() {
     </div>
 
     {/* Right column */}
-    <div className="space-y-4" style={{top: "10rem" }}>
+    <div className="space-y-4 md:sticky md:self-start" style={{top: "10rem" }}>
       <div className="rounded-2xl border border-border bg-white dark:bg-card p-5 space-y-4">
         <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">
           {currentHelp.title}
