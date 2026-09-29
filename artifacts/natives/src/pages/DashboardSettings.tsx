@@ -207,6 +207,8 @@ export default function DashboardSettings() {
   const currentHelp = tabHelp[tab];
 
   return (
+    <div className="flex flex-col -mt-10 -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
+      <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6 pt-6 pb-10">
     <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-8 items-start w-full relative">
     <div className="space-y-6">
       {/* Tab bar */}
@@ -481,7 +483,7 @@ export default function DashboardSettings() {
     </div>
 
     {/* Right column */}
-    <div className="space-y-4 md:sticky md:self-start" style={{top: "10rem" }}>
+    <div className="space-y-4 md:sticky md:self-start" style={{top: "1.5rem" }}>
       <div className="rounded-2xl border border-border bg-white dark:bg-card p-5 space-y-4">
         <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">
           {currentHelp.title}
@@ -526,6 +528,8 @@ export default function DashboardSettings() {
         </Link>
       </div>
     </div>
+    </div>
+      </div>
     </div>
   );
 }

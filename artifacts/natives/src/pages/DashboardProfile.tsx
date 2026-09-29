@@ -1670,6 +1670,8 @@ export default function DashboardProfile() {
   );
 
   return (
+    <div className="flex flex-col -mt-10 -mb-10" style={{ height: "calc(100vh - 81px)", maxHeight: "calc(100vh - 81px)", overflow: "hidden" }}>
+      <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6 pt-0 pb-10">
     <div className="w-full relative">
       <div className="space-y-4 md:pr-[304px]">
         <div className="flex flex-col md:flex-row md:gap-6">
@@ -1681,7 +1683,7 @@ export default function DashboardProfile() {
           {/* Inner left pane nav -- fixed on desktop (measured left offset,
               see paneNavLeft above), normal horizontal-scroll tab bar on
               mobile, unchanged there. */}
-          <div className="md:w-[200px] shrink-0 border-x border-border bg-muted/20 md:fixed md:top-[96px] md:h-[calc(100vh-96px)] md:overflow-y-auto"
+          <div className="md:w-[200px] shrink-0 border-x border-border bg-muted/20 md:fixed md:top-[96px] md:min-h-[calc(100vh-96px)]"
             style={paneNavLeft !== null ? { left: paneNavLeft } : undefined}>
             <div className="flex md:flex-col overflow-x-auto md:overflow-visible p-2 md:pt-[28px] gap-1 scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
               {!isConsultancyChecked && isOrg
@@ -3233,7 +3235,7 @@ export default function DashboardProfile() {
       {/* Right column — persistent across all panes, fully detached from the
           main content flow via fixed positioning so no parent overflow/flex
           quirks can drag it along with page scroll. */}
-      <div className="space-y-4 md:flex md:flex-col md:h-[calc(100vh-120px)] md:overflow-y-auto md:fixed md:top-[96px] md:right-6 md:w-[280px]">
+      <div className="space-y-4 md:flex md:flex-col md:min-h-[calc(100vh-120px)] md:fixed md:top-[96px] md:right-6 md:w-[280px]">
 
         <div className="rounded-b-2xl border-x border-b border-border bg-white dark:bg-card p-5 md:pt-[28px] space-y-4">
           <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">Profile strength</p>
@@ -3335,6 +3337,8 @@ export default function DashboardProfile() {
             </a>
           )}
         </div>
+      </div>
+    </div>
       </div>
     </div>
   );
