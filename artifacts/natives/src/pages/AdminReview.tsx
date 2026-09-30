@@ -1376,8 +1376,15 @@ setProfiles(enriched);
       title:   'Your organisation is now verified',
       body:    'Your verification has been reviewed and approved. Your profile now shows a verified badge across the platform.',
       link:    '/dashboard/natives',
+      metadata: { category: 'transactional' },
     })
-  
+
+    // Fires the actual email -- the insert above only ever created the
+    // in-app bell entry, no email was sent for either decision before this.
+    supabase.functions.invoke('verification-decision-notification', {
+      body: { user_id: profileId, decision: 'approved' },
+    }).catch((err) => console.error('verification-decision-notification (approved) failed:', err))
+
     setProfiles((prev) => prev.filter((p) => p.id !== profileId))
   }
 
@@ -1407,7 +1414,13 @@ setProfiles(enriched);
       title:   'Verification not approved',
       body:    `Your verification request wasn't approved. Reason: ${reason.trim()}`,
       link:    '/verify',
+      metadata: { category: 'action_required' },
     })
+
+    // Fires the actual email -- same gap as approve() above.
+    supabase.functions.invoke('verification-decision-notification', {
+      body: { user_id: profileId, decision: 'rejected', reason: reason.trim() },
+    }).catch((err) => console.error('verification-decision-notification (rejected) failed:', err))
 
     setRejectingId(null)
     setRejectReason('')
