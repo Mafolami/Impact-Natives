@@ -530,7 +530,11 @@ function InitiativesPanel({ initialFilter }: { initialFilter?: InitiativeFilter 
   async function updateStatus(id: string, newStatus: InitiativeFilter) {
     const { data, error } = await supabase
       .from('initiative_requests')
-      .update({ status: newStatus })
+      .update(
+        newStatus === 'published'
+          ? { status: newStatus, published_at: new Date().toISOString() }
+          : { status: newStatus }
+      )
       .eq('id', id)
       .select()
     
