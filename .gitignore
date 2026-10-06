@@ -52,3 +52,9 @@ artifacts/natives/.env.development.local
 artifacts/natives/.env.development.local
 .vercel
 supabase/.temp/
+
+# Environment files -- never commit these, even when they only hold
+# client-safe values like VITE_SUPABASE_ANON_KEY today. A future one might
+# not be safe, and by then the habit of committing them is already set.
+.env*
+!.env.example
