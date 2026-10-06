@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Loader2, CheckCircle2, X, SlidersHorizontal, Search, Leaf, Zap, MessageSquare, ShieldCheck, Bookmark, ThumbsDown, RotateCcw, AlertTriangle, Check, Building2, Wallet, Handshake, FileCheck, Award, Info, Lightbulb, Users, BarChart3, Clock, Globe, LayoutGrid, MoreVertical, Download, MapPin, Calendar, Flag } from "lucide-react";
-import { computeTrustTier } from "@/lib/ddItems";
+import { computeTrustTier, isImplementerOrgType } from "@/lib/ddItems";
 import { TrustBadge } from "@/components/ui/TrustBadge";
 import { useAuth } from "@/context/AuthContext";
 import { FileText, Sparkles } from "lucide-react";
@@ -121,9 +121,6 @@ function combinedPartnerPhrase(types: string[], esgAdoption: boolean): string {
 // corporate showed 0% DD Readiness here no matter how much of their real
 // checklist was actually completed, since their answers live in a
 // completely different set of columns this code never looked at.
-function isImplementerOrgType(orgType: string | null | undefined): boolean {
-  return !["philanthropic_foundation", "venture_capital", "corporation", "technology_company", "public_sector"].includes(orgType ?? "");
-}
 function ddItemsFor(o: Record<string, any>): (boolean | undefined)[] {
   return isImplementerOrgType(o.organisation_type)
     ? [o.dd_financial_model, o.dd_audited_accounts, o.dd_governance_doc, o.dd_esg_assessment, o.dd_impact_framework, o.dd_environmental_policy, o.dd_safeguarding_policy, o.dd_legal_registration, o.dd_legal_compliance_declaration]

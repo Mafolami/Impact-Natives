@@ -34,6 +34,7 @@ import { supabase } from "@/lib/supabase";
 import { Loader2, ShieldCheck, Sparkles, CheckCircle2, ArrowUpRight, ArrowLeft, Award, Layers, Clock, Wallet, CalendarDays, Coins, Lock, MapPin, Users, User, Compass, Banknote, FileText, ClipboardList, Scale, Building2, Target, Languages } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
+import { isImplementerOrgType } from "@/lib/ddItems";
 import VerifiedOutcomesSection from "@/components/dashboard/VerifiedOutcomesSection";
 import OrgDocumentsList from "@/components/dashboard/OrgDocumentsList";
 import { ShareButton } from "@/components/dashboard/ShareButton";
@@ -160,7 +161,7 @@ const FUNDER_DD_DOCS: { key: keyof OrgRow; label: string }[] = [
 ];
 
 export function ddDocsFor(org: OrgRow): { key: keyof OrgRow; label: string }[] {
-  return FUNDER_TYPES.includes(org.organisation_type) ? FUNDER_DD_DOCS : IMPLEMENTER_DD_DOCS;
+  return isImplementerOrgType(org.organisation_type) ? IMPLEMENTER_DD_DOCS : FUNDER_DD_DOCS;
 }
 
 export function ddScore(org: OrgRow): number {

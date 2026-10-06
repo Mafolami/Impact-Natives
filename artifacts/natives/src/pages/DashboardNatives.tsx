@@ -13,7 +13,7 @@ import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { TrustBadge } from "@/components/ui/TrustBadge";
 import { COUNTRIES } from "@/lib/countries";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
-import { DD_ITEMS, FUNDER_DD_ITEMS, DDItemDef, DD_SENSITIVE_EVIDENCE_KEYS, DDDocument, PILLAR_INFO, computeTrustTier } from "@/lib/ddItems";
+import { DD_ITEMS, FUNDER_DD_ITEMS, DDItemDef, DD_SENSITIVE_EVIDENCE_KEYS, DDDocument, PILLAR_INFO, computeTrustTier, isImplementerOrgType } from "@/lib/ddItems";
 import { hasLiveRelationshipWith } from "@/lib/relationshipAccess";
 import mammoth from "mammoth";
 import { EsgSnapshotSection } from "@/components/dashboard/EsgSnapshotSection";
@@ -1172,7 +1172,7 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
   const deliveryRate = hasDelivery ? Math.round((deliveryStats!.completed / deliveryStats!.resolved) * 100) : null;
   const deliveryInProgress = deliveryStats ? deliveryStats.total - deliveryStats.resolved : 0;
 
-  const isImplementerOrg = !["philanthropic_foundation", "venture_capital", "corporation", "technology_company", "public_sector"].includes(org.organisation_type ?? "");
+  const isImplementerOrg = isImplementerOrgType(org.organisation_type);
   const showCsrEsg = ["corporation", "technology_company"].includes(org.organisation_type ?? "") &&
     !!(org.csr_focus_statement || org.inkind_support?.length || org.esg_frameworks?.length || org.tech_support_available?.length);
   const isConsultancyOrg = org.organisation_type === "consultancy";
