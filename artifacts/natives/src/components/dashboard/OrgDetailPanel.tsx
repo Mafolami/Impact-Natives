@@ -946,7 +946,7 @@ function PanelNeedsOffers({ org }: { org: OrgRow }) {
 // Mandate fields that already exist on the organization record and feed the matching
 // engine. Shown for funders and corporates only. Values are stored as readable labels.
 
-const CORPORATE_TYPES = ["corporation"];
+const CORPORATE_TYPES = ["corporation", "technology_company", "public_sector"];
 
 function isFunderOrg(org: OrgRow): boolean { return FUNDER_TYPES.includes(org.organisation_type); }
 function isCorporateOrg(org: OrgRow): boolean { return CORPORATE_TYPES.includes(org.organisation_type); }
