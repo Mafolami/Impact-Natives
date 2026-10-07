@@ -1182,7 +1182,19 @@ function MarketplaceDetail({
   useEffect(() => {
     if (!kebabOpen) return;
     function handleClickOutside(e: MouseEvent) {
-      if (kebabRef.current && !kebabRef.current.contains(e.target as Node)) setKebabOpen(false);
+      const target = e.target as Node;
+      if (kebabRef.current && !kebabRef.current.contains(target)) {
+        // The Share button nested in this dropdown renders its menu
+        // (WhatsApp / X / LinkedIn / copy link) through a Radix popover
+        // portal, so it lives in document.body, not inside kebabRef's own
+        // DOM subtree -- even though it's visually part of this dropdown.
+        // Without this check, clicking any option in that menu registered
+        // as an "outside" click and closed (destroyed) the dropdown before
+        // the option's own click handler ran, so Share silently did nothing.
+        const el = target as Element;
+        if (el.closest && el.closest("[data-radix-popper-content-wrapper]")) return;
+        setKebabOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);

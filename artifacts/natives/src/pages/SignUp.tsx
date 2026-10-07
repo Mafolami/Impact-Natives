@@ -36,7 +36,10 @@ export default function SignUp() {
     if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
     if (password !== confirmPassword) { setError("Passwords do not match."); return; }
     setLoading(true);
-    const { error } = await signUp(email, password);
+    // Don't clear redirectAfterAuth here -- AuthCallback.tsx still reads it
+    // for the Google OAuth path, which stays in the same tab throughout.
+    const redirectPath = sessionStorage.getItem("redirectAfterAuth") || undefined;
+    const { error } = await signUp(email, password, redirectPath);
     setLoading(false);
     if (error) { setError(error.message); } else { setDone(true); }
   }

@@ -29,12 +29,20 @@ export default function AuthCallback() {
           return;
         }
         if (data.session) {
+          // Carried from signUp()'s user_metadata (see AuthContext.tsx) --
+          // this is what survives the confirmation link opening in a new
+          // tab, where sessionStorage from the original tab isn't visible.
+          // Writing it back into this tab's sessionStorage means
+          // Onboarding.tsx's existing getRedirectPath() picks it up
+          // unchanged once onboarding finishes, with no change needed there.
+          const pendingRedirect = (data.session.user.user_metadata as any)?.redirect_after_signup as string | undefined;
+          if (pendingRedirect) sessionStorage.setItem("redirectAfterAuth", pendingRedirect);
           const { data: profile } = await supabase
             .from("profiles")
             .select("onboarding_completed")
             .eq("id", data.session.user.id)
             .single();
-          navigate(profile?.onboarding_completed ? "/dashboard" : "/onboarding");
+          navigate(profile?.onboarding_completed ? (pendingRedirect || "/dashboard") : "/onboarding");
           return;
         }
       }

@@ -71,7 +71,7 @@ interface AuthContextType {
   // onboarding flow before they can ever reach Settings > Team to accept.
   hasPendingInvite: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, redirectPath?: string) => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -246,12 +246,21 @@ async function signIn(email: string, password: string) {
     return { error: null };
   }
 
-  async function signUp(email: string, password: string) {
+  async function signUp(email: string, password: string, redirectPath?: string) {
+    // redirectPath is the page a logged-out visitor was trying to reach
+    // (e.g. /dashboard/marketplace/:id) before being bounced to sign up.
+    // sessionStorage can't carry it across the new tab the confirmation
+    // email opens in, so it rides as user_metadata on the signup instead --
+    // that's attached to the auth.users row immediately and comes back on
+    // the session AuthCallback.tsx gets after verifyOtp succeeds, same tab
+    // or not. Omitted entirely (not even an empty value) when there's
+    // nothing to carry, so an ordinary signup is unaffected.
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-                  emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        ...(redirectPath ? { data: { redirect_after_signup: redirectPath } } : {}),
       },
     });
     return { error };
