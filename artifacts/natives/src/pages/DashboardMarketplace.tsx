@@ -6,7 +6,7 @@ import { computeTrustTier, isImplementerOrgType } from "@/lib/ddItems";
 import { TrustBadge } from "@/components/ui/TrustBadge";
 import { useAuth } from "@/context/AuthContext";
 import { FileText, Sparkles } from "lucide-react";
-import { useLocation, Link } from "wouter";
+import { useLocation, useRoute, Link } from "wouter";
 import CreateInitiativeModalDashboard from "./CreateInitiativeModalDashboard";
 import { ShareButton as SharedShareButton } from "@/components/dashboard/ShareButton";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -647,15 +647,22 @@ export default function DashboardMarketplace() {
       if (eoiData) setExpressedIds(new Set(eoiData.map((d: any) => d.initiative_id)));
     });
   }, [orgOwnerId]);
+  // Two link formats open a specific card here: ?initiative=<id> (every
+  // internal "view this initiative" link elsewhere in the app -- Home,
+  // Portfolio, matches) and the path segment /dashboard/marketplace/<id>
+  // (what ShareButton.tsx generates for the public share link). Only the
+  // query param was ever read here, so a shared link landed on the plain
+  // list instead of opening the card it was supposed to point to.
+  const [, routeParams] = useRoute("/dashboard/marketplace/:id");
   useEffect(() => {
     if (!initiatives.length) return;
     const params = new URLSearchParams(window.location.search);
-    const deepId = params.get("initiative");
+    const deepId = routeParams?.id || params.get("initiative");
     if (deepId) {
       const match = initiatives.find(i => i.id === deepId);
       if (match) setSelected(match as InitiativeRow);
     }
-  }, [initiatives.length]);
+  }, [initiatives.length, routeParams?.id]);
 
   // Deep link: ?create=1 opens the Create Initiative modal directly --
   // used by DashboardHome's Getting Started task, so that entry point
