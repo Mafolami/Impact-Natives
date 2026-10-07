@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { Loader2 } from "lucide-react";
@@ -8,8 +8,19 @@ export default function SignIn() {
   const { signIn, signInWithGoogle, user, loading: authLoading } = useAuth();
   const deactivated = new URLSearchParams(window.location.search).get("deactivated") === "true";
 
+  // Sign-in triggers two independent paths to here: this effect (fired by
+  // AuthContext's own onAuthStateChange subscription updating `user`) and
+  // handleSubmit's own navigate() below, reacting to the same sign-in.
+  // getRedirectPath() clears sessionStorage on first read, so without this
+  // guard whichever of the two fires second always lost the real
+  // destination and fell back to plain "/dashboard".
+  const redirectedRef = useRef(false);
+
   useEffect(() => {
-    if (!authLoading && user && !deactivated) navigate(getRedirectPath());
+    if (!authLoading && user && !deactivated && !redirectedRef.current) {
+      redirectedRef.current = true;
+      navigate(getRedirectPath());
+    }
   }, [user, authLoading, deactivated]);
 
   const [email, setEmail] = useState("");
@@ -31,7 +42,12 @@ export default function SignIn() {
     setLoading(true);
     const { error } = await signIn(email, password);
     setLoading(false);
-    if (error) { setError(error.message); } else { navigate(getRedirectPath()); }
+    if (error) {
+      setError(error.message);
+    } else if (!redirectedRef.current) {
+      redirectedRef.current = true;
+      navigate(getRedirectPath());
+    }
   }
 
   async function handleGoogle() {
