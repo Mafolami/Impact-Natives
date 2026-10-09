@@ -614,10 +614,16 @@ export default function HomePage() {
   const statsRef = useRef<HTMLDivElement>(null)
   const [statsVisible, setStatsVisible] = useState(false)
 
-  useEffect(() => {
-    if (loading) return
-    if (user) navigate('/dashboard')
-  }, [user, loading])
+  // HomePage only ever mounts on the marketing domain in production --
+  // app.impactnatives.com redirects away from every non-dashboard/admin/auth
+  // path before this component could render there (see App.tsx's isAppDomain
+  // check). So this effect was unconditionally pushing a logged-in visitor
+  // on impactnatives.com itself into /dashboard, same-origin, on the
+  // marketing domain -- the dashboard has no business rendering there at
+  // all. Removed: staying logged in no longer moves a marketing-domain
+  // visitor anywhere. They land on the real dashboard (app.impactnatives.com)
+  // only when they actually click through (Navbar's Dashboard/Profile links,
+  // fixed separately to cross over to the app domain).
 
   useEffect(() => {
     const el = statsRef.current

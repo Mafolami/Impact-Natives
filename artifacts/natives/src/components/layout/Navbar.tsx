@@ -283,18 +283,18 @@ const isHomePage = location === "/" || location === "/labs/commission"
                 </button>
                 {userMenuOpen && (
                   <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-border bg-background shadow-lg py-1 z-50">
-                    <Link href="/dashboard" onClick={() => setUserMenuOpen(false)}>
+                    <a {...getAuthLinkProps("/dashboard")} onClick={() => setUserMenuOpen(false)}>
                       <div className="flex items-center gap-2 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors cursor-pointer">
                         <User className="w-4 h-4" />
                         Dashboard
                       </div>
-                    </Link>
-                    <Link href="/dashboard/profile" onClick={() => setUserMenuOpen(false)}>
+                    </a>
+                    <a {...getAuthLinkProps("/dashboard/profile")} onClick={() => setUserMenuOpen(false)}>
                       <div className="flex items-center gap-2 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors cursor-pointer">
                         <User className="w-4 h-4" />
                         Profile
                       </div>
-                    </Link>
+                    </a>
                     <div className="border-t border-border my-1" />
                     <button
                       onClick={() => { signOut(); setUserMenuOpen(false); }}
@@ -410,9 +410,9 @@ const isHomePage = location === "/" || location === "/labs/commission"
             <div className="pt-4 border-t flex flex-col gap-3 mt-2">
               {user ? (
                 <>
-                  <Link href="/dashboard" onClick={() => setMobileOpen(false)}>
+                  <a {...getAuthLinkProps("/dashboard")} onClick={() => setMobileOpen(false)}>
                     <Button variant="outline" className="w-full">Dashboard</Button>
-                  </Link>
+                  </a>
                   <Button
                     className="w-full bg-destructive text-white"
                     onClick={() => { signOut(); setMobileOpen(false); }}

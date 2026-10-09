@@ -60,7 +60,7 @@ Some features on the platform use artificial intelligence to process text you pr
 
 - Parsing documents you upload during onboarding to prefill your profile
 - Generating strategy pillars and initiative descriptions
-- Producing partnership fit analysis and suggested messages
+- Producing partnership fit analysis and suggested messages, including the automated score used to generate your personalised "matches" suggestions on your dashboard
 - Powering the conversational strategy advisor
 
 When you use these features, the text you enter is sent to our AI provider, **Groq**, for processing and returned to you. We only send the specific text needed for the feature to work. We do not send AI providers more of your personal data than is necessary.
@@ -71,7 +71,7 @@ Where a feature uses AI, we aim to offer a manual alternative, such as filling i
 
 ## 5. Legal Basis for Processing
 
-We process your data under the **Nigeria Data Protection Regulation (NDPR) 2019** and its implementing framework.
+We process your data in accordance with the **Nigeria Data Protection Act (NDPA) 2023** as administered by the **Nigeria Data Protection Commission (NDPC)**.
 
 Our legal bases are:
 - **Contract**: processing necessary to provide the platform services you have signed up for
@@ -122,11 +122,13 @@ We retain your data for as long as your account is active. If you delete your ac
 
 **Verification documents**: if your verification is approved, we retain the documents for a reasonable period after review for audit purposes. If your verification is rejected or you do not complete it, the documents you submitted are deleted within 30 days.
 
+**Due diligence evidence**: documents you upload as part of your organisation's due diligence checklist (financial model, audited accounts, governance documentation, legal registration) are retained for as long as your account is active, and are visible only according to the visibility setting you choose for each document (private, limited to organisations you have an active relationship with, or public).
+
 ---
 
 ## 10. Your Rights
 
-Under the NDPR, you have the right to:
+Under the NDPA, you have the right to:
 
 - **Access** the personal data we hold about you
 - **Correct** inaccurate or incomplete data
@@ -155,7 +157,7 @@ No system is completely secure. If you believe your account has been compromised
 
 ## 12. Data Breach Notification
 
-If a data breach occurs that affects your personal data, we will act quickly to contain it. Where the breach is likely to result in a risk to your rights and freedoms, we will notify the relevant data protection authority and affected users without undue delay, and within 72 hours of becoming aware of it where required under the NDPR and GDPR.
+If a data breach occurs that affects your personal data, we will act quickly to contain it. Where the breach is likely to result in a risk to your rights and freedoms, we will notify the relevant data protection authority and affected users without undue delay, and within 72 hours of becoming aware of it where required under the NDPA and GDPR.
 
 ---
 
@@ -176,4 +178,4 @@ We may update this policy from time to time. We will notify registered users of 
 **Impact Natives Ltd**
 
 Email: contact@impactnatives.com
-Website: impactnatives.com
+Website: www.impactnatives.com

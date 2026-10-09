@@ -8,6 +8,29 @@ import {
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
+// Sign a user out after this many ms with no mouse/keyboard/touch/scroll
+// activity. 12 hours by default -- easy to change, this is the only place
+// it's defined.
+const INACTIVITY_LIMIT_MS = 12 * 60 * 60 * 1000;
+const LAST_ACTIVITY_KEY = "lastActivityAt";
+
+function recordActivity() {
+  try { localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now())); } catch { /* ignore */ }
+}
+
+// 0 (never idle) until the first real activity timestamp exists -- a
+// session that predates this feature shipping doesn't get force-logged-out
+// the instant it ships; the clock only starts once there's real data.
+function getIdleMs(): number {
+  try {
+    const stored = localStorage.getItem(LAST_ACTIVITY_KEY);
+    if (!stored) return 0;
+    return Date.now() - Number(stored);
+  } catch {
+    return 0;
+  }
+}
+
 export interface Profile {
   id: string;
   full_name: string | null;
@@ -200,6 +223,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // actual login action, unlike INITIAL_SESSION/TOKEN_REFRESHED
         // which fire on every page load or silent token renewal.
         if (event === "SIGNED_IN") {
+          // Seeds the inactivity clock (see the effect below) for a
+          // genuinely fresh login -- deliberately NOT done on every
+          // TOKEN_REFRESHED, which fires silently in the background on a
+          // timer regardless of whether the person is actually at the
+          // keyboard. Seeding here only on a real sign-in means a tab left
+          // completely untouched still gets timed out even though Supabase
+          // keeps refreshing its token underneath.
+          recordActivity();
           supabase.rpc("increment_login_count").then(({ data: isFirstLoginToday, error }) => {
             if (error) {
               console.error("increment_login_count failed:", error);
@@ -236,7 +267,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-async function signIn(email: string, password: string) {
+  // ── Automatic sign-out after a long stretch of inactivity ──────────────
+  // "Inactivity" means no mouse/keyboard/touch/scroll, not merely "the tab
+  // is open" -- Supabase's own silent token refresh happens on a timer
+  // regardless of whether anyone's there, so it's deliberately NOT treated
+  // as activity (see the SIGNED_IN handler above).
+  //
+  // The timestamp lives in localStorage, not a plain in-memory timer, so
+  // this survives the realistic case: someone closes their laptop lid
+  // overnight. A suspended tab's JS timers don't reliably fire while
+  // asleep, but the moment the tab wakes (visibilitychange/focus), this
+  // checks the real elapsed time against the stored timestamp and signs
+  // out immediately if it's been too long -- it doesn't depend on a timer
+  // having survived the sleep. localStorage is also shared across tabs on
+  // the same origin, so activity in one tab keeps every open tab alive,
+  // and going idle signs all of them out together.
+  useEffect(() => {
+    if (!user) return undefined;
+
+    const ACTIVITY_EVENTS = ["mousedown", "keydown", "scroll", "touchstart"] as const;
+    // Throttled so a continuous scroll/keypress doesn't hammer localStorage.
+    let throttled = false;
+    function onActivity() {
+      if (throttled) return;
+      throttled = true;
+      recordActivity();
+      setTimeout(() => { throttled = false; }, 30_000);
+    }
+    ACTIVITY_EVENTS.forEach(evt => window.addEventListener(evt, onActivity, { passive: true }));
+
+    function checkIdle() {
+      if (getIdleMs() > INACTIVITY_LIMIT_MS) signOut();
+    }
+    document.addEventListener("visibilitychange", checkIdle);
+    window.addEventListener("focus", checkIdle);
+    const interval = setInterval(checkIdle, 5 * 60 * 1000);
+    // Also check right away -- catches a session that was already stale
+    // the moment this effect first attaches (e.g. a reload after the tab
+    // was asleep for days).
+    checkIdle();
+
+    return () => {
+      ACTIVITY_EVENTS.forEach(evt => window.removeEventListener(evt, onActivity));
+      document.removeEventListener("visibilitychange", checkIdle);
+      window.removeEventListener("focus", checkIdle);
+      clearInterval(interval);
+    };
+  }, [user?.id]);
+
+  async function signIn(email: string, password: string) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error };
     if (data.user && !data.user.email_confirmed_at) {

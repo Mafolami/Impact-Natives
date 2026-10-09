@@ -85,7 +85,7 @@ We reserve the right to revoke verification at our discretion.
 
 ## 8. Partnerships and Transactions
 
-Impact Natives facilitates connections between users. We are not a party to any partnership, agreement, or transaction formed between users through the platform. We make no representations about the suitability, reliability, or capabilities of any user.
+Impact Natives is non-transactional (doesn't escrow, hold, or route funds). We facilitate connections between users. We are not a party to any partnership, agreement, or transaction formed between users through the platform. We make no representations about the suitability, reliability, or capabilities of any user.
 
 Any agreements reached between users are solely between those users. Impact Natives accepts no liability for the outcome of any partnership or collaboration formed through the platform.
 
