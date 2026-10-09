@@ -976,7 +976,7 @@ export default function HomePage() {
                   10+
                 </div>
                 <div style={{ fontSize: '0.875rem', color: T.textDimmer, lineHeight: 1.5 }}>
-                  Years working across Africa's impact sector
+                  Years of founder experience in Africa's impact sector
                 </div>
               </div>
               {/* ALIGN */}
