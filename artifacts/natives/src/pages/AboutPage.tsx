@@ -31,7 +31,7 @@ export default function AboutPage() {
             The coordination layer for Africa's{" "}
             <span style={{ color: '#f0e6d3' }}>social impact economy.</span>
           </h1>
-          <p className="text-lg md:text-xl text-white/70 leading-relaxed max-w-2xl">
+          <p className="text-lg md:text-xl text-white leading-relaxed max-w-2xl">
             We run the institutional-grade digital infrastructure required to align capital, verify outcomes, and scale partnerships across the continent.
           </p>
         </div>
@@ -48,13 +48,13 @@ export default function AboutPage() {
   <h2 className="text-3xl font-bold tracking-tight text-foreground mb-6">
     The Problem We Saw
   </h2>
-  <p className="text-muted-foreground text-lg leading-relaxed mb-4">
+  <p className="text-foreground text-lg leading-relaxed mb-4">
     Africa is full of people with the right ideas and the wrong circumstances. Good ideas die every day, not because they are not credible, but because the person holding them cannot get into the right rooms and has no infrastructure to turn intent into action.
   </p>
-  <p className="text-muted-foreground text-lg leading-relaxed mb-4">
+  <p className="text-foreground text-lg leading-relaxed mb-4">
     But that is only half the problem.
   </p>
-  <p className="text-muted-foreground text-lg leading-relaxed">
+  <p className="text-foreground text-lg leading-relaxed">
     On the other side, there are organisations doing serious, proven work. And they are still finding partners through personal networks and luck. Still starting every collaboration from scratch. Still spending months vetting someone they should have been able to find and trust in a week.
   </p>
 </div>
@@ -99,7 +99,7 @@ export default function AboutPage() {
             <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.3rem', letterSpacing: '-0.015em' }} className="text-foreground">
               {item.title}
             </div>
-            <p style={{ fontSize: '0.9rem', lineHeight: 1.65 }} className="text-muted-foreground">{item.body}</p>
+            <p style={{ fontSize: '0.9rem', lineHeight: 1.65 }} className="text-foreground">{item.body}</p>
           </div>
         </div>
       ))}
@@ -116,9 +116,9 @@ export default function AboutPage() {
         <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-6">
           The Mission
         </h2>
-        <p className="text-lg leading-relaxed text-muted-foreground mb-8">
-        Impact should not require permission and opportunity should not depend on who you know. Natives is the infrastructure that 
-        connects capital, talent, and ideas — so anyone, anywhere on the continent, with a credible idea and the drive to see it through, 
+        <p className="text-lg leading-relaxed text-foreground mb-8">
+        Impact should not require permission and opportunity should not depend on who you know. Natives is the infrastructure that
+        connects capital, talent, and ideas — so anyone, anywhere on the continent, with a credible idea and the drive to see it through,
         can find the right partners and get to work.
         </p>
         <a {...getAuthLinkProps("/signup")}>
@@ -137,8 +137,8 @@ export default function AboutPage() {
             <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
           </svg>
         </div>
-        
-        <p className="text-muted-foreground leading-relaxed max-w-xs">
+
+        <p className="text-foreground leading-relaxed max-w-xs">
         The best ideas don't care where you're from. Now neither does the infrastructure.
         </p>
       </div>
@@ -151,7 +151,7 @@ export default function AboutPage() {
   <section>
     <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-3">Our Framework</p>
     <h2 className="text-3xl font-bold tracking-tight mb-4">Our Principles</h2>
-    <p className="text-muted-foreground text-lg max-w-2xl mb-10">
+    <p className="text-foreground text-lg max-w-2xl mb-10">
       ALIGN guides how Natives approaches coordination, verification, and ecosystem infrastructure — what it takes to build trust and move capital effectively across Africa's impact sector.
     </p>
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -172,7 +172,7 @@ export default function AboutPage() {
             <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.3rem', letterSpacing: '-0.015em' }} className="text-foreground">
               {item.word}
             </div>
-            <p style={{ fontSize: '0.875rem', lineHeight: 1.65 }} className="text-muted-foreground">{item.desc}</p>
+            <p style={{ fontSize: '0.875rem', lineHeight: 1.65 }} className="text-foreground">{item.desc}</p>
           </div>
         </div>
       ))}
@@ -182,70 +182,15 @@ export default function AboutPage() {
 
 {/* 4. What You Get — chameleon full bleed */}
 <div className="w-full border-y border-white/10" style={{ backgroundImage: 'linear-gradient(135deg, #3d1a08, #0d3040, #3d2a1a, #2d2000, #0a2030, #3d1a08)', backgroundSize: '300% 300%', animation: 'fp-chameleon 18s ease infinite' }}>
-  <div className="max-w-screen-2xl mx-auto content-padding hp-hero py-16 md:py-24">
-    <p className="text-xs font-semibold uppercase tracking-widest text-center mb-3" style={{ color: 'rgba(255,255,255,0.5)' }}>Access</p>
-    <h2 className="text-2xl md:text-3xl font-bold mb-3 text-center text-white">What You Get</h2>
-    <div className="grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
-      <div className="rounded-2xl p-6 md:p-8 flex flex-col" style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.2)' }}>
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.12)" }}>
-            <Lock className="w-4 h-4 text-white" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-white">Exploring</h3>
-            <p className="text-xs" style={{ color: "rgba(255,255,255,0.55)" }}>No account required</p>
-          </div>
-        </div>
-        <ul className="space-y-3 flex-1">
-          {[
-            "Browse up to 4 live initiatives",
-            "Discover organisations working on problems you care about",
-            "Explore the verified partner network — join to connect",
-          ].map((item) => (
-            <li key={item} className="flex items-start gap-3 text-sm" style={{ color: "rgba(255,255,255,0.75)" }}>
-              <span className="mt-0.5 shrink-0">○</span> {item}
-            </li>
-          ))}
-        </ul>
-        <a {...getAuthLinkProps("/signup")} className="mt-8">
-          <Button variant="outline" className="w-full text-white border-white/30 bg-transparent hover:bg-white/10">
-            Create Free Account
-          </Button>
-        </a>
-      </div>
-      <div className="rounded-2xl p-6 md:p-8 flex flex-col relative overflow-hidden" style={{ background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.45)", backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3)' }}>
-        <div className="absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-1/2 translate-x-1/2" style={{ background: "rgba(255,255,255,0.03)" }} />
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.12)" }}>
-            <ShieldCheck className="w-4 h-4 text-white" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-white">Active Member</h3>
-            <p className="text-xs font-medium" style={{ color: "rgba(255,255,255,0.55)" }}>Free now</p>
-          </div>
-        </div>
-        <ul className="space-y-3 flex-1">
-          {[
-            "Get AI-matched to partners scored against your mandate, sector, and readiness to deliver",
-            "Generate deal memos and CSR briefs that flag risk before the first conversation",
-            "Build a verified profile that puts you in front of funders and partners actively looking",
-            "Post initiatives to the marketplace and receive expressions of interest directly",
-            "Message matched partners and manage conversations in one place",
-            "Access the full verified partner directory.",
-            "Commission a lab and track your progress.",
-          ].map((item) => (
-            <li key={item} className="flex items-start gap-3 text-sm text-white">
-              <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "rgba(196,92,38,0.8)" }} /> {item}
-            </li>
-          ))}
-        </ul>
-        <a {...getAuthLinkProps("/signup")} className="mt-8">
-          <Button className="w-full text-white font-semibold" style={{ background: "rgba(196,92,38,0.85)", border: "none" }}>
-            Join as a Founding Member
-          </Button>
-        </a>
-      </div>
-    </div>
+  <div className="max-w-screen-2xl mx-auto content-padding hp-hero py-16 md:py-24 text-center">
+    <p className="text-lg max-w-2xl mx-auto mb-8 text-white">
+      Create an account to get matched with partners, build a verified profile, and put your initiatives in front of funders and partners actively looking.
+    </p>
+    <a {...getAuthLinkProps("/signup")}>
+      <Button size="lg" className="text-white font-semibold" style={{ background: "rgba(196,92,38,0.85)", border: "none" }}>
+        Create Account
+      </Button>
+    </a>
   </div>
 </div>
 
@@ -254,8 +199,8 @@ export default function AboutPage() {
   <div className="max-w-screen-2xl mx-auto content-padding hp-hero py-16 md:py-24">
     <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-3">How Trust Works</p>
     <h2 className="text-3xl font-bold mb-2">Trust & Verification</h2>
-    <p className="text-muted-foreground text-lg max-w-2xl mb-10">
-      Every organisation on Natives goes through a verification process — legal registration, track record review, and profile completeness checks. This gives partners and funders confidence before they engage.
+    <p className="text-foreground text-lg max-w-2xl mb-10">
+      Natives supports a verification process organisations can request — legal registration, track record, and profile completeness reviewed by our team. A verified badge tells partners and funders which organisations have done that work, so you can see at a glance who's been checked.
     </p>
     <div className="grid md:grid-cols-3 gap-6">
       <Card className="border-border shadow-sm">
@@ -265,7 +210,7 @@ export default function AboutPage() {
           </div>
           <CardTitle className="text-base">Verified Entity</CardTitle>
         </CardHeader>
-        <CardContent className="text-center text-sm text-muted-foreground">
+        <CardContent className="text-center text-sm text-foreground">
           <p>Legal registration and organisational documents reviewed and assessed by the Natives team.</p>
         </CardContent>
       </Card>
@@ -276,7 +221,7 @@ export default function AboutPage() {
           </div>
           <CardTitle className="text-base">Track Record</CardTitle>
         </CardHeader>
-        <CardContent className="text-center text-sm text-muted-foreground">
+        <CardContent className="text-center text-sm text-foreground">
           <p>Demonstrated history of successful project execution and fund management.</p>
         </CardContent>
       </Card>
@@ -287,7 +232,7 @@ export default function AboutPage() {
           </div>
           <CardTitle className="text-base">Data Integrity</CardTitle>
         </CardHeader>
-        <CardContent className="text-center text-sm text-muted-foreground">
+        <CardContent className="text-center text-sm text-foreground">
           <p>Impact data is structured and self-declared, with supporting documents assessed by the Natives team. Unverified claims are surfaced, not smoothed over.</p>
         </CardContent>
       </Card>
@@ -295,13 +240,12 @@ export default function AboutPage() {
   </div>
 </div>
 
-{/* 6. Build with us — dark closing CTA */}
+{/* 6. Get Involved — dark closing CTA */}
 <div className="w-full" style={{ background: '#0d1f13' }}>
   <div className="max-w-7xl mx-auto content-padding py-16 md:py-24 text-center">
-    <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>Get Involved</p>
-    <h2 className="text-3xl font-bold mb-4 text-white">Build with us</h2>
-    <p className="text-lg mb-8 max-w-xl mx-auto" style={{ color: 'rgba(255,255,255,0.55)' }}>
-      We are actively onboarding founding partners to help shape the infrastructure. If you work in impact, this platform is being built for you.
+    <p className="text-xs font-semibold uppercase tracking-widest mb-3 text-white">Get Involved</p>
+    <p className="text-lg mb-8 max-w-xl mx-auto text-white">
+      Create an account to get matched with partners, build a verified profile, and put your initiatives in front of funders and partners actively looking.
     </p>
     <div className="flex justify-center gap-4 flex-wrap">
       <Link href="/partner">
@@ -309,7 +253,7 @@ export default function AboutPage() {
       </Link>
       <a {...getAuthLinkProps("/signup")}>
         <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 bg-transparent">
-          Join as a Founding Member
+          Create Account
         </Button>
       </a>
     </div>
