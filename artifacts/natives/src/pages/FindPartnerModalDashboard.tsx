@@ -210,48 +210,44 @@ function StepNav({current,onNavigate,form,partnershipTitle,freeText,uploadedFile
   );
 }
 
-// Step header — title + one-line subtitle
+// Step header — sits at the top of the scrolling form column
 function StepHeader({step,subtitle}:{step:number;subtitle:string}){
   return (
-    <div className="shrink-0 pt-8 pb-6 border-b border-[#1C1917]/10">
-      <div className="w-full max-w-[720px] mx-auto px-5 sm:px-10">
-        <p className="text-[0.9375rem] font-medium text-[#44403C]">Step {step+1} of {STEPS.length}</p>
-        <h2 className="mt-1 text-[1.75rem] sm:text-[2rem] leading-tight font-semibold tracking-tight text-[#1C1917]">{STEPS[step].label}</h2>
-        <p className="mt-2 text-[1rem] text-[#44403C] leading-relaxed">{subtitle}</p>
-      </div>
+    <div className="mb-10">
+      <p className="text-[0.9375rem] font-medium text-[#44403C]">Step {step+1} of {STEPS.length}</p>
+      <h2 className="mt-1.5 text-[1.875rem] sm:text-[2.125rem] leading-tight font-semibold tracking-tight text-[#1C1917]">{STEPS[step].label}</h2>
+      <p className="mt-3 text-[1.0625rem] text-[#44403C] leading-relaxed">{subtitle}</p>
     </div>
   );
 }
 
-// Footer — outlined Back pill, solid Continue pill
+// Footer — sits at the end of the form column, so it never covers a field
 function StepFooter({onBack,onNext,onSkip,nextLabel,skipLabel,nextDisabled,loading}:{
   onBack?:()=>void;onNext?:()=>void;onSkip?:()=>void;nextLabel?:string;skipLabel?:string;nextDisabled?:boolean;loading?:boolean;
 }){
   return (
-    <div className="shrink-0 py-4 border-t border-[#1C1917]/10 bg-background">
-      <div className="w-full max-w-[720px] mx-auto px-5 sm:px-10 flex items-center justify-between gap-3">
-        {onBack
-          ? <button type="button" onClick={onBack}
-              className="inline-flex items-center gap-2 h-12 px-6 rounded-full border border-[#1C1917]/20 bg-white text-[0.9375rem] font-semibold text-[#1C1917] shadow-[0_1px_2px_rgba(28,25,23,0.06)] hover:border-[#1C1917]/45 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(28,25,23,0.10)] transition-all duration-150 shrink-0">
-              <ArrowLeft className="w-4 h-4"/>Back
-            </button>
-          : <div/>}
-        <div className="flex items-center gap-3">
-          {onSkip && (
-            <button type="button" onClick={onSkip}
-              className="h-12 px-5 rounded-full text-[0.9375rem] font-medium text-[#1C1917] border border-[#1C1917]/15 hover:border-[#2D6A4F] hover:text-[#2D6A4F] transition-colors">
-              {skipLabel??"Skip"}
-            </button>
-          )}
-          {onNext && (
-            <button type="button" onClick={onNext} disabled={nextDisabled||loading}
-              className="h-12 px-8 rounded-full text-[0.9375rem] font-semibold text-white bg-[#2D6A4F] hover:bg-[#245c43] disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center gap-2">
-              {loading
-                ? <><Loader2 className="w-4 h-4 animate-spin"/>Working...</>
-                : nextLabel??"Continue"}
-            </button>
-          )}
-        </div>
+    <div className="mt-14 pt-8 border-t border-[#1C1917]/10 flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {onBack
+        ? <button type="button" onClick={onBack}
+            className="inline-flex items-center justify-center gap-2 h-[3.25rem] px-7 rounded-full border border-[#1C1917]/20 bg-white text-[0.9375rem] font-semibold text-[#1C1917] shadow-[0_1px_2px_rgba(28,25,23,0.06)] hover:border-[#1C1917]/45 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(28,25,23,0.10)] transition-all duration-150 w-full sm:w-auto">
+            <ArrowLeft className="w-4 h-4"/>Back
+          </button>
+        : <div className="hidden sm:block"/>}
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
+        {onSkip && (
+          <button type="button" onClick={onSkip}
+            className="h-[3.25rem] px-6 rounded-full text-[0.9375rem] font-semibold text-[#1C1917] border border-[#1C1917]/20 bg-white hover:border-[#1C1917]/45 transition-colors w-full sm:w-auto">
+            {skipLabel??"Skip"}
+          </button>
+        )}
+        {onNext && (
+          <button type="button" onClick={onNext} disabled={nextDisabled||loading}
+            className="h-[3.25rem] px-9 rounded-full text-[0.9375rem] font-semibold text-white bg-[#2D6A4F] hover:bg-[#245c43] disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] inline-flex items-center justify-center gap-2 w-full sm:w-auto">
+            {loading
+              ? <><Loader2 className="w-4 h-4 animate-spin"/>Working...</>
+              : nextLabel??"Continue"}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1161,7 +1157,7 @@ export function FindPartnerModalDashboard({
           <div className="min-w-0">
             <span className="text-[15px] font-semibold text-foreground">Get Matched</span>
             {partnershipTitle&&appState==="form"&&formStep>0&&(
-              <span className="text-[0.9375rem] text-foreground ml-2">— {partnershipTitle}</span>
+              <span className="hidden sm:inline text-[0.9375rem] text-[#1C1917] ml-2">— {partnershipTitle}</span>
             )}
           </div>
         </div>
@@ -1438,11 +1434,11 @@ export function FindPartnerModalDashboard({
 
             {/* Step content */}
             <div className="flex flex-col flex-1 min-h-0">
-              <StepHeader step={formStep} subtitle={STEPS[formStep].subtitle}/>
-
-              {/* Scrollable form body — centered, max-width constrained */}
-              <div className="flex-1 overflow-y-auto">
-                <div className="w-full max-w-[720px] mx-auto px-5 py-10 sm:px-10 lg:py-12">
+              {/* Scrollable form body — header, fields and buttons share one column.
+                  key={formStep}: each step opens scrolled to the top. */}
+              <div key={formStep} className="flex-1 overflow-y-auto">
+                <div className="w-full max-w-[720px] mx-auto px-5 pt-10 pb-16 sm:px-10 lg:pt-14">
+                  <StepHeader step={formStep} subtitle={STEPS[formStep].subtitle}/>
 
                   {/* STEP 0 */}
                   {formStep===0&&(
@@ -1534,7 +1530,7 @@ export function FindPartnerModalDashboard({
                       <Field label="What are you looking for?" required first
                         hint="Be specific — what would a good partner actually do?">
                         <Textarea
-                          className="w-full text-[1rem] resize-none rounded-xl border border-[#1C1917]/15 px-4 py-3.5 leading-relaxed min-h-[110px] bg-background text-foreground"
+                          className="w-full text-[1rem] md:text-[1rem] resize-none rounded-xl border border-[#1C1917]/15 px-4 py-3.5 leading-relaxed min-h-[110px] bg-background text-foreground"
                           value={form.partnership_sought}
                           onChange={e=>setF("partnership_sought",e.target.value)}
                           placeholder="e.g. A UK-based research institution with health systems experience who can co-design our M&E framework and co-author peer-reviewed publications."/>
@@ -1709,7 +1705,7 @@ export function FindPartnerModalDashboard({
                       <Field label="What does success look like in 12 months?" required
                         hint="One sentence. This is the most important signal for match quality — it forces outcome clarity and tells the AI what to optimise for.">
                         <Textarea
-                          className="w-full text-[1rem] resize-none rounded-xl border border-[#1C1917]/15 px-4 py-3.5 leading-relaxed min-h-[80px] bg-background text-foreground"
+                          className="w-full text-[1rem] md:text-[1rem] resize-none rounded-xl border border-[#1C1917]/15 px-4 py-3.5 leading-relaxed min-h-[80px] bg-background text-foreground"
                           placeholder="e.g. A published evaluation framework co-authored with our research partner, adopted by 3 state health ministries by end of 2027."
                           value={form.partnership_success_definition}
                           onChange={e=>setF("partnership_success_definition",e.target.value)}/>
@@ -1940,7 +1936,7 @@ export function FindPartnerModalDashboard({
                           <div className="mt-4 space-y-2">
                             <p className="text-[0.9375rem] text-[#44403C]">Briefly describe one completed partnership — who with, what you did, and what came of it.</p>
                             <Textarea
-                              className="w-full text-[1rem] resize-none rounded-xl border border-[#1C1917]/15 px-4 py-3.5 leading-relaxed bg-background text-foreground"
+                              className="w-full text-[1rem] md:text-[1rem] resize-none rounded-xl border border-[#1C1917]/15 px-4 py-3.5 leading-relaxed bg-background text-foreground"
                               placeholder="e.g. Co-implemented a WASH programme with WaterAid in Kaduna State 2022–23, reaching 12,000 households."
                               value={form.partnership_prior_experience_detail}
                               onChange={e=>setF("partnership_prior_experience_detail",e.target.value)}/>
@@ -1956,7 +1952,7 @@ export function FindPartnerModalDashboard({
                       <Field label="Your approach to creating change"
                         hint="One sentence. Helps partners check if your theories of change are compatible." first>
                         <Textarea
-                          className="w-full text-[1rem] resize-none rounded-xl border border-[#1C1917]/15 px-4 py-3.5 leading-relaxed bg-background text-foreground"
+                          className="w-full text-[1rem] md:text-[1rem] resize-none rounded-xl border border-[#1C1917]/15 px-4 py-3.5 leading-relaxed bg-background text-foreground"
                           placeholder="e.g. We believe sustainable health outcomes require community ownership from design through to delivery."
                           value={form.partnership_theory_of_change}
                           onChange={e=>setF("partnership_theory_of_change",e.target.value)}/>
@@ -1965,7 +1961,7 @@ export function FindPartnerModalDashboard({
                       <Field label="Previous attempts at this type of partnership"
                         hint="Transparency about what you've tried builds trust and helps us match you better.">
                         <Textarea
-                          className="w-full text-[1rem] resize-none rounded-xl border border-[#1C1917]/15 px-4 py-3.5 leading-relaxed bg-background text-foreground"
+                          className="w-full text-[1rem] md:text-[1rem] resize-none rounded-xl border border-[#1C1917]/15 px-4 py-3.5 leading-relaxed bg-background text-foreground"
                           placeholder="e.g. We partnered with a UK university in 2022 but the relationship stalled due to misaligned timelines."
                           value={form.partnership_prior_attempts}
                           onChange={e=>setF("partnership_prior_attempts",e.target.value)}/>
@@ -1974,7 +1970,7 @@ export function FindPartnerModalDashboard({
                       <Field label="Existing constraints"
                         hint="Donor restrictions, exclusivity agreements, or legal constraints partners should know before reaching out.">
                         <Textarea
-                          className="w-full text-[1rem] resize-none rounded-xl border border-[#1C1917]/15 px-4 py-3.5 leading-relaxed bg-background text-foreground"
+                          className="w-full text-[1rem] md:text-[1rem] resize-none rounded-xl border border-[#1C1917]/15 px-4 py-3.5 leading-relaxed bg-background text-foreground"
                           placeholder="e.g. Our FCDO grant restricts work to northern Nigeria only."
                           value={form.partnership_constraints}
                           onChange={e=>setF("partnership_constraints",e.target.value)}/>
@@ -2000,58 +1996,37 @@ export function FindPartnerModalDashboard({
                     </div>
                   )}
 
+
+                  {/* Save/submit error -- shown on step 6 (Confirm), where submitAndMatch runs */}
+                  {prefillError&&formStep===5&&(
+                    <p className="mt-10 text-[0.9375rem] text-red-700 bg-red-50 rounded-xl px-5 py-4 border border-red-200">
+                      {prefillError}
+                    </p>
+                  )}
+
+                <StepFooter
+                  onBack={formStep>0?()=>goToStep(formStep-1):undefined}
+                  onNext={
+                    formStep===0?runPrefill
+                    :formStep===5?submitAndMatch
+                    :()=>goToStep(formStep+1)
+                  }
+                  onSkip={formStep===0?()=>{
+                    setPrefillError("");
+                    // Seed description from what the user typed so Step 1 isn't blank
+                    if (freeText.trim()) setF("description", freeText.trim());
+                    goToStep(1);
+                  }:undefined}
+                  skipLabel="Proceed without AI"
+                  nextLabel={
+                    formStep===0?"Structure with AI"
+                    :formStep===5?(listPublicly?"List and find matches":"Find matches privately")
+                    :undefined
+                  }
+                  nextDisabled={formStep===0?((!freeText.trim()&&!uploadedFile)||!partnershipTitle.trim()):!stepComplete(formStep,form,partnershipTitle,freeText,uploadedFile)}
+                  loading={formStep===0?prefilling:formStep===5?submitting:false}/>
                 </div>
               </div>
-
-              {/* Save/submit error banner -- visible regardless of which
-                  step you're on, unlike the step-0-only prefillError
-                  block above. Needed because submitAndMatch can now fail
-                  and needs to be seen on step 5 (Confirm), where it
-                  actually runs. */}
-              {prefillError&&formStep===5&&(
-                <div className="shrink-0 px-4 sm:px-6 pt-2">
-                  <p className="text-[0.9375rem] text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded-lg px-4 py-3 border border-red-200 dark:border-red-800">
-                    {prefillError}
-                  </p>
-                </div>
-              )}
-
-              {/* Mobile step indicator */}
-              <div className="sm:hidden shrink-0 px-4 py-2 border-t border-border bg-background flex items-center gap-2 overflow-x-auto">
-                {STEPS.map((_,i)=>(
-                  <button key={i} type="button"
-                    onClick={()=>{
-                      const priorComplete=Array.from({length:i},(_,j)=>j).every(j=>stepComplete(j,form,partnershipTitle,freeText,uploadedFile));
-                      if(i<formStep||priorComplete) goToStep(i);
-                    }}
-                    className={`w-2 h-2 rounded-full shrink-0 transition-colors ${
-                      i===formStep?"bg-[#2D6A4F]":i<formStep?"bg-[#2D6A4F]/40":"bg-border"
-                    }`}/>
-                ))}
-                <span className="text-[0.9375rem] text-foreground ml-auto whitespace-nowrap">{formStep+1}/{STEPS.length}</span>
-              </div>
-
-              <StepFooter
-                onBack={formStep>0?()=>goToStep(formStep-1):undefined}
-                onNext={
-                  formStep===0?runPrefill
-                  :formStep===5?submitAndMatch
-                  :()=>goToStep(formStep+1)
-                }
-                onSkip={formStep===0?()=>{
-                  setPrefillError("");
-                  // Seed description from what the user typed so Step 1 isn't blank
-                  if (freeText.trim()) setF("description", freeText.trim());
-                  goToStep(1);
-                }:undefined}
-                skipLabel="Proceed without AI"
-                nextLabel={
-                  formStep===0?"Structure with AI"
-                  :formStep===5?(listPublicly?"List and find matches":"Find matches privately")
-                  :undefined
-                }
-                nextDisabled={formStep===0?((!freeText.trim()&&!uploadedFile)||!partnershipTitle.trim()):!stepComplete(formStep,form,partnershipTitle,freeText,uploadedFile)}
-                loading={formStep===0?prefilling:formStep===5?submitting:false}/>
             </div>
           </>
         )}
