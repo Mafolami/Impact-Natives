@@ -138,11 +138,7 @@ if (isAdmin) {
             confined to the content area, so it no longer bubbles up to the
             app-level Suspense and blanks the sidebar too. */}
         <DashboardLayout>
-          <Suspense fallback={
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
-            </div>
-          }>
+          <Suspense fallback={<RouteLoader />}>
             <Switch>
               <Route path="/dashboard/partnerships"><DashboardPartnerships /></Route>
               <Route path="/dashboard/portfolio/mou"><MouTab /></Route>
@@ -236,11 +232,25 @@ if (isAdmin) {
   );
 }
 
-const PageLoader = () => (
-  <div className="min-h-screen bg-background flex items-center justify-center">
-    <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
-  </div>
-);
+// Page-load indicator: nothing for the first 300ms (most loads finish by then),
+// after that a thin bar across the top. Replaces the centred spinners.
+function RouteLoader({ fullScreen }: { fullScreen?: boolean }) {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setShow(true), 300);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <div className={fullScreen ? "min-h-screen bg-background" : "min-h-[50vh]"} aria-busy="true">
+      {show && (
+        <div className="route-bar-track" role="progressbar" aria-label="Loading">
+          <div className="route-bar" />
+        </div>
+      )}
+    </div>
+  );
+}
+const PageLoader = () => <RouteLoader fullScreen />;
 
 const AUTH_PATHS = ["/signin", "/signup", "/onboarding", "/auth/callback", "/verify", "/forgot-password", "/reset-password"];
 const isAppDomain = typeof window !== "undefined" && window.location.hostname === "app.impactnatives.com";

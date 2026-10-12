@@ -111,12 +111,11 @@ function FieldLabel({ children, required, optional }: {
     <label className="block text-sm font-medium text-foreground mb-2">
       {children}
       {required && <span className="text-red-600 ml-0.5">*</span>}
-      {optional && <span className="text-[#44403C] font-normal ml-1 text-xs">(optional)</span>}
     </label>
   )
 }
 function HintText({ children }: { children: React.ReactNode }) {
-  return <p className="text-xs text-[#44403C] mt-1.5 leading-relaxed">{children}</p>
+  return <p className="text-xs text-[#1C1917] mt-1.5 leading-relaxed">{children}</p>
 }
 function TagInput({ tags, onAdd, onRemove, placeholder }: {
   tags: string[]; onAdd: (v: string) => void; onRemove: (v: string) => void; placeholder: string
@@ -144,7 +143,7 @@ function TagInput({ tags, onAdd, onRemove, placeholder }: {
         }}
         onBlur={commit}
         placeholder={tags.length === 0 ? placeholder : ""}
-        className="flex-1 min-w-[140px] bg-transparent border-none outline-none text-sm placeholder:text-[#57534E]" />
+        className="flex-1 min-w-[140px] bg-transparent border-none outline-none text-sm placeholder:text-[#48423D]" />
     </div>
   )
 }
@@ -165,7 +164,7 @@ function SectorSelector({ selected, onChange }: { selected: string[]; onChange: 
     <div ref={ref} className="relative">
       <div className="min-h-[3.25rem] flex flex-wrap gap-2 items-center border border-[#1C1917]/15 rounded-xl px-4 py-2.5 bg-white cursor-pointer focus-within:ring-2 focus-within:ring-[#2D6A4F]/20 transition-colors"
         onClick={() => setOpen(o => !o)}>
-        {selected.length === 0 && <span className="text-sm text-[#57534E]">Select sectors...</span>}
+        {selected.length === 0 && <span className="text-sm text-[#48423D]">Select sectors...</span>}
         {selected.map(s => (
           <span key={s} className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
             style={{ background: "#fff", color: "#1C1917", boxShadow: "inset 0 0 0 1.5px #2D6A4F" }}>
@@ -173,14 +172,14 @@ function SectorSelector({ selected, onChange }: { selected: string[]; onChange: 
             <button type="button" onClick={e => { e.stopPropagation(); toggle(s) }} className="leading-none hover:opacity-70 ml-0.5">×</button>
           </span>
         ))}
-        <svg className={`w-4 h-4 text-[#44403C] ml-auto shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+        <svg className={`w-4 h-4 text-[#1C1917] ml-auto shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
           viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
       </div>
       {open && (
         <div className="absolute z-50 mt-2 w-full rounded-xl border border-[#1C1917]/15 bg-white shadow-[0_12px_32px_rgba(28,25,23,0.12)] max-h-72 overflow-y-auto p-1.5">
           {SECTOR_OPTIONS.map(s => (
             <button key={s} type="button" onClick={() => toggle(s)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[1rem] text-[#1C1917] hover:bg-[#EEF2EF] transition-colors text-left">
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15.5px] text-[#1C1917] hover:bg-[#EEF2EF] transition-colors text-left">
               <span className={`w-5 h-5 rounded-md border-[1.5px] flex items-center justify-center shrink-0 transition-colors ${selected.includes(s) ? 'bg-[#2D6A4F] border-[#2D6A4F]' : 'border-[#1C1917]/35 bg-white'}`}>
                 {selected.includes(s) && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
               </span>
@@ -198,7 +197,7 @@ function ChipToggle({ label, selected, onToggle, color }: {
   void color
   return (
     <button type="button" onClick={onToggle} aria-pressed={selected}
-      className={`px-5 py-2.5 rounded-full border bg-white text-[0.9375rem] text-[#1C1917] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]/40 ${
+      className={`px-5 py-2.5 rounded-full border bg-white text-[14.5px] text-[#1C1917] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]/40 ${
         selected
           ? "border-[#2D6A4F] ring-1 ring-[#2D6A4F] font-semibold shadow-[0_2px_8px_rgba(45,106,79,0.12)]"
           : "border-[#1C1917]/15 font-medium shadow-[0_1px_2px_rgba(28,25,23,0.05)] hover:border-[#1C1917]/35 hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(28,25,23,0.08)]"
@@ -210,7 +209,7 @@ function ChipToggle({ label, selected, onToggle, color }: {
 function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5 py-3 border-b border-border last:border-0">
-      <span className="text-[0.9375rem] font-semibold text-[#1C1917]">{label}</span>
+      <span className="text-[14.5px] font-semibold text-[#1C1917]">{label}</span>
       <span className="text-sm text-foreground leading-relaxed">{value || "—"}</span>
     </div>
   )
@@ -240,22 +239,22 @@ function CIRail({ mode, current, onSelect }: {
     <aside className="hidden lg:flex lg:flex-col lg:w-[400px] xl:w-[440px] lg:shrink-0 lg:h-full overflow-y-auto bg-[#EEF2EF] border-r border-[#2D6A4F]/10 px-12 py-12">
       <div className="flex items-center gap-3">
         <img src="/logo.png" alt="" className="h-11 w-auto" />
-        <span className="text-[1.25rem] font-semibold tracking-tight text-[#1C1917]"
+        <span className="text-[19.5px] font-semibold tracking-tight text-[#1C1917]"
           style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>Impact Natives</span>
       </div>
       {mode === null ? (
         <div className="my-auto">
-          <p className="text-[1.625rem] leading-snug font-semibold text-[#1C1917] max-w-[310px]"
+          <p className="text-[25.5px] leading-snug font-semibold text-[#1C1917] max-w-[310px]"
             style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>
             Share what you're working on.
           </p>
-          <p className="text-[1.0625rem] text-[#44403C] leading-relaxed mt-4 max-w-[310px]">
+          <p className="text-[16.5px] text-[#1C1917] leading-relaxed mt-4 max-w-[310px]">
             Post an initiative so funders and partners looking for work like yours can find it.
           </p>
         </div>
       ) : (
         <>
-          <p className="text-base font-medium text-[#1C1917] mt-14 mb-8">Creating an initiative</p>
+          <p className="text-[15.5px] font-medium text-[#1C1917] mt-14 mb-8">Creating an initiative</p>
           <ol className="flex flex-col">
             {labels.map((label, i) => {
               const isDone = i < current
@@ -265,10 +264,10 @@ function CIRail({ mode, current, onSelect }: {
                   <div className="flex flex-col items-center">
                     <button type="button" disabled={!isDone} onClick={() => isDone && onSelect(i)}
                       aria-label={isDone ? `Go back to ${label}` : label}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-[0.8125rem] font-semibold shrink-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]/40 ${
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-[12.5px] font-semibold shrink-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]/40 ${
                         isDone ? "bg-[#2D6A4F] text-white hover:bg-[#245c43] cursor-pointer"
                           : isActive ? "bg-white border-2 border-[#2D6A4F] text-[#2D6A4F] cursor-default"
-                          : "border border-[#1C1917]/25 text-[#44403C] cursor-default"
+                          : "border border-[#1C1917]/25 text-[#1C1917] cursor-default"
                       }`}>
                       {isDone ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
                     </button>
@@ -278,15 +277,15 @@ function CIRail({ mode, current, onSelect }: {
                   </div>
                   <div className="pt-0.5 pb-7">
                     <button type="button" disabled={!isDone} onClick={() => isDone && onSelect(i)}
-                      className={`text-left text-[1.0625rem] leading-7 ${
+                      className={`text-left text-[16.5px] leading-7 ${
                         isActive ? "font-semibold text-[#1C1917] cursor-default"
                           : isDone ? "font-medium text-[#1C1917] hover:text-[#2D6A4F] hover:underline underline-offset-4"
-                          : "text-[#44403C] cursor-default"
+                          : "text-[#1C1917] cursor-default"
                       }`}>
                       {label}
                     </button>
                     {isActive && hints[i] && (
-                      <p className="text-[0.9375rem] text-[#44403C] mt-1.5 leading-relaxed max-w-[290px]">{hints[i]}</p>
+                      <p className="text-[14.5px] text-[#1C1917] mt-1.5 leading-relaxed max-w-[290px]">{hints[i]}</p>
                     )}
                   </div>
                 </li>
@@ -382,7 +381,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
   // (live) -- not "draft" (not submitted yet) or "closed" (no longer using
   // a slot), since pending/published are the two states that represent a
   // real, submitted listing occupying capacity.
-  const [capacityState, setCapacityState] = useState<"checking" | "ok" | "blocked">("checking")
+  const [capacityState, setCapacityState] = useState<"checking" | "ok" | "blocked">("ok")
   const [capacityInfo, setCapacityInfo] = useState<{ limit: number; tier: string } | null>(null)
   const editor = useEditor({
     extensions: [
@@ -393,7 +392,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
   })
   useEffect(() => {
     if (!isOpen || !orgOwnerId) return
-    setCapacityState("checking")
+    // Runs in the background; only an org already at its limit sees the limit screen.
     ;(async () => {
       const { data: org } = await supabase.from("organizations").select("subscription_tier").eq("user_id", orgOwnerId).maybeSingle()
       const tier = org?.subscription_tier ?? "free"
@@ -630,7 +629,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
         onSelect={i => { if (mode === "ai") setAiStep(i); else if (mode === "manual") setManualStep(i) }} />
       <div className="relative flex-1 flex flex-col min-w-0 min-h-0">
         <button type="button" onClick={handleClose}
-          className="hidden lg:inline-flex absolute top-6 right-8 z-10 items-center gap-2 h-10 px-4 rounded-full border border-[#1C1917]/15 bg-white text-[0.9375rem] font-medium text-[#1C1917] hover:border-[#1C1917]/40 transition-colors">
+          className="hidden lg:inline-flex absolute top-6 right-8 z-10 items-center gap-2 h-10 px-4 rounded-full border border-[#1C1917]/15 bg-white text-[14.5px] font-medium text-[#1C1917] hover:border-[#1C1917]/40 transition-colors">
           Close <X className="w-4 h-4" />
         </button>
         {/* Mobile header */}
@@ -638,7 +637,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
           <div className="flex items-center justify-between">
             <img src="/logo.png" alt="Impact Natives" className="h-8 w-auto" />
             <div className="flex items-center gap-3">
-              {mode && <span className="text-[0.9375rem] font-medium text-[#1C1917]">Step {currentBar + 1} of {totalBars}</span>}
+              {mode && <span className="text-[14.5px] font-medium text-[#1C1917]">Step {currentBar + 1} of {totalBars}</span>}
               <button type="button" onClick={handleClose} aria-label="Close" className="p-2 -mr-2 rounded-full hover:bg-muted">
                 <X className="w-5 h-5 text-[#1C1917]" />
               </button>
@@ -659,16 +658,16 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
             {mode === null && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-[2rem] sm:text-[2.25rem] leading-tight font-semibold tracking-tight text-[#1C1917]">Create an initiative</h2>
-                  <p className="text-[1.0625rem] text-[#44403C] mt-3 mb-2">How would you like to get started?</p>
+                  <h2 className="text-[31.5px] sm:text-[35.5px] leading-tight font-semibold tracking-tight text-[#1C1917]">Create an initiative</h2>
+                  <p className="text-[16.5px] text-[#1C1917] mt-3 mb-2">How would you like to get started?</p>
                 </div>
                 {/* AI path */}
                 <div className="rounded-2xl border border-[#2D6A4F]/25 bg-[#2D6A4F]/[0.04] p-6 sm:p-7 space-y-5">
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-[#2D6A4F] shrink-0" />
-                    <p className="text-[1.1875rem] font-semibold text-[#1C1917]">Describe your initiative</p>
+                    <p className="text-[18.5px] font-semibold text-[#1C1917]">Describe your initiative</p>
                   </div>
-                  <p className="text-[0.9375rem] text-[#44403C] leading-relaxed">
+                  <p className="text-[14.5px] text-[#1C1917] leading-relaxed">
                     Tell us what you're trying to do in plain language. Include what problem you're solving,
                     where, who it serves, what kind of support you need, and any budget or timeline details.
                     We'll structure it into a full brief.
@@ -692,17 +691,17 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                 {/* Divider */}
                 <div className="flex items-center gap-3">
                   <div className="flex-1 h-px bg-border" />
-                  <p className="text-xs text-[#44403C]">or</p>
+                  <p className="text-xs text-[#1C1917]">or</p>
                   <div className="flex-1 h-px bg-border" />
                 </div>
                 {/* Manual path */}
                 <button type="button" onClick={() => setMode("manual")}
                   className="w-full flex items-center justify-between px-6 h-[3.25rem] rounded-full border border-[#1C1917]/20 bg-white font-semibold shadow-[0_1px_2px_rgba(28,25,23,0.06)] hover:border-[#1C1917]/45 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(28,25,23,0.10)] transition-all duration-150 text-left">
                   <div className="flex items-center gap-2">
-                    <PenLine className="w-4 h-4 text-[#44403C] shrink-0" />
+                    <PenLine className="w-4 h-4 text-[#1C1917] shrink-0" />
                     <span className="text-sm text-foreground">Fill in manually</span>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-[#44403C]" />
+                  <ArrowRight className="w-4 h-4 text-[#1C1917]" />
                 </button>
               </div>
             )}
@@ -714,7 +713,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     <CheckCircle2 className="w-4 h-4 text-[#2D6A4F] shrink-0" />
                     <p className="text-sm font-medium text-[#2D6A4F]">Brief structured from your description</p>
                   </div>
-                  <p className="text-xs text-[#44403C]">Review every field. Edit anything that needs updating before continuing.</p>
+                  <p className="text-xs text-[#1C1917]">Review every field. Edit anything that needs updating before continuing.</p>
                 </div>
                 {/* Title */}
                 <div>
@@ -728,7 +727,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                   <textarea value={form.problem} onChange={e => set("problem", e.target.value)} rows={3}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors" />
                   <div className="flex justify-end mt-1">
-                    <p className={`text-xs ${wordCount(form.problem) > 30 ? 'text-red-500 font-semibold' : 'text-[#44403C]'}`}>{wordCount(form.problem)}/30 words</p>
+                    <p className={`text-xs ${wordCount(form.problem) > 30 ? 'text-red-500 font-semibold' : 'text-[#1C1917]'}`}>{wordCount(form.problem)}/30 words</p>
                   </div>
                 </div>
                 {/* Outcome */}
@@ -737,7 +736,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                   <textarea value={form.outcome} onChange={e => set("outcome", e.target.value)} rows={3}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors" />
                   <div className="flex justify-end mt-1">
-                    <p className={`text-xs ${wordCount(form.outcome) > 30 ? 'text-red-500 font-semibold' : 'text-[#44403C]'}`}>{wordCount(form.outcome)}/30 words</p>
+                    <p className={`text-xs ${wordCount(form.outcome) > 30 ? 'text-red-500 font-semibold' : 'text-[#1C1917]'}`}>{wordCount(form.outcome)}/30 words</p>
                   </div>
                 </div>
                 {/* Who it serves */}
@@ -773,7 +772,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     </span>
                     <span>
                       <span className="font-medium text-foreground block">Open to remote or virtual partnerships</span>
-                      <span className="text-xs text-[#44403C]">Funders and partners outside these locations can still be a strong match</span>
+                      <span className="text-xs text-[#1C1917]">Funders and partners outside these locations can still be a strong match</span>
                     </span>
                   </button>
                 </div>
@@ -805,7 +804,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                         className={cn("text-left px-3 py-2.5 rounded-xl border text-xs transition-colors",
                           form.stage === opt.value ? "border-[#2D6A4F] ring-1 ring-[#2D6A4F] bg-white shadow-[0_2px_8px_rgba(45,106,79,0.12)]" : "border-[#1C1917]/15 bg-white hover:border-[#1C1917]/35 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(28,25,23,0.08)]")}>
                         <p className="font-semibold">{opt.label}</p>
-                        <p className="text-[#44403C] mt-0.5">{opt.sub}</p>
+                        <p className="text-[#1C1917] mt-0.5">{opt.sub}</p>
                       </button>
                     ))}
                   </div>
@@ -821,7 +820,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     <input type="text" placeholder="Min" value={form.budgetMin}
                       onChange={e => set("budgetMin", e.target.value.replace(/[^0-9.,]/g, ""))}
                       className="h-10 rounded-lg border border-border bg-background px-3 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20" />
-                    <span className="text-[#44403C] shrink-0 text-sm">–</span>
+                    <span className="text-[#1C1917] shrink-0 text-sm">–</span>
                     <input type="text" placeholder="Max" value={form.budgetMax}
                       onChange={e => set("budgetMax", e.target.value.replace(/[^0-9.,]/g, ""))}
                       className={cn("h-10 rounded-lg border bg-background px-3 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20",
@@ -922,36 +921,36 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                   <textarea value={form.impactEvidence} onChange={e => set("impactEvidence", e.target.value)}
                     rows={3} placeholder="Describe any evidence of impact so far — beneficiary numbers, outcome data, pilot results, third-party evaluations, or link to an impact report."
                     className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors" />
-                  <p className="text-xs text-[#44403C] mt-1.5 leading-relaxed">Funders and investors look for evidence that your approach works. Share what you have, even if it's early-stage.</p>
+                  <p className="text-xs text-[#1C1917] mt-1.5 leading-relaxed">Funders and investors look for evidence that your approach works. Share what you have, even if it's early-stage.</p>
                 </div>
                 {/* Target impact metrics */}
                 <div>
                   <FieldLabel optional>Target impact metrics</FieldLabel>
-                  <p className="text-xs text-[#44403C] mb-3">What does success look like in numbers?</p>
+                  <p className="text-xs text-[#1C1917] mb-3">What does success look like in numbers?</p>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs text-[#44403C] block mb-1">Target beneficiaries</label>
+                      <label className="text-xs text-[#1C1917] block mb-1">Target beneficiaries</label>
                       <input type="text" value={form.targetBeneficiaries}
                         onChange={e => set("targetBeneficiaries", e.target.value.replace(/[^0-9]/g, ""))}
                         placeholder="e.g. 2000"
                         className="w-full h-9 rounded-lg border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20" />
                     </div>
                     <div>
-                      <label className="text-xs text-[#44403C] block mb-1">Jobs to be created</label>
+                      <label className="text-xs text-[#1C1917] block mb-1">Jobs to be created</label>
                       <input type="text" value={form.targetJobs}
                         onChange={e => set("targetJobs", e.target.value.replace(/[^0-9]/g, ""))}
                         placeholder="e.g. 50"
                         className="w-full h-9 rounded-lg border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20" />
                     </div>
                     <div>
-                      <label className="text-xs text-[#44403C] block mb-1">Female beneficiaries %</label>
+                      <label className="text-xs text-[#1C1917] block mb-1">Female beneficiaries %</label>
                       <input type="text" value={form.targetFemalePct}
                         onChange={e => set("targetFemalePct", e.target.value.replace(/[^0-9]/g, ""))}
                         placeholder="e.g. 60"
                         className="w-full h-9 rounded-lg border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20" />
                     </div>
                     <div>
-                      <label className="text-xs text-[#44403C] block mb-1">Timeline (months)</label>
+                      <label className="text-xs text-[#1C1917] block mb-1">Timeline (months)</label>
                       <input type="text" value={form.targetTimelineMonths}
                         onChange={e => set("targetTimelineMonths", e.target.value.replace(/[^0-9]/g, ""))}
                         placeholder="e.g. 18"
@@ -965,8 +964,8 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
             {mode === "ai" && aiStep === 1 && (
               <div className="space-y-5">
                 <div>
-                  <h2 className="text-[2rem] sm:text-[2.25rem] leading-tight font-semibold tracking-tight text-[#1C1917]">Full initiative description</h2>
-                  <p className="text-sm text-[#44403C] mt-1">
+                  <h2 className="text-[31.5px] sm:text-[35.5px] leading-tight font-semibold tracking-tight text-[#1C1917]">Full initiative description</h2>
+                  <p className="text-sm text-[#1C1917] mt-1">
                     Generate a full description from your brief, or write your own. This appears on your initiative listing.
                   </p>
                 </div>
@@ -996,7 +995,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                       { label: "• List", action: () => editor?.chain().focus().toggleBulletList().run(),          active: editor?.isActive("bulletList"),            style: "" },
                     ].map(btn => (
                       <button key={btn.label} type="button" onMouseDown={e => { e.preventDefault(); btn.action(); }}
-                        className={`px-2 py-0.5 rounded text-xs transition-colors ${btn.style} ${btn.active ? 'bg-[#2D6A4F] text-white' : 'hover:bg-muted text-[#44403C]'}`}>
+                        className={`px-2 py-0.5 rounded text-xs transition-colors ${btn.style} ${btn.active ? 'bg-[#2D6A4F] text-white' : 'hover:bg-muted text-[#1C1917]'}`}>
                         {btn.label}
                       </button>
                     ))}
@@ -1004,7 +1003,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                   <div className="border border-border border-t-0 rounded-b-lg min-h-[200px] bg-background focus-within:ring-1 focus-within:ring-[#2D6A4F]/20 cursor-text"
                     onClick={() => editor?.chain().focus().run()}>
                     <EditorContent editor={editor}
-                      className="[&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[180px] [&_.ProseMirror]:px-3 [&_.ProseMirror]:py-2 [&_.ProseMirror]:text-sm [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5 [&_.ProseMirror_li]:mb-1 [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h2]:text-base [&_.ProseMirror_h2]:mt-4 [&_.ProseMirror_h2]:mb-2 [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-[#57534E] [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none" />
+                      className="[&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[180px] [&_.ProseMirror]:px-3 [&_.ProseMirror]:py-2 [&_.ProseMirror]:text-sm [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5 [&_.ProseMirror_li]:mb-1 [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h2]:text-[15.5px] [&_.ProseMirror_h2]:mt-4 [&_.ProseMirror_h2]:mb-2 [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-[#48423D] [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none" />
                   </div>
                 </div>
                 {/* Resource link */}
@@ -1025,8 +1024,8 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
             {mode === "ai" && aiStep === 2 && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-[2rem] sm:text-[2.25rem] leading-tight font-semibold tracking-tight text-[#1C1917]">Review & submit</h2>
-                  <p className="text-sm text-[#44403C] mt-1">Check everything looks right before publishing.</p>
+                  <h2 className="text-[31.5px] sm:text-[35.5px] leading-tight font-semibold tracking-tight text-[#1C1917]">Review & submit</h2>
+                  <p className="text-sm text-[#1C1917] mt-1">Check everything looks right before publishing.</p>
                 </div>
                 {/* AI assessment */}
                 {!assessment && !assessingBrief && (
@@ -1040,7 +1039,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                 {assessingBrief && (
                   <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-border">
                     <Loader2 className="w-4 h-4 animate-spin text-[#2D6A4F]" />
-                    <p className="text-sm text-[#44403C]">Assessing brief quality...</p>
+                    <p className="text-sm text-[#1C1917]">Assessing brief quality...</p>
                   </div>
                 )}
                 {assessment && (() => {
@@ -1053,7 +1052,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                         <p className="text-sm font-semibold" style={{ color: cfg.color }}>{cfg.label}</p>
                       </div>
                       <p className="text-xs text-foreground leading-relaxed">{assessment.what_works}</p>
-                      <p className="text-xs text-[#44403C] leading-relaxed">
+                      <p className="text-xs text-[#1C1917] leading-relaxed">
                         <span className="font-medium text-foreground">To strengthen: </span>{assessment.improve}
                       </p>
                     </div>
@@ -1083,10 +1082,10 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                   )}
                 </div>
                 <div className="rounded-xl border border-border bg-muted/20 px-4 py-3">
-                  <p className="text-[0.9375rem] font-semibold text-[#1C1917] mb-2">Submitting as</p>
+                  <p className="text-[14.5px] font-semibold text-[#1C1917] mb-2">Submitting as</p>
                   <p className="text-sm font-medium text-foreground">{form.submitterName || "—"}</p>
-                  {form.submitterOrg && <p className="text-xs text-[#44403C]">{form.submitterOrg}</p>}
-                  <p className="text-xs text-[#44403C]">{form.submitterEmail}</p>
+                  {form.submitterOrg && <p className="text-xs text-[#1C1917]">{form.submitterOrg}</p>}
+                  <p className="text-xs text-[#1C1917]">{form.submitterEmail}</p>
                 </div>
                 {error && <p className="text-sm text-destructive">{error}</p>}
               </div>
@@ -1114,19 +1113,19 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                 <div className="mt-14 pt-8 border-t border-[#1C1917]/10 flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
             {/* Back button */}
             {mode === null ? (
-              <span className="text-xs text-[#44403C]">Choose how to get started</span>
+              <span className="text-xs text-[#1C1917]">Choose how to get started</span>
             ) : mode === "ai" && aiStep === 0 ? (
               <button type="button" onClick={() => setMode(null)}
-                className="inline-flex items-center justify-center gap-2 h-[3.25rem] px-7 w-full sm:w-auto rounded-full border border-[#1C1917]/20 bg-white text-[0.9375rem] font-semibold text-[#1C1917] shadow-[0_1px_2px_rgba(28,25,23,0.06)] hover:border-[#1C1917]/45 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(28,25,23,0.10)] transition-all duration-150">← Back</button>
+                className="inline-flex items-center justify-center gap-2 h-[3.25rem] px-7 w-full sm:w-auto rounded-full border border-[#1C1917]/20 bg-white text-[14.5px] font-semibold text-[#1C1917] shadow-[0_1px_2px_rgba(28,25,23,0.06)] hover:border-[#1C1917]/45 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(28,25,23,0.10)] transition-all duration-150">← Back</button>
             ) : mode === "ai" && aiStep > 0 ? (
               <button type="button" onClick={() => setAiStep(s => s - 1)}
-                className="inline-flex items-center justify-center gap-2 h-[3.25rem] px-7 w-full sm:w-auto rounded-full border border-[#1C1917]/20 bg-white text-[0.9375rem] font-semibold text-[#1C1917] shadow-[0_1px_2px_rgba(28,25,23,0.06)] hover:border-[#1C1917]/45 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(28,25,23,0.10)] transition-all duration-150">← Back</button>
+                className="inline-flex items-center justify-center gap-2 h-[3.25rem] px-7 w-full sm:w-auto rounded-full border border-[#1C1917]/20 bg-white text-[14.5px] font-semibold text-[#1C1917] shadow-[0_1px_2px_rgba(28,25,23,0.06)] hover:border-[#1C1917]/45 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(28,25,23,0.10)] transition-all duration-150">← Back</button>
             ) : mode === "manual" && manualStep === 0 ? (
               <button type="button" onClick={() => setMode(null)}
-                className="inline-flex items-center justify-center gap-2 h-[3.25rem] px-7 w-full sm:w-auto rounded-full border border-[#1C1917]/20 bg-white text-[0.9375rem] font-semibold text-[#1C1917] shadow-[0_1px_2px_rgba(28,25,23,0.06)] hover:border-[#1C1917]/45 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(28,25,23,0.10)] transition-all duration-150">← Back</button>
+                className="inline-flex items-center justify-center gap-2 h-[3.25rem] px-7 w-full sm:w-auto rounded-full border border-[#1C1917]/20 bg-white text-[14.5px] font-semibold text-[#1C1917] shadow-[0_1px_2px_rgba(28,25,23,0.06)] hover:border-[#1C1917]/45 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(28,25,23,0.10)] transition-all duration-150">← Back</button>
             ) : mode === "manual" && manualStep > 0 ? (
               <button type="button" onClick={() => setManualStep(s => s - 1)}
-                className="inline-flex items-center justify-center gap-2 h-[3.25rem] px-7 w-full sm:w-auto rounded-full border border-[#1C1917]/20 bg-white text-[0.9375rem] font-semibold text-[#1C1917] shadow-[0_1px_2px_rgba(28,25,23,0.06)] hover:border-[#1C1917]/45 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(28,25,23,0.10)] transition-all duration-150">← Back</button>
+                className="inline-flex items-center justify-center gap-2 h-[3.25rem] px-7 w-full sm:w-auto rounded-full border border-[#1C1917]/20 bg-white text-[14.5px] font-semibold text-[#1C1917] shadow-[0_1px_2px_rgba(28,25,23,0.06)] hover:border-[#1C1917]/45 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(28,25,23,0.10)] transition-all duration-150">← Back</button>
             ) : <span />}
             {/* Next / Submit button */}
             {mode === null ? (
@@ -1136,12 +1135,12 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                 onClick={() => setAiStep(s => s + 1)}
                 disabled={!form.title || !form.problem || !form.outcome || form.sectors.length === 0 || form.locations.length === 0 || form.partnerships.length === 0 ||
                   Boolean(form.budgetMin && form.budgetMax && Number(form.budgetMax.replace(/,/g, "")) < Number(form.budgetMin.replace(/,/g, "")))}
-                className="rounded-full h-[3.25rem] px-9 w-full sm:w-auto bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[0.9375rem] font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                className="rounded-full h-[3.25rem] px-9 w-full sm:w-auto bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[14.5px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
                 Continue
               </button>
             ) : mode === "ai" && aiStep === 2 ? (
               <button type="button" onClick={handleSubmit} disabled={submitting}
-                className="rounded-full h-[3.25rem] px-9 w-full sm:w-auto bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[0.9375rem] font-semibold disabled:opacity-40 transition-colors">
+                className="rounded-full h-[3.25rem] px-9 w-full sm:w-auto bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[14.5px] font-semibold disabled:opacity-40 transition-colors">
                 {submitting ? "Publishing..." : "Publish initiative"}
               </button>
             ) : mode === "manual" ? (
@@ -1167,8 +1166,8 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold mb-2">Initiative submitted</h3>
-            <p className="text-sm text-[#44403C] max-w-xs leading-relaxed">
+            <h3 className="text-[17.5px] font-semibold mb-2">Initiative submitted</h3>
+            <p className="text-sm text-[#1C1917] max-w-xs leading-relaxed">
               Your initiative is pending review and will appear in the marketplace once approved.
             </p>
             <div className="mt-6 flex flex-col items-center gap-3">
@@ -1180,7 +1179,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                 className="rounded-full h-9 px-6 border border-border text-sm font-semibold text-foreground hover:bg-muted transition-colors">
                 Submit another
               </button>
-              <button type="button" onClick={handleClose} className="text-sm text-[#44403C] hover:text-foreground transition-colors">Done</button>
+              <button type="button" onClick={handleClose} className="text-sm text-[#1C1917] hover:text-foreground transition-colors">Done</button>
             </div>
           </div>
         )}
@@ -1215,19 +1214,18 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
       <label className="block text-sm font-medium text-foreground mb-2">
         {children}
         {required && <span className="text-red-600 ml-0.5">*</span>}
-        {optional && <span className="text-[#44403C] font-normal ml-1 text-xs">(optional)</span>}
-      </label>
+        </label>
     )
   }
   function HintText({ children }: { children: React.ReactNode }) {
-    return <p className="text-xs text-[#44403C] mt-1.5 leading-relaxed">{children}</p>
+    return <p className="text-xs text-[#1C1917] mt-1.5 leading-relaxed">{children}</p>
   }
   const stepTitles = ["The basics", "Challenge & outcome", "Partnership needs", "Your experience", "Initiative detail", "Review & submit"]
   return (
     <div className="space-y-6">
       <div className="mb-7">
-        <p className="hidden lg:block text-[0.9375rem] font-medium text-[#44403C] mb-1.5">Step {step + 1} of 6</p>
-        <h2 className="text-[2rem] sm:text-[2.25rem] leading-tight font-semibold tracking-tight text-[#1C1917]">{stepTitles[step]}</h2>
+        <p className="hidden lg:block text-[14.5px] font-medium text-[#1C1917] mb-1.5">Step {step + 1} of 6</p>
+        <h2 className="text-[31.5px] sm:text-[35.5px] leading-tight font-semibold tracking-tight text-[#1C1917]">{stepTitles[step]}</h2>
       </div>
       {/* Step 0 */}
       {step === 0 && (
@@ -1261,7 +1259,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
               </span>
               <span>
                 <span className="font-medium text-foreground block">Open to remote or virtual partnerships</span>
-                <span className="text-xs text-[#44403C]">Funders and partners outside these locations can still be a strong match</span>
+                <span className="text-xs text-[#1C1917]">Funders and partners outside these locations can still be a strong match</span>
               </span>
             </button>
           </div>
@@ -1270,7 +1268,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
               placeholder="e.g. Women smallholder farmers in Kano State, aged 25–50"
               className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors" />
             <div className="flex justify-end mt-1">
-              <p className={`text-xs ${wordCount(form.targetPopulation) > 30 ? 'text-red-500 font-semibold' : 'text-[#44403C]'}`}>{wordCount(form.targetPopulation)}/30 words</p>
+              <p className={`text-xs ${wordCount(form.targetPopulation) > 30 ? 'text-red-500 font-semibold' : 'text-[#1C1917]'}`}>{wordCount(form.targetPopulation)}/30 words</p>
             </div>
           </div>
         </div>
@@ -1285,7 +1283,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
               className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors" />
             <div className="flex justify-between mt-1">
               {form.problem.length > 0 && form.problem.length < 20 && <p className="text-xs text-red-500">At least 20 characters required.</p>}
-              <p className={`text-xs ml-auto ${wordCount(form.problem) > 30 ? 'text-red-500 font-semibold' : 'text-[#44403C]'}`}>{wordCount(form.problem)}/30 words</p>
+              <p className={`text-xs ml-auto ${wordCount(form.problem) > 30 ? 'text-red-500 font-semibold' : 'text-[#1C1917]'}`}>{wordCount(form.problem)}/30 words</p>
             </div>
           </div>
           <div>
@@ -1295,7 +1293,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
               className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors" />
             <div className="flex justify-between mt-1">
               {form.outcome.length > 0 && form.outcome.length < 20 && <p className="text-xs text-red-500">At least 20 characters required.</p>}
-              <p className={`text-xs ml-auto ${wordCount(form.outcome) > 30 ? 'text-red-500 font-semibold' : 'text-[#44403C]'}`}>{wordCount(form.outcome)}/30 words</p>
+              <p className={`text-xs ml-auto ${wordCount(form.outcome) > 30 ? 'text-red-500 font-semibold' : 'text-[#1C1917]'}`}>{wordCount(form.outcome)}/30 words</p>
             </div>
           </div>
           <div>
@@ -1306,7 +1304,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
                   className={cn("w-full text-left px-4 py-3 rounded-xl border transition-colors",
                     form.stage === opt.value ? "border-[#2D6A4F] ring-1 ring-[#2D6A4F] bg-white shadow-[0_2px_8px_rgba(45,106,79,0.12)]" : "border-[#1C1917]/15 bg-white hover:border-[#1C1917]/35 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(28,25,23,0.08)]")}>
                   <p className="text-sm font-semibold">{opt.label}</p>
-                  <p className="text-xs text-[#44403C] mt-0.5">{opt.sub}</p>
+                  <p className="text-xs text-[#1C1917] mt-0.5">{opt.sub}</p>
                 </button>
               ))}
             </div>
@@ -1338,7 +1336,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
               <input type="text" placeholder="Min" value={form.budgetMin}
                 onChange={e => set("budgetMin", e.target.value.replace(/[^0-9.,]/g, ""))}
                 className="h-10 rounded-lg border border-border bg-background px-3 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20" />
-              <span className="text-[#44403C] shrink-0 text-sm">–</span>
+              <span className="text-[#1C1917] shrink-0 text-sm">–</span>
               <input type="text" placeholder="Max" value={form.budgetMax}
                 onChange={e => set("budgetMax", e.target.value.replace(/[^0-9.,]/g, ""))}
                 className={cn("h-10 rounded-lg border bg-background px-3 text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20",
@@ -1388,7 +1386,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
               placeholder="What would a partner actually do or contribute? e.g. 'Fund a 6-month pilot at $40,000'"
               className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors" />
             <div className="flex justify-end mt-1">
-              <p className={`text-xs ${wordCount(form.specificAsk) > 80 ? 'text-red-500 font-semibold' : 'text-[#44403C]'}`}>{wordCount(form.specificAsk)}/80 words</p>
+              <p className={`text-xs ${wordCount(form.specificAsk) > 80 ? 'text-red-500 font-semibold' : 'text-[#1C1917]'}`}>{wordCount(form.specificAsk)}/80 words</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -1417,7 +1415,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
                   className={cn("w-full text-left px-5 py-4 rounded-xl border transition-colors",
                     form.esg === opt.value ? "border-[#2D6A4F] ring-1 ring-[#2D6A4F] bg-white shadow-[0_2px_8px_rgba(45,106,79,0.12)]" : "border-[#1C1917]/15 bg-white hover:border-[#1C1917]/35 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(28,25,23,0.08)]")}>
                   <p className="text-sm font-semibold">{opt.label}</p>
-                  {opt.sub && <p className="text-sm text-[#44403C] mt-1.5 leading-relaxed">{opt.sub}</p>}
+                  {opt.sub && <p className="text-sm text-[#1C1917] mt-1.5 leading-relaxed">{opt.sub}</p>}
                 </button>
               ))}
             </div>
@@ -1446,7 +1444,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
                 placeholder="e.g. Co-led a WASH programme across 12 communities in Plateau State, reaching 8,400 beneficiaries. Funded by UNICEF over 2 years."
                 className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors" />
               <div className="flex justify-end mt-1">
-                <p className={`text-xs ${wordCount(form.priorExperienceDetail) > 60 ? 'text-red-500 font-semibold' : 'text-[#44403C]'}`}>{wordCount(form.priorExperienceDetail)}/60 words</p>
+                <p className={`text-xs ${wordCount(form.priorExperienceDetail) > 60 ? 'text-red-500 font-semibold' : 'text-[#1C1917]'}`}>{wordCount(form.priorExperienceDetail)}/60 words</p>
               </div>
             </div>
           )}
@@ -1456,36 +1454,36 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
             <textarea value={form.impactEvidence} onChange={e => set("impactEvidence", e.target.value)}
               rows={3} placeholder="Describe any evidence of impact so far — beneficiary numbers, outcome data, pilot results, third-party evaluations, or link to an impact report."
               className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors" />
-            <p className="text-xs text-[#44403C] mt-1.5 leading-relaxed">Share what you have, even if it's early-stage.</p>
+            <p className="text-xs text-[#1C1917] mt-1.5 leading-relaxed">Share what you have, even if it's early-stage.</p>
           </div>
           {/* Target impact metrics */}
           <div>
             <FieldLabel optional>Target impact metrics</FieldLabel>
-            <p className="text-xs text-[#44403C] mb-3">What does success look like in numbers?</p>
+            <p className="text-xs text-[#1C1917] mb-3">What does success look like in numbers?</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-[#44403C] block mb-1">Target beneficiaries</label>
+                <label className="text-xs text-[#1C1917] block mb-1">Target beneficiaries</label>
                 <input type="text" value={form.targetBeneficiaries}
                   onChange={e => set("targetBeneficiaries", e.target.value.replace(/[^0-9]/g, ""))}
                   placeholder="e.g. 2000"
                   className="w-full h-9 rounded-lg border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20" />
               </div>
               <div>
-                <label className="text-xs text-[#44403C] block mb-1">Jobs to be created</label>
+                <label className="text-xs text-[#1C1917] block mb-1">Jobs to be created</label>
                 <input type="text" value={form.targetJobs}
                   onChange={e => set("targetJobs", e.target.value.replace(/[^0-9]/g, ""))}
                   placeholder="e.g. 50"
                   className="w-full h-9 rounded-lg border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20" />
               </div>
               <div>
-                <label className="text-xs text-[#44403C] block mb-1">Female beneficiaries %</label>
+                <label className="text-xs text-[#1C1917] block mb-1">Female beneficiaries %</label>
                 <input type="text" value={form.targetFemalePct}
                   onChange={e => set("targetFemalePct", e.target.value.replace(/[^0-9]/g, ""))}
                   placeholder="e.g. 60"
                   className="w-full h-9 rounded-lg border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20" />
               </div>
               <div>
-                <label className="text-xs text-[#44403C] block mb-1">Timeline (months)</label>
+                <label className="text-xs text-[#1C1917] block mb-1">Timeline (months)</label>
                 <input type="text" value={form.targetTimelineMonths}
                   onChange={e => set("targetTimelineMonths", e.target.value.replace(/[^0-9]/g, ""))}
                   placeholder="e.g. 18"
@@ -1512,7 +1510,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
                 { label: "• List", action: () => editor?.chain().focus().toggleBulletList().run(),          active: editor?.isActive("bulletList"),            style: "" },
               ].map(btn => (
                 <button key={btn.label} type="button" onMouseDown={e => { e.preventDefault(); btn.action(); }}
-                  className={`px-2 py-0.5 rounded text-xs transition-colors ${btn.style} ${btn.active ? 'bg-[#2D6A4F] text-white' : 'hover:bg-muted text-[#44403C]'}`}>
+                  className={`px-2 py-0.5 rounded text-xs transition-colors ${btn.style} ${btn.active ? 'bg-[#2D6A4F] text-white' : 'hover:bg-muted text-[#1C1917]'}`}>
                   {btn.label}
                 </button>
               ))}
@@ -1520,7 +1518,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
             <div className="border border-border border-t-0 rounded-b-lg min-h-[180px] bg-background focus-within:ring-1 focus-within:ring-[#2D6A4F]/20 cursor-text"
               onClick={() => editor?.chain().focus().run()}>
               <EditorContent editor={editor}
-                className="[&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[160px] [&_.ProseMirror]:px-3 [&_.ProseMirror]:py-2 [&_.ProseMirror]:text-sm [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-[#57534E] [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none" />
+                className="[&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[160px] [&_.ProseMirror]:px-3 [&_.ProseMirror]:py-2 [&_.ProseMirror]:text-sm [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-[#48423D] [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none" />
             </div>
           </div>
           <div>
@@ -1547,7 +1545,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
           {assessingBrief && (
             <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-border">
               <Loader2 className="w-4 h-4 animate-spin text-[#2D6A4F]" />
-              <p className="text-sm text-[#44403C]">Assessing brief quality...</p>
+              <p className="text-sm text-[#1C1917]">Assessing brief quality...</p>
             </div>
           )}
           {assessment && (() => {
@@ -1560,7 +1558,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
                   <p className="text-sm font-semibold" style={{ color: cfg.color }}>{cfg.label}</p>
                 </div>
                 <p className="text-xs text-foreground leading-relaxed">{assessment.what_works}</p>
-                <p className="text-xs text-[#44403C] leading-relaxed"><span className="font-medium text-foreground">To strengthen: </span>{assessment.improve}</p>
+                <p className="text-xs text-[#1C1917] leading-relaxed"><span className="font-medium text-foreground">To strengthen: </span>{assessment.improve}</p>
               </div>
             )
           })()}
@@ -1590,10 +1588,10 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
             {form.impactEvidence        && <ReviewRow label="Impact evidence" value={form.impactEvidence} />}
           </div>
           <div className="rounded-xl border border-border bg-muted/20 px-4 py-3">
-            <p className="text-[0.9375rem] font-semibold text-[#1C1917] mb-2">Submitting as</p>
+            <p className="text-[14.5px] font-semibold text-[#1C1917] mb-2">Submitting as</p>
             <p className="text-sm font-medium text-foreground">{form.submitterName || "—"}</p>
-            {form.submitterOrg && <p className="text-xs text-[#44403C]">{form.submitterOrg}</p>}
-            <p className="text-xs text-[#44403C]">{form.submitterEmail}</p>
+            {form.submitterOrg && <p className="text-xs text-[#1C1917]">{form.submitterOrg}</p>}
+            <p className="text-xs text-[#1C1917]">{form.submitterEmail}</p>
           </div>
         </div>
       )}
@@ -1624,14 +1622,14 @@ function ManualFooterButton({ step, form, urlValid, onNext, onSubmit, submitting
   if (step === 5) {
     return (
       <button type="button" onClick={onSubmit} disabled={submitting}
-        className="rounded-full h-[3.25rem] px-9 w-full sm:w-auto bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[0.9375rem] font-semibold disabled:opacity-40 transition-colors">
+        className="rounded-full h-[3.25rem] px-9 w-full sm:w-auto bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[14.5px] font-semibold disabled:opacity-40 transition-colors">
         {submitting ? "Publishing..." : "Publish initiative"}
       </button>
     )
   }
   return (
     <button type="button" onClick={onNext} disabled={disabled}
-      className="rounded-full h-[3.25rem] px-9 w-full sm:w-auto bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[0.9375rem] font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+      className="rounded-full h-[3.25rem] px-9 w-full sm:w-auto bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[14.5px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
       Continue
     </button>
   )
