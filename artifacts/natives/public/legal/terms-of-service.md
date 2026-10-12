@@ -69,14 +69,15 @@ By posting content, you grant Impact Natives a non-exclusive, royalty-free licen
 
 ### Sharing your initiatives and listings outside the platform
 
-To help published initiatives and partnership listings reach potential partners, we may share them outside the platform, for example on social media, in our newsletter, or directly with funders and partners we think are a good fit.
+To help published initiatives and partnership listings reach potential partners, we may post them outside the platform, for example on social media or in our newsletter. When we do, we do not name your organisation unless you agree to it, and anyone interested is directed to Impact Natives.
 
-When you publish an initiative or partnership listing, you choose how we may share it:
+When you publish an initiative or partnership listing, you choose whether we may do this:
 
 - **Share it without naming us**: we remove your organisation's name, logo, contact details and any other detail we judge would identify you.
-- **Share it and name us**: we may credit your organisation.
-- **Ask me first**: we contact you before sharing it anywhere.
-- **Don't share it**: it stays on the platform only.
+- **Ask me first**: we contact you before posting it anywhere.
+- **Don't share it**: we do not post it outside the platform.
+
+Introducing your published initiative or listing to specific funders and partners, on the platform or directly, is part of how matching works and is not affected by this choice.
 
 You can change your choice at any time by editing the initiative or listing. If you have not made a choice, we ask you first. We never share drafts, private messages, or documents you upload.
 

@@ -1457,6 +1457,7 @@ export function FindPartnerModalDashboard({
                       </Field>
 
                       <Field label="How would you like to describe your need?" required>
+                        <AiDataNote className="-mt-1">What you write or upload is processed by our AI provider to build your brief.</AiDataNote>
                         <div className="flex rounded-lg border border-border overflow-hidden">
                           <button type="button" onClick={()=>setUploadMode("text")}
                             className={`flex-1 py-2.5 text-[15px] font-medium transition-colors flex items-center justify-center gap-2 ${
@@ -1472,7 +1473,6 @@ export function FindPartnerModalDashboard({
                           </button>
                         </div>
                       </Field>
-                      <AiDataNote className="-mt-2">What you write or upload is processed by our AI provider to build your brief.</AiDataNote>
 
                       {uploadMode==="text"?(
                         <Field label="Describe your partnership need"

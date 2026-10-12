@@ -672,6 +672,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     <Sparkles className="w-4 h-4 text-[#2D6A4F] shrink-0" />
                     <p className="text-[18.5px] font-semibold text-[#1C1917]">Describe your initiative</p>
                   </div>
+                  <AiDataNote className="-mt-3">Your description is processed by our AI provider to build your brief.</AiDataNote>
                   <p className="text-[14.5px] text-[#1C1917] leading-relaxed">
                     Tell us what you're trying to do in plain language. Include what problem you're solving,
                     where, who it serves, what kind of support you need, and any budget or timeline details.
@@ -683,7 +684,6 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     placeholder="e.g. We're running a climate resilience programme for smallholder farmers in Kano State, Nigeria. We've secured partial funding but need a technical partner with expertise in irrigation and a funding partner to close a $150K gap. The programme runs 18 months starting Q3 2025 and aims to reach 2,000 farming households..."
                     rows={5}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors" />
-                  <AiDataNote>Your description is processed by our AI provider to build your brief.</AiDataNote>
                   {extractError && <p className="text-xs text-red-600">{extractError}</p>}
                   <button type="button" onClick={extractFromDescription}
                     disabled={!plainDescription.trim() || extracting}
