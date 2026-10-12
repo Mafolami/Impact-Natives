@@ -588,7 +588,7 @@ export default function FunderHome({ profile }: { profile: any }) {
             </div>
           ) : initiativesRequireUpgrade ? (
             <div className="rounded-2xl border border-border bg-white dark:bg-card p-8 text-center">
-              <p className="text-[15px] font-medium text-black dark:text-white mb-1">AI-matched initiatives need an upgrade.</p>
+              <p className="text-[15px] font-medium text-black dark:text-white mb-1">Matched initiatives need an upgrade.</p>
               <p className="text-[13px] text-black dark:text-white mb-3">Upgrade to see initiatives matched to your mandate.</p>
               <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
                 className="text-[13px] font-semibold text-white bg-[#2D6A4F] rounded-full px-4 py-1.5 hover:bg-[#245c43] transition-colors">
@@ -743,7 +743,7 @@ export default function FunderHome({ profile }: { profile: any }) {
           ) : partnershipState === "locked_free" ? (
             <div className="rounded-xl border border-border bg-white dark:bg-card p-6 text-center flex flex-col items-center justify-center min-h-[220px]">
               <Building2 className="w-6 h-6 text-muted-foreground/20 mb-3" />
-              <p className="text-[13px] font-medium text-black dark:text-white mb-1">AI-matched partners need an upgrade.</p>
+              <p className="text-[13px] font-medium text-black dark:text-white mb-1">Matched partners need an upgrade.</p>
               <p className="text-[13px] text-black dark:text-white mb-3">Upgrade to see organisations matched to your profile.</p>
               <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
                 className="text-[13px] font-semibold text-white bg-[#2D6A4F] rounded-full px-4 py-1.5 hover:bg-[#245c43] transition-colors">

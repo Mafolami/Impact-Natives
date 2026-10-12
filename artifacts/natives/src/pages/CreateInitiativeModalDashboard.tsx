@@ -324,7 +324,7 @@ export function AIDescriptionGenerator({
       if (data.description) {
         onGenerated(data.description)
       } else if (data.requires_upgrade) {
-        setError("AI description generation is a Plus feature. Upgrade to unlock it, or write the description manually below.")
+        setError("Description drafting is a Plus feature. Upgrade to unlock it, or write the description manually below.")
       } else {
         setError("Generation failed. You can write the description manually below.")
       }
@@ -474,7 +474,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
         body: JSON.stringify({ plain_description: plainDescription }),
       })
       const result = await res.json()
-      if (result.requires_upgrade) { setExtractError("AI brief extraction is a Plus feature. Upgrade to unlock it, or fill in the fields manually below."); return }
+      if (result.requires_upgrade) { setExtractError("Turning your description into a brief is a Plus feature. Upgrade to unlock it, or fill in the fields manually below."); return }
       if (!res.ok || result.error) { setExtractError(result.error ?? "Extraction failed. Try again or fill in manually."); return }
       const d = result.data
       setForm(f => ({
@@ -982,7 +982,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                 {descriptionGenerated && (
                   <div className="flex items-center gap-2 rounded-lg border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-3 py-2">
                     <Sparkles className="w-3.5 h-3.5 text-[#2D6A4F] shrink-0" />
-                    <p className="text-xs text-[#2D6A4F]">AI-generated — edit freely before submitting.</p>
+                    <p className="text-xs text-[#2D6A4F]">Drafted from your description. Edit freely before submitting.</p>
                   </div>
                 )}
                 {/* Rich text editor */}

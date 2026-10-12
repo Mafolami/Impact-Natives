@@ -658,7 +658,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
           ) : initiativesRequireUpgrade ? (
             <div className="rounded-xl border border-border bg-white dark:bg-card p-8 text-center min-h-[280px] flex flex-col items-center justify-center">
               <Leaf className="w-6 h-6 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-[15px] font-medium text-black dark:text-white mb-1">AI-matched initiatives need an upgrade.</p>
+              <p className="text-[15px] font-medium text-black dark:text-white mb-1">Matched initiatives need an upgrade.</p>
               <p className="text-[13px] text-black dark:text-white mb-4">
                 Upgrade to see initiatives matched to your mandate.
               </p>
@@ -827,7 +827,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
           ) : partnershipState === "locked_free" ? (
             <div className="rounded-2xl border border-border bg-white dark:bg-card p-8 text-center flex flex-col items-center justify-center min-h-[300px]">
               <Building2 className="w-8 h-8 text-muted-foreground/20 mb-4" />
-              <p className="text-[15px] font-medium text-black dark:text-white mb-1">AI-matched partners need an upgrade.</p>
+              <p className="text-[15px] font-medium text-black dark:text-white mb-1">Matched partners need an upgrade.</p>
               <p className="text-[13px] text-black dark:text-white max-w-[220px] mb-4">
                 Upgrade to see organisations matched to your profile.
               </p>

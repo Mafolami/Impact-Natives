@@ -2305,8 +2305,8 @@ function MarketplaceDetail({
           </div>
         ) : memoRequiresUpgrade ? (
           <div className="text-center py-4">
-            <p className="text-[15px] font-medium text-[#0F172A] dark:text-[#F5F5F5] mb-1">AI deal memos need an upgrade.</p>
-            <p className="text-[13px] mb-3" style={{ color: FOREST }}>Upgrade to see a full AI-generated deal memo for this initiative.</p>
+            <p className="text-[15px] font-medium text-[#0F172A] dark:text-[#F5F5F5] mb-1">Decision memos need an upgrade.</p>
+            <p className="text-[13px] mb-3" style={{ color: FOREST }}>Upgrade to see a full decision memo for this initiative.</p>
             <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
               className="text-[13px] font-bold text-white rounded-full px-4 py-1.5 transition-opacity hover:opacity-90" style={{ background: FOREST }}>
               Upgrade
@@ -2382,8 +2382,8 @@ function MarketplaceDetail({
           </div>
         ) : csrRequiresUpgrade ? (
           <div className="text-center py-4">
-            <p className="text-[15px] font-medium text-[#0F172A] dark:text-[#F5F5F5] mb-1">AI CSR briefs need an upgrade.</p>
-            <p className="text-[13px] mb-3" style={{ color: FOREST }}>Upgrade to see a full AI-generated CSR adoption brief for this initiative.</p>
+            <p className="text-[15px] font-medium text-[#0F172A] dark:text-[#F5F5F5] mb-1">CSR briefs need an upgrade.</p>
+            <p className="text-[13px] mb-3" style={{ color: FOREST }}>Upgrade to see a full CSR adoption brief for this initiative.</p>
             <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
               className="text-[13px] font-bold text-white rounded-full px-4 py-1.5 transition-opacity hover:opacity-90" style={{ background: FOREST }}>
               Upgrade
@@ -2475,7 +2475,7 @@ function MarketplaceDetail({
                   {(!aiMessageLoading || message) && (
                     <textarea value={message} onChange={e => { setMessage(e.target.value); hasManuallyEditedRef.current = true; }}
                       placeholder={
-                        aiMessageRequiresUpgrade ? "AI drafting needs an upgrade. Write your message here..."
+                        aiMessageRequiresUpgrade ? "Drafted messages need an upgrade. Write your message here..."
                         : aiMessageFailed ? "AI draft unavailable. Write your message here..."
                         : partnershipTypes.length === 0 ? "Select a partnership type above to generate a draft message, or write your own."
                         : "Generating message..."
@@ -2485,7 +2485,7 @@ function MarketplaceDetail({
                   )}
                   {aiMessageRequiresUpgrade && !message && (
                     <p className="text-[13px]" style={{ color: BURNT_ORANGE }}>
-                      AI-drafted outreach needs an upgrade.{" "}
+                      Drafted introductions need an upgrade.{" "}
                       <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")} className="underline font-medium">
                         Upgrade
                       </button>

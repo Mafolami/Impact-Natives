@@ -249,7 +249,7 @@ export default function ImplementerMatches({ orgId }: { orgId: string | null }) 
       ) : state === "locked_free" ? (
         <div className="rounded-xl border border-border bg-white dark:bg-card p-6 text-center flex flex-col items-center justify-center min-h-[220px]">
           <Sparkles className="w-6 h-6 text-[#2D6A4F]/40 mb-3" />
-          <p className="text-[13px] font-medium text-black dark:text-white mb-1">AI-matched partners need an upgrade</p>
+          <p className="text-[13px] font-medium text-black dark:text-white mb-1">Matched partners need an upgrade</p>
           <p className="text-[13px] text-black dark:text-white mb-3">Upgrade to Plus to see funders and corporates matched to your organisation.</p>
           <button type="button" onClick={() => navigate("/dashboard/settings?tab=billing")}
             className="text-[13px] font-semibold text-white bg-[#2D6A4F] rounded-full px-4 py-1.5 hover:bg-[#245c43] transition-colors">

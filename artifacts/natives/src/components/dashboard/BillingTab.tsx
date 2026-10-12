@@ -72,7 +72,7 @@ const TIERS: TierDef[] = [
     name: "Free",
     priceNgn: 0,
     priceUsdRef: 0,
-    blurb: "Get listed and start matching.",
+    blurb: "Get listed, verified and found.",
     register: "quiet",
     features: [
       "Directory & marketplace access",
@@ -90,18 +90,19 @@ const TIERS: TierDef[] = [
     name: "Plus",
     priceNgn: 80_000,
     priceUsdRef: 59,
-    blurb: "AI-assisted matching and outreach.",
+    blurb: "Find the right partners and show your results.",
     badge: "Most popular",
     register: "primary",
     features: [
       "Everything in Free",
-      "AI-parsed initiative creation",
-      "AI brief quality scoring",
-      "Full AI org-to-org matching",
-      "Instant AI fit analysis",
-      "AI-drafted outreach messages",
-      "MoU origination",
-      "Self-view ESG Snapshot",
+      "Turn a plain description into a full initiative brief",
+      "Funder-readiness check on your brief",
+      "Ranked partner and funder matches",
+      "Fit report on any organisation",
+      "Introduction messages drafted for you",
+      "Start MoUs with partners",
+      "Verified impact claims and Impact Score",
+      "Your own ESG Snapshot",
     ],
   },
   {
@@ -113,9 +114,9 @@ const TIERS: TierDef[] = [
     register: "accent",
     features: [
       "Everything in Plus",
-      "AI deal memo / CSR brief",
-      "Evaluate candidate ESG Snapshots",
-      "AI-drafted EOI outreach",
+      "Decision memo or CSR brief on any initiative",
+      "Compare partners' ESG Snapshots",
+      "Expressions of interest drafted for you",
     ],
   },
   {
@@ -359,7 +360,7 @@ export function BillingTab() {
             )}
 
             {(!entity || entity.subscription_tier === "free") && (
-              <p className="text-sm text-black dark:text-white mt-1.5">Upgrade below for AI matching, drafting, and more.</p>
+              <p className="text-sm text-black dark:text-white mt-1.5">Upgrade below for partner matches, fit reports, verified impact claims and more.</p>
             )}
           </div>
 

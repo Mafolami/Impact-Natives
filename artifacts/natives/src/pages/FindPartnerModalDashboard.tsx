@@ -793,7 +793,7 @@ export function FindPartnerModalDashboard({
         body:JSON.stringify(body),
       });
       const data=await res.json();
-      if(data.requires_upgrade){setPrefillError("Get Matched's AI prefill is a Plus feature. Upgrade to unlock it, or fill in the form manually.");return;}
+      if(data.requires_upgrade){setPrefillError("Get Matched's auto-fill is a Plus feature. Upgrade to unlock it, or fill in the form manually.");return;}
       if(!res.ok||!data?.prefilled) throw new Error(data?.error??"Prefill failed");
       const p=data.prefilled;
       setForm(prev=>({...prev,
@@ -1240,7 +1240,7 @@ export function FindPartnerModalDashboard({
               {listPublicly
                 ? "Your partnership request is saved and visible to other organisations on Impact Natives."
                 : "Your partnership request is saved. Enable \"list publicly\" to make it visible to others."}
-              {" "}Upgrade to Plus to see AI-matched partners for this listing.
+              {" "}Upgrade to Plus to see matched partners for this listing.
             </p>
             <Link href="/dashboard/settings?tab=billing" onClick={onClose}
               className="h-10 px-6 rounded-full bg-[#2D6A4F] text-white text-[15px] font-semibold flex items-center justify-center">
@@ -1346,7 +1346,7 @@ export function FindPartnerModalDashboard({
                             <div className="space-y-3 pt-3 border-t border-border">
                               <div className="flex items-center justify-between">
                                 <p className="text-[0.75rem] font-black uppercase tracking-widest text-foreground">
-                                  {draftLoading?"Drafting...":draftRequiresUpgrade?"Upgrade for AI drafting":draftFailed?"Edit below":"AI-drafted message"}
+                                  {draftLoading?"Drafting...":draftRequiresUpgrade?"Upgrade for a drafted message":draftFailed?"Edit below":"Drafted message"}
                                 </p>
                                 {!draftLoading&&!draftRequiresUpgrade&&(
                                   <button type="button" onClick={()=>generateDraft(match)}
@@ -1363,7 +1363,7 @@ export function FindPartnerModalDashboard({
                                 <>
                                   {draftRequiresUpgrade&&(
                                     <p className="text-[0.9375rem] text-[#C45C26]">
-                                      AI-drafted outreach needs an upgrade.{" "}
+                                      Drafted introductions need an upgrade.{" "}
                                       <button type="button" onClick={()=>navigate("/dashboard/settings?tab=billing")} className="underline font-medium">Upgrade</button>
                                     </p>
                                   )}

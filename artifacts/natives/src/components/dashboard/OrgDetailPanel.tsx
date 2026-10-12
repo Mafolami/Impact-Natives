@@ -387,7 +387,7 @@ function IdentityNameRow({ org, variant, isVerified, mouExecuted, fitLoading, fi
       {fitLocked && (
         <Link href="/dashboard/settings?tab=billing"
           className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 bg-white/15 text-white border border-white/45 hover:bg-white/25 transition-colors">
-          <Sparkles className="w-3 h-3" />AI fit score {"\u2014"} upgrade
+          <Sparkles className="w-3 h-3" />Fit report {"\u2014"} upgrade
         </Link>
       )}
       {fit && !fitLoading && (
@@ -782,7 +782,7 @@ function FitAnalysisContent({ fit, fitLoading, fitLocked, alsoFits, onSelectAlso
       )}
       {fitLocked && (
         <p className="text-xs text-black dark:text-white mt-3">
-          AI fit scoring is a Plus feature.{" "}
+          Fit reports are a Plus feature.{" "}
           <Link href="/dashboard/settings?tab=billing" className="text-[#2D6A4F] font-medium hover:underline">Upgrade to unlock</Link>.
         </p>
       )}
@@ -1211,7 +1211,7 @@ function OrgDecisionRail({ org, sectors, countries, viewerOrg, viewerOrgLoading,
                   )}
                   {fitLocked && !fit && !fitLoading && (
                     <p className="text-xs text-black dark:text-white leading-relaxed">
-                      AI fit scoring is a Plus feature.{" "}
+                      Fit reports are a Plus feature.{" "}
                       <Link href="/dashboard/settings?tab=billing" className="text-[#2D6A4F] font-medium hover:underline">Upgrade to unlock</Link>.
                     </p>
                   )}

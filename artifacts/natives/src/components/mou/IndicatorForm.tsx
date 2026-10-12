@@ -307,7 +307,7 @@ export default function IndicatorForm({
         </button>
         {suggestRequiresUpgrade && (
           <p className="text-xs text-[#C45C26]">
-            AI-suggested indicators are available on the Plus plan and above. Upgrade to use this, or fill this in manually below.
+            Suggested indicators are available on the Plus plan and above. Upgrade to use this, or fill this in manually below.
           </p>
         )}
         {suggestFailed && (
@@ -408,7 +408,7 @@ export default function IndicatorForm({
                 : <><Sparkles className="w-3 h-3" />Refine with AI ({REFINE_CAP - refineCount} left)</>}
           </button>
         )}
-        {refineRequiresUpgrade && <p className="text-xs text-[#C45C26]">AI refinement is available on the Plus plan and above. Upgrade to use this.</p>}
+        {refineRequiresUpgrade && <p className="text-xs text-[#C45C26]">Indicator refinement is available on the Plus plan and above. Upgrade to use this.</p>}
         {refineFailed && <p className="text-xs text-[#C45C26]">Couldn't refine. Try again.</p>}
         {refineSuggestion && (
           <div className="rounded-lg border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-3 py-2 space-y-2">
