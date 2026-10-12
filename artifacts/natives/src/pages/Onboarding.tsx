@@ -543,6 +543,10 @@ function ConfirmExtractedStep({
   );
 }
 
+// A stalled request on a weak mobile connection never errors on its own; this
+// makes the save give up, show a message and re-enable Finish.
+const SAVE_TIMEOUT_MS = 20_000;
+
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function Onboarding() {
@@ -552,6 +556,7 @@ export default function Onboarding() {
   const [userType, setUserType] = useState<UserType | null>(null);
   const [step, setStep] = useState(-1);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [manualMode, setManualMode] = useState(false);
   const [extracted, setExtracted] = useState<ExtractedProfile | null>(null);
@@ -781,7 +786,15 @@ export default function Onboarding() {
   // ── Finish ───────────────────────────────────────────────────────────────
 
   async function finish(requestVerify?: boolean) {
-    if (!mandatoryFieldsSatisfied()) return;
+    setSaveError(null);
+    if (!mandatoryFieldsSatisfied()) {
+      setSaveError(
+        userType === "organisation"
+          ? "Your name, organisation name and country are required. Go back and fill in the missing ones."
+          : "Your name and country are required. Go back and fill in the missing ones."
+      );
+      return;
+    }
     setSaving(true);
 
     let userId = user?.id;
@@ -791,7 +804,11 @@ export default function Onboarding() {
       userId = sessionData?.session?.user?.id;
       userEmail = sessionData?.session?.user?.email;
     }
-    if (!userId) { setSaving(false); return; }
+    if (!userId) {
+      setSaving(false);
+      setSaveError("You've been signed out. Sign in again in a new tab, then come back here and press Finish.");
+      return;
+    }
 
     const { error: profileUpdateError } = await supabase.from("profiles").update({
       user_type:              userType,
@@ -810,8 +827,13 @@ export default function Onboarding() {
       verification_requested: requestVerify ?? false,
       onboarding_completed:   true,
       updated_at:             new Date().toISOString(),
-    }).eq("id", userId);
-    if (profileUpdateError) console.error("Profile update error:", profileUpdateError);
+    }).eq("id", userId).abortSignal(AbortSignal.timeout(SAVE_TIMEOUT_MS));
+    if (profileUpdateError) {
+      console.error("Profile update error:", profileUpdateError);
+      setSaving(false);
+      setSaveError("We couldn't save your details. Check your internet connection and press Finish again. Everything you entered is still here.");
+      return;
+    }
 
     if (userType === "organisation" && orgName.trim()) {
       console.log("ORG INSERT PAYLOAD:", JSON.stringify({
@@ -854,11 +876,17 @@ export default function Onboarding() {
         verification_status: "not_requested",
         created_at:        new Date().toISOString(),
         updated_at:        new Date().toISOString(),
-      });
-      if (orgInsertError) console.error("Org insert error:", orgInsertError);
+      }).abortSignal(AbortSignal.timeout(SAVE_TIMEOUT_MS));
+      if (orgInsertError) {
+        console.error("Org insert error:", orgInsertError);
+        setSaving(false);
+        setSaveError("We saved your details but couldn't create your organisation profile. Check your internet connection and press Finish again.");
+        return;
+      }
     }
 
-    await refreshProfile();
+    // Saved. Don't let a slow profile refresh keep the button spinning.
+    await Promise.race([refreshProfile(), new Promise(resolve => setTimeout(resolve, 8000))]);
     setSaving(false);
     navigate(requestVerify ? "/verify" : getRedirectPath());
   }
@@ -1609,6 +1637,13 @@ export default function Onboarding() {
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {saveError && (
+            <div role="alert" className="mt-10 flex items-start gap-3 rounded-xl border border-red-300 bg-red-50 px-5 py-4">
+              <X className="w-5 h-5 text-red-700 shrink-0 mt-0.5" />
+              <p className="text-[0.9375rem] leading-relaxed text-red-800">{saveError}</p>
             </div>
           )}
 
