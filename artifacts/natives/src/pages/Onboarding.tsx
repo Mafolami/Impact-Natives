@@ -192,8 +192,8 @@ const STEP_CONTEXT: Record<string, string> = {
 function RailBrand() {
   return (
     <div className="flex items-center gap-3">
-      <img src="/logo.png" alt="" className="h-12 w-auto" />
-      <span className="text-[1.375rem] font-semibold tracking-tight text-[#1C1917]"
+      <img src="/logo.png" alt="" className="h-11 w-auto" />
+      <span className="text-[1.25rem] font-semibold tracking-tight text-[#1C1917]"
         style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>
         Impact Natives
       </span>
@@ -201,41 +201,62 @@ function RailBrand() {
   );
 }
 
-function StepRail({ steps, current }: {
-  steps: { id: string; label: string; skippable?: boolean }[]; current: number;
+function StepRail({ steps, current, onSelect }: {
+  steps: { id: string; label: string; skippable?: boolean }[];
+  current: number;
+  onSelect: (index: number) => void;
 }) {
   return (
-    <aside className="hidden lg:flex lg:flex-col lg:w-[420px] xl:w-[460px] lg:shrink-0 lg:sticky lg:top-0 lg:h-screen overflow-y-auto bg-[#EEF2EF] border-r border-[#2D6A4F]/10 px-14 py-14">
+    <aside className="hidden lg:flex lg:flex-col lg:w-[400px] xl:w-[440px] lg:shrink-0 lg:sticky lg:top-0 lg:h-screen overflow-y-auto bg-[#EEF2EF] border-r border-[#2D6A4F]/10 px-12 py-12">
       <RailBrand />
-      <p className="text-lg font-medium text-[#1C1917] mt-16 mb-10">Setting up your account</p>
+      <p className="text-base font-medium text-[#1C1917] mt-14 mb-8">Setting up your account</p>
       <ol className="flex flex-col">
         {steps.map((s, i) => {
           const isDone = i < current;
           const isActive = i === current;
+          const circle = (
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[0.8125rem] font-semibold shrink-0 transition-colors ${
+              isDone
+                ? "bg-[#2D6A4F] text-white group-hover:bg-[#245c43]"
+                : isActive
+                  ? "bg-white border-2 border-[#2D6A4F] text-[#2D6A4F]"
+                  : "border border-[#1C1917]/25 text-[#44403C]"
+            }`}>
+              {isDone ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
+            </div>
+          );
+          const label = (
+            <p className={`text-[1.0625rem] leading-7 ${
+              isActive
+                ? "font-semibold text-[#1C1917]"
+                : isDone
+                  ? "font-medium text-[#1C1917] group-hover:text-[#2D6A4F] group-hover:underline underline-offset-4"
+                  : "text-[#44403C]"
+            }`}>
+              {s.label}
+            </p>
+          );
           return (
-            <li key={s.id} className="flex gap-5">
+            <li key={s.id} className="flex gap-4">
               <div className="flex flex-col items-center">
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 transition-colors ${
-                  isDone
-                    ? "bg-[#2D6A4F] text-white"
-                    : isActive
-                      ? "bg-white border-2 border-[#2D6A4F] text-[#2D6A4F]"
-                      : "border border-[#1C1917]/25 text-[#44403C]"
-                }`}>
-                  {isDone ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
-                </div>
+                {isDone ? (
+                  <button type="button" onClick={() => onSelect(i)} className="group rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]/40"
+                    aria-label={`Go back to ${s.label}`}>
+                    {circle}
+                  </button>
+                ) : circle}
                 {i < steps.length - 1 && (
-                  <div className={`w-px flex-1 min-h-[28px] ${isDone ? "bg-[#2D6A4F]" : "bg-[#1C1917]/15"}`} />
+                  <div className={`w-px flex-1 min-h-[24px] ${isDone ? "bg-[#2D6A4F]" : "bg-[#1C1917]/15"}`} />
                 )}
               </div>
-              <div className="pt-1 pb-8">
-                <p className={`text-lg leading-7 ${
-                  isActive ? "font-semibold text-[#1C1917]" : isDone ? "font-medium text-[#1C1917]" : "text-[#44403C]"
-                }`}>
-                  {s.label}
-                </p>
+              <div className="pt-0.5 pb-7">
+                {isDone ? (
+                  <button type="button" onClick={() => onSelect(i)} className="group text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]/40 rounded">
+                    {label}
+                  </button>
+                ) : label}
                 {isActive && STEP_CONTEXT[s.id] && (
-                  <p className="text-base text-[#44403C] mt-2 leading-relaxed max-w-[300px]">
+                  <p className="text-[0.9375rem] text-[#44403C] mt-1.5 leading-relaxed max-w-[290px]">
                     {STEP_CONTEXT[s.id]}
                   </p>
                 )}
@@ -254,11 +275,59 @@ function MobileProgressBar({ total, current }: { total: number; current: number 
     <div className="lg:hidden sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border px-6 py-4">
       <div className="flex items-center justify-between mb-3">
         <img src="/logo.png" alt="Impact Natives" className="h-9 w-auto" />
-        <span className="text-base font-medium text-[#1C1917]">Step {current + 1} of {total}</span>
+        <span className="text-[0.9375rem] font-medium text-[#1C1917]">Step {current + 1} of {total}</span>
       </div>
       <div className="h-1.5 rounded-full bg-[#2D6A4F]/10 overflow-hidden">
         <div className="h-full bg-[#2D6A4F] transition-all duration-300" style={{ width: `${pct}%` }} />
       </div>
+    </div>
+  );
+}
+
+function FocusTile({ label, number, selected, onToggle }: {
+  label: string; number?: number | null; selected: boolean; onToggle: () => void;
+}) {
+  return (
+    <button type="button" onClick={onToggle} aria-pressed={selected}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]/40 ${
+        selected
+          ? "border-[#2D6A4F] bg-[#2D6A4F]/[0.06]"
+          : "border-[#1C1917]/12 bg-white hover:border-[#2D6A4F]/50"
+      }`}>
+      <span className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
+        selected ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-[#1C1917]/30 bg-white"
+      }`}>
+        {selected && (
+          <svg viewBox="0 0 12 12" className="w-3 h-3" aria-hidden="true">
+            <path d="M2.5 6.2l2.2 2.2 4.8-4.9" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+      </span>
+      {number != null && (
+        <span className="w-6 shrink-0 text-[0.875rem] font-semibold text-[#2D6A4F] tabular-nums">{number}</span>
+      )}
+      <span className={`text-[0.9375rem] leading-snug text-[#1C1917] ${selected ? "font-medium" : ""}`}>{label}</span>
+    </button>
+  );
+}
+
+function FocusSectionHeader({ title, hint, count, optional }: {
+  title: string; hint: string; count: number; optional?: boolean;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 mb-5">
+      <div>
+        <h2 className="text-[1.25rem] font-semibold text-[#1C1917] leading-tight">
+          {title}
+          {optional && <span className="ml-2 text-[0.9375rem] font-normal text-[#44403C]">Optional</span>}
+        </h2>
+        <p className="text-[0.9375rem] text-[#44403C] mt-1.5 leading-relaxed">{hint}</p>
+      </div>
+      {count > 0 && (
+        <span className="shrink-0 mt-0.5 px-3 py-1 rounded-full bg-[#2D6A4F]/10 text-[#2D6A4F] text-[0.875rem] font-semibold">
+          {count} selected
+        </span>
+      )}
     </div>
   );
 }
@@ -820,62 +889,56 @@ export default function Onboarding() {
   if (step === -1) {
     return (
       <div className="min-h-screen bg-background flex flex-col lg:flex-row">
-        <aside className="hidden lg:flex lg:flex-col lg:w-[420px] xl:w-[460px] lg:shrink-0 lg:sticky lg:top-0 lg:h-screen bg-[#EEF2EF] border-r border-[#2D6A4F]/10 px-14 py-14">
+        <aside className="hidden lg:flex lg:flex-col lg:w-[400px] xl:w-[440px] lg:shrink-0 lg:sticky lg:top-0 lg:h-screen bg-[#EEF2EF] border-r border-[#2D6A4F]/10 px-12 py-12">
           <RailBrand />
-          <div className="mt-auto mb-auto">
-            <p className="text-[1.75rem] leading-snug font-semibold text-[#1C1917] max-w-[320px]"
+          <div className="my-auto">
+            <p className="text-[1.625rem] leading-snug font-semibold text-[#1C1917] max-w-[310px]"
               style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>
               Where Africa's impact work gets coordinated.
             </p>
-            <p className="text-lg text-[#44403C] leading-relaxed mt-5 max-w-[320px]">
+            <p className="text-[1.0625rem] text-[#44403C] leading-relaxed mt-4 max-w-[310px]">
               NGOs, social enterprises, funders and corporates finding each other and working together.
             </p>
           </div>
-          <p className="text-base text-[#44403C] leading-relaxed max-w-[320px]">
-            You can update all of this later from your profile settings.
-          </p>
         </aside>
         <div className="lg:hidden px-6 py-4 border-b border-border">
           <img src="/logo.png" alt="Impact Natives" className="h-9 w-auto" />
         </div>
         <main className="flex-1 flex items-center justify-center px-6 sm:px-12 lg:px-16 py-14 lg:py-20">
-          <div className="w-full max-w-[640px]">
+          <div className="w-full max-w-[620px]">
             <h1 className="leading-tight font-semibold tracking-tight text-[#1C1917]"
-              style={{ fontSize: "clamp(2.25rem, 3.2vw, 3rem)" }}>
+              style={{ fontSize: "clamp(2rem, 2.8vw, 2.5rem)" }}>
               How are you joining?
             </h1>
-            <p className="text-lg text-[#44403C] mt-3 mb-12">This helps us tailor your experience.</p>
-            <div className="space-y-5">
+            <p className="text-[1.0625rem] text-[#44403C] mt-3 mb-10">This helps us tailor your experience.</p>
+            <div className="space-y-4">
               {[
                 {
                   type: "individual_creative" as UserType,
-                  icon: <User className="w-6 h-6 text-[#2D6A4F]" />,
+                  icon: <User className="w-5 h-5 text-[#2D6A4F]" />,
                   label: "Individual / Creative",
                   sub: "Joining as an independent practitioner or freelancer.",
                 },
                 {
                   type: "organisation" as UserType,
-                  icon: <Users className="w-6 h-6 text-[#2D6A4F]" />,
+                  icon: <Users className="w-5 h-5 text-[#2D6A4F]" />,
                   label: "Organisation",
                   sub: "Joining as a consultant, an NGO, funder, company, or institution.",
                 },
               ].map(opt => (
                 <button key={opt.type} type="button" onClick={() => selectUserType(opt.type)}
-                  className="w-full flex items-center gap-5 p-6 rounded-2xl border border-[#1C1917]/15 bg-white hover:border-[#2D6A4F] hover:bg-[#2D6A4F]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]/40 transition-all text-left group">
+                  className="w-full flex items-center gap-5 p-5 rounded-2xl border border-[#1C1917]/15 bg-white hover:border-[#2D6A4F] hover:bg-[#2D6A4F]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]/40 transition-all text-left group">
                   <div className="p-3 rounded-xl bg-[#EEF2EF] group-hover:bg-[#2D6A4F]/10 transition-colors shrink-0">
                     {opt.icon}
                   </div>
                   <div className="flex-1">
-                    <p className="text-xl font-semibold text-[#1C1917]">{opt.label}</p>
-                    <p className="text-base text-[#44403C] mt-1">{opt.sub}</p>
+                    <p className="text-[1.125rem] font-semibold text-[#1C1917]">{opt.label}</p>
+                    <p className="text-[0.9375rem] text-[#44403C] mt-1">{opt.sub}</p>
                   </div>
                   <ArrowRight className="w-5 h-5 text-[#1C1917] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                 </button>
               ))}
             </div>
-            <p className="lg:hidden text-base text-[#44403C] mt-10">
-              You can update all of this later from your profile settings.
-            </p>
           </div>
         </main>
       </div>
@@ -884,20 +947,30 @@ export default function Onboarding() {
 
   // ── Main step flow ────────────────────────────────────────────────────────
 
+  function goToStep(index: number) {
+    if (index < 0 || index >= step) return;
+    setErrors({});
+    setStep(index);
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col lg:flex-row">
-      <StepRail steps={steps} current={step} />
+      <StepRail steps={steps} current={step} onSelect={goToStep} />
       <div className="flex-1 flex flex-col min-w-0">
         <MobileProgressBar total={totalSteps} current={step} />
-        <main className="flex-1 flex justify-center lg:items-center px-6 sm:px-12 lg:px-16 py-12 lg:py-20">
-          <div className="onb-form w-full max-w-[720px]">
-            <div className="mb-12">
+        <main className="flex-1 flex justify-center lg:items-center px-6 sm:px-12 lg:px-16 py-10 lg:py-16">
+          <div className="onb-form w-full max-w-[700px]">
+            <div className="flex items-start justify-between gap-6 mb-10">
               <h1 className="leading-tight font-semibold tracking-tight text-[#1C1917]"
-              style={{ fontSize: "clamp(2.25rem, 3.2vw, 3rem)" }}>
+                style={{ fontSize: "clamp(2rem, 2.8vw, 2.5rem)" }}>
                 {currentStep.label}
               </h1>
               {currentStep.skippable && (
-                <p className="text-lg text-[#44403C] mt-3">Optional, you can skip this for now.</p>
+                <button type="button" onClick={handleSkip} disabled={grantRangeBlocksStep}
+                  className="mt-2 shrink-0 inline-flex items-center gap-2 h-10 px-4 rounded-full border border-[#1C1917]/15 text-[0.9375rem] font-medium text-[#1C1917] hover:border-[#2D6A4F] hover:text-[#2D6A4F] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                  Skip
+                  <SkipForward className="w-4 h-4" />
+                </button>
               )}
             </div>
 
@@ -1012,47 +1085,43 @@ export default function Onboarding() {
 
           {/* focus — sectors + SDGs (all user types) */}
           {currentStep.id === "focus" && (
-            <div className="space-y-6">
-              <div>
-                <Label className="text-sm font-medium">Sectors you work in</Label>
-                <p className="text-xs text-[#44403C] mt-0.5 mb-3">
-                  {extractionDone && sectors.length > 0
+            <div>
+              <section>
+                <FocusSectionHeader
+                  title="Sectors you work in"
+                  hint={extractionDone && sectors.length > 0
                     ? "Pre-selected from your document. Adjust as needed."
                     : "Select all that apply."}
-                </p>
-                <div className="flex flex-wrap gap-2">
+                  count={sectors.length}
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {SECTOR_OPTIONS.map(s => (
-                    <ChipToggle key={s} label={s}
+                    <FocusTile key={s} label={s}
                       selected={sectors.includes(s)}
                       onToggle={() => toggleArr(sectors, s, setSectors)} />
                   ))}
                 </div>
-                {sectors.length > 0 && (
-                  <p className="text-xs text-[#44403C] mt-2">{sectors.length} selected</p>
-                )}
-              </div>
+              </section>
 
-              <div>
-                <Label className="text-sm font-medium">
-                  SDG alignment{" "}
-                  <span className="text-[#44403C] font-normal text-xs">(optional)</span>
-                </Label>
-                <p className="text-xs text-[#44403C] mt-0.5 mb-3">
-                  {extractionDone && sdgTags.length > 0
+              <div className="h-px bg-[#1C1917]/10 my-10" />
+
+              <section>
+                <FocusSectionHeader
+                  title="SDG alignment"
+                  optional
+                  hint={extractionDone && sdgTags.length > 0
                     ? "Suggested from your document. Confirm or adjust."
                     : "Which Sustainable Development Goals does your work contribute to?"}
-                </p>
-                <div className="flex flex-wrap gap-2">
+                  count={sdgTags.length}
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {SDG_OPTIONS.map(s => (
-                    <ChipToggle key={s} label={s}
+                    <FocusTile key={s} label={s} number={sdgNameToNumber(s)}
                       selected={sdgTags.includes(s)}
                       onToggle={() => toggleArr(sdgTags, s, setSdgTags)} />
                   ))}
                 </div>
-                {sdgTags.length > 0 && (
-                  <p className="text-xs text-[#44403C] mt-2">{sdgTags.length} selected</p>
-                )}
-              </div>
+              </section>
             </div>
           )}
 
@@ -1518,25 +1587,18 @@ export default function Onboarding() {
 
           {/* Footer */}
           {currentStep.id !== "upload" && (
-            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-6 mt-14 pt-8 border-t border-[#1C1917]/10">
-              <div className="flex items-center gap-8">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-5 mt-12 pt-7 border-t border-[#1C1917]/10">
+              <div>
                 {step > 0 && (
                   <button type="button" onClick={handleBack}
-                    className="text-base font-medium text-[#1C1917] hover:text-[#2D6A4F] inline-flex items-center gap-2 transition-colors">
+                    className="text-[0.9375rem] font-medium text-[#1C1917] hover:text-[#2D6A4F] inline-flex items-center gap-2 transition-colors">
                     <ArrowLeft className="w-4 h-4" />
                     Back
                   </button>
                 )}
-                {currentStep.skippable && (
-                  <button type="button" onClick={handleSkip} disabled={grantRangeBlocksStep}
-                    className="text-base font-medium text-[#1C1917] hover:text-[#2D6A4F] inline-flex items-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                    <SkipForward className="w-4 h-4" />
-                    Skip
-                  </button>
-                )}
               </div>
               <Button onClick={handleNext} disabled={saving || grantRangeBlocksStep}
-                className="bg-[#2D6A4F] hover:bg-[#245c43] text-white h-14 px-10 text-base font-semibold rounded-full w-full sm:w-auto">
+                className="bg-[#2D6A4F] hover:bg-[#245c43] text-white h-[3.25rem] px-9 text-[0.9375rem] font-semibold rounded-full w-full sm:w-auto">
                 {saving ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : isLast && currentStep.id === "verify" && wantsVerify ? (
@@ -1544,15 +1606,11 @@ export default function Onboarding() {
                 ) : isLast ? (
                   "Finish setup"
                 ) : (
-                  <>Continue <ArrowRight className="w-5 h-5 ml-2" /></>
+                  <>Continue <ArrowRight className="w-4 h-4 ml-2" /></>
                 )}
               </Button>
             </div>
           )}
-
-            <p className="text-base text-[#44403C] mt-10">
-              You can update all of this later from your profile settings.
-            </p>
           </div>
         </main>
       </div>

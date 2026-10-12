@@ -837,13 +837,13 @@ h1 {
   100% { left: 90%; }
 }
 
-/* ── Onboarding: larger type, calmer spacing, no grey ───────────────── */
+/* ── Onboarding: type scale, spacing, no grey ───────────────────────── */
 .onb-form { color: #1C1917; }
-.onb-form .text-xs { font-size: 0.9375rem; line-height: 1.5; }
-.onb-form .text-sm { font-size: 1.0625rem; line-height: 1.55; }
+.onb-form .text-xs { font-size: 0.875rem; line-height: 1.5; }
+.onb-form .text-sm { font-size: 1rem; line-height: 1.55; }
 .onb-form label.text-sm {
   display: block;
-  font-size: 1.125rem;
+  font-size: 1.0625rem;
   line-height: 1.4;
   font-weight: 500;
   color: #1C1917;
@@ -851,25 +851,24 @@ h1 {
 }
 .onb-form input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
 .onb-form select {
-  min-height: 3.5rem;
-  font-size: 1.0625rem;
-  padding-left: 1.125rem;
-  padding-right: 1.125rem;
+  min-height: 3.25rem;
+  font-size: 1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
   border-radius: 0.75rem;
   color: #1C1917;
 }
 .onb-form textarea {
-  font-size: 1.0625rem;
+  font-size: 1rem;
   line-height: 1.6;
-  padding: 0.875rem 1.125rem;
+  padding: 0.875rem 1rem;
   border-radius: 0.75rem;
   color: #1C1917;
 }
 .onb-form input::placeholder,
 .onb-form textarea::placeholder { color: #57534E; opacity: 1; }
-.onb-form button.rounded-full.text-xs { padding: 0.625rem 1.25rem; }
-.onb-form .space-y-3 > :not(:last-child) { margin-bottom: 1rem; }
-.onb-form .space-y-4 > :not(:last-child) { margin-bottom: 1.75rem; }
-.onb-form .space-y-5 > :not(:last-child) { margin-bottom: 2.25rem; }
-.onb-form .space-y-6 > :not(:last-child) { margin-bottom: 2.5rem; }
-
+.onb-form button.rounded-full.text-xs { padding: 0.5625rem 1.125rem; }
+.onb-form .space-y-3 > :not(:last-child) { margin-bottom: 0.875rem; }
+.onb-form .space-y-4 > :not(:last-child) { margin-bottom: 1.5rem; }
+.onb-form .space-y-5 > :not(:last-child) { margin-bottom: 2rem; }
+.onb-form .space-y-6 > :not(:last-child) { margin-bottom: 2.25rem; }
