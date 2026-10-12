@@ -185,7 +185,7 @@ const STEP_CONTEXT: Record<string, string> = {
   needs: "Tell us what you need so we can point the right people your way.",
   trackExtra: "A few more details that help us match you accurately.",
   verify: "Verified organisations get a badge and priority placement in the directory.",
-  org: "Your organisation's name and type shape what we show you next.",
+  org: "Who you are and the organisation you represent.",
   description: "A clear profile is what partners and funders see first.",
 };
 
@@ -635,9 +635,7 @@ export default function Onboarding() {
 
   const ORG_STEPS_MANUAL = [
     { id: "upload",      label: "Quick start",           skippable: false },
-    { id: "name",        label: "Your name",             skippable: false },
-    { id: "location",    label: "Where you're based",    skippable: false },
-    { id: "org",         label: "Your organisation",     skippable: false },
+    { id: "org",         label: "You and your organisation", skippable: false },
     { id: "description", label: "Organisation profile",  skippable: false },
     { id: "focus",       label: "Focus areas",           skippable: true  },
     { id: "needs",       label: "Needs & offers",        skippable: true  },
@@ -756,6 +754,8 @@ export default function Onboarding() {
     if (currentStep.id === "location" && !country.trim())  errs.country     = "Please select your country.";
     if (grantRangeBlocksStep) errs.grantRange = "Max must be greater than or equal to Min.";
     if (currentStep.id === "org") {
+      if (!fullName.trim())  errs.fullName  = "Please enter your full name.";
+      if (!country.trim())   errs.country   = "Please select your country.";
       if (!orgName.trim())   errs.orgName   = "Organisation name is required.";
       if (!roleTitle.trim()) errs.roleTitle = "Role or title is required.";
     }
@@ -1039,22 +1039,29 @@ export default function Onboarding() {
             />
           )}
 
-          {/* org (manual) */}
+          {/* org (manual): you + organisation in one step */}
           {currentStep.id === "org" && (
             <div className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium">Your name</Label>
+                <Input value={fullName} onChange={e => { setFullName(e.target.value); setErrors({}); }}
+                  className={`mt-1 h-11 ${errors.fullName ? "border-destructive" : ""}`}
+                  placeholder="e.g. Amara Osei" />
+                {errors.fullName && <p className="text-xs text-destructive mt-1">{errors.fullName}</p>}
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Your role / title</Label>
+                <Input value={roleTitle} onChange={e => { setRoleTitle(e.target.value); setErrors({}); }}
+                  className={`mt-1 h-11 ${errors.roleTitle ? "border-destructive" : ""}`}
+                  placeholder="e.g. Programme Director" />
+                {errors.roleTitle && <p className="text-xs text-destructive mt-1">{errors.roleTitle}</p>}
+              </div>
               <div>
                 <Label className="text-sm font-medium">Organisation name</Label>
                 <Input value={orgName} onChange={e => { setOrgName(e.target.value); setErrors({}); }}
                   className={`mt-1 h-11 ${errors.orgName ? "border-destructive" : ""}`}
                   placeholder="e.g. Ashoka Foundation" />
                 {errors.orgName && <p className="text-xs text-destructive mt-1">{errors.orgName}</p>}
-              </div>
-              <div>
-                <Label className="text-sm font-medium">Role / Title</Label>
-                <Input value={roleTitle} onChange={e => { setRoleTitle(e.target.value); setErrors({}); }}
-                  className={`mt-1 h-11 ${errors.roleTitle ? "border-destructive" : ""}`}
-                  placeholder="e.g. Programme Director" />
-                {errors.roleTitle && <p className="text-xs text-destructive mt-1">{errors.roleTitle}</p>}
               </div>
               <div>
                 <Label className="text-sm font-medium">Organisation type</Label>
@@ -1065,6 +1072,10 @@ export default function Onboarding() {
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Country</Label>
+                <CountryPicker value={country} onChange={v => { setCountry(v); setErrors({}); }} error={errors.country} />
               </div>
               <div>
                 <Label className="text-sm font-medium">
