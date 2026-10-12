@@ -158,132 +158,151 @@ function StepNav({current,onNavigate,form,partnershipTitle,freeText,uploadedFile
   uploadedFile:File|null;
 }){
   return (
-    <div className="w-48 shrink-0 border-r border-border flex flex-col py-5 px-3 gap-0.5 bg-background sm:w-52">
-      {STEPS.map((s,i)=>{
-        const done = i<current;
-        const active = i===current;
-        // A step is navigable if it's already been reached (done or active)
-        // OR if every prior step is complete (user can skip forward only when ready)
-        const priorComplete = Array.from({length:i},(_,j)=>j).every(j=>stepComplete(j,form,partnershipTitle,freeText,uploadedFile));
-        const navigable = done || active || priorComplete;
-        return (
-          <button key={i} type="button"
-            disabled={!navigable}
-            onClick={()=>navigable && onNavigate(i)}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors w-full ${
-              active
-                ? "bg-muted"
-                : navigable
-                ? "hover:bg-muted/60 cursor-pointer"
-                : "cursor-default opacity-40"
-            }`}>
-            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold transition-colors ${
-              done
-                ? "bg-[#2D6A4F] text-white"
-                : active
-                ? "bg-foreground text-background"
-                : "border border-border text-foreground"
-            }`}>
-              {done
-                ? <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>
-                : i+1}
-            </div>
-            <span className={`text-[15px] truncate ${active?"font-semibold text-foreground":done?"text-foreground":"text-foreground/50"}`}>
-              {s.label}
-            </span>
-          </button>
-        );
-      })}
+    <div className="w-64 lg:w-72 h-full shrink-0 overflow-y-auto border-r border-[#2D6A4F]/10 bg-[#EEF2EF] flex flex-col px-6 py-8 lg:px-8">
+      <p className="text-[0.9375rem] font-medium text-[#1C1917] mb-6">Your partnership brief</p>
+      <ol className="flex flex-col">
+        {STEPS.map((s,i)=>{
+          const done = i<current;
+          const active = i===current;
+          // A step is navigable if it's already been reached (done or active)
+          // OR if every prior step is complete (user can skip forward only when ready)
+          const priorComplete = Array.from({length:i},(_,j)=>j).every(j=>stepComplete(j,form,partnershipTitle,freeText,uploadedFile));
+          const navigable = done || active || priorComplete;
+          return (
+            <li key={i} className="flex gap-4">
+              <div className="flex flex-col items-center">
+                <button type="button" disabled={!navigable} onClick={()=>navigable && onNavigate(i)}
+                  aria-label={`Go to ${s.label}`}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-[0.8125rem] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]/40 ${
+                    done
+                      ? "bg-[#2D6A4F] text-white hover:bg-[#245c43]"
+                      : active
+                      ? "bg-white border-2 border-[#2D6A4F] text-[#2D6A4F]"
+                      : "border border-[#1C1917]/25 text-[#44403C]"
+                  } ${navigable ? "cursor-pointer" : "cursor-default"}`}>
+                  {done
+                    ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    : i+1}
+                </button>
+                {i<STEPS.length-1 && (
+                  <div className={`w-px flex-1 min-h-[20px] ${done ? "bg-[#2D6A4F]" : "bg-[#1C1917]/15"}`}/>
+                )}
+              </div>
+              <div className="pt-1 pb-6 min-w-0">
+                <button type="button" disabled={!navigable} onClick={()=>navigable && onNavigate(i)}
+                  className={`text-left text-[1rem] leading-6 ${
+                    active
+                      ? "font-semibold text-[#1C1917]"
+                      : done
+                      ? "font-medium text-[#1C1917] hover:text-[#2D6A4F] hover:underline underline-offset-4"
+                      : navigable
+                      ? "text-[#1C1917] hover:text-[#2D6A4F]"
+                      : "text-[#44403C] cursor-default"
+                  }`}>
+                  {s.label}
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 }
 
-// Compact step header — no repeated label, subtitle only, small height
+// Step header — title + one-line subtitle
 function StepHeader({step,subtitle}:{step:number;subtitle:string}){
   return (
-    <div className="shrink-0 px-6 py-3 border-b border-border sm:px-8">
-      <div className="flex items-baseline gap-2 flex-wrap">
-        <span className="text-[14px] font-semibold text-foreground whitespace-nowrap">Step {step+1} of {STEPS.length}</span>
-        <span className="text-foreground/40 text-[14px] hidden sm:inline">·</span>
-        <p className="text-[14px] text-foreground leading-relaxed">{subtitle}</p>
+    <div className="shrink-0 pt-8 pb-6 border-b border-[#1C1917]/10">
+      <div className="w-full max-w-[720px] mx-auto px-5 sm:px-10">
+        <p className="text-[0.9375rem] font-medium text-[#44403C]">Step {step+1} of {STEPS.length}</p>
+        <h2 className="mt-1 text-[1.75rem] sm:text-[2rem] leading-tight font-semibold tracking-tight text-[#1C1917]">{STEPS[step].label}</h2>
+        <p className="mt-2 text-[1rem] text-[#44403C] leading-relaxed">{subtitle}</p>
       </div>
     </div>
   );
 }
 
-// Minimal footer — back + continue, reduced height
+// Footer — outlined Back pill, solid Continue pill
 function StepFooter({onBack,onNext,onSkip,nextLabel,skipLabel,nextDisabled,loading}:{
   onBack?:()=>void;onNext?:()=>void;onSkip?:()=>void;nextLabel?:string;skipLabel?:string;nextDisabled?:boolean;loading?:boolean;
 }){
   return (
-    <div className="shrink-0 px-6 py-3 border-t border-border bg-background flex items-center justify-between gap-3 sm:px-8">
-      {onBack
-        ? <button type="button" onClick={onBack} className="flex items-center gap-1.5 text-[15px] text-foreground/70 hover:text-foreground transition-colors shrink-0">
-            <ArrowLeft className="w-3.5 h-3.5"/>Back
-          </button>
-        : <div/>}
-      <div className="flex items-center gap-2">
-        {onNext && (
-          <button type="button" onClick={onNext} disabled={nextDisabled||loading}
-            className="h-9 px-6 rounded-full text-[15px] font-semibold text-white bg-[#2D6A4F] hover:bg-[#245c43] disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center gap-2">
-            {loading
-              ? <><Loader2 className="w-3.5 h-3.5 animate-spin"/>Working...</>
-              : nextLabel??"Continue"}
-          </button>
-        )}
-        {onSkip && (
-          <button type="button" onClick={onSkip}
-            className="h-9 px-4 rounded-full text-[15px] text-foreground/60 hover:text-foreground border border-border hover:border-foreground/30 transition-colors">
-            {skipLabel??"Skip"}
-          </button>
-        )}
+    <div className="shrink-0 py-4 border-t border-[#1C1917]/10 bg-background">
+      <div className="w-full max-w-[720px] mx-auto px-5 sm:px-10 flex items-center justify-between gap-3">
+        {onBack
+          ? <button type="button" onClick={onBack}
+              className="inline-flex items-center gap-2 h-12 px-6 rounded-full border border-[#1C1917]/20 bg-white text-[0.9375rem] font-semibold text-[#1C1917] shadow-[0_1px_2px_rgba(28,25,23,0.06)] hover:border-[#1C1917]/45 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(28,25,23,0.10)] transition-all duration-150 shrink-0">
+              <ArrowLeft className="w-4 h-4"/>Back
+            </button>
+          : <div/>}
+        <div className="flex items-center gap-3">
+          {onSkip && (
+            <button type="button" onClick={onSkip}
+              className="h-12 px-5 rounded-full text-[0.9375rem] font-medium text-[#1C1917] border border-[#1C1917]/15 hover:border-[#2D6A4F] hover:text-[#2D6A4F] transition-colors">
+              {skipLabel??"Skip"}
+            </button>
+          )}
+          {onNext && (
+            <button type="button" onClick={onNext} disabled={nextDisabled||loading}
+              className="h-12 px-8 rounded-full text-[0.9375rem] font-semibold text-white bg-[#2D6A4F] hover:bg-[#245c43] disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center gap-2">
+              {loading
+                ? <><Loader2 className="w-4 h-4 animate-spin"/>Working...</>
+                : nextLabel??"Continue"}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-// Field wrapper — horizontal rule above (except first), label, optional hint
+// Field wrapper — label, optional hint, generous spacing (no divider lines)
 function Field({label,hint,required,first,children}:{
   label:string;hint?:string;required?:boolean;first?:boolean;children:React.ReactNode;
 }){
+  void first;
   return (
-    <div>
-      {!first && <hr className="border-border mb-7"/>}
-      <div className="space-y-2.5">
-        <div>
-          <p className="text-[13.5px] font-semibold text-foreground">
-            {label}{required && <span className="text-red-500 ml-0.5">*</span>}
-          </p>
-          {hint && <p className="text-[14px] text-foreground/70 mt-1 leading-relaxed">{hint}</p>}
-        </div>
-        {children}
+    <div className="space-y-3">
+      <div>
+        <p className="text-[1.0625rem] font-semibold text-[#1C1917] leading-snug">
+          {label}{required && <span className="text-red-600 ml-0.5">*</span>}
+        </p>
+        {hint && <p className="text-[0.9375rem] text-[#44403C] mt-1.5 leading-relaxed">{hint}</p>}
       </div>
+      {children}
     </div>
   );
 }
 
-// Radio list — single select, clean rows, no background shapes on unselected
+// Shared tile look for radio / checkbox options: no box until selected,
+// then bold text and a bold green border.
+const OPTION_TILE = "w-full flex items-start gap-3.5 px-4 py-3 rounded-xl border text-left transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]/40";
+const OPTION_ON = "border-[#2D6A4F] ring-1 ring-[#2D6A4F] bg-white shadow-[0_2px_8px_rgba(45,106,79,0.12)]";
+const OPTION_OFF = "border-transparent hover:bg-[#EEF2EF]";
+
+// Radio list — single select
 function RadioList({options,value,onChange}:{
   options:{value:string;label:string;sub?:string}[];
   value:string;
   onChange:(v:string)=>void;
 }){
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       {options.map(opt=>{
         const on=value===opt.value;
         return (
-          <button key={opt.value} type="button"
+          <button key={opt.value} type="button" aria-pressed={on}
             onClick={()=>onChange(opt.value===value?"":opt.value)}
-            className="w-full flex items-start gap-3 py-2.5 text-left transition-colors group">
-            <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-              on?"border-[#2D6A4F]":"border-border group-hover:border-[#2D6A4F]/50"
+            className={`${OPTION_TILE} ${on?OPTION_ON:OPTION_OFF}`}>
+            <div className={`mt-0.5 w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center shrink-0 transition-colors bg-white ${
+              on?"border-[#2D6A4F]":"border-[#1C1917]/35"
             }`}>
-              {on && <div className="w-2 h-2 rounded-full bg-[#2D6A4F]"/>}
+              {on && <div className="w-2.5 h-2.5 rounded-full bg-[#2D6A4F]"/>}
             </div>
             <div>
-              <p className={`text-[13.5px] leading-snug ${on?"font-semibold text-[#2D6A4F]":"text-foreground"}`}>{opt.label}</p>
-              {opt.sub && <p className="text-[13px] text-foreground/70 mt-0.5">{opt.sub}</p>}
+              <p className={`text-[1rem] leading-snug text-[#1C1917] ${on?"font-semibold":""}`}>{opt.label}</p>
+              {opt.sub && <p className="text-[0.9375rem] text-[#44403C] mt-1 leading-relaxed">{opt.sub}</p>}
             </div>
           </button>
         );
@@ -301,33 +320,33 @@ function DropdownField({options,value,onChange,placeholder}:{
 }){
   return (
     <select value={value} onChange={e=>onChange(e.target.value)}
-      className="w-full h-11 px-3 rounded-lg border border-border bg-background text-[13.5px] text-foreground focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors">
+      className="w-full h-[3.25rem] px-4 rounded-xl border border-[#1C1917]/15 bg-white text-[1rem] text-[#1C1917] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors">
       <option value="">{placeholder??"Select..."}</option>
       {options.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
   );
 }
 
-// Checkbox list — no background shapes, just checkbox + label in clean rows
+// Checkbox list — multi select, same tile look as RadioList
 function CheckboxList({options,selected,onToggle}:{
   options:{value:string;label:string;sub?:string}[];
   selected:string[];
   onToggle:(v:string)=>void;
 }){
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       {options.map(opt=>{
         const on=selected.includes(opt.value);
         return (
-          <label key={opt.value} className="flex items-start gap-3 py-2 cursor-pointer group">
-            <div className={`mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-              on?"bg-[#2D6A4F] border-[#2D6A4F]":"border-border group-hover:border-[#2D6A4F]/50"
+          <label key={opt.value} className={`${OPTION_TILE} cursor-pointer ${on?OPTION_ON:OPTION_OFF}`}>
+            <div className={`mt-0.5 w-5 h-5 rounded-md border-[1.5px] flex items-center justify-center shrink-0 transition-colors ${
+              on?"bg-[#2D6A4F] border-[#2D6A4F]":"bg-white border-[#1C1917]/35"
             }`}>
-              {on && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>}
+              {on && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>}
             </div>
             <div className="flex-1">
-              <p className={`text-[13.5px] leading-snug ${on?"font-semibold text-[#2D6A4F]":"text-foreground"}`}>{opt.label}</p>
-              {opt.sub && <p className="text-[13px] text-foreground/70 mt-0.5">{opt.sub}</p>}
+              <p className={`text-[1rem] leading-snug text-[#1C1917] ${on?"font-semibold":""}`}>{opt.label}</p>
+              {opt.sub && <p className="text-[0.9375rem] text-[#44403C] mt-1 leading-relaxed">{opt.sub}</p>}
             </div>
             <input type="checkbox" checked={on} onChange={()=>onToggle(opt.value)} className="sr-only"/>
           </label>
@@ -337,7 +356,7 @@ function CheckboxList({options,selected,onToggle}:{
   );
 }
 
-// Compact searchable country picker — two-column grid inside collapsible
+// Searchable country picker inside a collapsible panel
 function CountryPicker({selected,onToggle}:{selected:string[];onToggle:(v:string)=>void;}){
   const [open,setOpen]=useState(selected.length>0);
   const [search,setSearch]=useState("");
@@ -345,49 +364,49 @@ function CountryPicker({selected,onToggle}:{selected:string[];onToggle:(v:string
     ?COUNTRIES.filter(c=>c.toLowerCase().includes(search.toLowerCase()))
     :COUNTRIES;
   return (
-    <div className="border border-border rounded-lg overflow-hidden">
+    <div className="border border-[#1C1917]/15 rounded-xl overflow-hidden bg-white">
       <button type="button" onClick={()=>setOpen(v=>!v)}
-        className="w-full flex items-center justify-between px-4 py-3 text-[15px] text-foreground hover:bg-muted/40 transition-colors">
+        className="w-full flex items-center justify-between px-4 h-[3.25rem] text-[1rem] text-[#1C1917] hover:bg-[#EEF2EF]/60 transition-colors">
         <span className="font-medium">
           {selected.length>0?`${selected.length} selected`:"Select countries"}
         </span>
-        {open?<ChevronUp className="w-4 h-4 text-foreground"/>:<ChevronDown className="w-4 h-4 text-foreground"/>}
+        {open?<ChevronUp className="w-4 h-4 text-[#1C1917]"/>:<ChevronDown className="w-4 h-4 text-[#1C1917]"/>}
       </button>
       {open && (
-        <div className="border-t border-border">
-          <div className="px-3 py-2 border-b border-border">
+        <div className="border-t border-[#1C1917]/10">
+          <div className="px-3 py-3 border-b border-[#1C1917]/10">
             <input type="text" placeholder="Search countries..." value={search}
               onChange={e=>setSearch(e.target.value)}
-              className="w-full h-8 px-3 rounded-md border border-border bg-background text-[13px] text-foreground focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]/30"/>
+              className="w-full h-11 px-4 rounded-lg border border-[#1C1917]/15 bg-background text-[1rem] text-[#1C1917] placeholder:text-[#57534E] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F]"/>
           </div>
           {selected.length>0 && (
-            <div className="px-3 pt-2 pb-1 flex flex-wrap gap-1.5">
+            <div className="px-3 pt-3 pb-1 flex flex-wrap gap-2">
               {selected.map(c=>(
-                <span key={c} className="inline-flex items-center gap-1 text-[12px] font-medium px-2 py-0.5 rounded-full bg-[#2D6A4F]/10 text-[#2D6A4F] border border-[#2D6A4F]/20">
+                <span key={c} className="inline-flex items-center gap-1.5 text-[0.875rem] font-semibold px-3 py-1 rounded-full bg-white text-[#1C1917] border border-[#2D6A4F] ring-1 ring-[#2D6A4F]">
                   {c}
-                  <button type="button" onClick={()=>onToggle(c)} className="hover:text-foreground transition-colors">
-                    <X className="w-2.5 h-2.5"/>
+                  <button type="button" onClick={()=>onToggle(c)} aria-label={`Remove ${c}`} className="hover:text-[#2D6A4F] transition-colors">
+                    <X className="w-3 h-3"/>
                   </button>
                 </span>
               ))}
             </div>
           )}
-          <div className="max-h-52 overflow-y-auto px-3 pb-2 grid grid-cols-2 gap-x-4 sm:grid-cols-3">
+          <div className="max-h-64 overflow-y-auto px-2 py-2 grid grid-cols-1 gap-x-2 sm:grid-cols-2">
             {filtered.map(c=>{
               const on=selected.includes(c);
               return (
-                <label key={c} className="flex items-center gap-2 py-1.5 cursor-pointer group">
-                  <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-                    on?"bg-[#2D6A4F] border-[#2D6A4F]":"border-border group-hover:border-[#2D6A4F]/50"
+                <label key={c} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${on?"bg-[#2D6A4F]/[0.06]":"hover:bg-[#EEF2EF]"}`}>
+                  <div className={`w-[18px] h-[18px] rounded-md border-[1.5px] flex items-center justify-center shrink-0 transition-colors ${
+                    on?"bg-[#2D6A4F] border-[#2D6A4F]":"bg-white border-[#1C1917]/35"
                   }`}>
-                    {on && <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><polyline points="20 6 9 17 4 12"/></svg>}
+                    {on && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><polyline points="20 6 9 17 4 12"/></svg>}
                   </div>
-                  <span className={`text-[14px] truncate ${on?"font-semibold text-[#2D6A4F]":"text-foreground"}`}>{c}</span>
+                  <span className={`text-[0.9375rem] truncate text-[#1C1917] ${on?"font-semibold":""}`}>{c}</span>
                   <input type="checkbox" checked={on} onChange={()=>onToggle(c)} className="sr-only"/>
                 </label>
               );
             })}
-            {filtered.length===0 && <p className="col-span-full py-3 text-[13px] text-foreground">No results</p>}
+            {filtered.length===0 && <p className="col-span-full px-3 py-3 text-[0.9375rem] text-[#1C1917]">No results</p>}
           </div>
         </div>
       )}
@@ -403,15 +422,15 @@ function ExpandableCheckList({label,options,selected,onToggle}:{
   const [search,setSearch]=useState("");
   const filtered=search.trim()?options.filter(o=>o.label.toLowerCase().includes(search.toLowerCase())):options;
   return (
-    <div className="border border-border rounded-lg overflow-hidden">
+    <div className="border border-[#1C1917]/15 rounded-xl overflow-hidden bg-white">
       <button type="button" onClick={()=>setOpen(v=>!v)}
-        className="w-full flex items-center justify-between px-4 py-3 text-[15px] text-foreground hover:bg-muted/40 transition-colors">
+        className="w-full flex items-center justify-between px-4 h-[3.25rem] text-[1rem] text-[#1C1917] hover:bg-[#EEF2EF]/60 transition-colors">
         {(() => {
           const matched = options.filter(o=>selected.includes(o.value));
           return matched.length===0 ? (
-            <span className="font-medium text-foreground/50">{label}</span>
+            <span className="font-medium text-[#44403C]">{label}</span>
           ) : (
-            <span className="font-medium text-foreground truncate pr-2">
+            <span className="font-medium text-[#1C1917] truncate pr-2">
               {matched.length <= 3
                 ? matched.map(o=>o.label).join(", ")
                 : `${matched.slice(0,3).map(o=>o.label).join(", ")} +${matched.length - 3} more`
@@ -419,31 +438,31 @@ function ExpandableCheckList({label,options,selected,onToggle}:{
             </span>
           );
         })()}
-        {open?<ChevronUp className="w-4 h-4 text-foreground/40 shrink-0"/>:<ChevronDown className="w-4 h-4 text-foreground/40 shrink-0"/>}
+        {open?<ChevronUp className="w-4 h-4 text-[#1C1917] shrink-0"/>:<ChevronDown className="w-4 h-4 text-[#1C1917] shrink-0"/>}
       </button>
       {open && (
-        <div className="border-t border-border">
-          <div className="px-3 py-2 border-b border-border">
+        <div className="border-t border-[#1C1917]/10">
+          <div className="px-3 py-3 border-b border-[#1C1917]/10">
             <input type="text" placeholder={`Search ${label.toLowerCase()}...`} value={search}
               onChange={e=>setSearch(e.target.value)}
-              className="w-full h-8 px-3 rounded-md border border-border bg-background text-[13px] text-foreground focus:outline-none focus:ring-1 focus:ring-[#2D6A4F]/30"/>
+              className="w-full h-11 px-4 rounded-lg border border-[#1C1917]/15 bg-background text-[1rem] text-[#1C1917] placeholder:text-[#57534E] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F]"/>
           </div>
-          <div className="max-h-56 overflow-y-auto divide-y divide-border/40">
+          <div className="max-h-72 overflow-y-auto px-2 py-2 space-y-0.5">
             {filtered.map(opt=>{
               const on=selected.includes(opt.value);
               return (
-                <label key={opt.value} className="flex items-center gap-3 px-4 py-2.5 cursor-pointer group">
-                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-                    on?"bg-[#2D6A4F] border-[#2D6A4F]":"border-border group-hover:border-[#2D6A4F]/50"
+                <label key={opt.value} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${on?"bg-[#2D6A4F]/[0.06]":"hover:bg-[#EEF2EF]"}`}>
+                  <div className={`w-[18px] h-[18px] rounded-md border-[1.5px] flex items-center justify-center shrink-0 transition-colors ${
+                    on?"bg-[#2D6A4F] border-[#2D6A4F]":"bg-white border-[#1C1917]/35"
                   }`}>
-                    {on && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>}
+                    {on && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><polyline points="20 6 9 17 4 12"/></svg>}
                   </div>
-                  <span className={`text-[13.5px] ${on?"font-semibold text-[#2D6A4F]":"text-foreground"}`}>{opt.label}</span>
+                  <span className={`text-[1rem] text-[#1C1917] ${on?"font-semibold":""}`}>{opt.label}</span>
                   <input type="checkbox" checked={on} onChange={()=>onToggle(opt.value)} className="sr-only"/>
                 </label>
               );
             })}
-            {filtered.length===0 && <p className="px-4 py-3 text-[15px] text-foreground">No results</p>}
+            {filtered.length===0 && <p className="px-3 py-3 text-[1rem] text-[#1C1917]">No results</p>}
           </div>
         </div>
       )}
@@ -451,28 +470,28 @@ function ExpandableCheckList({label,options,selected,onToggle}:{
   );
 }
 
-// Confirm row — checkbox only, no shape background on label
+// Confirm row — checkbox tile, bold when checked
 function ConfirmRow({checked,onChange,label,sub}:{checked:boolean;onChange:(v:boolean)=>void;label:string;sub?:string;}){
   return (
-    <label className="flex items-start gap-3 py-2 cursor-pointer group">
-      <div className={`mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-        checked?"bg-[#2D6A4F] border-[#2D6A4F]":"border-border group-hover:border-[#2D6A4F]/50"
+    <label className={`${OPTION_TILE} cursor-pointer ${checked?OPTION_ON:"border-[#1C1917]/12 hover:border-[#1C1917]/30"}`}>
+      <div className={`mt-0.5 w-5 h-5 rounded-md border-[1.5px] flex items-center justify-center shrink-0 transition-colors ${
+        checked?"bg-[#2D6A4F] border-[#2D6A4F]":"bg-white border-[#1C1917]/35"
       }`}>
-        {checked && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>}
+        {checked && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>}
       </div>
       <div className="flex-1">
-        <p className={`text-[13.5px] font-medium leading-snug ${checked?"text-[#2D6A4F]":"text-foreground"}`}>{label}</p>
-        {sub && <p className="text-[13px] text-foreground/70 mt-1 leading-relaxed">{sub}</p>}
+        <p className={`text-[1rem] leading-snug text-[#1C1917] ${checked?"font-semibold":"font-medium"}`}>{label}</p>
+        {sub && <p className="text-[0.9375rem] text-[#44403C] mt-1 leading-relaxed">{sub}</p>}
       </div>
       <input type="checkbox" checked={checked} onChange={e=>onChange(e.target.checked)} className="sr-only"/>
     </label>
   );
 }
 
-// Thin section label between groups of questions
+// Section label between groups of questions
 function SectionLabel({label}:{label:string;}){
   return (
-    <p className="text-[11px] font-bold uppercase tracking-widest text-foreground pt-2">{label}</p>
+    <p className="text-[1.125rem] font-semibold text-[#1C1917] pt-4 border-t border-[#1C1917]/10">{label}</p>
   );
 }
 
@@ -1142,12 +1161,12 @@ export function FindPartnerModalDashboard({
           <div className="min-w-0">
             <span className="text-[15px] font-semibold text-foreground">Get Matched</span>
             {partnershipTitle&&appState==="form"&&formStep>0&&(
-              <span className="text-[13px] text-foreground ml-2">— {partnershipTitle}</span>
+              <span className="text-[0.9375rem] text-foreground ml-2">— {partnershipTitle}</span>
             )}
           </div>
         </div>
         <button type="button" onClick={onClose}
-          className="shrink-0 text-[13px] font-medium text-foreground hover:text-foreground px-3 py-1.5 rounded-lg hover:bg-muted transition-colors">
+          className="shrink-0 text-[0.9375rem] font-medium text-foreground hover:text-foreground px-3 py-1.5 rounded-lg hover:bg-muted transition-colors">
           Close ✕
         </button>
       </div>
@@ -1166,9 +1185,9 @@ export function FindPartnerModalDashboard({
                   className="w-full flex items-center justify-between gap-3 rounded-xl border border-dashed border-[#C45C26]/50 bg-[#C45C26]/5 px-4 py-3 text-left hover:bg-[#C45C26]/10 transition-colors">
                   <div>
                     <p className="text-[15px] font-semibold text-foreground">Continue your unsaved draft</p>
-                    <p className="text-xs text-muted-foreground">You have a partnership request in progress that hasn't been saved yet.</p>
+                    <p className="text-xs text-[#44403C]">You have a partnership request in progress that hasn't been saved yet.</p>
                   </div>
-                  <span className="shrink-0 text-[13px] font-semibold text-[#C45C26]">Continue →</span>
+                  <span className="shrink-0 text-[0.9375rem] font-semibold text-[#C45C26]">Continue →</span>
                 </button>
                 <button type="button" onClick={openNewListingCheck}
                   className="w-full h-10 rounded-full border border-dashed border-[#2D6A4F]/40 text-[#2D6A4F] text-[15px] font-semibold hover:bg-[#2D6A4F]/5 transition-colors">
@@ -1279,13 +1298,13 @@ export function FindPartnerModalDashboard({
               ):(
                 <div className="space-y-4">
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <p className="text-[13px] font-bold uppercase tracking-widest text-foreground">
+                    <p className="text-[0.9375rem] font-bold uppercase tracking-widest text-foreground">
                       {Math.min(matches.length,matchLimit==="all"?matches.length:matchLimit)} of {matches.length} match{matches.length!==1?"es":""}
                     </p>
                     <div className="flex items-center gap-1.5">
                       {([5,10,20,"all"] as const).map(opt=>(
                         <button key={opt} type="button" onClick={()=>setMatchLimit(opt)}
-                          className={`h-7 px-3 rounded-full text-[13px] font-semibold border transition-colors ${
+                          className={`h-7 px-3 rounded-full text-[0.9375rem] font-semibold border transition-colors ${
                             matchLimit===opt?"bg-[#2D6A4F] text-white border-[#2D6A4F]":"border-border text-foreground hover:border-[#2D6A4F]/40"
                           }`}>
                           {opt==="all"?"All":`Top ${opt}`}
@@ -1304,66 +1323,66 @@ export function FindPartnerModalDashboard({
                             <div className="flex items-center gap-2 mb-1">
                               <p className="font-bold text-foreground">{match.org.organisation_name}</p>
                               {match.org.verification_status==="verified"&&(
-                                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-[rgba(45,106,79,0.12)] text-[#2D6A4F]">
+                                <span className="inline-flex items-center gap-1 text-[0.75rem] font-bold px-2 py-0.5 rounded-full bg-[rgba(45,106,79,0.12)] text-[#2D6A4F]">
                                   <ShieldCheck className="w-3 h-3"/>Verified
                                 </span>
                               )}
                             </div>
-                            <p className="text-[13px] text-foreground capitalize">
+                            <p className="text-[0.9375rem] text-foreground capitalize">
                               {match.org.organisation_type?.replace(/_/g," ")}
                               {countries.length>0&&` · ${countries.join(", ")}`}
                             </p>
-                            {match.org.description&&<p className="text-[13px] text-foreground mt-1 leading-relaxed">{match.org.description}</p>}
+                            {match.org.description&&<p className="text-[0.9375rem] text-foreground mt-1 leading-relaxed">{match.org.description}</p>}
                           </div>
                           <div className="shrink-0 text-right">
                             <div className="text-[31px] font-black text-[#2D6A4F]">{match.fit_score}</div>
-                            <div className="text-[11px] font-semibold uppercase tracking-wide text-foreground">fit score</div>
+                            <div className="text-[0.75rem] font-semibold uppercase tracking-wide text-foreground">fit score</div>
                           </div>
                         </div>
                         <div className="px-6 py-5 space-y-4">
                           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[rgba(196,92,38,0.08)]">
-                            <span className="text-[11px] font-black uppercase tracking-widest text-[#C45C26]">Synergy</span>
-                            <span className="text-[13px] text-foreground">{match.key_synergy}</span>
+                            <span className="text-[0.75rem] font-black uppercase tracking-widest text-[#C45C26]">Synergy</span>
+                            <span className="text-[0.9375rem] text-foreground">{match.key_synergy}</span>
                           </div>
                           <p className="text-[15px] text-foreground leading-relaxed">{match.rationale}</p>
                           {composingInvite===match.org_id?(
                             <div className="space-y-3 pt-3 border-t border-border">
                               <div className="flex items-center justify-between">
-                                <p className="text-[11px] font-black uppercase tracking-widest text-foreground">
+                                <p className="text-[0.75rem] font-black uppercase tracking-widest text-foreground">
                                   {draftLoading?"Drafting...":draftRequiresUpgrade?"Upgrade for AI drafting":draftFailed?"Edit below":"AI-drafted message"}
                                 </p>
                                 {!draftLoading&&!draftRequiresUpgrade&&(
                                   <button type="button" onClick={()=>generateDraft(match)}
-                                    className="flex items-center gap-1 text-[11px] font-semibold text-[#2D6A4F] hover:underline">
+                                    className="flex items-center gap-1 text-[0.75rem] font-semibold text-[#2D6A4F] hover:underline">
                                     <Sparkles className="w-3 h-3"/>Regenerate
                                   </button>
                                 )}
                               </div>
                               {draftLoading?(
-                                <div className="h-24 rounded-lg border border-border bg-muted/30 flex items-center justify-center gap-2 text-[13px] text-foreground">
+                                <div className="h-24 rounded-lg border border-border bg-muted/30 flex items-center justify-center gap-2 text-[0.9375rem] text-foreground">
                                   <Loader2 className="w-3.5 h-3.5 animate-spin text-[#2D6A4F]"/>Drafting...
                                 </div>
                               ):(
                                 <>
                                   {draftRequiresUpgrade&&(
-                                    <p className="text-[13px] text-[#C45C26]">
+                                    <p className="text-[0.9375rem] text-[#C45C26]">
                                       AI-drafted outreach needs an upgrade.{" "}
                                       <button type="button" onClick={()=>navigate("/dashboard/settings?tab=billing")} className="underline font-medium">Upgrade</button>
                                     </p>
                                   )}
                                   <textarea value={draftMessage} onChange={e=>setDraftMessage(e.target.value)}
                                     rows={5} placeholder="Write your message here..."
-                                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-[15px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"/>
+                                    className="w-full rounded-xl border border-[#1C1917]/15 bg-white px-3 py-2.5 text-[15px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"/>
                                 </>
                               )}
                               <div className="flex items-center gap-2">
                                 <button type="button" onClick={()=>setComposingInvite(null)}
-                                  className="h-9 px-4 rounded-full border border-border text-[13px] text-foreground hover:text-foreground transition-colors">
+                                  className="h-9 px-4 rounded-full border border-border text-[0.9375rem] text-foreground hover:text-foreground transition-colors">
                                   Cancel
                                 </button>
                                 <button type="button" onClick={()=>sendInvite(match,draftMessage)}
                                   disabled={sending||draftLoading||!draftMessage.trim()}
-                                  className="h-9 px-6 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[13px] font-bold disabled:opacity-40 transition-colors flex items-center gap-2 ml-auto">
+                                  className="h-9 px-6 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[0.9375rem] font-bold disabled:opacity-40 transition-colors flex items-center gap-2 ml-auto">
                                   {sending?<><Loader2 className="w-3.5 h-3.5 animate-spin"/>Sending...</>:"Send"}
                                 </button>
                               </div>
@@ -1376,13 +1395,13 @@ export function FindPartnerModalDashboard({
                                 </span>
                               ):(
                                 <button type="button" onClick={()=>openComposer(match)}
-                                  className="h-10 px-6 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[13px] font-bold transition-colors">
+                                  className="h-10 px-6 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-[0.9375rem] font-bold transition-colors">
                                   Reach out
                                 </button>
                               )}
                               {match.org.website&&match.org.website!=="https://"&&(
                                 <a href={match.org.website} target="_blank" rel="noopener noreferrer"
-                                  className="flex items-center gap-1.5 text-[13px] text-foreground hover:text-foreground transition-colors ml-auto">
+                                  className="flex items-center gap-1.5 text-[0.9375rem] text-foreground hover:text-foreground transition-colors ml-auto">
                                   <ExternalLink className="w-3.5 h-3.5"/>Website
                                 </a>
                               )}
@@ -1423,29 +1442,29 @@ export function FindPartnerModalDashboard({
 
               {/* Scrollable form body — centered, max-width constrained */}
               <div className="flex-1 overflow-y-auto">
-                <div className="w-full max-w-xl mx-auto px-4 py-7 sm:px-8">
+                <div className="w-full max-w-[720px] mx-auto px-5 py-10 sm:px-10 lg:py-12">
 
                   {/* STEP 0 */}
                   {formStep===0&&(
-                    <div className="space-y-7">
+                    <div className="space-y-10">
                       <Field label="Partnership title" required first>
                         <input type="text"
                           placeholder="e.g. Research partner for Nigeria health programme"
                           value={partnershipTitle} onChange={e=>setPartnershipTitle(e.target.value)}
-                          className="w-full h-11 px-4 rounded-lg border border-border bg-background text-[15px] text-foreground placeholder:text-foreground focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors"/>
+                          className="w-full h-[3.25rem] px-4 rounded-xl border border-[#1C1917]/15 bg-background text-[15px] text-foreground placeholder:text-[#57534E] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors"/>
                       </Field>
 
                       <Field label="How would you like to describe your need?" required>
                         <div className="flex rounded-lg border border-border overflow-hidden">
                           <button type="button" onClick={()=>setUploadMode("text")}
                             className={`flex-1 py-2.5 text-[15px] font-medium transition-colors flex items-center justify-center gap-2 ${
-                              uploadMode==="text"?"bg-foreground text-background":"text-foreground/70 hover:bg-muted"
+                              uploadMode==="text"?"bg-foreground text-background":"text-[#44403C] hover:bg-muted"
                             }`}>
                             <Sparkles className="w-4 h-4"/>Write a description
                           </button>
                           <button type="button" onClick={()=>setUploadMode("doc")}
                             className={`flex-1 py-2.5 text-[15px] font-medium transition-colors flex items-center justify-center gap-2 ${
-                              uploadMode==="doc"?"bg-foreground text-background":"text-foreground/70 hover:bg-muted"
+                              uploadMode==="doc"?"bg-foreground text-background":"text-[#44403C] hover:bg-muted"
                             }`}>
                             <Upload className="w-4 h-4"/>Upload a document
                           </button>
@@ -1458,7 +1477,7 @@ export function FindPartnerModalDashboard({
                           <textarea rows={9}
                             placeholder="e.g. We're an NGO working on last-mile health delivery in northern Nigeria. We need a UK-based research partner to help design impact evaluations and co-author publications. We can offer field access, community relationships, and local implementation capacity. Budget: £30K–£50K over 18 months starting Q3 2026..."
                             value={freeText} onChange={e=>setFreeText(e.target.value)}
-                            className="w-full px-4 py-3.5 rounded-lg border border-border bg-background text-[13.5px] text-foreground placeholder:text-foreground/40 resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors leading-relaxed"/>
+                            className="w-full px-4 py-3.5 rounded-xl border border-[#1C1917]/15 bg-white text-[1rem] text-foreground placeholder:text-[#57534E] resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors leading-relaxed"/>
                         </Field>
                       ):(
                         <Field label="Upload your partnership strategy document"
@@ -1473,7 +1492,7 @@ export function FindPartnerModalDashboard({
                               </div>
                               <div className="text-center">
                                 <p className="text-[15px] font-semibold text-foreground">Click to upload</p>
-                                <p className="text-[13px] text-foreground mt-1">PDF, DOC, or DOCX — max 10MB</p>
+                                <p className="text-[0.9375rem] text-foreground mt-1">PDF, DOC, or DOCX — max 10MB</p>
                               </div>
                             </button>
                           ):(
@@ -1483,7 +1502,7 @@ export function FindPartnerModalDashboard({
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-[15px] font-semibold text-foreground truncate">{uploadedFile.name}</p>
-                                <p className="text-[13px] text-foreground">{(uploadedFile.size/1024).toFixed(0)} KB</p>
+                                <p className="text-[0.9375rem] text-foreground">{(uploadedFile.size/1024).toFixed(0)} KB</p>
                               </div>
                               <button type="button" onClick={()=>{setUploadedFile(null);if(fileRef.current) fileRef.current.value="";}}
                                 className="p-1.5 rounded-lg hover:bg-muted text-foreground hover:text-foreground transition-colors">
@@ -1493,16 +1512,16 @@ export function FindPartnerModalDashboard({
                           )}
                           {uploadedFile&&(
                             <div className="mt-4">
-                              <p className="text-[13px] font-medium text-foreground mb-2">Add extra context <span className="font-normal">(optional)</span></p>
+                              <p className="text-[0.9375rem] font-medium text-foreground mb-2">Add extra context <span className="font-normal">(optional)</span></p>
                               <textarea rows={3} placeholder="Any details not in the document..."
                                 value={freeText} onChange={e=>setFreeText(e.target.value)}
-                                className="w-full px-4 py-3 rounded-lg border border-border bg-background text-[15px] text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 transition-colors"/>
+                                className="w-full px-4 py-3 rounded-xl border border-[#1C1917]/15 bg-white text-[15px] text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 transition-colors"/>
                             </div>
                           )}
                         </Field>
                       )}
                       {prefillError&&(
-                        <p className="text-[14px] text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded-lg px-4 py-3 border border-red-200 dark:border-red-800">
+                        <p className="text-[0.9375rem] text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded-lg px-4 py-3 border border-red-200 dark:border-red-800">
                           {prefillError}
                         </p>
                       )}
@@ -1511,11 +1530,11 @@ export function FindPartnerModalDashboard({
 
                   {/* STEP 1 */}
                   {formStep===1&&(
-                    <div className="space-y-7">
+                    <div className="space-y-10">
                       <Field label="What are you looking for?" required first
                         hint="Be specific — what would a good partner actually do?">
                         <Textarea
-                          className="w-full text-[13.5px] resize-none rounded-lg border min-h-[110px] bg-background text-foreground"
+                          className="w-full text-[1rem] resize-none rounded-xl border border-[#1C1917]/15 px-4 py-3.5 leading-relaxed min-h-[110px] bg-background text-foreground"
                           value={form.partnership_sought}
                           onChange={e=>setF("partnership_sought",e.target.value)}
                           placeholder="e.g. A UK-based research institution with health systems experience who can co-design our M&E framework and co-author peer-reviewed publications."/>
@@ -1584,7 +1603,7 @@ export function FindPartnerModalDashboard({
 
                   {/* STEP 2 */}
                   {formStep===2&&(
-                    <div className="space-y-7">
+                    <div className="space-y-10">
                       <Field label="Countries you operate in" required first>
                         <CountryPicker selected={form.country} onToggle={v=>toggleArr("country",v)}/>
                       </Field>
@@ -1595,7 +1614,7 @@ export function FindPartnerModalDashboard({
                           placeholder="e.g. Kano State, Nigeria"
                           value={form.partnership_geo_specificity}
                           onChange={e=>setF("partnership_geo_specificity",e.target.value)}
-                          className="w-full h-11 px-4 rounded-lg border border-border bg-background text-[13.5px] text-foreground placeholder:text-foreground/40 focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors"/>
+                          className="w-full h-[3.25rem] px-4 rounded-xl border border-[#1C1917]/15 bg-background text-[1rem] text-foreground placeholder:text-[#57534E] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors"/>
                       </Field>
 
                       <Field label="Are you physically present in the target location?">
@@ -1664,7 +1683,7 @@ export function FindPartnerModalDashboard({
 
                   {/* STEP 3 */}
                   {formStep===3&&(
-                    <div className="space-y-7">
+                    <div className="space-y-10">
                       <Field label="Sectors" required hint="Select all that apply to this work." first>
                         <ExpandableCheckList
                           label="Select sectors"
@@ -1690,7 +1709,7 @@ export function FindPartnerModalDashboard({
                       <Field label="What does success look like in 12 months?" required
                         hint="One sentence. This is the most important signal for match quality — it forces outcome clarity and tells the AI what to optimise for.">
                         <Textarea
-                          className="w-full text-[13.5px] resize-none rounded-lg border min-h-[80px] bg-background text-foreground"
+                          className="w-full text-[1rem] resize-none rounded-xl border border-[#1C1917]/15 px-4 py-3.5 leading-relaxed min-h-[80px] bg-background text-foreground"
                           placeholder="e.g. A published evaluation framework co-authored with our research partner, adopted by 3 state health ministries by end of 2027."
                           value={form.partnership_success_definition}
                           onChange={e=>setF("partnership_success_definition",e.target.value)}/>
@@ -1720,7 +1739,7 @@ export function FindPartnerModalDashboard({
 
                   {/* STEP 4 */}
                   {formStep===4&&(
-                    <div className="space-y-7">
+                    <div className="space-y-10">
                       {/* DD Readiness — reads and writes profile columns, not partnership_dd_* */}
                       {(()=>{
                         const isFunder=["philanthropic_foundation","venture_capital"].includes(form.organisation_type||orgProfile?.organisation_type||"");
@@ -1754,8 +1773,8 @@ export function FindPartnerModalDashboard({
                             {/* Score bar */}
                             <div className="mb-4 space-y-2">
                               <div className="flex items-center justify-between">
-                                <span className="text-[14px] text-foreground font-medium">{ticked} of {total} documents ready</span>
-                                <span className="text-[14px] font-bold" style={{color:pct>=60?"#2D6A4F":pct>=30?"#C45C26":"#ef4444"}}>{pct}%</span>
+                                <span className="text-[0.9375rem] text-foreground font-medium">{ticked} of {total} documents ready</span>
+                                <span className="text-[0.9375rem] font-bold" style={{color:pct>=60?"#2D6A4F":pct>=30?"#C45C26":"#ef4444"}}>{pct}%</span>
                               </div>
                               <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                                 <div className="h-full rounded-full transition-all duration-300"
@@ -1765,21 +1784,21 @@ export function FindPartnerModalDashboard({
                             {/* Zero-state prompt */}
                             {isZero&&!ddConfirmedEmpty&&(
                               <div className="mb-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3.5 space-y-3">
-                                <p className="text-[14px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                                <p className="text-[0.9375rem] text-amber-800 dark:text-amber-300 leading-relaxed">
                                   Your DD readiness is at 0%. Partners who request documentation will find nothing on file. Tick what you genuinely have ready below, or confirm you have nothing to share right now.
                                 </p>
                                 <button type="button" onClick={()=>setDdConfirmedEmpty(true)}
-                                  className="text-[12.5px] font-semibold text-amber-700 dark:text-amber-400 underline underline-offset-2 hover:text-amber-900 transition-colors">
+                                  className="text-[0.875rem] font-semibold text-amber-700 dark:text-amber-400 underline underline-offset-2 hover:text-amber-900 transition-colors">
                                   I have nothing to share right now
                                 </button>
                               </div>
                             )}
                             {isZero&&ddConfirmedEmpty&&(
                               <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-lg bg-muted border border-border">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-foreground/50 shrink-0"><polyline points="20 6 9 17 4 12"/></svg>
-                                <p className="text-[14px] text-foreground/70">Confirmed — no documents right now.</p>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[#44403C] shrink-0"><polyline points="20 6 9 17 4 12"/></svg>
+                                <p className="text-[0.9375rem] text-[#44403C]">Confirmed — no documents right now.</p>
                                 <button type="button" onClick={()=>setDdConfirmedEmpty(false)}
-                                  className="ml-auto text-[13px] text-foreground/50 hover:text-foreground underline underline-offset-2 transition-colors">
+                                  className="ml-auto text-[0.9375rem] text-[#44403C] hover:text-foreground underline underline-offset-2 transition-colors">
                                   Undo
                                 </button>
                               </div>
@@ -1806,9 +1825,9 @@ export function FindPartnerModalDashboard({
                                       {on&&<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>}
                                     </div>
                                     <div className="flex-1">
-                                      <p className={`text-[13.5px] leading-snug ${on?"font-semibold text-[#2D6A4F]":"text-foreground"}`}>{label}</p>
-                                      <p className="text-[13px] text-foreground/60 mt-0.5">{sub}</p>
-                                      {isGated&&!on&&<p className="text-[12px] text-foreground/50 mt-0.5">Requires a supporting document</p>}
+                                      <p className={`text-[1rem] leading-snug ${on?"font-semibold text-[#2D6A4F]":"text-foreground"}`}>{label}</p>
+                                      <p className="text-[0.9375rem] text-[#44403C] mt-0.5">{sub}</p>
+                                      {isGated&&!on&&<p className="text-[0.8125rem] text-[#44403C] mt-0.5">Requires a supporting document</p>}
                                     </div>
                                     <input type="checkbox" checked={on} onChange={handleClick} className="sr-only"/>
                                   </>);
@@ -1817,7 +1836,7 @@ export function FindPartnerModalDashboard({
                                 );
                               })}
                             </div>
-                            <p className="text-[13px] text-foreground/50 mt-3">Updating this also updates your organisation profile's DD readiness score.</p>
+                            <p className="text-[0.9375rem] text-[#44403C] mt-3">Updating this also updates your organisation profile's DD readiness score.</p>
                             {ddEvidenceModalKey&&(()=>{
                               const modalItem=(isFunder?FUNDER_DD_ITEMS:DD_ITEMS).find(i=>i.key===ddEvidenceModalKey);
                               if(!modalItem||!orgProfile)return null;
@@ -1919,9 +1938,9 @@ export function FindPartnerModalDashboard({
                           onChange={v=>setF("partnership_prior_experience",v===""?null:v==="true")}/>
                         {form.partnership_prior_experience===true&&(
                           <div className="mt-4 space-y-2">
-                            <p className="text-[14px] text-foreground/70">Briefly describe one completed partnership — who with, what you did, and what came of it.</p>
+                            <p className="text-[0.9375rem] text-[#44403C]">Briefly describe one completed partnership — who with, what you did, and what came of it.</p>
                             <Textarea
-                              className="w-full text-[13.5px] resize-none rounded-lg border bg-background text-foreground"
+                              className="w-full text-[1rem] resize-none rounded-xl border border-[#1C1917]/15 px-4 py-3.5 leading-relaxed bg-background text-foreground"
                               placeholder="e.g. Co-implemented a WASH programme with WaterAid in Kaduna State 2022–23, reaching 12,000 households."
                               value={form.partnership_prior_experience_detail}
                               onChange={e=>setF("partnership_prior_experience_detail",e.target.value)}/>
@@ -1933,11 +1952,11 @@ export function FindPartnerModalDashboard({
 
                   {/* STEP 5 */}
                   {formStep===5&&(
-                    <div className="space-y-7">
+                    <div className="space-y-10">
                       <Field label="Your approach to creating change"
                         hint="One sentence. Helps partners check if your theories of change are compatible." first>
                         <Textarea
-                          className="w-full text-[13.5px] resize-none rounded-lg border bg-background text-foreground"
+                          className="w-full text-[1rem] resize-none rounded-xl border border-[#1C1917]/15 px-4 py-3.5 leading-relaxed bg-background text-foreground"
                           placeholder="e.g. We believe sustainable health outcomes require community ownership from design through to delivery."
                           value={form.partnership_theory_of_change}
                           onChange={e=>setF("partnership_theory_of_change",e.target.value)}/>
@@ -1946,7 +1965,7 @@ export function FindPartnerModalDashboard({
                       <Field label="Previous attempts at this type of partnership"
                         hint="Transparency about what you've tried builds trust and helps us match you better.">
                         <Textarea
-                          className="w-full text-[13.5px] resize-none rounded-lg border bg-background text-foreground"
+                          className="w-full text-[1rem] resize-none rounded-xl border border-[#1C1917]/15 px-4 py-3.5 leading-relaxed bg-background text-foreground"
                           placeholder="e.g. We partnered with a UK university in 2022 but the relationship stalled due to misaligned timelines."
                           value={form.partnership_prior_attempts}
                           onChange={e=>setF("partnership_prior_attempts",e.target.value)}/>
@@ -1955,7 +1974,7 @@ export function FindPartnerModalDashboard({
                       <Field label="Existing constraints"
                         hint="Donor restrictions, exclusivity agreements, or legal constraints partners should know before reaching out.">
                         <Textarea
-                          className="w-full text-[13.5px] resize-none rounded-lg border bg-background text-foreground"
+                          className="w-full text-[1rem] resize-none rounded-xl border border-[#1C1917]/15 px-4 py-3.5 leading-relaxed bg-background text-foreground"
                           placeholder="e.g. Our FCDO grant restricts work to northern Nigeria only."
                           value={form.partnership_constraints}
                           onChange={e=>setF("partnership_constraints",e.target.value)}/>
@@ -1975,7 +1994,7 @@ export function FindPartnerModalDashboard({
                             sub="Other organisations can find and express interest in your listing. Uncheck to run matching privately."/>
                         </div>
                         {!listPublicly&&(
-                          <p className="text-[13px] text-foreground mt-3">Your details won't be listed publicly. The Natives team will follow up with matches directly.</p>
+                          <p className="text-[0.9375rem] text-foreground mt-3">Your details won't be listed publicly. The Natives team will follow up with matches directly.</p>
                         )}
                       </Field>
                     </div>
@@ -1991,7 +2010,7 @@ export function FindPartnerModalDashboard({
                   actually runs. */}
               {prefillError&&formStep===5&&(
                 <div className="shrink-0 px-4 sm:px-6 pt-2">
-                  <p className="text-[14px] text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded-lg px-4 py-3 border border-red-200 dark:border-red-800">
+                  <p className="text-[0.9375rem] text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 rounded-lg px-4 py-3 border border-red-200 dark:border-red-800">
                     {prefillError}
                   </p>
                 </div>
@@ -2009,7 +2028,7 @@ export function FindPartnerModalDashboard({
                       i===formStep?"bg-[#2D6A4F]":i<formStep?"bg-[#2D6A4F]/40":"bg-border"
                     }`}/>
                 ))}
-                <span className="text-[13px] text-foreground ml-auto whitespace-nowrap">{formStep+1}/{STEPS.length}</span>
+                <span className="text-[0.9375rem] text-foreground ml-auto whitespace-nowrap">{formStep+1}/{STEPS.length}</span>
               </div>
 
               <StepFooter
