@@ -96,7 +96,7 @@ const STATUS_MAP: Record<string, { label: string; dot: string; bg: string }> = {
   published: { label: "Listed",             dot: "#2D6A4F", bg: "rgba(45,106,79,0.12)" },
   rejected:  { label: "Not approved",       dot: "#ef4444", bg: "rgba(239,68,68,0.12)" },
   closed:    { label: "Partner found", dot: "#6b7280", bg: "rgba(107,114,128,0.12)" },
-  draft:     { label: "AI draft — needs review", dot: "#C45C26", bg: "rgba(196,92,38,0.08)" },
+  draft:     { label: "Draft, needs review", dot: "#C45C26", bg: "rgba(196,92,38,0.08)" },
 };
 
 const PARTNERSHIP_OPTIONS = [
@@ -222,7 +222,7 @@ function PublishRFPButton({ initiative, onPublished }: { initiative: InitiativeR
     return (
       <button type="button" onClick={() => setEditing(true)}
         className="w-full rounded-xl border border-[#C45C26]/40 bg-[rgba(196,92,38,0.08)] px-5 py-3 text-[15px] text-left hover:border-[#C45C26]/70 transition-colors">
-        <span className="text-foreground font-medium">Review and publish this AI-generated RFP →</span>
+        <span className="text-foreground font-medium">Review and publish this drafted RFP →</span>
       </button>
     );
   }

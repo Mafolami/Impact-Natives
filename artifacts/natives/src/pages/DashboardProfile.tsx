@@ -1982,7 +1982,7 @@ export default function DashboardProfile() {
                     <Label className="text-[15px] font-medium">Organisation description</Label>
                     <Textarea value={draftOrgDescription} onChange={e => setDraftOrgDescription(e.target.value)} className="mt-1 resize-none" rows={4}
                       placeholder="What does your organisation do, where does it work, and who does it serve?" />
-                    <p className="text-[13px] text-black dark:text-white opacity-60 mt-1.5">Shown on your directory profile and used by AI to match you with relevant partners.</p>
+                    <p className="text-[13px] text-black dark:text-white opacity-60 mt-1.5">Shown on your directory profile and used to match you with relevant partners.</p>
                   </div>
                   <div>
                     <Label className="text-[15px] font-medium">Country</Label>
@@ -3042,7 +3042,7 @@ export default function DashboardProfile() {
                     <Label className="text-[15px] font-medium">CSR/ESG focus statement</Label>
                     <Textarea value={draftCsrFocusStatement} onChange={e => setDraftCsrFocusStatement(e.target.value)} className="mt-1 resize-none" rows={4}
                       placeholder="e.g. We prioritise climate resilience and digital inclusion programmes across West Africa, aligned with our operational footprint. We seek implementing partners with strong community reach and measurable outcomes." />
-                    <p className="text-[13px] text-black dark:text-white mt-1.5 opacity-60">Used by AI to match your profile with relevant initiatives and implementers.</p>
+                    <p className="text-[13px] text-black dark:text-white mt-1.5 opacity-60">Used to match your profile with relevant initiatives and implementers.</p>
                   </div>
                   <div>
                     <Label className="text-[15px] font-medium">Annual CSR/ESG budget range</Label>

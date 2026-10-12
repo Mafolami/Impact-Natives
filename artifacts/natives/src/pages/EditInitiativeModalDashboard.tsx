@@ -662,7 +662,7 @@ export default function EditInitiativeModalDashboard({ isOpen, initiativeId, onC
                 {descriptionRegenerated && (
                   <div className="flex items-center gap-2 rounded-lg border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-3 py-2 mt-2">
                     <Sparkles className="w-3.5 h-3.5 text-[#2D6A4F] shrink-0" />
-                    <p className="text-xs text-[#2D6A4F]">AI-generated — edit freely before saving.</p>
+                    <p className="text-xs text-[#2D6A4F]">Drafted from your description. Edit freely before saving.</p>
                   </div>
                 )}
                 {form.detailContent && form.detailContent !== "<p></p>" && !descriptionRegenerated && (

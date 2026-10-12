@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { AiDataNote } from "@/components/ui/AiDataNote";
 import { Upload, Loader2, CheckCircle2, X, Sparkles } from "lucide-react";
 
 type ExecutiveSummary = {
@@ -224,11 +225,12 @@ export function UploadStrategyPane({
       {!parsed && (
         <>
           <p className="text-sm text-black dark:text-white">
-            Upload your existing sustainability or CSR strategy document. AI will extract the key initiatives and convert them into partner-ready listings.
+            Upload your existing sustainability or CSR strategy document. We'll pull out the key initiatives and turn them into partner-ready listings for you to review.
           </p>
           <p className="text-xs text-black dark:text-white">
             For best results, upload a DOCX file. PDF extraction is limited to text-based PDFs only. Documents are truncated at 8,000 characters — long documents may lose content from later pages.
           </p>
+          <AiDataNote>Your document is processed by our AI provider to build your listings.</AiDataNote>
 
           <div
             className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-colors cursor-pointer ${
@@ -336,7 +338,7 @@ export function UploadStrategyPane({
 
           <div className="p-4 rounded-xl border border-amber-200 bg-amber-50">
             <p className="text-xs text-amber-800 leading-relaxed">
-              The AI will now generate initiative pillars from this strategy. Each pillar can be pushed individually to Initiatives for review and publishing.
+              Next, we'll turn this strategy into initiative pillars for you to review. Each pillar can be pushed individually to Initiatives for review and publishing.
             </p>
           </div>
 

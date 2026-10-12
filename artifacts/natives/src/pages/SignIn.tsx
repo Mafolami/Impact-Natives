@@ -109,7 +109,7 @@ export default function SignIn() {
           <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
             {[
               "Verified organisations across Africa",
-              "AI-matched initiatives and partnerships",
+              "Matched initiatives and partnerships",
               "Deal memos and CSR briefs on demand",
             ].map(item => (
               <div key={item} style={{ display: "flex", alignItems: "center", gap: "12px" }}>

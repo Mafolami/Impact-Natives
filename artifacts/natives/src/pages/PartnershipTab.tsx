@@ -516,7 +516,7 @@ export function PartnershipTab() {
 
                     {/* Source + time */}
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <span>via {conn.source === "ai_match" ? "AI match" : "directory"}</span>
+                      <span>via {conn.source === "ai_match" ? "Natives match" : "directory"}</span>
                       <span>·</span>
                       <span>{timeAgo(conn.created_at)}</span>
                     </div>
@@ -621,7 +621,7 @@ export function PartnershipTab() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <span>via {conn.source === "ai_match" ? "AI match" : "directory"}</span>
+                      <span>via {conn.source === "ai_match" ? "Natives match" : "directory"}</span>
                       <span>·</span>
                       <span>{timeAgo(conn.created_at)}</span>
                     </div>

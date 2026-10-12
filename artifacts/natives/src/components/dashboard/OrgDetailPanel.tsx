@@ -276,7 +276,7 @@ function ExpressInterestPanel({ alreadySent, openingMsg, setOpeningMsg, msgEditi
       {openingMsg && !msgEditing && (
         <div className="rounded-xl p-4 space-y-2 bg-card border border-[#2D6A4F]/20">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">AI-drafted opening message</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-black dark:text-white">Suggested opening message</p>
             <button type="button" onClick={() => setMsgEditing(true)}
               className="text-[10px] font-semibold text-black dark:text-white hover:text-foreground underline underline-offset-2">
               Edit

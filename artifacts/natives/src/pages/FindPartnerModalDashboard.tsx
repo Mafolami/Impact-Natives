@@ -39,6 +39,7 @@ import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 import { normalizeArr } from "@/lib/normalizeArr";
 import { DD_ITEMS, FUNDER_DD_ITEMS, DOCUMENT_REQUIRED_KEYS, persistDdItemAnswers, clearDdItemConfirmation } from "@/lib/ddItems";
 import DDEvidenceModal from "@/components/dashboard/DDEvidenceModal";
+import { AiDataNote } from "@/components/ui/AiDataNote";
 
 const RATE_LIMIT_ENABLED = false;
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -127,7 +128,7 @@ const EMPTY_FORM:PrefillData = {
 
 // Step metadata — label shown in sidebar, subtitle shown in the compact header
 const STEPS = [
-  {label:"Describe",       subtitle:"Give AI enough detail to structure your brief."},
+  {label:"Describe",       subtitle:"Tell us enough to build your brief. You can edit everything after."},
   {label:"The partnership",subtitle:"What kind of partnership are you creating and what does it look like in practice."},
   {label:"Where and when", subtitle:"Location, timeline, and resource signals that filter out mismatches early."},
   {label:"Focus areas",    subtitle:"Sectors, needs, offers, and the outcome you are aiming for."},
@@ -1467,6 +1468,7 @@ export function FindPartnerModalDashboard({
                           </button>
                         </div>
                       </Field>
+                      <AiDataNote className="-mt-2">What you write or upload is processed by our AI provider to build your brief.</AiDataNote>
 
                       {uploadMode==="text"?(
                         <Field label="Describe your partnership need"
@@ -1478,7 +1480,7 @@ export function FindPartnerModalDashboard({
                         </Field>
                       ):(
                         <Field label="Upload your partnership strategy document"
-                          hint="PDF or Word document. AI will extract sectors, needs, offers, geography, budget, and timeline.">
+                          hint="PDF or Word. We'll pull out sectors, needs, offers, geography, budget and timeline for you to check.">
                           <input ref={fileRef} type="file" accept=".pdf,.doc,.docx" className="sr-only"
                             onChange={e=>{const f=e.target.files?.[0];if(f) setUploadedFile(f);}}/>
                           {!uploadedFile?(
@@ -1704,7 +1706,7 @@ export function FindPartnerModalDashboard({
                       </Field>
 
                       <Field label="What does success look like in 12 months?" required
-                        hint="One sentence. This is the most important signal for match quality — it forces outcome clarity and tells the AI what to optimise for.">
+                        hint="One sentence. This is the most important signal for match quality — it forces outcome clarity and tells us what to match you on.">
                         <Textarea
                           className="w-full text-[1rem] md:text-[1rem] resize-none rounded-xl border border-[#1C1917]/15 px-4 py-3.5 leading-relaxed min-h-[80px] bg-background text-foreground"
                           placeholder="e.g. A published evaluation framework co-authored with our research partner, adopted by 3 state health ministries by end of 2027."
@@ -2018,9 +2020,9 @@ export function FindPartnerModalDashboard({
                     if (freeText.trim()) setF("description", freeText.trim());
                     goToStep(1);
                   }:undefined}
-                  skipLabel="Proceed without AI"
+                  skipLabel="Fill it in myself"
                   nextLabel={
-                    formStep===0?"Structure with AI"
+                    formStep===0?"Build my brief"
                     :formStep===5?(listPublicly?"List and find matches":"Find matches privately")
                     :undefined
                   }

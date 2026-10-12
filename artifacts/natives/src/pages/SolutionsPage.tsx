@@ -90,7 +90,7 @@ const AUDIENCE: Record<AudienceKey, {
       {
         icon: Lightbulb,
         title: "Adopt initiatives as CSR anchors",
-        body: "Browse the Impact Marketplace and express interest in initiatives that align with your ESG priorities. For any initiative, generate an AI-powered CSR adoption brief in seconds - covering SDG alignment, local content fit, brand considerations, ESG framework match, implementer readiness, risk flags, and a recommended action. Third-party verified impact, without building a programme from scratch.",
+        body: "Browse the Impact Marketplace and express interest in initiatives that align with your ESG priorities. For any initiative, generate a CSR adoption brief in seconds - covering SDG alignment, local content fit, brand considerations, ESG framework match, implementer readiness, risk flags, and a recommended action. Third-party verified impact, without building a programme from scratch.",
       },
       {
         icon: Handshake,
@@ -129,7 +129,7 @@ const AUDIENCE: Record<AudienceKey, {
       {
         icon: Globe,
         title: "Discover active initiatives and generate deal memos instantly",
-        body: "The Impact Marketplace surfaces initiatives actively seeking funding partners. Browse by sector, location, and partnership type. When you find a match, generate a structured AI deal memo in seconds — covering the problem, organisation credibility, financial context, and recommended next steps — ready to share with your team before the first conversation.",
+        body: "The Impact Marketplace surfaces initiatives actively seeking funding partners. Browse by sector, location, and partnership type. When you find a match, generate a structured deal memo in seconds — covering the problem, organisation credibility, financial context, and recommended next steps — ready to share with your team before the first conversation.",
       },
       {
         icon: Handshake,

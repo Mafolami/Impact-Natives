@@ -625,7 +625,7 @@ export default function DashboardHome() {
                   Add {missingProfileFields.length === 1 ? missingProfileFields[0]
                     : missingProfileFields.length === 2 ? `${missingProfileFields[0]} and ${missingProfileFields[1]}`
                     : `${missingProfileFields.slice(0, -1).join(", ")}, and ${missingProfileFields[missingProfileFields.length - 1]}`}
-                  {profileScore < 80 ? ". 80% also unlocks AI matches." : "."}
+                  {profileScore < 80 ? ". 80% also unlocks partner matches." : "."}
                 </p>
               )}
             </div>

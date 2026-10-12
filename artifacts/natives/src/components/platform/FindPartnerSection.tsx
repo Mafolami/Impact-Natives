@@ -55,8 +55,8 @@ const VALUE_PROPS = [
   },
   {
     icon: <Network className="w-5 h-5" />,
-    headline: "AI-matched to your profile",
-    body: "Submit a brief describing what you need. AI analyses your sector, geography, SDG focus, and stated goals to surface the organisations most likely to be the right fit — in seconds, not months.",
+    headline: "Matched to your profile",
+    body: "Submit a brief describing what you need. Natives looks at your sector, geography, SDG focus, and stated goals to surface the organisations most likely to be the right fit — in seconds, not months.",
     accent: "#B85C38",
   },
   {

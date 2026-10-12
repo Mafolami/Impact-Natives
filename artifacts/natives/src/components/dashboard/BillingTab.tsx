@@ -114,7 +114,7 @@ const TIERS: TierDef[] = [
     register: "accent",
     features: [
       "Everything in Plus",
-      "Decision memo or CSR brief on any initiative",
+      "Deal memo or CSR brief on any initiative",
       "Compare partners' ESG Snapshots",
       "Expressions of interest drafted for you",
     ],

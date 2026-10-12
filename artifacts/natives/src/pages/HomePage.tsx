@@ -42,7 +42,7 @@ const FAQS = [
   },
   {
     q: "Is Natives free?",
-    a: "Natives offers four plans: Free (directory access, initiative listings, messaging, and milestone tracking), Plus, Pro, and Compliance, which add AI-assisted matching, evaluation, and audit-ready compliance tools as you scale. See our Pricing page for full details.",
+    a: "Natives offers four plans: Free (directory access, initiative listings, messaging, and milestone tracking), Plus, Pro, and Compliance, which add partner matching, evaluation, and audit-ready compliance tools as you scale. See our Pricing page for full details.",
   },
   {
     q: "How is Natives different from LinkedIn or a directory?",

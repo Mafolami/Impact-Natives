@@ -8,6 +8,7 @@ import { SECTOR_OPTIONS } from "@/lib/sectors";
 import { useAuth } from "@/context/AuthContext"
 import { X, Sparkles, Loader2, CheckCircle2, AlertCircle, Info, PenLine, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { AiDataNote } from "@/components/ui/AiDataNote";
 // ─── Types ────────────────────────────────────────────────────────────────────
 type PartnershipType = "funding" | "technical" | "operational" | "leadership" | "strategic" | "lead"
 type InitiativeStage = "concept" | "planning" | "active" | "scaling"
@@ -678,6 +679,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                     placeholder="e.g. We're running a climate resilience programme for smallholder farmers in Kano State, Nigeria. We've secured partial funding but need a technical partner with expertise in irrigation and a funding partner to close a $150K gap. The programme runs 18 months starting Q3 2025 and aims to reach 2,000 farming households..."
                     rows={5}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors" />
+                  <AiDataNote>Your description is processed by our AI provider to build your brief.</AiDataNote>
                   {extractError && <p className="text-xs text-red-600">{extractError}</p>}
                   <button type="button" onClick={extractFromDescription}
                     disabled={!plainDescription.trim() || extracting}

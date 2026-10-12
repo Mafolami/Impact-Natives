@@ -805,7 +805,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
               <Building2 className="w-8 h-8 text-muted-foreground/20 mb-4" />
               <p className="text-[15px] font-medium text-black dark:text-white mb-1">Publish a partnership listing to get matched</p>
               <p className="text-[13px] text-black dark:text-white max-w-[220px] mb-4">
-                AI matching compares your specific ask to other organisations — you'll need at least one published listing first.
+                Matching compares your specific ask to other organisations — you'll need at least one published listing first.
               </p>
               <button type="button" onClick={() => navigate("/dashboard/partnerships")}
                 className="text-[13px] font-semibold text-[#2D6A4F] border border-[#2D6A4F]/30 rounded-full px-3 py-1.5 hover:bg-[#2D6A4F]/10 transition-colors">

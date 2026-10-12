@@ -230,7 +230,7 @@ export default function ImplementerMatches({ orgId }: { orgId: string | null }) 
         <div className="rounded-xl border border-dashed border-border bg-white dark:bg-card p-6 text-center flex flex-col items-center justify-center min-h-[220px]">
           <Building2 className="w-6 h-6 text-muted-foreground/20 mb-3" />
           <p className="text-[13px] font-medium text-black dark:text-white mb-1">Publish a partnership listing to get matched</p>
-          <p className="text-[13px] text-black dark:text-white mb-3">AI matching compares your specific ask to other organisations -- you'll need at least one published listing first.</p>
+          <p className="text-[13px] text-black dark:text-white mb-3">Matching compares your specific ask to other organisations -- you'll need at least one published listing first.</p>
           <button type="button" onClick={() => navigate("/dashboard/partnerships")}
             className="text-[13px] font-semibold text-white bg-[#2D6A4F] rounded-full px-4 py-1.5 hover:bg-[#245c43] transition-colors">
             Get Matched

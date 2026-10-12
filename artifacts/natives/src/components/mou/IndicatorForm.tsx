@@ -303,7 +303,7 @@ export default function IndicatorForm({
           className="w-full flex items-center justify-center gap-1.5 h-9 rounded-full border border-[#2D6A4F]/30 bg-[#2D6A4F]/5 text-sm font-medium text-[#2D6A4F] hover:bg-[#2D6A4F]/10 disabled:opacity-50 transition-colors">
           {suggestLoading
             ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Suggesting...</>
-            : <><Sparkles className="w-3.5 h-3.5" />Suggest with AI</>}
+            : <><Sparkles className="w-3.5 h-3.5" />Suggest indicators</>}
         </button>
         {suggestRequiresUpgrade && (
           <p className="text-xs text-[#C45C26]">
@@ -405,7 +405,7 @@ export default function IndicatorForm({
               ? <><Loader2 className="w-3 h-3 animate-spin" />Refining...</>
               : refineCount >= REFINE_CAP
                 ? "Refine limit reached"
-                : <><Sparkles className="w-3 h-3" />Refine with AI ({REFINE_CAP - refineCount} left)</>}
+                : <><Sparkles className="w-3 h-3" />Refine ({REFINE_CAP - refineCount} left)</>}
           </button>
         )}
         {refineRequiresUpgrade && <p className="text-xs text-[#C45C26]">Indicator refinement is available on the Plus plan and above. Upgrade to use this.</p>}

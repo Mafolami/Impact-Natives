@@ -20,7 +20,7 @@ const faqs = [
       },
       {
         q: "How does Natives use AI?",
-        a: "AI supports partner matching, initiative creation, brief generation, partner assessment, and outreach. Recommendations and generated content are based on information available on the platform and remain editable by users.",
+        a: "AI supports partner matching, initiative creation, brief generation, partner assessment, and outreach. Recommendations and generated content are based on information available on the platform and remain editable by users. Text you submit to these features is processed by our AI provider, Groq. Section 4 of our Privacy Policy explains how.",
       },
       {
         q: "Where does Natives operate?",
@@ -28,7 +28,7 @@ const faqs = [
       },
       {
         q: "Is Natives free?",
-        a: "Natives offers four plans: Free (directory access, initiative listings, messaging, and milestone tracking), Plus, Pro, and Compliance, which add AI-assisted matching, evaluation, and audit-ready compliance tools as you scale. See our Pricing page for full details.",
+        a: "Natives offers four plans: Free (directory access, initiative listings, messaging, and milestone tracking), Plus, Pro, and Compliance, which add partner matching, evaluation, and audit-ready compliance tools as you scale. See our Pricing page for full details.",
       },
       {
         q: "How is Natives different from LinkedIn or a directory?",
@@ -57,7 +57,7 @@ const faqs = [
       },
       {
         q: "Can I join as an individual?",
-        a: "Yes. Individuals can create a profile, post initiatives, express interest in opportunities, and connect with organisations and funders. AI-assisted matching, MoUs, and milestone tracking require a contracting organisation — individuals who need those can convert their profile into a consultancy organisation.",
+        a: "Yes. Individuals can create a profile, post initiatives, express interest in opportunities, and connect with organisations and funders. Partner matching, MoUs, and milestone tracking require a contracting organisation — individuals who need those can convert their profile into a consultancy organisation.",
       },
     ],
   },
@@ -70,7 +70,7 @@ const faqs = [
       },
       {
         q: "How do I find a partner?",
-        a: "You can search the directory and marketplace or use AI-assisted matching. Matching considers factors such as mandate, geography, sector, focus, stage, budget, and available support.",
+        a: "You can search the directory and marketplace or use partner matching. Matching considers factors such as mandate, geography, sector, focus, stage, budget, and available support.",
       },
       {
         q: "What is a Partnership Request?",
@@ -99,19 +99,19 @@ const faqs = [
     items: [
       {
         q: "How can an NGO or social enterprise get discovered?",
-        a: "Complete your organisation profile, describe your work and capabilities, and create relevant initiatives. This gives potential partners information they can use when assessing your organisation and enables AI-assisted matching.",
+        a: "Complete your organisation profile, describe your work and capabilities, and create relevant initiatives. This gives potential partners information they can use when assessing your organisation and enables partner matching.",
       },
       {
         q: "How do I create an initiative?",
-        a: "You can create an initiative manually or use AI-assisted creation. Add information about the work, intended outcomes, sector, geography, budget, and the type of partnership or support you need.",
+        a: "You can create an initiative manually or build it from a plain description. Add information about the work, intended outcomes, sector, geography, budget, and the type of partnership or support you need.",
       },
       {
-        q: "How does AI matching work for organisations?",
+        q: "How does matching work for organisations?",
         a: "Natives compares your organisation or initiative with available partner information and ranks potential matches based on relevant criteria such as mandate, geography, sector, stage, budget, and support requirements.",
       },
       {
         q: "Can I show my organisation's track record?",
-        a: "Yes. Your profile and initiatives provide structured information about your organisation, programmes, capabilities, and work. Where relevant, this information can support partner assessment and AI-generated briefs.",
+        a: "Yes. Your profile and initiatives provide structured information about your organisation, programmes, capabilities, and work. Where relevant, this information can support partner assessment and the briefs Natives drafts for you.",
       },
       {
         q: "Can community-based or smaller organisations join?",
@@ -123,7 +123,7 @@ const faqs = [
       },
       {
         q: "Is Natives free for organisations?",
-        a: "Organisations can join on the Free plan. Paid plans provide additional AI-assisted matching, evaluation, outreach, and other capabilities.",
+        a: "Organisations can join on the Free plan. Paid plans provide additional partner matching, evaluation, outreach, and other capabilities.",
       },
     ],
   },
@@ -132,19 +132,19 @@ const faqs = [
     items: [
       {
         q: "How can funders find potential partners?",
-        a: "Funders can search the directory, explore initiatives, define funding criteria, and use AI-assisted matching to identify organisations and opportunities aligned with their mandate.",
+        a: "Funders can search the directory, explore initiatives, define funding criteria, and use partner matching to identify organisations and opportunities aligned with their mandate.",
       },
       {
         q: "How can corporates find CSR or ESG partners?",
-        a: "Corporates can define their priorities, geography, sectors, budget, frameworks, and preferred partner types, then use the directory and AI-assisted matching to identify relevant organisations and initiatives.",
+        a: "Corporates can define their priorities, geography, sectors, budget, frameworks, and preferred partner types, then use the directory and partner matching to identify relevant organisations and initiatives.",
       },
       {
         q: "How can I assess a potential partner?",
         a: "Natives brings together available organisational information, Verification Status, Due Diligence Readiness, supporting documentation, and relevant initiative information to support assessment.",
       },
       {
-        q: "What is an AI Deal Memo?",
-        a: "An AI Deal Memo structures information about a potential partnership or funding opportunity, including mandate alignment, available organisational information, delivery considerations, financial information where available, and potential risks. Users can review and edit the resulting brief.",
+        q: "What is a Deal Memo?",
+        a: "A Deal Memo structures information about a potential partnership or funding opportunity, including mandate alignment, available organisational information, delivery considerations, financial information where available, and potential risks. Users can review and edit the resulting brief.",
       },
       {
         q: "What is Due Diligence Readiness?",

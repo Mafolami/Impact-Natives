@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Children, useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import ReactMarkdown from "react-markdown";
 
@@ -7,6 +7,11 @@ const DOCS: Record<string, { title: string; file: string }> = {
   terms:    { title: "Terms of Service", file: "/legal/terms-of-service.md" },
   cookies:  { title: "Cookie Policy",   file: "/legal/cookie-policy.md" },
 };
+
+// "4. How We Use AI" -> "how-we-use-ai"
+function headingId(children: ReactNode): string {
+  return Children.toArray(children).join("").replace(/^\d+\.\s*/, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
 
 export default function LegalPage() {
   const [location] = useLocation();
@@ -24,6 +29,12 @@ export default function LegalPage() {
       .then((text) => { setContent(text); setLoading(false); })
       .catch(() => { setContent("Failed to load document."); setLoading(false); });
   }, [slug]);
+
+  // Jump to #section once the document has loaded (e.g. /legal/privacy#how-we-use-ai)
+  useEffect(() => {
+    if (!content || !window.location.hash) return;
+    document.getElementById(decodeURIComponent(window.location.hash.slice(1)))?.scrollIntoView();
+  }, [content]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -76,7 +87,7 @@ export default function LegalPage() {
             prose-strong:text-foreground
             prose-table:text-sm prose-th:text-foreground prose-td:text-foreground
             prose-hr:border-border">
-            <ReactMarkdown>{content ?? ""}</ReactMarkdown>
+            <ReactMarkdown components={{ h2: ({ children }) => <h2 id={headingId(children)}>{children}</h2> }}>{content ?? ""}</ReactMarkdown>
           </article>
         )}
       </div>

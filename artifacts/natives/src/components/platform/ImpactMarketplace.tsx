@@ -612,7 +612,7 @@ function HeroSection({ onCreateClick }: { onCreateClick: () => void }) {
           marginBottom: '2.5rem',
         }}>
           The right initiative, in front of the right partners, becomes a programme.
-          Share a challenge worth solving, define the outcome you want, and let AI match you
+          Share a challenge worth solving, define the outcome you want, and Natives will match you
           with the funders and implementers already looking for what you're building.
         </p>
 

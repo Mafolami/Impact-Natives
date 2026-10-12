@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { COUNTRIES } from "@/lib/countries";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
 import { ORG_TYPE_FILTERS as ORG_TYPE_OPTIONS } from "@/lib/orgTypes";
+import { AiDataNote } from "@/components/ui/AiDataNote";
 import {
   Loader2, ArrowRight, ArrowLeft, SkipForward, ShieldCheck,
   Users, User, Upload, CheckCircle2, X, PenLine,
@@ -440,12 +441,7 @@ function DocumentUploadStep({ track, onExtracted, onSkipToManual }: {
         )}
       </div>
 
-      <p className="text-xs text-[#44403C] text-center">
-        See how we handle uploaded documents in our{" "}
-        <a href="/legal/privacy" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">
-          Privacy Policy
-        </a>.
-      </p>
+      <AiDataNote className="text-center">Uploaded documents are processed by our AI provider to pre-fill your profile.</AiDataNote>
       {error && (
         <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
           <X className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
