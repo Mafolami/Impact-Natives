@@ -189,55 +189,74 @@ const STEP_CONTEXT: Record<string, string> = {
   description: "A clear profile is what partners and funders see first.",
 };
 
+function RailBrand() {
+  return (
+    <div className="flex items-center gap-3">
+      <img src="/logo.png" alt="" className="h-12 w-auto" />
+      <span className="text-[1.375rem] font-semibold tracking-tight text-[#1C1917]"
+        style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>
+        Impact Natives
+      </span>
+    </div>
+  );
+}
+
 function StepRail({ steps, current }: {
   steps: { id: string; label: string; skippable?: boolean }[]; current: number;
 }) {
   return (
-    <div className="hidden lg:flex lg:flex-col lg:w-[340px] lg:shrink-0 bg-[#13191B] px-10 py-12">
-      <span className="text-[#F2EFEA] font-semibold text-lg mb-16">Impact Natives</span>
-      <div className="flex flex-col">
+    <aside className="hidden lg:flex lg:flex-col lg:w-[420px] xl:w-[460px] lg:shrink-0 lg:sticky lg:top-0 lg:h-screen overflow-y-auto bg-[#EEF2EF] border-r border-[#2D6A4F]/10 px-14 py-14">
+      <RailBrand />
+      <p className="text-lg font-medium text-[#1C1917] mt-16 mb-10">Setting up your account</p>
+      <ol className="flex flex-col">
         {steps.map((s, i) => {
           const isDone = i < current;
           const isActive = i === current;
           return (
-            <div key={s.id} className="flex gap-4">
+            <li key={s.id} className="flex gap-5">
               <div className="flex flex-col items-center">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 transition-colors ${
-                  isDone || isActive
-                    ? "bg-[#52B788] text-[#0E1716]"
-                    : "bg-transparent border border-[#F2EFEA]/25 text-[#F2EFEA]/50"
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 transition-colors ${
+                  isDone
+                    ? "bg-[#2D6A4F] text-white"
+                    : isActive
+                      ? "bg-white border-2 border-[#2D6A4F] text-[#2D6A4F]"
+                      : "border border-[#1C1917]/25 text-[#44403C]"
                 }`}>
-                  {isDone ? "✓" : i + 1}
+                  {isDone ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
                 </div>
                 {i < steps.length - 1 && (
-                  <div className={`w-px flex-1 min-h-[28px] ${isDone ? "bg-[#52B788]/60" : "bg-[#F2EFEA]/15"}`} />
+                  <div className={`w-px flex-1 min-h-[28px] ${isDone ? "bg-[#2D6A4F]" : "bg-[#1C1917]/15"}`} />
                 )}
               </div>
-              <div className="pb-7">
-                <p className={`text-sm font-medium transition-colors ${
-                  isActive ? "text-[#F2EFEA]" : isDone ? "text-[#F2EFEA]/70" : "text-[#F2EFEA]/40"
+              <div className="pt-1 pb-8">
+                <p className={`text-lg leading-7 ${
+                  isActive ? "font-semibold text-[#1C1917]" : isDone ? "font-medium text-[#1C1917]" : "text-[#44403C]"
                 }`}>
                   {s.label}
                 </p>
                 {isActive && STEP_CONTEXT[s.id] && (
-                  <p className="text-xs text-[#F2EFEA]/55 mt-1.5 leading-relaxed max-w-[220px]">
+                  <p className="text-base text-[#44403C] mt-2 leading-relaxed max-w-[300px]">
                     {STEP_CONTEXT[s.id]}
                   </p>
                 )}
               </div>
-            </div>
+            </li>
           );
         })}
-      </div>
-    </div>
+      </ol>
+    </aside>
   );
 }
 
 function MobileProgressBar({ total, current }: { total: number; current: number }) {
   const pct = ((current + 1) / total) * 100;
   return (
-    <div className="lg:hidden sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border px-6 py-3">
-      <div className="h-1 rounded-full bg-muted overflow-hidden">
+    <div className="lg:hidden sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border px-6 py-4">
+      <div className="flex items-center justify-between mb-3">
+        <img src="/logo.png" alt="Impact Natives" className="h-9 w-auto" />
+        <span className="text-base font-medium text-[#1C1917]">Step {current + 1} of {total}</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-[#2D6A4F]/10 overflow-hidden">
         <div className="h-full bg-[#2D6A4F] transition-all duration-300" style={{ width: `${pct}%` }} />
       </div>
     </div>
@@ -801,48 +820,64 @@ export default function Onboarding() {
   if (step === -1) {
     return (
       <div className="min-h-screen bg-background flex flex-col lg:flex-row">
-        <div className="hidden lg:flex lg:flex-col lg:w-[340px] lg:shrink-0 bg-[#13191B] px-10 py-12 justify-center">
-          <span className="text-[#F2EFEA] font-semibold text-lg mb-6">Impact Natives</span>
-          <p className="text-[#F2EFEA]/60 text-sm leading-relaxed max-w-[220px]">
-            A coordination platform connecting NGOs, social enterprises, funders, and corporates across Africa's impact sector.
+        <aside className="hidden lg:flex lg:flex-col lg:w-[420px] xl:w-[460px] lg:shrink-0 lg:sticky lg:top-0 lg:h-screen bg-[#EEF2EF] border-r border-[#2D6A4F]/10 px-14 py-14">
+          <RailBrand />
+          <div className="mt-auto mb-auto">
+            <p className="text-[1.75rem] leading-snug font-semibold text-[#1C1917] max-w-[320px]"
+              style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>
+              Where Africa's impact work gets coordinated.
+            </p>
+            <p className="text-lg text-[#44403C] leading-relaxed mt-5 max-w-[320px]">
+              NGOs, social enterprises, funders and corporates finding each other and working together.
+            </p>
+          </div>
+          <p className="text-base text-[#44403C] leading-relaxed max-w-[320px]">
+            You can update all of this later from your profile settings.
           </p>
+        </aside>
+        <div className="lg:hidden px-6 py-4 border-b border-border">
+          <img src="/logo.png" alt="Impact Natives" className="h-9 w-auto" />
         </div>
-        <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-12 py-16">
-          <div className="w-full max-w-lg">
-            <h1 className="text-3xl font-semibold text-foreground">How are you joining?</h1>
-            <p className="text-sm text-[#44403C] mt-2 mb-10">This helps us tailor your experience.</p>
-            <div className="space-y-4">
+        <main className="flex-1 flex items-center justify-center px-6 sm:px-12 lg:px-16 py-14 lg:py-20">
+          <div className="w-full max-w-[640px]">
+            <h1 className="leading-tight font-semibold tracking-tight text-[#1C1917]"
+              style={{ fontSize: "clamp(2.25rem, 3.2vw, 3rem)" }}>
+              How are you joining?
+            </h1>
+            <p className="text-lg text-[#44403C] mt-3 mb-12">This helps us tailor your experience.</p>
+            <div className="space-y-5">
               {[
                 {
                   type: "individual_creative" as UserType,
-                  icon: <User className="w-5 h-5 text-[#2D6A4F]" />,
+                  icon: <User className="w-6 h-6 text-[#2D6A4F]" />,
                   label: "Individual / Creative",
                   sub: "Joining as an independent practitioner or freelancer.",
                 },
                 {
                   type: "organisation" as UserType,
-                  icon: <Users className="w-5 h-5 text-[#2D6A4F]" />,
+                  icon: <Users className="w-6 h-6 text-[#2D6A4F]" />,
                   label: "Organisation",
                   sub: "Joining as a consultant, an NGO, funder, company, or institution.",
                 },
               ].map(opt => (
                 <button key={opt.type} type="button" onClick={() => selectUserType(opt.type)}
-                  className="w-full flex items-start gap-4 p-5 rounded-xl border border-border hover:border-[#2D6A4F]/50 hover:bg-[#2D6A4F]/5 transition-all text-left group">
-                  <div className="mt-0.5 p-2.5 rounded-lg bg-muted group-hover:bg-[#2D6A4F]/10 transition-colors">
+                  className="w-full flex items-center gap-5 p-6 rounded-2xl border border-[#1C1917]/15 bg-white hover:border-[#2D6A4F] hover:bg-[#2D6A4F]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]/40 transition-all text-left group">
+                  <div className="p-3 rounded-xl bg-[#EEF2EF] group-hover:bg-[#2D6A4F]/10 transition-colors shrink-0">
                     {opt.icon}
                   </div>
-                  <div>
-                    <p className="text-base font-medium text-foreground">{opt.label}</p>
-                    <p className="text-sm text-[#44403C] mt-0.5">{opt.sub}</p>
+                  <div className="flex-1">
+                    <p className="text-xl font-semibold text-[#1C1917]">{opt.label}</p>
+                    <p className="text-base text-[#44403C] mt-1">{opt.sub}</p>
                   </div>
+                  <ArrowRight className="w-5 h-5 text-[#1C1917] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                 </button>
               ))}
             </div>
-            <p className="text-sm text-[#44403C] mt-8">
+            <p className="lg:hidden text-base text-[#44403C] mt-10">
               You can update all of this later from your profile settings.
             </p>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
@@ -852,15 +887,17 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen bg-background flex flex-col lg:flex-row">
       <StepRail steps={steps} current={step} />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         <MobileProgressBar total={totalSteps} current={step} />
-        <div className="flex-1 flex flex-col items-center lg:items-start px-6 sm:px-12 lg:px-20 py-10 lg:py-16">
-          <div className="w-full max-w-xl">
-            <div className="mb-8">
-              <p className="text-sm font-medium text-[#44403C] lg:hidden">Step {step + 1} of {totalSteps}</p>
-              <h1 className="text-2xl lg:text-3xl font-semibold text-foreground mt-1">{currentStep.label}</h1>
+        <main className="flex-1 flex justify-center lg:items-center px-6 sm:px-12 lg:px-16 py-12 lg:py-20">
+          <div className="onb-form w-full max-w-[720px]">
+            <div className="mb-12">
+              <h1 className="leading-tight font-semibold tracking-tight text-[#1C1917]"
+              style={{ fontSize: "clamp(2.25rem, 3.2vw, 3rem)" }}>
+                {currentStep.label}
+              </h1>
               {currentStep.skippable && (
-                <p className="text-sm text-[#44403C] mt-1">Optional, you can skip this for now.</p>
+                <p className="text-lg text-[#44403C] mt-3">Optional, you can skip this for now.</p>
               )}
             </div>
 
@@ -1481,43 +1518,43 @@ export default function Onboarding() {
 
           {/* Footer */}
           {currentStep.id !== "upload" && (
-            <div className="flex items-center justify-between mt-8">
-              <div className="flex items-center gap-4">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-6 mt-14 pt-8 border-t border-[#1C1917]/10">
+              <div className="flex items-center gap-8">
                 {step > 0 && (
                   <button type="button" onClick={handleBack}
-                    className="text-sm text-[#44403C] hover:text-foreground inline-flex items-center gap-1 transition-colors">
-                    <ArrowLeft className="w-3.5 h-3.5" />
+                    className="text-base font-medium text-[#1C1917] hover:text-[#2D6A4F] inline-flex items-center gap-2 transition-colors">
+                    <ArrowLeft className="w-4 h-4" />
                     Back
                   </button>
                 )}
                 {currentStep.skippable && (
                   <button type="button" onClick={handleSkip} disabled={grantRangeBlocksStep}
-                    className="text-sm text-[#44403C] hover:text-foreground inline-flex items-center gap-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-[#44403C]">
-                    <SkipForward className="w-3.5 h-3.5" />
+                    className="text-base font-medium text-[#1C1917] hover:text-[#2D6A4F] inline-flex items-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                    <SkipForward className="w-4 h-4" />
                     Skip
                   </button>
                 )}
               </div>
               <Button onClick={handleNext} disabled={saving || grantRangeBlocksStep}
-                className="bg-[#2D6A4F] hover:bg-[#245c43] text-white px-6">
+                className="bg-[#2D6A4F] hover:bg-[#245c43] text-white h-14 px-10 text-base font-semibold rounded-full w-full sm:w-auto">
                 {saving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin" />
                 ) : isLast && currentStep.id === "verify" && wantsVerify ? (
                   "Finish & start verification"
                 ) : isLast ? (
                   "Finish setup"
                 ) : (
-                  <>Continue <ArrowRight className="w-4 h-4 ml-2" /></>
+                  <>Continue <ArrowRight className="w-5 h-5 ml-2" /></>
                 )}
               </Button>
             </div>
           )}
 
-            <p className="text-sm text-[#44403C] mt-6">
+            <p className="text-base text-[#44403C] mt-10">
               You can update all of this later from your profile settings.
             </p>
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );
