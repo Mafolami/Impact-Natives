@@ -163,11 +163,11 @@ function ChipToggle({ label, selected, onToggle }: {
   label: string; selected: boolean; onToggle: () => void;
 }) {
   return (
-    <button type="button" onClick={onToggle}
-      className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
+    <button type="button" onClick={onToggle} aria-pressed={selected}
+      className={`px-5 py-2.5 rounded-full border bg-white text-[0.9375rem] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]/40 ${
         selected
-          ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
-          : "border-border text-[#44403C] hover:border-foreground/30 hover:text-foreground"
+          ? "border-[#2D6A4F] ring-1 ring-[#2D6A4F] font-semibold text-[#1C1917] shadow-[0_2px_8px_rgba(45,106,79,0.12)]"
+          : "border-[#1C1917]/15 font-medium text-[#1C1917] shadow-[0_1px_2px_rgba(28,25,23,0.05)] hover:border-[#1C1917]/35 hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(28,25,23,0.08)]"
       }`}>
       {label}
     </button>
@@ -180,7 +180,7 @@ const STEP_CONTEXT: Record<string, string> = {
   bio: "A short bio helps funders and partners understand what you do.",
   focus: "We use this to match you with relevant initiatives and partners.",
   links: "Add links so people can verify your work before reaching out.",
-  upload: "Upload your registration document and we fill in the details for you.",
+  upload: "Upload a profile or brief and we fill in the details, or enter them yourself.",
   confirm: "Check what we found before moving on.",
   needs: "Tell us what you need so we can point the right people your way.",
   trackExtra: "A few more details that help us match you accurately.",
@@ -289,13 +289,13 @@ function FocusTile({ label, number, selected, onToggle }: {
 }) {
   return (
     <button type="button" onClick={onToggle} aria-pressed={selected}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]/40 ${
+      className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl border text-left transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]/40 ${
         selected
-          ? "border-[#2D6A4F] bg-[#2D6A4F]/[0.06]"
-          : "border-[#1C1917]/12 bg-white hover:border-[#2D6A4F]/50"
+          ? "border-[#2D6A4F] ring-1 ring-[#2D6A4F] bg-white shadow-[0_2px_8px_rgba(45,106,79,0.12)]"
+          : "border-transparent hover:bg-[#EEF2EF]"
       }`}>
-      <span className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
-        selected ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-[#1C1917]/30 bg-white"
+      <span className={`w-5 h-5 rounded-md border-[1.5px] flex items-center justify-center shrink-0 transition-colors ${
+        selected ? "bg-[#2D6A4F] border-[#2D6A4F] text-white" : "border-[#1C1917]/35 bg-white"
       }`}>
         {selected && (
           <svg viewBox="0 0 12 12" className="w-3 h-3" aria-hidden="true">
@@ -306,7 +306,7 @@ function FocusTile({ label, number, selected, onToggle }: {
       {number != null && (
         <span className="w-6 shrink-0 text-[0.875rem] font-semibold text-[#2D6A4F] tabular-nums">{number}</span>
       )}
-      <span className={`text-[0.9375rem] leading-snug text-[#1C1917] ${selected ? "font-medium" : ""}`}>{label}</span>
+      <span className={`text-[0.9375rem] leading-snug text-[#1C1917] ${selected ? "font-semibold" : ""}`}>{label}</span>
     </button>
   );
 }
@@ -315,7 +315,7 @@ function FocusSectionHeader({ title, hint, count, optional }: {
   title: string; hint: string; count: number; optional?: boolean;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 mb-5">
+    <div className="flex items-start justify-between gap-4 mb-6">
       <div>
         <h2 className="text-[1.25rem] font-semibold text-[#1C1917] leading-tight">
           {title}
@@ -395,7 +395,7 @@ function DocumentUploadStep({ track, onExtracted, onSkipToManual }: {
   return (
     <div className="space-y-5">
       <p className="text-sm text-[#44403C] leading-relaxed">
-        Tell us about your organisation. If you have an existing profile, brief, or one-pager handy, upload it and we'll pre-fill the details — or just answer a few quick questions yourself.
+        Tell us about your organisation. If you have an existing profile, brief, or one-pager handy, upload it and we'll pre-fill the details. Or answer a few quick questions yourself.
       </p>
 
       <div
@@ -452,13 +452,16 @@ function DocumentUploadStep({ track, onExtracted, onSkipToManual }: {
           <p className="text-xs text-red-700 leading-relaxed">{error}</p>
         </div>
       )}
-      <div className="pt-2 border-t border-border">
-        <button type="button" onClick={onSkipToManual}
-          className="flex items-center gap-2 text-sm text-[#44403C] hover:text-foreground transition-colors">
-          <PenLine className="w-3.5 h-3.5" />
-          Fill in manually instead
-        </button>
+      <div className="flex items-center gap-4 pt-2">
+        <div className="h-px flex-1 bg-[#1C1917]/10" />
+        <span className="text-[0.9375rem] text-[#44403C]">or</span>
+        <div className="h-px flex-1 bg-[#1C1917]/10" />
       </div>
+      <button type="button" onClick={onSkipToManual}
+        className="w-full inline-flex items-center justify-center gap-2.5 h-[3.25rem] px-7 rounded-full border border-[#1C1917]/20 bg-white text-[0.9375rem] font-semibold text-[#1C1917] shadow-[0_1px_2px_rgba(28,25,23,0.06)] hover:border-[#1C1917]/45 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(28,25,23,0.10)] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]/40">
+        <PenLine className="w-4 h-4" />
+        Fill in the details manually
+      </button>
     </div>
   );
 }
@@ -466,6 +469,7 @@ function DocumentUploadStep({ track, onExtracted, onSkipToManual }: {
 // ── AI Confirm Step ───────────────────────────────────────────────────────────
 
 function ConfirmExtractedStep({
+  fullName, setFullName,
   orgName, setOrgName,
   description, setDescription,
   country, setCountry,
@@ -473,6 +477,7 @@ function ConfirmExtractedStep({
   orgType, setOrgType,
   errors,
 }: {
+  fullName: string; setFullName: (v: string) => void;
   orgName: string; setOrgName: (v: string) => void;
   description: string; setDescription: (v: string) => void;
   country: string; setCountry: (v: string) => void;
@@ -485,16 +490,16 @@ function ConfirmExtractedStep({
       <div className="flex items-start gap-2 rounded-lg border border-[#2D6A4F]/20 bg-[#2D6A4F]/5 px-4 py-3">
         <CheckCircle2 className="w-4 h-4 text-[#2D6A4F] shrink-0 mt-0.5" />
         <p className="text-xs text-[#2D6A4F] leading-relaxed">
-          We extracted these details from your document. Review and correct anything that needs updating.
+          We extracted these details from your document. Add your name and correct anything that needs updating.
         </p>
       </div>
       <div className="space-y-4">
         <div>
-          <Label className="text-sm font-medium">Organisation name</Label>
-          <Input value={orgName} onChange={e => setOrgName(e.target.value)}
-            className={`mt-1 h-11 ${errors.orgName ? "border-destructive" : ""}`}
-            placeholder="Organisation name" />
-          {errors.orgName && <p className="text-xs text-destructive mt-1">{errors.orgName}</p>}
+          <Label className="text-sm font-medium">Your name</Label>
+          <Input value={fullName} onChange={e => setFullName(e.target.value)}
+            className={`mt-1 h-11 ${errors.fullName ? "border-destructive" : ""}`}
+            placeholder="e.g. Amara Osei" />
+          {errors.fullName && <p className="text-xs text-destructive mt-1">{errors.fullName}</p>}
         </div>
         <div>
           <Label className="text-sm font-medium">Your role / title</Label>
@@ -502,8 +507,11 @@ function ConfirmExtractedStep({
             className="mt-1 h-11" placeholder="e.g. Executive Director, Founder" />
         </div>
         <div>
-          <Label className="text-sm font-medium">Country</Label>
-          <CountryPicker value={country} onChange={setCountry} error={errors.country} />
+          <Label className="text-sm font-medium">Organisation name</Label>
+          <Input value={orgName} onChange={e => setOrgName(e.target.value)}
+            className={`mt-1 h-11 ${errors.orgName ? "border-destructive" : ""}`}
+            placeholder="Organisation name" />
+          {errors.orgName && <p className="text-xs text-destructive mt-1">{errors.orgName}</p>}
         </div>
         <div>
           <Label className="text-sm font-medium">Organisation type</Label>
@@ -514,6 +522,10 @@ function ConfirmExtractedStep({
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
+        </div>
+        <div>
+          <Label className="text-sm font-medium">Country</Label>
+          <CountryPicker value={country} onChange={setCountry} error={errors.country} />
         </div>
         <div>
           <Label className="text-sm font-medium">Description</Label>
@@ -612,7 +624,6 @@ export default function Onboarding() {
   ];
 
   const ORG_STEPS_UPLOAD = [
-    { id: "name",       label: "Your name",            skippable: false },
     { id: "upload",     label: "Quick start",          skippable: false },
     { id: "confirm",    label: "Confirm your details", skippable: false },
     { id: "focus",      label: "Focus areas",          skippable: true  },
@@ -623,6 +634,7 @@ export default function Onboarding() {
   ];
 
   const ORG_STEPS_MANUAL = [
+    { id: "upload",      label: "Quick start",           skippable: false },
     { id: "name",        label: "Your name",             skippable: false },
     { id: "location",    label: "Where you're based",    skippable: false },
     { id: "org",         label: "Your organisation",     skippable: false },
@@ -748,6 +760,7 @@ export default function Onboarding() {
       if (!roleTitle.trim()) errs.roleTitle = "Role or title is required.";
     }
     if (currentStep.id === "confirm") {
+      if (!fullName.trim()) errs.fullName = "Please enter your full name.";
       if (!orgName.trim())  errs.orgName  = "Please confirm your organisation name.";
       if (!country.trim())  errs.country  = "Please confirm your country.";
     }
@@ -967,7 +980,7 @@ export default function Onboarding() {
               </h1>
               {currentStep.skippable && (
                 <button type="button" onClick={handleSkip} disabled={grantRangeBlocksStep}
-                  className="mt-2 shrink-0 inline-flex items-center gap-2 h-10 px-4 rounded-full border border-[#1C1917]/15 text-[0.9375rem] font-medium text-[#1C1917] hover:border-[#2D6A4F] hover:text-[#2D6A4F] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                  className="mt-2 shrink-0 inline-flex items-center gap-2 h-11 px-5 rounded-full border border-[#1C1917]/15 text-[0.9375rem] font-medium text-[#1C1917] hover:border-[#2D6A4F] hover:text-[#2D6A4F] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                   Skip
                   <SkipForward className="w-4 h-4" />
                 </button>
@@ -1008,14 +1021,15 @@ export default function Onboarding() {
           {currentStep.id === "upload" && (
             <DocumentUploadStep
               track={orgTrack}
-              onExtracted={data => { applyExtracted(data); setStep(s => s + 1); }}
-              onSkipToManual={() => { setManualMode(true); setStep(0); }}
+              onExtracted={data => { applyExtracted(data); setManualMode(false); setStep(1); }}
+              onSkipToManual={() => { setManualMode(true); setStep(1); }}
             />
           )}
 
           {/* confirm */}
           {currentStep.id === "confirm" && (
             <ConfirmExtractedStep
+              fullName={fullName} setFullName={v => { setFullName(v); setErrors({}); }}
               orgName={orgName} setOrgName={setOrgName}
               description={description} setDescription={setDescription}
               country={country} setCountry={setCountry}
@@ -1094,7 +1108,7 @@ export default function Onboarding() {
                     : "Select all that apply."}
                   count={sectors.length}
                 />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
                   {SECTOR_OPTIONS.map(s => (
                     <FocusTile key={s} label={s}
                       selected={sectors.includes(s)}
@@ -1103,7 +1117,7 @@ export default function Onboarding() {
                 </div>
               </section>
 
-              <div className="h-px bg-[#1C1917]/10 my-10" />
+              <div className="h-px bg-[#1C1917]/10 my-12" />
 
               <section>
                 <FocusSectionHeader
@@ -1114,7 +1128,7 @@ export default function Onboarding() {
                     : "Which Sustainable Development Goals does your work contribute to?"}
                   count={sdgTags.length}
                 />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
                   {SDG_OPTIONS.map(s => (
                     <FocusTile key={s} label={s} number={sdgNameToNumber(s)}
                       selected={sdgTags.includes(s)}
@@ -1221,14 +1235,16 @@ export default function Onboarding() {
                 <>
                   <div>
                     <Label className="text-sm font-medium">Where is your organisation right now?</Label>
-                    <div className="space-y-2 mt-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                       {STAGE_OPTIONS.map(opt => (
-                        <button key={opt.value} type="button" onClick={() => setStage(opt.value)}
-                          className={`w-full text-left px-4 py-3 rounded-xl border transition-colors ${
-                            stage === opt.value ? "border-primary bg-[#fdf5f2]" : "border-border hover:border-foreground/20"
+                        <button key={opt.value} type="button" onClick={() => setStage(opt.value)} aria-pressed={stage === opt.value}
+                          className={`w-full text-left px-5 py-4 rounded-2xl border bg-white transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]/40 ${
+                            stage === opt.value
+                              ? "border-[#2D6A4F] ring-1 ring-[#2D6A4F] shadow-[0_2px_10px_rgba(45,106,79,0.12)]"
+                              : "border-[#1C1917]/15 shadow-[0_1px_2px_rgba(28,25,23,0.05)] hover:border-[#1C1917]/35 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(28,25,23,0.08)]"
                           }`}>
-                          <p className="text-sm font-semibold">{opt.label}</p>
-                          <p className="text-xs text-[#44403C] mt-0.5">{opt.sub}</p>
+                          <p className={`text-[1.0625rem] text-[#1C1917] ${stage === opt.value ? "font-bold" : "font-semibold"}`}>{opt.label}</p>
+                          <p className="text-[0.9375rem] text-[#44403C] mt-1">{opt.sub}</p>
                         </button>
                       ))}
                     </div>
@@ -1273,14 +1289,14 @@ export default function Onboarding() {
 
                       <div>
                         <Label className="text-sm font-medium">Business model</Label>
-                        <div className="space-y-2 mt-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                           {BUSINESS_MODEL_OPTIONS.map(opt => (
-                            <button key={opt.value} type="button"
+                            <button key={opt.value} type="button" aria-pressed={businessModel === opt.value}
                               onClick={() => setBusinessModel(opt.value)}
-                              className={`w-full text-left px-4 py-2.5 rounded-xl border text-sm transition-colors ${
+                              className={`w-full text-left px-5 py-4 rounded-2xl border bg-white text-[1rem] text-[#1C1917] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]/40 ${
                                 businessModel === opt.value
-                                  ? "border-primary bg-[#fdf5f2] text-primary font-medium"
-                                  : "border-border hover:border-foreground/20 text-foreground"
+                                  ? "border-[#2D6A4F] ring-1 ring-[#2D6A4F] font-bold shadow-[0_2px_10px_rgba(45,106,79,0.12)]"
+                                  : "border-[#1C1917]/15 font-medium shadow-[0_1px_2px_rgba(28,25,23,0.05)] hover:border-[#1C1917]/35 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(28,25,23,0.08)]"
                               }`}>
                               {opt.label}
                             </button>
@@ -1570,10 +1586,10 @@ export default function Onboarding() {
                   { val: false, label: "I'll do this later" },
                 ].map(opt => (
                   <button key={String(opt.val)} type="button" onClick={() => setWantsVerify(opt.val)}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
+                    className={`w-full flex items-center justify-between px-5 py-4 rounded-2xl border bg-white text-[1rem] text-[#1C1917] transition-all duration-150 ${
                       wantsVerify === opt.val
-                        ? "border-[#2D6A4F] bg-[#2D6A4F]/8 text-[#2D6A4F]"
-                        : "border-border text-foreground hover:border-[#2D6A4F]/40"
+                        ? "border-[#2D6A4F] ring-1 ring-[#2D6A4F] font-bold shadow-[0_2px_10px_rgba(45,106,79,0.12)]"
+                        : "border-[#1C1917]/15 font-medium shadow-[0_1px_2px_rgba(28,25,23,0.05)] hover:border-[#1C1917]/35 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(28,25,23,0.08)]"
                     }`}>
                     <span>{opt.label}</span>
                     {wantsVerify === opt.val && (
@@ -1591,7 +1607,7 @@ export default function Onboarding() {
               <div>
                 {step > 0 && (
                   <button type="button" onClick={handleBack}
-                    className="text-[0.9375rem] font-medium text-[#1C1917] hover:text-[#2D6A4F] inline-flex items-center gap-2 transition-colors">
+                    className="inline-flex items-center justify-center gap-2 h-[3.25rem] px-7 rounded-full border border-[#1C1917]/20 bg-white text-[0.9375rem] font-semibold text-[#1C1917] shadow-[0_1px_2px_rgba(28,25,23,0.06)] hover:border-[#1C1917]/45 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(28,25,23,0.10)] transition-all duration-150 w-full sm:w-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6A4F]/40">
                     <ArrowLeft className="w-4 h-4" />
                     Back
                   </button>

@@ -872,3 +872,22 @@ h1 {
 .onb-form .space-y-4 > :not(:last-child) { margin-bottom: 1.5rem; }
 .onb-form .space-y-5 > :not(:last-child) { margin-bottom: 2rem; }
 .onb-form .space-y-6 > :not(:last-child) { margin-bottom: 2.25rem; }
+.onb-form .flex-wrap.gap-2 { gap: 0.75rem; }
+.onb-form .space-y-5 > div > label.text-sm + .flex-wrap,
+.onb-form .space-y-5 > div > label.text-sm + p + .flex-wrap { margin-top: 0.875rem; }
+.onb-form button.h-10 {
+  min-height: 3.25rem;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  color: #1C1917;
+  background: #fff;
+  border-color: rgba(28,25,23,0.2);
+}
+.onb-form button.h-10:hover { border-color: rgba(28,25,23,0.45); }
+.onb-form span.inline-flex.rounded-full.text-xs {
+  padding: 0.375rem 0.875rem;
+  font-weight: 500;
+  color: #1C1917;
+}
