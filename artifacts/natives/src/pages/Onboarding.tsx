@@ -167,39 +167,79 @@ function ChipToggle({ label, selected, onToggle }: {
       className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
         selected
           ? "bg-[#2D6A4F] border-[#2D6A4F] text-white"
-          : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+          : "border-border text-[#44403C] hover:border-foreground/30 hover:text-foreground"
       }`}>
       {label}
     </button>
   );
 }
 
-function ProgressDots({ total, current }: { total: number; current: number }) {
+const STEP_CONTEXT: Record<string, string> = {
+  name: "Your name is how people recognise you across Natives.",
+  location: "We match you with opportunities and partners in your region first.",
+  bio: "A short bio helps funders and partners understand what you do.",
+  focus: "We use this to match you with relevant initiatives and partners.",
+  links: "Add links so people can verify your work before reaching out.",
+  upload: "Upload your registration document and we fill in the details for you.",
+  confirm: "Check what we found before moving on.",
+  needs: "Tell us what you need so we can point the right people your way.",
+  trackExtra: "A few more details that help us match you accurately.",
+  verify: "Verified organisations get a badge and priority placement in the directory.",
+  org: "Your organisation's name and type shape what we show you next.",
+  description: "A clear profile is what partners and funders see first.",
+};
+
+function StepRail({ steps, current }: {
+  steps: { id: string; label: string; skippable?: boolean }[]; current: number;
+}) {
   return (
-    <div className="flex gap-2 mb-8 justify-center">
-      {Array.from({ length: total }).map((_, i) => (
-        <div key={i} className={`h-1.5 rounded-full transition-all ${
-          i === current ? "w-6 bg-[#2D6A4F]" : i < current ? "w-3 bg-[#2D6A4F]/40" : "w-3 bg-muted"
-        }`} />
-      ))}
+    <div className="hidden lg:flex lg:flex-col lg:w-[340px] lg:shrink-0 bg-[#13191B] px-10 py-12">
+      <span className="text-[#F2EFEA] font-semibold text-lg mb-16">Impact Natives</span>
+      <div className="flex flex-col">
+        {steps.map((s, i) => {
+          const isDone = i < current;
+          const isActive = i === current;
+          return (
+            <div key={s.id} className="flex gap-4">
+              <div className="flex flex-col items-center">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 transition-colors ${
+                  isDone || isActive
+                    ? "bg-[#52B788] text-[#0E1716]"
+                    : "bg-transparent border border-[#F2EFEA]/25 text-[#F2EFEA]/50"
+                }`}>
+                  {isDone ? "✓" : i + 1}
+                </div>
+                {i < steps.length - 1 && (
+                  <div className={`w-px flex-1 min-h-[28px] ${isDone ? "bg-[#52B788]/60" : "bg-[#F2EFEA]/15"}`} />
+                )}
+              </div>
+              <div className="pb-7">
+                <p className={`text-sm font-medium transition-colors ${
+                  isActive ? "text-[#F2EFEA]" : isDone ? "text-[#F2EFEA]/70" : "text-[#F2EFEA]/40"
+                }`}>
+                  {s.label}
+                </p>
+                {isActive && STEP_CONTEXT[s.id] && (
+                  <p className="text-xs text-[#F2EFEA]/55 mt-1.5 leading-relaxed max-w-[220px]">
+                    {STEP_CONTEXT[s.id]}
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-function StepLabel({ step, total, label, optional }: {
-  step: number; total: number; label: string; optional?: boolean;
-}) {
+function MobileProgressBar({ total, current }: { total: number; current: number }) {
+  const pct = ((current + 1) / total) * 100;
   return (
-    <div className="mb-6">
-      <span className="text-xs font-medium text-[#2D6A4F] uppercase tracking-wide">
-        Step {step} of {total}
-      </span>
-      <h2 className="text-xl font-semibold text-foreground mt-1">{label}</h2>
-      {optional && (
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Optional — skip if you prefer not to share this now.
-        </p>
-      )}
+    <div className="lg:hidden sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border px-6 py-3">
+      <div className="h-1 rounded-full bg-muted overflow-hidden">
+        <div className="h-full bg-[#2D6A4F] transition-all duration-300" style={{ width: `${pct}%` }} />
+      </div>
     </div>
   );
 }
@@ -266,7 +306,7 @@ function DocumentUploadStep({ track, onExtracted, onSkipToManual }: {
 
   return (
     <div className="space-y-5">
-      <p className="text-sm text-muted-foreground leading-relaxed">
+      <p className="text-sm text-[#44403C] leading-relaxed">
         Tell us about your organisation. If you have an existing profile, brief, or one-pager handy, upload it and we'll pre-fill the details — or just answer a few quick questions yourself.
       </p>
 
@@ -288,8 +328,8 @@ function DocumentUploadStep({ track, onExtracted, onSkipToManual }: {
         {uploading ? (
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="w-8 h-8 text-[#2D6A4F] animate-spin" />
-            <p className="text-sm text-muted-foreground">Reading your document...</p>
-            <p className="text-xs text-muted-foreground">This takes 10–20 seconds</p>
+            <p className="text-sm text-[#44403C]">Reading your document...</p>
+            <p className="text-xs text-[#44403C]">This takes 10–20 seconds</p>
           </div>
         ) : fileName ? (
           <div className="flex flex-col items-center gap-2">
@@ -297,22 +337,22 @@ function DocumentUploadStep({ track, onExtracted, onSkipToManual }: {
             <p className="text-sm font-medium text-foreground">{fileName}</p>
             <button type="button"
               onClick={e => { e.stopPropagation(); setFileName(null); setError(null); }}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2">
+              className="text-xs text-[#44403C] hover:text-foreground transition-colors underline underline-offset-2">
               Remove
             </button>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-3">
-            <Upload className="w-8 h-8 text-muted-foreground/40" />
+            <Upload className="w-8 h-8 text-[#44403C]/40" />
             <div>
               <p className="text-sm font-medium text-foreground">Drop your file here or click to browse</p>
-              <p className="text-xs text-muted-foreground mt-1">For best results, upload a DOCX file. PDF support is limited. · Up to 10MB</p>
+              <p className="text-xs text-[#44403C] mt-1">For best results, upload a DOCX file. PDF support is limited. · Up to 10MB</p>
             </div>
           </div>
         )}
       </div>
 
-      <p className="text-xs text-muted-foreground text-center">
+      <p className="text-xs text-[#44403C] text-center">
         See how we handle uploaded documents in our{" "}
         <a href="/legal/privacy" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">
           Privacy Policy
@@ -326,7 +366,7 @@ function DocumentUploadStep({ track, onExtracted, onSkipToManual }: {
       )}
       <div className="pt-2 border-t border-border">
         <button type="button" onClick={onSkipToManual}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          className="flex items-center gap-2 text-sm text-[#44403C] hover:text-foreground transition-colors">
           <PenLine className="w-3.5 h-3.5" />
           Fill in manually instead
         </button>
@@ -393,7 +433,7 @@ function ConfirmExtractedStep({
             className="mt-1 resize-none" rows={4}
             placeholder="What does your organisation do, where, and who does it serve?" />
           <div className="flex justify-end mt-1">
-            <p className={`text-xs ${wordCount(description) > 60 ? "text-red-500 font-semibold" : "text-muted-foreground"}`}>
+            <p className={`text-xs ${wordCount(description) > 60 ? "text-red-500 font-semibold" : "text-[#44403C]"}`}>
               {wordCount(description)}/60 words
             </p>
           </div>
@@ -760,15 +800,18 @@ export default function Onboarding() {
 
   if (step === -1) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
-        <div className="w-full max-w-md">
-          <div className="bg-card rounded-2xl border border-border shadow-sm p-8">
-            <div className="mb-8">
-              <span className="text-xs font-medium text-[#2D6A4F] uppercase tracking-wide">Welcome</span>
-              <h2 className="text-xl font-semibold text-foreground mt-1">How are you joining?</h2>
-              <p className="text-sm text-muted-foreground mt-1">This helps us tailor your experience.</p>
-            </div>
-            <div className="space-y-3">
+      <div className="min-h-screen bg-background flex flex-col lg:flex-row">
+        <div className="hidden lg:flex lg:flex-col lg:w-[340px] lg:shrink-0 bg-[#13191B] px-10 py-12 justify-center">
+          <span className="text-[#F2EFEA] font-semibold text-lg mb-6">Impact Natives</span>
+          <p className="text-[#F2EFEA]/60 text-sm leading-relaxed max-w-[220px]">
+            A coordination platform connecting NGOs, social enterprises, funders, and corporates across Africa's impact sector.
+          </p>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-12 py-16">
+          <div className="w-full max-w-lg">
+            <h1 className="text-3xl font-semibold text-foreground">How are you joining?</h1>
+            <p className="text-sm text-[#44403C] mt-2 mb-10">This helps us tailor your experience.</p>
+            <div className="space-y-4">
               {[
                 {
                   type: "individual_creative" as UserType,
@@ -784,21 +827,21 @@ export default function Onboarding() {
                 },
               ].map(opt => (
                 <button key={opt.type} type="button" onClick={() => selectUserType(opt.type)}
-                  className="w-full flex items-start gap-4 p-4 rounded-xl border border-border hover:border-[#2D6A4F]/50 hover:bg-[#2D6A4F]/5 transition-all text-left group">
-                  <div className="mt-0.5 p-2 rounded-lg bg-muted group-hover:bg-[#2D6A4F]/10 transition-colors">
+                  className="w-full flex items-start gap-4 p-5 rounded-xl border border-border hover:border-[#2D6A4F]/50 hover:bg-[#2D6A4F]/5 transition-all text-left group">
+                  <div className="mt-0.5 p-2.5 rounded-lg bg-muted group-hover:bg-[#2D6A4F]/10 transition-colors">
                     {opt.icon}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-foreground">{opt.label}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{opt.sub}</p>
+                    <p className="text-base font-medium text-foreground">{opt.label}</p>
+                    <p className="text-sm text-[#44403C] mt-0.5">{opt.sub}</p>
                   </div>
                 </button>
               ))}
             </div>
+            <p className="text-sm text-[#44403C] mt-8">
+              You can update all of this later from your profile settings.
+            </p>
           </div>
-          <p className="text-center text-xs text-muted-foreground mt-4">
-            You can update all of this later from your profile settings.
-          </p>
         </div>
       </div>
     );
@@ -807,17 +850,19 @@ export default function Onboarding() {
   // ── Main step flow ────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <ProgressDots total={totalSteps} current={step} />
-
-        <div className="bg-card rounded-2xl border border-border shadow-sm p-8 overflow-y-auto max-h-[72vh]">
-          <StepLabel
-            step={step + 1}
-            total={totalSteps}
-            label={currentStep.label}
-            optional={currentStep.skippable}
-          />
+    <div className="min-h-screen bg-background flex flex-col lg:flex-row">
+      <StepRail steps={steps} current={step} />
+      <div className="flex-1 flex flex-col">
+        <MobileProgressBar total={totalSteps} current={step} />
+        <div className="flex-1 flex flex-col items-center lg:items-start px-6 sm:px-12 lg:px-20 py-10 lg:py-16">
+          <div className="w-full max-w-xl">
+            <div className="mb-8">
+              <p className="text-sm font-medium text-[#44403C] lg:hidden">Step {step + 1} of {totalSteps}</p>
+              <h1 className="text-2xl lg:text-3xl font-semibold text-foreground mt-1">{currentStep.label}</h1>
+              {currentStep.skippable && (
+                <p className="text-sm text-[#44403C] mt-1">Optional, you can skip this for now.</p>
+              )}
+            </div>
 
           {/* name */}
           {currentStep.id === "name" && (
@@ -899,7 +944,7 @@ export default function Onboarding() {
               </div>
               <div>
                 <Label className="text-sm font-medium">
-                  Phone <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+                  Phone <span className="text-[#44403C] font-normal text-xs">(optional)</span>
                 </Label>
                 <Input value={phone} onChange={e => setPhone(e.target.value)}
                   className="mt-1 h-11" placeholder="+234 800 000 0000" />
@@ -911,7 +956,7 @@ export default function Onboarding() {
           {currentStep.id === "description" && (
             <div>
               <Label className="text-sm font-medium">Organisation description</Label>
-              <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+              <p className="text-xs text-[#44403C] mt-0.5 mb-2">
                 What does your organisation do, where does it work, and who does it serve?
               </p>
               <Textarea value={description}
@@ -921,7 +966,7 @@ export default function Onboarding() {
                 placeholder="e.g. We run community-led WASH programmes across three states in northern Nigeria, serving rural households without access to safe water and sanitation." />
               <div className="flex justify-between mt-1">
                 {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
-                <p className={`text-xs ml-auto ${wordCount(description) > 60 ? "text-red-500 font-semibold" : "text-muted-foreground"}`}>
+                <p className={`text-xs ml-auto ${wordCount(description) > 60 ? "text-red-500 font-semibold" : "text-[#44403C]"}`}>
                   {wordCount(description)}/60 words
                 </p>
               </div>
@@ -933,7 +978,7 @@ export default function Onboarding() {
             <div className="space-y-6">
               <div>
                 <Label className="text-sm font-medium">Sectors you work in</Label>
-                <p className="text-xs text-muted-foreground mt-0.5 mb-3">
+                <p className="text-xs text-[#44403C] mt-0.5 mb-3">
                   {extractionDone && sectors.length > 0
                     ? "Pre-selected from your document. Adjust as needed."
                     : "Select all that apply."}
@@ -946,16 +991,16 @@ export default function Onboarding() {
                   ))}
                 </div>
                 {sectors.length > 0 && (
-                  <p className="text-xs text-muted-foreground mt-2">{sectors.length} selected</p>
+                  <p className="text-xs text-[#44403C] mt-2">{sectors.length} selected</p>
                 )}
               </div>
 
               <div>
                 <Label className="text-sm font-medium">
                   SDG alignment{" "}
-                  <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+                  <span className="text-[#44403C] font-normal text-xs">(optional)</span>
                 </Label>
-                <p className="text-xs text-muted-foreground mt-0.5 mb-3">
+                <p className="text-xs text-[#44403C] mt-0.5 mb-3">
                   {extractionDone && sdgTags.length > 0
                     ? "Suggested from your document. Confirm or adjust."
                     : "Which Sustainable Development Goals does your work contribute to?"}
@@ -968,7 +1013,7 @@ export default function Onboarding() {
                   ))}
                 </div>
                 {sdgTags.length > 0 && (
-                  <p className="text-xs text-muted-foreground mt-2">{sdgTags.length} selected</p>
+                  <p className="text-xs text-[#44403C] mt-2">{sdgTags.length} selected</p>
                 )}
               </div>
             </div>
@@ -980,7 +1025,7 @@ export default function Onboarding() {
               {/* Needs */}
               <div>
                 <Label className="text-sm font-medium">What are you seeking?</Label>
-                <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+                <p className="text-xs text-[#44403C] mt-0.5 mb-2">
                   Short tags describing what kind of support or partners you need.
                 </p>
                 <div className="flex gap-2 mb-2">
@@ -1000,7 +1045,7 @@ export default function Onboarding() {
                       if (v && !needs.includes(v)) setNeeds(p => [...p, v]);
                       setNeedsInput("");
                     }}
-                    className="h-10 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors shrink-0">
+                    className="h-10 px-3 rounded-lg border border-border text-sm text-[#44403C] hover:text-foreground hover:border-foreground/30 transition-colors shrink-0">
                     Add
                   </button>
                 </div>
@@ -1021,7 +1066,7 @@ export default function Onboarding() {
               {/* Offers */}
               <div>
                 <Label className="text-sm font-medium">What do you offer?</Label>
-                <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+                <p className="text-xs text-[#44403C] mt-0.5 mb-2">
                   Short tags describing what you bring to partnerships.
                 </p>
                 <div className="flex gap-2 mb-2">
@@ -1041,7 +1086,7 @@ export default function Onboarding() {
                       if (v && !offers.includes(v)) setOffers(p => [...p, v]);
                       setOffersInput("");
                     }}
-                    className="h-10 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors shrink-0">
+                    className="h-10 px-3 rounded-lg border border-border text-sm text-[#44403C] hover:text-foreground hover:border-foreground/30 transition-colors shrink-0">
                     Add
                   </button>
                 </div>
@@ -1077,7 +1122,7 @@ export default function Onboarding() {
                             stage === opt.value ? "border-primary bg-[#fdf5f2]" : "border-border hover:border-foreground/20"
                           }`}>
                           <p className="text-sm font-semibold">{opt.label}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">{opt.sub}</p>
+                          <p className="text-xs text-[#44403C] mt-0.5">{opt.sub}</p>
                         </button>
                       ))}
                     </div>
@@ -1096,7 +1141,7 @@ export default function Onboarding() {
 
                   <div>
                     <Label className="text-sm font-medium">
-                      Year founded <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+                      Year founded <span className="text-[#44403C] font-normal text-xs">(optional)</span>
                     </Label>
                     <Input value={yearFounded}
                       onChange={e => setYearFounded(e.target.value.replace(/\D/g, ""))}
@@ -1108,7 +1153,7 @@ export default function Onboarding() {
                     <>
                       <div className="pt-2 border-t border-border">
                         <Label className="text-sm font-medium">Investment stage</Label>
-                        <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+                        <p className="text-xs text-[#44403C] mt-0.5 mb-2">
                           Where are you in your fundraising journey?
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -1139,7 +1184,7 @@ export default function Onboarding() {
 
                       <div>
                         <Label className="text-sm font-medium">
-                          Current runway <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+                          Current runway <span className="text-[#44403C] font-normal text-xs">(optional)</span>
                         </Label>
                         <div className="flex flex-wrap gap-2 mt-2">
                           {RUNWAY_OPTIONS.map(opt => (
@@ -1152,7 +1197,7 @@ export default function Onboarding() {
 
                       <div>
                         <Label className="text-sm font-medium">
-                          Funding ask <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+                          Funding ask <span className="text-[#44403C] font-normal text-xs">(optional)</span>
                         </Label>
                         <Input value={fundingAsk} onChange={e => setFundingAsk(e.target.value)}
                           className="mt-1 h-11"
@@ -1178,7 +1223,7 @@ export default function Onboarding() {
                       <Input value={grantRangeMin}
                         onChange={e => setGrantRangeMin(e.target.value.replace(/[^0-9]/g, ""))}
                         className="h-10 flex-1" placeholder="Min" />
-                      <span className="text-muted-foreground shrink-0 text-sm">–</span>
+                      <span className="text-[#44403C] shrink-0 text-sm">–</span>
                       <Input value={grantRangeMax}
                         onChange={e => setGrantRangeMax(e.target.value.replace(/[^0-9]/g, ""))}
                         className={`h-10 flex-1 ${grantRangeMin && grantRangeMax && Number(grantRangeMax) < Number(grantRangeMin) ? "border-red-400 focus-visible:ring-red-300" : ""}`}
@@ -1200,7 +1245,7 @@ export default function Onboarding() {
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Stage preference</Label>
-                    <p className="text-xs text-muted-foreground mt-0.5 mb-2">What stage of initiative do you typically fund?</p>
+                    <p className="text-xs text-[#44403C] mt-0.5 mb-2">What stage of initiative do you typically fund?</p>
                     <div className="flex flex-wrap gap-2 mt-2">
                       {["Concept / Early stage", "Pilot / Proof of concept", "Growth / Scaling", "Mature / Established", "Core / Unrestricted"].map(s => (
                         <ChipToggle key={s} label={s}
@@ -1232,14 +1277,14 @@ export default function Onboarding() {
                           if (v && !geographicFocus.includes(v)) setGeographicFocus(p => [...p, v]);
                           setGeographicInput("");
                         }}
-                        className="h-10 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors shrink-0">
+                        className="h-10 px-3 rounded-lg border border-border text-sm text-[#44403C] hover:text-foreground hover:border-foreground/30 transition-colors shrink-0">
                         Add
                       </button>
                     </div>
                     {geographicFocus.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {geographicFocus.map(g => (
-                          <span key={g} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-muted-foreground">
+                          <span key={g} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-[#44403C]">
                             {g}
                             <button type="button" onClick={() => setGeographicFocus(p => p.filter(x => x !== g))}
                               className="hover:opacity-70 ml-0.5">×</button>
@@ -1256,7 +1301,7 @@ export default function Onboarding() {
                 <>
                   <div>
                     <Label className="text-sm font-medium">
-                      Annual CSR/ESG budget range <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+                      Annual CSR/ESG budget range <span className="text-[#44403C] font-normal text-xs">(optional)</span>
                     </Label>
                     <Input value={csrBudgetRange} onChange={e => setCsrBudgetRange(e.target.value)}
                       className="mt-1 h-11" placeholder="e.g. $500K–$2M" />
@@ -1273,7 +1318,7 @@ export default function Onboarding() {
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Preferred partner types</Label>
-                    <p className="text-xs text-muted-foreground mt-0.5 mb-2">What kinds of organisations do you typically partner with?</p>
+                    <p className="text-xs text-[#44403C] mt-0.5 mb-2">What kinds of organisations do you typically partner with?</p>
                     <div className="flex flex-wrap gap-2 mt-2">
                       {[
                         "Registered Charity / NGO",
@@ -1311,14 +1356,14 @@ export default function Onboarding() {
                           if (v && !geographicFocus.includes(v)) setGeographicFocus(p => [...p, v]);
                           setGeographicInput("");
                         }}
-                        className="h-10 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors shrink-0">
+                        className="h-10 px-3 rounded-lg border border-border text-sm text-[#44403C] hover:text-foreground hover:border-foreground/30 transition-colors shrink-0">
                         Add
                       </button>
                     </div>
                     {geographicFocus.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {geographicFocus.map(g => (
-                          <span key={g} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-muted-foreground">
+                          <span key={g} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-border text-[#44403C]">
                             {g}
                             <button type="button" onClick={() => setGeographicFocus(p => p.filter(x => x !== g))}
                               className="hover:opacity-70 ml-0.5">×</button>
@@ -1361,7 +1406,7 @@ export default function Onboarding() {
               </div>
               <div>
                 <Label className="text-sm font-medium">Social profiles</Label>
-                <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+                <p className="text-xs text-[#44403C] mt-0.5 mb-2">
                   Add Instagram, X, TikTok, YouTube, Behance — any platform.
                 </p>
                 <div className="flex gap-2">
@@ -1375,7 +1420,7 @@ export default function Onboarding() {
                       setSocialLinks(p => [...p, { label: socialLabel.trim(), url: socialUrl.trim() }]);
                       setSocialLabel(""); setSocialUrl("");
                     }}
-                    className="h-10 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors shrink-0">
+                    className="h-10 px-3 rounded-lg border border-border text-sm text-[#44403C] hover:text-foreground hover:border-foreground/30 transition-colors shrink-0">
                     Add
                   </button>
                 </div>
@@ -1385,11 +1430,11 @@ export default function Onboarding() {
                       <div key={i} className="flex items-center justify-between text-xs border border-border rounded-lg px-3 py-2 bg-muted/30">
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="font-medium text-foreground shrink-0">{s.label}</span>
-                          <span className="text-muted-foreground truncate">{s.url}</span>
+                          <span className="text-[#44403C] truncate">{s.url}</span>
                         </div>
                         <button type="button"
                           onClick={() => setSocialLinks(p => p.filter((_, idx) => idx !== i))}
-                          className="ml-2 text-muted-foreground hover:text-foreground shrink-0">✕</button>
+                          className="ml-2 text-[#44403C] hover:text-foreground shrink-0">✕</button>
                       </div>
                     ))}
                   </div>
@@ -1408,7 +1453,7 @@ export default function Onboarding() {
                     Verified organisations get a badge on all activity, EOIs, partnerships, and profile.
                     Priority placement in the partner directory.
                   </p>
-                  <p className="text-muted-foreground">
+                  <p className="text-[#44403C]">
                     Verification requires a registration document — reviewed within 48 hours.
                   </p>
                 </div>
@@ -1440,14 +1485,14 @@ export default function Onboarding() {
               <div className="flex items-center gap-4">
                 {step > 0 && (
                   <button type="button" onClick={handleBack}
-                    className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors">
+                    className="text-sm text-[#44403C] hover:text-foreground inline-flex items-center gap-1 transition-colors">
                     <ArrowLeft className="w-3.5 h-3.5" />
                     Back
                   </button>
                 )}
                 {currentStep.skippable && (
                   <button type="button" onClick={handleSkip} disabled={grantRangeBlocksStep}
-                    className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-muted-foreground">
+                    className="text-sm text-[#44403C] hover:text-foreground inline-flex items-center gap-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-[#44403C]">
                     <SkipForward className="w-3.5 h-3.5" />
                     Skip
                   </button>
@@ -1467,11 +1512,12 @@ export default function Onboarding() {
               </Button>
             </div>
           )}
-        </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-4">
-          You can update all of this later from your profile settings.
-        </p>
+            <p className="text-sm text-[#44403C] mt-6">
+              You can update all of this later from your profile settings.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
