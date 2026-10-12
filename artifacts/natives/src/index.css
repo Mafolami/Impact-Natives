@@ -872,6 +872,35 @@ h1 {
 .onb-form .space-y-4 > :not(:last-child) { margin-bottom: 1.5rem; }
 .onb-form .space-y-5 > :not(:last-child) { margin-bottom: 2rem; }
 .onb-form .space-y-6 > :not(:last-child) { margin-bottom: 2.25rem; }
+
+/* ── Create initiative: same type scale and spacing as onboarding ───── */
+.cim-form { color: #1C1917; }
+.cim-form .text-xs { font-size: 0.875rem; line-height: 1.5; }
+.cim-form .text-sm { font-size: 1rem; line-height: 1.55; }
+.cim-form label.text-sm { font-size: 1.0625rem; font-weight: 500; line-height: 1.4; margin-bottom: 0.625rem; }
+.cim-form input.border:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.cim-form select.border {
+  min-height: 3.25rem;
+  font-size: 1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  border-radius: 0.75rem;
+  border-color: rgba(28,25,23,0.15);
+  background: #fff;
+}
+.cim-form textarea.border {
+  font-size: 1rem;
+  line-height: 1.6;
+  padding: 0.875rem 1rem;
+  border-radius: 0.75rem;
+  border-color: rgba(28,25,23,0.15);
+  background: #fff;
+}
+.cim-form input::placeholder, .cim-form textarea::placeholder { color: #57534E; opacity: 1; }
+.cim-form .space-y-4 > :not(:last-child) { margin-bottom: 1.5rem; }
+.cim-form .space-y-5 > :not(:last-child) { margin-bottom: 2rem; }
+.cim-form .space-y-6 > :not(:last-child) { margin-bottom: 2.25rem; }
+.cim-form .flex-wrap.gap-2 { gap: 0.75rem; }
 .onb-form .flex-wrap.gap-2 { gap: 0.75rem; }
 .onb-form .space-y-5 > div > label.text-sm + .flex-wrap,
 .onb-form .space-y-5 > div > label.text-sm + p + .flex-wrap { margin-top: 0.875rem; }
