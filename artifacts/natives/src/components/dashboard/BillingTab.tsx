@@ -31,6 +31,7 @@
 // post-checkout poll refresh (no flashing).
 
 import { useEffect, useRef, useState } from "react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Loader2, Check, Sparkles } from "lucide-react";
@@ -307,7 +308,7 @@ export function BillingTab() {
   if (role === "loading") {
     return (
       <div className="flex items-center justify-center py-16 text-muted-foreground">
-        <Loader2 className="w-5 h-5 animate-spin" />
+        <TopBarLoader />
       </div>
     );
   }

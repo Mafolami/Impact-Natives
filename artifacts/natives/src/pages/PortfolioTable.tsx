@@ -12,6 +12,7 @@
 // for a step that already has a working home.
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -208,7 +209,7 @@ function NotesModal({ row, onClose }: { row: PortfolioRow; onClose: () => void }
         </div>
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-4 h-4 text-[#2D6A4F] animate-spin" />
+            <TopBarLoader />
           </div>
         ) : history.length === 0 ? (
           <p className="text-sm text-black dark:text-white">No notes recorded yet.</p>
@@ -744,7 +745,7 @@ export function PortfolioTableBody({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
+        <TopBarLoader />
       </div>
     );
   }

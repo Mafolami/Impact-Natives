@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -433,7 +434,7 @@ export function DraftInitiativesPane({
 
   if (loading) return (
     <div className="flex items-center justify-center py-16">
-      <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
+      <TopBarLoader />
     </div>
   );
 

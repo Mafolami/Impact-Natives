@@ -4,6 +4,7 @@
 // Under Partnerships: delegates to PartnershipTab component
 
 import { useEffect, useState } from "react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { ArrowLeft, ArrowRight, Download, Loader2, Users, UserCheck, Pencil, CheckCircle2, Check, X, LayoutList, Table2, Award } from "lucide-react";import { Link, useLocation } from "wouter";
@@ -504,7 +505,7 @@ function InterestsExpressedTab({ orgOwnerId }: { orgOwnerId: string | null | und
 
   if (loading) return (
     <div className="flex items-center justify-center py-16">
-      <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
+      <TopBarLoader />
     </div>
   );
 
@@ -627,7 +628,7 @@ function ConfirmedPartnersTab({ orgOwnerId, actorUserId }: { orgOwnerId: string 
 
   if (loading) return (
     <div className="flex items-center justify-center py-16">
-      <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
+      <TopBarLoader />
     </div>
   );
 
@@ -1049,7 +1050,7 @@ export default function DashboardInitiatives() {
               <>
                 {loading ? (
                   <div className="flex items-center justify-center py-16">
-                    <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
+                    <TopBarLoader />
                   </div>
                 ) : initiatives.length === 0 ? (
                   <div className="rounded-2xl border border-border bg-white dark:bg-card p-12 text-center">

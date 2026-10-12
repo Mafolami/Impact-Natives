@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 import { getAuthLinkProps, navigateToAuth } from "@/lib/authLinks";
 import { ArrowRight, ShieldCheck, Zap, Network, Search, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -230,7 +231,7 @@ export function FindPartnerSection() {
             <div className="border border-neutral-200 dark:border-white/10 rounded-lg overflow-hidden relative">
               {loading ? (
                 <div className="py-16 flex items-center justify-center">
-                  <Loader2 className="w-5 h-5 animate-spin text-[#2D6A4F]" />
+                  <TopBarLoader />
                 </div>
               ) : filtered.length === 0 ? (
                 <div className="py-12 text-center px-6 space-y-2">

@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 import { useLocation, Link } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
@@ -273,7 +274,7 @@ export default function MouTab() {
   if (loading || !userId) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
+        <TopBarLoader />
       </div>
     );
   }
@@ -613,7 +614,7 @@ export default function MouTab() {
             <div className="px-5 py-4 overflow-y-auto space-y-2">
               {loadingOptions ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
+                  <TopBarLoader />
                 </div>
               ) : !myOrgId ? (
                 <div className="text-sm text-muted-foreground space-y-2">

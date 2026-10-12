@@ -1,5 +1,6 @@
 // ─── DashboardLabs.tsx ────────────────────────────────────────────────────────
 import { useEffect, useState } from "react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { ArrowLeft, FlaskConical, Loader2 } from "lucide-react";
@@ -239,7 +240,7 @@ export default function DashboardLabs() {
 
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
+            <TopBarLoader />
           </div>
         ) : labs.length === 0 ? (
           <div className="rounded-2xl border border-border bg-card p-12 text-center">

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
@@ -355,7 +356,7 @@ export default function DashboardPortfolioMilestones() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="w-6 h-6 text-[#2D6A4F] animate-spin" />
+        <TopBarLoader />
       </div>
     );
   }

@@ -1,5 +1,6 @@
 // ─── DashboardNatives.tsx ─────────────────────────────────────────────────────
 import { useEffect, useMemo, useState } from "react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 import { impactScoreForSort, canDisplayImpactScoreForOrg, tierForScore, displayImpactScore, IMPACT_SCORE_TIER_STYLES } from "@/lib/impactScore";
 import { supabase } from "@/lib/supabase";
 import { fetchLatestListingMirror, EMPTY_LISTING_MIRROR } from "@/lib/listingMirror";
@@ -557,7 +558,7 @@ function EcosystemCard({ entity, onClick }: { entity: EcosystemEntity; onClick: 
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-[15px] font-bold text-foreground group-hover:text-[#2D6A4F] transition-colors truncate">{entity.name}</h3>
-              {entity.verified && <VerifiedBadge />}
+              {entity.verified && <VerifiedBadge iconOnly />}
               {isOrg && entity.canShowImpactScore && (
                 <span className="inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-full border border-amber-200 bg-amber-50 text-amber-800">
                   <Trophy className="w-3 h-3" /> {displayImpactScore(entity.impactScore ?? 0)}
@@ -1191,7 +1192,7 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5 flex-wrap">
               <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">{org.organisation_name}</h3>
-              {isVerified && <VerifiedBadge withTooltip />}
+              {isVerified && <VerifiedBadge iconOnly withTooltip />}
               {canDisplayImpactScoreForOrg(org.subscription_tier, org.show_impact_score) && <ImpactScoreBadge score={org.impact_score ?? 0} />}
             </div>
             <p className={`text-sm font-medium ${CHARCOAL} mt-1`}>
@@ -1602,7 +1603,7 @@ function OrgDrawerContent({ org, onClose }: { org: OrgRow; onClose: () => void }
 function LoadingSpinner() {
   return (
     <div className="flex items-center justify-center py-16">
-      <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
+      <TopBarLoader />
     </div>
   );
 }

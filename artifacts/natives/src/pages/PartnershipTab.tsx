@@ -3,6 +3,7 @@
 // Sub-tabs: Requested | Inbound | Outbound | Confirmed
 
 import { useEffect, useState } from "react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import ActionsDropdown from "@/components/dashboard/ActionsDropdown";
@@ -320,7 +321,7 @@ export function PartnershipTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
+        <TopBarLoader />
       </div>
     );
   }

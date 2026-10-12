@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 import { supabase } from "@/lib/supabase";
 import { jsPDF } from "jspdf";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
@@ -1823,7 +1824,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
   if (loading || !doc) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="w-6 h-6 text-[#2D6A4F] animate-spin" />
+        <TopBarLoader />
       </div>
     );
   }
@@ -2163,7 +2164,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
             )}>
             {loadingIndicators ? (
               <div className="flex items-center justify-center py-6">
-                <Loader2 className="w-4 h-4 text-[#2D6A4F] animate-spin" />
+                <TopBarLoader />
               </div>
             ) : indicators.length === 0 ? (
               <p className="text-sm text-black dark:text-white">No indicators added yet.</p>

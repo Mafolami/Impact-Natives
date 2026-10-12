@@ -1,4 +1,5 @@
 import { useEffect, useState, lazy, Suspense } from "react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 import { supabase } from "@/lib/supabase";
 import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
 import { Loader2 } from "lucide-react";
@@ -75,7 +76,7 @@ function AdminGuard({ children }: { children: React.ReactNode }) {
   if (loading || !profile) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
+        <TopBarLoader />
       </div>
     );
   }

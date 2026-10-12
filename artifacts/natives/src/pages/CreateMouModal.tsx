@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { X, FileText, PenLine, Upload, Loader2, CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
@@ -308,7 +309,7 @@ export default function CreateMouModal({
     if (loadingTemplate) {
       return (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
+          <TopBarLoader />
         </div>
       );
     }
@@ -474,7 +475,7 @@ export default function CreateMouModal({
         <div className="px-6 py-5 overflow-y-auto">
           {loadingOrgs || checkingExisting ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
+              <TopBarLoader />
             </div>
           ) : notInitiativeCreator ? renderNotCreator()
             : notListingOwner ? renderNotListingOwner()

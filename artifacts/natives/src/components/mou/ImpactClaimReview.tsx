@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 import { supabase } from "@/lib/supabase";
 import { Loader2, CheckCircle2, AlertTriangle, Flag, X, EyeOff, Eye } from "lucide-react";
 import { OrgRef, actorLabel } from "@/lib/milestones";
@@ -163,7 +164,7 @@ export default function ImpactClaimReview({
 
         {loadingBundle && (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-5 h-5 animate-spin text-black dark:text-white" />
+            <TopBarLoader />
           </div>
         )}
 

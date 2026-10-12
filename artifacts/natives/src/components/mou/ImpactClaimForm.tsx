@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 import { supabase } from "@/lib/supabase";
 import { Loader2, Upload, Link as LinkIcon, X, Plus, Trash2 } from "lucide-react";
 import { fetchProofPoints, type ProofPoint } from "@/lib/proofPoints";
@@ -307,7 +308,7 @@ export default function ImpactClaimForm({
 
         {loading && (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-5 h-5 animate-spin text-black dark:text-white" />
+            <TopBarLoader />
           </div>
         )}
 

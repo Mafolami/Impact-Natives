@@ -15,6 +15,7 @@
 // a PostgREST embed -- same pattern as useOrgActions.ts's saved/org merge.
 
 import { useEffect, useState } from "react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { UserAvatar } from "@/components/ui/UserAvatar";
@@ -273,7 +274,7 @@ export function TeamTab() {
   if (role === "loading") {
     return (
       <div className="flex items-center justify-center py-16 text-muted-foreground">
-        <Loader2 className="w-5 h-5 animate-spin" />
+        <TopBarLoader />
       </div>
     );
   }

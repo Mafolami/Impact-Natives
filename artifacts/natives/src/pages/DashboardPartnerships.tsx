@@ -1,5 +1,6 @@
 // ─── DashboardPartnerships.tsx ───────────────────────────────────────────────
 import { useEffect, useState, useRef } from "react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 import { useLocation } from "wouter";
 import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 import { supabase } from "@/lib/supabase";
@@ -487,7 +488,7 @@ export default function DashboardPartnerships() {
         {/* Split layout */}
         {loading ? (
           <div className="flex items-center justify-center flex-1 lg:col-span-2 lg:row-start-1 lg:row-span-2">
-            <Loader2 className="w-5 h-5 animate-spin text-[#2D6A4F]" />
+            <TopBarLoader />
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center px-6 lg:col-span-2 lg:row-start-2">

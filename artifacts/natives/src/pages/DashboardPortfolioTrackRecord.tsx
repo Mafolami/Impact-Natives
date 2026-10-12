@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 import { useLocation } from "wouter";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis } from "recharts";
 import { supabase } from "@/lib/supabase";
@@ -201,7 +202,7 @@ export default function DashboardPortfolioTrackRecord() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="w-6 h-6 text-[#2D6A4F] animate-spin" />
+        <TopBarLoader />
       </div>
     );
   }

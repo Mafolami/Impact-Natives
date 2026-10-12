@@ -1,5 +1,6 @@
 // ─── DashboardMessages.tsx ────────────────────────────────────────────────────
 import { useEffect, useState, useRef } from "react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Loader2, Send, ArrowLeft, Clock, CheckCircle2, UserCheck, ExternalLink, ShieldCheck, Handshake, Lightbulb, HelpCircle } from "lucide-react";
@@ -426,7 +427,7 @@ export default function DashboardMessages() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
+        <TopBarLoader />
       </div>
     );
   }
@@ -1635,7 +1636,7 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
       <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-3 pr-1 min-w-0">
         {loading ? (
           <div className="flex items-center justify-center py-10">
-            <Loader2 className="w-4 h-4 text-[#2D6A4F] animate-spin" />
+            <TopBarLoader />
           </div>
         ) : messages.length === 0 ? (
           <p className="text-[15px] text-black dark:text-white text-center py-10">No messages yet. Say hello.</p>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 import { Link } from "wouter";
 import { Loader2, Upload, Clock, CheckCircle2, AlertTriangle, ArrowRight } from "lucide-react";
 import { PartnershipIndicator, isIndicatorAgreed, fetchIndicators } from "@/lib/indicators";
@@ -81,7 +82,7 @@ export default function IndicatorsBoard({ mouDocumentId, orgA, orgB, myUserId }:
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
+        <TopBarLoader />
       </div>
     );
   }

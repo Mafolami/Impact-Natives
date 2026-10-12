@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 import { useRoute, useLocation, Link } from "wouter";
 import { navigateToAuth } from "@/lib/authLinks";
 import { supabase } from "@/lib/supabase";
@@ -164,7 +165,7 @@ export default function InitiativeDetail() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F9F7F4] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 text-[#2D6A4F] animate-spin" />
+        <TopBarLoader />
       </div>
     );
   }

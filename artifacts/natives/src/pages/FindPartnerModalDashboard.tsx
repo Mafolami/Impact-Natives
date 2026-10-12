@@ -24,6 +24,7 @@
 // deliberate database policy, not something this file can route around,
 // and changing it is a separate decision.
 import { useState, useEffect, useRef } from "react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 import { useLocation, Link } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
@@ -1174,7 +1175,7 @@ export function FindPartnerModalDashboard({
         {appState==="picker"&&(
           <div className="flex-1 flex items-center justify-center px-6 py-6">
             {listingsLoading?(
-              <Loader2 className="w-6 h-6 animate-spin text-[#2D6A4F]"/>
+              <TopBarLoader />
             ):hasDraft?(
               <div className="w-full max-w-md space-y-3">
                 <button type="button" onClick={resumeDraft}
