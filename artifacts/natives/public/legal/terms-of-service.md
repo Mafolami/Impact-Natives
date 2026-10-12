@@ -1,7 +1,7 @@
 # Terms of Service
 
 **Impact Natives Ltd**
-Last updated: July 2026
+Last updated: October 2026
 
 ---
 
@@ -66,6 +66,19 @@ We reserve the right to suspend or permanently remove accounts that violate thes
 You retain ownership of content you post on Impact Natives (profiles, initiative descriptions, messages, etc.).
 
 By posting content, you grant Impact Natives a non-exclusive, royalty-free licence to display and distribute that content as part of operating the platform.
+
+### Sharing your initiatives and listings outside the platform
+
+To help published initiatives and partnership listings reach potential partners, we may share them outside the platform, for example on social media, in our newsletter, or directly with funders and partners we think are a good fit.
+
+When you publish an initiative or partnership listing, you choose how we may share it:
+
+- **Share it without naming us**: we remove your organisation's name, logo, contact details and any other detail we judge would identify you.
+- **Share it and name us**: we may credit your organisation.
+- **Ask me first**: we contact you before sharing it anywhere.
+- **Don't share it**: it stays on the platform only.
+
+You can change your choice at any time by editing the initiative or listing. If you have not made a choice, we ask you first. We never share drafts, private messages, or documents you upload.
 
 You are solely responsible for the content you post. You must not post content that:
 

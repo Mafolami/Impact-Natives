@@ -8,6 +8,7 @@ import { SECTOR_OPTIONS } from "@/lib/sectors";
 import { useAuth } from "@/context/AuthContext"
 import { X, Sparkles, Loader2, CheckCircle2, AlertCircle, Info, PenLine, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { SharingPreference, type SharingPref } from "@/components/ui/SharingPreference";
 import { AiDataNote } from "@/components/ui/AiDataNote";
 // ─── Types ────────────────────────────────────────────────────────────────────
 type PartnershipType = "funding" | "technical" | "operational" | "leadership" | "strategic" | "lead"
@@ -45,6 +46,7 @@ interface FormState {
   targetJobs: string;
   targetFemalePct: string;
   targetTimelineMonths: string;
+  sharingPreference: SharingPref;
 }
 const INITIAL_STATE: FormState = {
   title: "", sectors: [], locations: [], openToRemotePartnerships: false, targetPopulation: "",
@@ -55,6 +57,7 @@ const INITIAL_STATE: FormState = {
   confirmedAssets: [], hadPriorExperience: null, priorExperienceDetail: "",
   submitterName: "", submitterOrg: "", submitterEmail: "",
   targetBeneficiaries: "", targetJobs: "", targetFemalePct: "", targetTimelineMonths: "",
+  sharingPreference: "anonymous",
 }
 const SDG_OPTIONS = [
   "No Poverty", "Zero Hunger", "Good Health and Well-being", "Quality Education",
@@ -572,6 +575,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
         submitter_name: form.submitterName,
         submitter_org: form.submitterOrg || null,
         submitter_email: form.submitterEmail,
+        sharing_preference: form.sharingPreference,
       })
       if (dbError) throw dbError
       setSubmitted(true); onSuccess?.()
@@ -1089,6 +1093,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                   {form.submitterOrg && <p className="text-xs text-[#1C1917]">{form.submitterOrg}</p>}
                   <p className="text-xs text-[#1C1917]">{form.submitterEmail}</p>
                 </div>
+                <SharingPreference value={form.sharingPreference} onChange={v => set("sharingPreference", v)} />
                 {error && <p className="text-sm text-destructive">{error}</p>}
               </div>
             )}
@@ -1595,6 +1600,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
             {form.submitterOrg && <p className="text-xs text-[#1C1917]">{form.submitterOrg}</p>}
             <p className="text-xs text-[#1C1917]">{form.submitterEmail}</p>
           </div>
+          <SharingPreference value={form.sharingPreference} onChange={v => set("sharingPreference", v)} />
         </div>
       )}
     </div>

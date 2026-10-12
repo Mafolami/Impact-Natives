@@ -39,6 +39,7 @@ import { ORG_TYPE_FILTERS } from "@/lib/orgTypes";
 import { normalizeArr } from "@/lib/normalizeArr";
 import { DD_ITEMS, FUNDER_DD_ITEMS, DOCUMENT_REQUIRED_KEYS, persistDdItemAnswers, clearDdItemConfirmation } from "@/lib/ddItems";
 import DDEvidenceModal from "@/components/dashboard/DDEvidenceModal";
+import { SharingPreference, type SharingPref } from "@/components/ui/SharingPreference";
 import { AiDataNote } from "@/components/ui/AiDataNote";
 
 const RATE_LIMIT_ENABLED = false;
@@ -530,6 +531,7 @@ export function FindPartnerModalDashboard({
   const [prefillError,setPrefillError]=useState("");
   const [submitting,setSubmitting]=useState(false);
   const [listPublicly,setListPublicly]=useState(true);
+  const [sharingPref,setSharingPref]=useState<SharingPref>("anonymous");
   const [matches,setMatches]=useState<MatchResult[]>([]);
   const [matchLimit,setMatchLimit]=useState<number|"all">(5);
   const [sentInvites,setSentInvites]=useState<Set<string>>(new Set());
@@ -621,6 +623,7 @@ export function FindPartnerModalDashboard({
   function openListingForEdit(l:any){
     setForm(listingToForm(l));setPartnershipTitle(l.title??"");
     setListPublicly(l.status==="published");setActiveListingId(l.id);
+    setSharingPref(l.sharing_preference??"ask_first");
     setAppState("form");goToStep(1);
   }
 
@@ -644,7 +647,7 @@ export function FindPartnerModalDashboard({
     if(publishedCount>=limit){setCapacityInfo({limit,tier});setAppState("capacity_blocked");return;}
     if(user) clearDraft(user.id);
     setHasDraft(false);
-    setForm(EMPTY_FORM);setPartnershipTitle("");setFreeText("");setListPublicly(true);
+    setForm(EMPTY_FORM);setPartnershipTitle("");setFreeText("");setListPublicly(true);setSharingPref("anonymous");
     setActiveListingId(null);setFormStep(0);setAppState("form");
   }
 
@@ -903,6 +906,7 @@ export function FindPartnerModalDashboard({
         // plain text) -- preserving that as-is rather than introducing a
         // new, different conversion here.
         country:form.country as any,sdgs:form.sdgs,
+        sharing_preference:sharingPref,
       };
 
       // This save was previously silent on failure -- if the insert/update
@@ -1996,6 +2000,8 @@ export function FindPartnerModalDashboard({
                           <p className="text-[0.9375rem] text-foreground mt-3">Your details won't be listed publicly. The Natives team will follow up with matches directly.</p>
                         )}
                       </Field>
+
+                      <SharingPreference value={sharingPref} onChange={setSharingPref} what="listing"/>
                     </div>
                   )}
 

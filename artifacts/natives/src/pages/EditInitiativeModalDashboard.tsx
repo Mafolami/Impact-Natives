@@ -9,6 +9,7 @@ import { X, Loader2, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/context/AuthContext"
 import { AIDescriptionGenerator } from "./CreateInitiativeModalDashboard"
+import { SharingPreference, type SharingPref } from "@/components/ui/SharingPreference";
 
 type PartnershipType = "funding" | "technical" | "operational" | "leadership" | "strategic" | "lead"
 type InitiativeStage = "concept" | "planning" | "active" | "scaling"
@@ -237,6 +238,7 @@ export default function EditInitiativeModalDashboard({ isOpen, initiativeId, onC
   const { orgOwnerId } = useAuth()
   const [loading, setLoading]     = useState(true)
   const [form, setForm]           = useState<EditFormState | null>(null)
+  const [sharingPref, setSharingPref] = useState<SharingPref>("ask_first")
   const [original, setOriginal]   = useState<EditFormState | null>(null)
   const [saving, setSaving]       = useState(false)
   const [error, setError]         = useState<string | null>(null)
@@ -268,11 +270,12 @@ export default function EditInitiativeModalDashboard({ isOpen, initiativeId, onC
     setError(null)
     setDescriptionRegenerated(false)
     supabase.from("initiative_requests")
-      .select("title,sectors,locations,open_to_remote_partnerships,target_population,budget_min,budget_max,budget_currency,detail_content,resource_link,impact_evidence,problem,outcome,tags,partnerships,sdg_tags,specific_ask,start_date,duration,esg_alignment,stage,confirmed_assets,had_prior_experience,prior_experience_detail,target_beneficiaries,target_jobs,target_female_pct,target_timeline_months")
+      .select("title,sectors,locations,open_to_remote_partnerships,target_population,budget_min,budget_max,budget_currency,detail_content,resource_link,impact_evidence,problem,outcome,tags,partnerships,sdg_tags,specific_ask,start_date,duration,esg_alignment,stage,confirmed_assets,had_prior_experience,prior_experience_detail,target_beneficiaries,target_jobs,target_female_pct,target_timeline_months,sharing_preference")
       .eq("id", initiativeId)
       .single()
       .then(({ data, error: fetchError }) => {
         if (fetchError || !data) { setError("Could not load this initiative."); setLoading(false); return }
+        setSharingPref(((data as { sharing_preference?: SharingPref }).sharing_preference) ?? "ask_first")
         const loaded: EditFormState = {
           title: data.title ?? "",
           sectors: data.sectors ?? [],
@@ -329,6 +332,7 @@ export default function EditInitiativeModalDashboard({ isOpen, initiativeId, onC
       const isSubstantiveEdit = changedSubstantive.length > 0
 
       const { error: updateError } = await supabase.from("initiative_requests").update({
+        sharing_preference: sharingPref,
         title: form.title,
         sectors: form.sectors,
         locations: form.locations,
@@ -708,6 +712,7 @@ export default function EditInitiativeModalDashboard({ isOpen, initiativeId, onC
                 )
               })()}
 
+              <SharingPreference value={sharingPref} onChange={setSharingPref} />
               {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
           )}
