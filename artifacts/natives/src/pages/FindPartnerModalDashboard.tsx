@@ -373,7 +373,7 @@ function CountryPicker({selected,onToggle}:{selected:string[];onToggle:(v:string
           <div className="px-3 py-3 border-b border-[#1C1917]/10">
             <input type="text" placeholder="Search countries..." value={search}
               onChange={e=>setSearch(e.target.value)}
-              className="w-full h-11 px-4 rounded-lg border border-[#1C1917]/15 bg-background text-[1rem] text-[#1C1917] placeholder:text-[#57534E] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F]"/>
+              className="w-full h-11 px-4 rounded-lg border border-[#1C1917]/15 bg-background text-[1rem] text-[#1C1917] placeholder:text-[#8F8A85] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F]"/>
           </div>
           {selected.length>0 && (
             <div className="px-3 pt-3 pb-1 flex flex-wrap gap-2">
@@ -441,7 +441,7 @@ function ExpandableCheckList({label,options,selected,onToggle}:{
           <div className="px-3 py-3 border-b border-[#1C1917]/10">
             <input type="text" placeholder={`Search ${label.toLowerCase()}...`} value={search}
               onChange={e=>setSearch(e.target.value)}
-              className="w-full h-11 px-4 rounded-lg border border-[#1C1917]/15 bg-background text-[1rem] text-[#1C1917] placeholder:text-[#57534E] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F]"/>
+              className="w-full h-11 px-4 rounded-lg border border-[#1C1917]/15 bg-background text-[1rem] text-[#1C1917] placeholder:text-[#8F8A85] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F]"/>
           </div>
           <div className="max-h-72 overflow-y-auto px-2 py-2 space-y-0.5">
             {filtered.map(opt=>{
@@ -1447,7 +1447,7 @@ export function FindPartnerModalDashboard({
                         <input type="text"
                           placeholder="e.g. Research partner for Nigeria health programme"
                           value={partnershipTitle} onChange={e=>setPartnershipTitle(e.target.value)}
-                          className="w-full h-[3.25rem] px-4 rounded-xl border border-[#1C1917]/15 bg-background text-[15px] text-foreground placeholder:text-[#57534E] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors"/>
+                          className="w-full h-[3.25rem] px-4 rounded-xl border border-[#1C1917]/15 bg-background text-[15px] text-foreground placeholder:text-[#8F8A85] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors"/>
                       </Field>
 
                       <Field label="How would you like to describe your need?" required>
@@ -1473,7 +1473,7 @@ export function FindPartnerModalDashboard({
                           <textarea rows={9}
                             placeholder="e.g. We're an NGO working on last-mile health delivery in northern Nigeria. We need a UK-based research partner to help design impact evaluations and co-author publications. We can offer field access, community relationships, and local implementation capacity. Budget: £30K–£50K over 18 months starting Q3 2026..."
                             value={freeText} onChange={e=>setFreeText(e.target.value)}
-                            className="w-full px-4 py-3.5 rounded-xl border border-[#1C1917]/15 bg-white text-[1rem] text-foreground placeholder:text-[#57534E] resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors leading-relaxed"/>
+                            className="w-full px-4 py-3.5 rounded-xl border border-[#1C1917]/15 bg-white text-[1rem] text-foreground placeholder:text-[#8F8A85] resize-none focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors leading-relaxed"/>
                         </Field>
                       ):(
                         <Field label="Upload your partnership strategy document"
@@ -1610,7 +1610,7 @@ export function FindPartnerModalDashboard({
                           placeholder="e.g. Kano State, Nigeria"
                           value={form.partnership_geo_specificity}
                           onChange={e=>setF("partnership_geo_specificity",e.target.value)}
-                          className="w-full h-[3.25rem] px-4 rounded-xl border border-[#1C1917]/15 bg-background text-[1rem] text-foreground placeholder:text-[#57534E] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors"/>
+                          className="w-full h-[3.25rem] px-4 rounded-xl border border-[#1C1917]/15 bg-background text-[1rem] text-foreground placeholder:text-[#8F8A85] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]/20 focus:border-[#2D6A4F] transition-colors"/>
                       </Field>
 
                       <Field label="Are you physically present in the target location?">

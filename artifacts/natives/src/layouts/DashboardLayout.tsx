@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import Sidebar from "@/components/dashboard/Sidebar"; 
 import Topbar from "@/components/dashboard/Topbar";
 import { Loader2 } from "lucide-react";
+import { TopBarLoader } from "@/components/ui/TopBarLoader";
 
 export default function DashboardLayout({ children, adminOnly }: { children: React.ReactNode; adminOnly?: boolean }) {
   const { user, profile, loading, signOut, orgOwnerId, hasPendingInvite } = useAuth();
@@ -78,9 +79,7 @@ export default function DashboardLayout({ children, adminOnly }: { children: Rea
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
-      </div>
+      <TopBarLoader fullScreen />
     );
   }
   // Sidebar stays mounted once a user exists — a profile refetch or a
@@ -96,9 +95,7 @@ export default function DashboardLayout({ children, adminOnly }: { children: Rea
         <Topbar sidebarCollapsed={collapsed} />
         <main className="flex-1 pt-[81px]">
           {!profile ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-5 h-5 text-[#2D6A4F] animate-spin" />
-            </div>
+            <TopBarLoader minHeight="50vh" />
           ) : (
             <div className="px-6 py-10">
               {children}

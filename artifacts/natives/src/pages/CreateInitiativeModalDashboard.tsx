@@ -143,7 +143,7 @@ function TagInput({ tags, onAdd, onRemove, placeholder }: {
         }}
         onBlur={commit}
         placeholder={tags.length === 0 ? placeholder : ""}
-        className="flex-1 min-w-[140px] bg-transparent border-none outline-none text-sm placeholder:text-[#48423D]" />
+        className="flex-1 min-w-[140px] bg-transparent border-none outline-none text-sm placeholder:text-[#8F8A85]" />
     </div>
   )
 }
@@ -164,7 +164,7 @@ function SectorSelector({ selected, onChange }: { selected: string[]; onChange: 
     <div ref={ref} className="relative">
       <div className="min-h-[3.25rem] flex flex-wrap gap-2 items-center border border-[#1C1917]/15 rounded-xl px-4 py-2.5 bg-white cursor-pointer focus-within:ring-2 focus-within:ring-[#2D6A4F]/20 transition-colors"
         onClick={() => setOpen(o => !o)}>
-        {selected.length === 0 && <span className="text-sm text-[#48423D]">Select sectors...</span>}
+        {selected.length === 0 && <span className="text-sm text-[#8F8A85]">Select sectors...</span>}
         {selected.map(s => (
           <span key={s} className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
             style={{ background: "#fff", color: "#1C1917", boxShadow: "inset 0 0 0 1.5px #2D6A4F" }}>
@@ -1003,7 +1003,7 @@ export default function CreateInitiativeModalDashboard({ isOpen, onClose, onSucc
                   <div className="border border-border border-t-0 rounded-b-lg min-h-[200px] bg-background focus-within:ring-1 focus-within:ring-[#2D6A4F]/20 cursor-text"
                     onClick={() => editor?.chain().focus().run()}>
                     <EditorContent editor={editor}
-                      className="[&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[180px] [&_.ProseMirror]:px-3 [&_.ProseMirror]:py-2 [&_.ProseMirror]:text-sm [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5 [&_.ProseMirror_li]:mb-1 [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h2]:text-[15.5px] [&_.ProseMirror_h2]:mt-4 [&_.ProseMirror_h2]:mb-2 [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-[#48423D] [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none" />
+                      className="[&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[180px] [&_.ProseMirror]:px-3 [&_.ProseMirror]:py-2 [&_.ProseMirror]:text-sm [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5 [&_.ProseMirror_li]:mb-1 [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h2]:text-[15.5px] [&_.ProseMirror_h2]:mt-4 [&_.ProseMirror_h2]:mb-2 [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-[#8F8A85] [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none" />
                   </div>
                 </div>
                 {/* Resource link */}
@@ -1518,7 +1518,7 @@ function ManualSteps({ step, form, set, toggle, toggleArr, editor, urlValid, ass
             <div className="border border-border border-t-0 rounded-b-lg min-h-[180px] bg-background focus-within:ring-1 focus-within:ring-[#2D6A4F]/20 cursor-text"
               onClick={() => editor?.chain().focus().run()}>
               <EditorContent editor={editor}
-                className="[&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[160px] [&_.ProseMirror]:px-3 [&_.ProseMirror]:py-2 [&_.ProseMirror]:text-sm [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-[#48423D] [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none" />
+                className="[&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[160px] [&_.ProseMirror]:px-3 [&_.ProseMirror]:py-2 [&_.ProseMirror]:text-sm [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-[#8F8A85] [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none" />
             </div>
           </div>
           <div>
