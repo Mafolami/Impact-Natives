@@ -1,76 +1,47 @@
 // supabase/functions/match-orgs-for-partnership/index.ts
-// Matches a submitting org against organisations that have an active posted
-// partnership request (partnership_listed + partnership_sought).
+// Matches a submitting org/listing against organisations that have an
+// active posted partnership request.
 //
-// v34: added a dedicated CONSULTANCY candidate type. Previously any org
-// with organisation_type = "consultancy" fell through to the IMPLEMENTER
-// branch by default (isImplementerType = !isFunderType && !isCorporateType),
-// showing "Beneficiaries reached: Not provided. Due diligence readiness:
-// 0/9" for every one of them -- looking uniformly unready compared to real
-// implementers, since a solo consultancy structurally has none of the 9 DD
-// items (audited accounts, board governance, etc. -- see the DD Readiness
-// skip in DashboardProfile.tsx for is_solo_consultancy orgs). Added a
-// dedicated branch reading the new specializations/notable_engagements/
-// affiliations columns instead, and added those 3 columns to the candidate
-// select(). Explicitly tells the model institutional DD criteria don't
-// apply here, so it isn't scored as a gap.
+// v47 (14 Oct 2026): browser calls are now checked. Server calls (secret key:
+// sweeps, refresh wrappers, score-partnership-fit) are unchanged. A browser
+// call (FindPartnerModalDashboard) must be signed in, use listing mode, be
+// the owner or an active member of the org that owns the submitting listing,
+// and that org must be on a paid tier. Before this anyone with the public key
+// could run matching for any listing or any made-up submitting_org, and the
+// Plus gate existed only in the browser.
+// v46 (14 Oct 2026): legacy JWT keys disabled after a leak. Reads the new
+// secret API key (SUPABASE_SECRET_KEYS) instead of SUPABASE_SERVICE_ROLE_KEY.
+// No logic change. verify_jwt stays on: the gateway accepts a user session
+// or the secret key.
 //
-// v33: flagged_visibility_hold candidates excluded from the pool. A
-// "Serious"-severity flagged org (set via the admin Flagged Orgs review)
-// was already withheld from the public Natives directory but still
-// surfaced here as a partnership candidate to everyone else -- this is
-// the candidate-side half of closing that gap (the self-exclusion half
-// lives in refresh-partnership-matches / refresh-partnership-matches-for-
-// org / score-partnership-fit, which decide whether a held org gets
-// matches computed for itself at all). Single-pair mode (used by
-// score-partnership-fit) reuses this same candidateQuery with an added
-// .eq("id", target_org_id), so this filter covers that path too with no
-// separate change needed there.
-//
-// v31: added funder/corporate DD readiness to the candidate prompt block.
-// The new funder/corporate DD checklist (fdd_* columns) existed on the
-// org table but was invisible to matching -- funder/corporate candidates
-// only ever showed mandate fields (investment thesis, CSR focus, budget),
-// same as implementers now show "Due diligence readiness: X/9", funder
-// and corporate candidates now show "Due diligence readiness: X/6" from
-// the same fdd_disbursement_track_record / fdd_decision_transparency /
-// fdd_conflict_disclosure / fdd_governance_doc / fdd_esg_framework /
-// fdd_legal_registration fields used everywhere else in the app. Added
-// the 6 missing columns to the candidate select() -- none of them were
-// fetched before this.
-//
-// v30: fixed stale implementer DD score in the candidate prompt block.
-// Was hardcoded to 5 fields (dd_financial_model, dd_audited_accounts,
-// dd_governance_doc, dd_esg_assessment, dd_impact_framework) and shown as
-// "X/5" -- a leftover from before Environmental policy, Safeguarding
-// policy, Legal registration, and Legal & compliance declaration were
-// added to the implementer DD checklist (now 9 items total). This meant
-// the matching model has been silently seeing an incomplete, out-of-date
-// DD signal for every implementer candidate. Fixed to read and score all
-// 9 current fields, matching DD_ITEMS in ddItems.ts and every other DD
-// score computation in the app (DashboardProfile.tsx, DashboardNatives.tsx,
-// DashboardMarketplace.tsx). Also added the 4 missing columns to the
-// candidate select() -- they were never fetched at all, so the old 5-field
-// score wasn't just capped low, it was working off objectively incomplete
-// data. Found while scoping funder/corporate DD's downstream effects; not
-// related to that work, just surfaced by the same audit.
-//
-// v29: formatSectorDisplay() added -- submitting_org.sector and each
-// candidate's c.sector were read directly into the prompt with only an
-// Array.isArray check, no JSON parsing. organizations.sector is a
-// JSON-stringified TEXT column (e.g. the literal string '["Health"]'), not
-// a real array, so the fallback branch put the raw string straight into
-// the prompt: "Sectors: [\"Health\"]" instead of "Sectors: Health". Milder
-// than the initiative-side mandate_sectors bug (refresh-initiative-matches
-// v19) since this doesn't corrupt any cached data -- the model likely
-// still inferred "Health" from context -- but it's the same root data
-// issue and worth cleaning up on the same pass.
-//
-// v28-v27: see prior deploy history.
+// v44: DEMO ORG EXCLUSION (.eq("is_demo_org", false) on candidate queries).
+// v41: EMAIL LEAK FIX (legacy org-scoped mode no longer selects email).
+// v40: budget_fit rescue via grant_range (USD only).
+// v38: DETERMINISTIC SCORING. AI only rates five criteria; score computed
+// here from weights need_offer 35, budget 15, sector 15, geography 10,
+// working_style 10, stage_readiness 15; gates on need_offer/budget/geography
+// cap at 44; DD-readiness cap applied after.
+// v36: dual-mode (listing-scoped + legacy org-scoped). Full history in git.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+function __envKeys(name: string): Record<string, string> {
+  try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
+}
+const __SECRET_KEYS = Object.values(__envKeys("SUPABASE_SECRET_KEYS"));
+const SECRET_KEY = __envKeys("SUPABASE_SECRET_KEYS")["default"] ?? __SECRET_KEYS[0] ?? "";
+const PUBLISHABLE_KEY = __envKeys("SUPABASE_PUBLISHABLE_KEYS")["default"] ?? Object.values(__envKeys("SUPABASE_PUBLISHABLE_KEYS"))[0] ?? "";
+function isServerCall(req: Request): boolean {
+  if (__SECRET_KEYS.length === 0) return false;
+  const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  const apikey = req.headers.get("apikey") ?? "";
+  return __SECRET_KEYS.includes(bearer) || __SECRET_KEYS.includes(apikey);
+}
+const PAID_TIERS = ["plus", "pro", "compliance"];
+
 const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY")!;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_KEY = SECRET_KEY;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -86,13 +57,120 @@ const MAX_RATE_LIMIT_RETRIES = 1;
 const MAX_BACKOFF_SECONDS = 15;
 const GENERIC_ERROR_BACKOFF_SECONDS = 3;
 
+const ORG_PROFILE_COLUMNS = "id, organisation_name, description, sector, country, organisation_type, needs, offers, sdgs, website, email, verification_status, user_id, flagged_visibility_hold, investment_thesis, grant_range_min, grant_range_max, grant_currency, stage_preference, geographic_focus, csr_focus_statement, csr_budget_range, esg_frameworks, inkind_support, partner_type_preference, employee_engagement_available, cobranding_open, tech_support_available, sandbox_ready, sandbox_description, dd_financial_model, dd_audited_accounts, dd_governance_doc, dd_esg_assessment, dd_impact_framework, dd_environmental_policy, dd_safeguarding_policy, dd_legal_registration, dd_legal_compliance_declaration, fdd_disbursement_track_record, fdd_decision_transparency, fdd_conflict_disclosure, fdd_governance_doc, fdd_esg_framework, fdd_legal_registration, total_beneficiaries_reached, jobs_created, years_of_operation, grants_received_count, grants_total_value_usd, grants_delivered_on_time_pct, previous_funders, third_party_evaluations, specializations, notable_engagements, affiliations";
+
+const CRITERIA_WEIGHTS: Record<string, number> = {
+  need_offer_fit: 35,
+  budget_fit: 15,
+  sector_fit: 15,
+  geography_fit: 10,
+  working_style_fit: 10,
+  stage_readiness_fit: 15,
+};
+const GATE_KEYS = ["need_offer_fit", "budget_fit", "geography_fit"];
+const INCLUSION_THRESHOLD = 45;
+const GATE_CAP = INCLUSION_THRESHOLD - 1;
+
+const BUDGET_ORDER = ["under_10k", "10k_50k", "50k_200k", "over_200k"];
+
+const BUCKET_BOUNDS_USD: Record<string, [number, number]> = {
+  under_10k: [0, 10_000],
+  "10k_50k": [10_000, 50_000],
+  "50k_200k": [50_000, 200_000],
+  over_200k: [200_000, Infinity],
+};
+
+function creditFor(v: string | undefined): number {
+  return v === "match" ? 1 : v === "partial" ? 0.5 : 0;
+}
+
+function computeDeterministicScore(criteria: Record<string, string>): number {
+  let base = 0;
+  for (const key of Object.keys(CRITERIA_WEIGHTS)) {
+    base += creditFor(criteria[key]) * CRITERIA_WEIGHTS[key];
+  }
+  let score = Math.round(base);
+  for (const gateKey of GATE_KEYS) {
+    if (criteria[gateKey] === "no_match") score = Math.min(score, GATE_CAP);
+  }
+  return score;
+}
+
+function computeBudgetFitFromBuckets(a: string | null | undefined, b: string | null | undefined): string {
+  if (!a || !b) return "partial";
+  if (a === "open" || b === "open") return "match";
+  if (a === "in_kind_only" && b === "in_kind_only") return "match";
+  if (a === "in_kind_only" || b === "in_kind_only") return "no_match";
+  const ia = BUDGET_ORDER.indexOf(a);
+  const ib = BUDGET_ORDER.indexOf(b);
+  if (ia === -1 || ib === -1) return "partial";
+  const diff = Math.abs(ia - ib);
+  if (diff === 0) return "match";
+  if (diff === 1) return "partial";
+  return "no_match";
+}
+
+function rangesOverlap(aMin: number, aMax: number, bMin: number, bMax: number): boolean {
+  return aMin <= bMax && bMin <= aMax;
+}
+
+function rescueBudgetFitWithGrantRange(
+  grantMin: number | null | undefined,
+  grantMax: number | null | undefined,
+  grantCurrency: string | null | undefined,
+  otherBucket: string | null | undefined
+): boolean {
+  if (grantCurrency && grantCurrency !== "USD") return false;
+  if (grantMin == null && grantMax == null) return false;
+  if (!otherBucket || !(otherBucket in BUCKET_BOUNDS_USD)) return false;
+  const [oMin, oMax] = BUCKET_BOUNDS_USD[otherBucket];
+  const gMin = grantMin ?? 0;
+  const gMax = grantMax ?? Infinity;
+  return rangesOverlap(gMin, gMax, oMin, oMax);
+}
+
+function computeBudgetFit(
+  a: string | null | undefined, b: string | null | undefined,
+  aGrantMin?: number | null, aGrantMax?: number | null, aGrantCurrency?: string | null,
+  bGrantMin?: number | null, bGrantMax?: number | null, bGrantCurrency?: string | null,
+): string {
+  const bucketResult = computeBudgetFitFromBuckets(a, b);
+  if (bucketResult !== "no_match") return bucketResult;
+
+  if (rescueBudgetFitWithGrantRange(aGrantMin, aGrantMax, aGrantCurrency, b)) return "match";
+  if (rescueBudgetFitWithGrantRange(bGrantMin, bGrantMax, bGrantCurrency, a)) return "match";
+
+  return "no_match";
+}
+
 function sanitizeCriteria(raw: any): Record<string, string> | null {
   if (!raw || typeof raw !== "object") return null;
   const out: Record<string, string> = {};
   for (const key of VALID_CRITERIA_KEYS) {
-    out[key] = VALID_STATUSES.includes(raw[key]) ? raw[key] : "no_match";
+    out[key] = VALID_STATUSES.includes(raw[key]) ? raw[key] : "partial";
   }
   return out;
+}
+
+function ddReadinessPct(c: any): number | null {
+  if (c.organisation_type === "consultancy") return null;
+  const FUNDER_TYPES = ["philanthropic_foundation", "venture_capital"];
+  const CORPORATE_TYPES = ["corporation", "technology_company", "public_sector"];
+  const isFunderOrCorporate = FUNDER_TYPES.includes(c.organisation_type) || CORPORATE_TYPES.includes(c.organisation_type);
+  if (isFunderOrCorporate) {
+    const fddItems = [c.fdd_disbursement_track_record, c.fdd_decision_transparency, c.fdd_conflict_disclosure, c.fdd_governance_doc, c.fdd_esg_framework, c.fdd_legal_registration];
+    return Math.round((fddItems.filter(Boolean).length / fddItems.length) * 100);
+  }
+  const ddItems = [c.dd_financial_model, c.dd_audited_accounts, c.dd_governance_doc, c.dd_esg_assessment, c.dd_impact_framework, c.dd_environmental_policy, c.dd_safeguarding_policy, c.dd_legal_registration, c.dd_legal_compliance_declaration];
+  return Math.round((ddItems.filter(Boolean).length / ddItems.length) * 100);
+}
+
+function applyDdCap(fitScore: number, org: any): number {
+  const pct = ddReadinessPct(org);
+  if (pct === null) return fitScore;
+  if (pct < 40) return Math.min(fitScore, 40);
+  if (pct < 60) return Math.min(fitScore, 65);
+  return fitScore;
 }
 
 function formatSectorDisplay(raw: any): string {
@@ -110,16 +188,13 @@ function formatSectorDisplay(raw: any): string {
 }
 
 function normalizeSmartQuotes(text: string): string {
-  return text
-    .replace(/[\u201C\u201D]/g, "\"")
-    .replace(/[\u2018\u2019]/g, "'");
+  return text.replace(/[“”]/g, "\"").replace(/[‘’]/g, "'");
 }
 
 function parseMatchesJson(rawText: string): any {
   let clean = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
   clean = normalizeSmartQuotes(clean);
   clean = clean.replace(/\/\/[^\n]*/g, "").replace(/}\s*{/g, "},{");
-
   try {
     return JSON.parse(clean);
   } catch {
@@ -196,57 +271,48 @@ function looksLikePlaceholder(text: string | null | undefined): boolean {
 
 function buildPrompt(submitting_org: any, candidatesSubset: any[], singlePairMode: boolean): string {
   const extraFieldsInstructions = singlePairMode
-    ? `\n\nALSO produce these fields, only needed for this single-candidate detail view:
-- reasons: 2-4 short strings, each under 12 words, starting with a positive signal, naming a specific concrete overlap (not generic language)
-- gaps: 0-3 short strings, each under 15 words, only real gaps — not invented ones
-- opening_message: 3-4 sentences, personalised, warm but professional, addressed to the candidate by name, mentioning their specific stated request and what the submitter concretely brings, closing with an open question. No hedging.`
+    ? `\n\nALSO produce these fields, only needed for this single-candidate detail view:\n- reasons: 2-4 short strings, each under 12 words, starting with a positive signal, naming a specific concrete overlap (not generic language)\n- gaps: 0-3 short strings, each under 15 words, only real gaps -- not invented ones\n- opening_message: 3-4 sentences, personalised, warm but professional, addressed to the candidate by name, mentioning their specific stated request and what the submitter concretely brings, closing with an open question. No hedging.`
     : "";
 
   const extraKeysInSchema = singlePairMode
-    ? `,
-      "reasons": ["Specific reason one", "Specific reason two"],
-      "gaps": ["Specific gap, if any"],
-      "opening_message": "Hi [Name], ..."`
+    ? `,\n      "reasons": ["Specific reason one", "Specific reason two"],\n      "gaps": ["Specific gap, if any"],\n      "opening_message": "Hi [Name], ..."`
     : "";
 
   return `You are a partnership matching analyst for Impact Natives, a social impact platform focused on UK-Africa collaborations.
-Your job: rank candidate organisations by REAL, LOGICAL fit with the submitting organisation's specific new partnership request below — not by superficial similarity like shared continent or generic sector adjacency.
+Your job: judge candidate organisations against the submitting organisation's specific new partnership request below -- not by superficial similarity like shared continent or generic sector adjacency. You do NOT compute a numeric score -- that is calculated separately from the ratings you provide below. Your job is ONLY to rate each of five dimensions honestly.
 
-Every candidate below has an ACTIVE, POSTED partnership request — that request (what they are seeking, their stage, budget, timeline, working style) is the PRIMARY thing you are matching against. Their general profile (description, needs, offers, sector, SDGs, and type-specific mandate/CSR/track-record data) is supporting context that helps you judge whether they're a credible, capable match — it is not a substitute for their actual stated request, and it never overrides what they've explicitly said they're seeking right now.
+Every candidate below has an ACTIVE, POSTED partnership request -- that request (what they are seeking, their stage, budget, timeline, working style) is the PRIMARY thing you are judging against. Their general profile (description, needs, offers, sector, SDGs, and type-specific mandate/CSR/track-record data) is supporting context that helps you judge whether they're a credible, capable match -- it is not a substitute for their actual stated request, and it never overrides what they've explicitly said they're seeking right now.
 
-Scoring criteria (total 100):
-- Logical correlation between what the submitter needs and what this candidate has explicitly stated they are seeking/offering in their own posted request: 45 points
-- Complementary needs/offers, not duplicated focus: 20 points
-- Practical compatibility — budget/grant range, timeline, stage, working style, geographic focus, using the candidate's own stated request fields: 20 points
-- Sector or SDG relevance to the submitter's specific request: 15 points (this alone is never enough to justify a strong match — shared sector or SDG tags without genuine capability or need alignment should not push a score above 50)
+The single most important judgment is need_offer_fit: is there a REAL, LOGICAL correlation between what the submitter needs and what this candidate has explicitly stated they are seeking/offering in their own posted request, AND does the submitter bring something genuinely complementary rather than duplicating what the candidate already has. This should dominate your overall impression of the pair far more than sector or geography overlap alone.
 
-Be honest and specific in the rationale: name the exact detail from their POSTED REQUEST that creates the fit rather than vague language like "aligns with" or "could support." If the correlation is weak, score it low — do not inflate scores for organisations that merely operate in the same country or broad sector.
+Be honest and specific: name the exact detail from their POSTED REQUEST that creates or breaks the fit, rather than vague language like "aligns with" or "could support." If the correlation is weak, rate need_offer_fit low -- do not rate it "match" for organisations that merely operate in the same country or broad sector.
 
-Watch specifically for this failure pattern: describing two organisations as similar because they share an abstract theme (e.g. both "community-based," both "rural," both "scale their work," both "impact-focused") when their actual needs, offers, and sectors have no real overlap. If you catch yourself writing a rationale that could apply to almost any two organisations regardless of what they actually do, the real fit_score is below 45${singlePairMode ? "" : ", and the candidate should be excluded"}.
+Watch specifically for this failure pattern: describing two organisations as similar because they share an abstract theme (e.g. both "community-based," both "rural," both "scale their work," both "impact-focused") when their actual needs, offers, and sectors have no real overlap. If you catch yourself writing a rationale that could apply to almost any two organisations regardless of what they actually do, need_offer_fit should be "no_match", not "partial" or "match" -- sector or SDG overlap alone never justifies rating need_offer_fit favourably.
 
-CRITICAL — organisational type compatibility: before scoring, check whether this candidate's organisation_type is structurally capable of providing what the sender is actually asking for. NGOs and non-profits generally operate on restricted grant funding and typically cannot provide direct financial capital, investment, or discretionary funding to another organisation's project — even a mission-aligned one — because they don't hold that kind of capital. If the sender is seeking financial backing/investment/funding, only score highly candidates whose organisation_type is capable of providing that. Do not claim a candidate can provide technical support in a domain unless their posted request or profile actually states relevant expertise in that domain.
+CRITICAL -- organisational type compatibility: before rating need_offer_fit, check whether this candidate's organisation_type is structurally capable of providing what the sender is actually asking for. NGOs and non-profits generally operate on restricted grant funding and typically cannot provide direct financial capital, investment, or discretionary funding to another organisation's project -- even a mission-aligned one -- because they don't hold that kind of capital. If the sender is seeking financial backing/investment/funding, only rate need_offer_fit favourably for candidates whose organisation_type is capable of providing that. Do not claim a candidate can provide technical support in a domain unless their posted request or profile actually states relevant expertise in that domain.
 
-Work through the scoring criteria internally to arrive at your fit_score, but the "rationale" field must contain ONLY natural, customer-facing prose — exactly 1-2 sentences, no more than 30 words total. NEVER include scoring breakdown or point allocations. NEVER hedge with phrases like "requires further examination" or "compatibility is unclear" — state the fit plainly or score it low.
+The "rationale" field must contain ONLY natural, customer-facing prose -- exactly 1-2 sentences, no more than 30 words total. NEVER include scoring breakdown or point allocations. NEVER hedge with phrases like "requires further examination" or "compatibility is unclear" -- state the fit plainly, in either direction.
 
-If a candidate's posted request is incoherent or nonsensical, you MUST score them below 45 regardless of country, sector, or SDG overlap.
+If a candidate's posted request is incoherent or nonsensical, rate need_offer_fit "no_match" regardless of country, sector, or SDG overlap.
 
-Every candidate must get its OWN distinct fit_score reflecting its OWN specific mix of matching and failing criteria — do not default to a single common value across multiple candidates.
+Produce a "criteria" object rating five specific dimensions individually, each as exactly "match", "partial", or "no_match":
+- sector_fit: does the candidate's stated sector genuinely overlap the submitter's?
+- geography_fit: does the candidate's stated country/location overlap the submitter's, in a way that matters for this specific ask (some asks are workable remotely -- use the stated location and working-style context to judge, don't assume physical presence is always required)?
+- need_offer_fit: as described above -- the dominant judgment.
+- working_style_fit: are their stated working-style preferences (lead vs. support, decision speed, formality) compatible?
+- stage_readiness_fit: is the candidate's own stated stage (concept, pilot, scaling, etc.) a workable match for what the submitter's ask needs right now? This is about the ASK's timing, not the candidate's organisational maturity or compliance readiness -- those are assessed separately.
+Do not rate several dimensions "match" while your rationale describes a weak or superficial pairing, or vice versa -- the ratings and the rationale must tell the same story.${extraFieldsInstructions}
 
-ALSO produce a "criteria" object rating five specific dimensions individually, each as exactly "match", "partial", or "no_match":
-- sector_fit, geography_fit, need_offer_fit, working_style_fit, stage_readiness_fit
-These five ratings must be consistent with the fit_score — do not rate several "match" and then produce a low fit_score, or vice versa.${extraFieldsInstructions}
+Use only straight double quotes (\") for all JSON strings -- never curly or typographic quotes.
 
-Use only straight double quotes (\") for all JSON strings — never curly or typographic quotes.
+Do all your reasoning silently. Output EXACTLY ONE entry per candidate org_id -- every candidate listed below, regardless of how strong or weak the fit looks -- never output the same org twice, never show a correction as a second entry, never include a // comment or any text outside the JSON object.
 
-Do all your reasoning silently. Output EXACTLY ONE entry per candidate org_id — never output the same org twice, never show a correction as a second entry, never include a // comment or any text outside the JSON object.
-
-Return ONLY a valid JSON object. No markdown, no backticks, no explanation, no comments, no duplicate keys, no placeholder values.${singlePairMode ? "" : " If you are uncertain about a candidate, simply exclude them from the matches array. Include every candidate with fit_score >= 45, no maximum."} Every object in the matches array must have exactly these keys: org_id, fit_score, rationale, key_synergy, criteria${singlePairMode ? ", reasons, gaps, opening_message" : ""}. Order by fit_score descending.
+Return ONLY a valid JSON object. No markdown, no backticks, no explanation, no comments, no duplicate keys, no placeholder values. Every object in the matches array must have exactly these keys: org_id, rationale, key_synergy, criteria${singlePairMode ? ", reasons, gaps, opening_message" : ""}. No fit_score field -- it is not your job to produce one.
 
 {
   "matches": [
     {
       "org_id": "<uuid>",
-      "fit_score": <integer 0-100>,
       "rationale": "<1-2 short sentences, max 30 words>",
       "key_synergy": "<one short phrase>",
       "criteria": { "sector_fit": "match", "geography_fit": "partial", "need_offer_fit": "match", "working_style_fit": "partial", "stage_readiness_fit": "match" }${extraKeysInSchema}
@@ -265,7 +331,7 @@ Offers: ${Array.isArray(submitting_org.offers) ? submitting_org.offers.join(", "
 SDGs: ${Array.isArray(submitting_org.mandate_sdgs) && submitting_org.mandate_sdgs.length > 0 ? submitting_org.mandate_sdgs.join(", ") : "Not provided"}
 Partnership sought: ${submitting_org.partnership_sought || "Not specified"}
 
-Candidate organisations (each has an active posted partnership request — lead with it):
+Candidate organisations (each has an active posted partnership request -- lead with it):
 ${candidatesSubset.map((c: any) => {
   const FUNDER_TYPES = ["philanthropic_foundation", "venture_capital"];
   const CORPORATE_TYPES = ["corporation", "technology_company", "public_sector"];
@@ -312,6 +378,44 @@ ${typeSpecificBlock}`;
 }).join("\n")}`;
 }
 
+function buildProfileFromListing(listing: any, org: any) {
+  return {
+    ...org,
+    id: listing.id,
+    _orgId: org.id,
+    _listingId: listing.id,
+    sector: listing.sector,
+    country: listing.country,
+    needs: listing.needs,
+    offers: listing.offers,
+    mandate_sdgs: listing.sdgs,
+    partnership_sought: listing.sought,
+    partnership_stage: listing.stage,
+    partnership_duration: listing.duration,
+    partnership_budget: listing.budget,
+    partnership_decision_timeline: listing.decision_timeline,
+    partnership_working_style: listing.working_style,
+    partnership_financial_transfer: listing.financial_transfer,
+    partnership_team_capacity: listing.team_capacity,
+    partnership_success_definition: listing.success_definition,
+  };
+}
+
+async function resolveOrgUserIds(supabase: any, org: any): Promise<string[]> {
+  const { data: members } = await supabase
+    .from("org_members")
+    .select("user_id")
+    .eq("org_id", org.id)
+    .eq("status", "active");
+  return [org.user_id, ...((members ?? []).map((m: any) => m.user_id))].filter(Boolean);
+}
+
+function jsonResponse(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+  });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
   if (req.method !== "POST") return new Response(JSON.stringify({ error: "Method not allowed" }), {
@@ -319,39 +423,131 @@ Deno.serve(async (req: Request) => {
   });
 
   try {
-    const { submitting_org, user_id, target_org_id } = await req.json();
-    const singlePairMode = !!target_org_id;
+    const body = await req.json();
+    const listingMode = !!body.submitting_listing_id;
+    const singlePairMode = listingMode ? !!body.target_listing_id : !!body.target_org_id;
 
-    if (!submitting_org) return new Response(
-      JSON.stringify({ error: "submitting_org is required" }),
-      { status: 400, headers: { "Content-Type": "application/json", ...CORS_HEADERS } }
-    );
+    // Browser calls: signed-in user, listing mode only. Ownership and tier
+    // are checked once the submitting listing's org is loaded below.
+    let browserCallerId: string | null = null;
+    if (!isServerCall(req)) {
+      if (!listingMode) return jsonResponse({ error: "Forbidden" }, 403);
+      const callerClient = createClient(SUPABASE_URL, PUBLISHABLE_KEY, {
+        global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
+      });
+      const { data: { user }, error: userError } = await callerClient.auth.getUser();
+      if (userError || !user) return jsonResponse({ error: "Unauthorized" }, 401);
+      browserCallerId = user.id;
+    }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    let candidateQuery = supabase
-      .from("organizations")
-      .select("id, organisation_name, description, sector, country, organisation_type, needs, offers, sdgs, website, email, verification_status, partnership_listed, partnership_sought, partnership_stage, partnership_duration, partnership_budget, partnership_decision_timeline, partnership_working_style, partnership_financial_transfer, partnership_team_capacity, partnership_success_definition, investment_thesis, grant_range_min, grant_range_max, grant_currency, stage_preference, geographic_focus, csr_focus_statement, csr_budget_range, esg_frameworks, inkind_support, partner_type_preference, employee_engagement_available, cobranding_open, tech_support_available, sandbox_ready, sandbox_description, dd_financial_model, dd_audited_accounts, dd_governance_doc, dd_esg_assessment, dd_impact_framework, dd_environmental_policy, dd_safeguarding_policy, dd_legal_registration, dd_legal_compliance_declaration, fdd_disbursement_track_record, fdd_decision_transparency, fdd_conflict_disclosure, fdd_governance_doc, fdd_esg_framework, fdd_legal_registration, total_beneficiaries_reached, jobs_created, years_of_operation, grants_received_count, grants_total_value_usd, grants_delivered_on_time_pct, previous_funders, third_party_evaluations, specializations, notable_engagements, affiliations")
-      .eq("status", "published")
-      .eq("partnership_listed", true)
-      .eq("flagged_visibility_hold", false)
-      .not("partnership_sought", "is", null)
-      .neq("id", submitting_org.id)
-      .limit(FETCH_SAFETY_CAP);
+    let submittingProfile: any;
+    let candidates: any[];
 
-    if (singlePairMode) candidateQuery = candidateQuery.eq("id", target_org_id);
+    if (listingMode) {
+      const { submitting_listing_id, target_listing_id } = body;
 
-    const { data: rawCandidates, error } = await candidateQuery;
-    if (error) throw error;
+      const { data: submittingListing, error: listingErr } = await supabase
+        .from("partnership_listings").select("*").eq("id", submitting_listing_id).maybeSingle();
+      if (listingErr || !submittingListing) return new Response(
+        JSON.stringify({ error: "submitting listing not found" }),
+        { status: 404, headers: { "Content-Type": "application/json", ...CORS_HEADERS } }
+      );
 
-    const candidates = (rawCandidates ?? []).filter((c: any) => {
-      if (!c.partnership_sought || !c.partnership_sought.trim()) return false;
-      if (looksLikePlaceholder(c.partnership_sought)) return false;
-      return true;
-    });
+      const { data: submittingOrg, error: orgErr } = await supabase
+        .from("organizations").select(ORG_PROFILE_COLUMNS).eq("user_id", submittingListing.user_id).maybeSingle();
+      if (orgErr || !submittingOrg) return new Response(
+        JSON.stringify({ error: "submitting org not found for this listing" }),
+        { status: 404, headers: { "Content-Type": "application/json", ...CORS_HEADERS } }
+      );
+
+      submittingProfile = buildProfileFromListing(submittingListing, submittingOrg);
+
+      const excludeUserIds = await resolveOrgUserIds(supabase, submittingOrg);
+
+      if (browserCallerId) {
+        if (!excludeUserIds.includes(browserCallerId)) return jsonResponse({ error: "Forbidden" }, 403);
+        const { data: tierRow } = await supabase
+          .from("organizations").select("subscription_tier").eq("id", submittingOrg.id).maybeSingle();
+        if (!tierRow || !PAID_TIERS.includes(tierRow.subscription_tier)) {
+          return jsonResponse({ error: "AI partner matching requires a Plus plan or higher.", requires_upgrade: true, required_tier: "plus" }, 403);
+        }
+      }
+
+      let candidateListingQuery = supabase
+        .from("partnership_listings")
+        .select("id, user_id, sought, stage, duration, budget, decision_timeline, working_style, financial_transfer, team_capacity, success_definition, sector, needs, offers, country, sdgs")
+        .eq("status", "published")
+        .not("sought", "is", null)
+        .limit(FETCH_SAFETY_CAP);
+
+      if (singlePairMode) candidateListingQuery = candidateListingQuery.eq("id", target_listing_id);
+
+      const { data: rawListings, error: candErr } = await candidateListingQuery;
+      if (candErr) throw candErr;
+
+      const eligibleListings = (rawListings ?? []).filter((l: any) =>
+        !excludeUserIds.includes(l.user_id) &&
+        l.sought && l.sought.trim() &&
+        !looksLikePlaceholder(l.sought)
+      );
+
+      if (eligibleListings.length === 0) {
+        return new Response(JSON.stringify({ matches: [] }), {
+          status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+        });
+      }
+
+      const candidateUserIds = [...new Set(eligibleListings.map((l: any) => l.user_id))];
+      const { data: candidateOrgs, error: candOrgErr } = await supabase
+        .from("organizations")
+        .select(ORG_PROFILE_COLUMNS)
+        .in("user_id", candidateUserIds)
+        .eq("flagged_visibility_hold", false)
+        .eq("is_demo_org", false);
+      if (candOrgErr) throw candOrgErr;
+
+      const orgByUserId = new Map((candidateOrgs ?? []).map((o: any) => [o.user_id, o]));
+
+      candidates = eligibleListings
+        .map((l: any) => {
+          const org = orgByUserId.get(l.user_id);
+          if (!org) return null;
+          return buildProfileFromListing(l, org);
+        })
+        .filter(Boolean);
+
+    } else {
+      const { submitting_org, target_org_id } = body;
+      if (!submitting_org) return new Response(
+        JSON.stringify({ error: "submitting_org is required" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...CORS_HEADERS } }
+      );
+      submittingProfile = submitting_org;
+
+      let candidateQuery = supabase
+        .from("organizations")
+        .select("id, organisation_name, description, sector, country, organisation_type, needs, offers, sdgs, website, verification_status, partnership_listed, partnership_sought, partnership_stage, partnership_duration, partnership_budget, partnership_decision_timeline, partnership_working_style, partnership_financial_transfer, partnership_team_capacity, partnership_success_definition, investment_thesis, grant_range_min, grant_range_max, grant_currency, stage_preference, geographic_focus, csr_focus_statement, csr_budget_range, esg_frameworks, inkind_support, partner_type_preference, employee_engagement_available, cobranding_open, tech_support_available, sandbox_ready, sandbox_description, dd_financial_model, dd_audited_accounts, dd_governance_doc, dd_esg_assessment, dd_impact_framework, dd_environmental_policy, dd_safeguarding_policy, dd_legal_registration, dd_legal_compliance_declaration, fdd_disbursement_track_record, fdd_decision_transparency, fdd_conflict_disclosure, fdd_governance_doc, fdd_esg_framework, fdd_legal_registration, total_beneficiaries_reached, jobs_created, years_of_operation, grants_received_count, grants_total_value_usd, grants_delivered_on_time_pct, previous_funders, third_party_evaluations, specializations, notable_engagements, affiliations")
+        .eq("status", "published")
+        .eq("partnership_listed", true)
+        .eq("flagged_visibility_hold", false)
+        .eq("is_demo_org", false)
+        .not("partnership_sought", "is", null)
+        .neq("id", submitting_org.id)
+        .limit(FETCH_SAFETY_CAP);
+
+      if (singlePairMode) candidateQuery = candidateQuery.eq("id", target_org_id);
+
+      const { data: rawCandidates, error } = await candidateQuery;
+      if (error) throw error;
+
+      candidates = (rawCandidates ?? []).filter((c: any) => {
+        if (!c.partnership_sought || !c.partnership_sought.trim()) return false;
+        if (looksLikePlaceholder(c.partnership_sought)) return false;
+        return true;
+      });
+    }
 
     if (!candidates || candidates.length === 0) {
       return new Response(JSON.stringify({ matches: [] }), {
@@ -359,10 +555,10 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const byOrgId = new Map<string, any>();
+    const byId = new Map<string, any>();
 
     if (singlePairMode) {
-      const prompt = buildPrompt(submitting_org, candidates, true);
+      const prompt = buildPrompt(submittingProfile, candidates, true);
       const result = await callGroqWithBackoff(prompt, 900, "single-pair");
       if (!result.ok) {
         return new Response(JSON.stringify({ error: `Groq API error: ${result.errorBody}` }), {
@@ -378,21 +574,36 @@ Deno.serve(async (req: Request) => {
         });
       }
       for (const m of (parsed.matches ?? [])) {
-        if (!m || typeof m.fit_score !== "number") continue;
-        const org = candidates.find((c: any) => c.id === m.org_id);
-        if (!org) continue;
-        byOrgId.set(m.org_id, {
-          ...m, org,
-          criteria: sanitizeCriteria(m.criteria),
+        if (!m || !m.criteria) continue;
+        const c = candidates.find((cand: any) => cand.id === m.org_id);
+        if (!c) continue;
+        const aiCriteria = sanitizeCriteria(m.criteria);
+        if (!aiCriteria) continue;
+        const budgetFit = computeBudgetFit(
+          submittingProfile.partnership_budget, c.partnership_budget,
+          submittingProfile.grant_range_min, submittingProfile.grant_range_max, submittingProfile.grant_currency,
+          c.grant_range_min, c.grant_range_max, c.grant_currency,
+        );
+        const fullCriteria = { ...aiCriteria, budget_fit: budgetFit };
+        const rawScore = computeDeterministicScore(fullCriteria);
+        const finalScore = applyDdCap(rawScore, c);
+        const base = {
+          fit_score: finalScore,
+          rationale: m.rationale,
+          key_synergy: m.key_synergy,
+          criteria: fullCriteria,
           reasons: Array.isArray(m.reasons) ? m.reasons : [],
           gaps: Array.isArray(m.gaps) ? m.gaps : [],
           opening_message: typeof m.opening_message === "string" ? m.opening_message : null,
-        });
+        };
+        byId.set(m.org_id, listingMode
+          ? { ...base, matched_listing_id: c._listingId, matched_org_id: c._orgId }
+          : { ...base, org_id: c.id, org: c });
       }
     } else {
       const batches = chunk(candidates, BATCH_SIZE);
       const batchResults = await Promise.all(batches.map(async (batchCandidates, b) => {
-        const prompt = buildPrompt(submitting_org, batchCandidates, false);
+        const prompt = buildPrompt(submittingProfile, batchCandidates, false);
         const result = await callGroqWithBackoff(prompt, 2500, `batch ${b + 1}/${batches.length}`);
         if (!result.ok) {
           console.error(`[match-orgs-for-partnership] batch ${b + 1}/${batches.length} failed: ${result.errorBody}`);
@@ -408,21 +619,36 @@ Deno.serve(async (req: Request) => {
       }));
 
       for (const m of batchResults.flat()) {
-        if (!m || typeof m.fit_score !== "number") continue;
-        if (m.fit_score < 45) continue;
-        const org = candidates.find((c: any) => c.id === m.org_id);
-        if (!org) continue;
-        byOrgId.set(m.org_id, {
-          ...m, org,
-          criteria: sanitizeCriteria(m.criteria),
+        if (!m || !m.criteria) continue;
+        const c = candidates.find((cand: any) => cand.id === m.org_id);
+        if (!c) continue;
+        const aiCriteria = sanitizeCriteria(m.criteria);
+        if (!aiCriteria) continue;
+        const budgetFit = computeBudgetFit(
+          submittingProfile.partnership_budget, c.partnership_budget,
+          submittingProfile.grant_range_min, submittingProfile.grant_range_max, submittingProfile.grant_currency,
+          c.grant_range_min, c.grant_range_max, c.grant_currency,
+        );
+        const fullCriteria = { ...aiCriteria, budget_fit: budgetFit };
+        const rawScore = computeDeterministicScore(fullCriteria);
+        const finalScore = applyDdCap(rawScore, c);
+        if (finalScore < INCLUSION_THRESHOLD) continue;
+        const base = {
+          fit_score: finalScore,
+          rationale: m.rationale,
+          key_synergy: m.key_synergy ?? null,
+          criteria: fullCriteria,
           reasons: [],
           gaps: [],
           opening_message: null,
-        });
+        };
+        byId.set(m.org_id, listingMode
+          ? { ...base, matched_listing_id: c._listingId, matched_org_id: c._orgId }
+          : { ...base, org_id: c.id, org: c });
       }
     }
 
-    const matches = Array.from(byOrgId.values()).sort((a, b) => b.fit_score - a.fit_score);
+    const matches = Array.from(byId.values()).sort((a, b) => b.fit_score - a.fit_score);
 
     return new Response(JSON.stringify({ matches }), {
       status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },

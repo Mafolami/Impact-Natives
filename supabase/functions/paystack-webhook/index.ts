@@ -1,36 +1,23 @@
 // supabase/functions/paystack-webhook/index.ts
 //
 // Receives Paystack webhook events and updates subscription_* on a
-// successful charge -- on organizations for an org checkout, or on profiles
-// for an individual checkout. This endpoint is called by Paystack, not by a
-// logged-in user or the service-role cron pattern used elsewhere -- so it
-// can't use verify_jwt (Paystack doesn't send a Supabase-issued JWT) and
-// can't use the role-claim check pattern from monthly-activity-digest either.
-// Instead, authenticity is verified the way Paystack's own docs specify:
-// HMAC-SHA512 of the raw request body, keyed with the Paystack secret key,
-// compared against the x-paystack-signature header. This function is
-// deployed with verify_jwt: false for exactly this reason -- the signature
-// check IS the auth, and it must run before anything else.
+// successful charge (organizations or profiles). Called by Paystack, so
+// verify_jwt is off; authenticity is the HMAC-SHA512 x-paystack-signature
+// check, which runs before anything else.
 //
-// v2: reads the entity_type/entity_id pair paystack-initialize v2 now sends
-// in metadata, and routes the update to organizations or profiles
-// accordingly. Falls back to the legacy org_id-only shape (treating it as
-// an organization update) if entity_type/entity_id are absent, so any
-// transaction initialized before this deploy still resolves correctly.
-//
-// Only charge.success is handled. Other event types (chargeback, refund,
-// etc.) are acknowledged with 200 but not processed -- add handling here
-// if/when those matter.
+// v6 (14 Oct 2026): legacy JWT keys disabled after a leak. Uses the new
+// secret API key (SUPABASE_SECRET_KEYS) for DB writes. No logic change.
+// v2: entity_type/entity_id routing, legacy org_id fallback.
+// Only charge.success is processed.
+
+function __envKeys(name: string): Record<string, string> {
+  try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
+}
+const SECRET_KEY = __envKeys("SUPABASE_SECRET_KEYS")["default"] ?? Object.values(__envKeys("SUPABASE_SECRET_KEYS"))[0] ?? "";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-// Deliberately NOT using `!` here -- unlike the two above (always present,
-// platform-injected), this one depends on a human having set it as an Edge
-// Function secret. If it's missing, reading it with a non-null assertion
-// throws at module load and crashes the whole function before Deno.serve
-// even registers -- every request then gets a generic, unhelpful 500 with
-// no logs and no indication why. Checking explicitly inside the handler
-// instead means a missing secret fails with a clear message.
+const SUPABASE_SERVICE_ROLE_KEY = SECRET_KEY;
+// Not `!`: a missing user-set secret should fail with a clear message.
 const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY") ?? "";
 
 const CORS_HEADERS = {
@@ -83,9 +70,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // Read the raw body FIRST -- the signature is computed over the exact raw
-  // bytes Paystack sent. Parsing to JSON and re-stringifying can silently
-  // change whitespace/key order and break the signature check.
+  // Read the raw body FIRST -- the signature is computed over the exact raw bytes.
   const rawBody = await req.text();
 
   const signatureHeader = req.headers.get("x-paystack-signature") ?? "";
@@ -109,8 +94,6 @@ Deno.serve(async (req: Request) => {
 
   try {
     if (event.event !== "charge.success") {
-      // Acknowledge everything else so Paystack doesn't retry, but don't
-      // process it -- see file header note.
       return new Response(JSON.stringify({ received: true, processed: false }), {
         status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
       });
@@ -121,18 +104,12 @@ Deno.serve(async (req: Request) => {
     const customerCode = data.customer?.customer_code ?? null;
     const authorizationCode = data.authorization?.authorization_code ?? null;
 
-    // v2 metadata shape: entity_type/entity_id. Falls back to the legacy
-    // org_id-only shape (pre-v2 paystack-initialize) by treating it as an
-    // organization update, so an in-flight transaction started before this
-    // deploy still resolves correctly.
     const entityType: "organization" | "profile" =
       data.metadata?.entity_type === "profile" ? "profile" : "organization";
     const entityId = data.metadata?.entity_id ?? data.metadata?.org_id;
 
     if (!entityId || !tier) {
       console.error("[paystack-webhook] charge.success missing entity_id/tier in metadata", { reference: data.reference });
-      // Still 200 -- this is a Paystack-side retry situation if we 4xx/5xx,
-      // and a malformed metadata payload won't fix itself on retry.
       return new Response(JSON.stringify({ received: true, processed: false, reason: "missing metadata" }), {
         status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
       });
@@ -167,9 +144,6 @@ Deno.serve(async (req: Request) => {
 
   } catch (err) {
     console.error("[paystack-webhook] uncaught error", String(err));
-    // 200 here too -- an uncaught exception on our end shouldn't cause
-    // Paystack to hammer this endpoint with retries for a charge that
-    // already succeeded on their side.
     return new Response(JSON.stringify({ received: true, processed: false, reason: "internal error" }), {
       status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
     });

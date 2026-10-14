@@ -1,23 +1,19 @@
 // supabase/functions/generate-admin-triage/index.ts
 //
-// v9: admin auth gate added. This function was deployed with
-// verify_jwt: false and had no auth check of any kind inside the body --
-// any anonymous caller, logged in or not, could hit it directly and burn
-// Anthropic API calls on the site's own key. It's meant to be an internal
-// admin tool (initiative/verification triage), not a public endpoint.
-// Fixed by resolving the caller's session and requiring is_admin() --
-// the same SECURITY DEFINER helper already used by the "Admin can read
-// all organizations" / "Admin can update any organization" RLS policies
-// on `organizations`, so this now enforces the same admin boundary the
-// rest of the app already relies on, rather than inventing a new one.
-// Deployed with verify_jwt: true so an unauthenticated request is
-// rejected at the platform edge before it ever reaches this code.
+// v11 (14 Oct 2026): legacy JWT keys disabled after a leak. Caller client
+// uses the new publishable key. No logic change.
+// v9: admin auth gate (session + is_admin()), verify_jwt on.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+function __envKeys(name: string): Record<string, string> {
+  try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
+}
+const PUBLISHABLE_KEY = __envKeys("SUPABASE_PUBLISHABLE_KEYS")["default"] ?? Object.values(__envKeys("SUPABASE_PUBLISHABLE_KEYS"))[0] ?? "";
+
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const SUPABASE_ANON_KEY = PUBLISHABLE_KEY;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",

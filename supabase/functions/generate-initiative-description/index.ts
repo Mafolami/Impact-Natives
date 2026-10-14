@@ -1,12 +1,47 @@
+// supabase/functions/generate-initiative-description/index.ts
+// v40 (14 Oct 2026): legacy JWT keys disabled after a leak. Caller client
+// uses the new publishable key. No logic change.
+// v38: Plus+ tier gate.
 import sanitizeHtml from "npm:sanitize-html@2.13.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+function __envKeys(name: string): Record<string, string> {
+  try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
+}
+const PUBLISHABLE_KEY = __envKeys("SUPABASE_PUBLISHABLE_KEYS")["default"] ?? Object.values(__envKeys("SUPABASE_PUBLISHABLE_KEYS"))[0] ?? "";
 
 const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY") ?? "";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_ANON_KEY = PUBLISHABLE_KEY;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+async function checkPlusAccess(req: Request): Promise<{ ok: true } | { ok: false; status: number; body: Record<string, unknown> }> {
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const callerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: { user }, error: userError } = await callerClient.auth.getUser();
+  if (userError || !user) {
+    return { ok: false, status: 401, body: { error: "Unauthorized" } };
+  }
+  const { data: ownerId } = await callerClient.rpc("resolve_org_owner_id");
+  if (!ownerId) {
+    return { ok: false, status: 500, body: { error: "Could not resolve organisation identity" } };
+  }
+  const { data: org } = await callerClient.from("organizations").select("subscription_tier").eq("user_id", ownerId).maybeSingle();
+  if (org?.subscription_tier === "free") {
+    return {
+      ok: false, status: 403,
+      body: { error: "AI initiative description generation requires a Plus plan or higher.", requires_upgrade: true, required_tier: "plus" },
+    };
+  }
+  return { ok: true };
+}
 
 const GAPS_DELIMITER = "===GAPS===";
 const MAX_RATE_LIMIT_RETRIES = 2;
@@ -49,8 +84,6 @@ function scanLexiconViolations(text: string): string[] {
   return LEXICON_WATCHLIST.filter(term => lower.includes(term));
 }
 
-// Deterministic, zero-cost swaps for the most common offenders. Applied
-// before any LLM call -- most lexicon violations are fixed by this alone.
 const LEXICON_SUBSTITUTIONS: Record<string, string> = {
   "empowering": "enabling", "empowered": "enabled", "empowers": "enables", "empower": "enable",
   "innovative": "new", "innovation-driven": "new-approach", "cutting-edge": "advanced",
@@ -72,9 +105,6 @@ function applyLexiconSubstitutions(text: string): string {
   return out;
 }
 
-// For terms with no safe direct swap (phrases like "stakeholders",
-// "meaningful difference"), patch just the containing sentence/list item
-// with a small ~150-token call instead of regenerating the whole document.
 async function patchLexiconSentence(text: string, term: string): Promise<string> {
   const blockRe = /<(p|li)>((?:(?!<\/\1>).)*)<\/\1>/gis;
   let match: RegExpExecArray | null;
@@ -578,6 +608,13 @@ async function callGroq(prompt: string, repairNote?: string, maxTokens = 4500): 
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
+
+  const access = await checkPlusAccess(req);
+  if (!access.ok) {
+    return new Response(JSON.stringify(access.body), {
+      status: access.status, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+    });
+  }
 
   try {
     const { form, profile } = await req.json();

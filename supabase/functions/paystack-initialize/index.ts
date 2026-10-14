@@ -1,38 +1,31 @@
 // supabase/functions/paystack-initialize/index.ts
 //
-// Starts a Paystack checkout for the caller to move onto a paid tier. Works
-// for both org accounts and individual accounts (no org) -- see v2 note
-// below. Deliberately built against Paystack's Initialize Transaction API
-// rather than the Plan/Subscription API -- no Plan objects need to exist in
-// the Paystack dashboard for this to work. Pricing is a fixed NGN list here,
-// not a live USD conversion (see pricing discussion -- naira moved ~₦174
-// against the dollar over the past year, a live-converted checkout price
-// would drift daily). Revisit PRICING_NGN if/when the underlying USD prices
-// change or the naira moves enough to matter.
+// Starts a Paystack checkout for the caller to move onto a paid tier (org or
+// individual). Uses Paystack's Initialize Transaction API with a fixed NGN
+// price list (not live USD conversion).
 //
-// v2: individual (non-org) checkout support. Individuals can buy plus/pro
-// only -- compliance stays corporate-only, since Strategy Builder's data
-// model (SECTOR_MATRIX/COUNTRY_MATRIX in generate-impact-strategy) only
-// covers corporate use cases and there's no org-type concept for an
-// individual to gate against anyway. Metadata now carries a generic
-// entity_type/entity_id pair instead of a hardcoded org_id, so
-// paystack-webhook can route the resulting charge.success to either
-// organizations or profiles. org_id is also still sent for backward
-// compatibility with any existing tooling/analytics reading that key.
-//
-// Recurring billing is NOT handled by this function. This only starts a
-// single transaction; paystack-webhook records subscription_current_period_end
-// as +30 days on success. Renewal today means the caller re-runs this flow
-// before that date, or (once built) an auto-renewal cron re-charges the
-// stored subscription_authorization_code. No auto-renewal cron exists yet.
+// v7 (14 Oct 2026): org/profile lookups now use the server key, filtered by
+// the verified user id. The caller-scoped select asked for organizations.email,
+// which authenticated users have no column grant on, so the query errored, org
+// came back null, and every org owner was treated as an individual (Compliance
+// refused with the wrong message; Plus/Pro would have been billed to the
+// profile instead of the org). A lookup error now returns 500 instead of
+// silently falling through to the individual branch.
+// v6 (14 Oct 2026): legacy JWT keys disabled after a leak. Caller-scoped
+// client now uses the new publishable key. No logic change.
+// v2: individual checkout support (plus/pro only; compliance corporate-only).
+// Renewal is handled by renew-subscriptions.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+function __envKeys(name: string): Record<string, string> {
+  try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
+}
+const PUBLISHABLE_KEY = __envKeys("SUPABASE_PUBLISHABLE_KEYS")["default"] ?? Object.values(__envKeys("SUPABASE_PUBLISHABLE_KEYS"))[0] ?? "";
+const SECRET_KEY = __envKeys("SUPABASE_SECRET_KEYS")["default"] ?? Object.values(__envKeys("SUPABASE_SECRET_KEYS"))[0] ?? "";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-// See paystack-webhook for why this isn't a `!` non-null assertion -- a
-// missing user-set secret should fail with a clear message, not crash the
-// module at boot.
+const SUPABASE_ANON_KEY = PUBLISHABLE_KEY;
 const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY") ?? "";
 
 const CORS_HEADERS = {
@@ -41,8 +34,7 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Fixed NGN price list, amounts in kobo (Paystack's base unit -- 1 NGN = 100 kobo).
-// Keep in sync with the USD figures in the pricing doc if those ever change.
+// Fixed NGN price list, amounts in kobo (1 NGN = 100 kobo).
 const PRICING_NGN_KOBO: Record<string, number> = {
   plus: 8_000_000,       // ₦80,000
   pro: 33_900_000,       // ₦339,000
@@ -50,8 +42,6 @@ const PRICING_NGN_KOBO: Record<string, number> = {
 };
 
 const VALID_TIERS = Object.keys(PRICING_NGN_KOBO);
-// Tiers an individual (non-org) account may purchase -- compliance excluded,
-// see file header note.
 const INDIVIDUAL_VALID_TIERS = ["plus", "pro"];
 
 Deno.serve(async (req: Request) => {
@@ -73,6 +63,9 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Server-side reads, always scoped to the verified user.id above.
+    const svc = createClient(SUPABASE_URL, SECRET_KEY);
+
     const body = await req.json().catch(() => ({}));
     const tier = typeof body.tier === "string" ? body.tier.toLowerCase() : "";
 
@@ -89,15 +82,18 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Compliance is corporate-only at checkout -- see billing scoping notes.
-    // Strategy Builder's data model (SECTOR_MATRIX / COUNTRY_MATRIX) only
-    // covers corporate use cases; a non-corporate org buying Compliance
-    // would just hit unsupported_sector errors on the feature it's paying for.
-    const { data: org, error: orgError } = await callerClient
+    const { data: org, error: orgError } = await svc
       .from("organizations")
       .select("id, organisation_name, organisation_type, email")
       .eq("user_id", user.id)
       .maybeSingle();
+
+    if (orgError) {
+      console.error("[paystack-initialize] organizations lookup failed", { error: orgError.message, code: orgError.code });
+      return new Response(JSON.stringify({ error: "Could not load your organisation. Please try again." }), {
+        status: 500, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      });
+    }
 
     let entityType: "organization" | "profile";
     let entityId: string;
@@ -116,21 +112,20 @@ Deno.serve(async (req: Request) => {
       checkoutEmail = org.email || user.email;
       displayName = org.organisation_name;
     } else {
-      // No org -- individual checkout. Compliance is never available here,
-      // regardless of what VALID_TIERS allows generally.
       if (!INDIVIDUAL_VALID_TIERS.includes(tier)) {
         return new Response(JSON.stringify({ error: `Individual accounts can purchase: ${INDIVIDUAL_VALID_TIERS.join(", ")}` }), {
           status: 403, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
         });
       }
 
-      const { data: profile, error: profileError } = await callerClient
+      const { data: profile, error: profileError } = await svc
         .from("profiles")
         .select("id, full_name, email")
         .eq("id", user.id)
         .maybeSingle();
 
       if (profileError || !profile) {
+        if (profileError) console.error("[paystack-initialize] profiles lookup failed", { error: profileError.message, code: profileError.code });
         return new Response(JSON.stringify({ error: "No profile found for this account" }), {
           status: 404, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
         });
@@ -157,8 +152,6 @@ Deno.serve(async (req: Request) => {
         metadata: {
           entity_type: entityType,
           entity_id: entityId,
-          // Kept for backward compatibility with any existing tooling that
-          // reads org_id directly -- null for individual checkouts.
           org_id: entityType === "organization" ? entityId : null,
           tier,
           organisation_name: displayName,

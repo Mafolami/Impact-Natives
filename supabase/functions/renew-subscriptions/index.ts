@@ -4,41 +4,33 @@
 // subscription_current_period_end falls within the next 24 hours, by
 // re-charging the card authorization captured on their original checkout
 // (paystack-webhook stores subscription_authorization_code on every
-// successful charge.success). Uses Paystack's /transaction/charge_authorization
-// endpoint, which charges a previously-authorized card without the
-// customer re-entering details.
+// successful charge.success). Uses Paystack's /transaction/charge_authorization.
 //
-// Only attempts once per due window: a successful charge pushes
-// subscription_current_period_end forward, which removes the account from
-// this query's window immediately. A failed charge sets subscription_status
-// to 'past_due' rather than retrying -- 'past_due' accounts are excluded
-// from this query's `status = 'active'` filter, so they are NOT retried
-// automatically. They keep paid-tier access while past_due (same as
-// active, no separate gate exists for it), visibly flagged in the Billing
-// tab, until downgrade-expired-subscriptions eventually reverts them to
-// Free once period_end actually passes -- that function's status filter
-// was extended to include 'past_due' alongside 'active' for exactly this
-// reason.
+// A failed charge sets subscription_status to 'past_due' rather than
+// retrying; downgrade-expired-subscriptions reverts it to Free once
+// period_end passes.
 //
-// PRICING_NGN_KOBO is kept in sync manually with paystack-initialize -- see
-// that function's header for the same caveat. No shared config file exists
-// between the two yet.
+// PRICING_NGN_KOBO is kept in sync manually with paystack-initialize.
 //
-// v2: sweeps both organizations and profiles (individual accounts). Two
-// straight-line passes over the same logic, same reasoning as
-// downgrade-expired-subscriptions v2 -- the two tables' select columns
-// differ slightly (organisation_name vs full_name), and duplicating the
-// loop is cheaper to verify correct than a generic table-parameterized
-// helper. Individual accounts can only ever be on plus/pro (see
-// paystack-initialize v2), so a compliance-tier profile is not a real case
-// this needs to handle, but PRICING_NGN_KOBO's compliance entry is
-// harmless dead weight for that path either way.
-//
-// Cron-only: same JWT role-claim check as monthly-activity-digest and
-// downgrade-expired-subscriptions.
+// v4 (14 Oct 2026): legacy JWT keys disabled after a leak. Uses the new
+// secret API key (SUPABASE_SECRET_KEYS); cron-only check now compares the
+// caller's key against it instead of reading a JWT role claim.
+// v2: sweeps both organizations and profiles.
+
+function __envKeys(name: string): Record<string, string> {
+  try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
+}
+const __SECRET_KEYS = Object.values(__envKeys("SUPABASE_SECRET_KEYS"));
+const SECRET_KEY = __envKeys("SUPABASE_SECRET_KEYS")["default"] ?? __SECRET_KEYS[0] ?? "";
+function isServerCall(req: Request): boolean {
+  if (__SECRET_KEYS.length === 0) return false;
+  const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  const apikey = req.headers.get("apikey") ?? "";
+  return __SECRET_KEYS.includes(bearer) || __SECRET_KEYS.includes(apikey);
+}
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_SERVICE_ROLE_KEY = SECRET_KEY;
 const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY") ?? "";
 
 const CORS_HEADERS = {
@@ -55,20 +47,6 @@ const PRICING_NGN_KOBO: Record<string, number> = {
   pro: 33_900_000,        // ₦339,000
   compliance: 109_000_000, // ₦1,090,000
 };
-
-function isServiceRoleRequest(req: Request): boolean {
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-  const payloadSegment = token.split(".")[1];
-  if (!payloadSegment) return false;
-  try {
-    const base64 = payloadSegment.replace(/-/g, "+").replace(/_/g, "/");
-    const decoded = JSON.parse(atob(base64));
-    return decoded?.role === "service_role";
-  } catch {
-    return false;
-  }
-}
 
 async function supabaseFetch(path: string, options: RequestInit = {}) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
@@ -147,7 +125,7 @@ async function renewOne(record: { id: string; email: string; subscription_tier: 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
 
-  if (!isServiceRoleRequest(req)) {
+  if (!isServerCall(req)) {
     return new Response(JSON.stringify({ error: "Forbidden" }), {
       status: 403, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
     });

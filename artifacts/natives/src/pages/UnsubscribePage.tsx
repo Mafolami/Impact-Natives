@@ -37,7 +37,7 @@ export default function UnsubscribePage() {
             </p>
             <button
               type="button"
-              onClick={() => navigate("/dashboard/settings")}
+              onClick={() => { window.location.href = "https://app.impactnatives.com/dashboard/settings?tab=notifications"; }}
               className="text-sm font-semibold text-[#2D6A4F] hover:underline underline-offset-2">
               Manage notification preferences →
             </button>

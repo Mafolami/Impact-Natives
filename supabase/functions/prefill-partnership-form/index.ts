@@ -1,7 +1,19 @@
 // supabase/functions/prefill-partnership-form/index.ts
-// v19: max_tokens -> max_completion_tokens + reasoning_effort: low
+// v24 (14 Oct 2026): legacy JWT keys disabled after a leak. Caller client
+// uses the new publishable key. No logic change.
+// v22: Plus+ tier gate. v21: "Other" removed from COUNTRIES, "Global" first.
+// v20: SECTOR_OPTIONS/ORG_TYPES match frontend lists.
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+function __envKeys(name: string): Record<string, string> {
+  try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
+}
+const PUBLISHABLE_KEY = __envKeys("SUPABASE_PUBLISHABLE_KEYS")["default"] ?? Object.values(__envKeys("SUPABASE_PUBLISHABLE_KEYS"))[0] ?? "";
 
 const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY") ?? "";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_ANON_KEY = PUBLISHABLE_KEY;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -9,11 +21,35 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SECTOR_OPTIONS = ["Health","Agriculture","Climate","Energy","Fintech","Education","Governance","Gender","Tech","Water & Sanitation","Humanitarian","Livelihoods","Research","Arts & Culture","Other"];
+async function checkPlusAccess(req: Request): Promise<{ ok: true } | { ok: false; status: number; body: Record<string, unknown> }> {
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const callerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: { user }, error: userError } = await callerClient.auth.getUser();
+  if (userError || !user) {
+    return { ok: false, status: 401, body: { error: "Unauthorized" } };
+  }
+  const { data: ownerId } = await callerClient.rpc("resolve_org_owner_id");
+  if (!ownerId) {
+    return { ok: false, status: 500, body: { error: "Could not resolve organisation identity" } };
+  }
+  const { data: org } = await callerClient.from("organizations").select("subscription_tier").eq("user_id", ownerId).maybeSingle();
+  if (org?.subscription_tier === "free") {
+    return {
+      ok: false, status: 403,
+      body: { error: "Get Matched's AI prefill requires a Plus plan or higher.", requires_upgrade: true, required_tier: "plus" },
+    };
+  }
+  return { ok: true };
+}
+
+// Kept in sync with artifacts/natives/src/lib/sectors.ts (SECTOR_OPTIONS)
+const SECTOR_OPTIONS = ["Health","Education","Agriculture & Food Systems","Climate & Environment","Energy & Clean Tech","Water, Sanitation & Hygiene","Financial Inclusion","Gender & Inclusion","Governance & Civic Tech","Livelihoods & Economic Empowerment","Digital Development","Arts, Culture & Creative Industries","Humanitarian & Emergency Response","Youth & Community Development"];
 const NEEDS_OPTIONS = ["Funding","Technical assistance","Research capacity","Field access","Networks and convening","Data and evidence","Policy influence","Communications","Legal and compliance","Other"];
 const OFFERS_OPTIONS = ["Funding","Field access","Local implementation","Data and evidence","Research capacity","Networks","Technical expertise","Communications","Policy influence","Other"];
-const COUNTRIES = ["Nigeria","Kenya","Ghana","South Africa","Ethiopia","Rwanda","Senegal","Uganda","Tanzania","Zambia","Zimbabwe","Malawi","Mozambique","Cameroon","Cote d'Ivoire","Mali","Burkina Faso","Niger","Liberia","Sierra Leone","Gambia","Guinea","Togo","Benin","Egypt","Morocco","Tunisia","Algeria","Sudan","South Sudan","Somalia","DR Congo","Congo","Angola","Namibia","Botswana","Eswatini","Lesotho","Jordan","Lebanon","Palestine","Yemen","Bangladesh","India","Pakistan","Nepal","Indonesia","Philippines","United Kingdom","Germany","France","Netherlands","Switzerland","Sweden","Norway","United States","Canada","Brazil","Global","Other"];
-const ORG_TYPES = ["ngo_non_profit","social_enterprise","startup","research_institution","philanthropic_foundation","venture_capital","corporation","technology_company","public_sector","other"];
+const COUNTRIES = ["Global","Nigeria","Kenya","Ghana","South Africa","Ethiopia","Rwanda","Senegal","Uganda","Tanzania","Zambia","Zimbabwe","Malawi","Mozambique","Cameroon","Cote d'Ivoire","Mali","Burkina Faso","Niger","Liberia","Sierra Leone","Gambia","Guinea","Togo","Benin","Egypt","Morocco","Tunisia","Algeria","Sudan","South Sudan","Somalia","DR Congo","Congo","Angola","Namibia","Botswana","Eswatini","Lesotho","Jordan","Lebanon","Palestine","Yemen","Bangladesh","India","Pakistan","Nepal","Indonesia","Philippines","United Kingdom","Germany","France","Netherlands","Switzerland","Sweden","Norway","United States","Canada","Brazil"];
+const ORG_TYPES = ["ngo_non_profit","social_enterprise","startup","technology_company","corporation","philanthropic_foundation","venture_capital","creative_agency_studio","public_sector","research_academic","consultancy"];
 const STAGE_OPTIONS = ["concept","joining_running","pilot","scaling"];
 const DURATION_OPTIONS = ["under_6_months","6_12_months","1_2_years","2_plus_years","ongoing"];
 const BUDGET_OPTIONS = ["under_10k","10k_50k","50k_200k","over_200k","in_kind_only","open"];
@@ -24,11 +60,30 @@ const LANGUAGE_OPTIONS = ["English","French","Portuguese","Arabic","Swahili","Ot
 const CAPACITY_OPTIONS = ["1_part_time","1_full_time","2_5_people","5_plus_people","tbd"];
 const FUNDING_STATUS_OPTIONS = ["fully_funded","partially_funded","seeking_funding","partner_brings_funding"];
 
+function sanitizeArray(val: unknown, allowed: string[]): string[] {
+  if (!Array.isArray(val)) return [];
+  return val.filter((v) => typeof v === "string" && allowed.includes(v));
+}
+function sanitizeSingle(val: unknown, allowed: string[]): string {
+  return typeof val === "string" && allowed.includes(val) ? val : "";
+}
+function sanitizeSdgs(val: unknown): number[] {
+  if (!Array.isArray(val)) return [];
+  return val.filter((v) => typeof v === "number" && Number.isInteger(v) && v >= 1 && v <= 17);
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
   if (req.method !== "POST") return new Response(JSON.stringify({ error: "Method not allowed" }), {
     status: 405, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
   });
+
+  const access = await checkPlusAccess(req);
+  if (!access.ok) {
+    return new Response(JSON.stringify(access.body), {
+      status: access.status, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+    });
+  }
 
   try {
     const { free_text, org_profile, document_base64, document_type } = await req.json();
@@ -143,7 +198,26 @@ Prioritise the user description. Return JSON only.`;
       status: 422, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
     }); }
 
-    return new Response(JSON.stringify({ prefilled: parsed }), {
+    const sanitized = {
+      ...parsed,
+      country: sanitizeArray(parsed.country, COUNTRIES),
+      sectors: sanitizeArray(parsed.sectors, SECTOR_OPTIONS),
+      sdgs: sanitizeSdgs(parsed.sdgs),
+      organisation_type: sanitizeSingle(parsed.organisation_type, ORG_TYPES),
+      needs: sanitizeArray(parsed.needs, NEEDS_OPTIONS),
+      offers: sanitizeArray(parsed.offers, OFFERS_OPTIONS),
+      partnership_stage: sanitizeSingle(parsed.partnership_stage, STAGE_OPTIONS),
+      partnership_duration: sanitizeSingle(parsed.partnership_duration, DURATION_OPTIONS),
+      partnership_budget: sanitizeSingle(parsed.partnership_budget, BUDGET_OPTIONS),
+      partnership_decision_timeline: sanitizeSingle(parsed.partnership_decision_timeline, TIMELINE_OPTIONS),
+      partnership_legal_type: sanitizeArray(parsed.partnership_legal_type, LEGAL_TYPE_OPTIONS),
+      partnership_exclusivity: sanitizeSingle(parsed.partnership_exclusivity, EXCLUSIVITY_OPTIONS),
+      partnership_language: sanitizeArray(parsed.partnership_language, LANGUAGE_OPTIONS),
+      partnership_team_capacity: sanitizeSingle(parsed.partnership_team_capacity, CAPACITY_OPTIONS),
+      partnership_funding_status: sanitizeSingle(parsed.partnership_funding_status, FUNDING_STATUS_OPTIONS),
+    };
+
+    return new Response(JSON.stringify({ prefilled: sanitized }), {
       status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
     });
 

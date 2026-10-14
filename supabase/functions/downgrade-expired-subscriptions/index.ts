@@ -2,31 +2,28 @@
 //
 // Daily safety net: any org OR individual account whose
 // subscription_current_period_end has passed but is still marked 'active'
-// OR 'past_due' gets moved back to Free. Runs AFTER renew-subscriptions
-// (see that function's header) -- renew-subscriptions attempts to
-// re-charge accounts due within the next 24h; a successful renewal pushes
-// period_end forward and removes the account from this query's window
-// before it ever gets here. A failed renewal is marked 'past_due' by that
-// function and deliberately NOT retried -- this sweep is what finally
-// reverts a past_due account to Free once its period genuinely runs out,
-// giving it a short grace window (visible in the Billing tab as "Past
-// due") between a failed renewal charge and actually losing access. This
-// function itself never attempts to charge anything, only revokes access
-// once the paid period has genuinely lapsed.
+// OR 'past_due' gets moved back to Free. Runs AFTER renew-subscriptions.
+// Never charges anything, only revokes access once the paid period lapses.
 //
-// v2: sweeps both organizations and profiles (individual accounts).
-// Runs as two independent passes over the same logic -- kept as two
-// straight-line blocks rather than a shared helper parameterized by table
-// name, since the two tables' select columns differ slightly
-// (organisation_name vs full_name) and duplicating ~20 lines is cheaper to
-// read correctly than a generic helper would be to verify correct.
-//
-// Cron-only, same convention as monthly-activity-digest / sweep-stale-*:
-// checks the caller's JWT role claim rather than a literal key comparison
-// (see monthly-activity-digest for why literal comparison is fragile).
+// v6 (14 Oct 2026): legacy JWT keys disabled after a leak. Uses the new
+// secret API key (SUPABASE_SECRET_KEYS); cron-only check now compares the
+// caller's key against it instead of reading a JWT role claim.
+// v2: sweeps both organizations and profiles.
+
+function __envKeys(name: string): Record<string, string> {
+  try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
+}
+const __SECRET_KEYS = Object.values(__envKeys("SUPABASE_SECRET_KEYS"));
+const SECRET_KEY = __envKeys("SUPABASE_SECRET_KEYS")["default"] ?? __SECRET_KEYS[0] ?? "";
+function isServerCall(req: Request): boolean {
+  if (__SECRET_KEYS.length === 0) return false;
+  const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  const apikey = req.headers.get("apikey") ?? "";
+  return __SECRET_KEYS.includes(bearer) || __SECRET_KEYS.includes(apikey);
+}
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_SERVICE_ROLE_KEY = SECRET_KEY;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -34,24 +31,10 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-function isServiceRoleRequest(req: Request): boolean {
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-  const payloadSegment = token.split(".")[1];
-  if (!payloadSegment) return false;
-  try {
-    const base64 = payloadSegment.replace(/-/g, "+").replace(/_/g, "/");
-    const decoded = JSON.parse(atob(base64));
-    return decoded?.role === "service_role";
-  } catch {
-    return false;
-  }
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
 
-  if (!isServiceRoleRequest(req)) {
+  if (!isServerCall(req)) {
     return new Response(JSON.stringify({ error: "Forbidden" }), {
       status: 403, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
     });

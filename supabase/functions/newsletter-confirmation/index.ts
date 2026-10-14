@@ -1,23 +1,46 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// supabase/functions/newsletter-confirmation/index.ts
+// v17 (14 Oct 2026): only sends to an address that subscribed in the last
+// 15 minutes. Before this, anyone with the public key could make us send
+// this email to any address (spam and sender-reputation risk). Also removed
+// a stray "// REPLACE" line that was showing in the email body.
 
+function __envKeys(name: string): Record<string, string> {
+  try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
+}
+const SECRET_KEY = __envKeys("SUPABASE_SECRET_KEYS")["default"] ?? Object.values(__envKeys("SUPABASE_SECRET_KEYS"))[0] ?? "";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const FROM_EMAIL = "noreply@impactnatives.com";
+const RECENT_WINDOW_MS = 15 * 60 * 1000;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { email } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
     if (!email) {
       return new Response(JSON.stringify({ error: "Email required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const lookup = await fetch(
+      `${SUPABASE_URL}/rest/v1/newsletter_subscribers?select=subscribed_at&email=eq.${encodeURIComponent(email)}&limit=1`,
+      { headers: { apikey: SECRET_KEY, Authorization: `Bearer ${SECRET_KEY}` } },
+    );
+    const rows = lookup.ok ? await lookup.json() : [];
+    const subscribedAt = Array.isArray(rows) && rows[0]?.subscribed_at ? new Date(rows[0].subscribed_at).getTime() : 0;
+    if (!subscribedAt || Date.now() - subscribedAt > RECENT_WINDOW_MS) {
+      return new Response(JSON.stringify({ error: "No recent signup for this address" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -37,7 +60,6 @@ serve(async (req) => {
               You're on the list.
             </h1>
             <p style="font-size: 16px; color: #555; line-height: 1.7; margin: 0 0 24px;">
-              // REPLACE
               Welcome to Native Signal, the Impact Natives monthly newsletter covering ecosystem intelligence, partnership signals, and platform updates across Africa's impact economy. No noise, no filler.
             </p>
             <p style="font-size: 16px; color: #555; line-height: 1.7; margin: 0 0 32px;">

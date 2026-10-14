@@ -1086,7 +1086,7 @@ export default function DashboardProfile() {
   useEffect(() => {
     if (!orgOwnerId) return;
     supabase.from("organizations")
-     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,dd_confirmed_at,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,srg1_pie_self_declared,srg1_annual_revenue_ngn,srg1_reminder_dismissed_at,registration_type,year_founded,is_solo_consultancy,specializations,notable_engagements,affiliations")      .eq("user_id", orgOwnerId).maybeSingle()
+     .select("id,logo_url,description,investment_thesis,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,dd_confirmed_at,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,srg1_pie_self_declared,srg1_reminder_dismissed_at,registration_type,year_founded,is_solo_consultancy,specializations,notable_engagements,affiliations")      .eq("user_id", orgOwnerId).maybeSingle()
      .then(async ({ data }) => {
         if (!data) { setIsConsultancyChecked(true); return; }
         setOrgId(data.id ?? null);
@@ -1102,7 +1102,7 @@ export default function DashboardProfile() {
         // self-edit read.
         const { data: privateOrgData } = await supabase
           .from("organization_private")
-          .select("registration_number, tin, scuml_number")
+          .select("registration_number, tin, scuml_number, srg1_annual_revenue_ngn")
           .eq("organization_id", data.id)
           .maybeSingle();
         if (privateOrgData?.registration_number) setRegistrationNumber(privateOrgData.registration_number);
@@ -1128,7 +1128,7 @@ export default function DashboardProfile() {
         if (data.tech_support_available) setTechSupport(data.tech_support_available);
         setSandboxReady(data.sandbox_ready ?? false);
         setSrg1PieSelfDeclared(data.srg1_pie_self_declared ?? false);
-        setSrg1AnnualRevenue(data.srg1_annual_revenue_ngn != null ? String(data.srg1_annual_revenue_ngn) : "");
+        setSrg1AnnualRevenue(privateOrgData?.srg1_annual_revenue_ngn != null ? String(privateOrgData.srg1_annual_revenue_ngn) : "");
         setSrg1ReminderDismissedAt(data.srg1_reminder_dismissed_at ?? null);
         setSrg1ReminderDismissedAt(data.srg1_reminder_dismissed_at ?? null);
         if (data.sandbox_description) setSandboxDescription(data.sandbox_description);
@@ -1425,7 +1425,7 @@ export default function DashboardProfile() {
 
     if (isOrgOwner && profile?.user_type === "organisation") {
       const { data } = await supabase.from("organizations")
-        .select("logo_url,description,grant_range_min,grant_range_max,grant_currency,funding_instruments,geographic_focus,stage_preference,partner_type_preference,csr_budget_range,esg_frameworks,mandate_sectors,mandate_sdgs,dd_financial_model,dd_audited_accounts,dd_governance_doc,dd_esg_assessment,dd_impact_framework,dd_environmental_policy,dd_safeguarding_policy,dd_legal_registration,dd_legal_compliance_declaration,dd_evidence,fdd_disbursement_track_record,fdd_decision_transparency,fdd_conflict_disclosure,fdd_governance_doc,fdd_esg_framework,fdd_legal_registration,total_beneficiaries_reached,jobs_created,female_beneficiaries_pct,youth_beneficiaries_pct,years_of_operation,grants_received_count,grants_total_value_usd,grants_delivered_on_time_pct,previous_funders,third_party_evaluations,csr_focus_statement,employee_engagement_available,cobranding_open,inkind_support,tech_support_available,sandbox_ready,sandbox_description,srg1_pie_self_declared,srg1_annual_revenue_ngn,srg1_reminder_dismissed_at,registration_type,registration_number,tin,scuml_number,year_founded")
+        .select("previous_funders,geographic_focus,funding_instruments,mandate_sectors,mandate_sdgs,stage_preference,partner_type_preference,esg_frameworks,inkind_support,tech_support_available")
         .eq("user_id", orgOwnerId!).maybeSingle();
       if (data) {
         if (data.previous_funders) setPreviousFunders(data.previous_funders);

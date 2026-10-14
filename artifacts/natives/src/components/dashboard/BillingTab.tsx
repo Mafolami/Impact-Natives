@@ -153,7 +153,15 @@ function fmtDate(iso: string | null) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-const ORG_SELECT = "id, organisation_name, organisation_type, subscription_tier, subscription_status, subscription_current_period_end";
+const ORG_SELECT = "id, organisation_name, organisation_type, subscription_tier, subscription_current_period_end";
+
+// subscription_status for orgs lives in organization_private (owner, active
+// members and admins only), not organizations.
+async function orgSubscriptionStatus(orgId: string): Promise<SubStatus> {
+  const { data } = await supabase
+    .from("organization_private").select("subscription_status").eq("organization_id", orgId).maybeSingle();
+  return ((data?.subscription_status as SubStatus | null) ?? "inactive");
+}
 const PROFILE_SELECT = "id, full_name, subscription_tier, subscription_status, subscription_current_period_end";
 
 export function BillingTab() {
@@ -195,7 +203,7 @@ export function BillingTab() {
         displayName: ownedOrg.organisation_name,
         organisationType: ownedOrg.organisation_type,
         subscription_tier: ownedOrg.subscription_tier,
-        subscription_status: ownedOrg.subscription_status,
+        subscription_status: await orgSubscriptionStatus(ownedOrg.id),
         subscription_current_period_end: ownedOrg.subscription_current_period_end,
       },
       role: "owner",
@@ -210,7 +218,7 @@ export function BillingTab() {
           displayName: ownerOrg.organisation_name,
           organisationType: ownerOrg.organisation_type,
           subscription_tier: ownerOrg.subscription_tier,
-          subscription_status: ownerOrg.subscription_status,
+          subscription_status: await orgSubscriptionStatus(ownerOrg.id),
           subscription_current_period_end: ownerOrg.subscription_current_period_end,
         },
         role: "member",

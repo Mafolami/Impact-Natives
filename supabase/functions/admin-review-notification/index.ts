@@ -10,11 +10,27 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // { type, table, record, old_record, schema }, so this function branches on
 // payload.table / payload.type to build the right email, same Resend call
 // as contact-notification and partner-request-notification.
+//
+// Server-to-server only (14 Oct 2026): legacy JWT keys are disabled, so the
+// trigger sends the project's secret API key (sb_secret_...). verify_jwt is off
+// and the key is checked here instead.
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const TO_EMAILS = ["michafolami@gmail.com", "admin@impactnatives.com"];
 const FROM_EMAIL = "noreply@impactnatives.com";
 const ADMIN_URL = "https://app.impactnatives.com/admin";
+
+function secretKeys(): string[] {
+  try { return Object.values(JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}")) as string[]; }
+  catch { return []; }
+}
+function isServerCall(req: Request): boolean {
+  const keys = secretKeys();
+  if (keys.length === 0) return false;
+  const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  const apikey = req.headers.get("apikey") ?? "";
+  return keys.includes(bearer) || keys.includes(apikey);
+}
 
 function row(label: string, value: unknown) {
   const v = value === null || value === undefined || value === "" ? "—" : String(value);
@@ -80,6 +96,9 @@ function buildEmail(payload: { table: string; type: string; record: Record<strin
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: { "Access-Control-Allow-Origin": "*" } });
+  }
+  if (!isServerCall(req)) {
+    return new Response("Unauthorized", { status: 401 });
   }
 
   const payload = await req.json();

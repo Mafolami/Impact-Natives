@@ -2,8 +2,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+function __envKeys(name: string): Record<string, string> {
+  try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
+}
+// 14 Oct 2026: legacy JWT keys disabled after a leak; new publishable/secret keys.
+const SUPABASE_ANON_KEY = __envKeys("SUPABASE_PUBLISHABLE_KEYS")["default"] ?? Object.values(__envKeys("SUPABASE_PUBLISHABLE_KEYS"))[0] ?? "";
+const SUPABASE_SERVICE_ROLE_KEY = __envKeys("SUPABASE_SECRET_KEYS")["default"] ?? Object.values(__envKeys("SUPABASE_SECRET_KEYS"))[0] ?? "";
 const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY") ?? "";
 
 const CORS_HEADERS = {
@@ -120,13 +124,13 @@ function wrapLines(str: string, size: number, f: any, maxWidth: number): string[
 function sanitizeForPdf(input: unknown): string {
   let s = String(input ?? "");
   s = s
-    .replace(/[\u2010\u2011\u2012\u2015\u2212]/g, "-")
-    .replace(/[\u2018\u2019\u201A\u201B]/g, "'")
-    .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
-    .replace(/\u2026/g, "...")
-    .replace(/\u00AD/g, "")
-    .replace(/\u00A0/g, " ")
-    .replace(/\uFEFF/g, "");
+    .replace(/[‐‑‒―−]/g, "-")
+    .replace(/[‘’‚‛]/g, "'")
+    .replace(/[“”„‟]/g, '"')
+    .replace(/…/g, "...")
+    .replace(/­/g, "")
+    .replace(/ /g, " ")
+    .replace(/﻿/g, "");
   s = s.replace(/[^\x00-\xFF]/g, "-");
   return s;
 }
@@ -136,14 +140,6 @@ function titleCaseOrgType(v: string | null | undefined): string {
   return v.split("_").map((w) => (w.toLowerCase() === "ngo" ? "NGO" : w.charAt(0).toUpperCase() + w.slice(1))).join(" ");
 }
 
-// Some org fields (e.g. country) are text columns storing a Postgres
-// array-literal string like "{Nigeria}"; others (e.g. sector) are jsonb
-// columns that supabase-js already deserializes into a real JS array like
-// ["Water, Sanitation & Hygiene", ...]. The original version only handled
-// the string case -- calling .match() on an actual array threw
-// "TypeError: v.match is not a function" and killed ESG generation
-// (confirmed live via console.error on a real export against Sahel Youth
-// Foundation, whose sector column is a genuine array). Handle both.
 function cleanTextField(v: unknown): string {
   if (v === null || v === undefined || v === "") return "";
   if (Array.isArray(v)) return v.filter(Boolean).map((s) => String(s).trim()).join(", ");
@@ -202,32 +198,10 @@ function computeRiskExposure(readinessScore: number, redFlags: string[]): { labe
   return { label: "Standard", detail: "No disclosed compliance flags; DD Readiness completion is above the export threshold but not yet comprehensive." };
 }
 
-// ---------------------------------------------------------------------------
-// ESG report generation, inlined from generate-esg-report (v5).
-//
-// v16 called out to /functions/v1/generate-esg-report over HTTP using
-// fetch(). That self-referential edge-function-to-edge-function call never
-// reached the target function at all -- confirmed via query_logs: zero
-// invocations of generate-esg-report correlate with any dd-export run, and
-// the gap between the get_org_delivery_stats RPC and the next step
-// (dd_export_requests insert) was ~38ms, far too fast for an LLM call to
-// have happened. The fetch was failing (or being blocked) before it ever
-// left the sandbox, and the bare `catch { esgReport = null; }` swallowed
-// whatever the actual error was, so this went undiagnosed across sessions.
-//
-// Fix: generate the ESG report in-process instead of hopping back out over
-// HTTP to another function. Same prompt, same parsing, same tier logic
-// (the compliance-tier gate already enforced earlier in this function is a
-// superset of generate-esg-report's own gate, so no separate check is
-// needed here). Errors are now logged with console.error so a future
-// failure (e.g. Groq key/rate-limit issues) is visible in function_logs
-// instead of silently producing "ESG assessment could not be generated."
-// ---------------------------------------------------------------------------
-
 function normalizeSmartQuotes(text: string): string {
   return text
-    .replace(/[\u201C\u201D]/g, "\"")
-    .replace(/[\u2018\u2019]/g, "'");
+    .replace(/[“”]/g, "\"")
+    .replace(/[‘’]/g, "'");
 }
 
 function repairMissingOpeningQuote(text: string): string {
@@ -534,9 +508,6 @@ Deno.serve(async (req: Request) => {
     }), { status: 403, headers: { "Content-Type": "application/json", ...CORS_HEADERS } });
   }
 
-  // Still computed and stored for other consumers of the snapshot, but no
-  // longer rendered as a Gold/Silver/Bronze badge in the customer PDF -- a
-  // tier badge reads as third-party certification, which this export isn't.
   const trustTier = computeTrustTier(readinessScore, subjectOrg.dd_evidence);
   const redFlags = redFlagSentences(subjectOrg.dd_evidence);
   const riskExposure = computeRiskExposure(readinessScore, redFlags);
@@ -581,6 +552,15 @@ Deno.serve(async (req: Request) => {
     esgReport = null;
   }
 
+  // Verified Outcomes: additive, new for the Impact Verification system.
+  // Reuses get_verified_outcomes_for_org() (the same SECURITY DEFINER RPC
+  // that powers the public-facing Verified Outcomes profile section), so
+  // this export's visibility rule for confirmed/disputed claims stays in
+  // exactly one place rather than being reimplemented here.
+  const { data: verifiedOutcomesRaw } = await svc.rpc("get_verified_outcomes_for_org", { p_org_id: subjectOrgId });
+  const verifiedOutcomes: any[] = verifiedOutcomesRaw ?? [];
+  const disputedVerifiedOutcomes = verifiedOutcomes.filter((v: any) => v.status === "disputed");
+
   const confirmedDates = Object.values(confirmedAt).map((c) => c?.at).filter(Boolean) as string[];
   const firstConfirmed = confirmedDates.length > 0 ? confirmedDates.reduce((a, b) => (a < b ? a : b)) : null;
   const lastConfirmed = confirmedDates.length > 0 ? confirmedDates.reduce((a, b) => (a > b ? a : b)) : null;
@@ -603,6 +583,9 @@ Deno.serve(async (req: Request) => {
     exceptions.push(`Legal registration (${legalRegRow.ref}) is self-attested via the DD checklist and has not passed Impact Natives' formal verification review. See Section 01.`);
   }
   if (redFlags.length > 0) exceptions.push("One or more compliance flags disclosed. See Section 04.");
+  if (disputedVerifiedOutcomes.length > 0) {
+    exceptions.push(`${disputedVerifiedOutcomes.length} previously confirmed impact claim${disputedVerifiedOutcomes.length !== 1 ? "s" : ""} currently disputed. See Section 07.`);
+  }
 
   const overallStatusLabel = readinessScore === 100 ? "COMPLETE" : readinessScore >= 85 ? "SUBSTANTIALLY COMPLETE" : "IN PROGRESS";
 
@@ -667,9 +650,6 @@ Deno.serve(async (req: Request) => {
       newPage();
     }
 
-    // Block-level: measures the whole paragraph and moves it as one unit, so
-    // a two-line footnote can never leave its last line orphaned on the next
-    // page the way per-line pagination did.
     function textBlock(str: string, opts: { size?: number; bold?: boolean; italic?: boolean; color?: any; gap?: number; lead?: number; x?: number; width?: number } = {}) {
       const size = opts.size ?? 10;
       const f = opts.italic ? fontItalic : opts.bold ? fontBold : font;
@@ -685,9 +665,6 @@ Deno.serve(async (req: Request) => {
       y -= opts.gap ?? 0;
     }
 
-    // Kicker sits 19pt above the title baseline; at 17pt the title ascender
-    // is ~12.2pt, leaving real clearance instead of the collision the 18/15
-    // pairing produced.
     function sectionHeading(num: string, title: string) {
       ensureSpace(58);
       page.drawText(`SECTION ${num}`, { x: MARGIN, y, size: 8, font: fontBold, color: green });
@@ -700,8 +677,6 @@ Deno.serve(async (req: Request) => {
     function pillWidth(label: string): number {
       return fontBold.widthOfTextAtSize(label, 8.5) + 14;
     }
-    // baselineY is the text baseline of the row the pill belongs to, so pills
-    // optically align with adjacent plain text on the same line.
     function drawPill(x: number, baselineY: number, label: string, kind: "confirmed" | "neutral" | "muted" | "attention" | "flag") {
       const size = 8.5;
       const w = pillWidth(label);
@@ -805,6 +780,13 @@ Deno.serve(async (req: Request) => {
       { label: "Compliance Flags", pill: redFlags.length > 0 ? `${redFlags.length} Disclosed` : "None Disclosed", kind: redFlags.length > 0 ? "flag" : "confirmed" },
       { label: "Disclosure-Based Risk Indicator", pill: riskExposure.label, kind: riskExposure.label === "Elevated" ? "flag" : riskExposure.label === "Low" ? "confirmed" : "attention" },
       { label: "ESG Assessment", pill: esgReport ? "Included" : "Not Available", kind: esgReport ? "confirmed" : "attention" },
+      {
+        label: "Verified Outcomes",
+        pill: verifiedOutcomes.length > 0
+          ? `${verifiedOutcomes.filter((v: any) => v.status === "confirmed").length} Confirmed${disputedVerifiedOutcomes.length > 0 ? ` · ${disputedVerifiedOutcomes.length} Disputed` : ""}`
+          : "None Recorded",
+        kind: disputedVerifiedOutcomes.length > 0 ? "flag" : verifiedOutcomes.length > 0 ? "confirmed" : "neutral",
+      },
       { label: "Information Basis", pill: "Self-Reported", kind: "neutral" },
     ];
     const execLabelColW = Math.max(...execRows.map((r) => fontBold.widthOfTextAtSize(r.label, 10))) + 34;
@@ -823,8 +805,6 @@ Deno.serve(async (req: Request) => {
     page.drawRectangle({ x: MARGIN, y: execTop - execH, width: CONTENT_W, height: execH, borderColor: border, borderWidth: 1 });
     y = execTop - execH - 26;
 
-    // Overall status card: fixed left column with a divider, both sides
-    // vertically centred against a shared card height.
     const statusLeftW = 232;
     const statusDetail = `${confirmedCount} of ${items.length} due diligence readiness dimensions self-attested at the time of export. ${redFlags.length > 0 ? `${redFlags.length} compliance flag${redFlags.length !== 1 ? "s" : ""} disclosed.` : "No compliance flags disclosed."}`;
     const statusLines = wrapLines(statusDetail, 9, font, CONTENT_W - statusLeftW - 24);
@@ -854,11 +834,6 @@ Deno.serve(async (req: Request) => {
     // ============================================================
     forcePageBreak();
 
-    // For each legal identity field, prefer the org profile value (entered
-    // via the Legal Identity section). If that's missing, fall back to the
-    // equivalent field from dd_evidence.legal_registration (entered via the
-    // DD checklist modal) and append "(Self-Attested)" to signal the source.
-    // If neither exists, show "Not provided".
     const ddLegal = subjectOrg.dd_evidence?.legal_registration ?? {};
     function profileOrDd(profileVal: string | null | undefined, ddVal: string | null | undefined): string {
       const p = cleanTextField(profileVal);
@@ -902,9 +877,6 @@ Deno.serve(async (req: Request) => {
       const labelLines = wrapLines(row.label, 9.5, font, colDim - 18);
       const confLines = wrapLines(confirmedText, 9, font, colConfirmed - 12);
       const detailParts = row.detail ? row.detail.split("; ") : [];
-      // Detail bullets are drawn at x: MARGIN + 24 and must stay within
-      // the Compliance Dimension column (colDim wide) to avoid bleeding
-      // into the Status/Self-Attested pill column to their right.
       const detailLineSets = detailParts.map((p) => wrapLines(p, 8.5, fontItalic, colDim - 20));
       const detailLinesTotal = detailLineSets.reduce((a, s) => a + s.length, 0);
       const topH = Math.max(labelLines.length, confLines.length, 1) * ddLead + ddPad;
@@ -937,10 +909,6 @@ Deno.serve(async (req: Request) => {
     y -= 12;
     textBlock("* Baseline estimate carried over from before per-item confirmation timestamps were tracked: the item was true at that point, exact original date unknown.", { size: 8, italic: true, color: inkSoft, lead: 11 });
 
-    // DD Standing panel -- moved here from its former position after
-    // Relationship Activity (old Section 06). Now sits immediately after
-    // the checklist table so the score and status are read in context,
-    // not separated from the evidence that produces them.
     y -= 20;
     sectionHeading("03", "DD Standing");
     const standLeftW = 150;
@@ -951,9 +919,6 @@ Deno.serve(async (req: Request) => {
     page.drawLine({ start: { x: MARGIN + standLeftW, y: stTop - 11 }, end: { x: MARGIN + standLeftW, y: stTop - standH + 11 }, thickness: 0.5, color: border });
     page.drawText("DD READINESS", { x: MARGIN + 18, y: stTop - standH / 2 + 6, size: 8, font: fontBold, color: green });
     page.drawText(`${readinessScore}%`, { x: MARGIN + 18, y: stTop - standH / 2 - 17, size: 24, font: fontBold, color: green });
-    // Stand lines are wrapped manually since the panel has fixed height --
-    // we can't grow the box, so we need to know line count up front to
-    // centre the text block. First line wraps at the right-column width.
     const standRightW = CONTENT_W - standLeftW - 32;
     const standLine1Wrapped = wrapLines(
       `Status: ${overallStatusLabel} · ${confirmedCount} of ${items.length} ${implementer ? "implementer" : "funder / corporate"} checklist dimensions self-attested.`,
@@ -972,9 +937,6 @@ Deno.serve(async (req: Request) => {
     y = stTop - standH - 12;
     textBlock("This figure represents completion of the defined DD readiness checklist. It is not a credit score, risk rating, certification, or independent verification of the organisation.", { size: 8.5, italic: true, color: inkSoft, lead: 11.5, gap: 26 });
 
-    // Sections 04 and 05 flow on the same page as 03 if there's enough
-    // space for both section headings plus meaningful content (~200pt).
-    // If not, start a new page.
     ensureSpace(200);
 
     sectionHeading("04", "Compliance Flags");
@@ -1056,8 +1018,66 @@ Deno.serve(async (req: Request) => {
     }
     y -= 30;
 
+    // ============================================================
+    // PAGE 5 - Verified Outcomes (new, additive)
+    // ============================================================
     forcePageBreak();
-    sectionHeading("07", "Document Integrity & Verification");
+    sectionHeading("07", "Verified Outcomes");
+    textBlock("Basis: outcome claims mutually confirmed by both partner organisations through Impact Natives' Impact Verification workflow. Distinct from the self-attested DD Readiness checklist above -- these outcomes have been tested and confirmed by an actual partner organisation, not self-reported alone.", { size: 9, italic: true, color: inkSoft, lead: 12, gap: 14 });
+
+    if (verifiedOutcomes.length === 0) {
+      textBlock("No confirmed impact claims are on record for this organisation at the time of export.", { size: 10, gap: 7 });
+    } else {
+      const voColDim = 200, voColStatus = 100, voColDate = 110;
+      const voLead = 12, voPad = 12, voDetailLead = 11;
+      function drawVoTableHeader() {
+        ensureSpace(26 + 4);
+        page.drawRectangle({ x: MARGIN, y: y - 26, width: CONTENT_W, height: 26, color: green });
+        let cx = MARGIN + 12;
+        page.drawText("Indicator / Claim", { x: cx, y: y - 17, size: 10, font: fontBold, color: white }); cx += voColDim;
+        page.drawText("Status", { x: cx, y: y - 17, size: 10, font: fontBold, color: white }); cx += voColStatus;
+        page.drawText("Confirmed", { x: cx, y: y - 17, size: 10, font: fontBold, color: white }); cx += voColDate;
+        page.drawText("Verified By", { x: cx, y: y - 17, size: 10, font: fontBold, color: white });
+        y -= 26;
+      }
+      drawVoTableHeader();
+      const voColPartner = CONTENT_W - voColDim - voColStatus - voColDate;
+      verifiedOutcomes.forEach((vo: any, i: number) => {
+        const titleLine = wrapLines(String(vo.indicator_name ?? "Indicator"), 9.5, fontBold, voColDim - 18);
+        const claimLines = wrapLines(`${vo.claim_text ?? ""} -- Value: ${vo.indicator_value ?? "Not specified"}`, 8.5, fontItalic, voColDim - 20);
+        const partnerLines = wrapLines(String(vo.partner_org_name ?? "Partner"), 9, font, voColPartner - 12);
+        const disputeLines = vo.status === "disputed" && vo.dispute_reason
+          ? wrapLines(`Disputed: ${vo.dispute_reason}`, 8.5, fontItalic, voColDim - 20)
+          : [];
+        const topH = Math.max(titleLine.length, 1) * voLead + voPad;
+        const claimH = claimLines.length * voDetailLead + 4;
+        const disputeH = disputeLines.length * voDetailLead + 4;
+        const rh = Math.max(topH + claimH + disputeH, partnerLines.length * voLead + voPad);
+        if (y - rh < BOTTOM_LIMIT) { newPage(); drawVoTableHeader(); }
+        const rTop = y;
+        if (i % 2 === 1) page.drawRectangle({ x: MARGIN, y: rTop - rh, width: CONTENT_W, height: rh, color: rowAlt });
+        let cx = MARGIN + 12;
+        titleLine.forEach((line, li) => page.drawText(line, { x: cx, y: rTop - 16 - li * voLead, size: 9.5, font: fontBold, color: ink }));
+        let dy = rTop - topH - 2;
+        claimLines.forEach((line) => { page.drawText(line, { x: cx, y: dy, size: 8.5, font: fontItalic, color: inkSoft }); dy -= voDetailLead; });
+        if (disputeLines.length > 0) {
+          disputeLines.forEach((line) => { page.drawText(line, { x: cx, y: dy, size: 8.5, font: fontItalic, color: red }); dy -= voDetailLead; });
+        }
+        cx += voColDim;
+        drawPill(cx, rTop - 16, vo.status === "confirmed" ? "Confirmed" : "Disputed", vo.status === "confirmed" ? "confirmed" : "flag");
+        cx += voColStatus;
+        page.drawText(fmtDate(vo.confirmed_at), { x: cx, y: rTop - 16, size: 9, font, color: ink });
+        cx += voColDate;
+        partnerLines.forEach((line, li) => page.drawText(line, { x: cx, y: rTop - 16 - li * voLead, size: 9, font, color: ink }));
+        if (i > 0) page.drawLine({ start: { x: MARGIN, y: rTop }, end: { x: MARGIN + CONTENT_W, y: rTop }, thickness: 0.5, color: borderSoft });
+        y -= rh;
+      });
+      page.drawLine({ start: { x: MARGIN, y }, end: { x: MARGIN + CONTENT_W, y }, thickness: 0.75, color: border });
+    }
+    y -= 30;
+
+    forcePageBreak();
+    sectionHeading("08", "Document Integrity & Verification");
     drawKeyValueTable([
       { label: "Process Reference ID", value: exportId },
       { label: "Integrity Verification", value: "SHA-256 checksum computed at generation and stored in Impact Natives' compliance records under this reference ID. Compare the checksum against that record to confirm this file has not been altered since generation." },

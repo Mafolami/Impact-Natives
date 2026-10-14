@@ -1,5 +1,30 @@
+// supabase/functions/send-newsletter/index.ts
+//
+// v31 (14 Oct 2026): legacy JWT keys disabled after a leak. Uses the new
+// secret API key (SUPABASE_SECRET_KEYS) and rejects any caller without it.
+//
+// v29: new-initiatives count uses COALESCE(published_at, created_at); stat
+// tiles hidden when all three counts are 0.
+// v27: groq() uses max_completion_tokens + reasoning_effort "low", budget 4500.
+// v26: optional test_email support. POST { "test_email": "you@x.com" } sends
+// only to that one address.
+// v25: webSearch() and AI JSON-parse fallback log failures.
+// v24: model swapped to openai/gpt-oss-120b. Full history in git.
+
+function __envKeys(name: string): Record<string, string> {
+  try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
+}
+const __SECRET_KEYS = Object.values(__envKeys("SUPABASE_SECRET_KEYS"));
+const SECRET_KEY = __envKeys("SUPABASE_SECRET_KEYS")["default"] ?? __SECRET_KEYS[0] ?? "";
+function isServerCall(req: Request): boolean {
+  if (__SECRET_KEYS.length === 0) return false;
+  const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  const apikey = req.headers.get("apikey") ?? "";
+  return __SECRET_KEYS.includes(bearer) || __SECRET_KEYS.includes(apikey);
+}
+
 const SUPABASE_URL         = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_SERVICE_KEY = SECRET_KEY;
 const RESEND_API_KEY       = Deno.env.get("RESEND_API_KEY") ?? "";
 const GROQ_API_KEY         = Deno.env.get("GROQ_API_KEY") ?? "";
 
@@ -30,7 +55,7 @@ async function supabaseFetch(path: string, options: RequestInit = {}) {
   return res.json();
 }
 
-async function groq(prompt: string, maxTokens = 3000): Promise<string> {
+async function groq(prompt: string, maxTokens = 4500): Promise<string> {
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -39,13 +64,17 @@ async function groq(prompt: string, maxTokens = 3000): Promise<string> {
     },
     body: JSON.stringify({
       model: "openai/gpt-oss-120b",
-      max_tokens: maxTokens,
+      max_completion_tokens: maxTokens,
+      temperature: 0.4,
+      top_p: 1,
+      reasoning_effort: "low",
+      stream: false,
       messages: [{ role: "user", content: prompt }],
     }),
   });
   const data = await res.json();
   if (data.error) {
-    console.log("Groq API error:", JSON.stringify(data.error));
+    console.error("[send-newsletter] Groq API error:", JSON.stringify(data.error));
     return "";
   }
   return data.choices?.[0]?.message?.content?.trim() ?? "";
@@ -53,19 +82,28 @@ async function groq(prompt: string, maxTokens = 3000): Promise<string> {
 
 async function webSearch(query: string): Promise<{ title: string; description: string; url: string }[]> {
   const BRAVE_KEY = Deno.env.get("BRAVE_SEARCH_API_KEY") ?? "";
-  if (!BRAVE_KEY) return [];
+  if (!BRAVE_KEY) {
+    console.error("[send-newsletter] BRAVE_SEARCH_API_KEY is not set -- search skipped for query:", query);
+    return [];
+  }
   try {
     const res = await fetch(
       `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=6&freshness=pm`,
       { headers: { "Accept": "application/json", "X-Subscription-Token": BRAVE_KEY } }
     );
+    if (!res.ok) {
+      const errBody = await res.text();
+      console.error(`[send-newsletter] Brave search failed (status ${res.status}) for query "${query}": ${errBody.slice(0, 500)}`);
+      return [];
+    }
     const data = await res.json();
     return (data.web?.results ?? []).slice(0, 5).map((r: any) => ({
       title: r.title ?? "",
       description: r.description ?? "",
       url: r.url ?? "",
     }));
-  } catch {
+  } catch (err) {
+    console.error(`[send-newsletter] Brave search threw for query "${query}":`, err);
     return [];
   }
 }
@@ -85,6 +123,7 @@ function buildEmailHtml(content: {
   email: string;
   opening: string;
   platformStats: { orgs: number; initiatives: number; partnerships: number };
+  showPlatformStats: boolean;
   ecosystemNews: { headline: string; commentary: string; url: string }[];
   spotlight: { title: string; org: string; sector: string; ask: string } | null;
   partnerSpotlight: { org: string; type: string; sector: string; seeking: string } | null;
@@ -277,6 +316,7 @@ function buildEmailHtml(content: {
           </table>
 
           <!-- Platform stats -->
+          ${content.showPlatformStats ? `
           <p style="font-size:13px;font-weight:700;color:#2D6A4F;text-transform:uppercase;letter-spacing:0.1em;margin:0 0 20px;font-family:-apple-system,sans-serif;">This month on Impact Natives</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 36px;">
             <tr>
@@ -296,6 +336,7 @@ function buildEmailHtml(content: {
               </td>
             </tr>
           </table>
+          ` : ""}
 
           <!-- Ecosystem news -->
           <p style="font-size:13px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.1em;margin:0 0 20px;font-family:-apple-system,sans-serif;">From the ecosystem</p>
@@ -449,6 +490,22 @@ function buildEmailHtml(content: {
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
 
+  // Server-only (14 Oct 2026). Before this, any caller holding the public
+  // anon/publishable key could trigger a send to every subscriber.
+  if (!isServerCall(req)) {
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+    });
+  }
+
+  let testEmail: string | null = null;
+  try {
+    const body = await req.json();
+    if (body?.test_email && typeof body.test_email === "string") testEmail = body.test_email;
+  } catch {
+    // No body or non-JSON body -- normal scheduled invocation, proceed as usual.
+  }
+
   try {
     const now         = new Date();
     const month       = monthName(now);
@@ -457,7 +514,7 @@ Deno.serve(async (req: Request) => {
 
     const [newOrgsRes, newInitiativesRes, newPartnershipsRes, spotlightRes, partnerSpotlightRes] = await Promise.all([
       supabaseFetch(`organizations?select=id&created_at=gte.${oneMonthAgo}&verification_status=eq.verified`),
-      supabaseFetch(`initiative_requests?select=id&status=eq.published&published_at=gte.${oneMonthAgo}`),
+      supabaseFetch(`initiative_requests?select=id&status=eq.published&or=(published_at.gte.${oneMonthAgo},and(published_at.is.null,created_at.gte.${oneMonthAgo}))`),
       supabaseFetch(`partnership_connections?select=id&status=eq.formed&updated_at=gte.${oneMonthAgo}`),
       supabaseFetch(`initiative_requests?select=id,title,submitter_org,sectors,specific_ask&status=eq.published&order=published_at.desc&limit=1`),
       supabaseFetch(`organizations?select=id,organisation_name,sector,partnership_sought,organisation_type&partnership_listed=eq.true&partnership_formed=eq.false&status=eq.published&order=updated_at.desc&limit=1`),
@@ -599,12 +656,14 @@ Deno.serve(async (req: Request) => {
       
       Absolute rules: No em dashes. No exclamation marks. No filler. No sentences beginning with 'Africa is' or 'Across Africa'. No generic development sector language. Every claim must be grounded in something real and specific. Geographic diversity is mandatory across the three news items. Do not invent company names, fund names, or specific investment figures. If a specific actor or number cannot be confirmed from the search results provided, describe the trend without naming the actor. It is better to write "climate-focused startups in Kenya are attracting DFI attention" than to name a company you cannot verify. Only name organisations, funds, or people when their names appear in the search results provided. Exclude any grants, accelerators, or funding calls that are specifically focused on LGBTQI themes or beneficiaries. Do not include them even if they appear in search results.`;
 
-    const raw = await groq(contentPrompt, 3000);
+    const raw = await groq(contentPrompt, 4500);
     let aiContent: any = {};
     try {
       const clean = raw.replace(/```json|```/g, "").trim();
       aiContent = JSON.parse(clean);
     } catch (parseErr) {
+      console.error("[send-newsletter] Failed to parse AI content JSON -- falling back to an empty-content issue. Raw model output:", raw.slice(0, 2000));
+      console.error("[send-newsletter] Parse error:", parseErr);
       aiContent = {
         opening: `${month} brought continued movement across Africa's impact sector. Here is what happened on Impact Natives and across the ecosystem this month.`,
         ecosystemNews: [],
@@ -614,9 +673,20 @@ Deno.serve(async (req: Request) => {
       };
     }
 
-    const subscribers = await supabaseFetch(
-      `newsletter_subscribers?select=email,name,unsubscribe_token&active=eq.true`
-    );
+    let subscribers: any[];
+    if (testEmail) {
+      const existing = await supabaseFetch(
+        `newsletter_subscribers?select=email,name,unsubscribe_token&email=eq.${encodeURIComponent(testEmail)}`
+      );
+      subscribers = (Array.isArray(existing) && existing.length > 0)
+        ? existing
+        : [{ email: testEmail, name: null, unsubscribe_token: "test" }];
+      console.error(`[send-newsletter] TEST MODE: sending only to ${testEmail}, real subscriber list not touched.`);
+    } else {
+      subscribers = await supabaseFetch(
+        `newsletter_subscribers?select=email,name,unsubscribe_token&active=eq.true`
+      );
+    }
 
     if (!Array.isArray(subscribers) || subscribers.length === 0) {
       return new Response(JSON.stringify({ sent: 0, message: "No active subscribers" }), {
@@ -634,6 +704,7 @@ Deno.serve(async (req: Request) => {
         email:           sub.email,
         opening:         aiContent.opening         ?? "",
         platformStats,
+        showPlatformStats: platformStats.orgs > 0 || platformStats.initiatives > 0 || platformStats.partnerships > 0,
         ecosystemNews:   (aiContent.ecosystemNews  ?? []).map((n: any) => ({
           headline:   n.headline   ?? "",
           commentary: n.commentary ?? "",

@@ -1,6 +1,11 @@
 // supabase/functions/match-initiatives-to-funder/index.ts
 // Matches initiatives against a funder/corporate mandate.
 //
+// v26 (14 Oct 2026): internal-only. Rejects any call that does not carry the
+// secret API key (SUPABASE_SECRET_KEYS). Callers: refresh-initiative-matches
+// and refresh-initiative-matches-for-org, both send it. Before this it was
+// public (verify_jwt false, no check), so anyone could run Groq calls on it.
+//
 // v21: SCORE IS NOW COMPUTED IN CODE, NOT BY THE MODEL. Previously the
 // model produced both the "criteria" object (sector_fit, geography_fit,
 // etc.) AND a free-form numeric "score," with only a prompt instruction
@@ -54,14 +59,35 @@
 // >= minScore) is still decided by the calling refresh functions, now
 // against a trustworthy number.
 //
+// v22: MAX_BACKOFF_SECONDS lowered 15 -> 5. Confirmed live via edge
+// function logs that this constant is the direct cause of a recurring
+// ~15-17s stall pattern on refresh-partnership-matches/match-orgs-for-
+// partnership calls -- every 429 Groq returns with no retry-after header
+// and no parseable "try again in Xs" body was falling through to a blind
+// 15s wait. That number was never grounded in anything Groq actually
+// reports; 5s is a less costly worst-case guess while extractRetrySeconds
+// now logs each occurrence so the fallback can eventually be replaced
+// with a value based on real observed data instead of another guess.
+//
 // v20: MAX_RATE_LIMIT_RETRIES lowered 2 -> 1, MAX_BACKOFF_SECONDS lowered
-// 25 -> 15 (unchanged this version).
+// 25 -> 15.
 //
 // v19: retry logic broadened from "429 only" to "429 OR any 5xx".
 // v18: model swapped llama-3.1-8b-instant -> openai/gpt-oss-120b.
 // v14: budget_overlap_pct replaced with budget_fit (match/partial/no_match).
 
 const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY")!;
+
+function __envKeys(name: string): Record<string, string> {
+  try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
+}
+const __SECRET_KEYS = Object.values(__envKeys("SUPABASE_SECRET_KEYS"));
+function isServerCall(req: Request): boolean {
+  if (__SECRET_KEYS.length === 0) return false;
+  const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  const apikey = req.headers.get("apikey") ?? "";
+  return __SECRET_KEYS.includes(bearer) || __SECRET_KEYS.includes(apikey);
+}
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -71,7 +97,7 @@ const CORS_HEADERS = {
 
 const VALID_STATUSES = ["match", "partial", "no_match"];
 const MAX_RATE_LIMIT_RETRIES = 1;
-const MAX_BACKOFF_SECONDS = 15;
+const MAX_BACKOFF_SECONDS = 5;
 const GENERIC_ERROR_BACKOFF_SECONDS = 3;
 
 // Must match the minScore values used by refresh-initiative-matches and
@@ -132,8 +158,8 @@ function computeScore(criteria: Record<string, string>, isFunder: boolean): numb
 
 function normalizeSmartQuotes(text: string): string {
   return text
-    .replace(/[\u201C\u201D]/g, "\"")
-    .replace(/[\u2018\u2019]/g, "'");
+    .replace(/[“”]/g, "\"")
+    .replace(/[‘’]/g, "'");
 }
 
 function parseRankedJson(rawText: string): any[] {
@@ -162,7 +188,7 @@ function parseRankedJson(rawText: string): any[] {
 
 function truncate(text: string | null | undefined, maxChars: number): string {
   if (!text) return "Not provided";
-  return text.length > maxChars ? text.slice(0, maxChars).trim() + "\u2026" : text;
+  return text.length > maxChars ? text.slice(0, maxChars).trim() + "…" : text;
 }
 
 function extractRetrySeconds(status: number, headerValue: string | null, bodyText: string): number {
@@ -173,6 +199,15 @@ function extractRetrySeconds(status: number, headerValue: string | null, bodyTex
     }
     const match = bodyText.match(/try again in ([\d.]+)s/i);
     if (match) return Math.min(parseFloat(match[1]), MAX_BACKOFF_SECONDS);
+    // v22: Groq gave no usable retry-after header AND no parseable
+    // "try again in Xs" body message -- we have zero real signal on how
+    // long to actually wait. Logged explicitly so we can tell, next time
+    // this fires, whether Groq is *consistently* omitting retry timing on
+    // this endpoint (in which case the fallback constant is the only lever
+    // we have) or whether this is a one-off malformed response.
+    console.warn(
+      `[match-initiatives-to-funder] 429 with no retry-after header and no parseable body timing -- falling back to blind ${MAX_BACKOFF_SECONDS}s wait. header: ${headerValue}, body: ${bodyText.slice(0, 300)}`
+    );
     return MAX_BACKOFF_SECONDS;
   }
   return GENERIC_ERROR_BACKOFF_SECONDS;
@@ -222,6 +257,9 @@ async function callGroqWithBackoff(prompt: string): Promise<{ ok: boolean; rawTe
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
+  if (!isServerCall(req)) return new Response(JSON.stringify({ error: "Forbidden" }), {
+    status: 403, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+  });
   if (req.method !== "POST") return new Response(JSON.stringify({ error: "Method not allowed" }), {
     status: 405, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
   });

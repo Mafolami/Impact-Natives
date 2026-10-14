@@ -1,41 +1,31 @@
 // supabase/functions/score-partnership-fit/index.ts
-// v8: subscription_tier gate added, same reasoning as refresh-partnership-
-// matches / refresh-partnership-matches-for-org. Reuses the existing
-// server-side lookup of the viewer org's row (already fetched to check
-// flagged_visibility_hold, since viewer_org arrives untrusted in the
-// request body) -- just adds subscription_tier to that same select rather
-// than a second round trip.
+// Powers the directory's "Your fit analysis" box.
 //
-// v7: flagged_visibility_hold self-exclusion for the viewer. viewer_org
-// arrives directly from the request body (never fetched server-side in
-// this function), so it can't be trusted the way refresh-partnership-
-// matches / refresh-partnership-matches-for-org trust their own DB-fetched
-// org row -- an explicit lookup by id is needed here instead. Companion to
-// v32 of match-orgs-for-partnership (candidate-side exclusion, which this
-// function already inherits automatically since its single-pair call
-// reuses that same candidateQuery) and v8/v15 of the two refresh workers
-// (same self-exclusion, different call paths).
-//
-// v6: no longer runs its own independent scoring prompt. It's a thin proxy
-// onto match-orgs-for-partnership's single-pair mode -- the same function
-// and same scoring logic that powers the Home page's match cards. This is
-// what guarantees the fit score for a given pair of orgs is identical
-// wherever it's shown in the app; before this change, this function used a
-// separate prompt/model and could (and did) produce a different number for
-// the same pair than the Home cards did.
-//
-// Reads/writes partnership_match_cache directly (org_id = viewer, matched_org_id
-// = listing) -- the same table Home's refresh-partnership-matches writes to.
-// A pair already cached from Home browsing shows up here instantly; a pair
-// never computed gets a live single-pair call. Cache is stale if older than
-// 24h, either org's profile changed since, or the row predates CRITERIA_VERSION.
+// v14 (14 Oct 2026): caller must be signed in AND be the viewer org's owner,
+// an active member, or an admin. Before this the function trusted the
+// viewer_org_id in the request body, so anyone with the public key could
+// run scoring as any paid org and read its cached fit analysis.
+// v13 (14 Oct 2026): legacy JWT keys disabled after a leak. Uses the new
+// secret API key (SUPABASE_SECRET_KEYS) for DB access and for the internal
+// call to match-orgs-for-partnership. No logic change.
+// v11: throttled fan-out (MAX_CONCURRENT_COMPUTES).
+// v10: listing-scoped, scores against every open viewer listing, cached
+// per (submitting_listing_id, target_listing_id).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+function __envKeys(name: string): Record<string, string> {
+  try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
+}
+const SECRET_KEY = __envKeys("SUPABASE_SECRET_KEYS")["default"] ?? Object.values(__envKeys("SUPABASE_SECRET_KEYS"))[0] ?? "";
+const PUBLISHABLE_KEY = __envKeys("SUPABASE_PUBLISHABLE_KEYS")["default"] ?? Object.values(__envKeys("SUPABASE_PUBLISHABLE_KEYS"))[0] ?? "";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_SERVICE_KEY = SECRET_KEY;
 const CACHE_TTL_HOURS = 24;
-const CRITERIA_VERSION = 3;
+const CRITERIA_VERSION_FALLBACK = 3;
+const ALSO_FITS_THRESHOLD = 45;
+const MAX_CONCURRENT_COMPUTES = 2;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -45,6 +35,54 @@ const CORS_HEADERS = {
 
 const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+async function getCriteriaVersion(): Promise<number> {
+  const { data, error } = await serviceClient
+    .from("criteria_versions")
+    .select("version")
+    .eq("match_type", "partnership")
+    .maybeSingle();
+  if (error || !data) {
+    console.error(`[score-partnership-fit] criteria_versions read failed, falling back to ${CRITERIA_VERSION_FALLBACK}: ${error?.message}`);
+    return CRITERIA_VERSION_FALLBACK;
+  }
+  return data.version;
+}
+
+async function resolveOrgUserIds(org: any): Promise<string[]> {
+  const { data: members } = await serviceClient
+    .from("org_members")
+    .select("user_id")
+    .eq("org_id", org.id)
+    .eq("status", "active");
+  return [org.user_id, ...((members ?? []).map((m: any) => m.user_id))].filter(Boolean);
+}
+
+async function computeOne(listingId: string, targetListingId: string): Promise<any | null> {
+  const matchRes = await fetch(`${SUPABASE_URL}/functions/v1/match-orgs-for-partnership`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SUPABASE_SERVICE_KEY}`, "apikey": SUPABASE_SERVICE_KEY },
+    body: JSON.stringify({ submitting_listing_id: listingId, target_listing_id: targetListingId }),
+  });
+  if (!matchRes.ok) {
+    console.error(`[score-partnership-fit] match call failed for listing ${listingId}: ${await matchRes.text()}`);
+    return null;
+  }
+  const { matches } = await matchRes.json();
+  return matches?.[0] ?? null;
+}
+
+async function runWithConcurrencyLimit<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
+  let cursor = 0;
+  async function worker() {
+    while (cursor < items.length) {
+      const idx = cursor++;
+      await fn(items[idx]);
+    }
+  }
+  const workers = Array.from({ length: Math.min(limit, items.length) }, () => worker());
+  await Promise.all(workers);
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
   if (req.method !== "POST") return new Response(JSON.stringify({ error: "Method not allowed" }), {
@@ -52,126 +90,158 @@ Deno.serve(async (req: Request) => {
   });
 
   try {
-    const { viewer_org, listing_org } = await req.json();
-
-    if (!viewer_org?.id || !listing_org?.id) return new Response(
-      JSON.stringify({ error: "viewer_org and listing_org (with id) are required" }),
-      { status: 400, headers: { "Content-Type": "application/json", ...CORS_HEADERS } }
-    );
-
-    const { data: viewerOrgRow } = await serviceClient
-      .from("organizations")
-      .select("flagged_visibility_hold, subscription_tier")
-      .eq("id", viewer_org.id)
-      .maybeSingle();
-
-    if (viewerOrgRow?.flagged_visibility_hold) {
-      return new Response(JSON.stringify({ error: "This organisation's matching is currently on hold pending review." }), {
-        status: 403, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
-      });
-    }
-
-    // Instant AI fit analysis is a Plus+ feature (see billing scoping
-    // notes). Same gate as the bulk-matching path, applied here too since
-    // this is a separate call path a Free-tier org could otherwise hit
-    // directly to get a real AI-scored fit for free.
-    if (viewerOrgRow?.subscription_tier === "free") {
-      return new Response(JSON.stringify({
-        error: "Instant AI fit analysis requires a Plus plan or higher.",
-        requires_upgrade: true, required_tier: "plus",
-      }), {
-        status: 403, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
-      });
-    }
-
-    const { data: cached } = await serviceClient
-      .from("partnership_match_cache")
-      .select("fit_score, reasons, gaps, rationale, opening_message, criteria, criteria_version, computed_at")
-      .eq("org_id", viewer_org.id)
-      .eq("matched_org_id", listing_org.id)
-      .maybeSingle();
-
-    if (cached) {
-      const computedAtMs = new Date(cached.computed_at).getTime();
-      const ageHours = (Date.now() - computedAtMs) / (1000 * 60 * 60);
-      const viewerUpdatedMs = viewer_org.updated_at ? new Date(viewer_org.updated_at).getTime() : 0;
-      const listingUpdatedMs = listing_org.updated_at ? new Date(listing_org.updated_at).getTime() : 0;
-      const eitherProfileChanged = viewerUpdatedMs > computedAtMs || listingUpdatedMs > computedAtMs;
-      // A row written by Home's bulk mode has no opening_message -- that field
-      // only gets filled by single-pair mode. Treat as stale so this pair
-      // gets a real single-pair compute the first time it's actually viewed.
-      const hasFullDetail = cached.opening_message != null;
-      const isFresh = ageHours < CACHE_TTL_HOURS && !eitherProfileChanged
-        && cached.criteria_version === CRITERIA_VERSION && hasFullDetail;
-
-      if (isFresh) {
-        return new Response(JSON.stringify({
-          result: {
-            fit_score: cached.fit_score,
-            reasons: cached.reasons ?? [],
-            gaps: cached.gaps ?? [],
-            rationale: cached.rationale,
-            opening_message: cached.opening_message,
-          },
-          cached: true,
-        }), { status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS } });
-      }
-    }
-
-    const matchRes = await fetch(`${SUPABASE_URL}/functions/v1/match-orgs-for-partnership`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SUPABASE_SERVICE_KEY}` },
-      body: JSON.stringify({ submitting_org: viewer_org, target_org_id: listing_org.id }),
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const callerClient = createClient(SUPABASE_URL, PUBLISHABLE_KEY, {
+      global: { headers: { Authorization: authHeader } },
     });
-
-    if (!matchRes.ok) {
-      const err = await matchRes.text();
-      // Compute failed -- leave any existing cache untouched, same
-      // never-clear-a-good-result principle as before.
-      return new Response(JSON.stringify({ error: `Matching failed: ${err}` }), {
-        status: 502, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+    const { data: { user }, error: userError } = await callerClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
       });
     }
 
-    const { matches } = await matchRes.json();
-    const result = matches?.[0];
+    const { viewer_org_id, target_listing_id } = await req.json();
+    if (!viewer_org_id || !target_listing_id) {
+      return new Response(JSON.stringify({ error: "viewer_org_id and target_listing_id are required" }), {
+        status: 400, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      });
+    }
 
-    if (!result) {
-      // The listing org isn't (or no longer) an eligible candidate -- e.g. it
-      // doesn't have an active posted partnership request. Nothing to score.
-      return new Response(JSON.stringify({ error: "This organisation does not have an active partnership request to score against." }), {
+    const CRITERIA_VERSION = await getCriteriaVersion();
+
+    const { data: viewerOrg, error: viewerOrgErr } = await serviceClient
+      .from("organizations")
+      .select("id, user_id, flagged_visibility_hold, subscription_tier")
+      .eq("id", viewer_org_id)
+      .maybeSingle();
+    if (viewerOrgErr || !viewerOrg) {
+      return new Response(JSON.stringify({ error: "Viewer organisation not found" }), {
         status: 404, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
       });
     }
 
-    serviceClient.from("partnership_match_cache").upsert({
-      org_id: viewer_org.id,
-      matched_org_id: listing_org.id,
-      fit_score: result.fit_score,
-      rationale: result.rationale ?? null,
-      key_synergy: result.key_synergy ?? null,
-      criteria: result.criteria ?? null,
-      reasons: result.reasons?.length ? result.reasons : null,
-      gaps: result.gaps?.length ? result.gaps : null,
-      opening_message: result.opening_message ?? null,
-      criteria_version: CRITERIA_VERSION,
-      computed_at: new Date().toISOString(),
-    }, { onConflict: "org_id,matched_org_id" }).then(({ error }) => {
-      if (error) console.error("partnership_match_cache write failed:", error.message);
+    const orgUserIds = await resolveOrgUserIds(viewerOrg);
+    if (!orgUserIds.includes(user.id)) {
+      const { data: callerProfile } = await serviceClient
+        .from("profiles").select("is_admin").eq("id", user.id).maybeSingle();
+      if (!callerProfile?.is_admin) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+        });
+      }
+    }
+
+    if (viewerOrg.flagged_visibility_hold) {
+      return new Response(JSON.stringify({ eligible: false, reason: "flagged_visibility_hold" }), {
+        status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      });
+    }
+    if (viewerOrg.subscription_tier === "free") {
+      return new Response(JSON.stringify({ eligible: false, reason: "requires_upgrade", required_tier: "plus" }), {
+        status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      });
+    }
+
+    const { data: viewerListings, error: listingsErr } = await serviceClient
+      .from("partnership_listings")
+      .select("id, title")
+      .in("user_id", orgUserIds)
+      .eq("status", "published");
+    if (listingsErr) throw listingsErr;
+
+    if (!viewerListings || viewerListings.length === 0) {
+      return new Response(JSON.stringify({ eligible: true, reason: "no_published_listing" }), {
+        status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      });
+    }
+
+    const listingIds = viewerListings.map((l: any) => l.id);
+    const { data: existingRows } = await serviceClient
+      .from("partnership_match_cache")
+      .select("submitting_listing_id, matched_org_id, fit_score, rationale, key_synergy, criteria, reasons, gaps, opening_message, criteria_version, computed_at")
+      .in("submitting_listing_id", listingIds)
+      .eq("matched_listing_id", target_listing_id);
+
+    const cacheByListingId = new Map((existingRows ?? []).map((r: any) => [r.submitting_listing_id, r]));
+    const now = Date.now();
+
+    const results: { listingId: string; listingTitle: string; fitScore: number; rationale: string; keySynergy: string | null; criteria: any; reasons: string[]; gaps: string[]; openingMessage: string | null }[] = [];
+
+    const needsCompute: any[] = [];
+    for (const listing of viewerListings) {
+      const cached = cacheByListingId.get(listing.id);
+      const ageHours = cached ? (now - new Date(cached.computed_at).getTime()) / (1000 * 60 * 60) : Infinity;
+      const isFresh = !!cached && ageHours < CACHE_TTL_HOURS
+        && cached.criteria_version === CRITERIA_VERSION
+        && cached.opening_message != null;
+
+      if (isFresh) {
+        results.push({
+          listingId: listing.id, listingTitle: listing.title,
+          fitScore: cached.fit_score, rationale: cached.rationale, keySynergy: cached.key_synergy,
+          criteria: cached.criteria, reasons: cached.reasons ?? [], gaps: cached.gaps ?? [],
+          openingMessage: cached.opening_message,
+        });
+        continue;
+      }
+      needsCompute.push(listing);
+    }
+
+    await runWithConcurrencyLimit(needsCompute, MAX_CONCURRENT_COMPUTES, async (listing: any) => {
+      const m = await computeOne(listing.id, target_listing_id);
+      if (!m) return;
+
+      results.push({
+        listingId: listing.id, listingTitle: listing.title,
+        fitScore: m.fit_score, rationale: m.rationale, keySynergy: m.key_synergy ?? null,
+        criteria: m.criteria ?? null, reasons: m.reasons ?? [], gaps: m.gaps ?? [],
+        openingMessage: m.opening_message ?? null,
+      });
+
+      serviceClient.from("partnership_match_cache").upsert({
+        org_id: viewerOrg.id,
+        matched_org_id: m.matched_org_id,
+        submitting_listing_id: listing.id,
+        matched_listing_id: target_listing_id,
+        fit_score: m.fit_score,
+        rationale: m.rationale ?? null,
+        key_synergy: m.key_synergy ?? null,
+        criteria: m.criteria ?? null,
+        reasons: m.reasons?.length ? m.reasons : null,
+        gaps: m.gaps?.length ? m.gaps : null,
+        opening_message: m.opening_message ?? null,
+        criteria_version: CRITERIA_VERSION,
+        computed_at: new Date().toISOString(),
+      }, { onConflict: "submitting_listing_id,matched_listing_id" }).then(({ error }) => {
+        if (error) console.error("[score-partnership-fit] cache write failed:", error.message);
+      });
     });
 
+    if (results.length === 0) {
+      return new Response(JSON.stringify({ error: "This listing is not an eligible candidate to score against." }), {
+        status: 404, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      });
+    }
+
+    results.sort((a, b) => b.fitScore - a.fitScore);
+    const [primary, ...rest] = results;
+    const alsoFits = rest.filter(r => r.fitScore >= ALSO_FITS_THRESHOLD)
+      .map(r => ({ listing_id: r.listingId, listing_title: r.listingTitle, fit_score: r.fitScore }));
+
     return new Response(JSON.stringify({
-      result: {
-        fit_score: result.fit_score,
-        reasons: result.reasons ?? [],
-        gaps: result.gaps ?? [],
-        rationale: result.rationale,
-        opening_message: result.opening_message,
+      eligible: true,
+      primary: {
+        listing_id: primary.listingId, listing_title: primary.listingTitle,
+        fit_score: primary.fitScore, rationale: primary.rationale, key_synergy: primary.keySynergy,
+        criteria: primary.criteria, reasons: primary.reasons, gaps: primary.gaps,
+        opening_message: primary.openingMessage,
       },
-      cached: false,
+      also_fits: alsoFits,
     }), { status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS } });
 
   } catch (err) {
+    console.error(`[score-partnership-fit] Uncaught exception: ${String(err)}`);
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
     });

@@ -1,16 +1,45 @@
-const SUPABASE_URL         = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+// supabase/functions/unsubscribe-email/index.ts
+// v7 (14 Oct 2026): redirect to impactnatives.com/unsubscribe. The page only
+// exists on the marketing domain; on app.impactnatives.com the router sends
+// every non-dashboard path to /signin, so people never saw the confirmation.
+// v6 (14 Oct 2026): legacy JWT keys disabled after a leak; uses the new
+// secret API key. Also deployed with verify_jwt OFF: this is opened from a
+// plain link in an email, which carries no Authorization header, so with
+// verify_jwt on every click got a 401 JSON error instead of unsubscribing.
+// user_id must now be a UUID.
+//
+// v4: extended for the nudge cron's notification types. Sets
+// notification_preferences[type] = false.
 
-const ALLOWED_TYPES = ["weekly_sector_match", "partner_match"];
+function __envKeys(name: string): Record<string, string> {
+  try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
+}
+const SECRET_KEY = __envKeys("SUPABASE_SECRET_KEYS")["default"] ?? Object.values(__envKeys("SUPABASE_SECRET_KEYS"))[0] ?? "";
+
+const SUPABASE_URL         = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_KEY = SECRET_KEY;
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const ALLOWED_TYPES = [
+  "weekly_sector_match",
+  "partner_match",
+  "account_setup_incomplete",
+  "no_activity",
+  "stale_partnership_request",
+  "unanswered_conversation",
+  "reengagement",
+  "verification_reminder",
+];
 
 Deno.serve(async (req: Request) => {
   const url = new URL(req.url);
   const userId = url.searchParams.get("user_id");
   const type   = url.searchParams.get("type");
 
-  const appUrl = "https://app.impactnatives.com";
+  const appUrl = "https://impactnatives.com";
 
-  if (!userId || !type || !ALLOWED_TYPES.includes(type)) {
+  if (!userId || !UUID_RE.test(userId) || !type || !ALLOWED_TYPES.includes(type)) {
     return Response.redirect(`${appUrl}/unsubscribe?status=invalid`, 302);
   }
 

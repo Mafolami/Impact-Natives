@@ -1,5 +1,23 @@
+// supabase/functions/monthly-activity-digest/index.ts
+// v29 (14 Oct 2026): legacy JWT keys disabled after a leak. Uses the new
+// secret API key (SUPABASE_SECRET_KEYS); cron-only check compares the
+// caller's key against every key in SUPABASE_SECRET_KEYS (the env always
+// holds the live set, so the old vault-vs-env drift problem cannot recur).
+
+function __envKeys(name: string): Record<string, string> {
+  try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
+}
+const __SECRET_KEYS = Object.values(__envKeys("SUPABASE_SECRET_KEYS"));
+const SECRET_KEY = __envKeys("SUPABASE_SECRET_KEYS")["default"] ?? __SECRET_KEYS[0] ?? "";
+function isServerCall(req: Request): boolean {
+  if (__SECRET_KEYS.length === 0) return false;
+  const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  const apikey = req.headers.get("apikey") ?? "";
+  return __SECRET_KEYS.includes(bearer) || __SECRET_KEYS.includes(apikey);
+}
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_SERVICE_KEY = SECRET_KEY;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 
 const CORS_HEADERS = {
@@ -108,7 +126,7 @@ function buildDigestEmailHtml(opts: {
                 <a href="${ctaLink}" style="display: block; text-align: center; background: #2D6A4F; color: #ffffff; font-size: 14px; font-weight: 600; line-height: 20px; padding: 14px 28px; border-radius: 8px; text-decoration: none; margin: 28px 0 12px;">Open Dashboard</a>
                 <a href="https://app.impactnatives.com/dashboard/marketplace" style="display: block; text-align: center; background: transparent; color: #2D6A4F; font-size: 14px; font-weight: 600; line-height: 20px; padding: 13px 28px; border-radius: 8px; text-decoration: none; border: 1px solid #2D6A4F; margin: 0 0 40px;">Browse All Opportunities</a>
                 <p style="font-size: 13px; color: #333; margin: 0 0 20px; padding-top: 24px; border-top: 1px solid #e5e5e5;">
-                  Know someone or an organization making impact in the ${opts.primarySector} sector? Forward this along — they might find something here too.
+                  Know someone or an organization making impact in the ${opts.primarySector} sector? Forward this along, they might find something here too.
                 </p>
                 <p style="font-size: 12px; color: #999; margin: 0 0 12px;">
                   Questions? Visit the <a href="https://app.impactnatives.com/faq" style="color: #2D6A4F;">Help Centre</a> or <a href="https://app.impactnatives.com/contact" style="color: #2D6A4F;">contact us</a>.
@@ -131,19 +149,18 @@ async function sendEmail(to: string, subject: string, html: string) {
       "Content-Type": "application/json",
       Authorization: `Bearer ${RESEND_API_KEY}`,
     },
-    body: JSON.stringify({ from: "Impact Natives <notifications@impactnatives.com>", to, subject, html }),  });
+    body: JSON.stringify({ from: "Impact Natives <notifications@impactnatives.com>", to, subject, html }),
+  });
   if (!res.ok) console.log("Resend error:", await res.text());
 }
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
 
-  // Service-role-only: this function loops over every user on the platform and
-  // sends notifications + emails. It must never be reachable with the public
-  // anon key or any regular user session token — only the scheduled cron job,
-  // which authenticates with the service role key, may call this.
-  const authHeader = req.headers.get("Authorization") ?? "";
-  if (authHeader !== `Bearer ${SUPABASE_SERVICE_KEY}`) {
+  // Server-only: this function loops over every user on the platform and
+  // sends notifications + emails. Only the scheduled cron job, which sends
+  // the secret key, may call this.
+  if (!isServerCall(req)) {
     return new Response(JSON.stringify({ error: "Forbidden" }), {
       status: 403, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
     });
@@ -256,7 +273,7 @@ Deno.serve(async (req: Request) => {
         body: JSON.stringify({
           user_id: profile.id,
           type: "monthly_activity_digest",
-          title: `Your activity summary — ${firstName}`,
+          title: `Your activity summary: ${firstName}`,
           body,
           link,
           read: false,

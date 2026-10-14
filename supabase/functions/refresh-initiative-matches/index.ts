@@ -2,41 +2,26 @@
 // Session-resolved wrapper around match-initiatives-to-funder, same pattern
 // as refresh-partnership-matches.
 //
-// v23: subscription_tier gate added. AI-powered initiative matching is a
-// Plus+ feature (see billing scoping notes) -- same gate, same reasoning
-// as v17 of refresh-partnership-matches, applied here since this is a
-// separate pipeline (match-initiatives-to-funder) that wasn't covered by
-// that earlier fix. A Free-tier org now gets eligible:false before any AI
-// compute happens.
-//
-// v22: org lookup now goes through resolve_org_owner_id() instead of
-// user.id directly -- same fix, same reasoning as
-// refresh-partnership-matches v16.
-//
-// v21: flagged_visibility_hold, both directions.
-//
-// v20: CRITERIA_VERSION moved out of a local hardcoded constant into the
-// `criteria_versions` table (match_type='initiative'), read once per
-// request.
-//
-// v19: mandate_sectors legacy fallback fix + batch retry on transient
-// failure.
-//
-// v17: CRITERIA_VERSION bumped 4 -> 5.
-//
-// v16: minScore is no longer a cache-write filter.
-//
-// v15: csr_focus_statement now included in the corporate mandate object.
-//
-// v14: STOP FULL-CACHE CHURN.
-//
-// v11: PAGINATED FETCH.
+// v30 (14 Oct 2026): legacy JWT keys disabled after a leak. Uses the new
+// publishable key (caller client) and secret key (service client), and now
+// sends the secret key to the scoring functions. No logic change.
+// v26: explicit ORG_SELECT_COLUMNS (column-level grants).
+// v25: parseLegacySector handles jsonb arrays.
+// v24: implementers routed to match-initiatives-for-implementer.
+// v23: subscription_tier gate. v22: resolve_org_owner_id().
+// v21: flagged_visibility_hold. v20: CRITERIA_VERSION from table.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+function __envKeys(name: string): Record<string, string> {
+  try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
+}
+const SECRET_KEY = __envKeys("SUPABASE_SECRET_KEYS")["default"] ?? Object.values(__envKeys("SUPABASE_SECRET_KEYS"))[0] ?? "";
+const PUBLISHABLE_KEY = __envKeys("SUPABASE_PUBLISHABLE_KEYS")["default"] ?? Object.values(__envKeys("SUPABASE_PUBLISHABLE_KEYS"))[0] ?? "";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_ANON_KEY = PUBLISHABLE_KEY;
+const SUPABASE_SERVICE_KEY = SECRET_KEY;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -53,6 +38,8 @@ const FETCH_SAFETY_CAP = 300;
 const FUNDER_TYPES = ["philanthropic_foundation", "venture_capital"];
 const CORPORATE_TYPES = ["corporation", "technology_company", "public_sector"];
 const ESG_PARTNERSHIP_TYPES = ["operational", "strategic", "lead", "other"];
+
+const ORG_SELECT_COLUMNS = "id, user_id, organisation_name, organisation_type, description, sector, country, needs, offers, flagged_visibility_hold, subscription_tier, investment_thesis, grant_range_min, grant_range_max, grant_currency, funding_instruments, geographic_focus, stage_preference, mandate_sectors, mandate_sdgs, esg_frameworks, csr_focus_statement, csr_budget_range";
 
 async function getCriteriaVersion(serviceClient: any): Promise<number> {
   const { data, error } = await serviceClient
@@ -73,8 +60,9 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out;
 }
 
-function parseLegacySector(raw: string | null | undefined): string[] {
-  if (!raw) return [];
+function parseLegacySector(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw.filter((s) => typeof s === "string" && s.trim());
+  if (typeof raw !== "string" || !raw.trim()) return [];
   try {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) return parsed.filter((s) => typeof s === "string" && s.trim());
@@ -85,10 +73,6 @@ function parseLegacySector(raw: string | null | undefined): string[] {
   }
 }
 
-// engine: "funder" calls the existing funder/corporate-specific scorer
-// unchanged; "implementer" calls the new generic five-criteria scorer
-// (match-initiatives-for-implementer), which takes submitting_org directly
-// rather than a synthetic funder-style mandate object.
 async function scoreInitiatives(mandateOrOrg: any, initiatives: any[], engine: "funder" | "implementer" = "funder"): Promise<any[]> {
   if (initiatives.length === 0) return [];
   const batches = chunk(initiatives, BATCH_SIZE);
@@ -99,7 +83,7 @@ async function scoreInitiatives(mandateOrOrg: any, initiatives: any[], engine: "
     try {
       const matchRes = await fetch(`${SUPABASE_URL}/functions/v1/${endpoint}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SECRET_KEY}`, "apikey": SECRET_KEY },
         body: JSON.stringify({ [bodyKey]: mandateOrOrg, initiatives: batchInitiatives }),
       });
       if (!matchRes.ok) {
@@ -157,7 +141,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: org, error: orgError } = await callerClient
       .from("organizations")
-      .select("*")
+      .select(ORG_SELECT_COLUMNS)
       .eq("user_id", ownerId)
       .maybeSingle();
 
@@ -170,10 +154,6 @@ Deno.serve(async (req: Request) => {
     const orgTypeForGate = org.organisation_type;
     const isFunder = FUNDER_TYPES.includes(orgTypeForGate);
     const isCorporate = CORPORATE_TYPES.includes(orgTypeForGate);
-    // Implementer = anything else (NGOs, social enterprises, startups).
-    // Peer-to-peer initiative discovery uses a different scoring engine
-    // (see scoreInitiatives' engine param) since match-initiatives-to-funder
-    // has no equivalent for a viewer with no grant range or CSR budget.
     const isImplementer = !isFunder && !isCorporate;
 
     if (org.flagged_visibility_hold) {
@@ -243,10 +223,6 @@ Deno.serve(async (req: Request) => {
         partnership_types: ESG_PARTNERSHIP_TYPES,
       };
     } else {
-      // Implementer: no synthetic mandate object -- match-initiatives-for-
-      // implementer takes the org's own profile fields directly (same
-      // convention as match-orgs-for-partnership's submitting_org), since
-      // there's no grant range or CSR budget to translate into one.
       minScore = 45;
       selectCols = "id,title,sectors,locations,status,created_at,problem,outcome,specific_ask,stage,sdg_tags,target_population,submitter_org,user_id,open_to_remote_partnerships";
       mandate = org;

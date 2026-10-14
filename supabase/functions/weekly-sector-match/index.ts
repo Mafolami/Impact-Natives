@@ -1,6 +1,29 @@
+// supabase/functions/weekly-sector-match/index.ts
+//
+// v56 (14 Oct 2026): legacy JWT keys disabled after a leak. Uses the new
+// secret API key (SUPABASE_SECRET_KEYS); cron-only check compares the
+// caller's key against it. Also: Groq call switched from max_tokens to
+// max_completion_tokens + reasoning_effort "low" (gpt-oss-120b is a
+// reasoning model; with max_tokens 100 it could spend the budget reasoning
+// and return empty, falling back to generic copy).
+//
+// v54: model swapped llama-3.1-8b-instant -> openai/gpt-oss-120b.
+
+function __envKeys(name: string): Record<string, string> {
+  try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
+}
+const __SECRET_KEYS = Object.values(__envKeys("SUPABASE_SECRET_KEYS"));
+const SECRET_KEY = __envKeys("SUPABASE_SECRET_KEYS")["default"] ?? __SECRET_KEYS[0] ?? "";
+function isServerCall(req: Request): boolean {
+  if (__SECRET_KEYS.length === 0) return false;
+  const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  const apikey = req.headers.get("apikey") ?? "";
+  return __SECRET_KEYS.includes(bearer) || __SECRET_KEYS.includes(apikey);
+}
+
 const GROQ_API_KEY         = Deno.env.get("GROQ_API_KEY") ?? "";
 const SUPABASE_URL         = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_SERVICE_KEY = SECRET_KEY;
 const RESEND_API_KEY       = Deno.env.get("RESEND_API_KEY") ?? "";
 
 const CORS_HEADERS = {
@@ -47,12 +70,13 @@ Return ONLY the message text.`;
     },
     body: JSON.stringify({
       model: "openai/gpt-oss-120b",
-      max_tokens: 100,
+      max_completion_tokens: 400,
+      reasoning_effort: "low",
       messages: [{ role: "user", content: prompt }],
     }),
   });
   const data = await res.json();
-  return data.choices?.[0]?.message?.content?.trim() ?? `${matchCount} new initiative${matchCount !== 1 ? "s" : ""} in your sectors this week.`;
+  return data.choices?.[0]?.message?.content?.trim() || `${matchCount} new initiative${matchCount !== 1 ? "s" : ""} in your sectors this week.`;
 }
 
 function buildEmailHtml(headline: { name: string; sub: string }, bodyText: string, matchTitles: string[], partnerListings: string[], ctaLabel: string, ctaLink: string, userId: string): string {  const bulletBlock = matchTitles.length > 0
@@ -145,12 +169,10 @@ async function sendEmail(to: string, subject: string, html: string) {
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
 
-  // Service-role-only: this function loops over every user on the platform and
-  // sends notifications + emails. It must never be reachable with the public
-  // anon key or any regular user session token — only the scheduled cron job,
-  // which authenticates with the service role key, may call this.
-  const authHeader = req.headers.get("Authorization") ?? "";
-  if (authHeader !== `Bearer ${SUPABASE_SERVICE_KEY}`) {
+  // Server-only: this function loops over every user on the platform and
+  // sends notifications + emails. Only the scheduled cron job, which sends
+  // the secret key, may call this.
+  if (!isServerCall(req)) {
     return new Response(JSON.stringify({ error: "Forbidden" }), {
       status: 403, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
     });
@@ -286,7 +308,7 @@ Deno.serve(async (req: Request) => {
       notificationsSent++;
     }
 
-    // ── Proactive partner-match notifications ──────────────────────────────
+    // ── Proactive partner-match notifications ─────────────────────────────────────────────
     // Fetch recent partner_match notifications (last 30 days) for deduplication
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     const recentPartnerNotifs = await supabaseFetch(
@@ -380,7 +402,7 @@ Deno.serve(async (req: Request) => {
       notificationsSent++;
     }
 
-    // ── New verified org notifications ─────────────────────────────────────
+    // ── New verified org notifications ──────────────────────────────────────
     // Notify corporates and funders when a new verified org joins in their sectors
 
     const INVESTOR_ORG_TYPES = [
@@ -446,7 +468,6 @@ Deno.serve(async (req: Request) => {
               type:    "new_verified_org",
               title:   `${matchingOrgs.length} new verified org${matchingOrgs.length !== 1 ? "s" : ""} in your sectors`,
               body:    `${orgNames}${extra} joined and verified this week in sectors you work in.`,
-              link:    "/dashboard/natives?tab=organisation",
               read:    false,
             }),
           });

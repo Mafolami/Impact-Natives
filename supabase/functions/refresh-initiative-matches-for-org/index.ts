@@ -1,31 +1,38 @@
 // supabase/functions/refresh-initiative-matches-for-org/index.ts
 // Internal-only worker: recomputes initiative matches for exactly ONE org,
-// given its org_id.
+// given its org_id. Only caller: sweep-stale-initiative-matches.
 //
-// v7: subscription_tier gate added, same reasoning as v23 of
-// refresh-initiative-matches (the interactive sibling) and v9 of
-// refresh-partnership-matches-for-org (the equivalent worker on the
-// partnership side).
+// v18 (14 Oct 2026): parseLegacySector now accepts a jsonb array. sector is
+// stored as jsonb, so it arrives as an array and the old string-only parser
+// threw "raw.trim is not a function" for any corporate org with no
+// mandate_sectors.
 //
-// v6: flagged_visibility_hold, both directions.
+// v17 (14 Oct 2026): legacy JWT keys disabled after a leak. Uses the new
+// secret API key (SUPABASE_SECRET_KEYS), rejects any call that does not carry
+// it, and sends it to the scoring functions.
 //
-// v5: CRITERIA_VERSION moved out of a local hardcoded constant into the
-// `criteria_versions` table (match_type='initiative').
-//
-// v4: mirrors refresh-initiative-matches v19.
-//
-// Exists so each org's matching work gets its OWN full edge-function
-// execution-time budget, rather than sharing one budget across several
-// orgs processed in a single invocation.
-//
-// v3: mirrors refresh-initiative-matches v14-v16.
-//
-// v2: STOP FULL-CACHE CHURN.
+// v10: DEMO INITIATIVE EXCLUSION (is_demo_initiative = false).
+// v9: DEMO ORG EXCLUSION (organizations.is_demo_org).
+// v8: implementers routed to match-initiatives-for-implementer.
+// v7: subscription_tier gate. v6: flagged_visibility_hold.
+// v5: CRITERIA_VERSION from criteria_versions. v2: stop full-cache churn.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+function __envKeys(name: string): Record<string, string> {
+  try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
+}
+const __SECRET_KEYS = Object.values(__envKeys("SUPABASE_SECRET_KEYS"));
+const SECRET_KEY = __envKeys("SUPABASE_SECRET_KEYS")["default"] ?? __SECRET_KEYS[0] ?? "";
+function isServerCall(req: Request): boolean {
+  if (__SECRET_KEYS.length === 0) return false;
+  const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  const apikey = req.headers.get("apikey") ?? "";
+  return __SECRET_KEYS.includes(bearer) || __SECRET_KEYS.includes(apikey);
+}
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_SERVICE_KEY = SECRET_KEY;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -62,8 +69,10 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out;
 }
 
-function parseLegacySector(raw: string | null | undefined): string[] {
+function parseLegacySector(raw: unknown): string[] {
   if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter((s) => typeof s === "string" && s.trim());
+  if (typeof raw !== "string") return [];
   try {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) return parsed.filter((s) => typeof s === "string" && s.trim());
@@ -110,13 +119,17 @@ function buildMandate(org: any, isFunder: boolean, isCorporate: boolean): any {
     };
   }
   // Implementer: no synthetic mandate -- match-initiatives-for-implementer
-  // takes the org's own profile directly, same convention as
-  // match-orgs-for-partnership's submitting_org.
+  // takes the org's own profile directly.
   return org;
 }
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
+  if (!isServerCall(req)) {
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+    });
+  }
   if (req.method !== "POST") return new Response(JSON.stringify({ error: "Method not allowed" }), {
     status: 405, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
   });
@@ -177,7 +190,8 @@ Deno.serve(async (req: Request) => {
       .from("initiative_requests")
       .select(selectCols)
       .eq("status", "published")
-      .neq("user_id", org.user_id)   // ← add this
+      .eq("is_demo_initiative", false)
+      .neq("user_id", org.user_id)
       .order("created_at", { ascending: false })
       .limit(FETCH_SAFETY_CAP);
 
@@ -186,7 +200,14 @@ Deno.serve(async (req: Request) => {
       .select("user_id")
       .eq("flagged_visibility_hold", true);
     const heldUserIds = new Set((heldOrgs ?? []).map((o: any) => o.user_id));
-    const allPublished = (allPublishedRaw ?? []).filter((i: any) => !heldUserIds.has(i.user_id));
+
+    const { data: demoOrgs } = await serviceClient
+      .from("organizations")
+      .select("user_id")
+      .eq("is_demo_org", true);
+    const demoUserIds = new Set((demoOrgs ?? []).map((o: any) => o.user_id));
+
+    const allPublished = (allPublishedRaw ?? []).filter((i: any) => !heldUserIds.has(i.user_id) && !demoUserIds.has(i.user_id));
 
     if (!allPublished.length) {
       return new Response(JSON.stringify({ org_id, matches_cached: 0 }), {
@@ -215,7 +236,11 @@ Deno.serve(async (req: Request) => {
       try {
         const matchRes = await fetch(`${SUPABASE_URL}/functions/v1/${scoringEndpoint}`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${SECRET_KEY}`,
+            "apikey": SECRET_KEY,
+          },
           body: JSON.stringify({ [scoringBodyKey]: mandate, initiatives: batchInitiatives }),
         });
         if (!matchRes.ok) {

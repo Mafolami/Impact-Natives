@@ -1,6 +1,20 @@
+// supabase/functions/generate-impact-strategy/index.ts
+// v40 (14 Oct 2026): legacy JWT keys disabled after a leak. Uses the new
+// publishable key (caller client) and secret key (service writes). Groq
+// calls switched from max_tokens to max_completion_tokens + reasoning_effort
+// "low" (same fix as every other gpt-oss-120b function). No other change.
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+function __envKeys(name: string): Record<string, string> {
+  try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
+}
+const SECRET_KEY = __envKeys("SUPABASE_SECRET_KEYS")["default"] ?? Object.values(__envKeys("SUPABASE_SECRET_KEYS"))[0] ?? "";
+const PUBLISHABLE_KEY = __envKeys("SUPABASE_PUBLISHABLE_KEYS")["default"] ?? Object.values(__envKeys("SUPABASE_PUBLISHABLE_KEYS"))[0] ?? "";
+
 const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_SERVICE_ROLE_KEY = SECRET_KEY;
+const SUPABASE_ANON_KEY = PUBLISHABLE_KEY;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -232,7 +246,8 @@ async function callGroqWithRetry(
       },
       body: JSON.stringify({
         model: "openai/gpt-oss-120b",
-        max_tokens: 4000,
+        max_completion_tokens: 4000,
+        reasoning_effort: "low",
         response_format: { type: "json_object" },
         messages,
       }),
@@ -547,7 +562,8 @@ ${prebuiltStrategicApproach}`;
     },
     body: JSON.stringify({
       model: "openai/gpt-oss-120b",
-      max_tokens: 2000,
+      max_completion_tokens: 2500,
+      reasoning_effort: "low",
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt },
@@ -714,8 +730,6 @@ STRICT OUTPUT RULES — NEVER VIOLATE:
 Example of a valid proposal response:
 {"reply":"I noticed the current pillars don't cover environmental sustainability. I've prepared a proposal below for your review.","pillars":null,"proposal":{"summary":"Adding a tree-planting pillar targeting schools in Lagos to address SDG 15 and AU Agenda 2063 Goal 7.","changes":[{"pillar_name":"Urban Reforestation in Schools","what_changes":"New pillar added: 500 trees planted across 20 Lagos schools, targeting students aged 10-15, measurable outcome of 30% green coverage increase within 12 months."}],"proposed_pillars":[...]}}`;
 
-  // Only inject pillar context on the first turn.
-  // On subsequent turns the model already has it from conversation history.
   const isFirstTurn = messages.length === 1;
 
   const groqMessages = [
@@ -750,7 +764,8 @@ Example of a valid proposal response:
       },
       body: JSON.stringify({
         model: "openai/gpt-oss-120b",
-        max_tokens: 3000,
+        max_completion_tokens: 3500,
+        reasoning_effort: "low",
         response_format: { type: "json_object" },
         messages: groqMessages,
       }),
@@ -796,7 +811,6 @@ Example of a valid proposal response:
       }
     }
 
-    // Validate proposed_pillars inside proposal if present
     if (parsed.proposal?.proposed_pillars) {
       const validation = validatePillars(parsed.proposal.proposed_pillars);
       if (!validation.valid) {
@@ -833,6 +847,42 @@ Deno.serve(async (req: Request) => {
   try {
     const body = await req.json();
 
+    const { organization_id } = body;
+    if (!organization_id) {
+      return new Response(JSON.stringify({ error: "organization_id is required" }), {
+        status: 400, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      });
+    }
+
+    // Auth + Compliance+ tier gate; organization_id must match the caller's own org.
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const callerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: userError } = await callerClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      });
+    }
+    const { data: ownerId } = await callerClient.rpc("resolve_org_owner_id");
+    const { data: callerOrg } = await callerClient
+      .from("organizations").select("id, subscription_tier").eq("user_id", ownerId ?? user.id).maybeSingle();
+
+    if (!callerOrg || callerOrg.id !== organization_id) {
+      return new Response(JSON.stringify({ error: "Not authorized for this organization" }), {
+        status: 403, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      });
+    }
+    if (callerOrg.subscription_tier !== "compliance") {
+      return new Response(JSON.stringify({
+        error: "Strategy Builder requires a Compliance plan.",
+        requires_upgrade: true, required_tier: "compliance",
+      }), {
+        status: 403, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      });
+    }
+
     if (body.action === "push_pillar") {
       return handlePushPillar(body);
     }
@@ -849,11 +899,11 @@ Deno.serve(async (req: Request) => {
       return handleGenerateExecutiveSummary(body);
     }
 
-    const { organization_id, industry_sector, operating_country, core_assets, csi_budget } = body;
+    const { industry_sector, operating_country, core_assets, csi_budget } = body;
 
-    if (!organization_id || !industry_sector) {
+    if (!industry_sector) {
       return new Response(
-        JSON.stringify({ error: "organization_id and industry_sector are required" }),
+        JSON.stringify({ error: "industry_sector is required" }),
         { status: 400, headers: { "Content-Type": "application/json", ...CORS_HEADERS } }
       );
     }

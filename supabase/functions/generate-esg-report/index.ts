@@ -1,8 +1,16 @@
+// supabase/functions/generate-esg-report/index.ts
+// v8 (14 Oct 2026): legacy JWT keys disabled after a leak. Caller client
+// uses the new publishable key. No logic change.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+function __envKeys(name: string): Record<string, string> {
+  try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
+}
+const PUBLISHABLE_KEY = __envKeys("SUPABASE_PUBLISHABLE_KEYS")["default"] ?? Object.values(__envKeys("SUPABASE_PUBLISHABLE_KEYS"))[0] ?? "";
 
 const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY") ?? "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const SUPABASE_ANON_KEY = PUBLISHABLE_KEY;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -11,23 +19,13 @@ const CORS_HEADERS = {
 };
 
 // NOTE: this prompt/parsing logic is duplicated in generate-dd-export
-// (generateEsgReportInline), which inlines its own copy rather than
-// calling this function over HTTP -- see that file's header comment for
-// why (a self-referential edge-function-to-edge-function fetch() call
-// was silently failing). Supabase edge functions can't share code across
-// functions via import, so if the ESG prompt, E/S/G mapping rules, or
+// (generateEsgReportInline). If the ESG prompt, E/S/G mapping rules, or
 // JSON schema ever change, both copies need the same change by hand.
-// Checked both copies directly against Supabase on 2026-08-18 -- as of
-// that check, the prompts are identical except for track_record?.
-// vs track_record. optional chaining, which is correct in both places
-// (this function receives track_record from the client and it can be
-// undefined; the inlined copy constructs it itself and it's always
-// defined).
 
 function normalizeSmartQuotes(text: string): string {
   return text
-    .replace(/[\u201C\u201D]/g, "\"")
-    .replace(/[\u2018\u2019]/g, "'");
+    .replace(/[“”]/g, "\"")
+    .replace(/[‘’]/g, "'");
 }
 
 function repairMissingOpeningQuote(text: string): string {
@@ -65,20 +63,7 @@ function parseReportJson(rawText: string): Record<string, any> {
   return JSON.parse(salvaged);
 }
 
-// v6: org.sector and org.country weren't run through any cleanup before
-// hitting the prompt. sector is a jsonb array column (e.g. ["Water,
-// Sanitation & Hygiene", ...]) that supabase-js deserializes into a real
-// JS array -- interpolating it directly via `${org.sector}` calls
-// Array.prototype.toString(), which comma-joins WITHOUT a space after
-// each comma ("Water, Sanitation & Hygiene,Climate" instead of "...,
-// Climate"), unlike the .match() crash this caused in generate-dd-export
-// (this function never calls .match() on it, so it never threw -- it
-// just produced slightly malformed prompt text). country is a text
-// column storing a Postgres array-literal string like "{Nigeria}",
-// which would render into the prompt literally as "{Nigeria}" rather
-// than "Nigeria". Same cleanTextField fix already applied in
-// generate-dd-export, ported here so both copies handle these two field
-// shapes the same way.
+// v6: cleanTextField for jsonb-array sector and Postgres array-literal country.
 function cleanTextField(v: unknown): string {
   if (v === null || v === undefined || v === "") return "";
   if (Array.isArray(v)) return v.filter(Boolean).map((s) => String(s).trim()).join(", ");
@@ -99,16 +84,7 @@ Deno.serve(async (req: Request) => {
     status: 405, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
   });
 
-  // Tier gate: viewing your OWN org's ESG Snapshot requires Plus+.
-  // Evaluating ANOTHER org's ESG Snapshot requires Pro+. Resolves the
-  // caller's own org via their session (auth.getUser() ->
-  // resolve_org_owner_id() -> organizations lookup), matching the pattern
-  // in generate-deal-memo / generate-csr-brief. Self vs other is
-  // determined by comparing the org_id in the request body against the
-  // caller's own resolved org id -- not trusted from the client alone,
-  // since org_id is just used to pick which tier list applies, and a
-  // mismatch only ever makes the gate stricter (falls through to the
-  // Pro+ "evaluating another org" requirement), never looser.
+  // Tier gate: own org's ESG Snapshot requires Plus+, another org's requires Pro+.
   const authHeader = req.headers.get("Authorization") ?? "";
   const callerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: authHeader } },
@@ -145,11 +121,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // dd_readiness.items is the org's own checklist (implementer's 9-item
-    // set, or funder/corporate's 6-item set) -- which one depends on
-    // dd_readiness.is_implementer. Scoring and the prompt below are both
-    // generic over whichever list was sent, so a funder org's real
-    // completion shows up here instead of always reading as 0%.
     const ddItems: DdItem[] = Array.isArray(dd_readiness?.items) ? dd_readiness.items : [];
     const isImplementer = Boolean(dd_readiness?.is_implementer);
     const ddScore = ddItems.length > 0
@@ -211,7 +182,7 @@ STRUCTURAL HONESTY — apply before writing anything:
 
 LANGUAGE — avoid filler and hype: do not use innovative, cutting-edge, world-class, state-of-the-art, robust, dynamic, empowering, leverage, synergy, holistic, foster, stakeholders, "meaningful difference," "positive difference," "responsible business," "proven," "evidence-based," "best practice" (without a citation), "eliminate," "eradicate," "solve," "unprecedented," or ownerless passive phrasing like "it is hoped that."
 
-Return ONLY a valid JSON object. No markdown, no backticks, no explanation text before or after the JSON. Use only straight double quotes (") for every field — never curly or typographic quotes, never omit the opening quote of a string value, and always place a comma between every field except the last one.
+Return ONLY a valid JSON object. No markdown, no backticks, no explanation text before or after the JSON. Use only straight double quotes (\") for every field — never curly or typographic quotes, never omit the opening quote of a string value, and always place a comma between every field except the last one.
 
 {"headline":"<One sentence orienting the reader to what this snapshot shows and its overall data maturity — not a score>","environmental":"<2-3 sentences, honest about thin data if applicable>","social":"<3-4 sentences weaving safeguarding/beneficiary reach and real Delivery outcomes together>","governance":"<3-4 sentences on the org's documentation and any disclosed compliance flags, named explicitly if present>","data_gaps":["<specific gap 1>","<specific gap 2>","<specific gap 3>"],"summary":"<2-3 sentences giving the reader a fair overall read of documentation maturity across the three pillars, without inventing a score>"}
 

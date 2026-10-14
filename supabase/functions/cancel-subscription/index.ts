@@ -1,37 +1,32 @@
 // supabase/functions/cancel-subscription/index.ts
 //
-// Lets a caller cancel their own paid plan -- an org Owner, or an
-// individual (no org) account. Must run as an edge function rather than a
-// direct client-side update -- organizations' AND profiles' subscription_*
-// columns deliberately have no UPDATE grant for the `authenticated` role
-// (see the security fix locking down profiles.subscription_* and the
-// pre-existing equivalent on organizations -- both specifically to stop a
-// caller self-granting a paid tier through the same call path used for
-// ordinary profile/org edits). A direct client update here would just get
-// a 42501 permission denied, correctly.
+// Lets a caller cancel their own paid plan (org Owner or individual).
+// Must be an edge function: subscription_* columns have no UPDATE grant for
+// `authenticated`. "Cancel" reverts to Free immediately and clears the
+// stored authorization_code so renew-subscriptions can't re-charge.
+// Allowed from 'active' and 'past_due'.
 //
-// There's no true recurring Paystack Subscription/Plan object to cancel --
-// renewal works by re-charging the stored card authorization directly (see
-// renew-subscriptions), not through Paystack's own subscription mechanism.
-// So "cancel" here means: revert to Free immediately, forfeiting the
-// remainder of the paid period, rather than waiting for the natural
-// downgrade-expired-subscriptions cron at period end. The stored
-// authorization_code is cleared too, so renew-subscriptions can never
-// re-charge a canceled account on its next daily run. Allowed from both
-// 'active' and 'past_due' -- a past_due account (failed auto-renewal, still
-// has paid-tier access during its grace window) should be able to cancel
-// just as easily as an active one, not be stuck waiting for the grace
-// window to run out on its own.
-//
-// v2: individual (no org) cancellation support. Checks for an org first
-// (unchanged org behaviour), falls back to the caller's own profile row
-// if none exists.
+// v6 (14 Oct 2026): org and profile reads use the service client, scoped to
+// the verified user id. subscription_status is being revoked from
+// authenticated on organizations; with the caller client that read would
+// fail, org would come back null, and the cancel would hit the profile
+// instead of the org. A lookup error now returns 500 rather than falling
+// through.
+// v5 (14 Oct 2026): legacy JWT keys disabled after a leak. Uses the new
+// publishable key (caller client) and secret key (service client).
+// v2: individual (no org) cancellation support.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+function __envKeys(name: string): Record<string, string> {
+  try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
+}
+const SECRET_KEY = __envKeys("SUPABASE_SECRET_KEYS")["default"] ?? Object.values(__envKeys("SUPABASE_SECRET_KEYS"))[0] ?? "";
+const PUBLISHABLE_KEY = __envKeys("SUPABASE_PUBLISHABLE_KEYS")["default"] ?? Object.values(__envKeys("SUPABASE_PUBLISHABLE_KEYS"))[0] ?? "";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_ANON_KEY = PUBLISHABLE_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = SECRET_KEY;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -59,13 +54,18 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Caller must be the Owner -- resolved by their own user_id, same
-    // convention as invite-team-member and paystack-initialize.
-    const { data: org, error: orgError } = await callerClient
+    const { data: org, error: orgError } = await serviceClient
       .from("organizations")
       .select("id, subscription_tier, subscription_status")
       .eq("user_id", user.id)
       .maybeSingle();
+
+    if (orgError) {
+      console.error("[cancel-subscription] organizations lookup failed", { error: orgError.message, code: orgError.code });
+      return new Response(JSON.stringify({ error: "Could not load your organisation. Please try again." }), {
+        status: 500, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      });
+    }
 
     const tableName = org ? "organizations" : "profiles";
     let recordId: string;
@@ -77,7 +77,7 @@ Deno.serve(async (req: Request) => {
       currentTier = org.subscription_tier;
       currentStatus = org.subscription_status;
     } else {
-      const { data: profile, error: profileError } = await callerClient
+      const { data: profile, error: profileError } = await serviceClient
         .from("profiles")
         .select("id, subscription_tier, subscription_status")
         .eq("id", user.id)
