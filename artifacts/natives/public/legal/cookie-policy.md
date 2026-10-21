@@ -1,7 +1,7 @@
 # Cookie Policy
 
 **Impact Natives Ltd**
-Last updated: June 2025
+Last updated: August 2026
 
 ---
 
@@ -77,3 +77,4 @@ If you have questions about our use of cookies:
 Email: contact@impactnatives.com
 
 Website: impactnatives.com
+

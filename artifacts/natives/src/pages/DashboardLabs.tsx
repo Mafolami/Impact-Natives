@@ -42,7 +42,7 @@ const STATUS_MAP: Record<string, { label: string; dot: string; bg: string; descr
     label: "Not approved",
     dot: "#ef4444",
     bg: "#fef2f2",
-    description: "Your proposal was not taken forward at this time. Reach out to hello@impactnatives.com for feedback.",
+    description: "Your proposal was not taken forward at this time. Reach out to contact@impactnatives.com for feedback.",
   },
   in_progress: {
     label: "In progress",
@@ -195,8 +195,8 @@ function LabDetail({ lab, onBack }: { lab: LabRow; onBack: () => void }) {
       {/* Help */}
       <p className="text-[13px] text-muted-foreground text-center">
         Questions? Reach out at{" "}
-        <a href="mailto:hello@impactnatives.com" className="text-[#2D6A4F] hover:underline underline-offset-2">
-          hello@impactnatives.com
+        <a href="mailto:contact@impactnatives.com" className="text-[#2D6A4F] hover:underline underline-offset-2">
+          contact@impactnatives.com
         </a>
       </p>
     </div>

@@ -3,6 +3,13 @@
 // initiative discovery), as a sibling to match-initiatives-to-funder rather
 // than a modification of it.
 //
+// v5 (Oct 2026): PROPORTIONAL DD. The DD-readiness cap is gone. The
+// callers now attach dd_status / dd_missing / deal_bucket per initiative
+// (judged on the poster's checklist against the initiative's own budget);
+// this function passes them through and sorts by DD tier, then score.
+// Prompt: Africa-focused wording, size-neutral instruction, no DD figure,
+// plus the initiative's support types and the poster's yes/no documented
+// impact (partner-confirmed claims on Natives).
 // v4 (14 Oct 2026): internal-only. Rejects any call that does not carry the
 // secret API key (SUPABASE_SECRET_KEYS). Callers: refresh-initiative-matches
 // and refresh-initiative-matches-for-org, both send it. Before this it was
@@ -49,8 +56,7 @@
 // from "no_match" to "partial" -- with hard gates now live, a parsing
 // hiccup defaulting to no_match could wrongly fail a genuine match.
 //
-// DD readiness cap: unchanged, applied to the submitting org's own DD
-// fields, after the new deterministic score, exactly as before.
+// DD readiness cap: removed in v5 (see above).
 
 const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY")!;
 
@@ -115,11 +121,10 @@ function sanitizeCriteria(raw: any): Record<string, string> | null {
   return out;
 }
 
-function applyDdCap(fitScore: number, ddReadinessScore: number | undefined): number {
-  const pct = ddReadinessScore ?? 0;
-  if (pct < 40) return Math.min(fitScore, 40);
-  if (pct < 60) return Math.min(fitScore, 65);
-  return fitScore;
+// Same ranking as dd.ts in the refresh functions. Unknown status ranks last.
+const DD_RANK: Record<string, number> = { complete: 0, exempt: 0, tier_missing: 1, basics_incomplete: 2 };
+function ddRank(status: string | null | undefined): number {
+  return status && status in DD_RANK ? DD_RANK[status] : 2;
 }
 
 function formatSectorDisplay(raw: any): string {
@@ -210,8 +215,10 @@ async function callGroqWithBackoff(prompt: string, maxTokens: number, logLabel: 
 }
 
 function buildPrompt(submitting_org: any, initiativesSubset: any[]): string {
-  return `You are a partnership matching analyst for Impact Natives, a social impact platform focused on UK-Africa collaborations.
+  return `You are a partnership matching analyst for Impact Natives, a coordination platform for Africa's social impact sector.
 Your job: judge the initiatives below against the submitting organisation's own profile -- this is peer-to-peer discovery, not funding evaluation. The submitting org is looking for initiatives it could genuinely contribute to (technical support, co-implementation, shared learning, complementary programming), not necessarily fund. You do NOT compute a numeric score -- that is calculated separately from the ratings you provide below. Your job is ONLY to rate each of five dimensions honestly.
+
+Judge fit on the ask, never on organisation size, age, reach or polish. A small organisation's precise, well-matched initiative is a better fit than a large one's vague or mismatched initiative. Due diligence and compliance are assessed separately in code -- do not let them influence any rating. Each initiative lists the kinds of support it is seeking; use that, do not guess it.
 
 The single most important judgment is need_offer_fit: is there a REAL, LOGICAL correlation between what the submitting org offers/needs and what the initiative is actually asking for (specific_ask, problem, outcome), AND does the submitting org bring something genuinely complementary that the initiative doesn't already have, not duplicated focus. This should dominate your overall impression far more than sector or geography overlap alone.
 
@@ -264,13 +271,14 @@ Title: ${ini.title}
 Problem: ${ini.problem || "Not provided"}
 Outcome: ${ini.outcome || "Not provided"}
 Specific ask: ${ini.specific_ask || "Not provided"}
+Support sought: ${Array.isArray(ini.partnerships) && ini.partnerships.length ? ini.partnerships.join(", ") : "Not specified"}
 Sectors: ${Array.isArray(ini.sectors) ? ini.sectors.join(", ") : ini.sectors || "Not provided"}
 Locations: ${Array.isArray(ini.locations) ? ini.locations.join(", ") : ini.locations || "Not provided"}
 Open to remote/virtual partnerships: ${ini.open_to_remote_partnerships ? "Yes" : "No"}
 Stage: ${ini.stage || "Not provided"}
 SDG tags: ${Array.isArray(ini.sdg_tags) ? ini.sdg_tags.join(", ") : "Not provided"}
 Target population: ${ini.target_population || "Not provided"}
-Due diligence readiness (submitting org, not scored -- context only): ${ini.dd_readiness_score ?? 0}%`).join("\n")}`;
+Posting organisation's documented impact on Natives (partner-confirmed): ${ini.documented_impact ? "Yes" : "No (not a gap, just no confirmed record yet)"}`).join("\n")}`;
 }
 
 Deno.serve(async (req: Request) => {
@@ -335,18 +343,21 @@ Deno.serve(async (req: Request) => {
       const fullCriteria = ini.open_to_remote_partnerships
         ? { ...aiCriteria, geography_fit: "match" }
         : aiCriteria;
-      const rawScore = computeDeterministicScore(fullCriteria);
-      const cappedScore = applyDdCap(rawScore, ini.dd_readiness_score);
-      if (cappedScore < INCLUSION_THRESHOLD) continue;
+      const score = computeDeterministicScore(fullCriteria);
+      if (score < INCLUSION_THRESHOLD) continue;
       byId.set(m.id, {
         id: m.id,
-        score: cappedScore,
+        score,
         match_reason: m.match_reason,
         criteria: fullCriteria,
+        dd_status: ini.dd_status ?? null,
+        dd_missing: ini.dd_missing ?? [],
+        deal_bucket: ini.deal_bucket ?? null,
       });
     }
 
-    const matches = Array.from(byId.values()).sort((a, b) => b.score - a.score);
+    // DD tier first, then score.
+    const matches = Array.from(byId.values()).sort((a, b) => (ddRank(a.dd_status) - ddRank(b.dd_status)) || (b.score - a.score));
     return new Response(JSON.stringify({ data: matches }), {
       status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
     });

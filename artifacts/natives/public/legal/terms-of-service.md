@@ -160,5 +160,5 @@ We may update these Terms from time to time. We will notify registered users of 
 ## 16. Contact
 
 **Impact Natives Ltd**
-Email: hello@impactnatives.com
+Email: contact@impactnatives.com
 Website: impactnatives.com

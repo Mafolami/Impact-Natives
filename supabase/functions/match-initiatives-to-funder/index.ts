@@ -1,6 +1,25 @@
 // supabase/functions/match-initiatives-to-funder/index.ts
 // Matches initiatives against a funder/corporate mandate.
 //
+// v27 (Oct 2026): PROPORTIONAL DD + SUPPORT-TYPE ROUTING.
+// - DD no longer caps the score. The callers attach dd_status / dd_missing
+//   / deal_bucket per initiative (poster's own checklist: fdd for
+//   funder/corporate posters, the 9 implementer items otherwise, judged
+//   against the initiative's budget). They pass through here; results sort
+//   by DD tier, then score. criteria.dd_fit is kept for the existing UI
+//   checklist and now mirrors dd_status (complete/exempt = match,
+//   tier_missing = partial, basics_incomplete = no_match).
+// - Support type: the initiative's ticked support types (partnerships
+//   column) are compared in code with what the funder/corporate offers.
+//   Any overlap = match, none = partial. Never a gate.
+//     Funder weights:    sector 30 / geography 20 / budget 25 / stage 10 / support_type 15
+//     Corporate weights: unchanged (sector 30 / esg 30 / geography 20 / support_type 20);
+//     support_type_fit is computed in code when both sides are known, and
+//     only falls back to the model when the corporate lists no offers.
+//     The corporate support_type gate is removed.
+// - Prompt now includes the specific ask, support sought, the corporate's
+//   in-kind offers, a size-neutral instruction, and the poster's yes/no
+//   documented impact (partner-confirmed claims on Natives).
 // v26 (14 Oct 2026): internal-only. Rejects any call that does not carry the
 // secret API key (SUPABASE_SECRET_KEYS). Callers: refresh-initiative-matches
 // and refresh-initiative-matches-for-org, both send it. Before this it was
@@ -76,6 +95,8 @@
 // v18: model swapped llama-3.1-8b-instant -> openai/gpt-oss-120b.
 // v14: budget_overlap_pct replaced with budget_fit (match/partial/no_match).
 
+import { funderOfferTypes, corporateOfferTypes, supportTypeFit, ddRank } from "./dd.ts";
+
 const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY")!;
 
 function __envKeys(name: string): Record<string, string> {
@@ -121,12 +142,11 @@ function sanitizeCriteria(raw: any, isFunder: boolean): Record<string, string> |
   return out;
 }
 
-// DD readiness is a real, already-computed percentage (0-100) -- no model
-// judgment involved, so this is a plain threshold, not a criterion.
-function ddBucket(ddReadinessScore: number | undefined): "match" | "partial" | "no_match" {
-  const s = ddReadinessScore ?? 0;
-  if (s >= 60) return "match";
-  if (s >= 40) return "partial";
+// dd_fit is display-only now: it mirrors the dd_status the caller computed
+// so the existing checklist keeps working. It never changes the score.
+function ddFitFromStatus(status: string | null | undefined): "match" | "partial" | "no_match" {
+  if (status === "complete" || status === "exempt") return "match";
+  if (status === "tier_missing") return "partial";
   return "no_match";
 }
 
@@ -134,10 +154,11 @@ function computeScore(criteria: Record<string, string>, isFunder: boolean): numb
   const credit = (v: string | undefined) => v === "match" ? 1 : v === "partial" ? 0.5 : 0;
 
   const base = isFunder
-    ? credit(criteria.sector_fit) * 35
-    + credit(criteria.geography_fit) * 25
+    ? credit(criteria.sector_fit) * 30
+    + credit(criteria.geography_fit) * 20
     + credit(criteria.budget_fit) * 25
-    + credit(criteria.stage_fit) * 15
+    + credit(criteria.stage_fit) * 10
+    + credit(criteria.support_type_fit) * 15
     : credit(criteria.sector_fit) * 30
     + credit(criteria.esg_fit) * 30
     + credit(criteria.geography_fit) * 20
@@ -146,12 +167,11 @@ function computeScore(criteria: Record<string, string>, isFunder: boolean): numb
   const rounded = Math.round(base);
   const minScore = isFunder ? MIN_SCORE_FUNDER : MIN_SCORE_CORPORATE;
 
+  // Gates that remain: geography (both) and budget (funders). Support type
+  // and DD never gate.
   const caps: number[] = [];
   if (criteria.geography_fit === "no_match") caps.push(minScore - 1);
   if (isFunder && criteria.budget_fit === "no_match") caps.push(minScore - 1);
-  if (!isFunder && criteria.support_type_fit === "no_match") caps.push(minScore - 1);
-  if (criteria.dd_fit === "no_match") caps.push(40);
-  else if (criteria.dd_fit === "partial") caps.push(65);
 
   return caps.length > 0 ? Math.min(rounded, ...caps) : rounded;
 }
@@ -285,7 +305,10 @@ Deno.serve(async (req: Request) => {
     const grantMin = mandate.grant_range_min ?? null;
     const grantMax = mandate.grant_range_max ?? null;
 
-    const initiativesById = new Map(initiatives.map((ini: any) => [ini.id, ini]));
+    const initiativesById = new Map<string, any>(initiatives.map((ini: any) => [ini.id, ini]));
+
+    // What this funder/corporate can provide, for support-type routing.
+    const offerTypes = isFunder ? funderOfferTypes(mandate) : corporateOfferTypes(mandate);
 
     const initiativeBlocks = initiatives
       .filter((ini: any) => !looksLikePlaceholder(ini.problem) && !looksLikePlaceholder(ini.title))
@@ -294,6 +317,9 @@ ID: ${ini.id}
 Title: ${ini.title}
 Problem: ${truncate(ini.problem, 160)}
 Outcome: ${truncate(ini.outcome, 120)}
+Specific ask: ${truncate(ini.specific_ask, 160)}
+Support sought: ${Array.isArray(ini.partnerships) && ini.partnerships.length ? ini.partnerships.join(", ") : "Not specified"}
+Posting organisation's documented impact on Natives (partner-confirmed): ${ini.documented_impact ? "Yes" : "No (not a gap, just no confirmed record yet)"}
 Sectors: ${Array.isArray(ini.sectors) ? ini.sectors.join(", ") : ini.sectors || "Not provided"}
 Locations: ${Array.isArray(ini.locations) ? ini.locations.join(", ") : ini.locations || "Not provided"}
 Open to remote/virtual partnerships: ${ini.open_to_remote_partnerships ? "Yes -- geography should not count against this initiative" : "No"}
@@ -314,7 +340,7 @@ Format: "criteria": { "sector_fit": "match", "geography_fit": "partial", "stage_
 - sector_fit: does the initiative's sector genuinely overlap the mandate's sector focus?
 - geography_fit: does the initiative's location overlap the mandate's geographic focus? If the initiative is marked open to remote/virtual partnerships, this must be "match" regardless of location.
 - esg_fit: does the initiative's theme align with the mandate's CSR/ESG focus statement (the primary signal) or its named ESG frameworks? A thematic match to the focus statement counts even if no framework is listed.
-- support_type_fit: does what the initiative is asking for match the type of support the mandate offers (funding, in-kind, technical)?
+- support_type_fit: does the initiative's "Support sought" match the support this corporate says it can bring (its in-kind offers and CSR budget)? Use the listed values, do not guess. If nothing overlaps, rate "partial", not "no_match" -- support type never rules an initiative out.
 Format: "criteria": { "sector_fit": "match", "geography_fit": "partial", "esg_fit": "match", "support_type_fit": "no_match" }`;
 
     const prompt = `You are an impact investment analyst helping a funder identify the best initiatives to fund from a marketplace.
@@ -330,10 +356,13 @@ ${mandate.investment_thesis ? `- Investment thesis: "${truncate(mandate.investme
 - SDG priorities: ${mandate.mandate_sdgs?.join(", ") || "Not specified"}
 ${!isFunder ? `- CSR/ESG focus: ${mandate.csr_focus_statement ? `"${truncate(mandate.csr_focus_statement, 200)}"` : "Not specified"}
 - ESG frameworks: ${mandate.esg_frameworks?.join(", ") || "Not specified"}
-- CSR budget range: ${mandate.csr_budget_range || "Not specified"}` : ""}
+- CSR budget range: ${mandate.csr_budget_range || "Not specified"}
+- In-kind support offered: ${Array.isArray(mandate.inkind_support) && mandate.inkind_support.length ? mandate.inkind_support.join(", ") : "Not specified"}` : ""}
 
 Initiatives to assess:
 ${initiativeBlocks}
+
+Judge fit on the initiative, never on the posting organisation's size, age, reach or polish. A small organisation's precise, well-matched initiative is a better fit than a large one's vague or mismatched initiative. Due diligence and compliance are assessed separately in code -- do not let them influence any rating.
 
 Judge each criterion on its own evidence — do not let a strong result on one field soften your honest read of another. A blank mandate field is not evidence of compatibility; rate conservatively when key fields are missing.
 
@@ -371,11 +400,12 @@ Return ONLY a valid JSON array, no markdown, no backticks, no explanation, no co
       });
     }
 
-    // Attach dd_fit (from the real dd_readiness_score, never the model),
-    // apply the remote-friendly geography override, then compute the
-    // score deterministically. Entries whose criteria genuinely couldn't
-    // be parsed are dropped rather than scored on invented no_match
-    // values -- there's no reliable basis to score them at all.
+    // Support type is decided in code from both sides' stated data; the
+    // model's view is only used for a corporate that lists no offers, and
+    // is never allowed to be no_match. dd_fit mirrors the caller's
+    // dd_status (display only). Then apply the remote-friendly geography
+    // override and compute the score deterministically. Entries whose
+    // criteria genuinely couldn't be parsed are dropped.
     const scored = ranked
       .map(r => {
         const criteria = sanitizeCriteria(r.criteria, isFunder);
@@ -384,12 +414,21 @@ Return ONLY a valid JSON array, no markdown, no backticks, no explanation, no co
           return null;
         }
         const ini: any = initiativesById.get(r.id);
-        criteria.dd_fit = ddBucket(ini?.dd_readiness_score);
+        const codeSupportFit = supportTypeFit(ini?.partnerships, offerTypes);
+        if (codeSupportFit) criteria.support_type_fit = codeSupportFit;
+        else if (isFunder) criteria.support_type_fit = "partial";
+        else if (criteria.support_type_fit === "no_match") criteria.support_type_fit = "partial";
+        criteria.dd_fit = ddFitFromStatus(ini?.dd_status);
         if (ini?.open_to_remote_partnerships) criteria.geography_fit = "match";
         const score = computeScore(criteria, isFunder);
-        return { id: r.id, match_reason: r.match_reason, criteria, score };
+        return {
+          id: r.id, match_reason: r.match_reason, criteria, score,
+          dd_status: ini?.dd_status ?? null, dd_missing: ini?.dd_missing ?? [], deal_bucket: ini?.deal_bucket ?? null,
+          support_types: Array.isArray(ini?.partnerships) ? ini.partnerships : [],
+        };
       })
-      .filter((r): r is NonNullable<typeof r> => r !== null);
+      .filter((r): r is NonNullable<typeof r> => r !== null)
+      .sort((a, b) => (ddRank(a.dd_status) - ddRank(b.dd_status)) || (b.score - a.score));
 
     return new Response(JSON.stringify({ data: scored }), {
       status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },

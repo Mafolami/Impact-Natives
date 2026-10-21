@@ -1,6 +1,10 @@
 // supabase/functions/score-partnership-fit/index.ts
 // Powers the directory's "Your fit analysis" box.
 //
+// v15 (Oct 2026): PROPORTIONAL DD. Carries dd_status / dd_missing /
+// deal_bucket (judged per viewer-listing / target-listing pair) into the
+// cache and the response. The primary listing is chosen by DD tier first,
+// then fit_score, same as everywhere else.
 // v14 (14 Oct 2026): caller must be signed in AND be the viewer org's owner,
 // an active member, or an admin. Before this the function trusted the
 // viewer_org_id in the request body, so anyone with the public key could
@@ -69,6 +73,12 @@ async function computeOne(listingId: string, targetListingId: string): Promise<a
   }
   const { matches } = await matchRes.json();
   return matches?.[0] ?? null;
+}
+
+// Same ranking as dd.ts in the matching functions. Unknown status ranks last.
+const DD_RANK: Record<string, number> = { complete: 0, exempt: 0, tier_missing: 1, basics_incomplete: 2 };
+function ddRank(status: string | null | undefined): number {
+  return status && status in DD_RANK ? DD_RANK[status] : 2;
 }
 
 async function runWithConcurrencyLimit<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
@@ -159,14 +169,14 @@ Deno.serve(async (req: Request) => {
     const listingIds = viewerListings.map((l: any) => l.id);
     const { data: existingRows } = await serviceClient
       .from("partnership_match_cache")
-      .select("submitting_listing_id, matched_org_id, fit_score, rationale, key_synergy, criteria, reasons, gaps, opening_message, criteria_version, computed_at")
+      .select("submitting_listing_id, matched_org_id, fit_score, rationale, key_synergy, criteria, reasons, gaps, opening_message, criteria_version, computed_at, dd_status, dd_missing, deal_bucket")
       .in("submitting_listing_id", listingIds)
       .eq("matched_listing_id", target_listing_id);
 
-    const cacheByListingId = new Map((existingRows ?? []).map((r: any) => [r.submitting_listing_id, r]));
+    const cacheByListingId = new Map<string, any>((existingRows ?? []).map((r: any) => [r.submitting_listing_id, r]));
     const now = Date.now();
 
-    const results: { listingId: string; listingTitle: string; fitScore: number; rationale: string; keySynergy: string | null; criteria: any; reasons: string[]; gaps: string[]; openingMessage: string | null }[] = [];
+    const results: { listingId: string; listingTitle: string; fitScore: number; rationale: string; keySynergy: string | null; criteria: any; reasons: string[]; gaps: string[]; openingMessage: string | null; ddStatus: string | null; ddMissing: string[]; dealBucket: string | null }[] = [];
 
     const needsCompute: any[] = [];
     for (const listing of viewerListings) {
@@ -182,6 +192,7 @@ Deno.serve(async (req: Request) => {
           fitScore: cached.fit_score, rationale: cached.rationale, keySynergy: cached.key_synergy,
           criteria: cached.criteria, reasons: cached.reasons ?? [], gaps: cached.gaps ?? [],
           openingMessage: cached.opening_message,
+          ddStatus: cached.dd_status ?? null, ddMissing: cached.dd_missing ?? [], dealBucket: cached.deal_bucket ?? null,
         });
         continue;
       }
@@ -197,6 +208,7 @@ Deno.serve(async (req: Request) => {
         fitScore: m.fit_score, rationale: m.rationale, keySynergy: m.key_synergy ?? null,
         criteria: m.criteria ?? null, reasons: m.reasons ?? [], gaps: m.gaps ?? [],
         openingMessage: m.opening_message ?? null,
+        ddStatus: m.dd_status ?? null, ddMissing: m.dd_missing ?? [], dealBucket: m.deal_bucket ?? null,
       });
 
       serviceClient.from("partnership_match_cache").upsert({
@@ -213,6 +225,9 @@ Deno.serve(async (req: Request) => {
         opening_message: m.opening_message ?? null,
         criteria_version: CRITERIA_VERSION,
         computed_at: new Date().toISOString(),
+        dd_status: m.dd_status ?? null,
+        dd_missing: m.dd_missing ?? [],
+        deal_bucket: m.deal_bucket ?? null,
       }, { onConflict: "submitting_listing_id,matched_listing_id" }).then(({ error }) => {
         if (error) console.error("[score-partnership-fit] cache write failed:", error.message);
       });
@@ -224,10 +239,10 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    results.sort((a, b) => b.fitScore - a.fitScore);
+    results.sort((a, b) => (ddRank(a.ddStatus) - ddRank(b.ddStatus)) || (b.fitScore - a.fitScore));
     const [primary, ...rest] = results;
     const alsoFits = rest.filter(r => r.fitScore >= ALSO_FITS_THRESHOLD)
-      .map(r => ({ listing_id: r.listingId, listing_title: r.listingTitle, fit_score: r.fitScore }));
+      .map(r => ({ listing_id: r.listingId, listing_title: r.listingTitle, fit_score: r.fitScore, dd_status: r.ddStatus }));
 
     return new Response(JSON.stringify({
       eligible: true,
@@ -236,6 +251,7 @@ Deno.serve(async (req: Request) => {
         fit_score: primary.fitScore, rationale: primary.rationale, key_synergy: primary.keySynergy,
         criteria: primary.criteria, reasons: primary.reasons, gaps: primary.gaps,
         opening_message: primary.openingMessage,
+        dd_status: primary.ddStatus, dd_missing: primary.ddMissing, deal_bucket: primary.dealBucket,
       },
       also_fits: alsoFits,
     }), { status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS } });

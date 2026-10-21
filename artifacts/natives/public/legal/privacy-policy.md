@@ -1,7 +1,7 @@
 # Privacy Policy
 
 **Impact Natives Ltd**
-Last updated: July 2026
+Last updated: October 2026
 
 ---
 
@@ -61,6 +61,8 @@ Some features on the platform use artificial intelligence to process text you pr
 - Parsing documents you upload during onboarding to prefill your profile
 - Generating strategy pillars and initiative descriptions
 - Producing partnership fit analysis and suggested messages, including the automated score used to generate your personalised "matches" suggestions on your dashboard
+
+Match suggestions also show whether an organisation has provided the due diligence documents expected for the size of that partnership (for example "DD documented"), and use this to order matches. This label is worked out from which checklist items you have completed and whether a document is uploaded. Our AI provider does not receive or assess the documents themselves.
 - Powering the conversational strategy advisor
 
 When you use these features, the text you enter is sent to our AI provider, **Groq**, for processing and returned to you. We only send the specific text needed for the feature to work. We do not send AI providers more of your personal data than is necessary.
@@ -122,7 +124,7 @@ We retain your data for as long as your account is active. If you delete your ac
 
 **Verification documents**: if your verification is approved, we retain the documents for a reasonable period after review for audit purposes. If your verification is rejected or you do not complete it, the documents you submitted are deleted within 30 days.
 
-**Due diligence evidence**: documents you upload as part of your organisation's due diligence checklist (financial model, audited accounts, governance documentation, legal registration) are retained for as long as your account is active, and are visible only according to the visibility setting you choose for each document (private, limited to organisations you have an active relationship with, or public).
+**Due diligence evidence**: documents you upload as part of your organisation's due diligence checklist (financial model, audited accounts, governance documentation, legal registration, safeguarding policy) are retained for as long as your account is active, and are visible only according to the visibility setting you choose for each document (private, limited to organisations you have an active relationship with, or public).
 
 ---
 

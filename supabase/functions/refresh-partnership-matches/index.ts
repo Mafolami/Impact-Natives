@@ -3,6 +3,10 @@
 // via their own session, checks eligibility and cache freshness, and only
 // calls match-orgs-for-partnership (bulk mode) when actually needed.
 //
+// v27 (Oct 2026): PROPORTIONAL DD. Carries dd_status / dd_missing /
+// deal_bucket from match-orgs-for-partnership into the cache and the
+// response. Blending and ordering are now by DD tier first (complete/exempt,
+// then tier_missing, then basics_incomplete), fit_score within each tier.
 // v26 (14 Oct 2026): legacy JWT keys disabled after a leak. Uses the new
 // publishable key (caller client) and secret key (service client and the
 // internal match-orgs-for-partnership call). No logic change.
@@ -78,13 +82,22 @@ async function resolveOrgUserIds(supabase: any, org: any): Promise<string[]> {
   return [org.user_id, ...((members ?? []).map((m: any) => m.user_id))].filter(Boolean);
 }
 
+// Same ranking as dd.ts in the matching functions. Unknown status ranks last.
+const DD_RANK: Record<string, number> = { complete: 0, exempt: 0, tier_missing: 1, basics_incomplete: 2 };
+function ddRank(status: string | null | undefined): number {
+  return status && status in DD_RANK ? DD_RANK[status] : 2;
+}
+function tierThenScore(a: any, b: any): number {
+  return (ddRank(a.dd_status) - ddRank(b.dd_status)) || (b.fit_score - a.fit_score);
+}
+
 function blendByOrg(rows: any[]): any[] {
   const bestByOrg = new Map<string, any>();
   for (const r of rows) {
     const existing = bestByOrg.get(r.matched_org_id);
-    if (!existing || r.fit_score > existing.fit_score) bestByOrg.set(r.matched_org_id, r);
+    if (!existing || tierThenScore(r, existing) < 0) bestByOrg.set(r.matched_org_id, r);
   }
-  return Array.from(bestByOrg.values()).sort((a, b) => b.fit_score - a.fit_score);
+  return Array.from(bestByOrg.values()).sort(tierThenScore);
 }
 
 async function attemptMatchCall(submitting_listing_id: string): Promise<{ ok: boolean; matches?: any[]; errText?: string }> {
@@ -177,7 +190,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: existingCache } = await callerClient
       .from("partnership_match_cache")
-      .select("fit_score, rationale, key_synergy, matched_org_id, matched_listing_id, criteria, criteria_version, computed_at")
+      .select("fit_score, rationale, key_synergy, matched_org_id, matched_listing_id, criteria, criteria_version, computed_at, dd_status, dd_missing, deal_bucket")
       .in("submitting_listing_id", listingIds)
       .gte("fit_score", MATCH_THRESHOLD)
       .order("fit_score", { ascending: false });
@@ -225,6 +238,9 @@ Deno.serve(async (req: Request) => {
         key_synergy: m.key_synergy ?? null,
         criteria: m.criteria ?? null,
         criteria_version: CRITERIA_VERSION,
+        dd_status: m.dd_status ?? null,
+        dd_missing: m.dd_missing ?? [],
+        deal_bucket: m.deal_bucket ?? null,
       }));
       const keepIds = freshRows.map((r: any) => r.matched_listing_id);
 
@@ -242,6 +258,7 @@ Deno.serve(async (req: Request) => {
       matches: blendByOrg(allFreshRows).slice(0, HOME_DISPLAY_LIMIT).map((r: any) => ({
         matched_org_id: r.matched_org_id, matched_listing_id: r.matched_listing_id, fit_score: r.fit_score,
         rationale: r.rationale, key_synergy: r.key_synergy ?? null, criteria: r.criteria ?? null,
+        dd_status: r.dd_status ?? null, dd_missing: r.dd_missing ?? [], deal_bucket: r.deal_bucket ?? null,
       })),
     }), { status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS } });
 

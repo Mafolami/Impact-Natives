@@ -2,6 +2,21 @@
 // Session-resolved wrapper around match-initiatives-to-funder, same pattern
 // as refresh-partnership-matches.
 //
+// v31 (Oct 2026): PROPORTIONAL DD + SUPPORT-TYPE ROUTING.
+// - attachDD replaced by attachPosterContext: each initiative gets
+//   dd_status / dd_missing / deal_bucket judged on the POSTER's own
+//   checklist (fdd for funder/corporate posters -- fixes the bug where
+//   they were scored on the 9 implementer items and always capped; exempt
+//   for consultancies; 9 items + uploaded documents otherwise) against the
+//   initiative's own budget (NGN converted at matching_config's rate).
+//   Plus documented_impact (partner-confirmed claims on Natives).
+// - partnerships (support sought) and the budget fields are now selected
+//   in every branch; the corporate mandate now carries its in-kind offers.
+// - Cache rows store the DD fields; ordering is DD tier, then score.
+// - NOT changed: this function still includes demo initiatives/orgs while
+//   the for-org worker excludes them. Left as is on purpose (15 of 17
+//   published initiatives are demo); a product decision, not part of this
+//   build.
 // v30 (14 Oct 2026): legacy JWT keys disabled after a leak. Uses the new
 // publishable key (caller client) and secret key (service client), and now
 // sends the secret key to the scoring functions. No logic change.
@@ -12,6 +27,10 @@
 // v21: flagged_visibility_hold. v20: CRITERIA_VERSION from table.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  DD_ORG_COLUMNS, loadMatchingConfig, loadDocKeys, loadDocumentedImpact,
+  initiativeDealBucket, ddStatusFor, byTierThenScore,
+} from "./dd.ts";
 
 function __envKeys(name: string): Record<string, string> {
   try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
@@ -39,7 +58,7 @@ const FUNDER_TYPES = ["philanthropic_foundation", "venture_capital"];
 const CORPORATE_TYPES = ["corporation", "technology_company", "public_sector"];
 const ESG_PARTNERSHIP_TYPES = ["operational", "strategic", "lead", "other"];
 
-const ORG_SELECT_COLUMNS = "id, user_id, organisation_name, organisation_type, description, sector, country, needs, offers, flagged_visibility_hold, subscription_tier, investment_thesis, grant_range_min, grant_range_max, grant_currency, funding_instruments, geographic_focus, stage_preference, mandate_sectors, mandate_sdgs, esg_frameworks, csr_focus_statement, csr_budget_range";
+const ORG_SELECT_COLUMNS = "id, user_id, organisation_name, organisation_type, description, sector, country, needs, offers, flagged_visibility_hold, subscription_tier, investment_thesis, grant_range_min, grant_range_max, grant_currency, funding_instruments, geographic_focus, stage_preference, mandate_sectors, mandate_sdgs, esg_frameworks, csr_focus_statement, csr_budget_range, inkind_support, tech_support_available, employee_engagement_available";
 
 async function getCriteriaVersion(serviceClient: any): Promise<number> {
   const { data, error } = await serviceClient
@@ -170,7 +189,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: existingCache } = await callerClient
       .from("initiative_match_cache")
-      .select("initiative_id, score, match_reason, criteria, criteria_version, computed_at")
+      .select("initiative_id, score, match_reason, criteria, criteria_version, computed_at, dd_status, dd_missing, deal_bucket")
       .eq("org_id", org.id)
       .order("score", { ascending: false });
 
@@ -188,7 +207,7 @@ Deno.serve(async (req: Request) => {
 
     if (isFunder) {
       minScore = 40;
-      selectCols = "id,title,sectors,locations,status,created_at,problem,outcome,budget_min,budget_max,budget_currency,stage,sdg_tags,target_population,specific_ask,submitter_org,user_id,open_to_remote_partnerships";
+      selectCols = "id,title,sectors,locations,status,created_at,problem,outcome,budget,budget_min,budget_max,budget_currency,stage,sdg_tags,target_population,specific_ask,submitter_org,user_id,open_to_remote_partnerships,partnerships";
       mandate = {
         org_type: orgTypeForGate,
         investment_thesis: org.investment_thesis,
@@ -203,7 +222,7 @@ Deno.serve(async (req: Request) => {
       };
     } else if (isCorporate) {
       minScore = 35;
-      selectCols = "id,title,sectors,locations,status,created_at,problem,outcome,budget,esg_alignment,specific_ask,stage,sdg_tags,submitter_org,user_id,open_to_remote_partnerships";
+      selectCols = "id,title,sectors,locations,status,created_at,problem,outcome,budget,budget_min,budget_max,budget_currency,esg_alignment,specific_ask,stage,sdg_tags,submitter_org,user_id,open_to_remote_partnerships,partnerships";
       mandate = {
         org_type: orgTypeForGate,
         investment_thesis: org.esg_frameworks?.length
@@ -220,11 +239,14 @@ Deno.serve(async (req: Request) => {
         esg_frameworks: org.esg_frameworks,
         csr_focus_statement: org.csr_focus_statement,
         csr_budget_range: org.csr_budget_range,
+        inkind_support: org.inkind_support ?? [],
+        tech_support_available: org.tech_support_available ?? false,
+        employee_engagement_available: org.employee_engagement_available ?? false,
         partnership_types: ESG_PARTNERSHIP_TYPES,
       };
     } else {
       minScore = 45;
-      selectCols = "id,title,sectors,locations,status,created_at,problem,outcome,specific_ask,stage,sdg_tags,target_population,submitter_org,user_id,open_to_remote_partnerships";
+      selectCols = "id,title,sectors,locations,status,created_at,problem,outcome,budget,budget_min,budget_max,budget_currency,specific_ask,stage,sdg_tags,target_population,submitter_org,user_id,open_to_remote_partnerships,partnerships";
       mandate = org;
     }
 
@@ -243,18 +265,49 @@ Deno.serve(async (req: Request) => {
       return (data ?? []).filter((i: any) => !heldUserIds.has(i.user_id));
     }
 
-    async function attachDD(rows: any[]): Promise<any[]> {
+    // Proportional DD for each initiative: the poster's own checklist
+    // judged against the initiative's own budget, plus the size-neutral
+    // documented-impact flag.
+    const { policy: ddPolicy, ngnPerUsd } = await loadMatchingConfig(serviceClient);
+
+    async function attachPosterContext(rows: any[]): Promise<any[]> {
       const submitterIds = [...new Set(rows.map((i: any) => i.user_id).filter(Boolean))];
-      if (submitterIds.length === 0) return rows;
-      const { data: ddRows } = await serviceClient
-        .from("organizations")
-        .select("user_id, dd_financial_model, dd_audited_accounts, dd_governance_doc, dd_esg_assessment, dd_impact_framework, dd_environmental_policy, dd_safeguarding_policy, dd_legal_registration, dd_legal_compliance_declaration")
-        .in("user_id", submitterIds);
-      const ddMap = new Map((ddRows ?? []).map((r: any) => {
-        const count = [r.dd_financial_model, r.dd_audited_accounts, r.dd_governance_doc, r.dd_esg_assessment, r.dd_impact_framework, r.dd_environmental_policy, r.dd_safeguarding_policy, r.dd_legal_registration, r.dd_legal_compliance_declaration].filter(Boolean).length;
-        return [r.user_id, Math.round((count / 9) * 100)];
-      }));
-      return rows.map((i: any) => ({ ...i, dd_readiness_score: ddMap.get(i.user_id) ?? 0 }));
+      const { data: posterOrgs } = submitterIds.length
+        ? await serviceClient
+          .from("organizations")
+          .select(`id, user_id, organisation_type, ${DD_ORG_COLUMNS}`)
+          .in("user_id", submitterIds)
+        : { data: [] };
+      const orgByUserId = new Map<string, any>((posterOrgs ?? []).map((o: any) => [o.user_id, o]));
+      const posterOrgIds = (posterOrgs ?? []).map((o: any) => o.id);
+      const [docKeysByOrg, documentedImpactOrgs] = await Promise.all([
+        loadDocKeys(serviceClient, posterOrgIds),
+        loadDocumentedImpact(serviceClient, posterOrgIds),
+      ]);
+      return rows.map((i: any) => {
+        const poster = orgByUserId.get(i.user_id);
+        const dealBucket = initiativeDealBucket(i, ddPolicy, ngnPerUsd);
+        const dd = ddStatusFor(poster ?? {}, (poster && docKeysByOrg.get(poster.id)) ?? new Set(), dealBucket, ddPolicy);
+        return {
+          ...i,
+          dd_status: dd.status, dd_missing: dd.missing, deal_bucket: dealBucket,
+          documented_impact: !!poster && documentedImpactOrgs.has(poster.id),
+        };
+      });
+    }
+
+    function cacheRow(r: any, computedAt: string) {
+      return {
+        org_id: org.id, initiative_id: r.initiative_id ?? r.id, score: r.score, match_reason: r.match_reason,
+        criteria: r.criteria ?? null, criteria_version: CRITERIA_VERSION, computed_at: computedAt,
+        dd_status: r.dd_status ?? null, dd_missing: r.dd_missing ?? [], deal_bucket: r.deal_bucket ?? null,
+      };
+    }
+    function responseRow(r: any) {
+      return {
+        initiative_id: r.initiative_id ?? r.id, score: r.score, match_reason: r.match_reason, criteria: r.criteria ?? null,
+        dd_status: r.dd_status ?? null, dd_missing: r.dd_missing ?? [], deal_bucket: r.deal_bucket ?? null,
+      };
     }
 
     if (isFullStale) {
@@ -273,7 +326,7 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      initiatives = await attachDD(initiatives);
+      initiatives = await attachPosterContext(initiatives);
       const allRanked = await scoreInitiatives(mandate, initiatives, isImplementer ? "implementer" : "funder");
       const anyBatchSucceeded = allRanked.length > 0;
 
@@ -287,7 +340,7 @@ Deno.serve(async (req: Request) => {
       }
 
       const topMatches = allRanked
-        .sort((a: any, b: any) => b.score - a.score)
+        .sort(byTierThenScore("score"))
         .slice(0, MAX_CACHED_MATCHES);
 
       const { error: deleteError } = await serviceClient.from("initiative_match_cache").delete().eq("org_id", org.id);
@@ -297,10 +350,7 @@ Deno.serve(async (req: Request) => {
 
       if (topMatches.length > 0) {
         const now = new Date().toISOString();
-        const rows = topMatches.map((r: any) => ({
-          org_id: org.id, initiative_id: r.id, score: r.score, match_reason: r.match_reason,
-          criteria: r.criteria ?? null, criteria_version: CRITERIA_VERSION, computed_at: now,
-        }));
+        const rows = topMatches.map((r: any) => cacheRow(r, now));
         const { error: insertError } = await serviceClient.from("initiative_match_cache").insert(rows);
         if (insertError) {
           console.error(`[refresh-initiative-matches] cache insert failed for org ${org.id}: ${insertError.message}`);
@@ -312,9 +362,7 @@ Deno.serve(async (req: Request) => {
 
       return new Response(JSON.stringify({
         eligible: true, cached: false, computed_at: new Date().toISOString(), min_score: minScore,
-        matches: topMatches.map((r: any) => ({
-          initiative_id: r.id, score: r.score, match_reason: r.match_reason, criteria: r.criteria ?? null,
-        })),
+        matches: topMatches.map(responseRow),
       }), { status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS } });
     }
 
@@ -324,21 +372,18 @@ Deno.serve(async (req: Request) => {
 
     if (missing.length === 0) {
       return new Response(JSON.stringify({
-        eligible: true, cached: true, computed_at: new Date(oldestComputedAt).toISOString(), min_score: minScore, matches: existingCache,
+        eligible: true, cached: true, computed_at: new Date(oldestComputedAt).toISOString(), min_score: minScore,
+        matches: [...(existingCache ?? [])].sort(byTierThenScore("score")),
       }), { status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS } });
     }
 
-    const missingWithDD = await attachDD(missing);
+    const missingWithDD = await attachPosterContext(missing);
     const freshlyRanked = await scoreInitiatives(mandate, missingWithDD, isImplementer ? "implementer" : "funder");
     const now = new Date().toISOString();
-    const newRows = freshlyRanked
-      .map((r: any) => ({
-        org_id: org.id, initiative_id: r.id, score: r.score, match_reason: r.match_reason,
-        criteria: r.criteria ?? null, criteria_version: CRITERIA_VERSION, computed_at: now,
-      }));
+    const newRows = freshlyRanked.map((r: any) => cacheRow(r, now));
 
     const merged = [...(existingCache ?? []), ...newRows]
-      .sort((a: any, b: any) => b.score - a.score)
+      .sort(byTierThenScore("score"))
       .slice(0, MAX_CACHED_MATCHES);
 
     const { error: deleteError } = await serviceClient.from("initiative_match_cache").delete().eq("org_id", org.id);
@@ -347,10 +392,7 @@ Deno.serve(async (req: Request) => {
     }
     if (merged.length > 0) {
       const { error: insertError } = await serviceClient.from("initiative_match_cache").insert(
-        merged.map((r: any) => ({
-          org_id: org.id, initiative_id: r.initiative_id, score: r.score, match_reason: r.match_reason,
-          criteria: r.criteria ?? null, criteria_version: CRITERIA_VERSION, computed_at: r.computed_at,
-        }))
+        merged.map((r: any) => cacheRow(r, r.computed_at))
       );
       if (insertError) {
         console.error(`[refresh-initiative-matches] incremental insert failed for org ${org.id}: ${insertError.message}`);
@@ -362,9 +404,7 @@ Deno.serve(async (req: Request) => {
 
     return new Response(JSON.stringify({
       eligible: true, cached: false, computed_at: now, min_score: minScore,
-      matches: merged.map((r: any) => ({
-        initiative_id: r.initiative_id, score: r.score, match_reason: r.match_reason, criteria: r.criteria ?? null,
-      })),
+      matches: merged.map(responseRow),
     }), { status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS } });
 
   } catch (err) {

@@ -2,6 +2,9 @@
 // Internal-only worker: recomputes partnership matches for exactly ONE
 // org, given its org_id. Only caller: sweep-stale-partnership-matches.
 //
+// v19 (Oct 2026): PROPORTIONAL DD. Writes dd_status / dd_missing /
+// deal_bucket from match-orgs-for-partnership into the cache. No other
+// change (matches already arrive sorted by DD tier, then fit_score).
 // v18 (14 Oct 2026): legacy JWT keys disabled after a leak. Uses the new
 // secret API key (SUPABASE_SECRET_KEYS) and rejects any call without it.
 // Before this it accepted calls from anyone (verify_jwt was off, no check).
@@ -209,6 +212,9 @@ Deno.serve(async (req: Request) => {
         key_synergy: m.key_synergy ?? null,
         criteria: m.criteria ?? null,
         criteria_version: CRITERIA_VERSION,
+        dd_status: m.dd_status ?? null,
+        dd_missing: m.dd_missing ?? [],
+        deal_bucket: m.deal_bucket ?? null,
       }));
       const keepIds = freshRows.map((r: any) => r.matched_listing_id);
 

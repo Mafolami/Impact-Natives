@@ -2,6 +2,15 @@
 // Matches a submitting org/listing against organisations that have an
 // active posted partnership request.
 //
+// v48 (Oct 2026): PROPORTIONAL DD. The DD-readiness cap is gone: DD no
+// longer lowers fit_score. Each match instead gets dd_status
+// (complete / exempt / tier_missing / basics_incomplete), dd_missing and
+// deal_bucket, judged per pair from the larger of the two listings' budget
+// buckets (rules and thresholds in matching_config.dd_policy, logic in
+// dd.ts). Results sort by DD tier, then fit_score. Prompt: Africa-focused
+// wording, no DD counts or beneficiary numbers shown to the AI, a
+// size-neutral instruction, and a yes/no "documented impact" signal from
+// partner-confirmed impact claims.
 // v47 (14 Oct 2026): browser calls are now checked. Server calls (secret key:
 // sweeps, refresh wrappers, score-partnership-fit) are unchanged. A browser
 // call (FindPartnerModalDashboard) must be signed in, use listing mode, be
@@ -24,6 +33,10 @@
 // v36: dual-mode (listing-scoped + legacy org-scoped). Full history in git.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  loadMatchingConfig, loadDocKeys, loadDocumentedImpact, partnershipDealBucket,
+  ddStatusFor, byTierThenScore,
+} from "./dd.ts";
 
 function __envKeys(name: string): Record<string, string> {
   try { return JSON.parse(Deno.env.get(name) ?? "{}"); } catch { return {}; }
@@ -152,25 +165,10 @@ function sanitizeCriteria(raw: any): Record<string, string> | null {
   return out;
 }
 
-function ddReadinessPct(c: any): number | null {
-  if (c.organisation_type === "consultancy") return null;
-  const FUNDER_TYPES = ["philanthropic_foundation", "venture_capital"];
-  const CORPORATE_TYPES = ["corporation", "technology_company", "public_sector"];
-  const isFunderOrCorporate = FUNDER_TYPES.includes(c.organisation_type) || CORPORATE_TYPES.includes(c.organisation_type);
-  if (isFunderOrCorporate) {
-    const fddItems = [c.fdd_disbursement_track_record, c.fdd_decision_transparency, c.fdd_conflict_disclosure, c.fdd_governance_doc, c.fdd_esg_framework, c.fdd_legal_registration];
-    return Math.round((fddItems.filter(Boolean).length / fddItems.length) * 100);
-  }
-  const ddItems = [c.dd_financial_model, c.dd_audited_accounts, c.dd_governance_doc, c.dd_esg_assessment, c.dd_impact_framework, c.dd_environmental_policy, c.dd_safeguarding_policy, c.dd_legal_registration, c.dd_legal_compliance_declaration];
-  return Math.round((ddItems.filter(Boolean).length / ddItems.length) * 100);
-}
-
-function applyDdCap(fitScore: number, org: any): number {
-  const pct = ddReadinessPct(org);
-  if (pct === null) return fitScore;
-  if (pct < 40) return Math.min(fitScore, 40);
-  if (pct < 60) return Math.min(fitScore, 65);
-  return fitScore;
+// Org id behind a candidate: listing mode keeps it in _orgId, legacy
+// org-scoped mode uses the org row's own id.
+function orgIdOf(c: any): string {
+  return c._orgId ?? c.id;
 }
 
 function formatSectorDisplay(raw: any): string {
@@ -278,8 +276,10 @@ function buildPrompt(submitting_org: any, candidatesSubset: any[], singlePairMod
     ? `,\n      "reasons": ["Specific reason one", "Specific reason two"],\n      "gaps": ["Specific gap, if any"],\n      "opening_message": "Hi [Name], ..."`
     : "";
 
-  return `You are a partnership matching analyst for Impact Natives, a social impact platform focused on UK-Africa collaborations.
+  return `You are a partnership matching analyst for Impact Natives, a coordination platform for Africa's social impact sector.
 Your job: judge candidate organisations against the submitting organisation's specific new partnership request below -- not by superficial similarity like shared continent or generic sector adjacency. You do NOT compute a numeric score -- that is calculated separately from the ratings you provide below. Your job is ONLY to rate each of five dimensions honestly.
+
+Judge fit on the ask, never on organisation size, age, reach or polish. A small organisation with a precise, well-matched ask is a better fit than a large one with a vague or mismatched ask. Due diligence and compliance are assessed separately in code -- do not let them influence any rating.
 
 Every candidate below has an ACTIVE, POSTED partnership request -- that request (what they are seeking, their stage, budget, timeline, working style) is the PRIMARY thing you are judging against. Their general profile (description, needs, offers, sector, SDGs, and type-specific mandate/CSR/track-record data) is supporting context that helps you judge whether they're a credible, capable match -- it is not a substitute for their actual stated request, and it never overrides what they've explicitly said they're seeking right now.
 
@@ -341,20 +341,19 @@ ${candidatesSubset.map((c: any) => {
   const isImplementerType = !isFunderType && !isCorporateType && !isConsultancyType;
 
   let typeSpecificBlock = "";
-  const fddItems = [c.fdd_disbursement_track_record, c.fdd_decision_transparency, c.fdd_conflict_disclosure, c.fdd_governance_doc, c.fdd_esg_framework, c.fdd_legal_registration];
-  const fddScore = fddItems.filter(Boolean).length;
 
   if (isFunderType) {
-    typeSpecificBlock = `This candidate is a FUNDER (${c.organisation_type}). Investment thesis: ${c.investment_thesis || "Not provided"}. Grant/investment range: ${c.grant_range_min || c.grant_range_max ? `${c.grant_range_min ?? "?"} - ${c.grant_range_max ?? "?"} ${c.grant_currency || ""}` : "Not provided"}. Stage preference: ${Array.isArray(c.stage_preference) && c.stage_preference.length ? c.stage_preference.join(", ") : "Not provided"}. Due diligence readiness: ${fddScore}/${fddItems.length}.`;
+    typeSpecificBlock = `This candidate is a FUNDER (${c.organisation_type}). Investment thesis: ${c.investment_thesis || "Not provided"}. Grant/investment range: ${c.grant_range_min || c.grant_range_max ? `${c.grant_range_min ?? "?"} - ${c.grant_range_max ?? "?"} ${c.grant_currency || ""}` : "Not provided"}. Stage preference: ${Array.isArray(c.stage_preference) && c.stage_preference.length ? c.stage_preference.join(", ") : "Not provided"}.`;
   } else if (isCorporateType) {
-    typeSpecificBlock = `This candidate is a CORPORATE/CSR partner (${c.organisation_type}). CSR focus: ${c.csr_focus_statement || "Not provided"}. Budget range: ${c.csr_budget_range || "Not provided"}. Can bring: ${Array.isArray(c.inkind_support) && c.inkind_support.length ? c.inkind_support.join(", ") : "Not provided"}. Due diligence readiness: ${fddScore}/${fddItems.length}.`;
+    typeSpecificBlock = `This candidate is a CORPORATE/CSR partner (${c.organisation_type}). CSR focus: ${c.csr_focus_statement || "Not provided"}. Budget range: ${c.csr_budget_range || "Not provided"}. Can bring: ${Array.isArray(c.inkind_support) && c.inkind_support.length ? c.inkind_support.join(", ") : "Not provided"}.`;
   } else if (isConsultancyType) {
-    typeSpecificBlock = `This candidate is a CONSULTANCY (${c.organisation_type}) -- an independent/solo practitioner, not an institution. Specializations: ${Array.isArray(c.specializations) && c.specializations.length ? c.specializations.join(", ") : "Not provided"}. Notable engagements: ${Array.isArray(c.notable_engagements) && c.notable_engagements.length ? c.notable_engagements.join("; ") : "Not provided"}. Affiliations: ${Array.isArray(c.affiliations) && c.affiliations.length ? c.affiliations.join(", ") : "Not provided"}. Institutional due-diligence criteria (audited accounts, board governance) structurally do not apply to a solo consultancy -- do not treat their absence as a gap or penalize this candidate for lacking them.`;
+    typeSpecificBlock = `This candidate is a CONSULTANCY (${c.organisation_type}) -- an independent/solo practitioner, not an institution. Specializations: ${Array.isArray(c.specializations) && c.specializations.length ? c.specializations.join(", ") : "Not provided"}. Notable engagements: ${Array.isArray(c.notable_engagements) && c.notable_engagements.length ? c.notable_engagements.join("; ") : "Not provided"}. Affiliations: ${Array.isArray(c.affiliations) && c.affiliations.length ? c.affiliations.join(", ") : "Not provided"}.`;
   } else if (isImplementerType) {
-    const ddItems = [c.dd_financial_model, c.dd_audited_accounts, c.dd_governance_doc, c.dd_esg_assessment, c.dd_impact_framework, c.dd_environmental_policy, c.dd_safeguarding_policy, c.dd_legal_registration, c.dd_legal_compliance_declaration];
-    const ddScore = ddItems.filter(Boolean).length;
-    typeSpecificBlock = `This candidate is an IMPLEMENTER (${c.organisation_type}). Beneficiaries reached: ${c.total_beneficiaries_reached ?? "Not provided"}. Due diligence readiness: ${ddScore}/${ddItems.length}.`;
+    typeSpecificBlock = `This candidate is an IMPLEMENTER (${c.organisation_type}).`;
   }
+  // Size-neutral evidence signal: yes only when a partner confirmed at least
+  // one impact claim on Natives. "No" is not a gap -- many good orgs are new.
+  typeSpecificBlock += ` Documented impact on Natives (partner-confirmed): ${c._documentedImpact ? "Yes" : "No (not a gap, just no confirmed record yet)"}.`;
 
   return `---
 ID: ${c.id}
@@ -555,6 +554,22 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Proportional DD inputs: policy + uploaded-document keys per candidate
+    // org, and the size-neutral documented-impact flag for the prompt.
+    const { policy: ddPolicy } = await loadMatchingConfig(supabase);
+    const candidateOrgIds = candidates.map(orgIdOf);
+    const [docKeysByOrg, documentedImpactOrgs] = await Promise.all([
+      loadDocKeys(supabase, candidateOrgIds),
+      loadDocumentedImpact(supabase, candidateOrgIds),
+    ]);
+    for (const c of candidates) c._documentedImpact = documentedImpactOrgs.has(orgIdOf(c));
+
+    function ddFieldsFor(c: any) {
+      const dealBucket = partnershipDealBucket(submittingProfile.partnership_budget, c.partnership_budget, ddPolicy);
+      const dd = ddStatusFor(c, docKeysByOrg.get(orgIdOf(c)) ?? new Set(), dealBucket, ddPolicy);
+      return { dd_status: dd.status, dd_missing: dd.missing, deal_bucket: dealBucket };
+    }
+
     const byId = new Map<string, any>();
 
     if (singlePairMode) {
@@ -585,8 +600,7 @@ Deno.serve(async (req: Request) => {
           c.grant_range_min, c.grant_range_max, c.grant_currency,
         );
         const fullCriteria = { ...aiCriteria, budget_fit: budgetFit };
-        const rawScore = computeDeterministicScore(fullCriteria);
-        const finalScore = applyDdCap(rawScore, c);
+        const finalScore = computeDeterministicScore(fullCriteria);
         const base = {
           fit_score: finalScore,
           rationale: m.rationale,
@@ -595,6 +609,7 @@ Deno.serve(async (req: Request) => {
           reasons: Array.isArray(m.reasons) ? m.reasons : [],
           gaps: Array.isArray(m.gaps) ? m.gaps : [],
           opening_message: typeof m.opening_message === "string" ? m.opening_message : null,
+          ...ddFieldsFor(c),
         };
         byId.set(m.org_id, listingMode
           ? { ...base, matched_listing_id: c._listingId, matched_org_id: c._orgId }
@@ -630,8 +645,7 @@ Deno.serve(async (req: Request) => {
           c.grant_range_min, c.grant_range_max, c.grant_currency,
         );
         const fullCriteria = { ...aiCriteria, budget_fit: budgetFit };
-        const rawScore = computeDeterministicScore(fullCriteria);
-        const finalScore = applyDdCap(rawScore, c);
+        const finalScore = computeDeterministicScore(fullCriteria);
         if (finalScore < INCLUSION_THRESHOLD) continue;
         const base = {
           fit_score: finalScore,
@@ -641,6 +655,7 @@ Deno.serve(async (req: Request) => {
           reasons: [],
           gaps: [],
           opening_message: null,
+          ...ddFieldsFor(c),
         };
         byId.set(m.org_id, listingMode
           ? { ...base, matched_listing_id: c._listingId, matched_org_id: c._orgId }
@@ -648,7 +663,9 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const matches = Array.from(byId.values()).sort((a, b) => b.fit_score - a.fit_score);
+    // DD tier first (complete/exempt, then tier_missing, then
+    // basics_incomplete), fit_score within each tier.
+    const matches = Array.from(byId.values()).sort(byTierThenScore("fit_score"));
 
     return new Response(JSON.stringify({ matches }), {
       status: 200, headers: { "Content-Type": "application/json", ...CORS_HEADERS },

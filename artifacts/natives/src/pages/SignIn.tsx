@@ -219,9 +219,9 @@ export default function SignIn() {
                 fontSize: "0.875rem", color: "#92400e", marginBottom: "16px",
               }}>
                 Account deactivated. Contact{" "}
-                <a href="mailto:hello@impactnatives.com"
+                <a href="mailto:contact@impactnatives.com"
                   style={{ color: "#92400e", textDecoration: "underline" }}>
-                  hello@impactnatives.com
+                  contact@impactnatives.com
                 </a>
               </div>
             )}
