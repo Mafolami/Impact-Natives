@@ -119,12 +119,16 @@ export const DD_ITEMS: DDItemDef[] = [
     {
       key: "governance_doc",
       label: "Governance documentation",
-      sub: "Board structure, org chart, or governance policy",
+      sub: "Who runs the organisation and by what rules: board structure, constitution, articles of association, director/trustee records, or org chart",
       questions: [
-        { key: "boardSize", label: "Board size", type: "select", options: ["1–3", "4–6", "7–10", "10+", "Other"] },
-        { key: "meetingCadence", label: "Meeting cadence", type: "select", options: ["Monthly", "Quarterly", "Semi-annually", "Annually", "Ad hoc", "Other"] },
-        { key: "hasIndependentMembers", label: "Any independent (non-staff, non-founder) board members?", type: "yesno" },
-        { key: "lastElectionDate", label: "Date of last board election/appointment", type: "date", required: false },
+        // Small organisations often have directors or trustees but no formal
+        // board. Asking first means they aren't forced to invent board
+        // details; the board questions only appear for those that have one.
+        { key: "hasFormalBoard", label: "Does the organisation have a formal board or trustee body?", type: "yesno" },
+        { key: "boardSize", label: "Board size", type: "select", options: ["1–3", "4–6", "7–10", "10+", "Other"], showIf: { key: "hasFormalBoard", equals: true } },
+        { key: "meetingCadence", label: "Meeting cadence", type: "select", options: ["Monthly", "Quarterly", "Semi-annually", "Annually", "Ad hoc", "Other"], showIf: { key: "hasFormalBoard", equals: true } },
+        { key: "hasIndependentMembers", label: "Any independent (non-staff, non-founder) board members?", type: "yesno", showIf: { key: "hasFormalBoard", equals: true } },
+        { key: "lastElectionDate", label: "Date of last board election/appointment", type: "date", required: false, showIf: { key: "hasFormalBoard", equals: true } },
         { key: "notes", label: "Anything else worth noting?", type: "text", required: false },
       ],
     },
@@ -268,7 +272,22 @@ export const FUNDER_DD_ITEMS: DDItemDef[] = [
 // governance_doc/legal_registration, FUNDER_DD_ITEMS too) -- the other
 // six DD_ITEMS entries and the rest of FUNDER_DD_ITEMS stay
 // questionnaire-only, no upload required.
-export const DOCUMENT_REQUIRED_KEYS = ["audited_accounts", "legal_registration", "governance_doc"];
+// Oct 2026: safeguarding_policy added. Proportional DD matching only
+// counts registration, safeguarding and governance when a file is
+// uploaded, so the form now asks for one up front for those items.
+export const DOCUMENT_REQUIRED_KEYS = ["audited_accounts", "legal_registration", "governance_doc", "safeguarding_policy"];
+
+// The basics for being matched at any deal size (proportional DD).
+export const DD_MATCH_BASICS = ["legal_registration", "safeguarding_policy", "legal_compliance_declaration"];
+
+// What counts as the supporting document for each upload-required item,
+// shown in the evidence form so people aren't guessing.
+export const DD_DOCUMENT_HINTS: Record<string, string> = {
+  legal_registration: "Upload your registration certificate (for example your CAC certificate) or tax-exempt status letter.",
+  safeguarding_policy: "Upload your safeguarding or child protection policy. A short policy adapted from a standard template is fine.",
+  governance_doc: "Upload anything showing who runs the organisation and how: a constitution, articles of association, CAC records listing directors or trustees, a board list, or an org chart.",
+  audited_accounts: "Upload your most recent audited financial statements.",
+};
 
 // Single write path for confirming a DD item's questionnaire answers,
 // used by the partnership-listing editor's DD checklist (which doesn't

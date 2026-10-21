@@ -26,6 +26,8 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { Sparkles, FileText, Building2 } from "lucide-react";
+import { DdStatusBadge, SupportTypeChip } from "@/components/platform/DdStatusBadge";
+import { sortByTierThenScore } from "@/lib/matchDd";
 
 type MatchState = "loading" | "locked_free" | "empty" | "ready" | "error";
 
@@ -47,22 +49,29 @@ export default function InitiativeMatchesForImplementer({ orgId }: { orgId: stri
     let cancelled = false;
 
     (async () => {
-      const { data: cached } = await supabase
+      // Tracked locally rather than via `matches` state: the closure below
+      // would otherwise see the pre-paint empty array (same stale-closure
+      // fix as ImplementerMatches.tsx).
+      let paintedCount = 0;
+      const { data: cachedRaw } = await supabase
         .from("initiative_match_cache")
-        .select("initiative_id, score, match_reason, criteria, computed_at")
+        .select("initiative_id, score, match_reason, criteria, computed_at, dd_status, dd_missing")
         .eq("org_id", orgId)
         .order("score", { ascending: false })
-        .limit(3);
+        .limit(30);
+      // Proportional DD: DD tier first, then score.
+      const cached = cachedRaw ? sortByTierThenScore(cachedRaw, "score").slice(0, 3) : cachedRaw;
 
       if (cached && cached.length > 0 && !cancelled) {
         const initiativeIds = cached.map((m: any) => m.initiative_id);
         const { data: initiatives } = await supabase
           .from("initiative_requests")
-          .select("id, title, problem, specific_ask, sectors, locations, stage, submitter_org, user_id")
+          .select("id, title, problem, specific_ask, sectors, locations, stage, submitter_org, user_id, partnerships")
           .in("id", initiativeIds);
         const iniMap = new Map((initiatives ?? []).map((i: any) => [i.id, i]));
         if (!cancelled) {
           setMatches(cached.map((m: any) => ({ ...m, initiative: iniMap.get(m.initiative_id) })));
+          paintedCount = cached.length;
           setState("ready");
         }
       }
@@ -80,15 +89,15 @@ export default function InitiativeMatchesForImplementer({ orgId }: { orgId: stri
         if (cancelled) return;
 
         if (result?.reason === "requires_upgrade") { setState("locked_free"); return; }
-        if (result?.eligible === false) { setState(matches.length > 0 ? "ready" : "error"); return; }
+        if (result?.eligible === false) { setState(paintedCount > 0 ? "ready" : "error"); return; }
 
-        const freshMatches = (result?.matches ?? []).slice(0, 3);
-        if (freshMatches.length === 0) { setState(matches.length > 0 ? "ready" : "empty"); return; }
+        const freshMatches = sortByTierThenScore(result?.matches ?? [], "score").slice(0, 3);
+        if (freshMatches.length === 0) { setState(paintedCount > 0 ? "ready" : "empty"); return; }
 
         const initiativeIds = freshMatches.map((m: any) => m.initiative_id);
         const { data: initiatives } = await supabase
           .from("initiative_requests")
-          .select("id, title, problem, specific_ask, sectors, locations, stage, submitter_org, user_id")
+          .select("id, title, problem, specific_ask, sectors, locations, stage, submitter_org, user_id, partnerships")
           .in("id", initiativeIds);
         const iniMap = new Map((initiatives ?? []).map((i: any) => [i.id, i]));
         if (!cancelled) {
@@ -96,7 +105,7 @@ export default function InitiativeMatchesForImplementer({ orgId }: { orgId: stri
           setState("ready");
         }
       } catch {
-        if (!cancelled) setState(matches.length > 0 ? "ready" : "error");
+        if (!cancelled) setState(paintedCount > 0 ? "ready" : "error");
       }
     })();
 
@@ -171,6 +180,10 @@ export default function InitiativeMatchesForImplementer({ orgId }: { orgId: stri
                 </button>
               )}
 
+              {m.dd_status && (
+                <div className="mb-2"><DdStatusBadge status={m.dd_status} missing={m.dd_missing} /></div>
+              )}
+
               {m.criteria ? (
                 <div className="flex flex-col gap-1 mb-2">
                   {CRITERIA_ROWS.map(([key, label]) => (
@@ -189,6 +202,7 @@ export default function InitiativeMatchesForImplementer({ orgId }: { orgId: stri
               )}
 
               <div className="mt-auto pt-2 flex items-center gap-2 flex-wrap">
+                <SupportTypeChip types={m.initiative?.partnerships} />
                 {m.initiative?.stage && (
                   <span className="text-[13px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
                     style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>

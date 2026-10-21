@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Trash2, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { DDItemDef, DDDocument, DOCUMENT_REQUIRED_KEYS } from "@/lib/ddItems";
+import { DDItemDef, DDDocument, DOCUMENT_REQUIRED_KEYS, DD_DOCUMENT_HINTS } from "@/lib/ddItems";
 
 export default function DDEvidenceModal({ item, initialAnswers, orgId, userId, onClose, onSave, onMarkIncomplete }: {
   item: DDItemDef; initialAnswers: Record<string, any>; orgId: string; userId: string;
@@ -116,12 +116,10 @@ export default function DDEvidenceModal({ item, initialAnswers, orgId, userId, o
     return false;
   }
 
-  // audited_accounts, legal_registration, governance_doc are the three DD
-  // items a funder is most likely to treat as a hard fact rather than a
-  // soft signal, and the three most likely to already exist as a real
-  // file on the org's computer -- so requiring an upload isn't asking for
-  // net-new work. The other six items and the whole FUNDER_DD_ITEMS
-  // checklist stay questionnaire-only, unaffected by this.
+  // audited_accounts, legal_registration, governance_doc and (Oct 2026)
+  // safeguarding_policy need an uploaded file -- see DOCUMENT_REQUIRED_KEYS
+  // in ddItems.ts. The other items and the rest of FUNDER_DD_ITEMS stay
+  // questionnaire-only.
   const missingDocument = DOCUMENT_REQUIRED_KEYS.includes(item.key) && documents.length === 0;
   const canSave = !item.questions.some(isQuestionMissing) && !missingDocument;
 
@@ -218,7 +216,10 @@ export default function DDEvidenceModal({ item, initialAnswers, orgId, userId, o
           <div className="pt-3 border-t border-border space-y-3">
             <p className="text-[13px] font-semibold uppercase tracking-wider text-black dark:text-white">Supporting documents</p>
             {DOCUMENT_REQUIRED_KEYS.includes(item.key) && (
-              <p className="text-[13px] text-black dark:text-white opacity-70">A document is required for this item.</p>
+              <p className="text-[13px] text-black dark:text-white">
+                A document is required for this item, and it only counts in matching once one is uploaded.
+                {DD_DOCUMENT_HINTS[item.key] ? ` ${DD_DOCUMENT_HINTS[item.key]}` : ""}
+              </p>
             )}
 
             {!docsLoading && documents.length > 0 && (

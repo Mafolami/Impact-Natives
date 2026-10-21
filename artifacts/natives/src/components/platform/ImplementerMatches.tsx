@@ -60,6 +60,8 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { Sparkles, Building2 } from "lucide-react";
+import { DdStatusBadge } from "@/components/platform/DdStatusBadge";
+import { sortByTierThenScore } from "@/lib/matchDd";
 
 const PARTNERSHIP_STAGE_LABELS: Record<string, string> = {
   concept: "Co-design from scratch",
@@ -142,14 +144,17 @@ export default function ImplementerMatches({ orgId }: { orgId: string | null }) 
       // inclusion threshold. submitting_listing_id filter (Fix 5) keeps
       // score-partnership-fit's separate, unfiltered rows out of this
       // paint entirely.
-      const { data: cached } = await supabase
+      const { data: cachedRaw } = await supabase
         .from("partnership_match_cache")
-        .select("matched_org_id, matched_listing_id, fit_score, rationale, key_synergy, criteria, computed_at")
+        .select("matched_org_id, matched_listing_id, fit_score, rationale, key_synergy, criteria, computed_at, dd_status, dd_missing")
         .eq("org_id", orgId)
         .not("submitting_listing_id", "is", null)
         .gte("fit_score", 45)
         .order("fit_score", { ascending: false })
-        .limit(3);
+        .limit(10);
+      // Proportional DD: DD tier first, then fit. Fetch a few extra so the
+      // tier sort can lift a documented match above a higher-scoring one.
+      const cached = cachedRaw ? sortByTierThenScore(cachedRaw, "fit_score").slice(0, 3) : cachedRaw;
 
       if (cached && cached.length > 0 && !cancelled) {
         const { orgMap, listingMap } = await fetchOrgAndListingMaps(cached);
@@ -279,6 +284,9 @@ export default function ImplementerMatches({ orgId }: { orgId: string | null }) 
                 }}>
                 {m.fit_score}% fit
               </span>
+              {m.dd_status && (
+                <div className="mb-2"><DdStatusBadge status={m.dd_status} missing={m.dd_missing} /></div>
+              )}
               {m.criteria ? (
                 <div className="flex flex-col gap-1 mb-2">
                   {[

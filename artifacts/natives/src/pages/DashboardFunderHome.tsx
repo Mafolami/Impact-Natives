@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { Sparkles, Bookmark, MessageSquare, Users, Building2, UserCheck } from "lucide-react";
+import { DdStatusBadge, SupportTypeChip } from "@/components/platform/DdStatusBadge";
+import { sortByTierThenScore } from "@/lib/matchDd";
 
 // Maps a pass reason to the specific mandate field it points at.
 const PASS_REASON_FIELD_MAP: Record<string, { label: string; hint: string }> = {
@@ -250,7 +252,7 @@ export default function FunderHome({ profile }: { profile: any }) {
       // Fetch initiatives
       const { data: initiatives } = await supabase
         .from("initiative_requests")
-        .select("id,title,sectors,locations,status,eois,created_at,problem,outcome,budget_min,budget_max,budget_currency,stage,sdg_tags,target_population,specific_ask,submitter_org,user_id")
+        .select("id,title,sectors,locations,status,eois,created_at,problem,outcome,budget_min,budget_max,budget_currency,stage,sdg_tags,target_population,specific_ask,submitter_org,user_id,partnerships")
         .eq("status", "published")
         .order("created_at", { ascending: false })
         .limit(30);
@@ -265,13 +267,14 @@ export default function FunderHome({ profile }: { profile: any }) {
       // hits a Groq rate limit. A stale/missing cache is only ever
       // refreshed by refresh-initiative-matches below, which leaves a good
       // cache untouched on failure.
-      const applyCache = (rows: { initiative_id: string; score: number; match_reason: string; criteria?: any }[]) => {
+      // Proportional DD: ranked by DD tier (documented first), then score.
+      const applyCache = (rows: { initiative_id: string; score: number; match_reason: string; criteria?: any; dd_status?: string | null; dd_missing?: string[] | null }[]) => {
         if (!rows?.length) return false;
         const scoreMap = Object.fromEntries(rows.map(r => [r.initiative_id, r]));
-        const ranked = initiatives
+        const ranked = sortByTierThenScore(initiatives
           .filter(ini => scoreMap[ini.id])
-          .map(ini => ({ ...ini, score: scoreMap[ini.id].score, match_reason: scoreMap[ini.id].match_reason, criteria: scoreMap[ini.id].criteria }))
-          .sort((a: any, b: any) => b.score - a.score);
+          .map(ini => ({ ...ini, score: scoreMap[ini.id].score, match_reason: scoreMap[ini.id].match_reason, criteria: scoreMap[ini.id].criteria,
+            dd_status: scoreMap[ini.id].dd_status ?? null, dd_missing: scoreMap[ini.id].dd_missing ?? [] })), "score");
         if (ranked.length > 0) {
           setMatchedInitiatives(ranked);
           setMatchingUnavailable(false);
@@ -282,7 +285,7 @@ export default function FunderHome({ profile }: { profile: any }) {
 
       const { data: cachedMatches } = await supabase
         .from("initiative_match_cache")
-        .select("initiative_id, score, match_reason, criteria")
+        .select("initiative_id, score, match_reason, criteria, dd_status, dd_missing")
         .eq("org_id", orgData?.id)
         .order("score", { ascending: false });
 
@@ -309,6 +312,7 @@ export default function FunderHome({ profile }: { profile: any }) {
           if (result.matches?.length) {
             applyCache(result.matches.map((m: any) => ({
               initiative_id: m.initiative_id, score: m.score, match_reason: m.match_reason, criteria: m.criteria,
+              dd_status: m.dd_status, dd_missing: m.dd_missing,
             })));
           }
           return { succeeded: true };
@@ -368,14 +372,17 @@ export default function FunderHome({ profile }: { profile: any }) {
       // (directory listing clicks) out of this paint entirely -- without
       // it, a stale or off-topic instant-fit result could flash here
       // exactly as it did on the implementer homepage.
-      const { data: cached } = await supabase
+      const { data: cachedRaw } = await supabase
         .from("partnership_match_cache")
-        .select("matched_org_id, matched_listing_id, fit_score, rationale, key_synergy, criteria, computed_at")
+        .select("matched_org_id, matched_listing_id, fit_score, rationale, key_synergy, criteria, computed_at, dd_status, dd_missing")
         .eq("org_id", orgId)
         .not("submitting_listing_id", "is", null)
         .gte("fit_score", 45)
         .order("fit_score", { ascending: false })
-        .limit(2);
+        .limit(10);
+      // Proportional DD: DD tier first, then fit. Fetch a few extra so the
+      // tier sort can lift a documented match above a higher-scoring one.
+      const cached = cachedRaw ? sortByTierThenScore(cachedRaw, "fit_score").slice(0, 2) : cachedRaw;
 
       let paintedMatches: any[] = [];
       if (cached && cached.length > 0) {
@@ -644,11 +651,15 @@ export default function FunderHome({ profile }: { profile: any }) {
                     </button>
                   )}
 
+                  {ini.dd_status && (
+                    <div className="mb-2"><DdStatusBadge status={ini.dd_status} missing={ini.dd_missing} /></div>
+                  )}
+
                   {ini.criteria ? (
                     <div className="flex flex-col gap-1 mb-2">
                       {[
                         ["sector_fit", "Sector"], ["geography_fit", "Geography"], ["stage_fit", "Stage"],
-                        ["budget_fit", "Budget"], ["dd_fit", "DD readiness"], ["esg_fit", "ESG fit"], ["support_type_fit", "Support type"],
+                        ["budget_fit", "Budget"], ["esg_fit", "ESG fit"], ["support_type_fit", "Support type"],
                       ].filter(([key]) => ini.criteria[key]).map(([key, label]) => (
                         <div key={key} className="flex items-center justify-between">
                           <span className="text-[13px] text-black dark:text-white">{label}</span>
@@ -669,6 +680,7 @@ export default function FunderHome({ profile }: { profile: any }) {
                   )}
 
                   <div className="mt-auto pt-2 flex items-center gap-2 flex-wrap">
+                    <SupportTypeChip types={ini.partnerships} />
                     {ini.stage && (
                       <span className="text-[13px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
                         style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>
@@ -779,6 +791,9 @@ export default function FunderHome({ profile }: { profile: any }) {
                     }}>
                     {m.fit_score}% fit
                   </span>
+                  {m.dd_status && (
+                    <div className="mb-2"><DdStatusBadge status={m.dd_status} missing={m.dd_missing} /></div>
+                  )}
                   {m.criteria ? (
                     <div className="flex flex-col gap-1 mb-2">
                       {[

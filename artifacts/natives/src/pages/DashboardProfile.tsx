@@ -11,7 +11,7 @@ import { UserAvatar } from "@/components/ui/UserAvatar";
 import VerifiedOutcomesSection from "@/components/dashboard/VerifiedOutcomesSection";
 import { COUNTRIES } from "@/lib/countries";
 import { SECTOR_OPTIONS } from "@/lib/sectors";
-import { DD_ITEMS, FUNDER_DD_ITEMS, PILLAR_INFO } from "@/lib/ddItems";
+import { DD_ITEMS, FUNDER_DD_ITEMS, PILLAR_INFO, DOCUMENT_REQUIRED_KEYS, DD_MATCH_BASICS } from "@/lib/ddItems";
 import DDEvidenceModal from "@/components/dashboard/DDEvidenceModal";
 import { saveOrgFields } from "@/lib/orgFields";
 import { EsgSnapshotSection } from "@/components/dashboard/EsgSnapshotSection";
@@ -575,6 +575,18 @@ export default function DashboardProfile() {
   const [ddEvidence, setDdEvidence]                   = useState<Record<string, any>>({});
   const [ddConfirmedAt, setDdConfirmedAt]              = useState<Record<string, any>>({});
   const [ddModalKey, setDdModalKey]                   = useState<string | null>(null);
+  // Which DD items have at least one uploaded file. Proportional DD
+  // matching only counts the upload-required items when a file exists, so
+  // a ticked item with no file gets a note. Re-read whenever the evidence
+  // modal opens or closes, since uploads and deletes happen there.
+  const [ddDocKeys, setDdDocKeys]                     = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!orgId) return;
+    let cancelled = false;
+    supabase.from("dd_evidence_documents").select("dd_item_key").eq("organization_id", orgId)
+      .then(({ data }) => { if (!cancelled) setDdDocKeys(new Set((data ?? []).map((r: any) => r.dd_item_key))); });
+    return () => { cancelled = true; };
+  }, [orgId, ddModalKey]);
 
   // ── Funder/corporate DD readiness (parallel, smaller checklist) ────────────
   const [fddDisbursementTrackRecord, setFddDisbursementTrackRecord] = useState(false);
@@ -2156,11 +2168,14 @@ export default function DashboardProfile() {
                     <p className="text-[13px] text-black dark:text-white opacity-60 mb-6">
                       Signal to funders that you are investment-ready. Checking an item asks for a few quick details, which appear as a tooltip on your profile once matched.
                     </p>
+                    <p className="text-[13px] text-black dark:text-white -mt-3 mb-6">
+                      For matching, the items marked <span className="font-semibold">Needed for all matches</span> are the basics at every deal size. Larger deals ask for more. Registration, safeguarding and governance only count once a document is uploaded.
+                    </p>
                     <div className="space-y-3">
                       {[
                         { key: "financial_model", label: "Financial model available", sub: "A current financial model or projections document", state: ddFinancialModel, set: setDdFinancialModel },
                         { key: "audited_accounts", label: "Audited accounts on file", sub: "Most recent audited financial statements", state: ddAuditedAccounts, set: setDdAuditedAccounts },
-                        { key: "governance_doc", label: "Governance documentation", sub: "Board structure, org chart, or governance policy", state: ddGovernanceDoc, set: setDdGovernanceDoc },
+                        { key: "governance_doc", label: "Governance documentation", sub: "Board structure, constitution, articles of association, director/trustee records, or org chart", state: ddGovernanceDoc, set: setDdGovernanceDoc },
                         { key: "esg_assessment", label: "ESG self-assessment completed", sub: "Environmental, social and governance baseline assessment", state: ddEsgAssessment, set: setDdEsgAssessment },
                         { key: "impact_framework", label: "Impact measurement framework", sub: "Theory of change, IRIS+ alignment, or outcome tracking methodology", state: ddImpactFramework, set: setDdImpactFramework },
                         { key: "environmental_policy", label: "Environmental policy", sub: "Energy, travel, and waste practices for fieldwork and operations", state: ddEnvironmentalPolicy, set: setDdEnvironmentalPolicy },
@@ -2176,8 +2191,18 @@ export default function DashboardProfile() {
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-black dark:text-white"><polyline points="20 6 9 17 4 12" /></svg>
                           </button>
                           <button type="button" onClick={() => setDdModalKey(item.key)} className="flex-1 min-w-0 text-left">
-                            <p className="text-[15px] font-medium text-black dark:text-white">{item.label}</p>
+                            <p className="text-[15px] font-medium text-black dark:text-white">
+                              {item.label}
+                              {DD_MATCH_BASICS.includes(item.key) && (
+                                <span className="ml-2 text-[11px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full align-middle" style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>Needed for all matches</span>
+                              )}
+                            </p>
                             <p className="text-[13px] text-black dark:text-white opacity-60 mt-0.5">{item.sub}</p>
+                            {DOCUMENT_REQUIRED_KEYS.includes(item.key) && !ddDocKeys.has(item.key) && (
+                              <p className="text-[13px] font-medium mt-1" style={{ color: "#C45C26" }}>
+                                Upload a document so this counts in matching
+                              </p>
+                            )}
                           </button>
                           <button type="button"
                             onClick={() => markDdItemIncomplete(item.key, item.set)}
@@ -2191,7 +2216,12 @@ export default function DashboardProfile() {
                           className="w-full text-left px-4 py-3 rounded-xl border border-border hover:border-foreground/20 transition-colors flex items-start gap-3">
                           <div className="w-4 h-4 rounded border border-border shrink-0 mt-0.5" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-[15px] font-medium text-black dark:text-white">{item.label}</p>
+                            <p className="text-[15px] font-medium text-black dark:text-white">
+                              {item.label}
+                              {DD_MATCH_BASICS.includes(item.key) && (
+                                <span className="ml-2 text-[11px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full align-middle" style={{ background: "rgba(45,106,79,0.12)", color: "#2D6A4F" }}>Needed for all matches</span>
+                              )}
+                            </p>
                             <p className="text-[13px] text-black dark:text-white opacity-60 mt-0.5">{item.sub}</p>
                           </div>
                         </button>
