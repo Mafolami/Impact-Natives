@@ -858,7 +858,7 @@ export default function CorporateHome({ profile }: { profile: any }) {
             <div className="rounded-2xl border border-border bg-white dark:bg-card p-8 text-center">
               <Building2 className="w-6 h-6 text-muted-foreground/30 mx-auto mb-3" />
               <p className="text-[15px] font-medium text-black dark:text-white mb-1">No partnership matches yet.</p>
-              <p className="text-[13px] text-black dark:text-white">Matches update the next time you open this page.</p>
+              <p className="text-[13px] text-black dark:text-white">No other organisations have an open partnership request that fits yours right now. New matches appear here as requests are posted.</p>
             </div>
           ) : (
             <div className="space-y-3">

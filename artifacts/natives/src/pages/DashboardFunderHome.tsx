@@ -770,7 +770,8 @@ export default function FunderHome({ profile }: { profile: any }) {
             </div>
           ) : partnershipMatches.length === 0 ? (
             <div className="rounded-xl border border-border bg-white dark:bg-card p-5 text-center">
-              <p className="text-[13px] text-black dark:text-white">No partnership matches yet.</p>
+              <p className="text-[13px] font-medium text-black dark:text-white mb-1">No partnership matches yet.</p>
+              <p className="text-[13px] text-black dark:text-white">No other organisations have an open partnership request that fits yours right now. New matches appear here as requests are posted.</p>
             </div>
           ) : (
             <div className="space-y-2">
