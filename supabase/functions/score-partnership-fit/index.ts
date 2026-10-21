@@ -1,6 +1,11 @@
 // supabase/functions/score-partnership-fit/index.ts
 // Powers the directory's "Your fit analysis" box.
 //
+// v17 (21 Oct 2026): admins and demo-org accounts can get a fit analysis
+// on DEMO listings (the directory shows demo listings only to them, via
+// RLS). Passes allow_demo_target to match-orgs-for-partnership only for
+// those callers, and never caches a fit against a demo listing, so demo
+// orgs can't leak into homepage match paints from the cache.
 // v15 (Oct 2026): PROPORTIONAL DD. Carries dd_status / dd_missing /
 // deal_bucket (judged per viewer-listing / target-listing pair) into the
 // cache and the response. The primary listing is chosen by DD tier first,
@@ -61,11 +66,11 @@ async function resolveOrgUserIds(org: any): Promise<string[]> {
   return [org.user_id, ...((members ?? []).map((m: any) => m.user_id))].filter(Boolean);
 }
 
-async function computeOne(listingId: string, targetListingId: string): Promise<any | null> {
+async function computeOne(listingId: string, targetListingId: string, allowDemoTarget: boolean): Promise<any | null> {
   const matchRes = await fetch(`${SUPABASE_URL}/functions/v1/match-orgs-for-partnership`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SUPABASE_SERVICE_KEY}`, "apikey": SUPABASE_SERVICE_KEY },
-    body: JSON.stringify({ submitting_listing_id: listingId, target_listing_id: targetListingId }),
+    body: JSON.stringify({ submitting_listing_id: listingId, target_listing_id: targetListingId, allow_demo_target: allowDemoTarget }),
   });
   if (!matchRes.ok) {
     console.error(`[score-partnership-fit] match call failed for listing ${listingId}: ${await matchRes.text()}`);
@@ -122,7 +127,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: viewerOrg, error: viewerOrgErr } = await serviceClient
       .from("organizations")
-      .select("id, user_id, flagged_visibility_hold, subscription_tier")
+      .select("id, user_id, flagged_visibility_hold, subscription_tier, is_demo_org")
       .eq("id", viewer_org_id)
       .maybeSingle();
     if (viewerOrgErr || !viewerOrg) {
@@ -132,10 +137,14 @@ Deno.serve(async (req: Request) => {
     }
 
     const orgUserIds = await resolveOrgUserIds(viewerOrg);
+    const { data: callerProfile } = await serviceClient
+      .from("profiles").select("is_admin").eq("id", user.id).maybeSingle();
+    const callerIsAdmin = !!callerProfile?.is_admin;
+    // Demo listings are only visible to admins and demo accounts, so only
+    // they may have one scored.
+    const allowDemoTarget = callerIsAdmin || !!viewerOrg.is_demo_org;
     if (!orgUserIds.includes(user.id)) {
-      const { data: callerProfile } = await serviceClient
-        .from("profiles").select("is_admin").eq("id", user.id).maybeSingle();
-      if (!callerProfile?.is_admin) {
+      if (!callerIsAdmin) {
         return new Response(JSON.stringify({ error: "Forbidden" }), {
           status: 403, headers: { "Content-Type": "application/json", ...CORS_HEADERS },
         });
@@ -200,7 +209,7 @@ Deno.serve(async (req: Request) => {
     }
 
     await runWithConcurrencyLimit(needsCompute, MAX_CONCURRENT_COMPUTES, async (listing: any) => {
-      const m = await computeOne(listing.id, target_listing_id);
+      const m = await computeOne(listing.id, target_listing_id, allowDemoTarget);
       if (!m) return;
 
       results.push({
@@ -211,6 +220,9 @@ Deno.serve(async (req: Request) => {
         ddStatus: m.dd_status ?? null, ddMissing: m.dd_missing ?? [], dealBucket: m.deal_bucket ?? null,
       });
 
+      // Never cache a fit against a demo listing (keeps demo orgs out of
+      // homepage match paints, which read this cache).
+      if (m.matched_is_demo) return;
       serviceClient.from("partnership_match_cache").upsert({
         org_id: viewerOrg.id,
         matched_org_id: m.matched_org_id,

@@ -2,6 +2,13 @@
 // Matches a submitting org/listing against organisations that have an
 // active posted partnership request.
 //
+// v50 (21 Oct 2026): single-pair scoring of DEMO listings, for admins and
+// demo accounts only. Bulk matching still excludes demo orgs. A demo
+// target is only allowed when a server caller (score-partnership-fit)
+// passes allow_demo_target, which it does only for an admin or demo-org
+// viewer; browser calls can't set it. Real users can't see demo listings
+// anyway (partnership_listings RLS). Matches now carry matched_is_demo so
+// the caller can skip caching them (keeps demo out of homepage paints).
 // v48 (Oct 2026): PROPORTIONAL DD. The DD-readiness cap is gone: DD no
 // longer lowers fit_score. Each match instead gets dd_status
 // (complete / exempt / tier_missing / basics_incomplete), dd_missing and
@@ -70,7 +77,7 @@ const MAX_RATE_LIMIT_RETRIES = 1;
 const MAX_BACKOFF_SECONDS = 15;
 const GENERIC_ERROR_BACKOFF_SECONDS = 3;
 
-const ORG_PROFILE_COLUMNS = "id, organisation_name, description, sector, country, organisation_type, needs, offers, sdgs, website, email, verification_status, user_id, flagged_visibility_hold, investment_thesis, grant_range_min, grant_range_max, grant_currency, stage_preference, geographic_focus, csr_focus_statement, csr_budget_range, esg_frameworks, inkind_support, partner_type_preference, employee_engagement_available, cobranding_open, tech_support_available, sandbox_ready, sandbox_description, dd_financial_model, dd_audited_accounts, dd_governance_doc, dd_esg_assessment, dd_impact_framework, dd_environmental_policy, dd_safeguarding_policy, dd_legal_registration, dd_legal_compliance_declaration, fdd_disbursement_track_record, fdd_decision_transparency, fdd_conflict_disclosure, fdd_governance_doc, fdd_esg_framework, fdd_legal_registration, total_beneficiaries_reached, jobs_created, years_of_operation, grants_received_count, grants_total_value_usd, grants_delivered_on_time_pct, previous_funders, third_party_evaluations, specializations, notable_engagements, affiliations";
+const ORG_PROFILE_COLUMNS = "id, organisation_name, description, sector, country, organisation_type, needs, offers, sdgs, website, email, verification_status, user_id, flagged_visibility_hold, is_demo_org, investment_thesis, grant_range_min, grant_range_max, grant_currency, stage_preference, geographic_focus, csr_focus_statement, csr_budget_range, esg_frameworks, inkind_support, partner_type_preference, employee_engagement_available, cobranding_open, tech_support_available, sandbox_ready, sandbox_description, dd_financial_model, dd_audited_accounts, dd_governance_doc, dd_esg_assessment, dd_impact_framework, dd_environmental_policy, dd_safeguarding_policy, dd_legal_registration, dd_legal_compliance_declaration, fdd_disbursement_track_record, fdd_decision_transparency, fdd_conflict_disclosure, fdd_governance_doc, fdd_esg_framework, fdd_legal_registration, total_beneficiaries_reached, jobs_created, years_of_operation, grants_received_count, grants_total_value_usd, grants_delivered_on_time_pct, previous_funders, third_party_evaluations, specializations, notable_engagements, affiliations";
 
 const CRITERIA_WEIGHTS: Record<string, number> = {
   need_offer_fit: 35,
@@ -425,6 +432,8 @@ Deno.serve(async (req: Request) => {
     const body = await req.json();
     const listingMode = !!body.submitting_listing_id;
     const singlePairMode = listingMode ? !!body.target_listing_id : !!body.target_org_id;
+    // Demo targets: single-pair listing mode, server callers only.
+    const allowDemoTarget = listingMode && singlePairMode && body.allow_demo_target === true && isServerCall(req);
 
     // Browser calls: signed-in user, listing mode only. Ownership and tier
     // are checked once the submitting listing's org is loaded below.
@@ -499,12 +508,13 @@ Deno.serve(async (req: Request) => {
       }
 
       const candidateUserIds = [...new Set(eligibleListings.map((l: any) => l.user_id))];
-      const { data: candidateOrgs, error: candOrgErr } = await supabase
+      let candidateOrgQuery = supabase
         .from("organizations")
         .select(ORG_PROFILE_COLUMNS)
         .in("user_id", candidateUserIds)
-        .eq("flagged_visibility_hold", false)
-        .eq("is_demo_org", false);
+        .eq("flagged_visibility_hold", false);
+      if (!allowDemoTarget) candidateOrgQuery = candidateOrgQuery.eq("is_demo_org", false);
+      const { data: candidateOrgs, error: candOrgErr } = await candidateOrgQuery;
       if (candOrgErr) throw candOrgErr;
 
       const orgByUserId = new Map((candidateOrgs ?? []).map((o: any) => [o.user_id, o]));
@@ -612,7 +622,7 @@ Deno.serve(async (req: Request) => {
           ...ddFieldsFor(c),
         };
         byId.set(m.org_id, listingMode
-          ? { ...base, matched_listing_id: c._listingId, matched_org_id: c._orgId }
+          ? { ...base, matched_listing_id: c._listingId, matched_org_id: c._orgId, matched_is_demo: !!c.is_demo_org }
           : { ...base, org_id: c.id, org: c });
       }
     } else {
@@ -658,7 +668,7 @@ Deno.serve(async (req: Request) => {
           ...ddFieldsFor(c),
         };
         byId.set(m.org_id, listingMode
-          ? { ...base, matched_listing_id: c._listingId, matched_org_id: c._orgId }
+          ? { ...base, matched_listing_id: c._listingId, matched_org_id: c._orgId, matched_is_demo: !!c.is_demo_org }
           : { ...base, org_id: c.id, org: c });
       }
     }
