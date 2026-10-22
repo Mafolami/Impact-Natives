@@ -1129,6 +1129,8 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
           created_at:  msg.created_at,
           read_at:     msg.read_at,
         }]);
+        // Thread is open, so the new message has been seen.
+        supabase.rpc("mark_conversation_read", { p_conversation_id: conversation.id });
       })
       .subscribe();
 
@@ -1189,10 +1191,9 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
       read_at:     m.read_at,
     })));
 
-    const unreadIds = (data ?? []).filter((m: any) => m.sender_id !== currentUserId && !m.read_at).map((m: any) => m.id);
-    if (unreadIds.length > 0) {
-      await supabase.from("messages").update({ read_at: new Date().toISOString() }).in("id", unreadIds);
-    }
+    // Recipients can't update messages under RLS, so a direct update silently
+    // did nothing. This RPC marks the other side's messages read server-side.
+    await supabase.rpc("mark_conversation_read", { p_conversation_id: conversation.id });
     setLoading(false);
   }
 
