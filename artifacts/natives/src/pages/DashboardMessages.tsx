@@ -1006,6 +1006,15 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
   const bottomRef                       = useRef<HTMLDivElement>(null);
   const textareaRef                     = useRef<HTMLTextAreaElement>(null);
 
+  // Composer grows with its content (capped by max-height, then scrolls).
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight + 2}px`; // +2 for the 1px top/bottom border
+    el.style.overflowY = el.scrollHeight > el.clientHeight ? "auto" : "hidden";
+  }, [body]);
+
   // conversation.initiative_owner_id is set from the initiative's own
   // user_id at creation time (create_conversation RPC), which is
   // orgOwnerId, not the real person who happens to be viewing this thread
@@ -1788,7 +1797,7 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
           )}
         </div>
       ) : (
-        <div className="pt-4 border-t border-border flex gap-2 min-w-0">
+        <div className="pt-4 border-t border-border flex items-end gap-2 min-w-0">
           <textarea
             ref={textareaRef}
             value={body}
@@ -1799,7 +1808,7 @@ function ChatThread({ conversation, currentUserId, orgOwnerId, onBack, onUpdate,
             placeholder="Type a message... (Shift+Enter for new line)"
             rows={1}
             className="flex-1 min-w-0 px-4 py-2.5 rounded-2xl border border-border bg-background text-[15px] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors resize-none"
-            style={{ minHeight: "40px", maxHeight: "120px" }}
+            style={{ minHeight: "40px", maxHeight: "40vh" }}
           />
           <button type="button" onClick={sendMessage} disabled={!body.trim() || sending}
             className="w-10 h-10 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0">
