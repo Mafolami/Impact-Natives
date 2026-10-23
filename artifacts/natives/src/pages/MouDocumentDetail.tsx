@@ -142,7 +142,7 @@ function SectionCard({ icon: Icon, eyebrow, title, description, action, children
   return (
     <div id={id}>
       <SectionDivider />
-      <div className="pt-7 pb-1 space-y-5">
+      <div className="pt-9 pb-3 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
@@ -154,7 +154,7 @@ function SectionCard({ icon: Icon, eyebrow, title, description, action, children
           </div>
           {action && <div className="shrink-0">{action}</div>}
         </div>
-        <div className="space-y-4">{children}</div>
+        <div className="space-y-7">{children}</div>
       </div>
     </div>
   );
@@ -209,6 +209,11 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
   const [priorRelationship, setPriorRelationship] = useState<boolean | null>(null);
   const [savingPriorRelationship, setSavingPriorRelationship] = useState(false);
   const [priorRelationshipError, setPriorRelationshipError] = useState<string | null>(null);
+  // Copy only mentions "your team" when Org A actually has active members.
+  const [orgAHasTeam, setOrgAHasTeam] = useState(false);
+  const priorQuestionRef = useRef<HTMLDivElement>(null);
+  // Signed copies of an uploaded PDF, keyed by org id -> signed URL.
+  const [signedCopyUrls, setSignedCopyUrls] = useState<Record<string, string>>({});
   // Action group for the org that didn't create a given indicator: Agree,
   // Suggest refinement (an inline edit -- the existing UPDATE RLS already
   // permits either participant org to edit any indicator on the document,
@@ -343,6 +348,20 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
     const { data: priorRow } = await supabase.from("mou_prior_relationship")
       .select("worked_before").eq("mou_document_id", documentId).maybeSingle();
     setPriorRelationship(priorRow ? !!priorRow.worked_before : null);
+    if (docRow.org_a_id) {
+      const { count } = await supabase.from("org_members")
+        .select("user_id", { count: "exact", head: true })
+        .eq("org_id", docRow.org_a_id).eq("status", "active");
+      setOrgAHasTeam((count ?? 0) > 0);
+    }
+    if (docRow.source_type === "uploaded_pdf") {
+      const urls: Record<string, string> = {};
+      for (const [orgId, path] of Object.entries((docRow.signed_files as Record<string, string>) ?? {})) {
+        const { data } = await supabase.storage.from("mou-documents").createSignedUrl(path, 3600);
+        if (data?.signedUrl) urls[orgId] = data.signedUrl;
+      }
+      setSignedCopyUrls(urls);
+    }
     setLoadingIndicators(true);
     const indicatorRows = await fetchIndicators(documentId);
     setIndicators(indicatorRows);
@@ -607,7 +626,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
     const isCustom = customFieldMode[key] ?? (!!value && !valueInOptions);
     return (
       <div key={key}>
-        <label className="text-sm font-medium text-black dark:text-white block mb-1">
+        <label className="text-sm font-medium text-black dark:text-white block mb-2">
           {humanizeFieldLabel(key)}
         </label>
         {!isCustom ? (
@@ -620,7 +639,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                 setFieldValues((prev) => ({ ...prev, [key]: e.target.value }));
               }
             }}
-            className="w-full h-10 px-3 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F]/50"
+            className="w-full h-11 px-3.5 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F] focus:ring-2 focus:ring-[#2D6A4F]/20"
           >
             <option value="" disabled>Select...</option>
             {options.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -633,7 +652,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
               value={value}
               onChange={(e) => setFieldValues((prev) => ({ ...prev, [key]: e.target.value }))}
               placeholder="Type your own..."
-              className="w-full h-10 px-3 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F]/50"
+              className="w-full h-11 px-3.5 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F] focus:ring-2 focus:ring-[#2D6A4F]/20"
             />
             <button type="button"
               onClick={() => setCustomFieldMode((prev) => ({ ...prev, [key]: false }))}
@@ -656,7 +675,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
     }
     return (
       <div key={key}>
-        <label className="text-sm font-medium text-black dark:text-white block mb-1">
+        <label className="text-sm font-medium text-black dark:text-white block mb-2">
           {humanizeFieldLabel(key)}
         </label>
         <div className="flex items-center gap-1">
@@ -669,7 +688,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
             min={0}
             value={value}
             onChange={(e) => setFieldValues((prev) => ({ ...prev, [key]: e.target.value }))}
-            className="flex-1 h-10 px-3 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white text-center focus:outline-none focus:border-[#2D6A4F]/50"
+            className="flex-1 h-10 px-3 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white text-center focus:outline-none focus:border-[#2D6A4F] focus:ring-2 focus:ring-[#2D6A4F]/20"
           />
           <button type="button" onClick={() => step(1)}
             className="w-9 h-10 rounded-lg border border-border text-black dark:text-white text-lg font-medium hover:border-[#2D6A4F]/50">
@@ -705,12 +724,12 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
     }
     return (
       <div key={key}>
-        <label className="text-sm font-medium text-black dark:text-white block mb-1">
+        <label className="text-sm font-medium text-black dark:text-white block mb-2">
           {humanizeFieldLabel(key)}
         </label>
         <div className="flex gap-2">
           <select value={currency} onChange={(e) => update(amount, e.target.value)}
-            className="w-24 h-10 px-2 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F]/50">
+            className="w-24 h-10 px-2 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F] focus:ring-2 focus:ring-[#2D6A4F]/20">
             {CURRENCY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
           <input
@@ -719,7 +738,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
             value={amount}
             onChange={(e) => update(e.target.value, currency)}
             placeholder="0"
-            className="flex-1 h-10 px-3 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F]/50"
+            className="flex-1 h-10 px-3 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F] focus:ring-2 focus:ring-[#2D6A4F]/20"
           />
         </div>
       </div>
@@ -732,7 +751,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
     if (readOnly) {
       return (
         <div key={key}>
-          <label className="text-sm font-medium text-black dark:text-white block mb-1">
+          <label className="text-sm font-medium text-black dark:text-white block mb-2">
             {humanizeFieldLabel(key)}
           </label>
           <p className="text-base text-black dark:text-white bg-muted/20 rounded-lg px-3 py-2 min-h-[2.5rem] whitespace-pre-line">
@@ -750,21 +769,21 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
     if (isDescriptionField(key)) {
       return (
         <div key={key}>
-          <label className="text-sm font-medium text-black dark:text-white block mb-1">
+          <label className="text-sm font-medium text-black dark:text-white block mb-2">
             {humanizeFieldLabel(key)}
           </label>
           <textarea
             value={value}
             onChange={(e) => setFieldValues((prev) => ({ ...prev, [key]: e.target.value }))}
             rows={4}
-            className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white leading-relaxed focus:outline-none focus:border-[#2D6A4F]/50 resize-y"
+            className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white leading-relaxed focus:outline-none focus:border-[#2D6A4F] focus:ring-2 focus:ring-[#2D6A4F]/20 resize-y"
           />
         </div>
       );
     }
     return (
       <div key={key}>
-        <label className="text-sm font-medium text-black dark:text-white block mb-1">
+        <label className="text-sm font-medium text-black dark:text-white block mb-2">
           {humanizeFieldLabel(key)}
         </label>
         <input
@@ -772,8 +791,8 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
           value={value}
           max={key === "agreement_date" ? new Date().toISOString().slice(0, 10) : undefined}
           onChange={(e) => setFieldValues((prev) => ({ ...prev, [key]: e.target.value }))}
-          className={`w-full h-10 px-3 rounded-lg border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none ${
-            dateError ? "border-red-500" : "border-border focus:border-[#2D6A4F]/50"
+          className={`w-full h-11 px-3.5 rounded-lg border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none ${
+            dateError ? "border-red-500" : "border-border focus:border-[#2D6A4F] focus:ring-2 focus:ring-[#2D6A4F]/20"
           }`}
         />
         {dateError && <p className="text-sm text-red-600 mt-1">{dateError}</p>}
@@ -803,9 +822,9 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
             <div className="flex gap-2 items-start">
               <input value={flagNote} onChange={(e) => setFlagNote(e.target.value)}
                 placeholder="What needs clarifying?"
-                className="flex-1 h-9 px-2 rounded-lg border border-border bg-white dark:bg-card text-sm text-black dark:text-white focus:outline-none focus:border-[#2D6A4F]/50" />
+                className="flex-1 h-9 px-2 rounded-lg border border-border bg-white dark:bg-card text-sm text-black dark:text-white focus:outline-none focus:border-[#2D6A4F] focus:ring-2 focus:ring-[#2D6A4F]/20" />
               <button type="button" onClick={async () => { await raiseFlag(key, flagNote, opts.raiserRole); setFlagNote(""); setOpenFlagField(null); }}
-                className="text-sm px-3 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium">
+                className="text-sm h-11 px-6 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-semibold shadow-sm">
                 Send
               </button>
               <button type="button" onClick={() => { setOpenFlagField(null); setFlagNote(""); }}
@@ -930,6 +949,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
     if (!doc || doc.status !== "draft" || signerOrgId !== doc.org_a_id) return false;
     if (priorRelationship !== null) return false;
     setPriorRelationshipError(`Answer "Had you worked with this partner before?" before you sign or send.`);
+    priorQuestionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     return true;
   }
   async function answerPriorRelationship(workedBefore: boolean) {
@@ -1204,7 +1224,12 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
     // Full execution now only happens via the explicit finalizeDocument()
     // action Org A takes after reviewing Org B's submitted section.
     updates.status = doc.status === "draft" ? "sent" : doc.status;
-    await supabase.from("mou_documents").update(updates).eq("id", doc.id);
+    const { error: signError } = await supabase.from("mou_documents").update(updates).eq("id", doc.id);
+    if (signError) {
+      setSigning(false);
+      load({ silent: true });
+      return;
+    }
     const updatedDoc = { ...doc, ...updates } as MouDoc;
     setDoc(updatedDoc);
     const myName = isOrgA ? orgA.organisation_name : orgB.organisation_name;
@@ -1540,8 +1565,10 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
         updates.signature_org_b_path = sigPngPath;
         updates.signed_at_org_b = new Date().toISOString();
       }
-      await supabase.from("mou_documents").update(updates).eq("id", doc.id);
-      setDoc({ ...doc, ...updates } as MouDoc);
+      // Same as uploadSignedCopy: record when the second signature executed it.
+      if (bothSigned) updates.fully_executed_at = new Date().toISOString();
+      const { error: updateError } = await supabase.from("mou_documents").update(updates).eq("id", doc.id);
+      if (!updateError) setDoc({ ...doc, ...updates } as MouDoc);
     } finally {
       setComposingSignature(false);
     }
@@ -2021,7 +2048,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                                 const opt = t.options.find((o) => String(o.value) === e.target.value);
                                 if (opt) saveToggleSelection(t.key, opt.value);
                               }}
-                              className="w-full h-10 px-3 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F]/50 disabled:cursor-not-allowed disabled:opacity-70"
+                              className="w-full h-11 px-3.5 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F] focus:ring-2 focus:ring-[#2D6A4F]/20 disabled:cursor-not-allowed disabled:opacity-70"
                             >
                               <option value="" disabled>Select...</option>
                               {visibleToggleOptions(t).map((opt) => (
@@ -2035,7 +2062,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                               value={currentValue === true ? "true" : currentValue === false ? "false" : ""}
                               disabled={!togglesEditable}
                               onChange={(e) => saveToggleSelection(t.key, e.target.value === "true")}
-                              className="w-full h-10 px-3 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F]/50 disabled:cursor-not-allowed disabled:opacity-70"
+                              className="w-full h-11 px-3.5 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white focus:outline-none focus:border-[#2D6A4F] focus:ring-2 focus:ring-[#2D6A4F]/20 disabled:cursor-not-allowed disabled:opacity-70"
                             >
                               <option value="" disabled>Select...</option>
                               <option value="true">Yes</option>
@@ -2056,11 +2083,11 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                     ? "Review the details below. Flag anything that needs clarifying before filling in your own details."
                     : `Waiting for ${orgA?.organisation_name ?? "the other party"} to complete their details.`}>
                   {groupedFieldKeys.orgAKeys.length > 0 && (isViewerOrgA || doc.details_completed_by_org_a) && (
-                    <div className="rounded-xl border border-border p-4 space-y-3">
+                    <div className="rounded-2xl border border-border p-5 sm:p-6 space-y-5">
                       <p className="text-sm font-semibold text-[#2D6A4F] uppercase tracking-wide">
                         {orgA?.organisation_name || "Your organisation"}
                       </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-6">
                         {groupedFieldKeys.orgAKeys.map((key) => (
                           <div key={key} className={isDescriptionField(key) ? "sm:col-span-2" : ""}>
                             {renderFieldInput(key, isViewerOrgB ? true : !orgADetailsEditable)}
@@ -2071,11 +2098,11 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                     </div>
                   )}
                   {orderedOtherKeys.length > 0 && (isViewerOrgA || doc.details_completed_by_org_a) && (
-                    <div className="rounded-xl border border-border p-4 space-y-3">
+                    <div className="rounded-2xl border border-border p-5 sm:p-6 space-y-5">
                       <p className="text-sm font-semibold text-[#2D6A4F] uppercase tracking-wide">
                         Agreement details
                       </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-6">
                         {orderedOtherKeys.map((key) => (
                           <div key={key} className={isDescriptionField(key) ? "sm:col-span-2" : ""}>
                             {renderFieldInput(key, isViewerOrgB ? true : !orgADetailsEditable)}
@@ -2086,7 +2113,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                     </div>
                   )}
                   {groupedFieldKeys.orgBKeys.length > 0 && (
-                    <div className="rounded-xl border border-border p-4 space-y-3">
+                    <div className="rounded-2xl border border-border p-5 sm:p-6 space-y-5">
                       <p className="text-sm font-semibold text-[#2D6A4F] uppercase tracking-wide">
                         {orgB?.organisation_name || "Partner organisation"}
                       </p>
@@ -2104,7 +2131,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                         </p>
                       ) : (
                         <>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-6">
                             {groupedFieldKeys.orgBKeys.map((key) => (
                               <div key={key} className={isDescriptionField(key) ? "sm:col-span-2" : ""}>
                                 {renderFieldInput(key, isViewerOrgA ? true : !orgBFieldsEditable)}
@@ -2127,13 +2154,13 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                   : "Edit any clause directly — erase what doesn't apply, adjust wording as needed."}>
                 {displaySections.map((s) => (
                   <div key={s.id}>
-                    <p className="text-sm font-semibold uppercase tracking-wide text-black dark:text-white mb-1">{s.title}</p>
+                    <p className="text-sm font-semibold uppercase tracking-wide text-black dark:text-white mb-2">{s.title}</p>
                     {canEditDocumentContent ? (
                       <textarea
                         value={s.body}
                         onChange={(e) => handleSectionEdit(s.id, e.target.value)}
                         rows={Math.max(3, Math.ceil(s.body.length / 80))}
-                        className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white leading-relaxed focus:outline-none focus:border-[#2D6A4F]/50 resize-y"
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-white dark:bg-card text-base text-black dark:text-white leading-relaxed focus:outline-none focus:border-[#2D6A4F] focus:ring-2 focus:ring-[#2D6A4F]/20 resize-y"
                       />
                     ) : (
                       <p className="text-base text-black dark:text-white leading-relaxed whitespace-pre-line">
@@ -2146,7 +2173,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                 ))}
                 {canEditDocumentContent && Object.keys(sectionOverrides).length > 0 && (
                   <button type="button" onClick={savePreviewEdits} disabled={savingSections}
-                    className="text-sm font-semibold text-[#2D6A4F] hover:underline underline-offset-2 disabled:opacity-60">
+                    className="text-sm h-11 px-6 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-semibold shadow-sm transition-colors disabled:opacity-60">
                     {savingSections ? "Saving..." : "Save document edits"}
                   </button>
                 )}
@@ -2172,7 +2199,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                   onBlur={saveCustomContent}
                   rows={16}
                   placeholder="Write the full text of your agreement here..."
-                  className="w-full px-4 py-3 rounded-xl border border-border bg-white dark:bg-card text-base text-black dark:text-white leading-relaxed focus:outline-none focus:border-[#2D6A4F]/50 resize-y"
+                  className="w-full px-4 py-3 rounded-xl border border-border bg-white dark:bg-card text-base text-black dark:text-white leading-relaxed focus:outline-none focus:border-[#2D6A4F] focus:ring-2 focus:ring-[#2D6A4F]/20 resize-y"
                 />
               ) : (
                 <p className="w-full px-4 py-3 rounded-xl border border-border bg-white dark:bg-card text-base text-black dark:text-white leading-relaxed whitespace-pre-line">
@@ -2187,14 +2214,24 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
           {/* Uploaded PDF */}
           {doc.source_type === "uploaded_pdf" && (
             <SectionCard icon={FileText} eyebrow="Document" title="Uploaded document">
-              {uploadedFileUrl ? (
-                <a href={uploadedFileUrl} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-[#2D6A4F] font-semibold hover:underline underline-offset-2 text-base">
-                  <Download className="w-4 h-4" /> View original document
-                </a>
-              ) : (
-                <p className="text-sm text-black dark:text-white">Could not load the document link.</p>
-              )}
+              <div className="flex flex-wrap gap-3">
+                {uploadedFileUrl ? (
+                  <a href={uploadedFileUrl} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 h-11 px-5 rounded-full border-2 border-[#2D6A4F] text-[#2D6A4F] font-semibold text-sm hover:bg-[#2D6A4F]/[0.06] transition-colors">
+                    <Download className="w-4 h-4" /> View original document
+                  </a>
+                ) : (
+                  <p className="text-sm text-black dark:text-white">Could not load the document link.</p>
+                )}
+                {[{ org: orgA, id: doc.org_a_id }, { org: orgB, id: doc.org_b_id }].map(({ org, id }) =>
+                  id && signedCopyUrls[id] ? (
+                    <a key={id} href={signedCopyUrls[id]} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 h-11 px-5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-semibold text-sm shadow-sm transition-colors">
+                      <Download className="w-4 h-4" /> {org?.organisation_name ?? "Signed"} signed copy
+                    </a>
+                  ) : null
+                )}
+              </div>
             </SectionCard>
           )}
           {/* Outcome indicators -- required (agreed by both parties) before
@@ -2282,7 +2319,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                           {!iProposedSuggestion && (
                             <div className="flex gap-2 pt-1">
                               <button type="button" onClick={() => resolveSuggestion(ind, true)} disabled={resolvingSuggestionId === ind.id}
-                                className="text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium disabled:opacity-60 transition-colors">
+                                className="text-sm h-11 px-6 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-semibold shadow-sm disabled:opacity-60 transition-colors">
                                 {resolvingSuggestionId === ind.id ? "Accepting..." : "Accept suggested changes"}
                               </button>
                               <button type="button" onClick={() => resolveSuggestion(ind, false)} disabled={resolvingSuggestionId === ind.id}
@@ -2297,7 +2334,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                         <div className="flex flex-wrap items-center gap-2 pt-1">
                           <button type="button" onClick={() => handleAgreeToIndicator(ind.id)}
                             disabled={agreeingIndicatorId === ind.id}
-                            className="text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium disabled:opacity-60 transition-colors">
+                            className="text-sm h-11 px-6 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-semibold shadow-sm disabled:opacity-60 transition-colors">
                             {agreeingIndicatorId === ind.id ? "Agreeing..." : "Agree"}
                           </button>
                           <button type="button" onClick={() => openEditIndicator(ind)}
@@ -2313,35 +2350,35 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                       {isEditing && (
                         <div className="space-y-2 pt-2 border-t border-border">
                           <div>
-                            <label className="text-xs text-black dark:text-white block mb-1">Indicator name</label>
+                            <label className="text-sm font-medium text-black dark:text-white block mb-2">Indicator name</label>
                             <input type="text" value={editDraft.name} onChange={(e) => setEditDraft((d) => ({ ...d, name: e.target.value }))}
                               className="w-full h-9 px-2.5 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
                           </div>
                           <div>
-                            <label className="text-xs text-black dark:text-white block mb-1">Definition</label>
+                            <label className="text-sm font-medium text-black dark:text-white block mb-2">Definition</label>
                             <textarea value={editDraft.definition} onChange={(e) => setEditDraft((d) => ({ ...d, definition: e.target.value }))} rows={2}
                               className="w-full px-2.5 py-1.5 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white resize-none" />
                           </div>
                           <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <label className="text-xs text-black dark:text-white block mb-1">Baseline</label>
+                              <label className="text-sm font-medium text-black dark:text-white block mb-2">Baseline</label>
                               <input type="text" value={editDraft.baseline_value} onChange={(e) => setEditDraft((d) => ({ ...d, baseline_value: e.target.value }))}
                                 className="w-full h-9 px-2.5 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
                             </div>
                             <div>
-                              <label className="text-xs text-black dark:text-white block mb-1">Target</label>
+                              <label className="text-sm font-medium text-black dark:text-white block mb-2">Target</label>
                               <input type="text" value={editDraft.target_value} onChange={(e) => setEditDraft((d) => ({ ...d, target_value: e.target.value }))}
                                 className="w-full h-9 px-2.5 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
                             </div>
                           </div>
                           <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <label className="text-xs text-black dark:text-white block mb-1">Measurement window</label>
+                              <label className="text-sm font-medium text-black dark:text-white block mb-2">Measurement window</label>
                               <input type="text" value={editDraft.measurement_window} onChange={(e) => setEditDraft((d) => ({ ...d, measurement_window: e.target.value }))}
                                 className="w-full h-9 px-2.5 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
                             </div>
                             <div>
-                              <label className="text-xs text-black dark:text-white block mb-1">Source</label>
+                              <label className="text-sm font-medium text-black dark:text-white block mb-2">Source</label>
                               <input type="text" value={editDraft.source} onChange={(e) => setEditDraft((d) => ({ ...d, source: e.target.value }))}
                                 className="w-full h-9 px-2.5 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white" />
                             </div>
@@ -2384,7 +2421,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                           </div>
                           <div className="flex gap-2">
                             <button type="button" onClick={() => saveEditIndicator(ind.id)} disabled={savingEdit || editDraftProofPoints.length === 0}
-                              className="text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium disabled:opacity-60 transition-colors">
+                              className="text-sm h-11 px-6 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-semibold shadow-sm disabled:opacity-60 transition-colors">
                               {savingEdit ? "Saving..." : "Save suggested changes"}
                             </button>
                             <button type="button" onClick={cancelEditIndicator} disabled={savingEdit}
@@ -2396,7 +2433,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                       )}
                       {isRejecting && (
                         <div className="space-y-2 pt-2 border-t border-border">
-                          <label className="text-xs text-black dark:text-white block mb-1">Why are you rejecting this indicator?</label>
+                          <label className="text-sm font-medium text-black dark:text-white block mb-2">Why are you rejecting this indicator?</label>
                           <textarea value={rejectReasonDraft} onChange={(e) => setRejectReasonDraft(e.target.value)} rows={2}
                             placeholder="Explain what needs to change"
                             className="w-full px-2.5 py-1.5 rounded-lg border border-border bg-transparent text-sm text-black dark:text-white resize-none" />
@@ -2462,30 +2499,37 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
               </InfoBanner>
             )}
             {showPriorRelationshipQuestion && (
-              <div className="rounded-xl border border-border p-4 space-y-3">
-                <div>
-                  <p className="text-base font-medium text-black dark:text-white">
+              <div ref={priorQuestionRef}
+                className={`rounded-2xl border-2 p-5 sm:p-6 space-y-4 scroll-mt-24 transition-colors ${
+                  priorRelationshipError && priorRelationship === null
+                    ? "border-red-500 bg-red-50 dark:bg-red-950/20"
+                    : priorRelationship === null
+                    ? "border-[#C45C26] bg-[#C45C26]/[0.05]"
+                    : "border-[#2D6A4F]/40 bg-[#2D6A4F]/[0.04]"
+                }`}>
+                <div className="space-y-1.5">
+                  <p className="text-lg font-bold text-black dark:text-white">
                     Had you worked with this partner before? <span className="text-red-600">*</span>
                   </p>
-                  <p className="text-sm text-black dark:text-white mt-0.5">
-                    Required before you sign and send. Only your organisation and the Impact Natives team can see your answer. {orgB?.organisation_name ?? "Your partner"} can't.
+                  <p className="text-sm text-black dark:text-white leading-relaxed">
+                    Required before you sign. {orgAHasTeam ? "Only your team" : "Only you"} can see your answer, not {orgB?.organisation_name ?? "your partner"}.
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   {[{ v: true, l: "Yes" }, { v: false, l: "No" }].map((opt) => (
                     <button key={opt.l} type="button" disabled={savingPriorRelationship}
                       onClick={() => answerPriorRelationship(opt.v)}
-                      className={`flex-1 px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors disabled:opacity-60 ${
+                      className={`h-12 rounded-xl border-2 text-base font-semibold transition-colors disabled:opacity-60 ${
                         priorRelationship === opt.v
-                          ? "border-[#2D6A4F] bg-[#2D6A4F]/8 text-black dark:text-white"
-                          : "border-border text-black dark:text-white hover:border-[#2D6A4F]/40"
+                          ? "border-[#2D6A4F] bg-[#2D6A4F] text-white shadow-sm"
+                          : "border-border bg-white dark:bg-card text-black dark:text-white hover:border-[#2D6A4F]"
                       }`}>
                       {opt.l}
                     </button>
                   ))}
                 </div>
-                {priorRelationshipError && (
-                  <p className="text-sm text-destructive">{priorRelationshipError}</p>
+                {priorRelationshipError && priorRelationship === null && (
+                  <p className="text-sm font-medium text-red-700">{priorRelationshipError}</p>
                 )}
               </div>
             )}
@@ -2500,7 +2544,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                 <div className="flex flex-wrap items-center gap-2">
                   {canSaveProgress && (
                     <button type="button" onClick={saveFieldValues} disabled={saving}
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-border text-black dark:text-white hover:border-[#2D6A4F]/50 transition-colors disabled:opacity-60 text-sm font-medium">
+                      className="flex items-center gap-2 h-11 px-6 rounded-full border-2 border-[#2D6A4F] text-[#2D6A4F] hover:bg-[#2D6A4F]/[0.06] transition-colors disabled:opacity-60 text-sm font-medium">
                       {saving ? "Saving..." : "Save progress"}
                     </button>
                   )}
@@ -2508,7 +2552,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                     <button type="button" onClick={markSent}
                       disabled={saving || missingFieldLabels.length > 0 || dateValidationErrors.length > 0 || !orgAHasSigned || needsPriorRelationship}
                       title={!orgAHasSigned ? "Sign this document before sending it" : needsPriorRelationship ? "Answer the question above before sending" : undefined}
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors disabled:opacity-60">
+                      className="flex items-center gap-2 h-11 px-6 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-semibold shadow-sm transition-colors disabled:opacity-60">
                       <Send className="w-4 h-4" /> {saving ? "Sending..." : `Send to ${orgB?.organisation_name ?? "partner"}`}
                     </button>
                   )}
@@ -2574,7 +2618,9 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                     return (
                       <div className="border-t border-border pt-4">
                         <p className="text-sm text-black dark:text-white">
-                          You've completed your part of this document. Need to change something? Use "Void signatures and reopen" below.
+                          {doc.status === "fully_executed"
+                            ? "Both parties have signed. This MoU is fully executed and can no longer be changed."
+                            : `You've completed your part of this document. Need to change something? Use "Void signatures and reopen" below.`}
                         </p>
                       </div>
                     );
@@ -2585,8 +2631,8 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                         <p className="text-sm text-black dark:text-white">
                           This document was uploaded as a Word file, so Impact Natives can't place a signature onto it directly. Sign it outside the platform, then upload your signed copy.
                         </p>
-                        <button type="button" onClick={() => setShowUploadWarning(true)} disabled={isLiteralOwnerA && needsPriorRelationship}
-                          className="text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium transition-colors disabled:opacity-60">
+                        <button type="button" onClick={() => { if (isLiteralOwnerA && priorRelationshipMissing(doc.org_a_id)) return; setShowUploadWarning(true); }}
+                          className="text-sm h-11 px-6 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-semibold shadow-sm transition-colors disabled:opacity-60">
                           Upload your signed copy
                         </button>
                       </div>
@@ -2598,8 +2644,8 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                       <p className="text-sm text-black dark:text-white">
                         Your signature is appended as a new final page on the uploaded document.
                       </p>
-                      <SignaturePad onConfirm={composeAndSignPdf} disabled={composingSignature || (isLiteralOwnerA && needsPriorRelationship)} confirming={composingSignature} />
-                      <button type="button" onClick={() => setShowUploadWarning(true)} disabled={composingSignature || (isLiteralOwnerA && needsPriorRelationship)}
+                      <SignaturePad onConfirm={composeAndSignPdf} disabled={composingSignature} confirming={composingSignature} />
+                      <button type="button" onClick={() => { if (isLiteralOwnerA && priorRelationshipMissing(doc.org_a_id)) return; setShowUploadWarning(true); }} disabled={composingSignature}
                         className="flex items-center gap-1.5 text-sm text-black dark:text-white hover:underline underline-offset-2 disabled:opacity-60">
                         <PenLine className="w-3.5 h-3.5" /> Sign outside the platform and upload instead
                       </button>
@@ -2666,22 +2712,22 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                               </button>
                             )}
                           </div>
-                          <SignaturePad onConfirm={confirmSignature} disabled={signing || (isOrgA && needsPriorRelationship)} confirming={signing} />
+                          <SignaturePad onConfirm={confirmSignature} disabled={signing} confirming={signing} />
                         </>
                       ) : (
                         <div className="space-y-2">
-                          <div className="flex items-center gap-4">
+                          <div className="flex flex-wrap items-center gap-3">
                             <button type="button" onClick={() => setRedrawingSignature(true)}
-                              className="text-sm text-black dark:text-white hover:underline underline-offset-2">
+                              className="text-sm h-10 px-5 rounded-full border-2 border-border text-black dark:text-white font-semibold hover:border-[#2D6A4F] transition-colors">
                               Change signature
                             </button>
                             <button type="button" onClick={clearMySignature}
-                              className="text-sm text-black dark:text-white hover:underline underline-offset-2">
+                              className="text-sm h-10 px-5 rounded-full border-2 border-border text-black dark:text-white font-semibold hover:border-red-400 transition-colors">
                               Clear signature
                             </button>
                           </div>
                           <button type="button" onClick={finishMySignature}
-                            className="text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium transition-colors">
+                            className="text-sm h-11 px-6 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-semibold shadow-sm transition-colors">
                             {isOrgA ? "Finish" : `Submit for ${orgA?.organisation_name ?? "final"} review`}
                           </button>
                           <p className="text-sm text-black dark:text-white">                            
@@ -2700,7 +2746,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
           {isLiteralOwnerA && doc.source_type === "template" && doc.signature_org_a_path && missingFieldLabels.length === 0 && dateValidationErrors.length === 0 && (
               <button type="button" onClick={completeOrgADetails}
               disabled={saving || (doc.details_completed_by_org_a && !hasUnresolvedOrgBFlags)}
-              className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3 text-base font-medium transition-colors disabled:opacity-60">
+              className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3.5 text-base font-semibold shadow-sm transition-colors disabled:opacity-60">
                 {doc.details_completed_by_org_a
                   ? (hasUnresolvedOrgBFlags ? "Resubmit after resolving flags" : "Details submitted")
                   : (saving ? "Submitting..." : `Submit — notify ${orgB?.organisation_name ?? "partner"}`)}
@@ -2728,7 +2774,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
               )}
               <button type="button" onClick={finalizeDocument}
                 disabled={finalizing || !doc.signed_at_org_a || hasUnresolvedOrgAFlags || finalizeBlockedOnOrgBConfirmation}
-                className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3 text-base font-medium transition-colors disabled:opacity-60">
+                className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3.5 text-base font-semibold shadow-sm transition-colors disabled:opacity-60">
                 {finalizing ? "Finalizing..." : "Finish Finally — fully execute this MoU"}
               </button>
             </div>
@@ -2740,7 +2786,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
               </InfoBanner>
               <button type="button" onClick={confirmFinalization}
                 disabled={confirmingFinalization}
-                className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3 text-base font-medium transition-colors disabled:opacity-60">
+                className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3.5 text-base font-semibold shadow-sm transition-colors disabled:opacity-60">
                 {confirmingFinalization ? "Confirming..." : "Confirm — no objection to finalizing"}
               </button>
             </div>
@@ -2757,8 +2803,8 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
               </InfoBanner>
               <button type="button" onClick={confirmPartnershipStatus}
                 disabled={confirmingPartnershipStatus}
-                className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3 text-base font-medium transition-colors disabled:opacity-60">
-                {confirmingPartnershipStatus ? "Marking..." : "Mark partnership as executed"}
+                className="w-full flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#245c43] text-white rounded-full py-3.5 text-base font-semibold shadow-sm transition-colors disabled:opacity-60">
+                {confirmingPartnershipStatus ? "Marking..." : `Mark ${doc.initiative_id ? "initiative" : "partnership"} as executed`}
               </button>
             </div>
           )}

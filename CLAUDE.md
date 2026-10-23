@@ -170,7 +170,7 @@ These are recorded, not fixed.
   - `production_schema.sql` and `20260820093135_add_mou_stage_timestamps.sql` are empty.
   - Read the live schema before changing it, and don't assume the repo is complete.
 - **Repo migrations and live migration history don't match.**
-  - `20261023120000_mou_prior_relationship.sql` and `20261023180000_demo_orgs_read_demo_orgs.sql` were applied by hand in the SQL editor on 23 Oct 2026, so they are in the repo but not in the live migration history (`supabase_migrations.schema_migrations`).
+  - `20261023120000_mou_prior_relationship.sql`, `20261023180000_demo_orgs_read_demo_orgs.sql` and `20261024090000_mou_void_by_either_party.sql` were applied by hand in the SQL editor, so they are in the repo but not in the live migration history (`supabase_migrations.schema_migrations`).
   - The reverse also exists: `20261022095623` is in the live history but has no file in the repo.
 - **`dd.ts` has four identical copies and no shared source.** See the DD section above.
 - **Em dashes in user-facing copy**, against the rule above. 57 `.tsx` files in `artifacts/natives/src` contain one; in about 44 of them it's outside a code comment, so it's likely in copy. Fix them when you touch those files.
