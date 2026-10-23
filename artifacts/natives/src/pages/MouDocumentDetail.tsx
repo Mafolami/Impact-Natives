@@ -143,6 +143,16 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
   const [showIndicatorForm, setShowIndicatorForm] = useState(false);
   const [agreeingIndicatorId, setAgreeingIndicatorId] = useState<string | null>(null);
   const [uploadIndicatorError, setUploadIndicatorError] = useState<string | null>(null);
+  // "Had you worked with this partner before?" -- Org A's required Yes/No
+  // before its MoU leaves draft (which happens on Org A's first signature
+  // or upload, not only on Send). Stored in mou_prior_relationship, which
+  // only Org A and admins can read; Org B's query just comes back empty.
+  // The DB trigger (enforce_prior_relationship_before_send) is the real
+  // guarantee; the checks below stop Org A before a signature file is
+  // uploaded, since confirmSignature() doesn't check its update result.
+  const [priorRelationship, setPriorRelationship] = useState<boolean | null>(null);
+  const [savingPriorRelationship, setSavingPriorRelationship] = useState(false);
+  const [priorRelationshipError, setPriorRelationshipError] = useState<string | null>(null);
   // Action group for the org that didn't create a given indicator: Agree,
   // Suggest refinement (an inline edit -- the existing UPDATE RLS already
   // permits either participant org to edit any indicator on the document,
@@ -274,6 +284,9 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
     } else {
       setSignatureBUrl(null);
     }
+    const { data: priorRow } = await supabase.from("mou_prior_relationship")
+      .select("worked_before").eq("mou_document_id", documentId).maybeSingle();
+    setPriorRelationship(priorRow ? !!priorRow.worked_before : null);
     setLoadingIndicators(true);
     const indicatorRows = await fetchIndicators(documentId);
     setIndicators(indicatorRows);
@@ -907,8 +920,33 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
     }).eq("id", doc.id);
     setSaving(false);
   }
+  // True when Org A still has to answer before this draft can be signed or
+  // sent. Takes the org explicitly because the signing handlers resolve
+  // the signer's org themselves.
+  function priorRelationshipMissing(signerOrgId: string | null): boolean {
+    if (!doc || doc.status !== "draft" || signerOrgId !== doc.org_a_id) return false;
+    if (priorRelationship !== null) return false;
+    setPriorRelationshipError(`Answer "Had you worked with this partner before?" before you sign or send.`);
+    return true;
+  }
+  async function answerPriorRelationship(workedBefore: boolean) {
+    if (!doc) return;
+    setSavingPriorRelationship(true);
+    setPriorRelationshipError(null);
+    const { error } = await supabase.rpc("set_mou_prior_relationship", {
+      p_document_id: doc.id,
+      p_worked_before: workedBefore,
+    });
+    setSavingPriorRelationship(false);
+    if (error) {
+      setPriorRelationshipError("Your answer couldn't be saved. Please try again.");
+      return;
+    }
+    setPriorRelationship(workedBefore);
+  }
   async function markSent() {
     if (!doc || !orgB) return;
+    if (priorRelationshipMissing(doc.org_a_id)) return;
     // Org A must have signed before the document can go to Org B -- an
     // unsigned send left Org B stuck with no way to sign their own side
     // or notify Org A to come back and sign. The DB trigger
@@ -1132,9 +1170,10 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
   }
   async function confirmSignature(dataUrl: string) {
     if (!doc || !orgA || !orgB) return;
-    setSigning(true);
     const myOrgId = orgA.user_id === myUserId ? orgA.id : orgB.user_id === myUserId ? orgB.id : null;
-    if (!myOrgId) { setSigning(false); return; }
+    if (!myOrgId) return;
+    if (priorRelationshipMissing(myOrgId)) return;
+    setSigning(true);
     const path = `signatures/${doc.id}/${myOrgId}-${Date.now()}.png`;
     const { error: uploadError } = await supabase.storage
       .from("mou-documents").upload(path, dataUrlToBlob(dataUrl));
@@ -1390,6 +1429,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
     // can be different people on the same side, or either party at all.
     const myOrgId = orgA.user_id === myUserId ? orgA.id : orgB.user_id === myUserId ? orgB.id : null;
     if (!myOrgId) return;
+    if (priorRelationshipMissing(myOrgId)) return;
     // If this signature would complete both sides (the other org has
     // already signed), check the same requirement finalizeDocument()
     // enforces for the template/custom path -- the DB trigger
@@ -1439,6 +1479,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
     setUploadIndicatorError(null);
     const myOrgId = orgA.user_id === myUserId ? orgA.id : orgB.user_id === myUserId ? orgB.id : null;
     if (!myOrgId) return;
+    if (priorRelationshipMissing(myOrgId)) return;
     // Same check as uploadSignedCopy -- see comment there.
     const otherOrgId = myOrgId === doc.org_a_id ? doc.org_b_id : doc.org_a_id;
     const otherAlreadySigned = !!doc.signed_files?.[otherOrgId ?? ""];
@@ -1843,6 +1884,8 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
   // signed_files keyed by org id. Mirrors the check the DB trigger
   // (enforce_org_a_signed_before_send) applies server-side.
   const orgAHasSigned = doc.source_type === "uploaded_pdf" ? !!doc.signed_files?.[doc.org_a_id ?? ""] : !!doc.signature_org_a_path;
+  const showPriorRelationshipQuestion = isViewerOrgA && doc.status === "draft";
+  const needsPriorRelationship = showPriorRelationshipQuestion && priorRelationship === null;
   const orgBConfirmationPending = isBindingMou && !doc.org_b_finalization_confirmed;
   const orgBCanConfirmFinalization =
     isLiteralOwnerB && doc.status === "pending_org_a_final_review" && !hasUnresolvedOrgAFlags && orgBConfirmationPending;
@@ -2415,6 +2458,34 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                 Sign this document before sending it. {orgB?.organisation_name ?? "The other party"} can't sign their own side, and has no way to prompt you to come back and sign, once it's already been sent.
               </InfoBanner>
             )}
+            {showPriorRelationshipQuestion && (
+              <div className="rounded-xl border border-border p-4 space-y-3">
+                <div>
+                  <p className="text-base font-medium text-black dark:text-white">
+                    Had you worked with this partner before? <span className="text-red-600">*</span>
+                  </p>
+                  <p className="text-sm text-black dark:text-white mt-0.5">
+                    Required before you sign and send. Only your organisation and the Impact Natives team can see your answer. {orgB?.organisation_name ?? "Your partner"} can't.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  {[{ v: true, l: "Yes" }, { v: false, l: "No" }].map((opt) => (
+                    <button key={opt.l} type="button" disabled={savingPriorRelationship}
+                      onClick={() => answerPriorRelationship(opt.v)}
+                      className={`flex-1 px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors disabled:opacity-60 ${
+                        priorRelationship === opt.v
+                          ? "border-[#2D6A4F] bg-[#2D6A4F]/8 text-black dark:text-white"
+                          : "border-border text-black dark:text-white hover:border-[#2D6A4F]/40"
+                      }`}>
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+                {priorRelationshipError && (
+                  <p className="text-sm text-destructive">{priorRelationshipError}</p>
+                )}
+              </div>
+            )}
             {(() => {
               const canSaveProgress = doc.source_type === "template" && (orgADetailsEditable || orgBFieldsEditable);
               // Sending locks Org A's submission in as final and formally
@@ -2432,8 +2503,8 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                   )}
                   {canSend && (
                     <button type="button" onClick={markSent}
-                      disabled={saving || missingFieldLabels.length > 0 || dateValidationErrors.length > 0 || !orgAHasSigned}
-                      title={!orgAHasSigned ? "Sign this document before sending it" : undefined}
+                      disabled={saving || missingFieldLabels.length > 0 || dateValidationErrors.length > 0 || !orgAHasSigned || needsPriorRelationship}
+                      title={!orgAHasSigned ? "Sign this document before sending it" : needsPriorRelationship ? "Answer the question above before sending" : undefined}
                       className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white text-sm font-medium transition-colors disabled:opacity-60">
                       <Send className="w-4 h-4" /> {saving ? "Sending..." : `Send to ${orgB?.organisation_name ?? "partner"}`}
                     </button>
@@ -2511,8 +2582,8 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                         <p className="text-sm text-black dark:text-white">
                           This document was uploaded as a Word file, so Impact Natives can't place a signature onto it directly. Sign it outside the platform, then upload your signed copy.
                         </p>
-                        <button type="button" onClick={() => setShowUploadWarning(true)}
-                          className="text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium transition-colors">
+                        <button type="button" onClick={() => setShowUploadWarning(true)} disabled={isLiteralOwnerA && needsPriorRelationship}
+                          className="text-sm px-4 py-1.5 rounded-full bg-[#2D6A4F] hover:bg-[#245c43] text-white font-medium transition-colors disabled:opacity-60">
                           Upload your signed copy
                         </button>
                       </div>
@@ -2524,8 +2595,8 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                       <p className="text-sm text-black dark:text-white">
                         Your signature is appended as a new final page on the uploaded document.
                       </p>
-                      <SignaturePad onConfirm={composeAndSignPdf} disabled={composingSignature} confirming={composingSignature} />
-                      <button type="button" onClick={() => setShowUploadWarning(true)} disabled={composingSignature}
+                      <SignaturePad onConfirm={composeAndSignPdf} disabled={composingSignature || (isLiteralOwnerA && needsPriorRelationship)} confirming={composingSignature} />
+                      <button type="button" onClick={() => setShowUploadWarning(true)} disabled={composingSignature || (isLiteralOwnerA && needsPriorRelationship)}
                         className="flex items-center gap-1.5 text-sm text-black dark:text-white hover:underline underline-offset-2 disabled:opacity-60">
                         <PenLine className="w-3.5 h-3.5" /> Sign outside the platform and upload instead
                       </button>
@@ -2592,7 +2663,7 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
                               </button>
                             )}
                           </div>
-                          <SignaturePad onConfirm={confirmSignature} disabled={signing} confirming={signing} />
+                          <SignaturePad onConfirm={confirmSignature} disabled={signing || (isOrgA && needsPriorRelationship)} confirming={signing} />
                         </>
                       ) : (
                         <div className="space-y-2">
