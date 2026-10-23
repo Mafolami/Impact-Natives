@@ -437,6 +437,22 @@ export default function CreateMouModal({
     );
   }
 
+  // An MoU is between two organisations (org_a_id / org_b_id). A confirmed
+  // partner can be an individual account with no organisation, in which
+  // case every save path above returns early on !partnerOrg and the Create
+  // button silently did nothing. Say so instead.
+  function renderPartnerHasNoOrg() {
+    return (
+      <div className="text-center py-6 space-y-3">
+        <X className="w-10 h-10 text-red-600 mx-auto" />
+        <p className="text-base font-semibold text-black dark:text-white">This partner has no organisation profile</p>
+        <p className="text-sm text-black dark:text-white max-w-xs mx-auto">
+          MoUs need both parties to have an organisation profile. {partnerName || "This partner"} doesn't have one yet.
+        </p>
+      </div>
+    );
+  }
+
   function renderExisting() {    return (
       <div className="text-center py-6 space-y-3">
         <CheckCircle2 className="w-10 h-10 text-[#2D6A4F] mx-auto" />
@@ -459,13 +475,13 @@ export default function CreateMouModal({
         onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
-            {path && !existingDocId && !notInitiativeCreator && !notListingOwner && (
+            {path && partnerOrg && !existingDocId && !notInitiativeCreator && !notListingOwner && (
               <button type="button" onClick={() => setPath(null)} className="text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
                 <ArrowLeft className="w-4 h-4" />
               </button>
             )}
             <h2 className="text-lg font-bold text-black dark:text-white">
-              {notInitiativeCreator || notListingOwner ? "Not available" : existingDocId ? "MoU already exists" : "Create MoU"}
+              {notInitiativeCreator || notListingOwner || (!loadingOrgs && !partnerOrg) ? "Not available" : existingDocId ? "MoU already exists" : "Create MoU"}
             </h2>
           </div>
           <button type="button" onClick={onClose} className="text-black dark:text-white hover:text-[#2D6A4F] transition-colors">
@@ -479,6 +495,7 @@ export default function CreateMouModal({
             </div>
           ) : notInitiativeCreator ? renderNotCreator()
             : notListingOwner ? renderNotListingOwner()
+            : !partnerOrg ? renderPartnerHasNoOrg()
             : existingDocId ? renderExisting()
             : path === "template" ? renderTemplateStep()
             : path === "custom" ? renderCustomStep()
