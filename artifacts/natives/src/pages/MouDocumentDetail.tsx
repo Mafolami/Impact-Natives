@@ -103,6 +103,62 @@ const PAYMENT_SCHEDULE_OPTIONS = [
 const REPORTING_FREQUENCY_OPTIONS = ["Weekly", "Monthly", "Quarterly", "Bi-annually", "Annually", "Ad hoc / as needed"];
 const NOTICE_DAYS_OPTIONS = ["3", "7", "14", "30", "60", "90"];
 const GOVERNING_JURISDICTION_OPTIONS = ["Federal Republic of Nigeria", "Lagos State, Nigeria", "United Kingdom", "Ghana", "Kenya", "South Africa"];
+// Module scope on purpose: defined inside MouDocumentDetail these were new
+// component types on every render, so each keystroke remounted the whole
+// section (input lost focus, cursor and scroll jumped).
+function InfoBanner({ tone, icon: Icon, children }: { tone: "locked" | "waiting" | "success" | "celebrate"; icon: typeof Lock; children: ReactNode }) {
+  const styles = {
+    locked: { bg: "bg-white dark:bg-card", border: "border-border", icon: "text-black dark:text-white" },
+    waiting: { bg: "bg-amber-50 dark:bg-amber-950/20", border: "border-amber-200 dark:border-amber-900/40", icon: "text-amber-600 dark:text-amber-500" },
+    success: { bg: "bg-[#2D6A4F]/[0.06]", border: "border-[#2D6A4F]/20", icon: "text-[#2D6A4F]" },
+    celebrate: { bg: "bg-[#2D6A4F]/10", border: "border-[#2D6A4F]/30", icon: "text-[#2D6A4F]" },
+  }[tone];
+  return (
+    <div className={`flex items-start gap-3 rounded-xl border ${styles.border} ${styles.bg} px-4 py-3`}>
+      <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${styles.icon}`} />
+      <p className="text-sm text-black dark:text-white leading-relaxed">{children}</p>
+    </div>
+  );
+}
+// Shared module wrapper -- every major section (terms, details, preview,
+// indicators, send & sign) gets the same icon-badge + eyebrow + divider
+// treatment, so the page reads as a deliberate rhythm of distinct
+// modules instead of a flat scroll of paragraphs separated by border-t.
+// Breaks out of any parent padding to span the true viewport width,
+// regardless of how deep this component sits in the layout -- the
+// 50vw/-mx trick works independent of the actual container width,
+// unlike a fixed negative margin that would need to match it exactly.
+function SectionDivider() {
+  return <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen h-2 bg-[#F4EFE3] dark:bg-black" />;
+}
+// Flat, not a bordered box -- each module is announced by a full-bleed
+// divider bar rather than a rounded card, per the page's actual visual
+// direction. Header type is deliberately large and bold: this is the
+// one place on the page whose whole job is orientation, so it should
+// read as a real heading, not a caption.
+function SectionCard({ icon: Icon, eyebrow, title, description, action, children, id }: {
+  icon: typeof Lock; eyebrow: string; title: string; description?: ReactNode; action?: ReactNode; children: ReactNode; id?: string;
+}) {
+  return (
+    <div id={id}>
+      <SectionDivider />
+      <div className="pt-7 pb-1 space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <Icon className="w-4 h-4 text-[#C45C26]" />
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#C45C26]">{eyebrow}</p>
+            </div>
+            <p className="text-2xl font-extrabold text-black dark:text-white tracking-tight mt-1">{title}</p>
+            {description && <p className="text-sm text-black dark:text-white mt-1.5 max-w-2xl">{description}</p>}
+          </div>
+          {action && <div className="shrink-0">{action}</div>}
+        </div>
+        <div className="space-y-4">{children}</div>
+      </div>
+    </div>
+  );
+}
 export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, onClose }: Props) {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -721,59 +777,6 @@ export default function MouDocumentDetail({ documentId, myUserId, orgOwnerId, on
           }`}
         />
         {dateError && <p className="text-sm text-red-600 mt-1">{dateError}</p>}
-      </div>
-    );
-  }
-  function InfoBanner({ tone, icon: Icon, children }: { tone: "locked" | "waiting" | "success" | "celebrate"; icon: typeof Lock; children: ReactNode }) {
-    const styles = {
-      locked: { bg: "bg-white dark:bg-card", border: "border-border", icon: "text-black dark:text-white" },
-      waiting: { bg: "bg-amber-50 dark:bg-amber-950/20", border: "border-amber-200 dark:border-amber-900/40", icon: "text-amber-600 dark:text-amber-500" },
-      success: { bg: "bg-[#2D6A4F]/[0.06]", border: "border-[#2D6A4F]/20", icon: "text-[#2D6A4F]" },
-      celebrate: { bg: "bg-[#2D6A4F]/10", border: "border-[#2D6A4F]/30", icon: "text-[#2D6A4F]" },
-    }[tone];
-    return (
-      <div className={`flex items-start gap-3 rounded-xl border ${styles.border} ${styles.bg} px-4 py-3`}>
-        <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${styles.icon}`} />
-        <p className="text-sm text-black dark:text-white leading-relaxed">{children}</p>
-      </div>
-    );
-  }
-  // Shared module wrapper -- every major section (terms, details, preview,
-  // indicators, send & sign) gets the same icon-badge + eyebrow + divider
-  // treatment, so the page reads as a deliberate rhythm of distinct
-  // modules instead of a flat scroll of paragraphs separated by border-t.
-  // Breaks out of any parent padding to span the true viewport width,
-  // regardless of how deep this component sits in the layout -- the
-  // 50vw/-mx trick works independent of the actual container width,
-  // unlike a fixed negative margin that would need to match it exactly.
-  function SectionDivider() {
-    return <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen h-2 bg-[#F4EFE3] dark:bg-black" />;
-  }
-  // Flat, not a bordered box -- each module is announced by a full-bleed
-  // divider bar rather than a rounded card, per the page's actual visual
-  // direction. Header type is deliberately large and bold: this is the
-  // one place on the page whose whole job is orientation, so it should
-  // read as a real heading, not a caption.
-  function SectionCard({ icon: Icon, eyebrow, title, description, action, children, id }: {
-    icon: typeof Lock; eyebrow: string; title: string; description?: ReactNode; action?: ReactNode; children: ReactNode; id?: string;
-  }) {
-    return (
-      <div id={id}>
-        <SectionDivider />
-        <div className="pt-7 pb-1 space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <Icon className="w-4 h-4 text-[#C45C26]" />
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#C45C26]">{eyebrow}</p>
-              </div>
-              <p className="text-2xl font-extrabold text-black dark:text-white tracking-tight mt-1">{title}</p>
-              {description && <p className="text-sm text-black dark:text-white mt-1.5 max-w-2xl">{description}</p>}
-            </div>
-            {action && <div className="shrink-0">{action}</div>}
-          </div>
-          <div className="space-y-4">{children}</div>
-        </div>
       </div>
     );
   }
