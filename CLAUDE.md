@@ -113,7 +113,7 @@ Access is controlled in the database. Browser checks are only there to show a fr
   - `is_org_member(org_id)`: active row in `org_members`.
   - `can_edit_org_profile(owner_user_id)` / `can_confirm_mou_for_org(org_id)`: the owner, or a member with `is_mou_signer`. This gates signing and finalising MoUs.
   - `is_admin()`: reads `profiles.is_admin`.
-  - Public org reads require `status = 'published'`, not a demo org, and no visibility hold.
+  - Public org reads require `status = 'published'`, not a demo org, and no visibility hold. Demo orgs can also read other demo orgs (`viewer_is_demo_org()`), so demo-to-demo MoUs work.
 - **Column privileges on top of RLS.** RLS picks rows; grants pick columns.
   - `profiles`: authenticated users can only UPDATE an allowlist of columns. `is_admin`, verification and subscription fields are locked (`20260826175919_...`).
   - `organizations`: sensitive fields (email, TIN, registration number, SRG1 revenue, subscription ids and status, review flags, DD evidence URLs) are mirrored into `organization_private` by the `sync_org_private` trigger. Owners, members and admins read them there. Several are revoked from `organizations` for `anon` / `authenticated` (`20261014140000_...`).
@@ -170,7 +170,7 @@ These are recorded, not fixed.
   - `production_schema.sql` and `20260820093135_add_mou_stage_timestamps.sql` are empty.
   - Read the live schema before changing it, and don't assume the repo is complete.
 - **Repo migrations and live migration history don't match.**
-  - `20261023120000_mou_prior_relationship.sql` was applied by hand in the SQL editor on 23 Oct 2026, so it is in the repo but not in the live migration history (`supabase_migrations.schema_migrations`).
+  - `20261023120000_mou_prior_relationship.sql` and `20261023180000_demo_orgs_read_demo_orgs.sql` were applied by hand in the SQL editor on 23 Oct 2026, so they are in the repo but not in the live migration history (`supabase_migrations.schema_migrations`).
   - The reverse also exists: `20261022095623` is in the live history but has no file in the repo.
 - **`dd.ts` has four identical copies and no shared source.** See the DD section above.
 - **Em dashes in user-facing copy**, against the rule above. 57 `.tsx` files in `artifacts/natives/src` contain one; in about 44 of them it's outside a code comment, so it's likely in copy. Fix them when you touch those files.

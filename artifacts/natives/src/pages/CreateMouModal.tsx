@@ -445,9 +445,9 @@ export default function CreateMouModal({
     return (
       <div className="text-center py-6 space-y-3">
         <X className="w-10 h-10 text-red-600 mx-auto" />
-        <p className="text-base font-semibold text-black dark:text-white">This partner has no organisation profile</p>
+        <p className="text-base font-semibold text-black dark:text-white">Organisation profile unavailable</p>
         <p className="text-sm text-black dark:text-white max-w-xs mx-auto">
-          MoUs need both parties to have an organisation profile. {partnerName || "This partner"} doesn't have one yet.
+          MoUs need both parties to have an organisation profile. We couldn't load one for {partnerName || "this partner"}.
         </p>
       </div>
     );
